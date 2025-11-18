@@ -2,6 +2,9 @@
 
 DOMAIN = "ev_trip_planner"
 
+# Dispatcher signal for reactive updates
+SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
+
 # Configuration keys
 CONF_VEHICLE_NAME = "vehicle_name"
 CONF_VEHICLE_TYPE = "vehicle_type"

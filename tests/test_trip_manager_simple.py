@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -27,7 +27,8 @@ async def test_initialization(hass, vehicle_id):
 
     assert manager.hass == hass
     assert manager.vehicle_id == vehicle_id
-    assert manager._input_text_entity == f"input_text.{DOMAIN}_{vehicle_id}_trips"
+    # Storage API: ensure key is namespaced correctly
+    assert manager._store.key == f"ev_trip_planner.{vehicle_id}.trips"
 
 
 @pytest.mark.asyncio

@@ -12,10 +12,13 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.storage import Store
 
 from .const import (
     DOMAIN,
+    SIGNAL_TRIPS_UPDATED,
     TRIP_STATUS_CANCELLED,
     TRIP_STATUS_COMPLETED,
     TRIP_STATUS_PENDING,
@@ -24,6 +27,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+STORAGE_VERSION = 1
 
 
 class TripManager:
@@ -38,32 +42,20 @@ class TripManager:
         """
         self.hass = hass
         self.vehicle_id = vehicle_id
-        self._input_text_entity = f"input_text.{DOMAIN}_{vehicle_id}_trips"
+        # Use Storage API instead of input_text
+        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{vehicle_id}.trips")
         _LOGGER.debug("Initialized TripManager for vehicle: %s", vehicle_id)
 
     async def async_setup(self) -> None:
-        """Set up trip manager and create input_text if needed."""
-        # Check if input_text exists
-        entity_reg = er.async_get(self.hass)
-        entity = entity_reg.async_get(self._input_text_entity)
-
-        if entity is None:
-            # Create input_text via service call
-            await self.hass.services.async_call(
-                "input_text",
-                "create",
-                {
-                    "name": f"{DOMAIN} {self.vehicle_id} trips",
-                    "initial": "[]",
-                    "max": 65535,  # Maximum size for trip storage
-                },
-                blocking=True,
-            )
-            _LOGGER.info("Created input_text entity: %s", self._input_text_entity)
+        """Set up trip manager and load existing trips."""
+        # Load existing trips from storage
+        stored_data = await self._store.async_load()
+        if stored_data is None:
+            # Initialize empty storage
+            await self._store.async_save([])
+            _LOGGER.info("Initialized empty trip storage for vehicle: %s", self.vehicle_id)
         else:
-            _LOGGER.debug(
-                "Input_text entity already exists: %s", self._input_text_entity
-            )
+            _LOGGER.info("Loaded %d trips for vehicle: %s", len(stored_data), self.vehicle_id)
 
     async def _async_load_trips(self) -> list[dict[str, Any]]:
         """Load trips from storage.
@@ -71,18 +63,13 @@ class TripManager:
         Returns:
             List of trip dictionaries
         """
-        state = self.hass.states.get(self._input_text_entity)
-        if state is None:
-            _LOGGER.warning("Input_text entity not found: %s", self._input_text_entity)
+        trips = await self._store.async_load()
+        if trips is None:
+            _LOGGER.debug("No trips found for vehicle %s", self.vehicle_id)
             return []
-
-        try:
-            trips = json.loads(state.state)
-            _LOGGER.debug("Loaded %d trips for vehicle %s", len(trips), self.vehicle_id)
-            return trips
-        except json.JSONDecodeError as err:
-            _LOGGER.error("Failed to decode trips JSON: %s", err)
-            return []
+        
+        _LOGGER.debug("Loaded %d trips for vehicle %s", len(trips), self.vehicle_id)
+        return trips
 
     async def _async_save_trips(self, trips: list[dict[str, Any]]) -> None:
         """Save trips to storage.
@@ -90,21 +77,10 @@ class TripManager:
         Args:
             trips: List of trip dictionaries
         """
-        try:
-            trips_json = json.dumps(trips, ensure_ascii=False)
-            await self.hass.services.async_call(
-                "input_text",
-                "set_value",
-                {
-                    "entity_id": self._input_text_entity,
-                    "value": trips_json,
-                },
-                blocking=True,
-            )
-            _LOGGER.debug("Saved %d trips for vehicle %s", len(trips), self.vehicle_id)
-        except Exception as err:
-            _LOGGER.error("Failed to save trips: %s", err)
-            raise
+        await self._store.async_save(trips)
+        _LOGGER.debug("Saved %d trips for vehicle %s", len(trips), self.vehicle_id)
+        # Notify listeners (sensors) that trips have changed
+        async_dispatcher_send(self.hass, f"{SIGNAL_TRIPS_UPDATED}_{self.vehicle_id}")
 
     def _generate_trip_id(self, trip_type: str, trip_data: dict[str, Any]) -> str:
         """Generate unique trip ID.
