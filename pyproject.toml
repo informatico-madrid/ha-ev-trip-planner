@@ -19,7 +19,7 @@ ignore = ["tests"]
 [tool.pylint.FORMAT]
 max-line-length = 88
 
-[tool.pylint.MESSAGES CONTROL]
+[tool.pylint."MESSAGES CONTROL"]
 disable = [
     "too-few-public-methods",
     "too-many-instance-attributes",

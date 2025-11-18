@@ -35,6 +35,11 @@ DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV
 # Trip types
 TRIP_TYPE_RECURRING = "recurrente"
 TRIP_TYPE_PUNCTUAL = "puntual"
+# Trip status (for punctual trips)
+TRIP_STATUS_PENDING = "pendiente"
+TRIP_STATUS_COMPLETED = "completado"
+TRIP_STATUS_CANCELLED = "cancelado"
+
 
 # Trip status
 TRIP_STATUS_PENDING = "pendiente"

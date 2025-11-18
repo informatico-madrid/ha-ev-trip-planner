@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_BATTERY_CAPACITY,
@@ -55,7 +54,7 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Validate vehicle name is unique
             await self.async_set_unique_id(user_input[CONF_VEHICLE_NAME].lower())
             self._abort_if_unique_id_configured()
-            
+
             # Store basic vehicle info and move to sensors step
             self.context["vehicle_data"] = user_input
             return await self.async_step_sensors()
@@ -102,7 +101,7 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vehicle_data = self.context["vehicle_data"]
             vehicle_data.update(user_input)
             self.context["vehicle_data"] = vehicle_data
-            
+
             return await self.async_step_consumption()
 
         data_schema = vol.Schema(
@@ -146,7 +145,7 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Merge all data and create entry
             vehicle_data = self.context["vehicle_data"]
             vehicle_data.update(user_input)
-            
+
             return self.async_create_entry(
                 title=vehicle_data[CONF_VEHICLE_NAME],
                 data=vehicle_data,
@@ -154,9 +153,9 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_CONSUMPTION, default=DEFAULT_CONSUMPTION
-                ): vol.All(vol.Coerce(float), vol.Range(min=0.05, max=0.5)),
+                vol.Required(CONF_CONSUMPTION, default=DEFAULT_CONSUMPTION): vol.All(
+                    vol.Coerce(float), vol.Range(min=0.05, max=0.5)
+                ),
                 vol.Required(
                     CONF_SAFETY_MARGIN, default=DEFAULT_SAFETY_MARGIN
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=50)),
