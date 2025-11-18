@@ -1,0 +1,8 @@
+{
+  "name": "EV Trip Planner",
+  "content_in_root": false,
+  "filename": "ev_trip_planner",
+  "country": ["ES", "EN"],
+  "render_readme": true,
+  "homeassistant": "2024.1.0"
+}
