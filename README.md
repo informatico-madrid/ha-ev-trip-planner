@@ -21,7 +21,7 @@ Plan your Electric Vehicle trips and let Home Assistant optimize charging schedu
 
 **Current Version**: 0.1.0-dev (In active development)
 
-This integration is being developed incrementally. Check [Issues](https://github.com/informatico-madrid/ha-ev-trip-planner/issues) for current progress and roadmap.
+This integration is being developed incrementally. Check the [📅 Roadmap & Milestones](ROADMAP.md) for detailed development plan, or [Issues](https://github.com/informatico-madrid/ha-ev-trip-planner/issues) for current progress.
 
 ## 📋 Requirements
 
@@ -134,6 +134,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Roadmap
 
+See [ROADMAP.md](ROADMAP.md) for detailed development plan and milestones.
+
+Quick overview:
 - [x] Initial project structure
 - [ ] Core trip management (v0.1)
 - [ ] Basic dashboard (v0.1)
