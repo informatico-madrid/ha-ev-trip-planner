@@ -1,12 +1,14 @@
 {
   "domain": "ev_trip_planner",
   "name": "EV Trip Planner",
-  "codeowners": ["@informatico-madrid"],
+  "codeowners": [
+    "@informatico-madrid"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/informatico-madrid/ha-ev-trip-planner",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/informatico-madrid/ha-ev-trip-planner/issues",
   "requirements": [],
-  "version": "0.1.0-dev"
+  "version": "0.2.0-dev"
 }
