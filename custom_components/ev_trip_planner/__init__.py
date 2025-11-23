@@ -7,6 +7,7 @@ Supports recurring weekly routines and one-time punctual trips.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -14,6 +15,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 from .trip_manager import TripManager
@@ -23,6 +25,52 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
+
+
+class TripPlannerCoordinator(DataUpdateCoordinator):
+    """Coordinator to manage and update trip data."""
+
+    def __init__(self, hass: HomeAssistant, trip_manager: TripManager) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_coordinator",
+            update_interval=timedelta(seconds=30),  # Fallback interval, pero usaremos refresh manual
+        )
+        self.trip_manager = trip_manager
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch and calculate all trip data from TripManager."""
+        try:
+            recurring_trips = await self.trip_manager.async_get_recurring_trips()
+            punctual_trips = await self.trip_manager.async_get_punctual_trips()
+            
+            # Calculate Milestone 2 values
+            kwh_today = await self.trip_manager.async_get_kwh_needed_today()
+            hours_today = await self.trip_manager.async_get_hours_needed_today()
+            next_trip = await self.trip_manager.async_get_next_trip()
+            
+            return {
+                "recurring_trips": recurring_trips,
+                "punctual_trips": punctual_trips,
+                "kwh_today": kwh_today,
+                "hours_today": hours_today,
+                "next_trip": next_trip,
+            }
+        except Exception as err:
+            _LOGGER.error("Error updating trip data: %s", err)
+            return {
+                "recurring_trips": [],
+                "punctual_trips": [],
+                "kwh_today": 0.0,
+                "hours_today": 0,
+                "next_trip": None,
+            }
+    
+    async def async_refresh_trips(self) -> None:
+        """Force refresh of trip data and notify all sensors."""
+        await self.async_request_refresh()
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
@@ -41,15 +89,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     trip_manager = TripManager(hass, vehicle_id)
     await trip_manager.async_setup()
     
-    # Store both config and trip_manager
+    # Create coordinator for this vehicle
+    coordinator = TripPlannerCoordinator(hass, trip_manager)
+    await coordinator.async_config_entry_first_refresh()
+    
+    # Store config, trip_manager AND coordinator
     hass.data[DOMAIN][entry.entry_id] = {
         "config": entry.data,
         "trip_manager": trip_manager,
+        "coordinator": coordinator,
     }
 
     # Ensure services use the same TripManager instance for this vehicle
     managers = hass.data[DOMAIN].setdefault("managers", {})
     managers[vehicle_id] = trip_manager
+    
+    # FIX: Store coordinator by vehicle_id so services can access it
+    coordinators = hass.data[DOMAIN].setdefault("coordinators", {})
+    coordinators[vehicle_id] = coordinator
 
     # Registrar servicios del dominio (idempotente)
     try:
@@ -80,6 +137,11 @@ def register_services(hass: HomeAssistant) -> None:
     managers: dict[str, TripManager] = hass.data.setdefault(DOMAIN, {}).setdefault(
         "managers", {}
     )
+    
+    # FIX: Acceder a los coordinators por vehicle_id
+    coordinators: dict[str, TripPlannerCoordinator] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "coordinators", {}
+    )
 
     def _get_manager(vehicle_id: str) -> TripManager:
         mgr = managers.get(vehicle_id)
@@ -87,6 +149,10 @@ def register_services(hass: HomeAssistant) -> None:
             mgr = TripManager(hass, vehicle_id)
             managers[vehicle_id] = mgr
         return mgr
+    
+    # FIX: Función para obtener el coordinator correcto por vehicle_id
+    def _get_coordinator(vehicle_id: str) -> TripPlannerCoordinator | None:
+        return coordinators.get(vehicle_id)
 
     async def _ensure_setup(mgr: TripManager) -> None:
         try:
@@ -97,7 +163,8 @@ def register_services(hass: HomeAssistant) -> None:
 
     async def handle_add_recurring(call: ServiceCall) -> None:
         data = call.data
-        mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_add_recurring_trip(
             dia_semana=data["dia_semana"],
@@ -106,10 +173,15 @@ def register_services(hass: HomeAssistant) -> None:
             kwh=float(data["kwh"]),
             descripcion=str(data.get("descripcion", "")),
         )
+        # FIX: Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(vehicle_id)
+        if coordinator:
+            await coordinator.async_refresh_trips()
 
     async def handle_add_punctual(call: ServiceCall) -> None:
         data = call.data
-        mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_add_punctual_trip(
             datetime_str=data["datetime"],
@@ -117,18 +189,32 @@ def register_services(hass: HomeAssistant) -> None:
             kwh=float(data["kwh"]),
             descripcion=str(data.get("descripcion", "")),
         )
+        # FIX: Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(vehicle_id)
+        if coordinator:
+            await coordinator.async_refresh_trips()
 
     async def handle_edit_trip(call: ServiceCall) -> None:
         data = call.data
-        mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_update_trip(str(data["trip_id"]), dict(data["updates"]))
+        # FIX: Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(vehicle_id)
+        if coordinator:
+            await coordinator.async_refresh_trips()
 
     async def handle_delete_trip(call: ServiceCall) -> None:
         data = call.data
-        mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_delete_trip(str(data["trip_id"]))
+        # FIX: Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(vehicle_id)
+        if coordinator:
+            await coordinator.async_refresh_trips()
 
     async def handle_pause_recurring(call: ServiceCall) -> None:
         data = call.data

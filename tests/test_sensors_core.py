@@ -22,8 +22,12 @@ def _sample_trips():
 
 
 class FakeCoordinator:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, trips_list):
+        # El coordinator real devuelve un dict con claves recurring_trips y punctual_trips
+        self.data = {
+            "recurring_trips": [t for t in trips_list if t.get("tipo") == "recurrente"],
+            "punctual_trips": [t for t in trips_list if t.get("tipo") == "puntual"],
+        }
 
 
 @pytest.mark.asyncio
@@ -50,9 +54,11 @@ async def test_trips_list_sensor_attributes(mock_hass):
 
     # Valor nativo: total
     assert s.native_value == 3
-    # Atributos: lista completa
+    # Atributos: listas separadas
     attrs = s.extra_state_attributes
     assert isinstance(attrs, dict)
-    assert isinstance(attrs.get("trips"), list)
-    assert len(attrs["trips"]) == 3
-    assert any(t["tipo"] == "recurrente" for t in attrs["trips"])  # sanity
+    assert isinstance(attrs.get("recurring_trips"), list)
+    assert isinstance(attrs.get("punctual_trips"), list)
+    assert len(attrs["recurring_trips"]) == 2
+    assert len(attrs["punctual_trips"]) == 1
+    assert any(t["tipo"] == "recurrente" for t in attrs["recurring_trips"])  # sanity

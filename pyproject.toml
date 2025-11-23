@@ -41,10 +41,11 @@ no_implicit_reexport = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-python_files = "test_*.py"
+python_files = ["test_*.py"]
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --cov=custom_components/ev_trip_planner --cov-report=html --cov-report=term"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["custom_components/ev_trip_planner"]

@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EV Trip Planner - Vehicle Setup",
+        "description": "Configure your electric vehicle for trip planning",
+        "data": {
+          "vehicle_name": "Vehicle Name",
+          "vehicle_type": "Vehicle Type"
+        }
+      },
+      "sensors": {
+        "title": "Vehicle Sensors",
+        "description": "Select the sensors for battery monitoring",
+        "data": {
+          "soc_sensor": "Battery SOC Sensor",
+          "battery_capacity": "Battery Capacity (kWh)",
+          "charging_power": "Charging Power (kW)",
+          "range_sensor": "Range Sensor (optional)",
+          "charging_status": "Charging Status (optional)"
+        }
+      },
+      "consumption": {
+        "title": "Consumption Settings",
+        "description": "Configure consumption and safety parameters",
+        "data": {
+          "consumption": "Consumption (kWh/km)",
+          "safety_margin": "Safety Margin (%)"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "This vehicle is already configured",
+      "unknown": "Unknown error occurred"
+    },
+    "abort": {
+      "already_configured": "This vehicle is already configured"
+    }
+  },
+  "title": "EV Trip Planner"
+}

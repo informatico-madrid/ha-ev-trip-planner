@@ -1,0 +1,112 @@
+# Dashboard base para EV Trip Planner (ejemplo)
+# Nota: ajusta los entity_id a los de tus sensores reales cuando integremos 1C en HA.
+# Sugeridos (cuando se creen):
+#  - sensor.chispitas_trips_list
+#  - sensor.chispitas_recurring_trips_count
+#  - sensor.chispitas_punctual_trips_count
+
+views:
+  - title: EV Trip Planner
+    path: ev-trip-planner
+    icon: mdi:car-electric
+    cards:
+      # Tarjeta de estado general
+      - type: markdown
+        title: 📊 Estado general
+        content: |
+          **Vehículo:** Chispitas  
+          **Viajes totales:** {{ states('sensor.chispitas_trips_list') }}  
+          **Recurrentes activos:** {{ states('sensor.chispitas_recurring_trips_count') }}  
+          **Puntuales pendientes:** {{ states('sensor.chispitas_punctual_trips_count') }}
+
+      # Grid semanal de viajes recurrentes
+      - type: markdown
+        title: 📅 Viajes recurrentes semanales
+        content: |
+          {% set trips = state_attr('sensor.chispitas_trips_list', 'trips') %}
+          {% set days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] %}
+          {% set day_names = {'lunes': 'Lunes', 'martes': 'Martes', 'miercoles': 'Miércoles', 
+                              'jueves': 'Jueves', 'viernes': 'Viernes', 'sabado': 'Sábado', 'domingo': 'Domingo'} %}
+          
+          {% if trips %}
+            {% for day in days %}
+              {% set day_trips = trips | selectattr('tipo', 'equalto', 'recurrente') | selectattr('dia_semana', 'equalto', day) | list %}
+              {% if day_trips %}
+          
+          **{{ day_names[day] }}**
+                {% for trip in day_trips %}
+          - 🕐 {{ trip.hora }} - {{ trip.km }} km / {{ trip.kwh }} kWh {% if not trip.activo %}*(pausado)*{% endif %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% else %}
+          *No hay viajes recurrentes configurados*
+          {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-left: 4px solid var(--primary-color);
+            }
+
+      # Lista de viajes puntuales
+      - type: markdown
+        title: 🎯 Viajes puntuales
+        content: |
+          {% set trips = state_attr('sensor.chispitas_trips_list', 'trips') %}
+          {% set punctual = trips | selectattr('tipo', 'equalto', 'puntual') | list if trips else [] %}
+          
+          {% if punctual %}
+            {% for trip in punctual | sort(attribute='datetime') %}
+              {% set dt = trip.datetime | as_datetime %}
+              {% set status_icon = {'pendiente': '⏳', 'completado': '✅', 'cancelado': '❌'} %}
+          
+          {{ status_icon.get(trip.estado, '❓') }} **{{ dt.strftime('%d/%m/%Y %H:%M') if dt else trip.datetime }}**  
+          {{ trip.km }} km / {{ trip.kwh }} kWh - *{{ trip.estado }}*
+            {% endfor %}
+          {% else %}
+          *No hay viajes puntuales*
+          {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-left: 4px solid var(--accent-color);
+            }
+
+      # Tarjeta de cálculos del día (Milestone 2)
+      - type: markdown
+        title: 📊 Cálculos del Día
+        content: |
+          **Próximo viaje:** {{ states('sensor.chispitas_next_trip') }}
+          **Fecha límite:** {{ states('sensor.chispitas_next_deadline') }}
+          **kWh necesarios hoy:** {{ states('sensor.chispitas_kwh_today') }} kWh
+          **Horas de carga:** {{ states('sensor.chispitas_hours_today') }} h
+          
+          ---
+          
+          *Cálculos actualizados automáticamente desde los viajes programados*
+
+      # Tarjeta de estado del vehículo
+      - type: markdown
+        title: 🚗 Estado del vehículo
+        content: |
+          **Viajes activos hoy:** -  *(próximamente)*
+          **Próximo viaje:** {{ states('sensor.chispitas_next_trip') }}
+          **kWh necesarios:** {{ states('sensor.chispitas_kwh_today') }} kWh
+          **Horas de carga:** {{ states('sensor.chispitas_hours_today') }} h
+          
+          ---
+          
+          *Milestone 2 completado ✅*
+
+      - type: entities
+        title: 📈 Contadores detallados
+        entities:
+          - entity: sensor.chispitas_recurring_trips_count
+            name: Viajes recurrentes
+            icon: mdi:calendar-repeat
+          - entity: sensor.chispitas_punctual_trips_count
+            name: Viajes puntuales
+            icon: mdi:calendar-star
+          - entity: sensor.chispitas_trips_list
+            name: Total de viajes
+            icon: mdi:format-list-numbered

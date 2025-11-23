@@ -1,0 +1,91 @@
+# Dashboard EV Trip Planner - Chispitas Test (prefilled)
+# Import this into a new Lovelace dashboard (Raw configuration editor)
+
+views:
+  - title: EV Trip Planner
+    path: ev-trip-planner
+    icon: mdi:car-electric
+    cards:
+      - type: markdown
+        title: 📊 Estado general
+        content: |
+          **Vehículo:** Chispitas Test  
+          **Viajes totales:** {{ states('sensor.chispitas_test_trips_list') }}  
+          **Recurrentes activos:** {{ states('sensor.chispitas_test_recurring_trips_count') }}  
+          **Puntuales pendientes:** {{ states('sensor.chispitas_test_punctual_trips_count') }}
+
+      - type: markdown
+        title: 📅 Viajes recurrentes semanales
+        content: |
+          {% set trips = state_attr('sensor.chispitas_test_trips_list', 'trips') %}
+          {% set days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] %}
+          {% set day_names = {'lunes': 'Lunes', 'martes': 'Martes', 'miercoles': 'Miércoles', 
+                              'jueves': 'Jueves', 'viernes': 'Viernes', 'sabado': 'Sábado', 'domingo': 'Domingo'} %}
+          
+          {% if trips %}
+            {% for day in days %}
+              {% set day_trips = trips | selectattr('tipo', 'equalto', 'recurrente') | selectattr('dia_semana', 'equalto', day) | list %}
+              {% if day_trips %}
+          
+          **{{ day_names[day] }}**
+                {% for trip in day_trips %}
+          - 🕐 {{ trip.hora }} - {{ trip.km }} km / {{ trip.kwh }} kWh {% if not trip.activo %}*(pausado)*{% endif %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% else %}
+          *No hay viajes recurrentes configurados*
+          {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-left: 4px solid var(--primary-color);
+            }
+
+      - type: markdown
+        title: 🎯 Viajes puntuales
+        content: |
+          {% set trips = state_attr('sensor.chispitas_test_trips_list', 'trips') %}
+          {% set punctual = trips | selectattr('tipo', 'equalto', 'puntual') | list if trips else [] %}
+          
+          {% if punctual %}
+            {% for trip in punctual | sort(attribute='datetime') %}
+              {% set dt = trip.datetime | as_datetime %}
+              {% set status_icon = {'pendiente': '⏳', 'completado': '✅', 'cancelado': '❌'} %}
+          
+          {{ status_icon.get(trip.estado, '❓') }} **{{ dt.strftime('%d/%m/%Y %H:%M') if dt else trip.datetime }}**  
+          {{ trip.km }} km / {{ trip.kwh }} kWh - *{{ trip.estado }}*
+            {% endfor %}
+          {% else %}
+          *No hay viajes puntuales*
+          {% endif %}
+        card_mod:
+          style: |
+            ha-card {
+              border-left: 4px solid var(--accent-color);
+            }
+
+      - type: markdown
+        title: 🚗 Estado del vehículo
+        content: |
+          **Viajes activos hoy:** -  *(próximamente)*  
+          **Próximo viaje:** -  *(próximamente - Fase 2)*  
+          **kWh necesarios:** -  *(próximamente - Fase 2)*  
+          **Horas de carga:** -  *(próximamente - Fase 2)*
+          
+          ---
+          
+          *Los cálculos automáticos se activarán en Milestone 2*
+
+      - type: entities
+        title: 📈 Contadores detallados
+        entities:
+          - entity: sensor.chispitas_test_recurring_trips_count
+            name: Viajes recurrentes
+            icon: mdi:calendar-repeat
+          - entity: sensor.chispitas_test_punctual_trips_count
+            name: Viajes puntuales
+            icon: mdi:calendar-star
+          - entity: sensor.chispitas_test_trips_list
+            name: Total de viajes
+            icon: mdi:format-list-numbered

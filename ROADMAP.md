@@ -57,9 +57,9 @@ We're following an **incremental development approach** (Option B):
 - [x] Service: `import_from_weekly_pattern` (for migration)
 
 **Phase 1C: Basic Sensors (Day 3-4)** ✅
-- [x] Sensor: `{vehicle}_trips_list` (informational)
-- [x] Sensor: `{vehicle}_recurring_trips_count`
-- [x] Sensor: `{vehicle}_punctual_trips_count`
+- [ ] Sensor: `{vehicle}_trips_list` (informational)
+- [ ] Sensor: `{vehicle}_recurring_trips_count`
+- [ ] Sensor: `{vehicle}_punctual_trips_count`
 - [x] Register sensors via `async_setup_entry` (wiring en HA)
 
 **Phase 1D: Dashboard Foundation (Day 4-5)** ✅
@@ -89,19 +89,19 @@ We're following an **incremental development approach** (Option B):
 
 ---
 
-### ✅ Milestone 2: Trip Calculations (COMPLETED - Nov 22, 2025)
+### 🚧 Milestone 2: Trip Calculations (IN PROGRESS - Bug Critical)
 
 **Goal**: Calculate next trip and required charging hours (still informational)
 
 **Tasks**:
-- [x] Sensor: `{vehicle}_next_trip` (selects nearest future trip)
-- [x] Sensor: `{vehicle}_next_deadline` (datetime of next trip)
-- [x] Sensor: `{vehicle}_kwh_needed_today` (sum of all trips today)
-- [x] Sensor: `{vehicle}_hours_needed_today` (ceil to integer)
-- [x] Logic to expand recurring trips for next 7 days
-- [x] Logic to combine recurring + punctual trips
-- [ ] Timezone handling
-- [ ] Edge cases (no trips, past trips, etc.)
+- [ ] Sensor: `{vehicle}_next_trip` (selects nearest future trip)
+- [ ] Sensor: `{vehicle}_next_deadline` (datetime of next trip)
+- [ ] Sensor: `{vehicle}_kwh_needed_today` (sum of all trips today)
+- [ ] Sensor: `{vehicle}_hours_needed_today` (ceil to integer)
+- [ ] Logic to expand recurring trips for next 7 days
+- [ ] Logic to combine recurring + punctual trips
+- [x] Timezone handling
+- [x] Edge cases (no trips, past trips, etc.)
 
 **Success Criteria**:
 - ✅ Next trip correctly identified
@@ -123,7 +123,7 @@ We're following an **incremental development approach** (Option B):
 **Goal**: Actually use trip system in MPC optimization
 
 **Phase 3A: Hybrid Sensor (Day 1-2)**
-- [x] Sensor: `{vehicle}_deadline_hybrid` (trips OR sliders)
+- [ ] Sensor: `{vehicle}_deadline_hybrid` (trips OR sliders)
 - [ ] Logic: If trips exist → use trips, else → use sliders
 - [ ] Modify only `sensor.{vehicle}_hours_until_deadline`
 - [ ] Extensive testing before deployment
@@ -196,6 +196,44 @@ We're following an **incremental development approach** (Option B):
 - ✅ Notifications are helpful not annoying
 - ✅ Users have example automations to copy
 
+---
+
+## 🎯 User Experience Simplification (Post v1.0 - Critical Improvements)
+
+**Goal**: Eliminate user friction and data inconsistencies
+
+### Phase 1: Input Normalization & Validation
+- [ ] **Day name normalization**: Sanitize any variant (Miércoles, Miercoles, miercoles, MIÉRCOLES) → canonical lowercase without accents
+- [ ] **Vehicle ID normalization**: Auto-convert to slug format (spaces → underscores, lowercase)
+- [ ] **Input validation**: Real-time feedback in config flow and services
+
+### Phase 2: Smart Trip Creation
+- [ ] **Eliminate kWh manual entry**: Remove redundant kWh field that risks contradictory data (e.g., 1000km with 1kWh)
+- [ ] **Origin-destination geocoding**: Accept addresses/coordinates instead of manual km entry
+- [ ] **Automatic consumption calculation**: kWh = distance × vehicle_efficiency
+- [ ] **Travel time estimation**: Calculate duration based on route and traffic
+
+### Phase 3: Conversational AI Interface
+- [ ] **Natural language processing**: "Voy de Madrid a Barcelona mañana a las 9"
+- [ ] **Intent recognition**: Extract origin, destination, datetime automatically
+- [ ] **Voice integration**: HA Assist compatibility for hands-free trip planning
+
+**Success Criteria**:
+- ✅ Zero data entry errors from format inconsistencies
+- ✅ No manual kWh calculations required
+- ✅ Sub-30-second trip creation via voice/text
+- ✅ 100% backward compatibility maintained
+
+**Files to Modify**:
+- `custom_components/ev_trip_planner/trip_manager.py` (normalization helpers)
+- `custom_components/ev_trip_planner/services.yaml` (new parameters)
+- `custom_components/ev_trip_planner/config_flow.py` (geocoding API config)
+- `custom_components/ev_trip_planner/manifest.json` (add unidecode dependency)
+
+**Dependencies**:
+- `unidecode` library (for accent removal)
+- Geocoding API (Google Maps / OpenStreetMap Nominatim)
+- Vehicle efficiency database (kWh/km per model)
 ---
 
 ## 🚀 Future Versions (Post v1.0)
@@ -301,7 +339,7 @@ We welcome contributions at any stage! Current priorities:
 |-----------|----------|--------|------|-------|
 | 0. Foundation | 1 day | ✅ DONE | Low | Repo ready |
 | 1. Infrastructure | 5 days | 🚧 IN PROGRESS | Low | Pure addition |
-| 2. Calculations | 3 days | ✅ DONE | Low | Completed Nov 22, 84% coverage |
+| 2. Calculations | 3 days | 🔴 BLOCKED | Critical | Bug: sensors not updating in production
 | 3. MPC Integration | 5 days | ⚪ Pending | ⚠️ HIGH | Modifies existing code |
 | 4. Validation | 3 days | ⚪ Pending | Medium | Testing phase |
 | 5. Advanced | 5 days | ⚪ Optional | Low | Nice-to-have |
