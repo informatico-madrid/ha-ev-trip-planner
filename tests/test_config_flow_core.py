@@ -74,6 +74,16 @@ async def test_full_flow_success():
             CONF_CONTROL_TYPE: CONTROL_TYPE_NONE,
         }
     )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "emhass"
+
+    # EMHASS step (skip with defaults)
+    result = await flow.async_step_emhass({})
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "presence"
+
+    # Presence step (skip optional step)
+    result = await flow.async_step_presence({})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "Chispitas"
     data = result["data"]

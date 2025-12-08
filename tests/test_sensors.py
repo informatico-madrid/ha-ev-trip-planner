@@ -13,9 +13,11 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.fixture
-def mock_trip_manager(hass: HomeAssistant):
+def mock_trip_manager(hass: HomeAssistant, mock_store):
     """Create a mock TripManager for testing."""
     manager = TripManager(hass, "test_vehicle")
+    # Replace the store with our mock_store that has AsyncMock methods
+    manager._store = mock_store
     return manager
 
 

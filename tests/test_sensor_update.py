@@ -46,7 +46,7 @@ def expected_lingering_timers():
 
 
 @pytest.fixture
-def mock_trip_manager():
+def mock_trip_manager(mock_store):
     """Fixture para TripManager con datos controlados."""
     manager = MagicMock(spec=TripManager)
     
@@ -56,6 +56,10 @@ def mock_trip_manager():
     manager.async_get_kwh_needed_today = AsyncMock(return_value=0.0)
     manager.async_get_hours_needed_today = AsyncMock(return_value=0)
     manager.async_get_next_trip = AsyncMock(return_value=None)
+    
+    # IMPORTANT: El coordinator llama a métodos del trip_manager que usan el store
+    # Necesitamos asegurarnos de que el mock_trip_manager tenga un store mock
+    manager._store = mock_store
     
     return manager
 

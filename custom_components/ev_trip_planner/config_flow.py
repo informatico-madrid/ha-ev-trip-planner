@@ -18,17 +18,29 @@ from .const import (
     CONF_CHARGING_STATUS,
     CONF_CONSUMPTION,
     CONF_CONTROL_TYPE,
+    CONF_HOME_COORDINATES,
+    CONF_HOME_SENSOR,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_NOTIFICATION_SERVICE,
+    CONF_PLANNING_HORIZON,
+    CONF_PLANNING_SENSOR,
+    CONF_PLUGGED_SENSOR,
     CONF_RANGE_SENSOR,
     CONF_SAFETY_MARGIN,
     CONF_SOC_SENSOR,
+    CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_VEHICLE_NAME,
     CONF_VEHICLE_TYPE,
     CONTROL_TYPE_EXTERNAL,
     CONTROL_TYPE_NONE,
+    CONTROL_TYPE_SCRIPT,
     CONTROL_TYPE_SERVICE,
     CONTROL_TYPE_SWITCH,
     DEFAULT_CONSUMPTION,
     DEFAULT_CONTROL_TYPE,
+    DEFAULT_MAX_DEFERRABLE_LOADS,
+    DEFAULT_NOTIFICATION_SERVICE,
+    DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_VEHICLE_TYPE,
     DOMAIN,
@@ -142,14 +154,12 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Merge all data and create entry
+            # Merge all data and move to EMHASS step
             vehicle_data = self.context["vehicle_data"]
             vehicle_data.update(user_input)
+            self.context["vehicle_data"] = vehicle_data
 
-            return self.async_create_entry(
-                title=vehicle_data[CONF_VEHICLE_NAME],
-                data=vehicle_data,
-            )
+            return await self.async_step_emhass()
 
         data_schema = vol.Schema(
             {
@@ -177,6 +187,10 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 label="HA Service call",
                             ),
                             selector.SelectOptionDict(
+                                value=CONTROL_TYPE_SCRIPT,
+                                label="Script",
+                            ),
+                            selector.SelectOptionDict(
                                 value=CONTROL_TYPE_EXTERNAL,
                                 label="External (e.g., EMHASS)",
                             ),
@@ -197,3 +211,184 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "control": "How should charging be controlled?",
             },
         )
+
+    async def async_step_emhass(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Configure EMHASS integration parameters."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate planning horizon (1-30 days)
+            planning_horizon = user_input.get(CONF_PLANNING_HORIZON, DEFAULT_PLANNING_HORIZON)
+            if planning_horizon < 1 or planning_horizon > 30:
+                errors["base"] = "invalid_planning_horizon"
+                return self.async_show_form(
+                    step_id="emhass",
+                    data_schema=self._get_emhass_schema(),
+                    errors=errors,
+                    description_placeholders=self._get_emhass_placeholders(),
+                )
+
+            # Validate max deferrable loads (10-100)
+            max_loads = user_input.get(CONF_MAX_DEFERRABLE_LOADS, DEFAULT_MAX_DEFERRABLE_LOADS)
+            if max_loads < 10 or max_loads > 100:
+                errors["base"] = "invalid_max_deferrable_loads"
+                return self.async_show_form(
+                    step_id="emhass",
+                    data_schema=self._get_emhass_schema(),
+                    errors=errors,
+                    description_placeholders=self._get_emhass_placeholders(),
+                )
+
+            # Store data and continue to presence step
+            vehicle_data = self.context["vehicle_data"]
+            vehicle_data.update(user_input)
+            self.context["vehicle_data"] = vehicle_data
+
+            # Return the presence form (don't auto-submit it)
+            return self.async_show_form(
+                step_id="presence",
+                data_schema=self._get_presence_schema(),
+                description_placeholders=self._get_presence_placeholders(),
+            )
+
+        return self.async_show_form(
+            step_id="emhass",
+            data_schema=self._get_emhass_schema(),
+            errors=errors,
+            description_placeholders=self._get_emhass_placeholders(),
+        )
+
+    def _get_emhass_schema(self) -> vol.Schema:
+        """Get the data schema for EMHASS step."""
+        return vol.Schema(
+            {
+                vol.Optional(
+                    CONF_PLANNING_HORIZON, default=DEFAULT_PLANNING_HORIZON
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+                vol.Optional(CONF_PLANNING_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    CONF_MAX_DEFERRABLE_LOADS, default=DEFAULT_MAX_DEFERRABLE_LOADS
+                ): vol.All(vol.Coerce(int), vol.Range(min=10, max=100)),
+            }
+        )
+
+    def _get_emhass_placeholders(self) -> dict[str, str]:
+        """Get description placeholders for EMHASS step."""
+        return {
+            "horizon_help": "Days to plan ahead (must be ≤ EMHASS planning horizon)",
+            "max_loads_help": "Maximum number of simultaneous trips (affects EMHASS config)",
+            "config_snippet": """
+# Add to your EMHASS configuration.yaml:
+# (Create as many entries as your max_deferrable_loads setting)
+emhass:
+  deferrable_loads:
+    - def_total_hours: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'def_total_hours') | default(0) }}"
+      P_deferrable_nom: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'P_deferrable_nom') | default(0) }}"
+      # ... repeat for indices 1-49 as needed
+            """,
+        }
+
+    async def async_step_presence(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        """Configure presence detection (optional)."""
+        vehicle_data = self.context["vehicle_data"]
+        
+        # Skip this optional step if no user_input or empty dict
+        # BUT only if we have the required vehicle_name to create entry
+        if user_input is None or not user_input:
+            if CONF_VEHICLE_NAME in vehicle_data:
+                # We have enough data, create entry
+                return self.async_create_entry(
+                    title=vehicle_data[CONF_VEHICLE_NAME],
+                    data=vehicle_data,
+                )
+            else:
+                # Not enough data, show form (shouldn't happen in normal flow)
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=self._get_presence_schema(),
+                    description_placeholders=self._get_presence_placeholders(),
+                )
+
+        # Validate sensors if provided
+        if CONF_HOME_SENSOR in user_input and user_input[CONF_HOME_SENSOR]:
+            home_sensor = user_input[CONF_HOME_SENSOR]
+            if not self.hass.states.get(home_sensor):
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=self._get_presence_schema(),
+                    errors={"base": "home_sensor_not_found"},
+                    description_placeholders=self._get_presence_placeholders(),
+                )
+
+        if CONF_PLUGGED_SENSOR in user_input and user_input[CONF_PLUGGED_SENSOR]:
+            plugged_sensor = user_input[CONF_PLUGGED_SENSOR]
+            if not self.hass.states.get(plugged_sensor):
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=self._get_presence_schema(),
+                    errors={"base": "plugged_sensor_not_found"},
+                    description_placeholders=self._get_presence_placeholders(),
+                )
+
+        # Validate coordinates format if provided
+        if CONF_HOME_COORDINATES in user_input and user_input[CONF_HOME_COORDINATES]:
+            coords = user_input[CONF_HOME_COORDINATES]
+            if not self._validate_coordinates(coords):
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=self._get_presence_schema(),
+                    errors={"base": "invalid_coordinates_format"},
+                    description_placeholders=self._get_presence_placeholders(),
+                )
+
+        # Store data and create entry
+        vehicle_data.update(user_input)
+        
+        return self.async_create_entry(
+            title=vehicle_data[CONF_VEHICLE_NAME],
+            data=vehicle_data,
+        )
+
+    def _get_presence_schema(self) -> vol.Schema:
+        """Get the data schema for presence step."""
+        return vol.Schema(
+            {
+                vol.Optional(CONF_HOME_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="binary_sensor")
+                ),
+                vol.Optional(CONF_PLUGGED_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="binary_sensor")
+                ),
+                vol.Optional(CONF_HOME_COORDINATES): cv.string,
+                vol.Optional(CONF_VEHICLE_COORDINATES_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    CONF_NOTIFICATION_SERVICE, default=DEFAULT_NOTIFICATION_SERVICE
+                ): cv.string,
+            }
+        )
+
+    def _get_presence_placeholders(self) -> dict[str, str]:
+        """Get description placeholders for presence step."""
+        return {
+            "presence_help": "Optional: Configure to prevent charging when vehicle not home/plugged",
+            "sensor_help": "Select binary_sensors that indicate home/plugged status",
+            "coordinates_help": "Or use coordinates: provide home coordinates and vehicle location sensor",
+        }
+
+    def _validate_coordinates(self, coords: str) -> bool:
+        """Validate coordinate format."""
+        try:
+            if coords.startswith("[") and coords.endswith("]"):
+                coords = coords[1:-1]
+            lat, lon = map(float, coords.split(","))
+            return -90 <= lat <= 90 and -180 <= lon <= 180
+        except (ValueError, AttributeError):
+            return False
