@@ -19,10 +19,26 @@ CONF_RANGE_SENSOR = "range_sensor"
 CONF_CHARGING_STATUS = "charging_status_sensor"
 CONF_CONTROL_TYPE = "control_type"
 
+# EMHASS Integration (Milestone 3)
+CONF_MAX_DEFERRABLE_LOADS = "max_deferrable_loads"
+CONF_PLANNING_HORIZON = "planning_horizon_days"
+CONF_PLANNING_SENSOR = "planning_sensor_entity"
+
+# Presence Detection
+CONF_HOME_SENSOR = "home_sensor"
+CONF_PLUGGED_SENSOR = "plugged_sensor"
+CONF_HOME_COORDINATES = "home_coordinates"
+CONF_VEHICLE_COORDINATES_SENSOR = "vehicle_coordinates_sensor"
+
+# Notifications
+CONF_NOTIFICATION_SERVICE = "notification_service"
+CONF_NOTIFICATION_DEVICES = "notification_devices"
+
 # Control types
 CONTROL_TYPE_NONE = "none"
 CONTROL_TYPE_SWITCH = "switch"
 CONTROL_TYPE_SERVICE = "service"
+CONTROL_TYPE_SCRIPT = "script"
 CONTROL_TYPE_EXTERNAL = "external"
 
 # Vehicle types
@@ -34,17 +50,15 @@ DEFAULT_CONSUMPTION = 0.15  # kWh per km
 DEFAULT_SAFETY_MARGIN = 10  # percent
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV
+DEFAULT_PLANNING_HORIZON = 7  # days
+DEFAULT_MAX_DEFERRABLE_LOADS = 50  # maximum simultaneous trips
+DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types
 TRIP_TYPE_RECURRING = "recurrente"
 TRIP_TYPE_PUNCTUAL = "puntual"
+
 # Trip status (for punctual trips)
-TRIP_STATUS_PENDING = "pendiente"
-TRIP_STATUS_COMPLETED = "completado"
-TRIP_STATUS_CANCELLED = "cancelado"
-
-
-# Trip status
 TRIP_STATUS_PENDING = "pendiente"
 TRIP_STATUS_COMPLETED = "completado"
 TRIP_STATUS_CANCELLED = "cancelado"
