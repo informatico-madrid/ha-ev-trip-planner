@@ -118,42 +118,235 @@ We're following an **incremental development approach** (Option B):
 
 ---
 
-### ⚪ Milestone 3: MPC Integration (CRITICAL - Target: 5 days)
+### ⚪ Milestone 3: EMHASS Integration & Smart Charging Control (CRITICAL - Target: 5 weeks)
 
-**Goal**: Actually use trip system in MPC optimization
+**Goal**: Transform informational trip system into active charging optimization
 
-**Phase 3A: Hybrid Sensor (Day 1-2)**
-- [ ] Sensor: `{vehicle}_deadline_hybrid` (trips OR sliders)
-- [ ] Logic: If trips exist → use trips, else → use sliders
-- [ ] Modify only `sensor.{vehicle}_hours_until_deadline`
-- [ ] Extensive testing before deployment
+**⚠️ ARCHITECTURAL CHANGE**: Based on production analysis, we discovered EMHASS uses numeric indices (not wildcard entities). This requires a complete redesign from the original ROADMAP.
 
-**Phase 3B: Testing & Monitoring (Day 3-4)**
-- [ ] Deploy to production with monitoring
-- [ ] Verify MPC receives correct values
-- [ ] Check EMHASS `def_total_hours` updates correctly
-- [ ] Monitor for 2-3 days before continuing
-- [ ] Rollback capability ready
+**New Architecture**:
+- **Phase 3A**: Configuration & Planning Setup (1 week)
+- **Phase 3B**: EMHASS Adapter & Deferrable Loads (1 week)
+- **Phase 3C**: Vehicle Control Interface (1 week)
+- **Phase 3D**: Schedule Monitor & Presence Detection (1 week)
+- **Phase 3E**: Integration Testing & Migration (1 week)
 
-**Phase 3C: Migration Tool (Day 5)**
-- [ ] Button: "Import sliders to recurring trips"
-- [ ] Automatic conversion logic
-- [ ] User validation before activation
-- [ ] Gradual transition plan
+---
 
-**Success Criteria**:
-- ✅ MPC uses trip deadlines when trips exist
-- ✅ Falls back to sliders when no trips
-- ✅ No INFEASIBLE errors (unless genuine)
-- ✅ Charging schedules correct
-- ✅ System stable for 2-3 days
-- ✅ User can migrate from sliders
+#### Phase 3A: Configuration & Planning Setup (Week 1)
 
-**⚠️ CRITICAL**: This is the only phase that modifies existing working code
+**Goal**: Extend config flow to support EMHASS integration parameters
 
-**Files to Modify**:
-- `homeassistant/templates/template_sensors_ovms_mpc_control.yaml` (ONE sensor only)
-- `homeassistant/templates/template_sensors_morgan_mpc_control.yaml` (ONE sensor only)
+**Tasks**:
+- [ ] Add `CONF_EMHASS_INDEX` to const.py (numeric index: 0, 1, 2...)
+- [ ] Add `CONF_PLANNING_HORIZON` to const.py (default: 7 days)
+- [ ] Add `CONF_HOME_SENSOR` to const.py (binary_sensor for presence)
+- [ ] Add `CONF_PLUGGED_SENSOR` to const.py (binary_sensor for charging cable)
+- [ ] Extend config_flow.py: Add step 4 "EMHASS Configuration"
+- [ ] Extend config_flow.py: Add step 5 "Presence Detection" (optional)
+- [ ] Validate EMHASS index uniqueness across vehicles
+- [ ] Create config flow tests for new steps
+
+**Critical Validation Points**:
+- ✅ User must manually configure EMHASS deferrable loads to read our sensors
+- ✅ **Each trip gets ONE unique EMHASS index** (0=OVMS Monday work, 1=OVMS Wednesday work, 2=Morgan Saturday shopping, etc.)
+- ✅ Planning horizon must be ≤ EMHASS day-ahead horizon (typically 3-7 days)
+- ✅ Module maintains dynamic mapping: `trip_id → emhass_index`
+
+**Files Modified**:
+- `custom_components/ev_trip_planner/const.py`
+- `custom_components/ev_trip_planner/config_flow.py`
+- `tests/test_config_flow.py`
+
+---
+
+#### Phase 3B: EMHASS Adapter & Deferrable Loads (Week 2)
+
+**Goal**: Create adapter to publish trips as EMHASS-compatible deferrable loads
+
+**Tasks**:
+- [ ] Create `emhass_adapter.py` with `EMHASSAdapter` class
+- [ ] Method: `async_publish_deferrable_load(trip)` → updates `sensor.emhass_deferrable_load_config_X`
+- [ ] Calculate parameters: `def_total_hours`, `P_deferrable_nom`, `def_end_timestep`
+- [ ] Trigger on trip changes (use dispatcher signal)
+- [ ] Create `sensor.emhass_deferrable_load_config_X` entities dynamically
+- [ ] Add unit tests for parameter calculations
+- [ ] Document required EMHASS configuration snippet for users
+
+**EMHASS Configuration Required** (user must add this manually):
+```yaml
+emhass:
+  deferrable_loads:
+    - def_total_hours: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'def_total_hours') | default(0) }}"
+      P_deferrable_nom: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'P_deferrable_nom') | default(0) }}"
+      def_start_timestep: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'def_start_timestep') | default(0) }}"
+      def_end_timestep: "{{ state_attr('sensor.emhass_deferrable_load_config_0', 'def_end_timestep') | default(168) }}"
+      # ... other parameters
+    
+    - def_total_hours: "{{ state_attr('sensor.emhass_deferrable_load_config_1', 'def_total_hours') | default(0) }}"
+      # ... for index 1
+```
+
+**Files Created**:
+- `custom_components/ev_trip_planner/emhass_adapter.py`
+- `tests/test_emhass_adapter.py`
+
+---
+
+#### Phase 3C: Vehicle Control Interface (Week 3)
+
+**Goal**: Abstract vehicle control mechanisms (switch, service, script)
+
+**Tasks**:
+- [ ] Create `vehicle_controller.py` with `VehicleController` class
+- [ ] Implement strategies: `SwitchStrategy`, `ServiceStrategy`, `ScriptStrategy`
+- [ ] Method: `async_activate_charging()` → turns on charging
+- [ ] Method: `async_deactivate_charging()` → turns off charging
+- [ ] Method: `async_get_status()` → returns current charging state
+- [ ] Validate control entity exists during config flow
+- [ ] Add tests for each strategy
+
+**Control Strategies**:
+- **Switch**: Use `switch.turn_on/off` service
+- **Service**: Call custom service (e.g., `ovms/set_charge_mode`)
+- **Script**: Execute `script.{vehicle}_start_charging`
+- **External**: No control (notifications only)
+
+**Files Created**:
+- `custom_components/ev_trip_planner/vehicle_controller.py`
+- `tests/test_vehicle_controller.py`
+
+---
+
+#### Phase 3D: Schedule Monitor & Presence Detection (Week 4)
+
+**Goal**: Monitor EMHASS schedules and execute charging control with safety checks
+
+**Tasks**:
+- [ ] Create `schedule_monitor.py` with `ScheduleMonitor` class
+- [ ] Subscribe to `sensor.emhass_deferrableX_schedule` changes
+- [ ] Map schedule to vehicle control actions
+- [ ] Create `presence_monitor.py` with `PresenceMonitor` class
+- [ ] Implement home detection (sensor or coordinates)
+- [ ] Implement plugged detection (binary_sensor)
+- [ ] **CRITICAL**: Verify presence BEFORE executing any control action
+- [ ] Send notifications if charging needed but not possible
+- [ ] Add integration tests for full flow
+
+**Safety Logic**:
+```python
+async def _async_execute_schedule(self, vehicle_id: str, action: str):
+    presence_monitor = self.presence_monitors.get(vehicle_id)
+    
+    if not presence_monitor:
+        _LOGGER.warning(f"No presence monitor for {vehicle_id}, assuming at home")
+        await self._async_execute_control(vehicle_id, action)
+        return
+    
+    # Verify AT HOME first
+    is_at_home = await presence_monitor._async_check_home_status()
+    if not is_at_home:
+        _LOGGER.info(f"Vehicle {vehicle_id} not at home, ignoring action: {action}")
+        await self._async_notify_vehicle_not_home(vehicle_id)
+        return
+    
+    # Verify PLUGGED second
+    is_plugged = await presence_monitor._async_check_plugged_status()
+    if not is_plugged:
+        _LOGGER.info(f"Vehicle {vehicle_id} not plugged, ignoring action: {action}")
+        await self._async_notify_vehicle_not_plugged(vehicle_id)
+        return
+    
+    # Only if both conditions met: execute action
+    await self._async_execute_control(vehicle_id, action)
+```
+
+**Files Created**:
+- `custom_components/ev_trip_planner/schedule_monitor.py`
+- `custom_components/ev_trip_planner/presence_monitor.py`
+- `tests/test_schedule_monitor.py`
+- `tests/test_presence_monitor.py`
+
+---
+
+#### Phase 3E: Integration Testing & Migration Tool (Week 5)
+
+**Goal**: Validate complete system and provide migration path from sliders
+
+**Tasks**:
+- [ ] Create `test_integration.py` with E2E scenarios
+- [ ] Scenario 1: Single recurring trip → EMHASS schedule → charging activation
+- [ ] Scenario 2: Multiple vehicles with different priorities
+- [ ] Scenario 3: Presence detection prevents activation when away
+- [ ] Scenario 4: Fallback to manual control when EMHASS fails
+- [ ] Create migration service: `ev_trip_planner.import_from_sliders`
+- [ ] Read `input_number.{vehicle}_carga_necesaria_{dia}` and convert to trips
+- [ ] Add preview mode (show what would be created)
+- [ ] Deploy to test environment and monitor for 48h
+- [ ] Measure latency: trip creation → deferrable load → schedule → activation
+
+**Migration Service Example**:
+```yaml
+service: ev_trip_planner.import_from_sliders
+data:
+  vehicle_id: "chispitas"
+  preview: true  # Show what would be created without actually creating
+```
+
+**Files Created**:
+- `tests/test_integration.py`
+- Migration service in `trip_manager.py`
+
+---
+
+### Success Criteria (Milestone 3 Complete)
+
+- ✅ **Configuration**: Users can configure EMHASS index and presence sensors
+- ✅ **Deferrable Loads**: Each vehicle's trips are published to correct EMHASS index
+- ✅ **Control**: Charging activates/deactivates based on EMHASS schedule
+- ✅ **Safety**: No charging activation when vehicle not at home or not plugged
+- ✅ **Notifications**: Users alerted when charging is needed but not possible
+- ✅ **Testing**: All scenarios pass in integration tests
+- ✅ **Migration**: Users can import from existing slider system
+- ✅ **Stability**: System runs 48h in test environment without errors
+
+---
+
+### Files Modified Summary
+
+**New Files** (5):
+- `emhass_adapter.py` - Publish trips to EMHASS
+- `vehicle_controller.py` - Abstract vehicle control
+- `schedule_monitor.py` - Monitor and execute schedules
+- `presence_monitor.py` - Detect home/plugged status
+- `tests/test_integration.py` - E2E testing
+
+**Modified Files** (4):
+- `const.py` - Add new configuration constants
+- `config_flow.py` - Add steps 4-5 for EMHASS and presence config
+- `sensor.py` - Add sensors for deferrable load status
+- `services.yaml` - Add migration service
+
+**User Action Required**:
+- Manually add EMHASS configuration snippet to read our sensors
+- Configure presence sensors (optional but recommended)
+- Run migration service to import from sliders (optional)
+
+---
+
+### Timeline & Risk Assessment
+
+| Phase | Duration | Risk Level | Rollback Strategy |
+|-------|----------|------------|-------------------|
+| 3A: Configuration | 1 week | Low | Delete config entries |
+| 3B: EMHASS Adapter | 1 week | Medium | Disable adapter, revert to manual |
+| 3C: Vehicle Control | 1 week | Medium | Use external control mode |
+| 3D: Schedule Monitor | 1 week | **HIGH** | Disable monitor, manual charging only |
+| 3E: Integration | 1 week | Low | Revert to Phase 3C |
+
+**Total Duration**: 5 weeks (vs. 5 days original) → **More realistic and safe**
+
+**Critical Path**: Phase 3D (Schedule Monitor) - Most complex, requires all previous phases
 
 ---
 

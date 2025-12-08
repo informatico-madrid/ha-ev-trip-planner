@@ -1,197 +1,328 @@
 # TODO - EV Trip Planner
 
-## Prioridad Alta
-### 8. Normalización de días de la semana (case-insensitive, sin tildes)
-**Issue**: La validación actual es case-sensitive ('miercoles' vs 'Miércoles') y no maneja tildes, causando duplicados por inconsistencias de formato.
+## 🎯 Milestone 3: EMHASS Integration & Smart Charging (IN PROGRESS)
 
-**Solución**:
-- Implementar sanitización de entrada que convierta cualquier variante (Miércoles, Miercoles, miercoles, MIÉRCOLES) al valor canónico sin tildes y en minúsculas
-- Usar `unidecode` o similar para eliminar tildes
-- Actualizar `_DAY_MAP` para usar valores normalizados como claves
-- Añadir helper `_normalize_day_name(day_str: str) -> str`
+### Phase 3A: Configuration & Planning Setup (Week 1) - IN PROGRESS
 
-**Test primero**:
-```python
-async def test_add_recurring_trip_normalizes_day_variants():
-    """Test que cualquier variante de día se normaliza correctamente."""
-    # RED phase - probar: Miércoles, Miercoles, miercoles, MIÉRCOLES
-```
+**Priority: CRITICAL** - Foundation for all subsequent phases
 
-**Archivos a modificar**:
-- `custom_components/ev_trip_planner/trip_manager.py` (método `async_add_recurring_trip`)
-- `custom_components/ev_trip_planner/trip_manager.py` (añadir helper `_normalize_day_name`)
+- [ ] **3A.1** Add constants to `const.py`:
+  - `CONF_PLANNING_HORIZON` (int, 1-30 days)
+  - `CONF_HOME_SENSOR` (optional entity_id)
+  - `CONF_PLUGGED_SENSOR` (optional entity_id)
+  - `CONF_NOTIFICATION_SERVICE` (default: `persistent_notification.create`)
+  - `CONF_MAX_DEFERRABLE_LOADS` (int, default: 50) - Máximo número de viajes simultáneos
 
----
+- [ ] **3A.2** Extend `config_flow.py` - Add step 4 "EMHASS Configuration":
+  - Show configuration snippet for user to copy into EMHASS config
+  - Explain that each trip gets its own index automatically
+  - Ask for maximum number of deferrable loads (default: 50)
+  - Validate user understands manual EMHASS configuration required
 
-### 9. Eliminación de redundancia km/kWh y cálculo automático
-**Issue**: El campo kWh es redundante y genera riesgo de datos contradictorios (ej: 1000 km con 1 kWh). El usuario no debería calcular manualmente el consumo.
+- [ ] **3A.3** Extend `config_flow.py` - Add step 5 "Presence Detection (Optional)":
+  - Ask if user wants to configure presence detection
+  - If yes: Entity selector for home sensor (binary_sensor.*)
+  - If yes: Entity selector for plugged sensor (binary_sensor.*)
+  - Show explanation of benefits (safety, notifications)
 
-**Solución**:
-- **Fase 1**: Refactorizar para solicitar únicamente:
-  - Origen-destino (direcciones o coordenadas)
-  - Hora de salida
-  - Modelo de vehículo (para obtener eficiencia)
-- **Fase 2**: Implementar cálculo automático:
-  - Distancia total (via geocoding API: Google Maps, OpenStreetMap)
-  - Consumo kWh estimado: `kwh = distance_km * vehicle_efficiency_kwh_per_km`
-  - Tiempo de viaje estimado
-- **Fase 3**: Mantener compatibilidad hacia atrás (campos opcionales)
+- [ ] **3A.4** Create config flow tests:
+  - Test presence sensor validation (must exist)
+  - Test configuration snippet generation
+  - Test max deferrable loads validation
 
-**Test primero**:
-```python
-async def test_add_trip_with_origin_destination_calculates_kwh():
-    """Test que origen-destino calcula kWh automáticamente."""
-    # RED phase
-```
+- [ ] **3A.5** Update `sensor.py` - Add new sensors:
+  - `sensor.{vehicle}_presence_status` (At Home/Away/Unknown)
+  - `sensor.{vehicle}_charging_readiness` (Ready/Not Home/Not Plugged)
+  - `sensor.{vehicle}_active_trips_count` (number of trips with assigned EMHASS indices)
 
-**Archivos a modificar**:
-- `custom_components/ev_trip_planner/trip_manager.py` (nuevos parámetros)
-- `custom_components/ev_trip_planner/services.yaml` (nuevo schema)
-- `custom_components/ev_trip_planner/config_flow.py` (configurar API key)
+**Estimated Effort**: 2-3 days
+**Risk**: Low (purely additive, no existing functionality changed)
+**Testing**: Unit tests for config flow, manual validation of config snippet
 
 ---
 
-### 1. Mejorar feedback de errores en servicios
-**Issue**: Si usas `vehicle_id` incorrecto, el servicio responde "OK" pero no hace nada. No hay feedback de error.
+### Phase 3B: EMHASS Adapter & Deferrable Loads (Week 2)
 
-**Solución**: 
-- Validar que `vehicle_id` exista en `hass.data[DOMAIN]`
-- Lanzar `ServiceValidationError` con mensaje claro si no existe
-- Ejemplo: "Vehicle 'chispitas Test' not found. Available vehicles: ['Chispitas Test']"
+**Priority: CRITICAL** - Core integration with optimizer
 
-**Test primero**: 
-```python
-async def test_service_invalid_vehicle_id_raises_error():
-    """Test que servicio con vehicle_id inválido lanza error."""
-    # RED phase
-```
+- [ ] **3B.1** Create `emhass_adapter.py`:
+  - Class `EMHASSAdapter`
+  - `__init__`: Store vehicle config, hass, index
+  - `async_publish_deferrable_load(trip)`: Calculate and publish parameters
 
----
+- [ ] **3B.2** Implement parameter calculation:
+  - `def_total_hours`: `kwh / charging_power`
+  - `P_deferrable_nom`: `charging_power * 1000` (convert to Watts)
+  - `def_start_timestep`: Always 0 (can start now)
+  - `def_end_timestep`: `(deadline - now).hours` (capped at 168)
+  - `trip_id`, `description`, `status` (metadata)
 
-### 2. Implementar DataUpdateCoordinator para sensores reactivos
-**Issue**: Los sensores usan polling (`should_poll = True`) y solo se actualizan cada 30s. No son reactivos a cambios del TripManager.
+- [ ] **3B.3** Create/update sensor entity:
+  - Entity ID: `sensor.emhass_deferrable_load_config_{index}`
+  - State: "active" when trip published
+  - Attributes: All parameters above
 
-**Solución**:
-- Crear `TripPlannerCoordinator(DataUpdateCoordinator)` en `__init__.py`
-- Envolver `TripManager` y hacer `async_request_refresh()` después de cada operación CRUD
-- Sensores se suscriben al coordinator (`CoordinatorEntity`)
-- Actualización instantánea sin polling
+- [ ] **3B.4** Trigger on trip changes:
+  - Listen to `SIGNAL_TRIPS_UPDATED_{vehicle_id}`
+  - On trigger: `async_publish_deferrable_load()` for each active trip
+  - Support multiple trips per vehicle (sum kWh, use earliest deadline)
 
-**Test primero**:
-```python
-async def test_coordinator_refresh_after_add_trip():
-    """Test que coordinator actualiza después de añadir viaje."""
-    # RED phase
-```
+- [ ] **3B.5** Add unit tests:
+  - Test parameter calculation accuracy
+  - Test sensor entity creation
+  - Test trip update triggers republication
 
-**Referencias**:
-- [DataUpdateCoordinator docs](https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities)
-- Patrón usado por: Renault, Tesla, etc.
+**Estimated Effort**: 3-4 days
+**Risk**: Medium (new component, but isolated)
+**Testing**: Unit tests + manual verification with EMHASS logs
 
 ---
 
-### 3. Normalizar vehicle_id (slug)
-**Issue**: `vehicle_id` con espacios y mayúsculas causa confusión ("Chispitas Test" vs "chispitas Test")
+### Phase 3C: Vehicle Control Interface (Week 3)
 
-**Solución**:
-- En `config_flow.py`, normalizar a slug: `vehicle_name.lower().replace(" ", "_")`
-- Guardar ambos: `vehicle_name` (display) y `vehicle_id` (slug)
-- Usar slug internamente, name para UI
+**Priority: HIGH** - Abstraction for different vehicle integrations
 
-**Test primero**:
-```python
-async def test_config_flow_normalizes_vehicle_id():
-    """Test que vehicle_id se normaliza a slug."""
-    # RED phase
-```
+- [ ] **3C.1** Create `vehicle_controller.py`:
+  - Base class `VehicleControlStrategy`
+  - Subclasses: `SwitchStrategy`, `ServiceStrategy`, `ScriptStrategy`
 
----
+- [ ] **3C.2** Implement `SwitchStrategy`:
+  - `async_activate()`: Call `switch.turn_on`
+  - `async_deactivate()`: Call `switch.turn_off`
+  - `async_get_status()`: Read switch state
 
-## Prioridad Media
+- [ ] **3C.3** Implement `ServiceStrategy`:
+  - Config: `service_name`, `data_template_on`, `data_template_off`
+  - `async_activate()`: Call custom service with templated data
+  - `async_deactivate()`: Call custom service with templated data
 
-### 4. Refactorizar tests antiguos a Storage API
-**Issue**: 16 tests fallan porque usan mocks de `input_text` (deprecated)
+- [ ] **3C.4** Implement `ScriptStrategy`:
+  - `async_activate()`: Call `script.{vehicle}_start_charging`
+  - `async_deactivate()`: Call `script.{vehicle}_stop_charging`
 
-**Solución**:
-- Actualizar `test_trip_manager_core.py` para mockear `Store` en lugar de `input_text`
-- Reutilizar fixtures de `test_trip_manager_storage.py`
-- Mantener cobertura >80%
+- [ ] **3C.5** Create factory function:
+  - `create_controller(hass, config) -> VehicleControlStrategy`
+  - Select strategy based on `CONF_CONTROL_TYPE`
 
-**O deprecar**: Marcar tests antiguos como `@pytest.mark.skip` y depender de los nuevos Storage tests.
+- [ ] **3C.6** Add validation in config flow:
+  - Verify switch entity exists (if type=switch)
+  - Verify service exists (if type=service)
+  - Test call during setup to ensure it works
 
----
+- [ ] **3C.7** Add unit tests:
+  - Test each strategy independently
+  - Test factory function selection logic
 
-### 5. Añadir validación de sensores OVMS en config_flow
-**Issue**: Usuario puede configurar sensor SOC que no existe → errores en runtime
-
-**Solución**:
-- En `async_step_sensors`, validar que `soc_sensor` existe en `hass.states`
-- Mostrar error en UI si no existe
-- Sugerir sensores disponibles con `sensor.*.soc` pattern
-
----
-
-### 6. Implementar import/export de viajes
-**Issue**: No hay forma de hacer backup/restore de viajes
-
-**Solución**:
-- Servicio `ev_trip_planner.export_trips` → devuelve YAML
-- Servicio `ev_trip_planner.import_trips` → desde YAML
-- Útil para migración entre vehículos
+**Estimated Effort**: 2-3 days
+**Risk**: Low (isolated component, easy to test)
+**Testing**: Unit tests + manual test with real switch/service
 
 ---
 
-### 7. Autocrear panel al configurar (mejora UX)
-**Issue**: El usuario final no debería crear el panel Lovelace manualmente; al configurar la integración debería aparecer un panel con los viajes desde el principio.
+### Phase 3D: Schedule Monitor & Presence Detection (Week 4)
 
-**Solución**:
-- Añadir opción en `config_flow`/`options_flow`: "Crear panel automáticamente" (por defecto activada).
-- Idempotente: si el panel ya existe, no duplicar.
-- Detectar modo de Lovelace:
-    - `storage`: usar la API interna de Lovelace para crear dashboard/view y tarjetas.
-    - `yaml`: generar `lovelace-<slug_vehiculo>-trip-planner.yaml` y notificar al usuario (persistent_notification) con un botón/servicio para que confirme añadirlo (no editar `configuration.yaml` automáticamente).
-- Exponer servicio manual `ev_trip_planner.create_dashboard` para recrear/forzar la creación del panel.
-- Al eliminar la integración: ocultar/eliminar el panel (si fue creado automáticamente) o preguntar al usuario.
+**Priority: CRITICAL** - Where everything comes together
 
-**Test primero**:
-```python
-async def test_create_dashboard_service_idempotent(hass):
-        """Crea el panel una vez y al repetir no duplica."""
-        # RED phase
-```
+- [ ] **3D.1** Create `schedule_monitor.py`:
+  - Class `ScheduleMonitor`
+  - `__init__`: Store hass, vehicle controllers, presence monitors
+  - `async_start()`: Begin monitoring EMHASS schedules
 
-**Notas**:
-- Plantillas de tarjetas reutilizan las entidades: `sensor.<slug>_trips_list`, `sensor.<slug>_recurring_trips_count`, `sensor.<slug>_punctual_trips_count`.
-- Usar slug de `vehicle_id` para rutas/filenames.
+- [ ] **3D.2** Discover EMHASS schedules dynamically:
+  - Listen for `state_changed` events on `sensor.emhass_deferrable*`
+  - Build map: `deferrable_index -> vehicle_id`
+  - Handle schedule updates in real-time
+
+- [ ] **3D.3** Parse schedule format:
+  - EMHASS format: `"02:00-03:00, 05:00-06:00"` or JSON
+  - Extract current hour and determine if should be charging
+  - Handle edge cases: schedule empty, malformed, stale
+
+- [ ] **3D.4** Create `presence_monitor.py`:
+  - Class `PresenceMonitor`
+  - `async_check_home_status()`: Read sensor or calculate distance
+  - `async_check_plugged_status()`: Read binary_sensor
+  - `async_check_charging_readiness()`: Combined check + notifications
+
+- [ ] **3D.5** Implement safety logic:
+  ```python
+  async def _async_execute_schedule(self, vehicle_id, action):
+      # 1. Check presence
+      if not await presence_monitor.is_at_home():
+          notify_user("Vehicle not at home")
+          return
+      
+      # 2. Check plugged
+      if not await presence_monitor.is_plugged():
+          notify_user("Vehicle not plugged")
+          return
+      
+      # 3. Execute action
+      await vehicle_controller.execute(action)
+  ```
+
+- [ ] **3D.6** Add notification system:
+  - Configurable service (default: persistent_notification)
+  - Messages: "Vehicle not at home", "Not plugged", "Charging started"
+  - Include trip details: description, kWh needed, deadline
+
+- [ ] **3D.7** Add integration tests:
+  - Test full flow: trip → EMHASS → schedule → control
+  - Test safety logic (prevent activation when away)
+  - Test notification delivery
+
+**Estimated Effort**: 4-5 days
+**Risk**: **HIGH** (complex interactions, timing issues)
+**Testing**: Integration tests + 24h manual monitoring in test environment
 
 ---
 
-## Prioridad Baja
+### Phase 3E: Integration Testing & Migration (Week 5)
 
-### 7. Dashboard interactivo con custom card
-**Issue**: Dashboard actual es estático (Markdown + entities)
+**Priority: MEDIUM** - Validation and user adoption
 
-**Solución**:
-- Crear custom Lovelace card con grid visual de semana
-- Click en celda → editar viaje inline
-- Drag & drop para cambiar horarios
+- [ ] **3E.1** Create integration test suite:
+  - Scenario 1: Single recurring trip, full automation
+  - Scenario 2: Multiple vehicles, different schedules
+  - Scenario 3: Presence detection prevents charging
+  - Scenario 4: EMHASS failure → fallback to manual
+  - Scenario 5: Trip added → deferrable updated → schedule changed → control activated
 
-**Requiere**: Frontend (JS/TypeScript), fuera de scope MVP
+- [ ] **3E.2** Deploy to test environment:
+  - Use real OVMS vehicle
+  - Monitor logs for 48 hours
+  - Measure latency: trip change → control action (< 60s target)
+  - Count errors and warnings
+
+- [ ] **3E.3** Create migration service:
+  - Service: `ev_trip_planner.import_from_sliders`
+  - Read `input_number.{vehicle}_carga_necesaria_{dia}`
+  - Convert to recurring trips
+  - Add `preview: true` mode (show what would be created)
+
+- [ ] **3E.4** Add migration tests:
+  - Test conversion accuracy
+  - Test preview mode
+  - Test idempotency (run twice = no duplicates)
+
+- [ ] **3E.5** Documentation:
+  - Update README.md with EMHASS integration guide
+  - Add configuration examples for OVMS and Renault
+  - Create troubleshooting guide
+  - Document migration process
+
+**Estimated Effort**: 3-4 days
+**Risk**: Low (testing phase, can rollback)
+**Testing**: Manual testing in production-like environment
 
 ---
 
-### 8. Tests de integración E2E
-**Issue**: Tests actuales son unitarios; no cubren integración completa HA
+## 📊 Development Phases Summary (Updated)
 
-**Solución**:
-- Tests con `hass` real (no mock)
-- Verificar flujo completo: config_flow → services → sensors
-- Usar `pytest-homeassistant-custom-component` fixtures
+| Milestone | Duration | Status | Risk | Notes |
+|-----------|----------|--------|------|-------|
+| 0. Foundation | 1 day | ✅ DONE | Low | Repo ready |
+| 1. Infrastructure | 5 days | ✅ DONE | Low | Pure addition |
+| 2. Calculations | 3 days | ✅ DONE | Low | All sensors working |
+| 3A. Config Setup | 1 week | ⚪ Pending | Low | New config options |
+| 3B. EMHASS Adapter | 1 week | ⚪ Pending | Medium | Core integration |
+| 3C. Vehicle Control | 1 week | ⚪ Pending | Low | Abstraction layer |
+| 3D. Schedule Monitor | 1 week | ⚪ Pending | **HIGH** | Complex logic |
+| 3E. Integration | 1 week | ⚪ Pending | Medium | Testing phase |
+| 4. Validation | 3 days | ⚪ Pending | Medium | Polish & docs |
+| 5. Advanced | 5 days | ⚪ Optional | Low | Nice-to-have |
+
+**Total Estimated Time**: 5-6 weeks for Milestone 3 completion
 
 ---
 
-## Completado ✅
+## 🎯 Next Immediate Actions (Priority Order)
 
-- ✅ Migrar de `input_text` a `Storage API` (18-nov-2025)
-- ✅ Crear tests TDD para Storage (`test_trip_manager_storage.py`)
-- ✅ Compartir TripManager instance entre servicios y sensores via `hass.data`
+1. **Validate EMHASS Configuration** (Before coding):
+   ```bash
+   # Check current EMHASS deferrable load configuration
+   docker exec homeassistant grep -A 30 "deferrable_load" /config/configuration.yaml
+   
+   # Confirm indices used
+   # Expected: def_total_hours: [4, 3] (index 0=OVMS, 1=Morgan)
+   ```
+
+2. **Verify Presence Sensors** (Before coding):
+   ```bash
+   # Check if sensors exist
+   python3 homeassistant/.vscode/get_live_context.py | grep -E "binary_sensor.*en_casa|binary_sensor.*enchufado"
+   
+   # Expected: binary_sensor.ovms_chispitas_en_casa, binary_sensor.morgan_en_casa
+   ```
+
+3. **Create Feature Branch**:
+   ```bash
+   cd /home/malka/ha-ev-trip-planner
+   git checkout -b milestone-3-emhass-integration
+   ```
+
+4. **Start Phase 3A**: Add constants and extend config flow
+
+---
+
+## ⚠️ Known Limitations & Future Improvements
+
+### Limitation 1: One EMHASS Index Per Vehicle
+**Current**: Each vehicle occupies one deferrable load index
+**Impact**: Cannot handle multiple simultaneous trips per vehicle
+**Workaround**: Sum kWh of all trips for same vehicle on same day
+**Future**: Support for dynamic index allocation (complex, low priority)
+
+### Limitation 2: Manual EMHASS Configuration Required
+**Current**: User must manually add configuration snippet to EMHASS
+**Impact**: Less "plug and play"
+**Reason**: EMHASS doesn't support auto-discovery of deferrable load configs
+**Future**: Create PR for EMHASS to support auto-discovery (external project)
+
+### Limitation 3: No Support for Multiple Optimizers
+**Current**: Only EMHASS supported
+**Impact**: Users of other optimizers cannot use this module
+**Reason**: Focus on production use case first
+**Future**: Abstract optimizer interface (post v1.0)
+
+### Limitation 4: Fixed Planning Horizon
+**Current**: 7 days by default, configurable but static
+**Impact**: Doesn't adapt to EMHASS horizon changes dynamically
+**Workaround**: User can manually adjust in config
+**Future**: Auto-detect EMHASS horizon and adapt (medium priority)
+
+---
+
+## ✅ Definition of Done (Milestone 3)
+
+Milestone 3 is complete when:
+
+- [ ] **Functionality**:
+  - Trips are automatically published to EMHASS as deferrable loads
+  - EMHASS schedules are monitored and executed
+  - Charging only activates when vehicle is at home and plugged
+  - Notifications sent when charging needed but not possible
+
+- [ ] **Testing**:
+  - All unit tests pass (coverage >80%)
+  - Integration tests pass (5 scenarios)
+  - 48h manual test in production environment without errors
+  - Latency < 60s from trip change to control action
+
+- [ ] **Documentation**:
+  - README.md updated with EMHASS integration guide
+  - Configuration examples for OVMS and Renault
+  - Migration guide from sliders to trips
+  - Troubleshooting section
+
+- [ ] **User Experience**:
+  - Config flow guides user through setup
+  - Clear error messages for misconfiguration
+  - Migration service with preview mode
+  - No breaking changes to existing functionality
+
+---
+
+**Last Updated**: 2025-12-08
+**Milestone 3 Start Date**: TBD (pending validation of EMHASS config)
+**Expected Completion**: 5-6 weeks after start

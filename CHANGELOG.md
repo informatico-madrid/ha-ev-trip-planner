@@ -7,8 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Milestone 3 Preparation**: Complete architectural redesign for EMHASS integration
+  - New documentation: `docs/MILESTONE_3_ARCHITECTURE_ANALYSIS.md` (375 lines)
+  - New documentation: `docs/MILESTONE_3_REFINEMENT.md` (888 lines)
+  - Updated `ROADMAP.md` with 5-phase Milestone 3 plan (3A-3E)
+  - Updated `TODO.md` with detailed implementation tasks
+
 ### Fixed
 - **Validación de formato de hora**: Se añadió validación estricta en `async_add_recurring_trip()` para rechazar formatos de hora inválidos (ej: "16:400") antes de almacenarlos. Implementado con TDD: 3 tests añadidos y pasando, previniendo datos corruptos en el storage.
+
+## [0.3.0-dev] - Target: Q1 2026
+
+### Added
+- **EMHASS Integration**: Full support for EMHASS day-ahead optimization
+  - Automatic publication of trips as deferrable loads
+  - Dynamic parameter calculation (power, duration, deadline)
+  - Real-time schedule monitoring and execution
+- **Smart Presence Detection**: Prevent charging activation when vehicle not available
+  - Home detection via sensor or coordinates
+  - Plugged status verification
+  - Intelligent notifications when charging needed but not possible
+- **Vehicle Control Abstraction**: Support for multiple control mechanisms
+  - Switch entity control
+  - Custom service calls
+  - Script execution
+- **Migration Tool**: Import existing slider-based configuration
+  - Service: `ev_trip_planner.import_from_sliders`
+  - Preview mode to validate before migration
+
+### Changed
+- **Architecture**: Complete redesign based on production EMHASS analysis
+  - Moved from hybrid sensor approach to deferrable load interface
+  - Numeric index mapping (0,1,2...) instead of wildcard entities
+  - Agnostic optimizer design (EMHASS now, others later)
+- **Configuration**: Extended config flow with 2 new steps
+  - Step 4: EMHASS index and planning horizon
+  - Step 5: Presence detection setup (optional)
+
+### Technical Details
+- **New Components**: `emhass_adapter.py`, `vehicle_controller.py`, `schedule_monitor.py`, `presence_monitor.py`
+- **New Constants**: `CONF_EMHASS_INDEX`, `CONF_PLANNING_HORIZON`, `CONF_HOME_SENSOR`, `CONF_PLUGGED_SENSOR`
+- **Safety Features**: Presence verification before any charging action
+- **Testing**: 3-level testing strategy (unit, integration, E2E)
+
+### Known Limitations
+- Manual EMHASS configuration required (user must add config snippet for each potential index)
+- Fixed planning horizon (does not dynamically adapt to EMHASS changes)
+- Maximum 50 simultaneous trips (configurable, but EMHASS has practical limits)
+
+### Architectural Corrections (2025-12-08)
+- **CRITICAL FIX**: Changed from "one index per vehicle" to "one index per trip"
+  - Each trip gets its own unique EMHASS index (0, 1, 2, 3...)
+  - Enables multiple simultaneous trips per vehicle
+  - Dynamic index assignment with reuse when trips are deleted
+  - Persistent mapping: `trip_id → emhass_index` stored in HA storage
+  - Updated all documentation (ROADMAP, MILESTONE_3_REFINEMENT, TODO, IMPLEMENTATION_PLAN)
 
 ## [0.2.0-dev] - 2025-11-22
 
