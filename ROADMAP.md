@@ -2,8 +2,8 @@
 
 ## 📊 Project Status
 
-**Current Version**: 0.1.0-dev  
-**Development Stage**: Active Development  
+**Current Version**: 0.2.0-dev
+**Development Stage**: Milestone 2 Completed
 **Target Release**: v1.0.0 (Q1 2025)
 
 ---
@@ -89,17 +89,17 @@ We're following an **incremental development approach** (Option B):
 
 ---
 
-### 🚧 Milestone 2: Trip Calculations (IN PROGRESS - Bug Critical)
+### ✅ Milestone 2: Trip Calculations (COMPLETED - Nov 22, 2025)
 
 **Goal**: Calculate next trip and required charging hours (still informational)
 
 **Tasks**:
-- [ ] Sensor: `{vehicle}_next_trip` (selects nearest future trip)
-- [ ] Sensor: `{vehicle}_next_deadline` (datetime of next trip)
-- [ ] Sensor: `{vehicle}_kwh_needed_today` (sum of all trips today)
-- [ ] Sensor: `{vehicle}_hours_needed_today` (ceil to integer)
-- [ ] Logic to expand recurring trips for next 7 days
-- [ ] Logic to combine recurring + punctual trips
+- [x] Sensor: `{vehicle}_next_trip` (selects nearest future trip)
+- [x] Sensor: `{vehicle}_next_deadline` (datetime of next trip)
+- [x] Sensor: `{vehicle}_kwh_needed_today` (sum of all trips today)
+- [x] Sensor: `{vehicle}_hours_needed_today` (ceil to integer)
+- [x] Logic to expand recurring trips for next 7 days
+- [x] Logic to combine recurring + punctual trips
 - [x] Timezone handling
 - [x] Edge cases (no trips, past trips, etc.)
 
@@ -338,8 +338,8 @@ We welcome contributions at any stage! Current priorities:
 | Milestone | Duration | Status | Risk | Notes |
 |-----------|----------|--------|------|-------|
 | 0. Foundation | 1 day | ✅ DONE | Low | Repo ready |
-| 1. Infrastructure | 5 days | 🚧 IN PROGRESS | Low | Pure addition |
-| 2. Calculations | 3 days | 🔴 BLOCKED | Critical | Bug: sensors not updating in production
+| 1. Infrastructure | 5 days | ✅ DONE | Low | Pure addition |
+| 2. Calculations | 3 days | ✅ DONE | Low | All sensors working |
 | 3. MPC Integration | 5 days | ⚪ Pending | ⚠️ HIGH | Modifies existing code |
 | 4. Validation | 3 days | ⚪ Pending | Medium | Testing phase |
 | 5. Advanced | 5 days | ⚪ Optional | Low | Nice-to-have |

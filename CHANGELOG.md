@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Validación de formato de hora**: Se añadió validación estricta en `async_add_recurring_trip()` para rechazar formatos de hora inválidos (ej: "16:400") antes de almacenarlos. Implementado con TDD: 3 tests añadidos y pasando, previniendo datos corruptos en el storage.
+
 ## [0.2.0-dev] - 2025-11-22
 
 ### Added

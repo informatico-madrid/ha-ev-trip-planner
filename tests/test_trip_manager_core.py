@@ -359,3 +359,76 @@ async def test_add_punctual_trip_happy_path(mock_hass, vehicle_id):
     assert mock_store.async_save.called
     saved_trips = mock_store.async_save.call_args[0][0]
     assert any(t["id"] == trip_id for t in saved_trips)
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_rejects_invalid_hour_format(mock_hass, vehicle_id):
+    """Test that async_add_recurring_trip rejects invalid hour formats like '16:400'."""
+    mock_store = MagicMock()
+    mock_store.async_load = AsyncMock(return_value=[])
+    mock_store.async_save = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.trip_manager.Store",
+        return_value=mock_store,
+    ):
+        manager = TripManager(mock_hass, vehicle_id)
+        
+        # Test invalid hour format (minutes > 59)
+        with pytest.raises(ValueError) as exc_info:
+            await manager.async_add_recurring_trip(
+                dia_semana="lunes", hora="16:400", km=24.0, kwh=3.6, descripcion="Trabajo"
+            )
+        
+        assert "Invalid time format" in str(exc_info.value)
+        assert "16:400" in str(exc_info.value)
+        mock_store.async_save.assert_not_called()  # Should not save invalid data
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_rejects_invalid_hour_too_high(mock_hass, vehicle_id):
+    """Test that async_add_recurring_trip rejects hour > 23."""
+    mock_store = MagicMock()
+    mock_store.async_load = AsyncMock(return_value=[])
+    mock_store.async_save = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.trip_manager.Store",
+        return_value=mock_store,
+    ):
+        manager = TripManager(mock_hass, vehicle_id)
+        
+        # Test invalid hour (hour > 23)
+        with pytest.raises(ValueError) as exc_info:
+            await manager.async_add_recurring_trip(
+                dia_semana="lunes", hora="25:00", km=24.0, kwh=3.6, descripcion="Trabajo"
+            )
+        
+        assert "Invalid time format" in str(exc_info.value)
+        mock_store.async_save.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_accepts_valid_hour_formats(mock_hass, vehicle_id):
+    """Test that async_add_recurring_trip accepts valid hour formats."""
+    mock_store = MagicMock()
+    mock_store.async_load = AsyncMock(return_value=[])
+    mock_store.async_save = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.trip_manager.Store",
+        return_value=mock_store,
+    ):
+        manager = TripManager(mock_hass, vehicle_id)
+        
+        # Test valid hour formats
+        valid_times = ["00:00", "09:00", "12:30", "16:45", "23:59"]
+        
+        for time_str in valid_times:
+            trip_id = await manager.async_add_recurring_trip(
+                dia_semana="lunes", hora=time_str, km=24.0, kwh=3.6, descripcion="Trabajo"
+            )
+            assert trip_id.startswith("rec_lun_")
+        
+        # Should have saved all valid trips
+        assert mock_store.async_save.call_count == len(valid_times)

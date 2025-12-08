@@ -152,6 +152,11 @@ class TripManager:
         ]:
             raise ValueError(f"Invalid day of week: {dia_semana}")
 
+        # Validate time format (this will prevent invalid formats like "16:400")
+        time_parsed = self._parse_hour_minute(hora)
+        if time_parsed is None:
+            raise ValueError(f"Invalid time format: {hora}. Expected HH:MM format (00:00-23:59)")
+
         trip_data = {
             "tipo": TRIP_TYPE_RECURRING,
             "dia_semana": dia_semana,
