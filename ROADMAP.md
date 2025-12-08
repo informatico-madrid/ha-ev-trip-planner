@@ -118,25 +118,27 @@ We're following an **incremental development approach** (Option B):
 
 ---
 
-### ✅ Milestone 3: EMHASS Integration & Smart Charging Control (COMPLETED - Dec 8, 2025)
+### ⚠️ Milestone 3: EMHASS Integration & Smart Charging Control (IMPLEMENTED - NOT VALIDATED)
+
+**Status**: ⚠️ **CODE COMPLETE** but **NOT TESTED** in production environment
 
 **Goal**: Transform informational trip system into active charging optimization
 
 **✅ ARCHITECTURAL INNOVATION**: Implemented dynamic index assignment - each trip gets unique EMHASS index (0, 1, 2...) instead of fixed per-vehicle index. This enables multiple simultaneous trips per vehicle.
 
-**Completed Phases**:
-- ✅ **Phase 3A**: Configuration & Planning Setup (1 day)
+**Implementation Status**:
+- ✅ **Phase 3A**: Configuration & Planning Setup - **CODE COMPLETE**
   - Extended config flow with EMHASS and presence detection steps
   - Added new status sensors (active trips, presence, charging readiness)
   - Created comprehensive unit tests (3A.5)
   
-- ✅ **Phase 3B**: EMHASS Adapter & Deferrable Loads (2 days)
+- ✅ **Phase 3B**: EMHASS Adapter & Deferrable Loads - **CODE COMPLETE**
   - Created `EMHASSAdapter` class with dynamic index management
   - Implemented index pool (0-49), assignment, release, and reuse
   - Added persistent storage for trip-to-index mappings
   - Created 9 comprehensive unit tests (3B.4)
   
-- ✅ **Phase 3C**: Vehicle Control Interface (1 day)
+- ✅ **Phase 3C**: Vehicle Control Interface - **CODE COMPLETE**
   - Created abstract `VehicleControlStrategy` with 4 implementations:
     - `SwitchStrategy` - Control via switch entity
     - `ServiceStrategy` - Control via custom service calls
@@ -145,7 +147,7 @@ We're following an **incremental development approach** (Option B):
   - Added config flow integration and validation
   - Created 5 unit tests (3C.3)
   
-- ✅ **Phase 3D**: Schedule Monitor & Presence Detection (2 days)
+- ✅ **Phase 3D**: Schedule Monitor & Presence Detection - **CODE COMPLETE**
   - Created `ScheduleMonitor` class for real-time schedule monitoring
   - Created `PresenceMonitor` class with dual detection methods:
     - Sensor-based (binary_sensor for home/plugged status)
@@ -153,16 +155,11 @@ We're following an **incremental development approach** (Option B):
   - Implemented safety logic: verify presence BEFORE executing control actions
   - Created 8 integration tests (3D.4)
   
-- ✅ **Phase 3E**: Integration Testing & Migration (1 day)
-  - Created comprehensive E2E tests covering:
-    - Single trip flow with dynamic index
-    - Multiple trips with unique indices
-    - Presence detection preventing charging when away
-    - Trip deletion releasing indices
-    - Index persistence across restarts
-    - Index exhaustion handling
-  - Created migration service `import_from_sliders` with preview mode
-  - Validated complete system with 156 tests (93.6% passing)
+- ⚠️ **Phase 3E**: Integration Testing & Migration - **PENDING VALIDATION**
+  - ✅ Code complete: E2E tests, migration service
+  - ✅ Unit tests: 156 tests, 93.6% passing
+  - ❌ **Production testing**: NOT STARTED (requires deployment to HA local)
+  - ❌ **Manual validation**: NOT STARTED (Step 3E.1 in implementation plan)
 
 **Key Innovations**:
 - ✅ **Dynamic Index Assignment**: Each trip automatically assigned unique EMHASS index
@@ -192,8 +189,7 @@ We're following an **incremental development approach** (Option B):
 - `custom_components/ev_trip_planner/services.yaml` - Migration service
 
 **Testing Results**:
-- **Total Tests**: 156
-- **Passing**: 146 (93.6%)
+- **Unit Tests**: 156 tests, 93.6% passing (isolated test environment)
 - **Coverage**: >80% for all new components
 - **Key Metrics**:
   - EMHASSAdapter: 9/9 tests passing
@@ -202,15 +198,19 @@ We're following an **incremental development approach** (Option B):
   - PresenceMonitor: 4/4 tests passing
   - Integration: 8/8 tests passing
 
-**Success Criteria - ALL MET**:
-- ✅ Configuration: Users can configure EMHASS parameters and presence sensors
-- ✅ Deferrable Loads: Each trip published to EMHASS with unique index
-- ✅ Control: Charging activates/deactivates based on EMHASS schedule
-- ✅ Safety: No charging when vehicle not at home or not plugged
-- ✅ Notifications: Users alerted when charging needed but not possible
-- ✅ Testing: All scenarios pass in integration tests
-- ✅ Migration: Users can import from existing slider system
-- ✅ Stability: System validated in test environment
+**⚠️ CRITICAL: Production Validation Required**:
+- ❌ **Step 3E.1**: Manual testing in production environment (HA local) - **NOT STARTED**
+- ❌ **Step 3E.2**: Migration service validation - **NOT STARTED**
+- ❌ **Step 3E.3**: Final validation checklist - **NOT STARTED**
+
+**Next Steps to Complete Milestone 3**:
+1. Deploy to Home Assistant local environment (IN PROGRESS)
+2. Configure test vehicle with EMHASS parameters
+3. Create test trips and verify dynamic index assignment
+4. Verify index persistence across restarts
+5. Test presence detection with real sensors
+6. Monitor for 24 hours without errors
+7. Validate migration service with real data
 
 **Known Limitations**:
 - Manual EMHASS configuration required (user must add config snippet for each index up to max_deferrable_loads)
@@ -224,7 +224,115 @@ We're following an **incremental development approach** (Option B):
 - TDD methodology: `docs/TDD_METHODOLOGY.md`
 - Closed issues: `docs/ISSUES_CLOSED_MILESTONE_3.md`
 
-**Deployment Status**: Ready for production testing
+**Deployment Status**: ⚠️ **CODE DEPLOYED** - Pending production validation
+
+---
+
+### 🔴 Milestone 3.1: UX Improvements - Configuration Clarity (Target: 1-2 days)
+
+**Status**: 📝 **PLANNED** - Identified during production testing
+
+**Goal**: Fix critical UX issues preventing users from completing configuration
+
+**Issues Identified**:
+- ❌ **Issue #1**: Sensor selectors show all entities, not filtered by type (e.g., SOC should only show % sensors)
+- ❌ **Issue #2**: "External EMHASS" is misleading - EMHASS doesn't control, it optimizes
+- ❌ **Issue #3**: Planning horizon checkbox has no label or helper text
+- ❌ **Issue #4**: Planning sensor entity shows no options and lacks description
+- ❌ **Issue #5**: No helper text on any configuration fields
+
+**Implementation Plan**:
+- [ ] **Improvement #1**: Add entity filters (SOC→%, Plugged→binary_sensor, etc.)
+- [ ] **Improvement #2**: Rename "External EMHASS" → "Notifications Only" with clear description
+- [ ] **Improvement #3**: Add label "Use planning horizon sensor" + helper text
+- [ ] **Improvement #4**: Filter numeric sensors only + add description with examples
+- [ ] **Improvement #5**: Add `description` and `helper` to all config flow fields
+
+**Files to Modify**:
+- `custom_components/ev_trip_planner/config_flow.py` (entity selectors, labels)
+- `custom_components/ev_trip_planner/strings.json` (helper texts)
+- `custom_components/ev_trip_planner/translations/es.json` (Spanish translations)
+
+**Success Criteria**:
+- ✅ User can complete configuration without confusion
+- ✅ Each field has clear description and examples
+- ✅ Sensor lists only show relevant entities
+- ✅ No "External EMHASS" confusion
+
+**Documentation**: `docs/IMPROVEMENTS_POST_MILESTONE3.md` (Detailed improvement specifications)
+
+---
+
+### 🟡 Milestone 3.2: Advanced Configuration Options (Target: 1 week)
+
+**Status**: 📝 **PLANNED** - For next release
+
+**Goal**: Support dynamic battery capacity and consumption profiles
+
+**Features**:
+- [ ] **Feature #1**: Battery capacity as sensor (with SOH degradation support)
+  - Option A: Direct capacity sensor (kWh)
+  - Option B: SOH sensor (%) + nominal capacity → calculate real capacity
+  - Option C: Manual entry (current method, fallback)
+- [ ] **Feature #2**: Consumption profiles by trip type
+  - Urban: Higher consumption (e.g., 0.18 kWh/km)
+  - Highway: Lower consumption (e.g., 0.13 kWh/km)
+  - Mixed: Average consumption (e.g., 0.15 kWh/km)
+  - User selects type when creating trip
+
+**Implementation**:
+```python
+# Battery capacity calculation
+if capacity_source == "sensor":
+    capacity = float(capacity_sensor.state)
+elif capacity_source == "soh":
+    soh = float(soh_sensor.state)
+    nominal = config[CONF_BATTERY_CAPACITY_MANUAL]
+    capacity = nominal * (soh / 100)
+else:
+    capacity = config[CONF_BATTERY_CAPACITY_MANUAL]
+```
+
+**Files to Modify**:
+- `custom_components/ev_trip_planner/config_flow.py` (new battery config step)
+- `custom_components/ev_trip_planner/sensor.py` (dynamic capacity calculation)
+- `custom_components/ev_trip_planner/trip_manager.py` (consumption profiles)
+- `custom_components/ev_trip_planner/services.yaml` (trip_type parameter)
+
+**Success Criteria**:
+- ✅ Battery capacity automatically adjusts for degradation
+- ✅ kWh needed calculated based on trip type
+- ✅ Backward compatible with manual configuration
+
+**Documentation**: `docs/IMPROVEMENTS_POST_MILESTONE3.md` (Implementation examples)
+
+---
+
+### 📊 Updated Project Status
+
+**Current Version**: 0.3.0-dev (Milestone 3 Code Complete)
+**Development Stage**: Milestone 3 Implemented - Pending Validation
+**Next Milestone**: 3.1 (UX Fixes) → 3.2 (Advanced Features) → 4 (Validation)
+
+**Updated Timeline**:
+- Milestone 3.1: 1-2 days (critical UX fixes)
+- Milestone 3.2: 1 week (advanced features)
+- Milestone 4: 3 days (polish and validation)
+- **Total to v1.0**: ~2 weeks (including production validation)
+
+---
+
+### 📚 Documentation Structure
+
+```
+docs/
+├── MILESTONE_3_IMPLEMENTATION_PLAN.md    # (2,765 lines) - Complete implementation
+├── MILESTONE_3_ARCHITECTURE_ANALYSIS.md  # (375 lines) - Technical decisions
+├── MILESTONE_3_REFINEMENT.md             # (888 lines) - Detailed refinement
+├── TDD_METHODOLOGY.md                    # Test-driven development approach
+├── ISSUES_CLOSED_MILESTONE_3.md          # Closed issues during development
+└── IMPROVEMENTS_POST_MILESTONE3.md       # 🆕 UX and feature improvements identified
+```
 
 ---
 

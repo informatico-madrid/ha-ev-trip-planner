@@ -119,7 +119,10 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_SOC_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="battery",
+                    )
                 ),
                 vol.Required(CONF_BATTERY_CAPACITY): vol.All(
                     vol.Coerce(float), vol.Range(min=1, max=200)
@@ -128,10 +131,16 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Coerce(float), vol.Range(min=1, max=50)
                 ),
                 vol.Optional(CONF_RANGE_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="distance",
+                    )
                 ),
                 vol.Optional(CONF_CHARGING_STATUS): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="binary_sensor")
+                    selector.EntitySelectorConfig(
+                        domain="binary_sensor",
+                        device_class="plug",
+                    )
                 ),
             }
         )
@@ -192,7 +201,7 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             ),
                             selector.SelectOptionDict(
                                 value=CONTROL_TYPE_EXTERNAL,
-                                label="External (e.g., EMHASS)",
+                                label="Notifications Only (no control)",
                             ),
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -268,7 +277,10 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PLANNING_HORIZON, default=DEFAULT_PLANNING_HORIZON
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
                 vol.Optional(CONF_PLANNING_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        # Filter for numeric sensors (no specific device_class for planning)
+                    )
                 ),
                 vol.Optional(
                     CONF_MAX_DEFERRABLE_LOADS, default=DEFAULT_MAX_DEFERRABLE_LOADS
