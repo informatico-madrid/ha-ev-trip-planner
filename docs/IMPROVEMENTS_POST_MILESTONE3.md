@@ -145,7 +145,39 @@ entity_selector = selector.EntitySelector(
 
 ### 🟢 OPCIONAL - Para Milestone 3.3 (Futuro)
 
-#### 8. Mejorar UI con Descripciones Expandibles
+#### 8. Auto-limpieza de Viajes Puntuales Pasados
+**Problema**: Los viajes puntuales (p.ej., "Aeropuerto el 15/12/2025") permanecen en el sistema indefinidamente después de que han ocurrido, ensuciando la base de datos y haciendo que la lista de viajes sea difícil de leer.
+
+**Solución Propuesta**:
+- Implementar limpieza automática de viajes puntuales cuya fecha/hora ya ha pasado
+- Opción configurable: `auto_clean_past_trips` (boolean, default: true)
+- Retraso configurable: `auto_clean_delay_hours` (int, default: 24 horas)
+- Lógica: Un viaje puntual se marca como "completado" cuando ocurre, y se elimina automáticamente después del período de retardo configurado
+- Los viajes recurrentes NUNCA se auto-borran (solo se pueden pausar o eliminar manualmente)
+
+**Archivos a Modificar**:
+- `custom_components/ev_trip_planner/trip_manager.py` - Añadir método `async_cleanup_past_trips()`
+- `custom_components/ev_trip_planner/sensor.py` - Añadir sensor `sensor.{vehicle}_last_cleanup` con timestamp
+- `custom_components/ev_trip_planner/const.py` - Añadir constantes `CONF_AUTO_CLEAN_PAST_TRIPS` y `CONF_AUTO_CLEAN_DELAY_HOURS`
+- `custom_components/ev_trip_planner/config_flow.py` - Añadir opciones de configuración en step "Advanced Options"
+- `custom_components/ev_trip_planner/services.yaml` - Añadir servicio `ev_trip_planner.cleanup_past_trips` (manual trigger)
+
+**Criterios de Éxito**:
+- Viajes puntuales con fecha/hora pasada se eliminan automáticamente después del retardo configurado
+- Los viajes recurrentes nunca se eliminan automáticamente
+- El usuario puede desactivar esta función si lo desea
+- Se registra en logs cada vez que se ejecuta la limpieza (qué viajes se eliminaron)
+- Sensor muestra cuándo fue la última limpieza y cuántos viajes se eliminaron
+
+**Impacto**:
+- **Usuarios Afectados**: 100% (todos los usuarios acumulan viajes puntuales pasados)
+- **Esferzo**: Bajo (lógica simple de limpieza basada en fecha)
+- **Impacto**: Medio (mejora UX significativamente)
+- **Prioridad**: 🟡 IMPORTANTE (para Milestone 3.2 o 3.3)
+
+---
+
+#### 9. Mejorar UI con Descripciones Expandibles
 **Problema**: Mucha información en pantalla puede abrumar al usuario.
 
 **Solución Propuesta**:
@@ -155,7 +187,7 @@ entity_selector = selector.EntitySelector(
 
 ---
 
-#### 9. Validación en Tiempo Real
+#### 10. Validación en Tiempo Real
 **Problema**: El usuario no sabe si el sensor seleccionado es correcto hasta que guarda.
 
 **Solución Propuesta**:
@@ -165,7 +197,7 @@ entity_selector = selector.EntitySelector(
 
 ---
 
-#### 10. Plantillas de Configuración por Marca
+#### 11. Plantillas de Configuración por Marca
 **Problema**: Cada marca de coche tiene sensores diferentes.
 
 **Solución Propuesta**:

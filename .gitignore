@@ -12,7 +12,8 @@ htmlcov/
 
 # VS Code
 .vscode/
-
+.roo/
 # Coverage and reports
 .coverage
 coverage.xml
+.specify/templates/constitution-template.md

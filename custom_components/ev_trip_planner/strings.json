@@ -24,11 +24,11 @@
           "charging_status": "Charging Status (optional)"
         },
         "data_description": {
-          "soc_sensor": "Sensor that reports State of Charge as percentage (e.g., sensor.ovms_soc). Should show values like 78%, 45%, etc.",
-          "battery_capacity": "Total battery capacity in kWh (e.g., 27 for Nissan Leaf, 52 for Tesla Model 3). Example: 40",
-          "charging_power": "Maximum charging power in kW (e.g., 7.2 for single-phase, 11 for three-phase). Example: 7.2",
-          "range_sensor": "Optional: Sensor that reports remaining range in km or miles (e.g., sensor.ovms_range). Used for additional monitoring.",
-          "charging_status": "Optional: Binary sensor that indicates if vehicle is charging (e.g., binary_sensor.ovms_charging). Shows 'on' when charging."
+          "soc_sensor": "Select the battery State of Charge sensor. Look for sensors ending in '_soc', '_battery_level', or from OVMS/renault integrations. Example: sensor.ovms_chispitas_metric_v_b_soc or sensor.renault_battery_level",
+          "battery_capacity": "Total battery capacity in kWh (e.g., 40 for 40kWh battery, 62 for 62kWh). Check your vehicle specs. Example: 40",
+          "charging_power": "Maximum charging power in kW (e.g., 7.2 for 7.2kW charger, 22 for 22kW three-phase). Check your wallbox specs. Example: 7.2",
+          "range_sensor": "Optional: Sensor showing remaining range in km. Look for sensors ending in '_range', '_range_est', or '_car_range_remaining'. Example: sensor.ovms_chispitas_metric_v_b_range_est or sensor.renault_range",
+          "charging_status": "Optional: Binary sensor that shows 'on' when vehicle is charging. Look for sensors with 'charging', 'charge', or 'plugged' in the name. Example: binary_sensor.ovms_chispitas_charging or binary_sensor.renault_charging"
         }
       },
       "consumption": {
@@ -37,11 +37,13 @@
         "data": {
           "consumption": "Consumption (kWh/km)",
           "safety_margin": "Safety Margin (%)",
+          "safety_margin_percent": "Safety Margin (%)",
           "control_type": "Control Type"
         },
         "data_description": {
           "consumption": "Average energy consumption per km (e.g., 0.15 for 15 kWh/100km). Higher values = more energy needed. Example: 0.15",
           "safety_margin": "Extra battery percentage to keep as buffer (e.g., 10 = always keep 10% charge). Prevents running out of battery. Example: 10",
+          "safety_margin_percent": "Extra battery percentage to keep as buffer (e.g., 10 = always keep 10% charge). Prevents running out of battery. Example: 10",
           "control_type": "How should charging be controlled? 'Notifications Only (no control)' means no automatic control, just alerts."
         }
       },
@@ -50,13 +52,21 @@
         "description": "Configure EMHASS integration for smart charging optimization. This step is optional - you can skip it and configure later.",
         "data": {
           "planning_horizon": "Planning Horizon (days)",
+          "planning_horizon_days": "Planning Horizon (days)",
           "planning_sensor": "Planning Sensor Entity (optional)",
-          "max_deferrable_loads": "Maximum Deferrable Loads"
+          "planning_sensor_entity": "Planning Sensor Entity (optional)",
+          "max_deferrable_loads": "Maximum Deferrable Loads",
+          "enable_planning_sensor": "Enable planning sensor override",
+          "enable_max_loads_override": "Enable max loads override"
         },
         "data_description": {
           "planning_horizon": "Number of days EMHASS should plan ahead (1-30 days). Usually matches your EMHASS day-ahead optimization horizon. Example: 7",
-          "planning_sensor": "Optional: If your optimizer publishes a sensor with planning horizon, select it here. Otherwise leave empty and use manual value above.",
-          "max_deferrable_loads": "Maximum number of simultaneous deferrable loads EMHASS is configured for (10-100). Usually 50. Example: 50"
+          "planning_horizon_days": "Number of days EMHASS should plan ahead (1-30 days). Usually matches your EMHASS day-ahead optimization horizon. Example: 7",
+          "planning_sensor": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
+          "planning_sensor_entity": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
+          "max_deferrable_loads": "Maximum number of simultaneous deferrable loads EMHASS is configured for (10-100). Usually 50. Example: 50",
+          "enable_planning_sensor": "Check to override planning horizon with sensor value. When checked, the planning horizon will be read from the selected sensor instead of the manual value above. When unchecked, the manual value entered above will be used.",
+          "enable_max_loads_override": "Check to enable custom maximum deferrable loads. When checked, you can set a custom value below instead of the default (50). When unchecked, the default value (50) will be used."
         }
       },
       "presence": {
@@ -67,6 +77,8 @@
           "plugged_sensor": "Plugged Sensor (binary_sensor)",
           "home_coordinates": "Home Coordinates (lat, lon)",
           "vehicle_coordinates_sensor": "Vehicle Coordinates Sensor",
+          "vehicle_coordinates_sensor_lat": "Vehicle Latitude Sensor",
+          "vehicle_coordinates_sensor_lon": "Vehicle Longitude Sensor",
           "notification_service": "Notification Service"
         },
         "data_description": {
@@ -74,6 +86,8 @@
           "plugged_sensor": "Optional: Binary sensor that indicates if charging cable is connected (e.g., binary_sensor.chispitas_plugged). Shows 'on' when plugged.",
           "home_coordinates": "Optional: Your home coordinates as 'latitude, longitude' (e.g., '40.1234, -3.5678'). Used if no home sensor available.",
           "vehicle_coordinates_sensor": "Optional: Sensor with vehicle GPS coordinates (e.g., sensor.ovms_location). Used with home coordinates for distance calculation.",
+          "vehicle_coordinates_sensor_lat": "Optional: Sensor providing vehicle latitude (e.g., sensor.ovms_chispitas_metric_v_pos_latitude). Use with longitude sensor below.",
+          "vehicle_coordinates_sensor_lon": "Optional: Sensor providing vehicle longitude (e.g., sensor.ovms_chispitas_metric_v_pos_longitude). Use with latitude sensor above.",
           "notification_service": "Service to call for notifications (e.g., notify.mobile_app). Used to alert when charging needed but not possible."
         }
       }

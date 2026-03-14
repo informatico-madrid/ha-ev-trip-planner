@@ -25,12 +25,32 @@
 
 ## 🎯 Características
 
+### ✅ Milestone 2 - Gestión de Viajes (COMPLETADO)
 - **🗓️ Viajes Recurrentes**: Programa viajes diarios/semanales (trabajo, compras)
 - **📅 Viajes Puntuales**: Planifica viajes únicos con fecha/hora específica
 - **🔋 Optimización**: Calcula energía necesaria basada en distancia y eficiencia
-- **📱 Sensores en Tiempo Real**: 3 sensores automáticos con actualización reactiva
-- **⚡ Integración con EMHASS**: Preparado para optimización energética
+- **📱 Sensores en Tiempo Real**: 7 sensores automáticos con actualización reactiva
 - **🎛️ Dashboard incluido**: Panel Lovelace preconfigurado
+
+### ✅ Milestone 3 - Integración EMHASS (COMPLETADO)
+- **⚡ Integración con EMHASS**: Optimización energética con horarios dinámicos
+- **🎮 Control de Vehículo**: 4 estrategias (switch, service, script, external)
+- **🏠 Detección de Presencia**: Sensor y coordenadas para seguridad
+- **🔔 Notificaciones Inteligentes**: Alertas cuando carga es necesaria pero no posible
+- **🔄 Asignación Dinámica de Índices**: Múltiples viajes por vehículo sin conflictos
+
+### ✅ Milestone 4 - Perfil de Carga Inteligente (COMPLETADO)
+- **📊 Perfil de Carga Binario**: 0W o máxima potencia, distribuido inteligentemente
+- **🔋 Cálculo SOC-Aware**: Considera batería actual y margen de seguridad del 40%
+- **⚠️ Alertas de Tiempo**: Notifica si no hay tiempo suficiente para cargar
+- **📈 Sensor de Perfil**: `sensor.{vehiculo}_power_profile` con 168 horas de planificación
+- **🧠 Optimización Inteligente**: Distribuye carga justo antes de cada viaje
+
+### 🚀 Milestone 4.1 - Próximas Mejoras (PLANIFICADO)
+- **⚡ Carga Distribuida**: Distribuir en múltiples horas con optimización de costes
+- **🚗 Múltiples Vehículos**: Soporte para 2+ vehículos con balanceo de carga
+- **🌡️ Predicción Climática**: Ajusta consumo según temperatura
+- **📊 UI Mejorada**: Gráficos de perfil de carga en dashboard
 
 ---
 

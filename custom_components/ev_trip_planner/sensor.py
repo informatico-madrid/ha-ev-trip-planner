@@ -73,10 +73,25 @@ class TripsListSensor(_BaseTripSensor):
         data = self.coordinator.data or {}
         recurring = data.get("recurring_trips", [])
         punctual = data.get("punctual_trips", [])
+        # Standardized table data for flex-table-card (HA 2026 compliant)
+        table_data = []
+        for trip in recurring + punctual:
+            if trip["tipo"] == TRIP_TYPE_RECURRING:
+                time_str = f"{trip['dia_semana']}, {trip['hora']}"
+            else:
+                time_str = trip["datetime"].strftime("%Y-%m-%d %H:%M") if trip["datetime"] else ""
+            table_data.append({
+                "type": trip["tipo"],
+                "description": trip.get("descripcion", ""),
+                "distance": trip.get("km", 0),
+                "energy": trip.get("kwh", 0),
+                "time": time_str,
+                "status": trip.get("estado", "planned")
+            })
         return {
-            "trips": recurring + punctual,  # Combined for dashboard compatibility
-            "recurring_trips": recurring,   # Backward compatibility
-            "punctual_trips": punctual      # Backward compatibility
+            "table_data": table_data,
+            "recurring_trips": recurring,
+            "punctual_trips": punctual
         }
 
 
@@ -181,7 +196,7 @@ async def async_setup_entry(
     entry_id = entry.entry_id
     
     # FIX: Usar el coordinator ya creado en async_setup_entry, no crear uno nuevo
-    coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+    coordinator = entry.runtime_data["coordinator"]
     
     # FIX: No hacer refresh aquí, ya se hizo en async_setup_entry
     # await coordinator.async_config_entry_first_refresh()

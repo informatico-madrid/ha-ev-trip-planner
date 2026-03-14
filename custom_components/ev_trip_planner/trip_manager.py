@@ -656,3 +656,249 @@ class TripManager:
         except Exception as err:
             _LOGGER.error("Error getting all trips expanded: %s", err)
             return []
+
+    async def async_calcular_energia_necesaria(self, trip: dict[str, Any], vehicle_config: dict[str, Any]) -> dict[str, Any]:
+        """Calculate energy needed for a trip considering current SOC.
+        
+        Args:
+            trip: Trip dictionary with kwh needed
+            vehicle_config: Vehicle configuration with battery_capacity_kwh, charging_power_kw, soc_current
+            
+        Returns:
+            Dictionary with energy_needed_kwh, charge_hours_needed, time_insufficient_alert, hours_available
+        """
+        try:
+            # Extract values from vehicle config
+            battery_capacity = float(vehicle_config.get("battery_capacity_kwh", 50.0))
+            charging_power = float(vehicle_config.get("charging_power_kw", 3.6))
+            soc_current = float(vehicle_config.get("soc_current", 0.0))
+            
+            # Extract trip energy needed
+            trip_kwh = float(trip.get("kwh", 0.0))
+            
+            # Calculate current energy in battery
+            current_energy = battery_capacity * (soc_current / 100.0)
+            
+            # Calculate minimum safety energy (40% of battery capacity)
+            # This ensures we always have at least 40% SOC after the trip
+            safety_margin_soc = 0.4  # 40% minimum SOC
+            min_safety_energy = battery_capacity * safety_margin_soc
+            
+            # Calculate target energy: energy needed for trip + safety margin
+            # But never exceed battery capacity
+            target_energy = min(trip_kwh + min_safety_energy, battery_capacity)
+            
+            # Calculate energy needed to reach target
+            energy_needed = max(0.0, target_energy - current_energy)
+            
+            # Calculate hours needed to charge
+            if charging_power > 0:
+                hours_needed = energy_needed / charging_power
+                # Round to 2 decimal places
+                hours_needed = round(hours_needed, 2)
+            else:
+                hours_needed = 0.0
+            
+            # Check if there's enough time before trip
+            time_insufficient = False
+            hours_available = 0.0
+            
+            if "datetime" in trip:
+                try:
+                    now = dt_util.now()
+                    trip_datetime = trip.get("datetime")
+                    
+                    # Ensure trip_datetime is timezone-aware
+                    if hasattr(trip_datetime, 'tzinfo') and trip_datetime.tzinfo is None:
+                        trip_datetime = dt_util.as_local(trip_datetime)
+                    elif isinstance(trip_datetime, str):
+                        trip_datetime = dt_util.parse_datetime(trip_datetime)
+                        if trip_datetime:
+                            trip_datetime = dt_util.as_local(trip_datetime)
+                    
+                    if trip_datetime and trip_datetime > now:
+                        time_diff = trip_datetime - now
+                        hours_available = time_diff.total_seconds() / 3600.0
+                        
+                        # Check if we have enough time
+                        if hours_needed > hours_available:
+                            time_insufficient = True
+                except (ValueError, TypeError, AttributeError) as err:
+                    _LOGGER.warning("Error calculating time available for trip: %s", err)
+            
+            result = {
+                "energia_necesaria_kwh": round(energy_needed, 2),
+                "horas_carga_necesarias": hours_needed,
+                "alerta_tiempo_insuficiente": time_insufficient,
+                "horas_disponibles": round(hours_available, 2) if hours_available > 0 else 0.0
+            }
+            
+            _LOGGER.debug("Energy calculation: SOC=%.1f%%, current=%.2fkWh, trip=%.2fkWh, needed=%.2fkWh, hours=%.2f",
+                         soc_current, current_energy, trip_kwh, energy_needed, hours_needed)
+            
+            return result
+            
+        except Exception as err:
+            _LOGGER.error("Error calculating energy needed: %s", err)
+            return {
+                "energia_necesaria_kwh": 0.0,
+                "horas_carga_necesarias": 0.0,
+                "alerta_tiempo_insuficiente": False,
+                "horas_disponibles": 0.0
+            }
+
+    async def async_generate_power_profile(self, charging_power_kw: float, planning_horizon_days: int = 7, vehicle_config: dict[str, Any] | None = None) -> list[float]:
+        """Generate power profile for the planning horizon.
+        
+        This method generates a profile where each hour is either 0W (no charging)
+        or max_power (charging at full power). The profile is based on when
+        charging is needed according to trip schedule and energy requirements.
+        
+        Args:
+            charging_power_kw: Maximum charging power in kW
+            planning_horizon_days: Number of days to generate profile for
+            vehicle_config: Optional vehicle configuration with SOC, battery capacity, etc.
+                           If provided, uses async_calcular_energia_necesaria() for accurate calculations.
+            
+        Returns:
+            List of power values in Watts for each hour (0W or max_power)
+        """
+        try:
+            # Get all trips expanded
+            all_trips = await self.async_get_all_trips_expanded()
+            
+            if not all_trips:
+                _LOGGER.debug("No trips found, returning empty profile")
+                # Return profile with all zeros
+                return [0.0] * (planning_horizon_days * 24)
+            
+            # Get current time
+            now = dt_util.now()
+            
+            # Initialize profile with zeros
+            total_hours = planning_horizon_days * 24
+            profile = [0.0] * total_hours
+            
+            # For each trip, calculate when charging should occur
+            for trip in all_trips:
+                try:
+                    trip_datetime = trip.get("datetime")
+                    if not trip_datetime:
+                        continue
+                    
+                    # Ensure datetime is timezone-aware
+                    if isinstance(trip_datetime, str):
+                        trip_datetime = dt_util.parse_datetime(trip_datetime)
+                    
+                    if trip_datetime:
+                        trip_datetime = dt_util.as_local(trip_datetime)
+                        
+                        # Calculate hours from now to trip
+                        time_diff = trip_datetime - now
+                        hours_to_trip = time_diff.total_seconds() / 3600.0
+                        
+                        # If trip is in the past, skip
+                        if hours_to_trip <= 0:
+                            continue
+                        
+                        # Calculate energy needed - use vehicle_config if available for accurate calculation
+                        if vehicle_config and "soc_current" in vehicle_config:
+                            # Use the accurate energy calculation method that considers SOC
+                            energy_calc = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+                            energy_needed_kwh = energy_calc["energia_necesaria_kwh"]
+                            _LOGGER.debug("Using accurate energy calculation for trip '%s': %.2f kWh needed",
+                                         trip.get("descripcion", "unknown"), energy_needed_kwh)
+                        else:
+                            # Fallback to simple calculation (backward compatibility)
+                            energy_needed_kwh = float(trip.get("kwh", 0.0))
+                            _LOGGER.debug("Using simple energy calculation for trip '%s': %.2f kWh needed",
+                                         trip.get("descripcion", "unknown"), energy_needed_kwh)
+                        
+                        # Only schedule charging if energy is actually needed
+                        if energy_needed_kwh > 0 and charging_power_kw > 0:
+                            # Calculate hours needed to charge
+                            hours_needed = energy_needed_kwh / charging_power_kw
+                            
+                            # Schedule charging just before the trip
+                            # Start charging at: trip_time - hours_needed
+                            start_hour = int(hours_to_trip - hours_needed)
+                            
+                            # Ensure start_hour is within profile bounds
+                            if start_hour < 0:
+                                start_hour = 0
+                            
+                            end_hour = int(hours_to_trip)
+                            if end_hour > total_hours:
+                                end_hour = total_hours
+                            
+                            # Fill profile with max power during charging hours
+                            # Use end_hour + 1 because range() is exclusive of the end value
+                            power_watts = charging_power_kw * 1000.0  # Convert to Watts
+                            for hour in range(start_hour, end_hour + 1):
+                                if 0 <= hour < total_hours:
+                                    profile[hour] = power_watts
+                            
+                            _LOGGER.debug("Scheduled charging for trip '%s': hours %d-%d, power %.0fW, energy %.2f kWh",
+                                         trip.get("descripcion", "unknown"), start_hour, end_hour + 1, power_watts, energy_needed_kwh)
+                
+                except (ValueError, TypeError, AttributeError) as err:
+                    _LOGGER.warning("Error processing trip for power profile: %s", err)
+                    continue
+            
+            _LOGGER.debug("Generated power profile: %d hours, %d charging hours, total energy %.2f kWh",
+                         len(profile), sum(1 for p in profile if p > 0),
+                         sum(p for p in profile if p > 0) / 1000.0)
+            
+            return profile
+            
+        except Exception as err:
+            _LOGGER.error("Error generating power profile: %s", err)
+            # Return empty profile on error
+            return [0.0] * (planning_horizon_days * 24)
+
+    async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
+        """Get vehicle SOC from configured sensor.
+        
+        Args:
+            vehicle_id: Vehicle identifier
+            
+        Returns:
+            SOC value (0-100) or 0.0 if sensor not available
+        """
+        try:
+            # Get domain data
+            if DOMAIN not in self.entry.runtime_data:
+                _LOGGER.warning("Domain %s not found in entry.runtime_data", DOMAIN)
+                return 0.0
+            
+            domain_data = self.entry.runtime_data
+            
+            # Get vehicle config
+            vehicle_config = domain_data.get(vehicle_id, {})
+            soc_sensor = vehicle_config.get("soc_sensor")
+            
+            if not soc_sensor:
+                _LOGGER.warning("No SOC sensor configured for vehicle %s", vehicle_id)
+                return 0.0
+            
+            # Get sensor state
+            sensor_state = self.hass.states.get(soc_sensor)
+            
+            if not sensor_state or sensor_state.state in ["unavailable", "unknown", None]:
+                _LOGGER.warning("SOC sensor %s not available for vehicle %s", soc_sensor, vehicle_id)
+                return 0.0
+            
+            # Parse SOC value
+            try:
+                soc = float(sensor_state.state)
+                # Ensure SOC is between 0 and 100
+                soc = max(0.0, min(100.0, soc))
+                _LOGGER.debug("Vehicle %s SOC: %.1f%%", vehicle_id, soc)
+                return soc
+            except (ValueError, TypeError):
+                _LOGGER.warning("Invalid SOC value from sensor %s: %s", soc_sensor, sensor_state.state)
+                return 0.0
+                
+        except Exception as err:
+            _LOGGER.error("Error getting vehicle SOC: %s", err)
+            return 0.0

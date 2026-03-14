@@ -279,6 +279,11 @@ We're following an **incremental development approach** (Option B):
   - Highway: Lower consumption (e.g., 0.13 kWh/km)
   - Mixed: Average consumption (e.g., 0.15 kWh/km)
   - User selects type when creating trip
+- [ ] **Feature #3**: Auto-cleanup of past punctual trips
+  - Automatic deletion of punctual trips after they occur
+  - Configurable delay (default: 24 hours after trip time)
+  - Recurring trips never auto-delete (only manual or pause)
+  - New sensor: `sensor.{vehicle}_last_cleanup` with timestamp and count
 
 **Implementation**:
 ```python
@@ -291,17 +296,41 @@ elif capacity_source == "soh":
     capacity = nominal * (soh / 100)
 else:
     capacity = config[CONF_BATTERY_CAPACITY_MANUAL]
+
+# Auto-cleanup logic (in trip_manager.py)
+async def async_cleanup_past_trips(self):
+    """Remove punctual trips whose datetime has passed."""
+    now = dt_util.now()
+    cleaned_count = 0
+    
+    for trip in self.trips:
+        if trip.get("tipo") == "puntual":
+            trip_datetime = dt_util.parse_datetime(trip.get("datetime"))
+            if trip_datetime and trip_datetime < now:
+                # Check if enough time has passed (configurable delay)
+                delay_hours = self.config.get(CONF_AUTO_CLEAN_DELAY_HOURS, 24)
+                if (now - trip_datetime).total_seconds() > (delay_hours * 3600):
+                    self.trips.remove(trip)
+                    cleaned_count += 1
+    
+    if cleaned_count > 0:
+        await self._async_save_trips()
+        _LOGGER.info(f"Cleaned up {cleaned_count} past punctual trips")
+        return cleaned_count
 ```
 
 **Files to Modify**:
 - `custom_components/ev_trip_planner/config_flow.py` (new battery config step)
 - `custom_components/ev_trip_planner/sensor.py` (dynamic capacity calculation)
-- `custom_components/ev_trip_planner/trip_manager.py` (consumption profiles)
+- `custom_components/ev_trip_planner/trip_manager.py` (consumption profiles, cleanup logic)
 - `custom_components/ev_trip_planner/services.yaml` (trip_type parameter)
+- `custom_components/ev_trip_planner/const.py` (add CONF_AUTO_CLEAN_PAST_TRIPS, CONF_AUTO_CLEAN_DELAY_HOURS)
 
 **Success Criteria**:
 - ✅ Battery capacity automatically adjusts for degradation
 - ✅ kWh needed calculated based on trip type
+- ✅ Past punctual trips automatically removed after configured delay
+- ✅ Recurring trips never auto-delete
 - ✅ Backward compatible with manual configuration
 
 **Documentation**: `docs/IMPROVEMENTS_POST_MILESTONE3.md` (Implementation examples)

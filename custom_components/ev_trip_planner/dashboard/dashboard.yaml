@@ -1,112 +1,100 @@
-# Dashboard base para EV Trip Planner (ejemplo)
-# Nota: ajusta los entity_id a los de tus sensores reales cuando integremos 1C en HA.
-# Sugeridos (cuando se creen):
-#  - sensor.chispitas_trips_list
-#  - sensor.chispitas_recurring_trips_count
-#  - sensor.chispitas_punctual_trips_count
+# Dashboard base para EV Trip Planner (Milestone 3.2)
+# Plantilla actualizada con múltiples vehículos y EMHASS Integration
 
 views:
   - title: EV Trip Planner
     path: ev-trip-planner
     icon: mdi:car-electric
     cards:
-      # Tarjeta de estado general
+      # Tarjeta de estado general (Milestone 3.2 - Múltiples vehículos)
       - type: markdown
         title: 📊 Estado general
         content: |
-          **Vehículo:** Chispitas  
-          **Viajes totales:** {{ states('sensor.chispitas_trips_list') }}  
-          **Recurrentes activos:** {{ states('sensor.chispitas_recurring_trips_count') }}  
-          **Puntuales pendientes:** {{ states('sensor.chispitas_punctual_trips_count') }}
+          **Vehículos configurados:** 2 (Chispitas + Morgan)
+          
+          **Viajes totales:**
+          - Chispitas: {{ states('sensor.chispitas_trips_count') or '0' }} viajes
+          - Morgan: {{ states('sensor.morgan_trips_count') or '0' }} viajes
+          
+          **Próximo viaje:** {{ states('sensor.morgan_next_trip') or 'N/A' }}
 
-      # Grid semanal de viajes recurrentes
+      # Tarjeta de integración EMHASS (Milestone 3)
       - type: markdown
-        title: 📅 Viajes recurrentes semanales
+        title: ⚡ Integración EMHASS
         content: |
-          {% set trips = state_attr('sensor.chispitas_trips_list', 'trips') %}
-          {% set days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] %}
-          {% set day_names = {'lunes': 'Lunes', 'martes': 'Martes', 'miercoles': 'Miércoles', 
-                              'jueves': 'Jueves', 'viernes': 'Viernes', 'sabado': 'Sábado', 'domingo': 'Domingo'} %}
-          
-          {% if trips %}
-            {% for day in days %}
-              {% set day_trips = trips | selectattr('tipo', 'equalto', 'recurrente') | selectattr('dia_semana', 'equalto', day) | list %}
-              {% if day_trips %}
-          
-          **{{ day_names[day] }}**
-                {% for trip in day_trips %}
-          - 🕐 {{ trip.hora }} - {{ trip.km }} km / {{ trip.kwh }} kWh {% if not trip.activo %}*(pausado)*{% endif %}
-                {% endfor %}
-              {% endif %}
-            {% endfor %}
-          {% else %}
-          *No hay viajes recurrentes configurados*
-          {% endif %}
-        card_mod:
-          style: |
-            ha-card {
-              border-left: 4px solid var(--primary-color);
-            }
-
-      # Lista de viajes puntuales
-      - type: markdown
-        title: 🎯 Viajes puntuales
-        content: |
-          {% set trips = state_attr('sensor.chispitas_trips_list', 'trips') %}
-          {% set punctual = trips | selectattr('tipo', 'equalto', 'puntual') | list if trips else [] %}
-          
-          {% if punctual %}
-            {% for trip in punctual | sort(attribute='datetime') %}
-              {% set dt = trip.datetime | as_datetime %}
-              {% set status_icon = {'pendiente': '⏳', 'completado': '✅', 'cancelado': '❌'} %}
-          
-          {{ status_icon.get(trip.estado, '❓') }} **{{ dt.strftime('%d/%m/%Y %H:%M') if dt else trip.datetime }}**  
-          {{ trip.km }} km / {{ trip.kwh }} kWh - *{{ trip.estado }}*
-            {% endfor %}
-          {% else %}
-          *No hay viajes puntuales*
-          {% endif %}
-        card_mod:
-          style: |
-            ha-card {
-              border-left: 4px solid var(--accent-color);
-            }
-
-      # Tarjeta de cálculos del día (Milestone 2)
-      - type: markdown
-        title: 📊 Cálculos del Día
-        content: |
-          **Próximo viaje:** {{ states('sensor.chispitas_next_trip') }}
-          **Fecha límite:** {{ states('sensor.chispitas_next_deadline') }}
-          **kWh necesarios hoy:** {{ states('sensor.chispitas_kwh_today') }} kWh
-          **Horas de carga:** {{ states('sensor.chispitas_hours_today') }} h
+          **Estado optimización:** {{ states('sensor.emhass_optim_status') }}
+          **Horizonte planificación:** {{ states('sensor.emhass_planning_horizon') }} días
+          **Cargas diferibles activas:** {{ states('sensor.emhass_deferrable_loads') }}
           
           ---
           
-          *Cálculos actualizados automáticamente desde los viajes programados*
-
-      # Tarjeta de estado del vehículo
+          *Optimización automática basada en precios y solar*
+    
+      # Tarjeta de detección de presencia (Milestone 3)
       - type: markdown
-        title: 🚗 Estado del vehículo
+        title: 📍 Detección de Presencia
         content: |
-          **Viajes activos hoy:** -  *(próximamente)*
-          **Próximo viaje:** {{ states('sensor.chispitas_next_trip') }}
-          **kWh necesarios:** {{ states('sensor.chispitas_kwh_today') }} kWh
-          **Horas de carga:** {{ states('sensor.chispitas_hours_today') }} h
+          **Vehículo en casa:** {{ states('binary_sensor.morgan_en_casa') }}
+          **Coordenadas actuales:** {{ states('sensor.morgan_location') }}
+          **Radio de proximidad:** {{ states('input_number.morgan_home_radius') }} m
           
           ---
           
-          *Milestone 2 completado ✅*
+          *Carga automática cuando el vehículo está en casa*
+    
+      # Tarjeta de control de vehículo (Milestone 3)
+      - type: markdown
+        title: 🎛️ Control de Vehículo
+        content: |
+          **Carga activa:** {{ states('switch.morgan_charging') }}
+          **Potencia actual:** {{ states('sensor.morgan_charging_power') }} kW
+          **SOC objetivo:** {{ states('input_number.morgan_target_soc') }}%
+          **Índice EMHASS:** {{ states('input_number.morgan_emhass_index') }}
+          
+          ---
+          
+          *Control inteligente basado en viajes programados*
+    
+      # Tarjeta de estado del vehículo (Milestone 3)
+      - type: markdown
+        title: 🚗 Estado del Vehículo
+        content: |
+          **SOC actual:** {{ states('sensor.morgan_battery_level') }}%
+          **Autonomía restante:** {{ states('sensor.morgan_range') }} km
+          **Próximo viaje:** {{ states('sensor.morgan_next_trip') }}
+          **kWh necesarios:** {{ states('sensor.morgan_required_kwh') }} kWh
+          
+          ---
+          
+          *Milestone 3 completado ✅ - EMHASS Integration*
+
+      # Tarjeta de múltiples vehículos (Milestone 3.2)
+      - type: markdown
+        title: 🚗🚗 Vehículos Configurados
+        content: |
+          **Chispitas (OVMS):** {{ states('sensor.ovms_chispitas_metric_v_b_soc') }}% SOC
+          **Morgan (Renault):** {{ states('sensor.renault_battery_level') }}% SOC
+          
+          **Viajes activos:**
+          - Chispitas: {{ states('sensor.chispitas_trips_count') }} viajes
+          - Morgan: {{ states('sensor.morgan_trips_count') }} viajes
+          
+          ---
+          
+          *Milestone 3.2 completado ✅ - Soporte múltiple vehículos*
 
       - type: entities
-        title: 📈 Contadores detallados
+        title: 📈 Métricas del Sistema
         entities:
-          - entity: sensor.chispitas_recurring_trips_count
-            name: Viajes recurrentes
-            icon: mdi:calendar-repeat
-          - entity: sensor.chispitas_punctual_trips_count
-            name: Viajes puntuales
-            icon: mdi:calendar-star
+          - entity: sensor.emhass_optim_status
+            name: Estado EMHASS
+            icon: mdi:chart-line
+          - entity: sensor.morgan_presence_status
+            name: Presencia Morgan
+            icon: mdi:home-map-marker
           - entity: sensor.chispitas_trips_list
-            name: Total de viajes
+            name: Viajes Chispitas
+            icon: mdi:format-list-numbered
+          - entity: sensor.morgan_trips_list
+            name: Viajes Morgan
             icon: mdi:format-list-numbered

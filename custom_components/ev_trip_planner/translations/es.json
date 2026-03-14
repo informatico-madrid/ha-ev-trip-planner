@@ -1,0 +1,114 @@
+{
+  "entity": {
+    "charging_status_sensor": {
+      "name": "Sensor de Estado de Carga del Vehículo"
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Planificador de Viajes EV - Configuración del Vehículo",
+        "description": "Configura tu vehículo eléctrico para la planificación de viajes",
+        "data": {
+          "vehicle_name": "Nombre del Vehículo",
+          "vehicle_type": "Tipo de Vehículo"
+        },
+        "data_description": {
+          "vehicle_name": "Un nombre amigable para tu vehículo (ej: 'Chispitas', 'Morgan')",
+          "vehicle_type": "Selecciona el tipo de vehículo que quieres configurar"
+        }
+      },
+      "sensors": {
+        "title": "Sensores del Vehículo",
+        "description": "Selecciona los sensores para el monitoreo de la batería",
+        "data": {
+          "soc_sensor": "Sensor SOC de Batería",
+          "battery_capacity": "Capacidad de Batería (kWh)",
+          "charging_power": "Potencia de Carga (kW)",
+          "range_sensor": "Sensor de Autonomía (opcional)",
+          "charging_status": "Estado de Carga (opcional)"
+        },
+        "data_description": {
+          "soc_sensor": "Selecciona el sensor de Estado de Carga. Busca sensores que terminen en '_soc', '_battery_level' o de integraciones OVMS/renault. Ejemplo: sensor.ovms_chispitas_metric_v_b_soc o sensor.renault_battery_level",
+          "battery_capacity": "Capacidad total de batería en kWh (ej: 40 para batería de 40kWh, 62 para 62kWh). Verifica las especificaciones de tu vehículo. Ejemplo: 40",
+          "charging_power": "Potencia máxima de carga en kW (ej: 7.2 para 7.2kW, 22 para 22kW trifásico). Verifica las especificaciones de tu wallbox. Ejemplo: 7.2",
+          "range_sensor": "Opcional: Sensor que muestra la autonomía restante en km. Busca sensores que terminen en '_range', '_range_est' o '_car_range_remaining'. Ejemplo: sensor.ovms_chispitas_metric_v_b_range_est o sensor.renault_range",
+          "charging_status": "Opcional: Sensor binario que muestra 'on' cuando el vehículo está cargando. Busca sensores con 'charging', 'charge' o 'plugged' en el nombre. Ejemplo: binary_sensor.ovms_chispitas_charging o binary_sensor.renault_charging"
+        }
+      },
+      "consumption": {
+        "title": "Configuración de Consumo",
+        "description": "Configura los parámetros de consumo y seguridad",
+        "data": {
+          "consumption": "Consumo (kWh/km)",
+          "safety_margin": "Margen de Seguridad (%)",
+          "safety_margin_percent": "Margen de Seguridad (%)",
+          "control_type": "Tipo de Control"
+        },
+        "data_description": {
+          "consumption": "Consumo medio de energía por km (ej: 0.15 para 15 kWh/100km). Valores más altos = más energía necesaria. Ejemplo: 0.15",
+          "safety_margin": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
+          "safety_margin_percent": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
+          "control_type": "¿Cómo se debe controlar la carga? 'Solo Notificaciones (sin control)' significa sin control automático, solo alertas."
+        }
+      },
+      "emhass": {
+        "title": "Integración EMHASS (Opcional)",
+        "description": "Configura la integración EMHASS para optimización inteligente de carga. Este paso es opcional - puedes saltarlo y configurar más tarde.",
+        "data": {
+          "planning_horizon": "Horizonte de Planificación (días)",
+          "planning_horizon_days": "Horizonte de Planificación (días)",
+          "planning_sensor": "Sensor de Planificación (opcional)",
+          "planning_sensor_entity": "Sensor de Planificación (opcional)",
+          "max_deferrable_loads": "Cargas Diferibles Máximas",
+          "enable_planning_sensor": "Habilitar sobrescritura de sensor de planificación",
+          "enable_max_loads_override": "Habilitar sobrescritura de cargas máximas"
+        },
+        "data_description": {
+          "planning_horizon": "Número de días que EMHASS debe planificar (1-30 días). Usualmente coincide con tu horizonte de optimización diaria de EMHASS. Ejemplo: 7",
+          "planning_horizon_days": "Número de días que EMHASS debe planificar (1-30 días). Usualmente coincide con tu horizonte de optimización diaria de EMHASS. Ejemplo: 7",
+          "planning_sensor": "Opcional: Sensor EMHASS con horizonte de planificación (ej: sensor.emhass_planning_horizon). Si tu optimizador EMHASS publica este sensor, selecciónalo. De lo contrario usa el valor manual.",
+          "planning_sensor_entity": "Opcional: Sensor EMHASS con horizonte de planificación (ej: sensor.emhass_planning_horizon). Si tu optimizador EMHASS publica este sensor, selecciónalo. De lo contrario usa el valor manual.",
+          "max_deferrable_loads": "Número máximo de cargas diferibles simultáneas para las que EMHASS está configurado (10-100). Usualmente 50. Ejemplo: 50",
+          "enable_planning_sensor": "Marcar para sobrescribir horizonte de planificación con valor de sensor. Cuando está marcado, el horizonte de planificación se leerá del sensor seleccionado en lugar del valor manual de arriba. Cuando no está marcado, se usará el valor manual ingresado arriba.",
+          "enable_max_loads_override": "Marcar para habilitar un valor personalizado máximo de cargas diferibles. Cuando está marcado, puedes establecer un valor personalizado abajo en lugar del valor por defecto (50). Cuando no está marcado, se usará el valor por defecto (50)."
+        }
+      },
+      "presence": {
+        "title": "Detección de Presencia (Opcional)",
+        "description": "Configura la detección de presencia para evitar cargar cuando el vehículo está fuera. Este paso es opcional - puedes saltarlo.",
+        "data": {
+          "home_sensor": "Sensor de Casa (binary_sensor)",
+          "plugged_sensor": "Sensor Enchufado (binary_sensor)",
+          "home_coordinates": "Coordenadas de Casa (lat, lon)",
+          "vehicle_coordinates_sensor": "Sensor de Coordenadas del Vehículo",
+          "vehicle_coordinates_sensor_lat": "Sensor de Latitud del Vehículo",
+          "vehicle_coordinates_sensor_lon": "Sensor de Longitud del Vehículo",
+          "notification_service": "Servicio de Notificación"
+        },
+        "data_description": {
+          "home_sensor": "Opcional: Sensor binario que indica si el vehículo está en casa (ej: binary_sensor.chispitas_home). Muestra 'on' cuando el vehículo está en casa.",
+          "plugged_sensor": "Opcional: Sensor binario que indica si el cable de carga está conectado (ej: binary_sensor.chispitas_plugged). Muestra 'on' cuando está enchufado.",
+          "home_coordinates": "Opcional: Tus coordenadas de casa como 'latitud, longitud' (ej: '40.1234, -3.5678'). Usado si no hay sensor de casa disponible.",
+          "vehicle_coordinates_sensor": "Opcional: Sensor con coordenadas GPS del vehículo (ej: sensor.ovms_location). Usado con coordenadas de casa para cálculo de distancia.",
+          "vehicle_coordinates_sensor_lat": "Opcional: Sensor que proporciona la latitud del vehículo (ej: sensor.ovms_chispitas_metric_v_pos_latitude). Úsalo con el sensor de longitud de abajo.",
+          "vehicle_coordinates_sensor_lon": "Opcional: Sensor que proporciona la longitud del vehículo (ej: sensor.ovms_chispitas_metric_v_pos_longitude). Úsalo con el sensor de latitud de arriba.",
+          "notification_service": "Servicio a llamar para notificaciones (ej: notify.mobile_app). Usado para alertar cuando se necesita carga pero no es posible."
+        }
+      }
+    },
+    "error": {
+      "already_configured": "Este vehículo ya está configurado",
+      "unknown": "Ocurrió un error desconocido",
+      "invalid_planning_horizon": "El horizonte de planificación debe estar entre 1 y 30 días",
+      "invalid_max_deferrable_loads": "Las cargas diferibles máximas deben estar entre 10 y 100",
+      "home_sensor_not_found": "El sensor de casa seleccionado no se encontró. Por favor verifica el ID de la entidad.",
+      "plugged_sensor_not_found": "El sensor enchufado seleccionado no se encontró. Por favor verifica el ID de la entidad.",
+      "invalid_coordinates_format": "Formato de coordenadas inválido. Usa 'latitud, longitud' (ej: '40.1234, -3.5678')"
+    },
+    "abort": {
+      "already_configured": "Este vehículo ya está configurado"
+    }
+  },
+  "title": "Planificador de Viajes EV"
+}

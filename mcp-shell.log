@@ -1,0 +1,7 @@
+{"level":"info","message":"MCP Shell Server started","timestamp":"2026-03-13T23:09:05.218Z"}
+{"level":"info","message":"Shell: /bin/bash","timestamp":"2026-03-13T23:09:05.221Z"}
+{"level":"info","message":"Working Directory: /home/malka","timestamp":"2026-03-13T23:09:05.221Z"}
+{"level":"info","message":"Platform: linux","timestamp":"2026-03-13T23:09:05.221Z"}
+{"level":"info","message":"Hostname: Cerebro","timestamp":"2026-03-13T23:09:05.222Z"}
+{"level":"info","message":"Username: malka","timestamp":"2026-03-13T23:09:05.222Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2026-03-13T23:09:05.236Z"}

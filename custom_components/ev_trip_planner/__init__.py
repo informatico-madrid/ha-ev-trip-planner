@@ -83,7 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicle_id = entry.data.get("vehicle_name")
     _LOGGER.info("Setting up EV Trip Planner for vehicle: %s", vehicle_id)
 
-    hass.data.setdefault(DOMAIN, {})
+    entry.runtime_data.setdefault(DOMAIN, {})
     
     # Create and initialize TripManager for this vehicle
     trip_manager = TripManager(hass, vehicle_id)
@@ -94,18 +94,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
     
     # Store config, trip_manager AND coordinator
-    hass.data[DOMAIN][entry.entry_id] = {
+    entry.runtime_data = {
         "config": entry.data,
         "trip_manager": trip_manager,
         "coordinator": coordinator,
     }
 
     # Ensure services use the same TripManager instance for this vehicle
-    managers = hass.data[DOMAIN].setdefault("managers", {})
+    managers = entry.runtime_data.setdefault("managers", {})
     managers[vehicle_id] = trip_manager
     
     # FIX: Store coordinator by vehicle_id so services can access it
-    coordinators = hass.data[DOMAIN].setdefault("coordinators", {})
+    coordinators = entry.runtime_data.setdefault("coordinators", {})
     coordinators[vehicle_id] = coordinator
 
     # Registrar servicios del dominio (idempotente)
@@ -126,7 +126,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
 
@@ -134,12 +133,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def register_services(hass: HomeAssistant) -> None:
     """Registrar servicios del dominio ev_trip_planner."""
 
-    managers: dict[str, TripManager] = hass.data.setdefault(DOMAIN, {}).setdefault(
+    managers: dict[str, TripManager] = entry.runtime_data.setdefault(
         "managers", {}
     )
     
     # FIX: Acceder a los coordinators por vehicle_id
-    coordinators: dict[str, TripPlannerCoordinator] = hass.data.setdefault(DOMAIN, {}).setdefault(
+    coordinators: dict[str, TripPlannerCoordinator] = entry.runtime_data.setdefault(
         "coordinators", {}
     )
 

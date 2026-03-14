@@ -139,7 +139,6 @@ class EVTripPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_CHARGING_STATUS): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="binary_sensor",
-                        device_class="plug",
                     )
                 ),
             }
@@ -327,6 +326,10 @@ emhass:
                     description_placeholders=self._get_presence_placeholders(),
                 )
 
+        # Process coordinate sensors (combine lat/lon if provided separately)
+        processed_input = self._process_coordinate_sensors(user_input)
+        user_input.update(processed_input)
+
         # Validate sensors if provided
         if CONF_HOME_SENSOR in user_input and user_input[CONF_HOME_SENSOR]:
             home_sensor = user_input[CONF_HOME_SENSOR]
@@ -378,6 +381,14 @@ emhass:
                     selector.EntitySelectorConfig(domain="binary_sensor")
                 ),
                 vol.Optional(CONF_HOME_COORDINATES): cv.string,
+                # Separate latitude and longitude sensors (OVMS style)
+                vol.Optional("vehicle_coordinates_sensor_lat"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional("vehicle_coordinates_sensor_lon"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                # Combined coordinates sensor (alternative)
                 vol.Optional(CONF_VEHICLE_COORDINATES_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
@@ -394,6 +405,53 @@ emhass:
             "sensor_help": "Select binary_sensors that indicate home/plugged status",
             "coordinates_help": "Or use coordinates: provide home coordinates and vehicle location sensor",
         }
+
+    def _get_sensors_schema(self) -> vol.Schema:
+        """Get the data schema for sensors step."""
+        return vol.Schema(
+            {
+                vol.Required(CONF_SOC_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="battery",
+                    )
+                ),
+                vol.Required(CONF_BATTERY_CAPACITY): vol.All(
+                    vol.Coerce(float), vol.Range(min=1, max=200)
+                ),
+                vol.Required(CONF_CHARGING_POWER): vol.All(
+                    vol.Coerce(float), vol.Range(min=1, max=50)
+                ),
+                vol.Optional(CONF_RANGE_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="distance",
+                    )
+                ),
+                vol.Optional(CONF_CHARGING_STATUS): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="binary_sensor",
+                    )
+                ),
+            }
+        )
+
+    def _process_coordinate_sensors(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Process separate lat/lon coordinate sensors into a single sensor reference."""
+        result = {}
+        
+        # Check if we have separate lat/lon sensors (OVMS style)
+        lat_sensor = user_input.get("vehicle_coordinates_sensor_lat")
+        lon_sensor = user_input.get("vehicle_coordinates_sensor_lon")
+        
+        if lat_sensor and lon_sensor:
+            # Combine them into a single reference (format: lat_sensor,lon_sensor)
+            result[CONF_VEHICLE_COORDINATES_SENSOR] = f"{lat_sensor},{lon_sensor}"
+        elif CONF_VEHICLE_COORDINATES_SENSOR in user_input:
+            # Use the existing combined sensor if provided
+            result[CONF_VEHICLE_COORDINATES_SENSOR] = user_input[CONF_VEHICLE_COORDINATES_SENSOR]
+            
+        return result
 
     def _validate_coordinates(self, coords: str) -> bool:
         """Validate coordinate format."""
