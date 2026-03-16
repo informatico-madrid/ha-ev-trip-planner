@@ -21,7 +21,7 @@ class ScheduleMonitor:
         self._vehicle_monitors: Dict[str, "VehicleScheduleMonitor"] = {}
         self._unsub_handlers: List[callable] = []
     
-    async def async_setup(self, vehicle_configs: Dict[str, Dict[str, any]]):
+    async def async_setup(self, vehicle_configs: Dict[str, Dict[str, Any]]):
         """Set up monitoring for all vehicles."""
         for entry_id, config in vehicle_configs.items():
             vehicle_id = config[CONF_VEHICLE_NAME]

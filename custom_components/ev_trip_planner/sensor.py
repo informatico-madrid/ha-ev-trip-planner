@@ -1,225 +1,96 @@
-"""Sensores informacionales para EV Trip Planner (Fase 1C) con TripPlannerCoordinator."""
+"""Sensores para el componente EV Trip Planner.
+
+Implementa entidades de sensores para mostrar información de viajes y carga.
+Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data.
+"""
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.typing import ConfigType
 
-from . import TripPlannerCoordinator
-from .const import DOMAIN, TRIP_TYPE_PUNCTUAL, TRIP_TYPE_RECURRING
+from .const import (
+    CONF_BATTERY_CAPACITY,
+    CONF_CHARGING_POWER,
+    CONF_CONSUMPTION,
+    CONF_SAFETY_MARGIN,
+    DEFAULT_CONSUMPTION,
+    DEFAULT_SAFETY_MARGIN,
+    DOMAIN,
+    TRIP_TYPE_PUNCTUAL,
+    TRIP_TYPE_RECURRING,
+)
+from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
+class TripPlannerSensor(SensorEntity):
+    """Sensor base para el componente EV Trip Planner.
 
-class _BaseTripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
-    _attr_should_poll = False
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(coordinator)
-        self._vehicle_id = vehicle_id
-        self._attr_extra_state_attributes = {}
-
-
-class RecurringTripsCountSensor(_BaseTripSensor):
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} recurring trips count"
-        self._attr_unique_id = f"{vehicle_id}_recurring_trips_count"
-
-    @property
-    def native_value(self) -> int:
-        data = self.coordinator.data or {}
-        trips = data.get("recurring_trips", [])
-        return len(trips)
-
-
-class PunctualTripsCountSensor(_BaseTripSensor):
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} punctual trips count"
-        self._attr_unique_id = f"{vehicle_id}_punctual_trips_count"
-
-    @property
-    def native_value(self) -> int:
-        data = self.coordinator.data or {}
-        trips = data.get("punctual_trips", [])
-        return len(trips)
-
-
-class TripsListSensor(_BaseTripSensor):
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} trips list"
-        self._attr_unique_id = f"{vehicle_id}_trips_list"
-
-    @property
-    def native_value(self) -> int:
-        # Valor nativo: total de viajes
-        data = self.coordinator.data or {}
-        recurring = data.get("recurring_trips", [])
-        punctual = data.get("punctual_trips", [])
-        return len(recurring) + len(punctual)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        data = self.coordinator.data or {}
-        recurring = data.get("recurring_trips", [])
-        punctual = data.get("punctual_trips", [])
-        # Standardized table data for flex-table-card (HA 2026 compliant)
-        table_data = []
-        for trip in recurring + punctual:
-            if trip["tipo"] == TRIP_TYPE_RECURRING:
-                time_str = f"{trip['dia_semana']}, {trip['hora']}"
-            else:
-                time_str = trip["datetime"].strftime("%Y-%m-%d %H:%M") if trip["datetime"] else ""
-            table_data.append({
-                "type": trip["tipo"],
-                "description": trip.get("descripcion", ""),
-                "distance": trip.get("km", 0),
-                "energy": trip.get("kwh", 0),
-                "time": time_str,
-                "status": trip.get("estado", "planned")
-            })
-        return {
-            "table_data": table_data,
-            "recurring_trips": recurring,
-            "punctual_trips": punctual
-        }
-
-
-class NextTripSensor(_BaseTripSensor):
-    """Sensor que muestra la descripción del próximo viaje."""
-    
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} next trip"
-        self._attr_unique_id = f"{vehicle_id}_next_trip"
-    
-    @property
-    def native_value(self) -> str:
-        """Devuelve la descripción del próximo viaje directamente desde coordinator.data."""
-        try:
-            next_trip = self.coordinator.data.get("next_trip")
-            if next_trip:
-                return next_trip.get("descripcion", "Viaje")
-            return "No trips"
-        except Exception as err:
-            _LOGGER.error("Error getting next trip from coordinator: %s", err)
-            return "Error"
-
-
-class NextDeadlineSensor(_BaseTripSensor):
-    """Sensor que muestra la fecha/hora del próximo viaje."""
-    
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} next deadline"
-        self._attr_unique_id = f"{vehicle_id}_next_deadline"
-        self._attr_device_class = "timestamp"
-    
-    @property
-    def native_value(self) -> datetime | None:
-        """Devuelve el datetime del próximo viaje directamente desde coordinator.data."""
-        try:
-            next_trip = self.coordinator.data.get("next_trip")
-            if next_trip:
-                return next_trip.get("datetime")
-            return None
-        except Exception as err:
-            _LOGGER.error("Error getting next deadline from coordinator: %s", err)
-            return None
-
-
-class KwhTodaySensor(_BaseTripSensor):
-    """Sensor que muestra la suma de kWh necesarios hoy."""
-    
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} kwh today"
-        self._attr_unique_id = f"{vehicle_id}_kwh_today"
-        self._attr_unit_of_measurement = "kWh"
-    
-    @property
-    def native_value(self) -> float:
-        """Devuelve la suma de kWh para hoy directamente desde coordinator.data."""
-        try:
-            return self.coordinator.data.get("kwh_today", 0.0)
-        except Exception as err:
-            _LOGGER.error("Error getting kWh today from coordinator: %s", err)
-            return 0.0
-
-
-class HoursTodaySensor(_BaseTripSensor):
-    """Sensor que muestra las horas de carga necesarias (redondeo hacia arriba)."""
-    
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        super().__init__(vehicle_id, coordinator)
-        self._attr_name = f"{vehicle_id} hours today"
-        self._attr_unique_id = f"{vehicle_id}_hours_today"
-        self._attr_unit_of_measurement = "h"
-    
-    @property
-    def native_value(self) -> int:
-        """Devuelve las horas de carga necesarias directamente desde coordinator.data."""
-        try:
-            return self.coordinator.data.get("hours_today", 0)
-        except Exception as err:
-            _LOGGER.error("Error getting hours today from coordinator: %s", err)
-            return 0
-
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Setup sensors from a config entry.
-    
-    Creates seven informational sensors:
-    - trips_list: total trips with details in attributes
-    - recurring_trips_count: count of recurring trips
-    - punctual_trips_count: count of punctual trips
-    - next_trip: description of next upcoming trip
-    - next_deadline: datetime of next upcoming trip
-    - kwh_today: sum of kWh needed for today's trips
-    - hours_today: hours needed to charge (rounded up)
+    Implementa la lógica común para todos los sensores del componente.
+    Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data.
     """
-    vehicle_id = entry.data.get("vehicle_name", "EV")
-    entry_id = entry.entry_id
-    
-    # FIX: Usar el coordinator ya creado en async_setup_entry, no crear uno nuevo
-    coordinator = entry.runtime_data["coordinator"]
-    
-    # FIX: No hacer refresh aquí, ya se hizo en async_setup_entry
-    # await coordinator.async_config_entry_first_refresh()
 
-    # Create sensor instances with shared TripManager
-    trips_list = TripsListSensor(vehicle_id, coordinator)
-    recurring_count = RecurringTripsCountSensor(vehicle_id, coordinator)
-    punctual_count = PunctualTripsCountSensor(vehicle_id, coordinator)
-    next_trip = NextTripSensor(vehicle_id, coordinator)
-    next_deadline = NextDeadlineSensor(vehicle_id, coordinator)
-    kwh_today = KwhTodaySensor(vehicle_id, coordinator)
-    hours_today = HoursTodaySensor(vehicle_id, coordinator)
+    def __init__(self, hass: HomeAssistant, trip_manager: TripManager, sensor_type: str) -> None:
+        """Inicializa el sensor base."""
+        self.hass = hass
+        self.trip_manager = trip_manager
+        self._sensor_type = sensor_type
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_has_entity_name = True
+        self._attr_name = f"EV Trip Planner {sensor_type}"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_device_class = SensorDeviceClass.ENERGY
+        self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
 
-    # Override unique_id with entry_id-based pattern for HA entity registry
-    trips_list._attr_unique_id = f"{entry_id}_trips_list"
-    recurring_count._attr_unique_id = f"{entry_id}_recurring_trips_count"
-    punctual_count._attr_unique_id = f"{entry_id}_punctual_trips_count"
-    next_trip._attr_unique_id = f"{entry_id}_next_trip"
-    next_deadline._attr_unique_id = f"{entry_id}_next_deadline"
-    kwh_today._attr_unique_id = f"{entry_id}_kwh_today"
-    hours_today._attr_unique_id = f"{entry_id}_hours_today"
+    async def async_update(self) -> None:
+        """Actualiza el estado del sensor."""
+        try:
+            if self._sensor_type == "kwh_needed_today":
+                self._attr_native_value = await self.trip_manager.async_get_kwh_needed_today()
+            elif self._sensor_type == "hours_needed_today":
+                self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
+            elif self._sensor_type == "next_trip":
+                next_trip = await self.trip_manager.async_get_next_trip()
+                self._attr_native_value = next_trip["descripcion"] if next_trip else "N/A"
+        except Exception as err:
+            _LOGGER.error("Error actualizando sensor %s: %s", self._sensor_type, err)
+            self._attr_native_value = None
 
-    async_add_entities([
-        trips_list, recurring_count, punctual_count,
-        next_trip, next_deadline, kwh_today, hours_today
-    ])
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Devuelve atributos adicionales para el sensor."""
+        attrs = {}
+        if self._sensor_type == "kwh_needed_today":
+            attrs["viajes_hoy"] = len(await self.trip_manager.async_get_recurring_trips())
+            attrs["viajes_puntuales"] = len(await self.trip_manager.async_get_punctual_trips())
+        elif self._sensor_type == "hours_needed_today":
+            attrs["potencia_carga"] = self.trip_manager.vehicle_controller.get_charging_power()
+        elif self._sensor_type == "next_trip":
+            next_trip = await self.trip_manager.async_get_next_trip()
+            if next_trip:
+                attrs["fecha_hora"] = next_trip["datetime"] if next_trip["tipo"] == TRIP_TYPE_PUNCTUAL else next_trip["dia_semana"]
+                attrs["distancia"] = next_trip["km"]
+                attrs["energia"] = next_trip["kwh"]
+        return attrs
+
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Devuelve información del dispositivo."""
+        return {
+            "identifiers": {(DOMAIN, self.trip_manager.vehicle_id)},
+            "name": f"EV Trip Planner {self.trip_manager.vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+        }

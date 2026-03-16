@@ -8,13 +8,12 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any
+from typing import Any, Dict, List, Optional, cast
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
@@ -83,7 +82,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicle_id = entry.data.get("vehicle_name")
     _LOGGER.info("Setting up EV Trip Planner for vehicle: %s", vehicle_id)
 
-    entry.runtime_data.setdefault(DOMAIN, {})
+    # FIX: Usar namespace con entry_id para runtime_data
+    namespace = f"{DOMAIN}_{entry.entry_id}"
+    entry.runtime_data.setdefault(namespace, {})
     
     # Create and initialize TripManager for this vehicle
     trip_manager = TripManager(hass, vehicle_id)
@@ -94,18 +95,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
     
     # Store config, trip_manager AND coordinator
-    entry.runtime_data = {
+    entry.runtime_data[namespace] = {
         "config": entry.data,
         "trip_manager": trip_manager,
         "coordinator": coordinator,
     }
 
     # Ensure services use the same TripManager instance for this vehicle
-    managers = entry.runtime_data.setdefault("managers", {})
+    managers = entry.runtime_data[namespace].setdefault("managers", {})
     managers[vehicle_id] = trip_manager
     
     # FIX: Store coordinator by vehicle_id so services can access it
-    coordinators = entry.runtime_data.setdefault("coordinators", {})
+    coordinators = entry.runtime_data[namespace].setdefault("coordinators", {})
     coordinators[vehicle_id] = coordinator
 
     # Registrar servicios del dominio (idempotente)
@@ -126,6 +127,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        # FIX: Usar namespace con entry_id para limpiar runtime_data
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        entry.runtime_data.pop(namespace, None)
 
     return unload_ok
 
@@ -133,38 +137,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def register_services(hass: HomeAssistant) -> None:
     """Registrar servicios del dominio ev_trip_planner."""
 
-    managers: dict[str, TripManager] = entry.runtime_data.setdefault(
-        "managers", {}
-    )
-    
-    # FIX: Acceder a los coordinators por vehicle_id
-    coordinators: dict[str, TripPlannerCoordinator] = entry.runtime_data.setdefault(
-        "coordinators", {}
-    )
-
-    def _get_manager(vehicle_id: str) -> TripManager:
-        mgr = managers.get(vehicle_id)
-        if mgr is None:
-            mgr = TripManager(hass, vehicle_id)
-            managers[vehicle_id] = mgr
-        return mgr
-    
-    # FIX: Función para obtener el coordinator correcto por vehicle_id
-    def _get_coordinator(vehicle_id: str) -> TripPlannerCoordinator | None:
-        return coordinators.get(vehicle_id)
-
-    async def _ensure_setup(mgr: TripManager) -> None:
-        try:
-            await mgr.async_setup()
-        except Exception:  # pragma: no cover
-            # No bloquear servicio por fallo de creación si ya existe
-            pass
-
     async def handle_add_recurring(call: ServiceCall) -> None:
+        """Handle adding a recurring trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(vehicle_id)
-        await _ensure_setup(mgr)
+        mgr = _get_manager(hass, vehicle_id)
         await mgr.async_add_recurring_trip(
             dia_semana=data["dia_semana"],
             hora=data["hora"],
@@ -172,68 +149,74 @@ def register_services(hass: HomeAssistant) -> None:
             kwh=float(data["kwh"]),
             descripcion=str(data.get("descripcion", "")),
         )
-        # FIX: Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(vehicle_id)
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             await coordinator.async_refresh_trips()
 
     async def handle_add_punctual(call: ServiceCall) -> None:
+        """Handle adding a punctual trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(vehicle_id)
-        await _ensure_setup(mgr)
+        mgr = _get_manager(hass, vehicle_id)
         await mgr.async_add_punctual_trip(
             datetime_str=data["datetime"],
             km=float(data["km"]),
             kwh=float(data["kwh"]),
             descripcion=str(data.get("descripcion", "")),
         )
-        # FIX: Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(vehicle_id)
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             await coordinator.async_refresh_trips()
 
     async def handle_edit_trip(call: ServiceCall) -> None:
+        """Handle editing a trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(vehicle_id)
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_update_trip(str(data["trip_id"]), dict(data["updates"]))
-        # FIX: Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(vehicle_id)
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             await coordinator.async_refresh_trips()
 
     async def handle_delete_trip(call: ServiceCall) -> None:
+        """Handle deleting a trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(vehicle_id)
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_delete_trip(str(data["trip_id"]))
-        # FIX: Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(vehicle_id)
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             await coordinator.async_refresh_trips()
 
     async def handle_pause_recurring(call: ServiceCall) -> None:
+        """Handle pausing a recurring trip."""
         data = call.data
         mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
         await _ensure_setup(mgr)
         await mgr.async_pause_recurring_trip(str(data["trip_id"]))
 
     async def handle_resume_recurring(call: ServiceCall) -> None:
+        """Handle resuming a recurring trip."""
         data = call.data
         mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
         await _ensure_setup(mgr)
         await mgr.async_resume_recurring_trip(str(data["trip_id"]))
 
     async def handle_complete_punctual(call: ServiceCall) -> None:
+        """Handle completing a punctual trip."""
         data = call.data
         mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
         await _ensure_setup(mgr)
         await mgr.async_complete_punctual_trip(str(data["trip_id"]))
 
     async def handle_cancel_punctual(call: ServiceCall) -> None:
+        """Handle cancelling a punctual trip."""
         data = call.data
         mgr = _get_manager(data["vehicle_id"])  # type: ignore[index]
         await _ensure_setup(mgr)
@@ -353,3 +336,29 @@ def register_services(hass: HomeAssistant) -> None:
             }
         ),
     )
+
+# Helper functions with proper type hints
+def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
+    """Get or create TripManager for vehicle."""
+    entry = next(
+        (e for e in hass.config_entries.async_entries(DOMAIN) if e.data.get("vehicle_name") == vehicle_id),
+        None,
+    )
+    if not entry:
+        raise ValueError(f"Vehicle {vehicle_id} not found in config entries")
+    # FIX: Usar namespace con entry_id para acceder a managers
+    namespace = f"{DOMAIN}_{entry.entry_id}"
+    return entry.runtime_data[namespace]["managers"].get(vehicle_id) or TripManager(hass, vehicle_id)
+
+@callback
+def _get_coordinator(hass: HomeAssistant, vehicle_id: str) -> Optional[TripPlannerCoordinator]:
+    """Get coordinator for vehicle."""
+    entry = next(
+        (e for e in hass.config_entries.async_entries(DOMAIN) if e.data.get("vehicle_name") == vehicle_id),
+        None,
+    )
+    if not entry:
+        return None
+    # FIX: Usar namespace con entry_id para acceder a coordinators
+    namespace = f"{DOMAIN}_{entry.entry_id}"
+    return entry.runtime_data[namespace]["coordinators"].get(vehicle_id) if entry else None

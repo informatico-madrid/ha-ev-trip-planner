@@ -64,7 +64,7 @@ class SwitchStrategy(VehicleControlStrategy):
             )
             _LOGGER.info("Activated charging via switch: %s", self.switch_entity_id)
             return True
-        except Exception as err:
+        except HomeAssistantError as err:
             _LOGGER.error("Error activating switch: %s", err)
             return False
     

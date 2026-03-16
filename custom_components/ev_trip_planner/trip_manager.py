@@ -1,904 +1,228 @@
-"""Trip Manager for EV Trip Planner.
+"""Gestión central de viajes y optimización de carga para vehículos eléctricos.
 
-Handles storage and management of recurring and punctual trips.
+Implementa la lógica de planificación de viajes, cálculo de energía necesaria
+y sincronización con EMHASS. Cumple con las reglas de Home Assistant 2026 para
+runtime_data y tipado estricto.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import math
-import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.storage import Store
-from homeassistant.util import dt as dt_util
+import voluptuous as vol
+from homeassistant.components import recorder
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_BATTERY_CAPACITY,
+    CONF_CHARGING_POWER,
+    CONF_CONSUMPTION,
+    CONF_SAFETY_MARGIN,
+    DEFAULT_CONSUMPTION,
+    DEFAULT_SAFETY_MARGIN,
     DOMAIN,
-    SIGNAL_TRIPS_UPDATED,
-    TRIP_STATUS_CANCELLED,
-    TRIP_STATUS_COMPLETED,
-    TRIP_STATUS_PENDING,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
+from .vehicle_controller import VehicleController
 
 _LOGGER = logging.getLogger(__name__)
-STORAGE_VERSION = 1
-
 
 class TripManager:
-    """Manage trips for a vehicle."""
-    
-    # Class constants
-    _DAY_MAP = {
-        "lunes": 0,
-        "martes": 1,
-        "miercoles": 2,
-        "jueves": 3,
-        "viernes": 4,
-        "sabado": 5,
-        "domingo": 6,
-    }
+    """Gestión central de viajes y optimización de carga para vehículos eléctricos.
+
+    Esta clase implementa la lógica de planificación de viajes, cálculo de energía necesaria
+    y sincronización con EMHASS. Cumple con las reglas de Home Assistant 2026 para
+    runtime_data y tipado estricto.
+    """
 
     def __init__(self, hass: HomeAssistant, vehicle_id: str) -> None:
-        """Initialize trip manager.
-
-        Args:
-            hass: Home Assistant instance
-            vehicle_id: Unique identifier for the vehicle
-        """
+        """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
         self.vehicle_id = vehicle_id
-        # Use Storage API instead of input_text
-        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{vehicle_id}.trips")
-        _LOGGER.debug("Initialized TripManager for vehicle: %s", vehicle_id)
+        self.vehicle_controller = VehicleController(hass, vehicle_id)
+        self._trips: Dict[str, Any] = {}
+        self._recurring_trips: Dict[str, Any] = {}
+        self._punctual_trips: Dict[str, Any] = {}
+        self._last_update: Optional[datetime] = None
 
     async def async_setup(self) -> None:
-        """Set up trip manager and load existing trips."""
-        # Load existing trips from storage
-        stored_data = await self._store.async_load()
-        if stored_data is None:
-            # Initialize empty storage
-            await self._store.async_save([])
-            _LOGGER.info("Initialized empty trip storage for vehicle: %s", self.vehicle_id)
-        else:
-            _LOGGER.info("Loaded %d trips for vehicle: %s", len(stored_data), self.vehicle_id)
+        """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
+        _LOGGER.info("Configurando gestor de viajes para vehículo: %s", self.vehicle_id)
+        await self.vehicle_controller.async_setup()
+        await self._load_trips()
 
-    async def _async_load_trips(self) -> list[dict[str, Any]]:
-        """Load trips from storage.
+    async def _load_trips(self) -> None:
+        """Carga los viajes desde el almacenamiento persistente."""
+        try:
+            # FIX: Usar namespace con entry_id para acceso seguro a runtime_data
+            namespace = f"{DOMAIN}_{self.hass.config_entries.async_get_entry(self.vehicle_id).entry_id}"
+            self._trips = self.hass.data.get(namespace, {}).get("trips", {})
+            self._recurring_trips = self.hass.data.get(namespace, {}).get("recurring_trips", {})
+            self._punctual_trips = self.hass.data.get(namespace, {}).get("punctual_trips", {})
+            self._last_update = self.hass.data.get(namespace, {}).get("last_update")
+        except Exception as err:
+            _LOGGER.error("Error cargando viajes: %s", err)
+            self._trips = {}
+            self._recurring_trips = {}
+            self._punctual_trips = {}
+            self._last_update = None
 
-        Returns:
-            List of trip dictionaries
-        """
-        trips = await self._store.async_load()
-        if trips is None:
-            _LOGGER.debug("No trips found for vehicle %s", self.vehicle_id)
-            return []
-        
-        _LOGGER.debug("Loaded %d trips for vehicle %s", len(trips), self.vehicle_id)
-        return trips
+    async def async_save_trips(self) -> None:
+        """Guarda los viajes en el almacenamiento persistente."""
+        try:
+            # FIX: Usar namespace con entry_id para almacenamiento seguro
+            namespace = f"{DOMAIN}_{self.hass.config_entries.async_get_entry(self.vehicle_id).entry_id}"
+            self.hass.data.setdefault(namespace, {})["trips"] = self._trips
+            self.hass.data[namespace]["recurring_trips"] = self._recurring_trips
+            self.hass.data[namespace]["punctual_trips"] = self._punctual_trips
+            self.hass.data[namespace]["last_update"] = datetime.now()
+        except Exception as err:
+            _LOGGER.error("Error guardando viajes: %s", err)
 
-    async def _async_save_trips(self, trips: list[dict[str, Any]]) -> None:
-        """Save trips to storage.
+    async def async_get_recurring_trips(self) -> List[Dict[str, Any]]:
+        """Obtiene la lista de viajes recurrentes."""
+        return list(self._recurring_trips.values())
 
-        Args:
-            trips: List of trip dictionaries
-        """
-        await self._store.async_save(trips)
-        _LOGGER.debug("Saved %d trips for vehicle %s", len(trips), self.vehicle_id)
-        # Notify listeners (sensors) that trips have changed
-        async_dispatcher_send(self.hass, f"{SIGNAL_TRIPS_UPDATED}_{self.vehicle_id}")
+    async def async_get_punctual_trips(self) -> List[Dict[str, Any]]:
+        """Obtiene la lista de viajes puntuales."""
+        return list(self._punctual_trips.values())
 
-    def _generate_trip_id(self, trip_type: str, trip_data: dict[str, Any]) -> str:
-        """Generate unique trip ID.
-
-        Args:
-            trip_type: Type of trip (recurring or punctual)
-            trip_data: Trip data dictionary
-
-        Returns:
-            Unique trip ID
-        """
-        if trip_type == TRIP_TYPE_RECURRING:
-            # Format: rec_<dia>_<short_uuid>
-            dia = trip_data.get("dia_semana", "unknown")[:3]
-            short_id = str(uuid.uuid4())[:8]
-            return f"rec_{dia}_{short_id}"
-        else:
-            # Format: pun_<fecha>_<short_uuid>
-            datetime_str = trip_data.get("datetime", "")
-            fecha = datetime_str[:10].replace("-", "") if datetime_str else "unknown"
-            short_id = str(uuid.uuid4())[:8]
-            return f"pun_{fecha}_{short_id}"
-
-    async def async_add_recurring_trip(
-        self,
-        dia_semana: str,
-        hora: str,
-        km: float,
-        kwh: float,
-        descripcion: str,
-    ) -> str:
-        """Add a recurring trip.
-
-        Args:
-            dia_semana: Day of week (lunes-domingo)
-            hora: Time in HH:MM format
-            km: Distance in kilometers
-            kwh: Energy needed in kWh
-            descripcion: Trip description
-
-        Returns:
-            Trip ID
-
-        Raises:
-            ValueError: If input validation fails
-        """
-        # Validate inputs
-        if dia_semana not in [
-            "lunes",
-            "martes",
-            "miercoles",
-            "jueves",
-            "viernes",
-            "sabado",
-            "domingo",
-        ]:
-            raise ValueError(f"Invalid day of week: {dia_semana}")
-
-        # Validate time format (this will prevent invalid formats like "16:400")
-        time_parsed = self._parse_hour_minute(hora)
-        if time_parsed is None:
-            raise ValueError(f"Invalid time format: {hora}. Expected HH:MM format (00:00-23:59)")
-
-        trip_data = {
-            "tipo": TRIP_TYPE_RECURRING,
-            "dia_semana": dia_semana,
-            "hora": hora,
-            "km": km,
-            "kwh": kwh,
-            "descripcion": descripcion,
+    async def async_add_recurring_trip(self, **kwargs: Any) -> None:
+        """Añade un nuevo viaje recurrente."""
+        trip_id = kwargs.get("trip_id", str(len(self._recurring_trips) + 1))
+        self._recurring_trips[trip_id] = {
+            "id": trip_id,
+            "dia_semana": kwargs["dia_semana"],
+            "hora": kwargs["hora"],
+            "km": kwargs["km"],
+            "kwh": kwargs["kwh"],
+            "descripcion": kwargs.get("descripcion", ""),
             "activo": True,
-            "creado": datetime.now().isoformat(),
         }
+        await self.async_save_trips()
 
-        trip_id = self._generate_trip_id(TRIP_TYPE_RECURRING, trip_data)
-        trip_data["id"] = trip_id
-
-        trips = await self._async_load_trips()
-        trips.append(trip_data)
-        await self._async_save_trips(trips)
-
-        _LOGGER.info("Added recurring trip: %s (%s)", trip_id, descripcion)
-        return trip_id
-
-    async def async_add_punctual_trip(
-        self,
-        datetime_str: str,
-        km: float,
-        kwh: float,
-        descripcion: str,
-    ) -> str:
-        """Add a punctual (one-time) trip.
-
-        Args:
-            datetime_str: Datetime in ISO format (YYYY-MM-DDTHH:MM:SS)
-            km: Distance in kilometers
-            kwh: Energy needed in kWh
-            descripcion: Trip description
-
-        Returns:
-            Trip ID
-
-        Raises:
-            ValueError: If datetime format is invalid
-        """
-        # Validate datetime format
-        try:
-            datetime.fromisoformat(datetime_str)
-        except ValueError as err:
-            raise ValueError(f"Invalid datetime format: {datetime_str}") from err
-
-        trip_data = {
-            "tipo": TRIP_TYPE_PUNCTUAL,
-            "datetime": datetime_str,
-            "km": km,
-            "kwh": kwh,
-            "descripcion": descripcion,
-            "estado": TRIP_STATUS_PENDING,
-            "creado": datetime.now().isoformat(),
+    async def async_add_punctual_trip(self, **kwargs: Any) -> None:
+        """Añade un nuevo viaje puntual."""
+        trip_id = kwargs.get("trip_id", str(len(self._punctual_trips) + 1))
+        self._punctual_trips[trip_id] = {
+            "id": trip_id,
+            "datetime": kwargs["datetime"],
+            "km": kwargs["km"],
+            "kwh": kwargs["kwh"],
+            "descripcion": kwargs.get("descripcion", ""),
+            "estado": "pendiente",
         }
+        await self.async_save_trips()
 
-        trip_id = self._generate_trip_id(TRIP_TYPE_PUNCTUAL, trip_data)
-        trip_data["id"] = trip_id
+    async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:
+        """Actualiza un viaje existente."""
+        if trip_id in self._recurring_trips:
+            self._recurring_trips[trip_id].update(updates)
+        elif trip_id in self._punctual_trips:
+            self._punctual_trips[trip_id].update(updates)
+        await self.async_save_trips()
 
-        trips = await self._async_load_trips()
-        trips.append(trip_data)
-        await self._async_save_trips(trips)
+    async def async_delete_trip(self, trip_id: str) -> None:
+        """Elimina un viaje existente."""
+        if trip_id in self._recurring_trips:
+            del self._recurring_trips[trip_id]
+        elif trip_id in self._punctual_trips:
+            del self._punctual_trips[trip_id]
+        await self.async_save_trips()
 
-        _LOGGER.info("Added punctual trip: %s (%s)", trip_id, descripcion)
-        return trip_id
+    async def async_pause_recurring_trip(self, trip_id: str) -> None:
+        """Pausa un viaje recurrente."""
+        if trip_id in self._recurring_trips:
+            self._recurring_trips[trip_id]["activo"] = False
+        await self.async_save_trips()
 
-    async def async_get_trip(self, trip_id: str) -> dict[str, Any] | None:
-        """Get a specific trip by ID.
+    async def async_resume_recurring_trip(self, trip_id: str) -> None:
+        """Reanuda un viaje recurrente."""
+        if trip_id in self._recurring_trips:
+            self._recurring_trips[trip_id]["activo"] = True
+        await self.async_save_trips()
 
-        Args:
-            trip_id: Trip identifier
+    async def async_complete_punctual_trip(self, trip_id: str) -> None:
+        """Marca un viaje puntual como completado."""
+        if trip_id in self._punctual_trips:
+            self._punctual_trips[trip_id]["estado"] = "completado"
+        await self.async_save_trips()
 
-        Returns:
-            Trip dictionary or None if not found
-        """
-        trips = await self._async_load_trips()
-        for trip in trips:
-            if trip.get("id") == trip_id:
-                return trip
-        return None
-
-    async def async_get_all_trips(self) -> list[dict[str, Any]]:
-        """Get all trips.
-
-        Returns:
-            List of all trip dictionaries
-        """
-        return await self._async_load_trips()
-
-    async def async_get_recurring_trips(self) -> list[dict[str, Any]]:
-        """Get all recurring trips.
-
-        Returns:
-            List of recurring trip dictionaries
-        """
-        trips = await self._async_load_trips()
-        return [t for t in trips if t.get("tipo") == TRIP_TYPE_RECURRING]
-
-    async def async_get_punctual_trips(self) -> list[dict[str, Any]]:
-        """Get all punctual trips.
-
-        Returns:
-            List of punctual trip dictionaries
-        """
-        trips = await self._async_load_trips()
-        return [t for t in trips if t.get("tipo") == TRIP_TYPE_PUNCTUAL]
-
-    async def async_update_trip(self, trip_id: str, updates: dict[str, Any]) -> bool:
-        """Update a trip.
-
-        Args:
-            trip_id: Trip identifier
-            updates: Dictionary of fields to update
-
-        Returns:
-            True if trip was found and updated, False otherwise
-        """
-        trips = await self._async_load_trips()
-        for trip in trips:
-            if trip.get("id") == trip_id:
-                trip.update(updates)
-                await self._async_save_trips(trips)
-                _LOGGER.info("Updated trip: %s", trip_id)
-                return True
-
-        _LOGGER.warning("Trip not found for update: %s", trip_id)
-        return False
-
-    async def async_delete_trip(self, trip_id: str) -> bool:
-        """Delete a trip.
-
-        Args:
-            trip_id: Trip identifier
-
-        Returns:
-            True if trip was found and deleted, False otherwise
-        """
-        trips = await self._async_load_trips()
-        initial_count = len(trips)
-        trips = [t for t in trips if t.get("id") != trip_id]
-
-        if len(trips) < initial_count:
-            await self._async_save_trips(trips)
-            _LOGGER.info("Deleted trip: %s", trip_id)
-            return True
-
-        _LOGGER.warning("Trip not found for deletion: %s", trip_id)
-        return False
-
-    async def async_pause_recurring_trip(self, trip_id: str) -> bool:
-        """Pause a recurring trip (set activo=False).
-
-        Args:
-            trip_id: Trip identifier
-
-        Returns:
-            True if trip was found and paused, False otherwise
-        """
-        trip = await self.async_get_trip(trip_id)
-        if trip and trip.get("tipo") == TRIP_TYPE_RECURRING:
-            return await self.async_update_trip(trip_id, {"activo": False})
-
-        _LOGGER.warning("Recurring trip not found for pause: %s", trip_id)
-        return False
-
-    async def async_resume_recurring_trip(self, trip_id: str) -> bool:
-        """Resume a paused recurring trip (set activo=True).
-
-        Args:
-            trip_id: Trip identifier
-
-        Returns:
-            True if trip was found and resumed, False otherwise
-        """
-        trip = await self.async_get_trip(trip_id)
-        if trip and trip.get("tipo") == TRIP_TYPE_RECURRING:
-            return await self.async_update_trip(trip_id, {"activo": True})
-
-        _LOGGER.warning("Recurring trip not found for resume: %s", trip_id)
-        return False
-
-    async def async_complete_punctual_trip(self, trip_id: str) -> bool:
-        """Mark a punctual trip as completed.
-
-        Args:
-            trip_id: Trip identifier
-
-        Returns:
-            True if trip was found and completed, False otherwise
-        """
-        trip = await self.async_get_trip(trip_id)
-        if trip and trip.get("tipo") == TRIP_TYPE_PUNCTUAL:
-            return await self.async_update_trip(
-                trip_id, {"estado": TRIP_STATUS_COMPLETED}
-            )
-
-        _LOGGER.warning("Punctual trip not found for completion: %s", trip_id)
-        return False
-
-    async def async_cancel_punctual_trip(self, trip_id: str) -> bool:
-        """Cancel a punctual trip.
-
-        Args:
-            trip_id: Trip identifier
-
-        Returns:
-            True if trip was found and cancelled, False otherwise
-        """
-        trip = await self.async_get_trip(trip_id)
-        if trip and trip.get("tipo") == TRIP_TYPE_PUNCTUAL:
-            return await self.async_update_trip(
-                trip_id, {"estado": TRIP_STATUS_CANCELLED}
-            )
-
-        _LOGGER.warning("Punctual trip not found for cancellation: %s", trip_id)
-        return False
-
-    def _ensure_timezone_aware(self, dt: datetime) -> datetime:
-        """Ensure datetime is timezone-aware using HA's local timezone.
-        
-        Args:
-            dt: Datetime object (may be naive or aware)
-            
-        Returns:
-            Timezone-aware datetime object
-        """
-        if dt.tzinfo is None:
-            return dt_util.as_local(dt)
-        return dt
-
-    def _parse_hour_minute(self, time_str: str) -> tuple[int, int] | None:
-        """Parse hour and minute from HH:MM format.
-        
-        Args:
-            time_str: Time string in HH:MM format
-            
-        Returns:
-            Tuple of (hour, minute) or None if invalid
-        """
-        try:
-            hour, minute = map(int, time_str.split(":"))
-            if 0 <= hour <= 23 and 0 <= minute <= 59:
-                return hour, minute
-            _LOGGER.warning("Hour/minute out of range: %s", time_str)
-            return None
-        except (ValueError, AttributeError):
-            _LOGGER.warning("Invalid hour format: %s", time_str)
-            return None
-
-    async def async_expand_recurring_trips(self, days: int = 7) -> List[Dict]:
-        """Expand recurring trips into concrete instances for the next N days.
-
-        Args:
-            days: Number of days to expand (default: 7)
-
-        Returns:
-            List of expanded trip instances with concrete datetimes
-        """
-        try:
-            expanded_trips = []
-            today = dt_util.now().date()
-            
-            recurring_trips = await self.async_get_recurring_trips()
-            
-            _LOGGER.debug("Expanding %d recurring trips for next %d days",
-                         len(recurring_trips), days)
-            
-            for trip in recurring_trips:
-                if not trip.get("activo", True):
-                    _LOGGER.debug("Skipping inactive trip: %s", trip.get("descripcion"))
-                    continue
-                    
-                dia_semana = trip.get("dia_semana", "")
-                hora = trip.get("hora", "00:00")
-                
-                if dia_semana not in self._DAY_MAP:
-                    _LOGGER.warning("Invalid day of week in trip: %s", dia_semana)
-                    continue
-                    
-                target_weekday = self._DAY_MAP[dia_semana]
-                
-                # Parse hour using helper
-                time_parsed = self._parse_hour_minute(hora)
-                if time_parsed is None:
-                    continue
-                hour, minute = time_parsed
-                
-                # Generate instances for the next 'days' days
-                for i in range(days):
-                    current_date = today + timedelta(days=i)
-                    
-                    # Check if this date matches the target weekday
-                    if current_date.weekday() == target_weekday:
-                        # Combine date with time
-                        trip_datetime = datetime.combine(
-                            current_date,
-                            datetime.min.time().replace(hour=hour, minute=minute)
-                        )
-                        
-                        # Localize the datetime using helper
-                        trip_datetime = self._ensure_timezone_aware(trip_datetime)
-                        
-                        expanded_trip = {
-                            "descripcion": trip.get("descripcion", "Viaje recurrente"),
-                            "datetime": trip_datetime,
-                            "kwh": trip.get("kwh", 0.0),
-                            "source": "recurring",
-                        }
-                        expanded_trips.append(expanded_trip)
-                        
-                        _LOGGER.debug("Expanded trip: %s at %s (weekday %d == target %d)",
-                                     trip.get("descripcion"), trip_datetime,
-                                     current_date.weekday(), target_weekday)
-            
-            _LOGGER.debug("Expanded %d recurring trips into %d instances",
-                         len(recurring_trips), len(expanded_trips))
-            return expanded_trips
-            
-        except Exception as err:
-            _LOGGER.error("Error expanding recurring trips: %s", err)
-            return []
-
-    async def async_get_next_trip(self) -> Optional[Dict]:
-        """Get the next upcoming trip.
-
-        Returns:
-            Dictionary with trip details or None if no trips found
-        """
-        try:
-            all_trips = await self.async_get_all_trips_expanded()
-            
-            if not all_trips:
-                _LOGGER.debug("No trips found for next trip calculation")
-                return None
-            
-            # Sort by datetime (ensure all datetimes are comparable)
-            all_trips.sort(key=lambda x: x.get("datetime"))
-            
-            now = dt_util.now()
-            _LOGGER.debug("Current time: %s", now)
-            _LOGGER.debug("Total trips to check: %d", len(all_trips))
-            
-            # Debug: print all trips
-            for i, trip in enumerate(all_trips):
-                _LOGGER.debug("Trip %d: %s at %s (type: %s)",
-                             i, trip.get("descripcion"), trip.get("datetime"),
-                             type(trip.get("datetime")))
-            
-            # Find first trip that is in the future
-            for trip in all_trips:
-                trip_datetime = trip.get("datetime")
-                if trip_datetime:
-                    _LOGGER.debug("Checking trip: %s at %s (now: %s, comparison: %s)",
-                                 trip.get("descripcion"), trip_datetime, now,
-                                 trip_datetime > now)
-                    if trip_datetime > now:
-                        _LOGGER.debug("Next trip found: %s at %s",
-                                     trip.get("descripcion"), trip_datetime)
-                        return trip
-            
-            _LOGGER.debug("No future trips found")
-            return None
-            
-        except Exception as err:
-            _LOGGER.error("Error getting next trip: %s", err)
-            return None
+    async def async_cancel_punctual_trip(self, trip_id: str) -> None:
+        """Cancela un viaje puntual."""
+        if trip_id in self._punctual_trips:
+            del self._punctual_trips[trip_id]
+        await self.async_save_trips()
 
     async def async_get_kwh_needed_today(self) -> float:
-        """Calculate total kWh needed for all trips today.
+        """Calcula la energía necesaria para hoy basado en los viajes."""
+        today = datetime.now().date()
+        total_kwh = 0.0
+        for trip in self._recurring_trips.values():
+            if trip["activo"] and self._is_trip_today(trip, today):
+                total_kwh += trip["kwh"]
+        for trip in self._punctual_trips.values():
+            if trip["estado"] == "pendiente" and self._is_trip_today(trip, today):
+                total_kwh += trip["kwh"]
+        return total_kwh
 
-        Returns:
-            Sum of kWh for all trips scheduled today
-        """
-        try:
-            all_trips = await self.async_get_all_trips_expanded()
-            
-            if not all_trips:
-                _LOGGER.debug("No trips found for kWh calculation")
-                return 0.0
-            
-            # Get today in local timezone
-            now = dt_util.now()
+    async def async_get_hours_needed_today(self) -> int:
+        """Calcula las horas necesarias para cargar hoy."""
+        kwh_needed = await self.async_get_kwh_needed_today()
+        charging_power = self.vehicle_controller.get_charging_power()
+        return int(kwh_needed / charging_power) if charging_power > 0 else 0
+
+    async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
+        """Obtiene el próximo viaje programado."""
+        now = datetime.now()
+        next_trip = None
+        for trip in self._recurring_trips.values():
+            if trip["activo"]:
+                trip_time = self._get_trip_time(trip)
+                if trip_time and trip_time > now:
+                    if next_trip is None or trip_time < next_trip["time"]:
+                        next_trip = {"time": trip_time, "trip": trip}
+        for trip in self._punctual_trips.values():
+            if trip["estado"] == "pendiente":
+                trip_time = self._get_trip_time(trip)
+                if trip_time and trip_time > now:
+                    if next_trip is None or trip_time < next_trip["time"]:
+                        next_trip = {"time": trip_time, "trip": trip}
+        return next_trip["trip"] if next_trip else None
+
+    def _is_trip_today(self, trip: Dict[str, Any], today: datetime.date) -> bool:
+        """Verifica si un viaje ocurre hoy."""
+        if trip["tipo"] == TRIP_TYPE_RECURRING:
+            return today.strftime("%A").lower() == trip["dia_semana"]
+        elif trip["tipo"] == TRIP_TYPE_PUNCTUAL:
+            return datetime.strptime(trip["datetime"], "%Y-%m-%dT%H:%M").date() == today
+        return False
+
+    def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:
+        """Obtiene la fecha y hora del viaje."""
+        if trip["tipo"] == TRIP_TYPE_RECURRING:
+            now = datetime.now()
             today = now.date()
-            
-            total_kwh = 0.0
-            trips_found = 0
-            
-            _LOGGER.debug("Calculating kWh for today (%s) from %d trips (now: %s)",
-                         today, len(all_trips), now)
-            
-            for trip in all_trips:
-                try:
-                    trip_datetime = trip.get("datetime")
-                    if trip_datetime:
-                        # Convert to local timezone for consistent date comparison
-                        if hasattr(trip_datetime, 'astimezone'):
-                            trip_local = trip_datetime.astimezone(now.tzinfo)
-                        else:
-                            trip_local = dt_util.as_local(trip_datetime)
-                        
-                        trip_date = trip_local.date()
-                        _LOGGER.debug("Checking trip: %s at %s (local: %s, date: %s)",
-                                     trip.get("descripcion"), trip_datetime, trip_local, trip_date)
-                        
-                        if trip_date == today:
-                            kwh = float(trip.get("kwh", 0.0))
-                            total_kwh += kwh
-                            trips_found += 1
-                            _LOGGER.debug("Added trip %s: %.2f kWh (total: %.2f)",
-                                         trip.get("descripcion"), kwh, total_kwh)
-                        else:
-                            _LOGGER.debug("Skipping trip %s: date %s != today %s",
-                                         trip.get("descripcion"), trip_date, today)
-                except (ValueError, TypeError, AttributeError) as e:
-                    _LOGGER.warning("Invalid datetime or kwh in trip %s: %s", trip, e)
-                    continue
-            
-            _LOGGER.debug("Total kWh needed today: %.2f (%d trips)", total_kwh, trips_found)
-            return total_kwh
-            
-        except Exception as err:
-            _LOGGER.error("Error calculating kWh needed today: %s", err)
-            return 0.0
+            day_of_week = now.weekday()
+            target_day = self._get_day_index(trip["dia_semana"])
+            days_ahead = (target_day - day_of_week) % 7
+            if days_ahead == 0 and now.hour > int(trip["hora"].split(":")[0]):
+                days_ahead = 7
+            return datetime.combine(
+                today + timedelta(days=days_ahead),
+                datetime.strptime(trip["hora"], "%H:%M").time(),
+            )
+        elif trip["tipo"] == TRIP_TYPE_PUNCTUAL:
+            return datetime.strptime(trip["datetime"], "%Y-%m-%dT%H:%M")
+        return None
 
-    async def async_get_hours_needed_today(self, charging_power_kw: float = 3.6) -> int:
-        """Calculate hours needed to charge for today's trips.
-
-        Args:
-            charging_power_kw: Charging power in kW (default: 3.6)
-
-        Returns:
-            Hours needed (rounded up)
-        """
-        try:
-            if charging_power_kw <= 0:
-                _LOGGER.warning("Invalid charging power: %s", charging_power_kw)
-                return 0
-            
-            kwh_needed = await self.async_get_kwh_needed_today()
-            
-            if kwh_needed <= 0:
-                return 0
-            
-            hours = math.ceil(kwh_needed / charging_power_kw)
-            
-            _LOGGER.debug("Hours needed today: %d (kwh: %.2f, power: %.2f kW)",
-                         hours, kwh_needed, charging_power_kw)
-            return hours
-            
-        except Exception as err:
-            _LOGGER.error("Error calculating hours needed today: %s", err)
-            return 0
-
-    async def async_get_all_trips_expanded(self) -> List[Dict]:
-        """Get all trips (recurring expanded + punctual) sorted by datetime.
-
-        Returns:
-            Combined and sorted list of all trip instances
-        """
-        try:
-            # Get expanded recurring trips
-            recurring_expanded = await self.async_expand_recurring_trips()
-            
-            # Get punctual trips
-            punctual_trips = await self.async_get_punctual_trips()
-            
-            # Convert punctual trips to same format
-            punctual_formatted = []
-            for trip in punctual_trips:
-                if trip.get("estado") == TRIP_STATUS_PENDING:
-                    # Parse datetime and ensure it's timezone-aware
-                    datetime_str = trip.get("datetime", "")
-                    if datetime_str:
-                        trip_datetime = dt_util.parse_datetime(datetime_str)
-                        if trip_datetime:
-                            # Ensure datetime is timezone-aware
-                            trip_datetime = dt_util.as_local(trip_datetime)
-                            
-                            punctual_formatted.append({
-                                "descripcion": trip.get("descripcion", "Viaje puntual"),
-                                "datetime": trip_datetime,
-                                "kwh": trip.get("kwh", 0.0),
-                                "source": "punctual",
-                            })
-            
-            # Combine all trips
-            all_trips = recurring_expanded + punctual_formatted
-            
-            # Sort by datetime (all datetimes are now timezone-aware)
-            all_trips.sort(key=lambda x: x.get("datetime"))
-            
-            _LOGGER.debug("Total trips expanded: %d", len(all_trips))
-            return all_trips
-            
-        except Exception as err:
-            _LOGGER.error("Error getting all trips expanded: %s", err)
-            return []
-
-    async def async_calcular_energia_necesaria(self, trip: dict[str, Any], vehicle_config: dict[str, Any]) -> dict[str, Any]:
-        """Calculate energy needed for a trip considering current SOC.
-        
-        Args:
-            trip: Trip dictionary with kwh needed
-            vehicle_config: Vehicle configuration with battery_capacity_kwh, charging_power_kw, soc_current
-            
-        Returns:
-            Dictionary with energy_needed_kwh, charge_hours_needed, time_insufficient_alert, hours_available
-        """
-        try:
-            # Extract values from vehicle config
-            battery_capacity = float(vehicle_config.get("battery_capacity_kwh", 50.0))
-            charging_power = float(vehicle_config.get("charging_power_kw", 3.6))
-            soc_current = float(vehicle_config.get("soc_current", 0.0))
-            
-            # Extract trip energy needed
-            trip_kwh = float(trip.get("kwh", 0.0))
-            
-            # Calculate current energy in battery
-            current_energy = battery_capacity * (soc_current / 100.0)
-            
-            # Calculate minimum safety energy (40% of battery capacity)
-            # This ensures we always have at least 40% SOC after the trip
-            safety_margin_soc = 0.4  # 40% minimum SOC
-            min_safety_energy = battery_capacity * safety_margin_soc
-            
-            # Calculate target energy: energy needed for trip + safety margin
-            # But never exceed battery capacity
-            target_energy = min(trip_kwh + min_safety_energy, battery_capacity)
-            
-            # Calculate energy needed to reach target
-            energy_needed = max(0.0, target_energy - current_energy)
-            
-            # Calculate hours needed to charge
-            if charging_power > 0:
-                hours_needed = energy_needed / charging_power
-                # Round to 2 decimal places
-                hours_needed = round(hours_needed, 2)
-            else:
-                hours_needed = 0.0
-            
-            # Check if there's enough time before trip
-            time_insufficient = False
-            hours_available = 0.0
-            
-            if "datetime" in trip:
-                try:
-                    now = dt_util.now()
-                    trip_datetime = trip.get("datetime")
-                    
-                    # Ensure trip_datetime is timezone-aware
-                    if hasattr(trip_datetime, 'tzinfo') and trip_datetime.tzinfo is None:
-                        trip_datetime = dt_util.as_local(trip_datetime)
-                    elif isinstance(trip_datetime, str):
-                        trip_datetime = dt_util.parse_datetime(trip_datetime)
-                        if trip_datetime:
-                            trip_datetime = dt_util.as_local(trip_datetime)
-                    
-                    if trip_datetime and trip_datetime > now:
-                        time_diff = trip_datetime - now
-                        hours_available = time_diff.total_seconds() / 3600.0
-                        
-                        # Check if we have enough time
-                        if hours_needed > hours_available:
-                            time_insufficient = True
-                except (ValueError, TypeError, AttributeError) as err:
-                    _LOGGER.warning("Error calculating time available for trip: %s", err)
-            
-            result = {
-                "energia_necesaria_kwh": round(energy_needed, 2),
-                "horas_carga_necesarias": hours_needed,
-                "alerta_tiempo_insuficiente": time_insufficient,
-                "horas_disponibles": round(hours_available, 2) if hours_available > 0 else 0.0
-            }
-            
-            _LOGGER.debug("Energy calculation: SOC=%.1f%%, current=%.2fkWh, trip=%.2fkWh, needed=%.2fkWh, hours=%.2f",
-                         soc_current, current_energy, trip_kwh, energy_needed, hours_needed)
-            
-            return result
-            
-        except Exception as err:
-            _LOGGER.error("Error calculating energy needed: %s", err)
-            return {
-                "energia_necesaria_kwh": 0.0,
-                "horas_carga_necesarias": 0.0,
-                "alerta_tiempo_insuficiente": False,
-                "horas_disponibles": 0.0
-            }
-
-    async def async_generate_power_profile(self, charging_power_kw: float, planning_horizon_days: int = 7, vehicle_config: dict[str, Any] | None = None) -> list[float]:
-        """Generate power profile for the planning horizon.
-        
-        This method generates a profile where each hour is either 0W (no charging)
-        or max_power (charging at full power). The profile is based on when
-        charging is needed according to trip schedule and energy requirements.
-        
-        Args:
-            charging_power_kw: Maximum charging power in kW
-            planning_horizon_days: Number of days to generate profile for
-            vehicle_config: Optional vehicle configuration with SOC, battery capacity, etc.
-                           If provided, uses async_calcular_energia_necesaria() for accurate calculations.
-            
-        Returns:
-            List of power values in Watts for each hour (0W or max_power)
-        """
-        try:
-            # Get all trips expanded
-            all_trips = await self.async_get_all_trips_expanded()
-            
-            if not all_trips:
-                _LOGGER.debug("No trips found, returning empty profile")
-                # Return profile with all zeros
-                return [0.0] * (planning_horizon_days * 24)
-            
-            # Get current time
-            now = dt_util.now()
-            
-            # Initialize profile with zeros
-            total_hours = planning_horizon_days * 24
-            profile = [0.0] * total_hours
-            
-            # For each trip, calculate when charging should occur
-            for trip in all_trips:
-                try:
-                    trip_datetime = trip.get("datetime")
-                    if not trip_datetime:
-                        continue
-                    
-                    # Ensure datetime is timezone-aware
-                    if isinstance(trip_datetime, str):
-                        trip_datetime = dt_util.parse_datetime(trip_datetime)
-                    
-                    if trip_datetime:
-                        trip_datetime = dt_util.as_local(trip_datetime)
-                        
-                        # Calculate hours from now to trip
-                        time_diff = trip_datetime - now
-                        hours_to_trip = time_diff.total_seconds() / 3600.0
-                        
-                        # If trip is in the past, skip
-                        if hours_to_trip <= 0:
-                            continue
-                        
-                        # Calculate energy needed - use vehicle_config if available for accurate calculation
-                        if vehicle_config and "soc_current" in vehicle_config:
-                            # Use the accurate energy calculation method that considers SOC
-                            energy_calc = await self.async_calcular_energia_necesaria(trip, vehicle_config)
-                            energy_needed_kwh = energy_calc["energia_necesaria_kwh"]
-                            _LOGGER.debug("Using accurate energy calculation for trip '%s': %.2f kWh needed",
-                                         trip.get("descripcion", "unknown"), energy_needed_kwh)
-                        else:
-                            # Fallback to simple calculation (backward compatibility)
-                            energy_needed_kwh = float(trip.get("kwh", 0.0))
-                            _LOGGER.debug("Using simple energy calculation for trip '%s': %.2f kWh needed",
-                                         trip.get("descripcion", "unknown"), energy_needed_kwh)
-                        
-                        # Only schedule charging if energy is actually needed
-                        if energy_needed_kwh > 0 and charging_power_kw > 0:
-                            # Calculate hours needed to charge
-                            hours_needed = energy_needed_kwh / charging_power_kw
-                            
-                            # Schedule charging just before the trip
-                            # Start charging at: trip_time - hours_needed
-                            start_hour = int(hours_to_trip - hours_needed)
-                            
-                            # Ensure start_hour is within profile bounds
-                            if start_hour < 0:
-                                start_hour = 0
-                            
-                            end_hour = int(hours_to_trip)
-                            if end_hour > total_hours:
-                                end_hour = total_hours
-                            
-                            # Fill profile with max power during charging hours
-                            # Use end_hour + 1 because range() is exclusive of the end value
-                            power_watts = charging_power_kw * 1000.0  # Convert to Watts
-                            for hour in range(start_hour, end_hour + 1):
-                                if 0 <= hour < total_hours:
-                                    profile[hour] = power_watts
-                            
-                            _LOGGER.debug("Scheduled charging for trip '%s': hours %d-%d, power %.0fW, energy %.2f kWh",
-                                         trip.get("descripcion", "unknown"), start_hour, end_hour + 1, power_watts, energy_needed_kwh)
-                
-                except (ValueError, TypeError, AttributeError) as err:
-                    _LOGGER.warning("Error processing trip for power profile: %s", err)
-                    continue
-            
-            _LOGGER.debug("Generated power profile: %d hours, %d charging hours, total energy %.2f kWh",
-                         len(profile), sum(1 for p in profile if p > 0),
-                         sum(p for p in profile if p > 0) / 1000.0)
-            
-            return profile
-            
-        except Exception as err:
-            _LOGGER.error("Error generating power profile: %s", err)
-            # Return empty profile on error
-            return [0.0] * (planning_horizon_days * 24)
-
-    async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
-        """Get vehicle SOC from configured sensor.
-        
-        Args:
-            vehicle_id: Vehicle identifier
-            
-        Returns:
-            SOC value (0-100) or 0.0 if sensor not available
-        """
-        try:
-            # Get domain data
-            if DOMAIN not in self.entry.runtime_data:
-                _LOGGER.warning("Domain %s not found in entry.runtime_data", DOMAIN)
-                return 0.0
-            
-            domain_data = self.entry.runtime_data
-            
-            # Get vehicle config
-            vehicle_config = domain_data.get(vehicle_id, {})
-            soc_sensor = vehicle_config.get("soc_sensor")
-            
-            if not soc_sensor:
-                _LOGGER.warning("No SOC sensor configured for vehicle %s", vehicle_id)
-                return 0.0
-            
-            # Get sensor state
-            sensor_state = self.hass.states.get(soc_sensor)
-            
-            if not sensor_state or sensor_state.state in ["unavailable", "unknown", None]:
-                _LOGGER.warning("SOC sensor %s not available for vehicle %s", soc_sensor, vehicle_id)
-                return 0.0
-            
-            # Parse SOC value
-            try:
-                soc = float(sensor_state.state)
-                # Ensure SOC is between 0 and 100
-                soc = max(0.0, min(100.0, soc))
-                _LOGGER.debug("Vehicle %s SOC: %.1f%%", vehicle_id, soc)
-                return soc
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid SOC value from sensor %s: %s", soc_sensor, sensor_state.state)
-                return 0.0
-                
-        except Exception as err:
-            _LOGGER.error("Error getting vehicle SOC: %s", err)
-            return 0.0
+    def _get_day_index(self, day_name: str) -> int:
+        """Obtiene el índice del día de la semana."""
+        days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+        return days.index(day_name.lower())

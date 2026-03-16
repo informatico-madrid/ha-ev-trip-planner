@@ -214,7 +214,7 @@ class EMHASSAdapter:
             
             return True
             
-        except Exception as err:
+        except HomeAssistantError as err:
             _LOGGER.error("Error publishing deferrable load: %s", err)
             # Release index on error
             if 'trip_id' in locals() and trip_id in self._index_map:

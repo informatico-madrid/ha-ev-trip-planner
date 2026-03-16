@@ -24,7 +24,7 @@ HOME_DISTANCE_THRESHOLD_METERS = 30.0
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
     
-    def __init__(self, hass: HomeAssistant, vehicle_id: str, config: Dict[str, any]):
+    def __init__(self, hass: HomeAssistant, vehicle_id: str, config: Dict[str, Any]):
         """Initialize presence monitor."""
         self.hass = hass
         self.vehicle_id = vehicle_id

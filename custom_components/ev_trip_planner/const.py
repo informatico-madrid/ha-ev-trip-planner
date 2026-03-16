@@ -1,4 +1,14 @@
-"""Constants for the EV Trip Planner integration."""
+"""Constants for the EV Trip Planner integration.
+
+This module defines all configuration keys, default values, and enum constants
+used by the EV Trip Planner custom component. Key dependencies:
+- Home Assistant core (for sensor/entity management)
+- EMHASS integration (for energy-aware trip planning)
+- Spanish-language localization (via DAYS_OF_WEEK array)
+
+Note: All CONF_* keys are used in the config flow and entity configuration.
+Default values are optimized for typical EV/PHEV usage patterns.
+"""
 
 DOMAIN = "ev_trip_planner"
 
@@ -46,12 +56,12 @@ VEHICLE_TYPE_EV = "ev"
 VEHICLE_TYPE_PHEV = "phev"
 
 # Defaults
-DEFAULT_CONSUMPTION = 0.15  # kWh per km
-DEFAULT_SAFETY_MARGIN = 10  # percent
+DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
+DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV
-DEFAULT_PLANNING_HORIZON = 7  # days
-DEFAULT_MAX_DEFERRABLE_LOADS = 50  # maximum simultaneous trips
+DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
+DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Maximum simultaneous trips (EMHASS integration limit)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types
@@ -63,7 +73,7 @@ TRIP_STATUS_PENDING = "pendiente"
 TRIP_STATUS_COMPLETED = "completado"
 TRIP_STATUS_CANCELLED = "cancelado"
 
-# Days of week (Spanish as base, will translate)
+# Days of week (Spanish as base for localization)
 DAYS_OF_WEEK = [
     "lunes",
     "martes",
