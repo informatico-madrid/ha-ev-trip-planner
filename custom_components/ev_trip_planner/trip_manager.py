@@ -9,22 +9,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
-import voluptuous as vol
-from homeassistant.components import recorder
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_BATTERY_CAPACITY,
-    CONF_CHARGING_POWER,
-    CONF_CONSUMPTION,
-    CONF_SAFETY_MARGIN,
-    DEFAULT_CONSUMPTION,
-    DEFAULT_SAFETY_MARGIN,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,

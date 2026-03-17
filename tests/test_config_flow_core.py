@@ -84,15 +84,15 @@ async def test_full_flow_success():
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "presence"
 
-        # Step 4: Presence configuration (optional - skip with empty input)
+        # Step 4: Presence configuration (skip with empty input)
         result = await flow.async_step_presence({})
         # Should advance to step 5 (notifications)
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "notifications"
 
-        # Step 5: Notifications configuration (optional - skip with empty input)
+        # Step 5: Notifications configuration (skip with empty input)
         result = await flow.async_step_notifications({})
-        # Now should create entry
+        # Should create entry
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == "Chispitas"
         data = result["data"]

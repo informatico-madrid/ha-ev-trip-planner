@@ -1,10 +1,10 @@
 """EMHASS Adapter for EV Trip Planner."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, HomeAssistantError
 from homeassistant.helpers.storage import Store
 
 from .const import (

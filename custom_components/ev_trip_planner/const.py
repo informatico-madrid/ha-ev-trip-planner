@@ -37,6 +37,7 @@ CONF_PLANNING_SENSOR = "planning_sensor_entity"
 # Presence Detection
 CONF_HOME_SENSOR = "home_sensor"
 CONF_PLUGGED_SENSOR = "plugged_sensor"
+CONF_CHARGING_SENSOR = "charging_sensor"
 CONF_HOME_COORDINATES = "home_coordinates"
 CONF_VEHICLE_COORDINATES_SENSOR = "vehicle_coordinates_sensor"
 

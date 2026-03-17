@@ -75,9 +75,10 @@
         }
       },
       "presence": {
-        "title": "Detección de Presencia (Opcional)",
-        "description": "Configura la detección de presencia para evitar cargar cuando el vehículo está fuera. Este paso es opcional - puedes saltarlo.",
+        "title": "Detección de Presencia",
+        "description": "Configura la detección de presencia para evitar cargar cuando el vehículo está fuera. Se requiere sensor de carga.",
         "data": {
+          "charging_sensor": "Sensor de Carga (binary_sensor) - REQUERIDO",
           "home_sensor": "Sensor de Casa (binary_sensor)",
           "plugged_sensor": "Sensor Enchufado (binary_sensor)",
           "home_coordinates": "Coordenadas de Casa (lat, lon)",
@@ -87,6 +88,7 @@
           "notification_service": "Servicio de Notificación"
         },
         "data_description": {
+          "charging_sensor": "REQUERIDO: Sensor binario que indica si el vehículo está cargando actualmente (ej: binary_sensor.ovms_chispitas_charging). Muestra 'on' cuando está cargando. Esto es obligatorio para la configuración.",
           "home_sensor": "Opcional: Sensor binario que indica si el vehículo está en casa (ej: binary_sensor.chispitas_home). Muestra 'on' cuando el vehículo está en casa.",
           "plugged_sensor": "Opcional: Sensor binario que indica si el cable de carga está conectado (ej: binary_sensor.chispitas_plugged). Muestra 'on' cuando está enchufado.",
           "home_coordinates": "Opcional: Tus coordenadas de casa como 'latitud, longitud' (ej: '40.1234, -3.5678'). Usado si no hay sensor de casa disponible.",
@@ -94,6 +96,18 @@
           "vehicle_coordinates_sensor_lat": "Opcional: Sensor que proporciona la latitud del vehículo (ej: sensor.ovms_chispitas_metric_v_pos_latitude). Úsalo con el sensor de longitud de abajo.",
           "vehicle_coordinates_sensor_lon": "Opcional: Sensor que proporciona la longitud del vehículo (ej: sensor.ovms_chispitas_metric_v_pos_longitude). Úsalo con el sensor de latitud de arriba.",
           "notification_service": "Servicio a llamar para notificaciones (ej: notify.mobile_app). Usado para alertar cuando se necesita carga pero no es posible."
+        }
+      },
+      "notifications": {
+        "title": "Notificaciones (Opcional)",
+        "description": "Configura las notificaciones para recibir alertas cuando se necesita cargar pero no es posible. Este paso es opcional.",
+        "data": {
+          "notification_service": "Servicio de Notificación",
+          "notification_devices": "Dispositivos de Notificación"
+        },
+        "data_description": {
+          "notification_service": "Selecciona el servicio de notificaciones a usar (ej: notify.mobile_app_tu_teléfono). Esto es opcional - puedes saltarte este paso.",
+          "notification_devices": "Selecciona los dispositivos que recibirán notificaciones. Mantén Ctrl/Cmd para seleccionar múltiples. Esto es opcional - puedes saltarte este paso."
         }
       }
     },
@@ -104,6 +118,9 @@
       "invalid_max_deferrable_loads": "Las cargas diferibles máximas deben estar entre 10 y 100",
       "home_sensor_not_found": "El sensor de casa seleccionado no se encontró. Por favor verifica el ID de la entidad.",
       "plugged_sensor_not_found": "El sensor enchufado seleccionado no se encontró. Por favor verifica el ID de la entidad.",
+      "charging_sensor_required": "Se requiere sensor de estado de carga para configurar este vehículo. Este sensor indica si el vehículo está cargando actualmente.",
+      "charging_sensor_not_found": "El sensor de carga seleccionado no se encontró. Por favor verifica el ID de la entidad.",
+      "notification_service_not_found": "El servicio de notificaciones seleccionado no se encontró. Por favor verifica el ID de la entidad y asegura que la integración de notify esté configurada.",
       "invalid_coordinates_format": "Formato de coordenadas inválido. Usa 'latitud, longitud' (ej: '40.1234, -3.5678')"
     },
     "abort": {

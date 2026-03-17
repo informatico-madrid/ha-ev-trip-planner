@@ -6,7 +6,9 @@ Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
@@ -19,10 +21,12 @@ from . import import_dashboard, is_lovelace_available
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
+    CONF_CHARGING_SENSOR,
     CONF_CONSUMPTION,
-    CONF_HOME_COORDINATES,
     CONF_HOME_SENSOR,
     CONF_MAX_DEFERRABLE_LOADS,
+    CONF_NOTIFICATION_DEVICES,
+    CONF_NOTIFICATION_SERVICE,
     CONF_PLANNING_HORIZON,
     CONF_PLANNING_SENSOR,
     CONF_PLUGGED_SENSOR,
@@ -93,6 +97,117 @@ STEP_EMHASS_SCHEMA = vol.Schema(
     }
 )
 
+# Step 4: Presence configuration
+STEP_PRESENCE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_CHARGING_SENSOR): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="binary_sensor",
+                multiple=False,
+            )
+        ),
+        vol.Optional(CONF_HOME_SENSOR): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="binary_sensor",
+                multiple=False,
+            )
+        ),
+        vol.Optional(CONF_PLUGGED_SENSOR): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="binary_sensor",
+                multiple=False,
+            )
+        ),
+    }
+)
+
+# Step 5: Notifications configuration
+STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="notify",
+                multiple=False,
+            )
+        ),
+        vol.Optional(CONF_NOTIFICATION_DEVICES): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="notify",
+                multiple=True,
+            )
+        ),
+    }
+)
+
+
+def _read_emhass_config(config_path: str = "/home/malka/emhass/config/config.json") -> Optional[Dict[str, Any]]:
+    """Lee la configuración de EMHASS desde el archivo de configuración.
+
+    Args:
+        config_path: Ruta al archivo de configuración de EMHASS.
+
+    Returns:
+        Diccionario con la configuración o None si no se puede leer.
+    """
+    if not os.path.exists(config_path):
+        _LOGGER.debug("EMHASS config file not found at %s", config_path)
+        return None
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        _LOGGER.debug("EMHASS config loaded successfully from %s", config_path)
+        return config
+    except (json.JSONDecodeError, IOError) as err:
+        _LOGGER.warning("Could not read EMHASS config from %s: %s", config_path, err)
+        return None
+
+
+def _get_emhass_planning_horizon(emhass_config: Optional[Dict[str, Any]]) -> Optional[int]:
+    """Extrae el horizonte de planificación desde la configuración de EMHASS.
+
+    Args:
+        emhass_config: Diccionario con la configuración de EMHASS.
+
+    Returns:
+        Horizonte de planificación en días o None si no se puede determinar.
+    """
+    if not emhass_config:
+        return None
+
+    # Get end_timesteps from the first deferrable load
+    end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
+    if not end_timesteps or not isinstance(end_timesteps, list) or len(end_timesteps) == 0:
+        return None
+
+    # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days
+    max_timesteps = end_timesteps[0]
+    planning_horizon_days = max_timesteps // 24
+
+    if planning_horizon_days < 1:
+        return None
+
+    return planning_horizon_days
+
+
+def _get_emhass_max_deferrable_loads(emhass_config: Optional[Dict[str, Any]]) -> Optional[int]:
+    """Extrae el número máximo de cargas diferibles desde la configuración de EMHASS.
+
+    Args:
+        emhass_config: Diccionario con la configuración de EMHASS.
+
+    Returns:
+        Número máximo de cargas diferibles o None si no se puede determinar.
+    """
+    if not emhass_config:
+        return None
+
+    num_loads = emhass_config.get("number_of_deferrable_loads")
+    if num_loads is None or num_loads < 1:
+        return None
+
+    return num_loads
+
 
 class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Maneja el flujo de configuración para EV Trip Planner."""
@@ -155,7 +270,25 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         - planning_horizon_days (1-365, recommended 7)
         - max_deferrable_loads (manual input)
         - planning_sensor_entity (optional, entity selector)
+
+        Validation:
+        - Try to read EMHASS config from /home/malka/emhass/config/config.json
+        - If planning sensor is configured, try to read its value
+        - Validate planning horizon against sensor value if available
+        - Manual input fallback if sensor not available
         """
+        # Try to read EMHASS config for validation defaults
+        emhass_config = _read_emhass_config()
+        emhass_horizon = _get_emhass_planning_horizon(emhass_config)
+        emhass_max_loads = _get_emhass_max_deferrable_loads(emhass_config)
+
+        if emhass_horizon:
+            _LOGGER.info(
+                "EMHASS config found: planning_horizon=%s days, max_deferrable_loads=%s",
+                emhass_horizon,
+                emhass_max_loads,
+            )
+
         if user_input is not None:
             # Validate planning horizon (1-365 days)
             planning_horizon = user_input.get(CONF_PLANNING_HORIZON)
@@ -170,6 +303,48 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         },
                     )
 
+                # Validate against EMHASS config if available
+                if emhass_horizon and planning_horizon > emhass_horizon:
+                    _LOGGER.warning(
+                        "User planning_horizon (%d) exceeds EMHASS config (%d days). "
+                        "This may cause optimization issues.",
+                        planning_horizon,
+                        emhass_horizon,
+                    )
+
+                # Validate against planning sensor if configured
+                planning_sensor = user_input.get(CONF_PLANNING_SENSOR)
+                if planning_sensor:
+                    sensor_state = self.hass.states.get(planning_sensor)
+                    if sensor_state and sensor_state.state not in ("unknown", "unavailable", ""):
+                        try:
+                            sensor_horizon = int(float(sensor_state.state))
+                            _LOGGER.info(
+                                "Planning sensor %s value: %d days",
+                                planning_sensor,
+                                sensor_horizon,
+                            )
+                            # Validate user input against sensor value - warn but don't modify
+                            if planning_horizon > sensor_horizon:
+                                _LOGGER.warning(
+                                    "User planning_horizon (%d) exceeds sensor value (%d days). "
+                                    "This may cause optimization issues. Consider using a value <= %d.",
+                                    planning_horizon,
+                                    sensor_horizon,
+                                    sensor_horizon,
+                                )
+                        except (ValueError, TypeError) as err:
+                            _LOGGER.warning(
+                                "Could not parse planning sensor %s value: %s",
+                                planning_sensor,
+                                err,
+                            )
+                    else:
+                        _LOGGER.info(
+                            "Planning sensor %s not available or has no valid value, using manual input",
+                            planning_sensor,
+                        )
+
             # Validate max deferrable loads (10-100)
             max_loads = user_input.get(CONF_MAX_DEFERRABLE_LOADS)
             if max_loads is not None:
@@ -183,11 +358,20 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         },
                     )
 
+                # Validate against EMHASS config if available
+                if emhass_max_loads and max_loads > emhass_max_loads:
+                    _LOGGER.warning(
+                        "User max_deferrable_loads (%d) exceeds EMHASS config (%d loads). "
+                        "This may cause optimization issues.",
+                        max_loads,
+                        emhass_max_loads,
+                    )
+
             # Store step 3 data in context
             vehicle_data = self._get_vehicle_data()
             vehicle_data.update(user_input)
 
-            # Validate planning horizon if sensor is provided
+            # Log planning sensor configuration
             if CONF_PLANNING_SENSOR in user_input and user_input[CONF_PLANNING_SENSOR]:
                 planning_sensor = user_input[CONF_PLANNING_SENSOR]
                 _LOGGER.info(
@@ -197,19 +381,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Log EMHASS configuration
             _LOGGER.info(
-                "EMHASS configuration: planning_horizon=%s days, max_deferrable_loads=%s",
+                "EMHASS configuration: planning_horizon=%s days, max_deferrable_loads=%s, planning_sensor=%s",
                 vehicle_data.get(CONF_PLANNING_HORIZON),
                 vehicle_data.get(CONF_MAX_DEFERRABLE_LOADS),
+                vehicle_data.get(CONF_PLANNING_SENSOR, "not configured"),
             )
 
-            # Return form for presence step (let user click Next)
-            return self.async_show_form(
-                step_id="presence",
-                data_schema=vol.Schema({}),
-                description_placeholders={
-                    "description": "Configure presence detection to prevent charging when vehicle is away."
-                },
-            )
+            # Go to presence step
+            return await self.async_step_presence(None)
 
         return self.async_show_form(
             step_id="emhass",
@@ -222,81 +401,80 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_presence(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Paso 4: Configuración de detección de presencia (opcional).
+        """Paso 4: Configuración de detección de presencia.
 
         Fields:
+        - charging_sensor (entity selector, binary_sensor domain) - MANDATORY
         - home_sensor (entity selector, binary_sensor domain)
         - plugged_sensor (entity selector, binary_sensor domain)
-        - home_coordinates (optional)
-        - vehicle_coordinates_sensor (optional)
-        - notification_service (optional)
         """
-        if user_input is not None and user_input:  # Has actual data
-            # Validate home sensor exists
-            if CONF_HOME_SENSOR in user_input:
-                home_sensor = user_input[CONF_HOME_SENSOR]
-                if not self.hass.states.get(home_sensor):
-                    return self.async_show_form(
-                        step_id="presence",
-                        data_schema=vol.Schema({}),
-                        errors={"base": "home_sensor_not_found"},
-                        description_placeholders={
-                            "description": "Configure presence detection to prevent charging when vehicle is away."
-                        },
-                    )
-
-            # Validate plugged sensor exists
-            if CONF_PLUGGED_SENSOR in user_input:
-                plugged_sensor = user_input[CONF_PLUGGED_SENSOR]
-                if not self.hass.states.get(plugged_sensor):
-                    return self.async_show_form(
-                        step_id="presence",
-                        data_schema=vol.Schema({}),
-                        errors={"base": "plugged_sensor_not_found"},
-                        description_placeholders={
-                            "description": "Configure presence detection to prevent charging when vehicle is away."
-                        },
-                    )
-
-            # Validate coordinates format
-            if CONF_HOME_COORDINATES in user_input:
-                coords = user_input[CONF_HOME_COORDINATES]
-                if coords:
-                    try:
-                        parts = coords.split(",")
-                        if len(parts) != 2:
-                            raise ValueError("Invalid format")
-                        lat = float(parts[0].strip())
-                        lon = float(parts[1].strip())
-                        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-                            raise ValueError("Out of range")
-                    except (ValueError, AttributeError):
-                        return self.async_show_form(
-                            step_id="presence",
-                            data_schema=vol.Schema({}),
-                            errors={"base": "invalid_coordinates_format"},
-                            description_placeholders={
-                                "description": "Configure presence detection to prevent charging when vehicle is away."
-                            },
-                        )
-
-            vehicle_data = self._get_vehicle_data()
-            vehicle_data.update(user_input)
-            # Presence step has data - create entry directly
-            return await self._async_create_entry()
-
-        # No input (None) - skip all optional steps and create entry
+        # Show the presence form with entity selectors
         if user_input is None:
-            return await self._async_create_entry()
+            return self.async_show_form(
+                step_id="presence",
+                data_schema=STEP_PRESENCE_SCHEMA,
+                description_placeholders={
+                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                },
+            )
 
-        # Empty input ({}) - go to notifications step
-        return self.async_show_form(
-            step_id="notifications",
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                "description": "Configure notification service for alerts."
-            },
-        )
+        # If user clicks "Skip" or provides empty dict, go to notifications step
+        if not user_input:
+            return await self.async_step_notifications(None)
+
+        # Validate charging_sensor (mandatory)
+        if CONF_CHARGING_SENSOR not in user_input or not user_input[CONF_CHARGING_SENSOR]:
+            return self.async_show_form(
+                step_id="presence",
+                data_schema=STEP_PRESENCE_SCHEMA,
+                errors={"base": "charging_sensor_required"},
+                description_placeholders={
+                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                },
+            )
+
+        # Validate charging sensor exists
+        charging_sensor = user_input[CONF_CHARGING_SENSOR]
+        if not self.hass.states.get(charging_sensor):
+            return self.async_show_form(
+                step_id="presence",
+                data_schema=STEP_PRESENCE_SCHEMA,
+                errors={"base": "charging_sensor_not_found"},
+                description_placeholders={
+                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                },
+            )
+
+        # Validate home sensor exists (if provided)
+        if CONF_HOME_SENSOR in user_input and user_input[CONF_HOME_SENSOR]:
+            home_sensor = user_input[CONF_HOME_SENSOR]
+            if not self.hass.states.get(home_sensor):
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=STEP_PRESENCE_SCHEMA,
+                    errors={"base": "home_sensor_not_found"},
+                    description_placeholders={
+                        "description": "Configure presence detection to prevent charging when vehicle is away."
+                    },
+                )
+
+        # Validate plugged sensor exists (if provided)
+        if CONF_PLUGGED_SENSOR in user_input and user_input[CONF_PLUGGED_SENSOR]:
+            plugged_sensor = user_input[CONF_PLUGGED_SENSOR]
+            if not self.hass.states.get(plugged_sensor):
+                return self.async_show_form(
+                    step_id="presence",
+                    data_schema=STEP_PRESENCE_SCHEMA,
+                    errors={"base": "plugged_sensor_not_found"},
+                    description_placeholders={
+                        "description": "Configure presence detection to prevent charging when vehicle is away."
+                    },
+                )
+
+        # Store the presence data and go to notifications step
+        vehicle_data = self._get_vehicle_data()
+        vehicle_data.update(user_input)
+        return await self.async_step_notifications(None)
 
     async def async_step_notifications(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -307,12 +485,56 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         - notification_service (entity selector, notify domain)
         - notification_devices (multi-select, notify devices)
         """
-        if user_input is not None:
-            # Store step 5 data in context
-            vehicle_data = self._get_vehicle_data()
-            vehicle_data.update(user_input)
+        if user_input is None:
+            return self.async_show_form(
+                step_id="notifications",
+                data_schema=STEP_NOTIFICATIONS_SCHEMA,
+                description_placeholders={
+                    "description": "Configure notifications to receive alerts when charging is needed but not possible. This step is optional."
+                },
+            )
 
-        # Always create entry from notifications step
+        # Store step 5 data in context (even if empty - user skipped)
+        vehicle_data = self._get_vehicle_data()
+        vehicle_data.update(user_input)
+
+        # Validate notification service if provided
+        if (
+            CONF_NOTIFICATION_SERVICE in user_input
+            and user_input[CONF_NOTIFICATION_SERVICE]
+        ):
+            notification_service = user_input[CONF_NOTIFICATION_SERVICE]
+            # Extract domain and service from entity ID (e.g., "notify.mobile_app")
+            if "." in notification_service:
+                domain, service = notification_service.split(".", 1)
+                # Check if service exists in Home Assistant
+                if not self.hass.services.has_service(domain, service):
+                    _LOGGER.warning(
+                        "Notification service not found: %s",
+                        notification_service,
+                    )
+                    return self.async_show_form(
+                        step_id="notifications",
+                        data_schema=STEP_NOTIFICATIONS_SCHEMA,
+                        errors={"notification_service": "notification_service_not_found"},
+                        description_placeholders={
+                            "description": "Configure notifications to receive alerts when charging is needed but not possible. This step is optional."
+                        },
+                    )
+
+        # Log notification configuration
+        if CONF_NOTIFICATION_SERVICE in user_input and user_input[CONF_NOTIFICATION_SERVICE]:
+            _LOGGER.info(
+                "Notification service configured: %s",
+                user_input[CONF_NOTIFICATION_SERVICE],
+            )
+        if CONF_NOTIFICATION_DEVICES in user_input and user_input[CONF_NOTIFICATION_DEVICES]:
+            _LOGGER.info(
+                "Notification devices configured: %s",
+                user_input[CONF_NOTIFICATION_DEVICES],
+            )
+
+        # Create entry after notifications step
         return await self._async_create_entry()
 
     async def _async_create_entry(self) -> FlowResult:

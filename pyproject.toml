@@ -52,6 +52,7 @@ source = ["custom_components/ev_trip_planner"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
+fail_under = 90
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

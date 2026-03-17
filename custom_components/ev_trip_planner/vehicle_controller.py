@@ -2,9 +2,10 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ def create_control_strategy(hass: HomeAssistant, config: Dict[str, Any]) -> Vehi
     """Factory function to create appropriate control strategy."""
     control_type = config.get("control_type", "none")
     hass_wrapper = HomeAssistantWrapper(hass)
-    
+
     if control_type == "switch":
         return SwitchStrategy(hass_wrapper, {"entity_id": config["charge_control_entity"]})
     elif control_type == "service":
@@ -207,3 +208,52 @@ def create_control_strategy(hass: HomeAssistant, config: Dict[str, Any]) -> Vehi
         })
     else:
         return ExternalStrategy(hass_wrapper, {})
+
+
+class VehicleController:
+    """Vehicle controller for managing charging control strategies.
+
+    This class provides an interface for controlling vehicle charging using
+    different strategies (switch, service, script, or external).
+    """
+
+    def __init__(self, hass: HomeAssistant, vehicle_id: str) -> None:
+        """Initialize the vehicle controller."""
+        self.hass = hass
+        self.vehicle_id = vehicle_id
+        self._strategy: Optional[VehicleControlStrategy] = None
+        self._config: Dict[str, Any] = {}
+
+    async def async_setup(self) -> None:
+        """Set up the vehicle controller."""
+        _LOGGER.info("Setting up vehicle controller for: %s", self.vehicle_id)
+
+    def set_strategy(self, strategy: VehicleControlStrategy) -> None:
+        """Set the control strategy."""
+        self._strategy = strategy
+
+    def update_config(self, config: Dict[str, Any]) -> None:
+        """Update the configuration and recreate strategy if needed."""
+        self._config = config
+        if self._strategy is not None:
+            self._strategy = create_control_strategy(self.hass, config)
+
+    async def async_activate_charging(self) -> bool:
+        """Activate vehicle charging."""
+        if self._strategy is None:
+            _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
+            return False
+        return await self._strategy.async_activate()
+
+    async def async_deactivate_charging(self) -> bool:
+        """Deactivate vehicle charging."""
+        if self._strategy is None:
+            _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
+            return False
+        return await self._strategy.async_deactivate()
+
+    async def async_get_charging_status(self) -> bool:
+        """Get current charging status."""
+        if self._strategy is None:
+            return False
+        return await self._strategy.async_get_status()
