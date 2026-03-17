@@ -387,12 +387,17 @@ check_contradictions() {
 check_completion_signal() {
     local output="$1"
     # Look for TASK_COMPLETE as a standalone output line (not in quotes)
-    # Check last lines or lines that are just the signal
-    if echo "$output" | tail -5 | grep -qE "^TASK_COMPLETE$|^`TASK_COMPLETE`$"; then
-        return 0
+    # Check last lines only
+    local last_lines
+    last_lines=$(echo "$output" | tail -3)
+    if echo "$last_lines" | grep -qF "TASK_COMPLETE"; then
+        # Make sure it's standalone, not quoted
+        if echo "$last_lines" | grep -qE "^TASK_COMPLETE$"; then
+            return 0
+        fi
     fi
     # Also check for promise format
-    if echo "$output" | grep -qE "<promise>DONE</promise>"; then
+    if echo "$output" | grep -qF "<promise>DONE</promise>"; then
         return 0
     fi
     return 1
@@ -401,12 +406,17 @@ check_completion_signal() {
 check_all_complete_signal() {
     local output="$1"
     # Look for ALL_TASKS_COMPLETE as a standalone output line (not in quotes)
-    # Check last lines or lines that are just the signal
-    if echo "$output" | tail -5 | grep -qE "^ALL_TASKS_COMPLETE$|^`ALL_TASKS_COMPLETE`$"; then
-        return 0
+    # Check last lines only
+    local last_lines
+    last_lines=$(echo "$output" | tail -3)
+    if echo "$last_lines" | grep -qF "ALL_TASKS_COMPLETE"; then
+        # Make sure it's standalone, not quoted
+        if echo "$last_lines" | grep -qE "^ALL_TASKS_COMPLETE$"; then
+            return 0
+        fi
     fi
     # Also check for promise format
-    if echo "$output" | grep -qE "<promise>ALL_DONE</promise>"; then
+    if echo "$output" | grep -qF "<promise>ALL_DONE</promise>"; then
         return 0
     fi
     return 1
