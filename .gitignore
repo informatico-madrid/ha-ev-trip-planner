@@ -22,7 +22,6 @@ htmlcov/
 .worktrees/
 .goose/
 logs/
-.ralph/
 
 # Coverage and reports
 .coverage
