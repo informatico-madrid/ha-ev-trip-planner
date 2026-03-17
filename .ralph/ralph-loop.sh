@@ -26,7 +26,7 @@
 #   GOOSE_PROVIDER       Goose provider for work phase
 #   RALPH_VLLM_URL       vLLM API URL (default: http://192.168.1.201:4000)
 #   RALPH_VLLM_MODEL     vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
-#   RALPH_VLLM_API_KEY   vLLM API key (default: EMPTY for local)
+#   RALPH_VLLM_API_KEY   vLLM API key (default: sk-master-bunker-2026 for local)
 #
 set -euo pipefail
 
@@ -50,8 +50,7 @@ RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-1}"
 # vLLM local backend configuration (for goose agent)
 RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://192.168.1.201:4000}"
 RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-5-35b-a3b-nvfp4}"
-# Use CUSTOM_VLLM_API_KEY because goose custom provider expects this env var
-CUSTOM_VLLM_API_KEY="${CUSTOM_VLLM_API_KEY:-${RALPH_VLLM_API_KEY:-}}"
+RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-sk-master-bunker-2026}"
 
 # Worktree mode globals (T01)
 WORKTREE_ENABLED=true
@@ -176,7 +175,7 @@ VLLM BACKEND (for goose agent):
     Environment variables:
     - RALPH_VLLM_URL      vLLM API URL (default: http://192.168.1.201:4000)
     - RALPH_VLLM_MODEL    vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
-    - RALPH_VLLM_API_KEY  API key (default: EMPTY for local)
+    - RALPH_VLLM_API_KEY  API key (default: sk-master-bunker-2026 for local)
 
 Example:
     RALPH_AGENT=goose RALPH_VLLM_URL=http://192.168.1.201:4000 .ralph/ralph-loop.sh specs/xxx
@@ -350,39 +349,31 @@ path.write_text('\n'.join(lines) + '\n')
 # Contradiction Detection (Layer 1)
 # ============================================================================
 CONTRADICTION_PHRASES=(
+    "requires manual"
+    "cannot be automated"
+    "could not complete"
+    "needs human"
+    "manual intervention"
+    "unable to"
+    "not possible"
     "i cannot"
     "i can't"
-    "i am unable"
-    "i'm unable"
-    "not able to"
-    "cannot complete"
-    "cannot do"
-    "cannot execute"
-    "requires human intervention"
-    "requires manual"
+    "beyond my capacity"
 )
 
 check_contradictions() {
     local output="$1"
-    
-    # Only check for contradictions if TASK_COMPLETE signal is present
-    # We look for contradictions in the text BEFORE the completion signal
-    if echo "$output" | grep -qE "TASK_COMPLETE|ALL_TASKS_COMPLETE"; then
-        # Extract text before the completion signal
-        local output_before_signal
-        output_before_signal=$(echo "$output" | sed 's/TASK_COMPLETE.*//; s/ALL_TASKS_COMPLETE.*//')
-        
-        local output_lower
-        output_lower=$(echo "$output_before_signal" | tr '[:upper:]' '[:lower:]')
+    local output_lower
+    output_lower=$(echo "$output" | tr '[:upper:]' '[:lower:]')
 
-        for phrase in "${CONTRADICTION_PHRASES[@]}"; do
-            if echo "$output_lower" | grep -qF "$phrase"; then
-                echo "CONTRADICTION: agent says '$phrase'"
+    for phrase in "${CONTRADICTION_PHRASES[@]}"; do
+        if echo "$output_lower" | grep -qF "$phrase"; then
+            if echo "$output" | grep -qE "TASK_COMPLETE|<promise>DONE</promise>"; then
+                echo "CONTRADICTION: agent says '$phrase' but also claims completion"
                 return 1
             fi
-        done
-    fi
-    # If no completion signal, skip contradiction check
+        fi
+    done
     return 0
 }
 
@@ -476,23 +467,19 @@ REVIEW_EOF
             ;;
         goose)
             # If vLLM is configured, use it for review as well
-            # Goose: pass prompt directly via stdin (like claude -p flag)
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM for review: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 review_output=$(
-                    echo "$review_prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
-                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run -i - 2>&1
+                    goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1
                 )
                 exit_code=$?
             else
-                review_output=$(echo "$review_prompt" | \
-                    GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
-                    GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
-                    goose run -i - 2>&1)
+                review_output=$(GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
+                              GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
+                              goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1)
                 exit_code=$?
             fi
             ;;
@@ -594,10 +581,9 @@ $(tail -30 "$PROJECT_DIR/progress.txt")
     # Load Speckit Implement Agent instructions for fluid integration
     local speckit_implement_instructions=""
     if [[ -f "$SPECKIT_IMPLEMENT_AGENT" ]]; then
-        # Remove any references to .goose/ralph/task.md from the instructions
         speckit_implement_instructions="
 ## Speckit Implement Agent Instructions
-$(cat "$SPECKIT_IMPLEMENT_AGENT" | sed 's|\.goose/ralph/task\.md||g' | sed 's|Read .goose/ralph/task\.md||g')
+$(cat "$SPECKIT_IMPLEMENT_AGENT")
 "
     fi
 
@@ -673,32 +659,22 @@ run_work_agent() {
             exit_code=$?
             ;;
         goose)
-            # Goose: pass prompt directly via stdin (like claude -p flag)
-            # Write to temp file for logging reference and sync to worktree
-            mkdir -p "$PROJECT_DIR/.goose/ralph"
+            # Write prompt to task.md for goose recipe
             echo "$prompt" > "$PROJECT_DIR/.goose/ralph/task.md"
             
-            # Also copy to worktree for goose to find
-            if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
-                mkdir -p "$WORKTREE_PATH/.goose/ralph"
-                cp "$PROJECT_DIR/.goose/ralph/task.md" "$WORKTREE_PATH/.goose/ralph/task.md"
-            fi
-            
             # If vLLM is configured, set OpenAI environment variables for goose
-            # Note: goose uses CUSTOM_VLLM_API_KEY as defined in custom provider config
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
+                # Configure goose to use OpenAI-compatible API with vLLM
                 output=$(
-                    echo "$prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
-                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run -i - 2>&1 | tee "$log_file"
+                    goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file"
                 )
                 exit_code=$?
             else
-                output=$(echo "$prompt" | goose run -i - 2>&1 | tee "$log_file")
+                output=$(goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file")
                 exit_code=$?
             fi
             ;;
@@ -834,7 +810,7 @@ get_worktree_git_dir() {
     fi
 }
 
-# Configure sparse-checkout to include specs/ for task tracking
+# Configure sparse-checkout to exclude specs/ (FR-008, FR-009, FR-010)
 configure_sparse_checkout() {
     local wt_path="$1"
     local git_dir
@@ -843,9 +819,18 @@ configure_sparse_checkout() {
     mkdir -p "$git_dir/info"
     git -C "$wt_path" config core.sparseCheckout true
     git -C "$wt_path" config core.sparseCheckoutCone false
-    # Include all files but exclude large dirs that aren't needed
-    printf '/*\n' > "$git_dir/info/sparse-checkout"
+    printf '/*\n!/specs/\n!/specs/**\n' > "$git_dir/info/sparse-checkout"
     git -C "$wt_path" read-tree -mu HEAD
+
+    # Add specs/ to exclude as second layer of protection
+    if ! grep -qxF 'specs/' "$git_dir/info/exclude" 2>/dev/null; then
+        echo 'specs/' >> "$git_dir/info/exclude"
+    fi
+
+    # Remove specs/ directory if it still exists on disk (FR-010)
+    if [[ -d "$wt_path/specs" ]]; then
+        rm -rf "$wt_path/specs"
+    fi
 }
 
 # Generate a unique worktree name (FR-001, FR-002)
@@ -1444,15 +1429,6 @@ main() {
 
             if (( new_completed > completed )); then
                 log_ok "Task verified: checkbox updated in tasks.md"
-                # Sync tasks.md from worktree to project main
-                if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
-                    local rel_spec="${spec_dir#${PROJECT_DIR}/}"
-                    local wt_tasks="$WORKTREE_PATH/$rel_spec/tasks.md"
-                    if [[ -f "$wt_tasks" ]]; then
-                        cp "$wt_tasks" "$tasks_file"
-                        log_info "Synced tasks.md from worktree to main project"
-                    fi
-                fi
             else
                 log_warn "Signal found but task not marked [x] — forcing mark"
                 mark_task_done "$tasks_file" "$next_idx"
