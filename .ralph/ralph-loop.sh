@@ -50,7 +50,8 @@ RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-1}"
 # vLLM local backend configuration (for goose agent)
 RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://192.168.1.201:4000}"
 RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-5-35b-a3b-nvfp4}"
-RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-}"
+# Use CUSTOM_VLLM_API_KEY because goose custom provider expects this env var
+CUSTOM_VLLM_API_KEY="${CUSTOM_VLLM_API_KEY:-${RALPH_VLLM_API_KEY:-}}"
 
 # Worktree mode globals (T01)
 WORKTREE_ENABLED=true
@@ -473,8 +474,8 @@ REVIEW_EOF
                 review_output=$(
                     echo "$review_prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
-                    CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
                     goose run -i - 2>&1
                 )
@@ -682,8 +683,8 @@ run_work_agent() {
                 output=$(
                     echo "$prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
-                    CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
                     goose run -i - 2>&1 | tee "$log_file"
                 )
