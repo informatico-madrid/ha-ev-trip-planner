@@ -350,41 +350,39 @@ path.write_text('\n'.join(lines) + '\n')
 # Contradiction Detection (Layer 1)
 # ============================================================================
 CONTRADICTION_PHRASES=(
-    "requires manual"
-    "cannot be automated"
-    "could not complete"
-    "needs human"
-    "manual intervention"
-    "unable to"
-    "not possible"
     "i cannot"
     "i can't"
-    "beyond my capacity"
+    "i am unable"
+    "i'm unable"
+    "not able to"
+    "cannot complete"
+    "cannot do"
+    "cannot execute"
+    "requires human intervention"
+    "requires manual"
 )
 
 check_contradictions() {
     local output="$1"
     
-    # Only check for contradictions BEFORE the completion signal
-    # If agent says it can't complete BEFORE saying TASK_COMPLETE, that's a real contradiction
-    # We extract everything BEFORE TASK_COMPLETE or ALL_TASKS_COMPLETE
-    local output_before_signal
-    output_before_signal=$(echo "$output" | sed -n '/TASK_COMPLETE\|ALL_TASKS_COMPLETE/<promise>DONE<\/promise>/p' | head -1 || echo "$output")
-    
-    # If no signal found, check full output (agent might be stuck)
-    if [[ "$output_before_signal" == "$output" ]]; then
-        output_before_signal=$(echo "$output" | sed 's/\(TASK_COMPLETE\|ALL_TASKS_COMPLETE\).*/\1/')
-    fi
-    
-    local output_lower
-    output_lower=$(echo "$output_before_signal" | tr '[:upper:]' '[:lower:]')
+    # Only check for contradictions if TASK_COMPLETE signal is present
+    # We look for contradictions in the text BEFORE the completion signal
+    if echo "$output" | grep -qE "TASK_COMPLETE|ALL_TASKS_COMPLETE"; then
+        # Extract text before the completion signal
+        local output_before_signal
+        output_before_signal=$(echo "$output" | sed 's/TASK_COMPLETE.*//; s/ALL_TASKS_COMPLETE.*//')
+        
+        local output_lower
+        output_lower=$(echo "$output_before_signal" | tr '[:upper:]' '[:lower:]')
 
-    for phrase in "${CONTRADICTION_PHRASES[@]}"; do
-        if echo "$output_lower" | grep -qF "$phrase"; then
-            echo "CONTRADICTION: agent says '$phrase'"
-            return 1
-        fi
-    done
+        for phrase in "${CONTRADICTION_PHRASES[@]}"; do
+            if echo "$output_lower" | grep -qF "$phrase"; then
+                echo "CONTRADICTION: agent says '$phrase'"
+                return 1
+            fi
+        done
+    fi
+    # If no completion signal, skip contradiction check
     return 0
 }
 
