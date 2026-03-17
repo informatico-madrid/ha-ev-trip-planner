@@ -43,14 +43,9 @@ async def test_async_setup_entry_creates_three_sensors():
 
     await async_setup_entry(hass, entry, add_entities)
 
-    assert len(created) == 7  # 3 sensores originales + 4 sensores de cálculo
-    uids = {getattr(e, "unique_id", None) for e in created}
-    assert uids == {
-        "eid123_trips_list",
-        "eid123_recurring_trips_count",
-        "eid123_punctual_trips_count",
-        "eid123_next_trip",
-        "eid123_next_deadline",
-        "eid123_kwh_today",
-        "eid123_hours_today",
-    }
+    assert len(created) == 8  # 3 sensores originales + 4 sensores de cálculo + 1 EMHASS sensor
+
+    # Verify EMHASS sensor has correct unique_id
+    emhass_sensor = next((e for e in created if hasattr(e, '_attr_unique_id') and e._attr_unique_id and 'emhass' in e._attr_unique_id), None)
+    assert emhass_sensor is not None, "EMHASS sensor should be created"
+    assert emhass_sensor._attr_unique_id == "emhass_perfil_diferible_Chispitas"

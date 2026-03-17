@@ -419,7 +419,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         # If user clicks "Skip" or provides empty dict, go to notifications step
-        if not user_input:
+        if not user_input or user_input == {}:
             return await self.async_step_notifications(None)
 
         # Validate charging_sensor (mandatory)

@@ -58,6 +58,7 @@ VEHICLE_TYPE_PHEV = "phev"
 
 # Defaults
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
+DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV

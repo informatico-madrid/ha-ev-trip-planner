@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CHARGING_POWER,
@@ -248,3 +249,234 @@ class TripManager:
         """Obtiene el índice del día de la semana."""
         days = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
         return days.index(day_name.lower())
+
+    async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
+        """Obtiene el SOC actual del vehículo desde el sensor configurado."""
+        try:
+            entry = self.hass.config_entries.async_get_entry(vehicle_id)
+            if entry and entry.data:
+                soc_sensor = entry.data.get("soc_sensor")
+                if soc_sensor:
+                    state = self.hass.states.get(soc_sensor)
+                    if state and state.state not in ("unknown", "unavailable", "none"):
+                        return float(state.state)
+                _LOGGER.warning("Sensor SOC no disponible para %s", vehicle_id)
+            else:
+                _LOGGER.warning("Config entry no encontrada para %s", vehicle_id)
+        except Exception as err:
+            _LOGGER.error("Error obteniendo SOC: %s", err)
+        return 0.0
+
+    async def async_calcular_energia_necesaria(
+        self, trip: Dict[str, Any], vehicle_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Calcula la energía necesaria considerando el SOC actual.
+
+        Args:
+            trip: Diccionario con datos del viaje (kwh, datetime, etc.)
+            vehicle_config: Diccionario con configuración del vehículo
+                - battery_capacity_kwh: Capacidad de batería en kWh
+                - charging_power_kw: Potencia de carga en kW
+                - soc_current: SOC actual del vehículo en %
+
+        Returns:
+            Diccionario con:
+                - energia_necesaria_kwh: Energía a cargar en kWh
+                - horas_carga_necesarias: Horas necesarias para cargar
+                - alerta_tiempo_insuficiente: True si no hay tiempo suficiente
+                - horas_disponibles: Horas disponibles hasta el deadline
+        """
+        battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
+        charging_power_kw = vehicle_config.get("charging_power_kw", 3.6)
+        soc_current = vehicle_config.get("soc_current", 100.0)
+
+        # Energía objetivo: energía del viaje + 40% de la batería (margen)
+        energia_viaje = trip.get("kwh", 0.0)
+        energia_objetivo = energia_viaje + (battery_capacity * 0.4)
+
+        # Energía actual en batería
+        energia_actual = (soc_current / 100.0) * battery_capacity
+
+        # Energía necesaria
+        energia_necesaria = max(0.0, energia_objetivo - energia_actual)
+        horas_carga = energia_necesaria / charging_power_kw if charging_power_kw > 0 else 0
+
+        # Calcular horas disponibles hasta el deadline
+        horas_disponibles = 0.0
+        alerta_tiempo_insuficiente = False
+
+        # Get trip type from the trip dict
+        trip_tipo = trip.get("tipo")
+        trip_datetime = trip.get("datetime")
+
+        if trip_tipo and trip_datetime:
+            # Trip has tipo and datetime - use _get_trip_time
+            trip_time = self._get_trip_time(trip)
+            if trip_time:
+                now = dt_util.now()
+                delta = trip_time - now
+                horas_disponibles = delta.total_seconds() / 3600
+                if horas_carga > horas_disponibles:
+                    alerta_tiempo_insuficiente = True
+        elif trip_datetime:
+            # Handle case where trip has datetime but tipo not set
+            try:
+                if isinstance(trip_datetime, datetime):
+                    trip_time = trip_datetime
+                else:
+                    trip_time = datetime.strptime(trip_datetime, "%Y-%m-%dT%H:%M")
+                now = dt_util.now()
+                delta = trip_time - now
+                horas_disponibles = delta.total_seconds() / 3600
+                if horas_carga > horas_disponibles:
+                    alerta_tiempo_insuficiente = True
+            except (KeyError, ValueError, TypeError):
+                pass
+
+        return {
+            "energia_necesaria_kwh": round(energia_necesaria, 3),
+            "horas_carga_necesarias": round(horas_carga, 2),
+            "alerta_tiempo_insuficiente": alerta_tiempo_insuficiente,
+            "horas_disponibles": round(horas_disponibles, 2),
+        }
+
+    async def async_generate_power_profile(
+        self,
+        charging_power_kw: float = 3.6,
+        planning_horizon_days: int = 7,
+    ) -> List[float]:
+        """Genera el perfil de potencia para EMHASS.
+
+        Args:
+            charging_power_kw: Potencia de carga en kW
+            planning_horizon_days: Días de horizonte de planificación
+
+        Returns:
+            Lista de valores de potencia en watts (0 = no cargar, positivo = cargar)
+        """
+        # Cargar viajes
+        await self._load_trips()
+
+        # Obtener configuración del vehículo
+        try:
+            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            if entry and entry.data:
+                battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+            else:
+                battery_capacity = 50.0
+        except Exception:
+            battery_capacity = 50.0
+
+        # Obtener SOC actual
+        soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+
+        # Inicializar perfil de potencia (0 = no cargar)
+        profile_length = planning_horizon_days * 24
+        power_profile = [0.0] * profile_length
+
+        # Obtener todos los viajes pendientes
+        all_trips = []
+        for trip in self._recurring_trips.values():
+            if trip.get("activo", True):
+                all_trips.append(trip)
+        for trip in self._punctual_trips.values():
+            if trip.get("estado") == "pendiente":
+                all_trips.append(trip)
+
+        # Procesar cada viaje
+        now = datetime.now()
+        for trip in all_trips:
+            # Calcular energía necesaria
+            vehicle_config = {
+                "battery_capacity_kwh": battery_capacity,
+                "charging_power_kw": charging_power_kw,
+                "soc_current": soc_current,
+            }
+            energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+            energia_kwh = energia_info["energia_necesaria_kwh"]
+            horas_carga = energia_info["horas_carga_necesarias"]
+
+            if energia_kwh <= 0:
+                continue
+
+            # Convertir a watts
+            charging_power_watts = charging_power_kw * 1000
+
+            # Determinar las horas de carga
+            horas_necesarias = int(horas_carga) + (1 if horas_carga % 1 > 0 else 0)
+            if horas_necesarias == 0:
+                horas_necesarias = 1
+
+            # Obtener deadline del viaje
+            trip_time = self._get_trip_time(trip)
+            if not trip_time:
+                continue
+
+            # Calcular posición en el perfil (desde ahora)
+            delta = trip_time - now
+            horas_hasta_viaje = int(delta.total_seconds() / 3600)
+
+            if horas_hasta_viaje < 0:
+                continue  # El viaje ya pasó
+
+            # Determinar horas de carga: las últimas horas antes del deadline
+            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+
+            # Distribuir la carga en las horas disponibles
+            for h in range(hora_inicio_carga, min(horas_hasta_viaje, profile_length)):
+                if h >= 0 and h < profile_length:
+                    power_profile[h] = charging_power_watts
+
+        return power_profile
+
+    async def async_generate_deferrables_schedule(
+        self,
+        charging_power_kw: float = 3.6,
+        planning_horizon_days: int = 7,
+    ) -> List[Dict[str, Any]]:
+        """Genera el calendario de cargas diferibles para EMHASS.
+
+        Args:
+            charging_power_kw: Potencia de carga en kW
+            planning_horizon_days: Días de horizonte de planificación
+
+        Returns:
+            Lista de diccionarios con fecha y potencia por hora
+        """
+        # Cargar viajes
+        await self._load_trips()
+
+        # Obtener configuración
+        try:
+            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            if entry and entry.data:
+                entry.data.get("battery_capacity_kwh", 50.0)
+        except Exception:
+            pass
+
+        # Obtener SOC actual
+        await self.async_get_vehicle_soc(self.vehicle_id)
+
+        # Generar calendario
+        schedule = []
+        now = datetime.now()
+
+        for day in range(planning_horizon_days):
+            for hour in range(24):
+                # Calcular timestamp
+                timestamp = now + timedelta(days=day, hours=hour)
+                profile_idx = day * 24 + hour
+
+                # Obtener potencia del perfil
+                power_profile = await self.async_generate_power_profile(
+                    charging_power_kw, planning_horizon_days
+                )
+                power = power_profile[profile_idx] if profile_idx < len(power_profile) else 0.0
+
+                # Formatear fecha
+                schedule.append({
+                    "date": timestamp.isoformat(),
+                    "p_deferrable0": f"{power:.1f}",
+                })
+
+        return schedule

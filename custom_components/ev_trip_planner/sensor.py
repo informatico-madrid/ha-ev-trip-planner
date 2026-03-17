@@ -14,11 +14,14 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
 from .const import (
+    CONF_CHARGING_POWER,
+    DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
 )
@@ -270,3 +273,117 @@ class NextDeadlineSensor(TripPlannerSensor):
                 if next_trip:
                     return next_trip.get("datetime")
         return None
+
+
+class EmhassDeferrableLoadSensor(SensorEntity):
+    """Sensor para el perfil de carga diferible de EMHASS.
+
+    Este sensor proporciona los datos necesarios para la integración con EMHASS:
+    - power_profile_watts: Array de potencia en watts por hora
+    - deferrables_schedule: Calendario de cargas diferibles
+
+    Platform: template
+    Entity: sensor.emhass_perfil_diferible_{vehicle_id}
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        trip_manager: TripManager,
+        vehicle_id: str,
+    ) -> None:
+        """Inicializa el sensor de carga diferible."""
+        self.hass = hass
+        self.trip_manager = trip_manager
+        self._vehicle_id = vehicle_id
+        self._attr_unique_id = f"emhass_perfil_diferible_{vehicle_id}"
+        self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
+        self._attr_has_entity_name = True
+        self._attr_native_value = "ready"
+        self._cached_attrs: Dict[str, Any] = {}
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique ID."""
+        return self._attr_unique_id
+
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Return device info."""
+        return {
+            "identifiers": {(DOMAIN, self._vehicle_id)},
+            "name": f"EV Trip Planner {self._vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+        }
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return extra state attributes."""
+        return self._cached_attrs
+
+    async def async_update(self) -> None:
+        """Actualiza el estado del sensor."""
+        try:
+            entry = self.hass.config_entries.async_get_entry(self._vehicle_id)
+            if not entry or not entry.data:
+                _LOGGER.warning("No config entry found for %s", self._vehicle_id)
+                return
+
+            charging_power_kw = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
+            planning_horizon_days = entry.data.get("planning_horizon_days", 7)
+
+            power_profile = await self.trip_manager.async_generate_power_profile(
+                charging_power_kw=charging_power_kw,
+                planning_horizon_days=planning_horizon_days,
+            )
+
+            schedule = await self.trip_manager.async_generate_deferrables_schedule(
+                charging_power_kw=charging_power_kw,
+                planning_horizon_days=planning_horizon_days,
+            )
+
+            self._cached_attrs = {
+                "power_profile_watts": power_profile,
+                "deferrables_schedule": schedule,
+            }
+            self._attr_native_value = "ready"
+
+        except Exception as err:
+            _LOGGER.error("Error actualizando sensor EMHASS %s: %s", self._vehicle_id, err)
+            self._attr_native_value = "error"
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Any
+) -> bool:
+    """Set up sensors from config entry."""
+    vehicle_id = entry.data.get("vehicle_name", "")
+    entry_id = entry.entry_id
+    namespace = f"ev_trip_planner_{entry_id}"
+
+    trip_manager = hass.data.get(namespace, {}).get("trip_manager")
+    coordinator = hass.data.get(namespace, {}).get("coordinator")
+
+    if not trip_manager:
+        trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
+        coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
+
+    if not trip_manager:
+        _LOGGER.error("No trip_manager found for %s", vehicle_id)
+        return False
+
+    entities = [
+        TripsListSensor(vehicle_id, coordinator),
+        RecurringTripsCountSensor(vehicle_id, coordinator),
+        PunctualTripsCountSensor(vehicle_id, coordinator),
+        KwhTodaySensor(vehicle_id, coordinator),
+        HoursTodaySensor(vehicle_id, coordinator),
+        NextTripSensor(vehicle_id, coordinator),
+        NextDeadlineSensor(vehicle_id, coordinator),
+        EmhassDeferrableLoadSensor(hass, trip_manager, vehicle_id),
+    ]
+
+    async_add_entities(entities)
+    return True

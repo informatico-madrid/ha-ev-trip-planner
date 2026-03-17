@@ -84,9 +84,16 @@ async def test_renault_home_sensor_field_optional(hass: HomeAssistant):
     }
     
     # Act - Call async_step_presence with empty dict (simulating user skipping the step)
-    # This should create entry directly since all required data is present
+    # This should go to notifications step since presence is optional
     result = await flow.async_step_presence(user_input={})
-    
+
+    # Verify: Should advance to notifications step
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "notifications"
+
+    # Now skip notifications step
+    result = await flow.async_step_notifications(user_input={})
+
     # Assert - Should create entry directly when skipping optional step
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == "Renault Test"

@@ -41,7 +41,9 @@ def mock_trip_manager():
     manager.async_get_kwh_needed_today = AsyncMock(return_value=0.0)
     manager.async_get_hours_needed_today = AsyncMock(return_value=0)
     manager.async_get_next_trip = AsyncMock(return_value=None)
-    manager.vehicle_controller.get_charging_power = MagicMock(return_value=11.0)
+    # Add vehicle_controller mock
+    manager.vehicle_controller = MagicMock()
+    manager.vehicle_id = "test_vehicle"
     return manager
 
 
@@ -79,6 +81,9 @@ async def test_sensors_no_se_actualizan_automaticamente(
     mock_trip_manager.async_get_next_trip.return_value = {
         "descripcion": "Viaje de prueba",
         "datetime": datetime(2025, 11, 23, 10, 0, 0),
+        "tipo": "puntual",
+        "km": 50,
+        "kwh": 7.5,
     }
 
     # 6. Forzar refresh del coordinator para que actualice los datos
