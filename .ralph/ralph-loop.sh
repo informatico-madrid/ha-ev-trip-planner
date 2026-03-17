@@ -24,7 +24,7 @@
 #   CLAUDE_CMD           Claude CLI binary (default: claude)
 #   GOOSE_MODEL          Goose model for work phase
 #   GOOSE_PROVIDER       Goose provider for work phase
-#   RALPH_VLLM_URL       vLLM API URL (default: http://182.168.1.201:4000)
+#   RALPH_VLLM_URL       vLLM API URL (default: http://192.168.1.201:4000)
 #   RALPH_VLLM_MODEL     vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
 #   RALPH_VLLM_API_KEY   vLLM API key (default: EMPTY for local)
 #
@@ -48,9 +48,9 @@ RALPH_YOLO="${RALPH_YOLO:-true}"
 RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-1}"
 
 # vLLM local backend configuration (for goose agent)
-RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://182.168.1.201:4000}"
+RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://192.168.1.201:4000}"
 RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-5-35b-a3b-nvfp4}"
-RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-EMPTY}"
+RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-}"
 
 # Worktree mode globals (T01)
 WORKTREE_ENABLED=true
@@ -173,12 +173,12 @@ VLLM BACKEND (for goose agent):
     When RALPH_VLLM_URL is set, goose will use the OpenAI-compatible
     API at that URL instead of external providers.
     Environment variables:
-    - RALPH_VLLM_URL      vLLM API URL (default: http://182.168.1.201:4000)
+    - RALPH_VLLM_URL      vLLM API URL (default: http://192.168.1.201:4000)
     - RALPH_VLLM_MODEL    vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
     - RALPH_VLLM_API_KEY  API key (default: EMPTY for local)
 
 Example:
-    RALPH_AGENT=goose RALPH_VLLM_URL=http://182.168.1.201:4000 .ralph/ralph-loop.sh specs/xxx
+    RALPH_AGENT=goose RALPH_VLLM_URL=http://192.168.1.201:4000 .ralph/ralph-loop.sh specs/xxx
 
 EOF
 }
