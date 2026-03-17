@@ -22,7 +22,7 @@ htmlcov/
 .worktrees/
 .goose/
 logs/
-
+.ralph/state.json
 # Coverage and reports
 .coverage
 coverage.xml
