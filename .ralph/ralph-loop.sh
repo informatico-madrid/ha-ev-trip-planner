@@ -473,6 +473,7 @@ REVIEW_EOF
                 review_output=$(
                     OPENAI_HOST="$RALPH_VLLM_URL" \
                     OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
                     goose run -i - 2>&1
                 )
@@ -583,9 +584,10 @@ $(tail -30 "$PROJECT_DIR/progress.txt")
     # Load Speckit Implement Agent instructions for fluid integration
     local speckit_implement_instructions=""
     if [[ -f "$SPECKIT_IMPLEMENT_AGENT" ]]; then
+        # Remove any references to .goose/ralph/task.md from the instructions
         speckit_implement_instructions="
 ## Speckit Implement Agent Instructions
-$(cat "$SPECKIT_IMPLEMENT_AGENT")
+$(cat "$SPECKIT_IMPLEMENT_AGENT" | sed 's|\.goose/ralph/task\.md||g' | sed 's|Read .goose/ralph/task\.md||g')
 "
     fi
 
@@ -662,16 +664,24 @@ run_work_agent() {
             ;;
         goose)
             # Goose: pass prompt directly via stdin (like claude -p flag)
-            # Write to temp file for logging reference
+            # Write to temp file for logging reference and sync to worktree
             mkdir -p "$PROJECT_DIR/.goose/ralph"
             echo "$prompt" > "$PROJECT_DIR/.goose/ralph/task.md"
             
+            # Also copy to worktree for goose to find
+            if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+                mkdir -p "$WORKTREE_PATH/.goose/ralph"
+                cp "$PROJECT_DIR/.goose/ralph/task.md" "$WORKTREE_PATH/.goose/ralph/task.md"
+            fi
+            
             # If vLLM is configured, set OpenAI environment variables for goose
+            # Note: goose uses CUSTOM_VLLM_API_KEY as defined in custom provider config
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 output=$(
                     OPENAI_HOST="$RALPH_VLLM_URL" \
                     OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
                     goose run -i - 2>&1 | tee "$log_file"
                 )
