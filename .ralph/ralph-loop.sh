@@ -364,15 +364,25 @@ CONTRADICTION_PHRASES=(
 
 check_contradictions() {
     local output="$1"
+    
+    # Only check for contradictions BEFORE the completion signal
+    # If agent says it can't complete BEFORE saying TASK_COMPLETE, that's a real contradiction
+    # We extract everything BEFORE TASK_COMPLETE or ALL_TASKS_COMPLETE
+    local output_before_signal
+    output_before_signal=$(echo "$output" | sed -n '/TASK_COMPLETE\|ALL_TASKS_COMPLETE/<promise>DONE<\/promise>/p' | head -1 || echo "$output")
+    
+    # If no signal found, check full output (agent might be stuck)
+    if [[ "$output_before_signal" == "$output" ]]; then
+        output_before_signal=$(echo "$output" | sed 's/\(TASK_COMPLETE\|ALL_TASKS_COMPLETE\).*/\1/')
+    fi
+    
     local output_lower
-    output_lower=$(echo "$output" | tr '[:upper:]' '[:lower:]')
+    output_lower=$(echo "$output_before_signal" | tr '[:upper:]' '[:lower:]')
 
     for phrase in "${CONTRADICTION_PHRASES[@]}"; do
         if echo "$output_lower" | grep -qF "$phrase"; then
-            if echo "$output" | grep -qE "TASK_COMPLETE|<promise>DONE</promise>"; then
-                echo "CONTRADICTION: agent says '$phrase' but also claims completion"
-                return 1
-            fi
+            echo "CONTRADICTION: agent says '$phrase'"
+            return 1
         fi
     done
     return 0
