@@ -95,6 +95,9 @@ class TripPlannerSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Devuelve atributos adicionales para el sensor."""
+        # Return default empty arrays for dashboard compatibility
+        if not self._cached_attrs:
+            return {"recurring_trips": [], "punctual_trips": []}
         return self._cached_attrs.copy()
 
     @property
