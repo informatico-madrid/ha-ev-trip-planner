@@ -29,3 +29,4 @@ logs/
 coverage.xml
 .specify/templates/constitution-template.md
 mcp-shell.log
+progress.txt
