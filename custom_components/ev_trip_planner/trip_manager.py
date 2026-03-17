@@ -14,10 +14,13 @@ from typing import Any, Dict, List, Optional
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_CHARGING_POWER,
+    DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
+from .utils import generate_trip_id
 from .vehicle_controller import VehicleController
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,9 +87,15 @@ class TripManager:
 
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente."""
-        trip_id = kwargs.get("trip_id", str(len(self._recurring_trips) + 1))
+        # Generate trip ID using the new format: rec_{day}_{random}
+        if "trip_id" in kwargs:
+            trip_id = kwargs["trip_id"]
+        else:
+            day = kwargs.get("dia_semana", "lunes")
+            trip_id = generate_trip_id(TRIP_TYPE_RECURRING, day)
         self._recurring_trips[trip_id] = {
             "id": trip_id,
+            "tipo": TRIP_TYPE_RECURRING,
             "dia_semana": kwargs["dia_semana"],
             "hora": kwargs["hora"],
             "km": kwargs["km"],
@@ -98,9 +107,20 @@ class TripManager:
 
     async def async_add_punctual_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje puntual."""
-        trip_id = kwargs.get("trip_id", str(len(self._punctual_trips) + 1))
+        # Generate trip ID using the new format: pun_{date}_{random}
+        if "trip_id" in kwargs:
+            trip_id = kwargs["trip_id"]
+        else:
+            datetime_str = kwargs.get("datetime", "")
+            # Extract date from datetime string (format: YYYY-MM-DDTHH:MM)
+            if datetime_str:
+                date_part = datetime_str.split("T")[0].replace("-", "")
+            else:
+                date_part = ""
+            trip_id = generate_trip_id(TRIP_TYPE_PUNCTUAL, date_part)
         self._punctual_trips[trip_id] = {
             "id": trip_id,
+            "tipo": TRIP_TYPE_PUNCTUAL,
             "datetime": kwargs["datetime"],
             "km": kwargs["km"],
             "kwh": kwargs["kwh"],
@@ -164,8 +184,21 @@ class TripManager:
     async def async_get_hours_needed_today(self) -> int:
         """Calcula las horas necesarias para cargar hoy."""
         kwh_needed = await self.async_get_kwh_needed_today()
-        charging_power = self.vehicle_controller.get_charging_power()
+        charging_power = self._get_charging_power()
         return int(kwh_needed / charging_power) if charging_power > 0 else 0
+
+    def _get_charging_power(self) -> float:
+        """Obtiene la potencia de carga desde la configuración."""
+        try:
+            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            if entry and entry.data:
+                power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
+                # Ensure we return a valid number
+                if isinstance(power, (int, float)) and power > 0:
+                    return float(power)
+        except Exception:
+            pass
+        return DEFAULT_CHARGING_POWER
 
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
