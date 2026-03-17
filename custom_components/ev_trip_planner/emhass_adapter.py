@@ -289,3 +289,521 @@ class EMHASSAdapter:
     def get_all_assigned_indices(self) -> Dict[str, int]:
         """Get all trip-index mappings."""
         return self._index_map.copy()
+
+    def calculate_deferrable_parameters(
+        self,
+        trip: Dict[str, Any],
+        charging_power_kw: float,
+    ) -> Dict[str, Any]:
+        """
+        Calculate deferrable load parameters from trip data.
+
+        Args:
+            trip: Trip dictionary with kwh, deadline, etc.
+            charging_power_kw: Charging power in kW
+
+        Returns:
+            Dictionary with calculated deferrable parameters:
+            - total_energy_kwh: Energy needed in kWh
+            - power_watts: Charging power in watts
+            - total_hours: Hours needed to charge
+            - end_timestep: End timestep for EMHASS
+            - start_timestep: Start timestep for EMHASS
+        """
+        try:
+            kwh = float(trip.get("kwh", 0))
+            deadline = trip.get("datetime")
+
+            if kwh <= 0:
+                _LOGGER.warning("Trip %s has no energy requirement", trip.get("id"))
+                return {}
+
+            # Calculate hours needed to charge
+            total_hours = kwh / charging_power_kw
+
+            # Power in watts (positive value = charging)
+            power_watts = charging_power_kw * 1000
+
+            # Calculate available time until deadline
+            if deadline:
+                now = datetime.now()
+                if isinstance(deadline, str):
+                    deadline_dt = datetime.fromisoformat(deadline)
+                else:
+                    deadline_dt = deadline
+
+                hours_available = (deadline_dt - now).total_seconds() / 3600
+                end_timestep = max(1, min(int(hours_available), 168))  # Max 7 days
+            else:
+                # Default to 24 hours if no deadline
+                end_timestep = 24
+
+            params = {
+                "total_energy_kwh": round(kwh, 3),
+                "power_watts": round(power_watts, 0),
+                "total_hours": round(total_hours, 2),
+                "end_timestep": end_timestep,
+                "start_timestep": 0,
+                "is_semi_continuous": False,
+                "minimum_power": 0.0,
+                "operating_hours": 0,
+                "startup_penalty": 0.0,
+                "is_single_constant": True,
+            }
+
+            _LOGGER.debug(
+                "Calculated deferrable parameters for trip %s: %s kWh, %s W, %s hours",
+                trip.get("id"),
+                params["total_energy_kwh"],
+                params["power_watts"],
+                params["total_hours"]
+            )
+
+            return params
+
+        except Exception as err:
+            _LOGGER.error("Error calculating deferrable parameters: %s", err)
+            return {}
+
+    async def publish_deferrable_loads(
+        self,
+        trips: List[Dict[str, Any]],
+        charging_power_kw: Optional[float] = None,
+    ) -> bool:
+        """
+        Publish multiple trips as deferrable loads to EMHASS.
+
+        This method:
+        1. Calculates deferrable parameters for each trip
+        2. Updates the template sensor with power_profile_watts and deferrables_schedule
+        3. Ensures power profile: 0W = no charging, positive values = charging power
+
+        Args:
+            trips: List of trip dictionaries
+            charging_power_kw: Charging power in kW (defaults to self.charging_power)
+
+        Returns:
+            True if all trips published successfully
+        """
+        if charging_power_kw is None:
+            charging_power_kw = self.charging_power
+
+        _LOGGER.info(
+            "Publishing %d deferrable loads for vehicle %s with %s kW charging power",
+            len(trips),
+            self.vehicle_id,
+            charging_power_kw
+        )
+
+        # Calculate power profile for all trips
+        # 0W = no charging, positive values = charging power
+        power_profile = self._calculate_power_profile_from_trips(
+            trips, charging_power_kw
+        )
+
+        # Generate schedule
+        deferrables_schedule = self._generate_schedule_from_trips(
+            trips, charging_power_kw
+        )
+
+        # Update the template sensor
+        sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+        await self.hass.states.async_set(
+            sensor_id,
+            "ready",
+            {
+                "power_profile_watts": power_profile,
+                "deferrables_schedule": deferrables_schedule,
+                "vehicle_id": self.vehicle_id,
+                "trips_count": len(trips),
+            }
+        )
+
+        _LOGGER.info(
+            "Published deferrable loads for vehicle %s: %d trips, power profile length: %d",
+            self.vehicle_id,
+            len(trips),
+            len(power_profile)
+        )
+
+        # Also publish individual trip configs
+        success = True
+        for trip in trips:
+            if not await self.async_publish_deferrable_load(trip):
+                success = False
+
+        return success
+
+    async def async_verify_shell_command_integration(self) -> Dict[str, Any]:
+        """
+        Verify that the EMHASS shell command integration is working.
+
+        This method does NOT execute shell commands - it only verifies that:
+        1. Our deferrable load sensors exist and contain data
+        2. EMHASS response sensors are available to receive our data
+
+        Returns:
+            Dictionary with verification results:
+            - is_configured: Whether shell command is likely configured
+            - deferrable_sensor_exists: Whether our sensor exists
+            - deferrable_sensor_has_data: Whether sensor has valid data
+            - emhass_response_sensors: List of available EMHASS response sensors
+            - errors: List of any issues found
+        """
+        result = {
+            "is_configured": False,
+            "deferrable_sensor_exists": False,
+            "deferrable_sensor_has_data": False,
+            "emhass_response_sensors": [],
+            "errors": [],
+        }
+
+        # Check our deferrable sensor exists
+        sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+        deferrable_sensor = self.hass.states.get(sensor_id)
+
+        if deferrable_sensor is None:
+            result["errors"].append(
+                f"Deferrable sensor {sensor_id} not found. "
+                "Please configure the shell command in configuration.yaml"
+            )
+            return result
+
+        result["deferrable_sensor_exists"] = True
+
+        # Check sensor has valid data
+        attrs = deferrable_sensor.attributes
+        if not attrs or "power_profile_watts" not in attrs:
+            result["errors"].append(
+                f"Deferrable sensor {sensor_id} missing power_profile_watts attribute"
+            )
+            return result
+
+        profile = attrs.get("power_profile_watts", [])
+        if not profile or len(profile) == 0:
+            result["errors"].append(
+                f"Deferrable sensor {sensor_id} has empty power profile"
+            )
+            return result
+
+        result["deferrable_sensor_has_data"] = True
+
+        # Check for EMHASS response sensors (these are created by user's shell command)
+        # Common EMHASS response sensor patterns
+        response_sensor_patterns = [
+            "sensor.emhass_",
+            "sensor.p_deferrable",
+            "sensor.emhass_opt",
+        ]
+
+        # Get all states and filter for EMHASS sensors
+        all_states = self.hass.states.async_all()
+        emhass_sensors = [
+            state.entity_id
+            for state in all_states
+            if any(pattern in state.entity_id for pattern in response_sensor_patterns)
+        ]
+
+        result["emhass_response_sensors"] = emhass_sensors
+
+        # If we have published trips, check if EMHASS sensors acknowledge them
+        if self._index_map:
+            result["is_configured"] = len(emhass_sensors) > 0
+
+            if not emhass_sensors:
+                result["errors"].append(
+                    "No EMHASS response sensors found. "
+                    "Please verify your shell command is correctly configured in configuration.yaml. "
+                    "The shell command should use curl to POST to EMHASS API."
+                )
+
+        _LOGGER.info(
+            "EMHASS integration verification for %s: %s",
+            self.vehicle_id,
+            "configured" if result["is_configured"] else "not configured"
+        )
+
+        return result
+
+    async def async_check_emhass_response_sensors(
+        self, trip_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Check if EMHASS response sensors include our deferrable loads.
+
+        This method monitors the EMHASS response sensors to verify they
+        contain our deferrable load configurations.
+
+        Args:
+            trip_ids: Optional list of trip IDs to check. If None, checks all trips.
+
+        Returns:
+            Dictionary with check results:
+            - all_trips_verified: Whether all trips are in EMHASS sensors
+            - verified_trips: List of trip IDs found in EMHASS
+            - missing_trips: List of trip IDs not found
+            - sensor_values: Current values from EMHASS sensors
+        """
+        result = {
+            "all_trips_verified": False,
+            "verified_trips": [],
+            "missing_trips": [],
+            "sensor_values": {},
+        }
+
+        # Get trips to check
+        if trip_ids is None:
+            trip_ids = list(self._index_map.keys())
+
+        if not trip_ids:
+            result["all_trips_verified"] = True
+            return result
+
+        # Get all EMHASS-related sensors using hass.states.get directly
+        # This is more reliable than async_all() in test environments
+        emhass_states: Dict[str, Any] = {}
+
+        # Check our config sensors directly
+        for trip_id in trip_ids:
+            index = self._index_map.get(trip_id)
+            if index is None:
+                result["missing_trips"].append(trip_id)
+                continue
+
+            # Check for config sensor (our published data)
+            config_sensor = f"sensor.emhass_deferrable_load_config_{index}"
+            config_state = self.hass.states.get(config_sensor)
+
+            if config_state:
+                emhass_states[config_sensor] = config_state
+
+                if config_state.state == "active":
+                    result["verified_trips"].append(trip_id)
+                    continue
+
+            # Also check if EMHASS has picked up the load (in response sensors)
+            # EMHASS typically creates sensors like p_deferrable0, p_deferrable1, etc.
+            # Get all states and check for trip_id in attributes
+            all_states = self.hass.states.async_all()
+            found = False
+            for state in all_states:
+                if state.entity_id == config_sensor:
+                    continue  # Already checked
+                attrs = state.attributes or {}
+                if attrs.get("trip_id") == trip_id:
+                    result["verified_trips"].append(trip_id)
+                    found = True
+                    break
+
+            if not found:
+                result["missing_trips"].append(trip_id)
+
+        # Collect sensor values for our config sensors
+        result["sensor_values"] = {
+            entity_id: {
+                "state": state.state,
+                "attributes": dict(state.attributes) if state.attributes else {},
+            }
+            for entity_id, state in emhass_states.items()
+        }
+
+        result["all_trips_verified"] = len(result["missing_trips"]) == 0
+
+        _LOGGER.debug(
+            "EMHASS response check for %s: %d/%d trips verified",
+            self.vehicle_id,
+            len(result["verified_trips"]),
+            len(trip_ids)
+        )
+
+        return result
+
+    async def async_get_integration_status(self) -> Dict[str, Any]:
+        """
+        Get overall EMHASS integration status.
+
+        Returns:
+            Dictionary with integration status:
+            - status: overall status (ok, warning, error)
+            - message: human-readable status message
+            - details: detailed information
+        """
+        details = {}
+
+        # Verify integration
+        verification = await self.async_verify_shell_command_integration()
+        details["verification"] = verification
+
+        # Check response sensors
+        response_check = await self.async_check_emhass_response_sensors()
+        details["response_check"] = response_check
+
+        # Determine overall status
+        if not verification["deferrable_sensor_exists"]:
+            status = "error"
+            message = "Deferrable load sensor not found. Configure shell command in configuration.yaml."
+        elif not verification["deferrable_sensor_has_data"]:
+            status = "warning"
+            message = "Deferrable load sensor exists but has no data. Add trips to publish."
+        elif not verification["is_configured"]:
+            status = "warning"
+            message = "Shell command may not be configured. EMHASS response sensors not detected."
+        elif not response_check["all_trips_verified"]:
+            status = "warning"
+            message = f"EMHASS not responding to {len(response_check['missing_trips'])} trip(s)."
+        else:
+            status = "ok"
+            message = "EMHASS integration working correctly."
+
+        return {
+            "status": status,
+            "message": message,
+            "vehicle_id": self.vehicle_id,
+            "details": details,
+        }
+
+    def _calculate_power_profile_from_trips(
+        self,
+        trips: List[Dict[str, Any]],
+        charging_power_kw: float,
+        planning_horizon_hours: int = 168,
+    ) -> List[float]:
+        """
+        Calculate power profile from trips.
+
+        Power profile format: 0W = no charging, positive values = charging power
+
+        Args:
+            trips: List of trip dictionaries
+            charging_power_kw: Charging power in kW
+            planning_horizon_hours: Number of hours in the profile
+
+        Returns:
+            List of power values in watts
+        """
+        # Initialize with 0 (no charging)
+        power_profile = [0.0] * planning_horizon_hours
+
+        now = datetime.now()
+        charging_power_watts = charging_power_kw * 1000
+
+        for trip in trips:
+            # Calculate energy needed
+            params = self.calculate_deferrable_parameters(trip, charging_power_kw)
+            if not params:
+                continue
+
+            kwh = params.get("total_energy_kwh", 0)
+            if kwh <= 0:
+                continue
+
+            # Calculate hours needed
+            horas_necesarias = int(params.get("total_hours", 0)) + (
+                1 if params.get("total_hours", 0) % 1 > 0 else 0
+            )
+            if horas_necesarias == 0:
+                horas_necesarias = 1
+
+            # Get deadline
+            deadline = trip.get("datetime")
+            if not deadline:
+                continue
+
+            if isinstance(deadline, str):
+                deadline_dt = datetime.fromisoformat(deadline)
+            else:
+                deadline_dt = deadline
+
+            # Calculate position in profile
+            delta = deadline_dt - now
+            horas_hasta_viaje = int(delta.total_seconds() / 3600)
+
+            if horas_hasta_viaje < 0:
+                continue
+
+            # Set charging hours (last hours before deadline)
+            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+
+            for h in range(hora_inicio_carga, min(horas_hasta_viaje, planning_horizon_hours)):
+                if h >= 0 and h < planning_horizon_hours:
+                    # Set positive value = charging
+                    power_profile[h] = charging_power_watts
+
+        return power_profile
+
+    def _generate_schedule_from_trips(
+        self,
+        trips: List[Dict[str, Any]],
+        charging_power_kw: float,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate deferrables schedule from trips.
+
+        Format: [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0", ...}, ...]
+
+        Args:
+            trips: List of trip dictionaries
+            charging_power_kw: Charging power in kW
+
+        Returns:
+            List of schedule dictionaries
+        """
+        schedule = []
+        now = datetime.now()
+
+        # Generate schedule for next 7 days (168 hours)
+        for hour_offset in range(168):
+            schedule_time = now.replace(minute=0, second=0, microsecond=0)
+            schedule_time = schedule_time.replace(hour=(now.hour + hour_offset) % 24)
+
+            # Add days if needed
+            days_to_add = (now.hour + hour_offset) // 24
+            from datetime import timedelta
+            schedule_time = schedule_time + timedelta(days=days_to_add)
+
+            schedule_entry = {
+                "date": schedule_time.isoformat(),
+            }
+
+            # Add power values for each trip (index)
+            # 0 = no charging, positive = charging
+            for idx, trip in enumerate(trips):
+                power_key = f"p_deferrable{idx}"
+                params = self.calculate_deferrable_parameters(trip, charging_power_kw)
+
+                if not params:
+                    schedule_entry[power_key] = "0.0"
+                    continue
+
+                # Check if this hour is a charging hour for this trip
+                deadline = trip.get("datetime")
+                if not deadline:
+                    schedule_entry[power_key] = "0.0"
+                    continue
+
+                if isinstance(deadline, str):
+                    deadline_dt = datetime.fromisoformat(deadline)
+                else:
+                    deadline_dt = deadline
+
+                delta = deadline_dt - now
+                horas_hasta_viaje = int(delta.total_seconds() / 3600)
+
+                if horas_hasta_viaje < 0:
+                    schedule_entry[power_key] = "0.0"
+                    continue
+
+                horas_necesarias = int(params.get("total_hours", 0)) + (
+                    1 if params.get("total_hours", 0) % 1 > 0 else 0
+                )
+                hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+
+                # Check if current hour is within charging window
+                if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
+                    schedule_entry[power_key] = str(params.get("power_watts", 0))
+                else:
+                    schedule_entry[power_key] = "0.0"
+
+            schedule.append(schedule_entry)
+
+        return schedule

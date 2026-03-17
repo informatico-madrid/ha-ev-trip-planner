@@ -366,3 +366,482 @@ async def test_update_deferrable_load(hass: HomeAssistant, mock_store):
         state = hass.states.get(sensor_id)
         assert state.attributes["kwh_needed"] == 5.0
         assert state.attributes["trip_description"] == "Updated"
+
+
+def test_calculate_deferrable_parameters_basic():
+    """Test basic deferrable parameter calculation."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trip = {
+        "id": "trip_001",
+        "kwh": 7.5,
+        "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+    }
+
+    params = adapter.calculate_deferrable_parameters(trip, 7.4)
+
+    assert params["total_energy_kwh"] == 7.5
+    assert params["power_watts"] == 7400.0
+    assert params["total_hours"] == pytest.approx(1.01, rel=0.1)
+    assert params["start_timestep"] == 0
+    assert params["is_single_constant"] is True
+
+
+def test_calculate_deferrable_parameters_no_kwh():
+    """Test calculation with zero kWh."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trip = {
+        "id": "trip_001",
+        "kwh": 0,
+    }
+
+    params = adapter.calculate_deferrable_parameters(trip, 7.4)
+
+    assert params == {}
+
+
+def test_calculate_deferrable_parameters_no_deadline():
+    """Test calculation with no deadline."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trip = {
+        "id": "trip_001",
+        "kwh": 7.2,
+    }
+
+    params = adapter.calculate_deferrable_parameters(trip, 3.6)
+
+    assert params["total_energy_kwh"] == 7.2
+    assert params["power_watts"] == 3600.0
+    assert params["end_timestep"] == 24  # Default
+
+
+def test_calculate_power_profile_from_trips():
+    """Test power profile calculation from trips."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trips = [
+        {
+            "id": "trip_001",
+            "kwh": 7.4,
+            "datetime": (datetime.now() + timedelta(hours=6)).isoformat(),
+        }
+    ]
+
+    # Calculate with 7 days (168 hours)
+    profile = adapter._calculate_power_profile_from_trips(trips, 7.4, 168)
+
+    assert len(profile) == 168
+    # First hours should be 0 until charging starts
+    assert profile[0] == 0.0
+    # Hours before deadline should have positive charging power
+    # At 6 hours from now, charging should be at hours 0-5 (6 hours of 7.4kW)
+    assert any(p > 0 for p in profile)
+    assert all(p == 0.0 or p == 7400.0 for p in profile)
+
+
+def test_calculate_power_profile_zero_kwh():
+    """Test power profile with zero kWh trip."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trips = [
+        {
+            "id": "trip_001",
+            "kwh": 0,
+            "datetime": (datetime.now() + timedelta(hours=6)).isoformat(),
+        }
+    ]
+
+    profile = adapter._calculate_power_profile_from_trips(trips, 7.4, 168)
+
+    assert len(profile) == 168
+    # All zeros when no kWh
+    assert all(p == 0.0 for p in profile)
+
+
+def test_generate_schedule_from_trips():
+    """Test schedule generation from trips."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
+        adapter = EMHASSAdapter(hass, config)
+
+    trips = [
+        {
+            "id": "trip_001",
+            "kwh": 7.4,
+            "datetime": (datetime.now() + timedelta(hours=6)).isoformat(),
+        }
+    ]
+
+    schedule = adapter._generate_schedule_from_trips(trips, 7.4)
+
+    assert len(schedule) == 168
+    for entry in schedule:
+        assert "date" in entry
+        assert "p_deferrable0" in entry
+        # Should have either "0.0" or positive value
+        val = float(entry["p_deferrable0"])
+        assert val >= 0
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads(hass: HomeAssistant, mock_store):
+    """Test publishing multiple deferrable loads."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+                "descripcion": "Morning trip",
+            },
+            {
+                "id": "trip_002",
+                "kwh": 5.0,
+                "datetime": (datetime.now() + timedelta(hours=12)).isoformat(),
+                "descripcion": "Evening trip",
+            },
+        ]
+
+        result = await adapter.publish_deferrable_loads(trips, 7.4)
+
+        assert result is True
+
+        # Verify template sensor created
+        sensor_id = "sensor.emhass_perfil_diferible_test_vehicle"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        assert state.state == "ready"
+        assert "power_profile_watts" in state.attributes
+        assert "deferrables_schedule" in state.attributes
+        assert state.attributes["trips_count"] == 2
+
+        # Verify individual trip sensors created
+        for trip in trips:
+            index = adapter.get_assigned_index(trip["id"])
+            assert index is not None
+            trip_sensor = hass.states.get(f"sensor.emhass_deferrable_load_config_{index}")
+            assert trip_sensor is not None
+            assert trip_sensor.state == "active"
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads_default_power(hass: HomeAssistant, mock_store):
+    """Test publishing with default charging power."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            }
+        ]
+
+        # Don't specify charging power, should use default
+        result = await adapter.publish_deferrable_loads(trips)
+
+        assert result is True
+
+        # Verify template sensor created with default power
+        sensor_id = "sensor.emhass_perfil_diferible_test_vehicle"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        profile = state.attributes["power_profile_watts"]
+        assert any(p > 0 for p in profile)
+
+
+@pytest.mark.asyncio
+async def test_verify_shell_command_integration_no_sensor(hass: HomeAssistant, mock_store):
+    """Test shell command verification when deferrable sensor doesn't exist."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        result = await adapter.async_verify_shell_command_integration()
+
+        assert result["deferrable_sensor_exists"] is False
+        assert "not found" in result["errors"][0]
+        assert result["is_configured"] is False
+
+
+@pytest.mark.asyncio
+async def test_verify_shell_command_integration_with_sensor(hass: HomeAssistant, mock_store):
+    """Test shell command verification when deferrable sensor exists with data."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # First publish trips to create the sensor
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            }
+        ]
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Now verify
+        result = await adapter.async_verify_shell_command_integration()
+
+        assert result["deferrable_sensor_exists"] is True
+        assert result["deferrable_sensor_has_data"] is True
+
+
+@pytest.mark.asyncio
+async def test_verify_shell_command_integration_no_emhass_sensors(hass: HomeAssistant, mock_store):
+    """Test shell command verification when EMHASS response sensors missing."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Publish trips
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            }
+        ]
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Verify - no EMHASS sensors configured yet
+        result = await adapter.async_verify_shell_command_integration()
+
+        assert result["deferrable_sensor_exists"] is True
+        assert result["deferrable_sensor_has_data"] is True
+        assert result["is_configured"] is False
+        assert len(result["emhass_response_sensors"]) == 0
+        assert len(result["errors"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_check_emhass_response_sensors_all_verified(hass: HomeAssistant, mock_store):
+    """Test checking EMHASS response sensors when all trips are verified."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Publish trips to create sensors
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            }
+        ]
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Check response sensors
+        result = await adapter.async_check_emhass_response_sensors()
+
+        # Our own config sensors should be found
+        assert "trip_001" in result["verified_trips"]
+        assert len(result["missing_trips"]) == 0
+        assert result["all_trips_verified"] is True
+
+
+@pytest.mark.asyncio
+async def test_check_emhass_response_sensors_with_trip_ids(hass: HomeAssistant, mock_store):
+    """Test checking EMHASS response sensors with specific trip IDs."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Publish trips
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            },
+            {
+                "id": "trip_002",
+                "kwh": 5.0,
+                "datetime": (datetime.now() + timedelta(hours=12)).isoformat(),
+            },
+        ]
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Check specific trips
+        result = await adapter.async_check_emhass_response_sensors(trip_ids=["trip_001"])
+
+        assert "trip_001" in result["verified_trips"]
+        assert result["all_trips_verified"] is True
+
+
+@pytest.mark.asyncio
+async def test_check_emhass_response_sensors_no_trips(hass: HomeAssistant, mock_store):
+    """Test checking EMHASS response sensors with no trips."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        result = await adapter.async_check_emhass_response_sensors()
+
+        assert result["all_trips_verified"] is True
+        assert len(result["verified_trips"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_integration_status_ok(hass: HomeAssistant, mock_store):
+    """Test getting integration status when everything is working."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Publish trips
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+            }
+        ]
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Get status
+        status = await adapter.async_get_integration_status()
+
+        assert status["vehicle_id"] == "test_vehicle"
+        assert "verification" in status["details"]
+        assert "response_check" in status["details"]
+
+
+@pytest.mark.asyncio
+async def test_get_integration_status_no_sensor(hass: HomeAssistant, mock_store):
+    """Test getting integration status when sensor doesn't exist."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Get status without publishing trips
+        status = await adapter.async_get_integration_status()
+
+        assert status["status"] == "error"
+        assert "not found" in status["message"]
