@@ -52,17 +52,31 @@ class TripPlannerSensor(SensorEntity):
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_device_class = SensorDeviceClass.ENERGY
         self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+        # Store cached attributes for synchronous access
+        self._cached_attrs: Dict[str, Any] = {}
 
     async def async_update(self) -> None:
         """Actualiza el estado del sensor."""
         try:
             if self._sensor_type == "kwh_needed_today":
                 self._attr_native_value = await self.trip_manager.async_get_kwh_needed_today()
+                # Cache attributes for synchronous access
+                recurring = await self.trip_manager.async_get_recurring_trips()
+                punctual = await self.trip_manager.async_get_punctual_trips()
+                self._cached_attrs["viajes_hoy"] = len(recurring)
+                self._cached_attrs["viajes_puntuales"] = len(punctual)
             elif self._sensor_type == "hours_needed_today":
                 self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
+                self._cached_attrs["potencia_carga"] = self.trip_manager.vehicle_controller.get_charging_power()
             elif self._sensor_type == "next_trip":
                 next_trip = await self.trip_manager.async_get_next_trip()
                 self._attr_native_value = next_trip["descripcion"] if next_trip else "N/A"
+                if next_trip:
+                    self._cached_attrs["fecha_hora"] = next_trip["datetime"] if next_trip["tipo"] == TRIP_TYPE_PUNCTUAL else next_trip["dia_semana"]
+                    self._cached_attrs["distancia"] = next_trip["km"]
+                    self._cached_attrs["energia"] = next_trip["kwh"]
+                else:
+                    self._cached_attrs.clear()
         except Exception as err:
             _LOGGER.error("Error actualizando sensor %s: %s", self._sensor_type, err)
             self._attr_native_value = None
@@ -70,19 +84,7 @@ class TripPlannerSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Devuelve atributos adicionales para el sensor."""
-        attrs = {}
-        if self._sensor_type == "kwh_needed_today":
-            attrs["viajes_hoy"] = len(await self.trip_manager.async_get_recurring_trips())
-            attrs["viajes_puntuales"] = len(await self.trip_manager.async_get_punctual_trips())
-        elif self._sensor_type == "hours_needed_today":
-            attrs["potencia_carga"] = self.trip_manager.vehicle_controller.get_charging_power()
-        elif self._sensor_type == "next_trip":
-            next_trip = await self.trip_manager.async_get_next_trip()
-            if next_trip:
-                attrs["fecha_hora"] = next_trip["datetime"] if next_trip["tipo"] == TRIP_TYPE_PUNCTUAL else next_trip["dia_semana"]
-                attrs["distancia"] = next_trip["km"]
-                attrs["energia"] = next_trip["kwh"]
-        return attrs
+        return self._cached_attrs.copy()
 
     @property
     def device_info(self) -> Dict[str, Any]:

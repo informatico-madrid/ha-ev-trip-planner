@@ -2,7 +2,7 @@
 
 import logging
 from math import radians, sin, cos, sqrt, atan2
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from homeassistant.core import HomeAssistant
 

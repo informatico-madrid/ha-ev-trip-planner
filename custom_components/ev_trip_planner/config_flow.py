@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
@@ -20,13 +19,13 @@ from .const import (
     CONF_CHARGING_POWER,
     CONF_CONSUMPTION,
     CONF_SAFETY_MARGIN,
+    CONF_VEHICLE_NAME,
     DEFAULT_CONSUMPTION,
     DEFAULT_SAFETY_MARGIN,
     DOMAIN,
     VEHICLE_TYPE_EV,
     VEHICLE_TYPE_PHEV,
 )
-from .vehicle_controller import VehicleController
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,14 +41,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Paso inicial del flujo de configuración."""
         if user_input is not None:
             return self.async_create_entry(
-                title=user_input[CONF_NAME], data=user_input
+                title=user_input[CONF_VEHICLE_NAME], data=user_input
             )
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME): str,
+                    vol.Required(CONF_VEHICLE_NAME): str,
                     vol.Required("vehicle_type", default=VEHICLE_TYPE_EV): vol.In(
                         [VEHICLE_TYPE_EV, VEHICLE_TYPE_PHEV]
                     ),
@@ -101,3 +100,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                 }
             ),
         )
+
+
+# Alias for backward compatibility with tests
+EVTripPlannerConfigFlow = EVTripPlannerFlowHandler
