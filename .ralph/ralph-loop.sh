@@ -26,7 +26,7 @@
 #   GOOSE_PROVIDER       Goose provider for work phase
 #   RALPH_VLLM_URL       vLLM API URL (default: http://192.168.1.201:4000)
 #   RALPH_VLLM_MODEL     vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
-#   RALPH_VLLM_API_KEY   vLLM API key (default: sk-master-bunker-2026 for local)
+#   RALPH_VLLM_API_KEY   vLLM API key (default: EMPTY for local)
 #
 set -euo pipefail
 
@@ -50,7 +50,9 @@ RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-1}"
 # vLLM local backend configuration (for goose agent)
 RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://192.168.1.201:4000}"
 RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-5-35b-a3b-nvfp4}"
-RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-sk-master-bunker-2026}"
+RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-}"
+# Use CUSTOM_VLLM_API_KEY because goose custom provider expects this env var
+CUSTOM_VLLM_API_KEY="${CUSTOM_VLLM_API_KEY:-${RALPH_VLLM_API_KEY:-}}"
 
 # Worktree mode globals (T01)
 WORKTREE_ENABLED=true
@@ -175,7 +177,7 @@ VLLM BACKEND (for goose agent):
     Environment variables:
     - RALPH_VLLM_URL      vLLM API URL (default: http://192.168.1.201:4000)
     - RALPH_VLLM_MODEL    vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
-    - RALPH_VLLM_API_KEY  API key (default: sk-master-bunker-2026 for local)
+    - RALPH_VLLM_API_KEY  API key (default: EMPTY for local)
 
 Example:
     RALPH_AGENT=goose RALPH_VLLM_URL=http://192.168.1.201:4000 .ralph/ralph-loop.sh specs/xxx
@@ -466,20 +468,23 @@ REVIEW_EOF
             exit_code=$?
             ;;
         goose)
-            # If vLLM is configured, use it for review as well
+            # Goose: pass prompt directly via stdin (like claude -p flag)
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM for review: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 review_output=$(
+                    echo "$review_prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1
+                    goose run -i - 2>&1
                 )
                 exit_code=$?
             else
-                review_output=$(GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
-                              GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
-                              goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1)
+                review_output=$(echo "$review_prompt" | \
+                    GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
+                    GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
+                    goose run -i - 2>&1)
                 exit_code=$?
             fi
             ;;
@@ -659,22 +664,32 @@ run_work_agent() {
             exit_code=$?
             ;;
         goose)
-            # Write prompt to task.md for goose recipe
+            # Goose: pass prompt directly via stdin (like claude -p flag)
+            # Write to temp file for logging reference and sync to worktree
+            mkdir -p "$PROJECT_DIR/.goose/ralph"
             echo "$prompt" > "$PROJECT_DIR/.goose/ralph/task.md"
             
+            # Also copy to worktree for goose to find
+            if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+                mkdir -p "$WORKTREE_PATH/.goose/ralph"
+                cp "$PROJECT_DIR/.goose/ralph/task.md" "$WORKTREE_PATH/.goose/ralph/task.md"
+            fi
+            
             # If vLLM is configured, set OpenAI environment variables for goose
+            # Note: goose uses CUSTOM_VLLM_API_KEY as defined in custom provider config
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
-                # Configure goose to use OpenAI-compatible API with vLLM
                 output=$(
+                    echo "$prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file"
+                    goose run -i - 2>&1 | tee "$log_file"
                 )
                 exit_code=$?
             else
-                output=$(goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file")
+                output=$(echo "$prompt" | goose run -i - 2>&1 | tee "$log_file")
                 exit_code=$?
             fi
             ;;
