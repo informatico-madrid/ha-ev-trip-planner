@@ -50,21 +50,21 @@ async def test_step_emhass_valid_config(hass: HomeAssistant):
 
 @pytest.mark.asyncio
 async def test_step_emhass_invalid_horizon_too_high(hass: HomeAssistant):
-    """Test EMHASS step rejects horizon > 30 days."""
+    """Test EMHASS step rejects horizon > 365 days."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {}}
-    
-    # Execute: Submit horizon > 30 days
+
+    # Execute: Submit horizon > 365 days
     result = await flow.async_step_emhass(
         user_input={
-            CONF_PLANNING_HORIZON: 31,
+            CONF_PLANNING_HORIZON: 366,
             CONF_MAX_DEFERRABLE_LOADS: 50,
         }
     )
-    
+
     # Verify: Error shown
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "emhass"
