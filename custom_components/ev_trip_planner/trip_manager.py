@@ -21,7 +21,7 @@ from .const import (
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
-from .utils import generate_trip_id
+from .utils import calcular_energia_kwh, generate_trip_id
 from .vehicle_controller import VehicleController
 
 _LOGGER = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ class TripManager:
         if "trip_id" in kwargs:
             trip_id = kwargs["trip_id"]
         else:
-            datetime_str = kwargs.get("datetime", "")
+            datetime_str = kwargs.get("datetime_str", kwargs.get("datetime", ""))
             # Extract date from datetime string (format: YYYY-MM-DDTHH:MM)
             if datetime_str:
                 date_part = datetime_str.split("T")[0].replace("-", "")
@@ -122,7 +122,7 @@ class TripManager:
         self._punctual_trips[trip_id] = {
             "id": trip_id,
             "tipo": TRIP_TYPE_PUNCTUAL,
-            "datetime": kwargs["datetime"],
+            "datetime": kwargs.get("datetime_str", kwargs.get("datetime", "")),
             "km": kwargs["km"],
             "kwh": kwargs["kwh"],
             "descripcion": kwargs.get("descripcion", ""),
@@ -273,11 +273,12 @@ class TripManager:
         """Calcula la energía necesaria considerando el SOC actual.
 
         Args:
-            trip: Diccionario con datos del viaje (kwh, datetime, etc.)
+            trip: Diccionario con datos del viaje (kwh, km, datetime, etc.)
             vehicle_config: Diccionario con configuración del vehículo
                 - battery_capacity_kwh: Capacidad de batería en kWh
                 - charging_power_kw: Potencia de carga en kW
                 - soc_current: SOC actual del vehículo en %
+                - consumption_kwh_per_km: Consumo en kWh/km (opcional)
 
         Returns:
             Diccionario con:
@@ -285,13 +286,26 @@ class TripManager:
                 - horas_carga_necesarias: Horas necesarias para cargar
                 - alerta_tiempo_insuficiente: True si no hay tiempo suficiente
                 - horas_disponibles: Horas disponibles hasta el deadline
+
+        Raises:
+            ValueError: Si la distancia o el consumo son negativos.
         """
         battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
         charging_power_kw = vehicle_config.get("charging_power_kw", 3.6)
         soc_current = vehicle_config.get("soc_current", 100.0)
+        consumption_kwh_per_km = vehicle_config.get("consumption_kwh_per_km", 0.15)
+
+        # Calcular energía del viaje
+        # Prioridad: usar kwh directo si existe, sino calcular desde km * consumo
+        if "kwh" in trip:
+            # Backward compatibility: usar valor directo si se proporciona
+            energia_viaje = trip.get("kwh", 0.0)
+        else:
+            # Usar la fórmula: energia = distancia * consumo
+            distance_km = trip.get("km", 0.0)
+            energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
         # Energía objetivo: energía del viaje + 40% de la batería (margen)
-        energia_viaje = trip.get("kwh", 0.0)
         energia_objetivo = energia_viaje + (battery_capacity * 0.4)
 
         # Energía actual en batería
@@ -344,12 +358,15 @@ class TripManager:
         self,
         charging_power_kw: float = 3.6,
         planning_horizon_days: int = 7,
+        vehicle_config: Optional[Dict[str, Any]] = None,
     ) -> List[float]:
         """Genera el perfil de potencia para EMHASS.
 
         Args:
             charging_power_kw: Potencia de carga en kW
             planning_horizon_days: Días de horizonte de planificación
+            vehicle_config: Optional configuration dict with battery_capacity_kwh,
+                          charging_power_kw, soc_current
 
         Returns:
             Lista de valores de potencia en watts (0 = no cargar, positivo = cargar)
@@ -358,17 +375,24 @@ class TripManager:
         await self._load_trips()
 
         # Obtener configuración del vehículo
-        try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-            if entry and entry.data:
-                battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
-            else:
+        # Use provided vehicle_config if available, otherwise get from config entry
+        if vehicle_config:
+            battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
+            soc_current = vehicle_config.get("soc_current")
+        else:
+            try:
+                entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                if entry and entry.data:
+                    battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+                else:
+                    battery_capacity = 50.0
+            except Exception:
                 battery_capacity = 50.0
-        except Exception:
-            battery_capacity = 50.0
+            soc_current = None
 
-        # Obtener SOC actual
-        soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+        # Obtener SOC actual - only fetch if not provided in vehicle_config
+        if soc_current is None:
+            soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
 
         # Inicializar perfil de potencia (0 = no cargar)
         profile_length = planning_horizon_days * 24

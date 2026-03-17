@@ -133,3 +133,28 @@ def is_valid_trip_id(trip_id: str) -> bool:
         return len(parts) == 3 and len(parts[1]) == 8 and len(parts[2]) >= 4
 
     return False
+
+
+def calcular_energia_kwh(
+    distance_km: float,
+    consumption_kwh_per_km: float,
+) -> float:
+    """Calculate energy needed for a trip in kWh.
+
+    Args:
+        distance_km: Distance of the trip in kilometers.
+        consumption_kwh_per_km: Energy consumption in kWh per kilometer.
+
+    Returns:
+        Energy needed in kWh, rounded to 3 decimal places.
+
+    Raises:
+        ValueError: If distance_km or consumption_kwh_per_km is negative.
+    """
+    if distance_km < 0:
+        raise ValueError("Distance cannot be negative")
+    if consumption_kwh_per_km < 0:
+        raise ValueError("Consumption cannot be negative")
+
+    energy_kwh = distance_km * consumption_kwh_per_km
+    return round(energy_kwh, 3)
