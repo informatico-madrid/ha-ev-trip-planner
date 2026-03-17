@@ -18,6 +18,12 @@ htmlcov/
 #specify
 .specify/
 
+# Ralph Loop
+.worktrees/
+.goose/
+logs/
+.ralph/
+
 # Coverage and reports
 .coverage
 coverage.xml

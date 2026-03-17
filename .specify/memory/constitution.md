@@ -10,7 +10,34 @@
 **Ratification Date**: 2026-03-13
 **Last Amended**: 2026-03-13
 
-## Principles
+## 🔍 Context Detection
+
+### Context A: Ralph Loop (Implementation Mode)
+
+You are in a Ralph loop if:
+- Started by `ralph-loop.sh`
+- Prompt mentions "implement spec"
+- A `.ralph/state.json` exists and is active
+
+**In this mode:**
+- Focus on implementation of the CURRENT task (from tasks.md)
+- Complete ALL acceptance criteria in the task's **Done when** field
+- Run the **Verify** command to confirm completion
+- Mark the task as `[x]` in tasks.md
+- Append progress to `progress.txt`
+- Output `TASK_COMPLETE` when current task is verified
+- Output `ALL_TASKS_COMPLETE` when all tasks in tasks.md are done
+- NEVER output completion signals unless the task genuinely passes verification
+
+### Context B: Interactive Chat
+
+When not in a Ralph loop:
+- Be helpful and conversational
+- Create specs with `/speckit.specify`
+
+---
+
+## Core Principles
 
 ### Code Style
 MUST adhere to the following coding standards:
@@ -19,6 +46,7 @@ MUST adhere to the following coding standards:
 - Docstrings: Google style, required for all public functions
 - Imports: Standard lib → Third party → HA → Local (use isort)
 - Async: Always use `async`/`await`, no blocking calls
+- use skill home assistant and other good practices skills
 
 ### Testing
 MUST achieve >80% test coverage for production code.
