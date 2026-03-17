@@ -466,6 +466,7 @@ class TripManager:
 
         Returns:
             Lista de diccionarios con fecha y potencia por hora
+            Formato: [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0"}, ...]
         """
         # Cargar viajes
         await self._load_trips()
@@ -481,23 +482,25 @@ class TripManager:
         # Obtener SOC actual
         await self.async_get_vehicle_soc(self.vehicle_id)
 
-        # Generar calendario
+        # Generar calendario con timezone-aware timestamps
         schedule = []
-        now = datetime.now()
+        now = dt_util.now()  # Timezone-aware datetime from Home Assistant
+
+        # Generar power_profile una vez para evitar llamadas repetidas
+        power_profile = await self.async_generate_power_profile(
+            charging_power_kw, planning_horizon_days
+        )
 
         for day in range(planning_horizon_days):
             for hour in range(24):
-                # Calcular timestamp
+                # Calcular timestamp con timezone
                 timestamp = now + timedelta(days=day, hours=hour)
                 profile_idx = day * 24 + hour
 
                 # Obtener potencia del perfil
-                power_profile = await self.async_generate_power_profile(
-                    charging_power_kw, planning_horizon_days
-                )
                 power = power_profile[profile_idx] if profile_idx < len(power_profile) else 0.0
 
-                # Formatear fecha
+                # Formatear fecha con timezone ISO 8601
                 schedule.append({
                     "date": timestamp.isoformat(),
                     "p_deferrable0": f"{power:.1f}",
