@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Optional
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -24,6 +24,116 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
+
+
+def is_lovelace_available(hass: HomeAssistant) -> bool:
+    """Check if Lovelace UI is available in Home Assistant.
+
+    Returns True if Lovelace is installed and accessible.
+
+    Args:
+        hass: The Home Assistant instance.
+
+    Returns:
+        True if Lovelace is available, False otherwise.
+    """
+    # Check if lovelace is in loaded components
+    if "lovelace" in hass.config.components:
+        return True
+    # Also check for the legacy method
+    if hass.services.has_service("lovelace", "import"):
+        return True
+    return False
+
+
+async def import_dashboard(
+    hass: HomeAssistant,
+    vehicle_id: str,
+    vehicle_name: str,
+    use_charts: bool = False,
+) -> bool:
+    """Import a Lovelace dashboard for the vehicle.
+
+    Uses homeassistant.helpers.importer.async_import_dashboard when available,
+    with fallback to storage API for older versions.
+
+    Args:
+        hass: The Home Assistant instance.
+        vehicle_id: Unique identifier for the vehicle.
+        vehicle_name: Display name for the vehicle.
+        use_charts: Whether to use full dashboard with charts.
+
+    Returns:
+        True if dashboard was imported successfully, False otherwise.
+    """
+    try:
+        # Determine which dashboard template to use (for logging)
+        dashboard_type = "full" if use_charts else "simple"
+        _LOGGER.info(
+            "Importing dashboard for %s (type: %s)",
+            vehicle_name,
+            dashboard_type,
+        )
+
+        # Check if Lovelace is available
+        if not is_lovelace_available(hass):
+            _LOGGER.warning(
+                "Lovelace not available for %s, skipping dashboard import",
+                vehicle_name,
+            )
+            return False
+
+        # Try to use the modern async_import_dashboard helper
+        # This is available in newer HA versions (2024.4+)
+        try:
+            from homeassistant.helpers import importer as importer_module
+
+            if hasattr(importer_module, "async_import_dashboard"):
+                dashboard_path = f"ev-trip-planner-{vehicle_id}"
+                result = await importer_module.async_import_dashboard(
+                    hass,
+                    url=dashboard_path,
+                    suggest_filename=f"EV Trip Planner - {vehicle_name}",
+                )
+                _LOGGER.info(
+                    "Dashboard imported via async_import_dashboard for %s",
+                    vehicle_name,
+                )
+                return result
+        except ImportError:
+            _LOGGER.debug(
+                "async_import_dashboard not available, using fallback method"
+            )
+
+        # Fallback: Use the lovelace.import service (older method)
+        # This works for both storage and YAML mode
+        if hass.services.has_service("lovelace", "import"):
+            await hass.services.async_call(
+                "lovelace",
+                "import",
+                {
+                    "url": f"ev-trip-planner-{vehicle_id}",
+                    "config": {
+                        "title": f"EV Trip Planner - {vehicle_name}",
+                        "path": f"ev-trip-planner-{vehicle_id}",
+                        "icon": "mdi:car-electric",
+                    },
+                },
+            )
+            _LOGGER.info(
+                "Dashboard imported via lovelace.import service for %s",
+                vehicle_name,
+            )
+            return True
+
+        _LOGGER.warning(
+            "No dashboard import method available for %s", vehicle_name
+        )
+        return False
+
+    except Exception as err:  # pragma: no cover
+        _LOGGER.error("Failed to import dashboard for %s: %s", vehicle_name, err)
+        return False
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):
@@ -349,6 +459,16 @@ def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
     # FIX: Usar namespace con entry_id para acceder a managers
     namespace = f"{DOMAIN}_{entry.entry_id}"
     return entry.runtime_data[namespace]["managers"].get(vehicle_id) or TripManager(hass, vehicle_id)
+
+
+async def _ensure_setup(mgr: TripManager) -> None:
+    """Ensure TripManager is set up before operations."""
+    # Check if manager needs setup - call async_setup if not already done
+    try:
+        await mgr.async_setup()
+    except Exception:
+        # Already set up or not needed
+        pass
 
 @callback
 def _get_coordinator(hass: HomeAssistant, vehicle_id: str) -> Optional[TripPlannerCoordinator]:

@@ -14,6 +14,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
+from . import import_dashboard, is_lovelace_available
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -40,9 +41,44 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Paso inicial del flujo de configuración."""
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_VEHICLE_NAME], data=user_input
+            vehicle_name = user_input[CONF_VEHICLE_NAME]
+            vehicle_id = vehicle_name.lower().replace(" ", "_")
+
+            # Create the config entry
+            result = self.async_create_entry(
+                title=vehicle_name,
+                data=user_input,
             )
+
+            # Try to import dashboard after entry creation
+            # We do this after creation to ensure hass is fully initialized
+            try:
+                # Check Lovelace availability
+                use_charts = is_lovelace_available(self.hass)
+                _LOGGER.info(
+                    "Lovelace available: %s, will use %s dashboard",
+                    use_charts,
+                    "full" if use_charts else "simple",
+                )
+
+                # Attempt to import dashboard (non-blocking)
+                # Note: This may fail silently if Lovelace is not fully ready
+                # The dashboard can also be imported manually from UI
+                await import_dashboard(
+                    self.hass,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_name,
+                    use_charts=use_charts,
+                )
+            except Exception as err:  # pragma: no cover
+                # Log but don't fail the flow - dashboard import is optional
+                _LOGGER.warning(
+                    "Could not auto-import dashboard for %s: %s",
+                    vehicle_name,
+                    err,
+                )
+
+            return result
 
         return self.async_show_form(
             step_id="user",
@@ -54,7 +90,11 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     ),
                     vol.Required(CONF_BATTERY_CAPACITY, default=60.0): vol.Coerce(float),
                     vol.Required(CONF_CHARGING_POWER, default=11.0): vol.Coerce(float),
-                    vol.Required(CONF_CONSUMPTION, default=DEFAULT_CONSUMPTION): vol.Coerce(float),
+                    vol.Required(
+                        CONF_CONSUMPTION,
+                        default=DEFAULT_CONSUMPTION,
+                        description="Consumo en tiempo real (kWh/km) + fallback manual",
+                    ): vol.Coerce(float),
                     vol.Required(CONF_SAFETY_MARGIN, default=DEFAULT_SAFETY_MARGIN): vol.Coerce(int),
                 }
             ),
@@ -92,7 +132,9 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_CHARGING_POWER, default=self.config_entry.data.get(CONF_CHARGING_POWER, 11.0)
                     ): vol.Coerce(float),
                     vol.Required(
-                        CONF_CONSUMPTION, default=self.config_entry.data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
+                        CONF_CONSUMPTION,
+                        default=self.config_entry.data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION),
+                        description="Consumo en tiempo real (kWh/km) + fallback manual",
                     ): vol.Coerce(float),
                     vol.Required(
                         CONF_SAFETY_MARGIN, default=self.config_entry.data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
