@@ -471,6 +471,7 @@ REVIEW_EOF
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM for review: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 review_output=$(
+                    echo "$review_prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
                     OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
                     CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
@@ -679,6 +680,7 @@ run_work_agent() {
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 output=$(
+                    echo "$prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
                     OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
                     CUSTOM_VLLM_API_KEY="$RALPH_VLLM_API_KEY" \
