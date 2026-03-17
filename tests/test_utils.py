@@ -1,0 +1,174 @@
+"""Tests for utils module - trip ID generation and validation."""
+
+import pytest
+from datetime import date
+
+from custom_components.ev_trip_planner.utils import (
+    generate_trip_id,
+    generate_random_suffix,
+    is_valid_trip_id,
+    calcular_energia_kwh,
+)
+
+
+class TestGenerateTripId:
+    """Tests for generate_trip_id function."""
+
+    def test_generate_recurrente_with_spanish_day(self):
+        """Test recurrent trip ID with Spanish day name."""
+        trip_id = generate_trip_id("recurrente", "lunes")
+        assert trip_id.startswith("rec_lun_")
+        assert len(trip_id) > 8  # rec_lun_ + 6 char suffix
+
+    def test_generate_recurrente_with_english_day(self):
+        """Test recurrent trip ID with English day name."""
+        trip_id = generate_trip_id("recurrente", "monday")
+        assert trip_id.startswith("rec_lun_")
+
+    def test_generate_recurrente_with_unknown_day(self):
+        """Test recurrent trip ID with unknown day - uses fallback."""
+        trip_id = generate_trip_id("recurrente", "randomday")
+        assert trip_id.startswith("rec_ran_")  # First 3 chars
+
+    def test_generate_recurrente_with_none_day(self):
+        """Test recurrent trip ID with None day - uses default."""
+        trip_id = generate_trip_id("recurrente", None)
+        assert trip_id.startswith("rec_lun_")  # Default to "lunes"
+
+    def test_generate_recurrente_with_all_spanish_days(self):
+        """Test recurrent trip ID with all Spanish day names."""
+        days = ["martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+        expected = ["mar", "mie", "jue", "vie", "sab", "dom"]
+        for day, exp in zip(days, expected):
+            trip_id = generate_trip_id("recurrente", day)
+            assert trip_id.startswith(f"rec_{exp}_")
+
+    def test_generate_punctual_with_string_date(self):
+        """Test punctual trip ID with YYYYMMDD string."""
+        trip_id = generate_trip_id("punctual", "20251119")
+        assert trip_id.startswith("pun_20251119_")
+
+    def test_generate_punctual_with_date_object(self):
+        """Test punctual trip ID with date object."""
+        trip_id = generate_trip_id("punctual", date(2025, 11, 19))
+        assert trip_id.startswith("pun_20251119_")
+
+    def test_generate_punctual_with_iso_date_string(self):
+        """Test punctual trip ID with ISO format date string."""
+        trip_id = generate_trip_id("punctual", "2025-11-19")
+        assert trip_id.startswith("pun_20251119_")
+
+    def test_generate_punctual_with_slash_date_string(self):
+        """Test punctual trip ID with slash format date string."""
+        trip_id = generate_trip_id("punctual", "2025/11/19")
+        assert trip_id.startswith("pun_20251119_")
+
+    def test_generate_punctual_with_none_date(self):
+        """Test punctual trip ID with None date - uses today."""
+        trip_id = generate_trip_id("punctual", None)
+        assert trip_id.startswith("pun_")
+
+    def test_generate_unknown_type_fallback(self):
+        """Test unknown trip type returns fallback format."""
+        trip_id = generate_trip_id("unknown_type", None)
+        assert trip_id.startswith("trip_")
+
+
+class TestGenerateRandomSuffix:
+    """Tests for generate_random_suffix function."""
+
+    def test_default_length(self):
+        """Test default suffix length is 6."""
+        suffix = generate_random_suffix()
+        assert len(suffix) == 6
+
+    def test_custom_length(self):
+        """Test custom suffix length."""
+        suffix = generate_random_suffix(10)
+        assert len(suffix) == 10
+
+    def test_alphanumeric(self):
+        """Test suffix is alphanumeric lowercase."""
+        suffix = generate_random_suffix()
+        assert suffix.isalnum()
+        assert suffix.islower()
+
+
+class TestIsValidTripId:
+    """Tests for is_valid_trip_id function."""
+
+    def test_valid_rec_trip_id(self):
+        """Test valid recurrent trip ID."""
+        assert is_valid_trip_id("rec_lun_abc123") is True
+
+    def test_valid_pun_trip_id(self):
+        """Test valid punctual trip ID."""
+        assert is_valid_trip_id("pun_20251119_abc123") is True
+
+    def test_invalid_empty(self):
+        """Test empty string is invalid."""
+        assert is_valid_trip_id("") is False
+
+    def test_invalid_none(self):
+        """Test None is invalid."""
+        assert is_valid_trip_id(None) is False  # type: ignore
+
+    def test_invalid_rec_short_suffix(self):
+        """Test recurrent ID with short suffix is invalid."""
+        assert is_valid_trip_id("rec_lun_ab") is False
+
+    def test_invalid_pun_short_suffix(self):
+        """Test punctual ID with short suffix is invalid."""
+        assert is_valid_trip_id("pun_20251119_ab") is False
+
+    def test_invalid_pun_wrong_date_length(self):
+        """Test punctual ID with wrong date length is invalid."""
+        assert is_valid_trip_id("pun_2025111_abc123") is False
+
+    def test_invalid_wrong_format(self):
+        """Test wrong format is invalid."""
+        assert is_valid_trip_id("invalid_format") is False
+
+    def test_invalid_too_many_parts(self):
+        """Test too many parts is invalid."""
+        assert is_valid_trip_id("rec_lun_abc_123") is False
+
+
+class TestCalcularEnergiaKwh:
+    """Tests for calcular_energia_kwh function."""
+
+    def test_calcular_energia_kwh_basic(self):
+        """Test basic energy calculation."""
+        energy = calcular_energia_kwh(100, 0.15)
+        assert energy == 15.0
+
+    def test_calcular_energia_kwh_precision(self):
+        """Test energy calculation with precision."""
+        energy = calcular_energia_kwh(100, 0.175)
+        assert energy == 17.5
+
+    def test_calcular_energia_kwh_zero_distance(self):
+        """Test zero distance returns zero energy."""
+        energy = calcular_energia_kwh(0, 0.15)
+        assert energy == 0.0
+
+    def test_calcular_energia_kwh_zero_consumption(self):
+        """Test zero consumption returns zero energy."""
+        energy = calcular_energia_kwh(100, 0)
+        assert energy == 0.0
+
+    def test_calcular_energia_kwh_negative_distance_raises(self):
+        """Test negative distance raises ValueError."""
+        with pytest.raises(ValueError, match="Distance cannot be negative"):
+            calcular_energia_kwh(-10, 0.15)
+
+    def test_calcular_energia_kwh_negative_consumption_raises(self):
+        """Test negative consumption raises ValueError."""
+        with pytest.raises(ValueError, match="Consumption cannot be negative"):
+            calcular_energia_kwh(100, -0.15)
+
+    def test_calcular_energia_kwh_with_trip_km(self):
+        """Test with realistic trip values."""
+        # 50km trip at 0.18 kWh/km
+        energy = calcular_energia_kwh(50, 0.18)
+        assert energy == 9.0

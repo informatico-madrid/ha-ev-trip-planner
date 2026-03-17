@@ -1,11 +1,12 @@
 """Tests for Vehicle Control Strategies."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.vehicle_controller import (
     VehicleControlStrategy,
+    VehicleController,
     SwitchStrategy,
     ServiceStrategy,
     ScriptStrategy,
@@ -412,3 +413,211 @@ async def test_script_strategy_error_handling(hass: HomeAssistant):
     # Activate should return False on error
     result = await strategy.async_activate()
     assert result is False
+
+class TestVehicleController:
+    """Tests for VehicleController class."""
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_init(self, hass: HomeAssistant):
+        """Test VehicleController can be instantiated."""
+        controller = VehicleController(hass, "test_vehicle")
+        assert controller.vehicle_id == "test_vehicle"
+        assert controller.hass == hass
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_with_presence_config(self, hass: HomeAssistant):
+        """Test VehicleController with presence config."""
+        presence_config = {
+            "home_sensor": "binary_sensor.home",
+            "plugged_sensor": "binary_sensor.plugged",
+            "charging_sensor": "binary_sensor.charging",
+        }
+        controller = VehicleController(hass, "test_vehicle", presence_config)
+        assert controller._presence_monitor is not None
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_set_strategy(self, hass: HomeAssistant):
+        """Test setting control strategy."""
+        controller = VehicleController(hass, "test_vehicle")
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test"})
+        controller.set_strategy(strategy)
+        assert controller._strategy is strategy
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_update_config(self, hass: HomeAssistant):
+        """Test updating config stores the config."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Set initial config
+        config1 = {
+            "control_type": "switch",
+            "charge_control_entity": "switch.test1",
+        }
+        controller.update_config(config1)
+        # Config is stored, strategy is only recreated if one exists
+        assert controller._config == config1
+
+        # Set a strategy first
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test1"})
+        controller.set_strategy(strategy)
+
+        # Update config - strategy should be recreated
+        config2 = {
+            "control_type": "switch",
+            "charge_control_entity": "switch.test2",
+        }
+        controller.update_config(config2)
+        assert isinstance(controller._strategy, SwitchStrategy)
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_activate_charging_no_strategy(self, hass: HomeAssistant):
+        """Test activating charging with no strategy returns False."""
+        controller = VehicleController(hass, "test_vehicle")
+        result = await controller.async_activate_charging()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_deactivate_charging_no_strategy(self, hass: HomeAssistant):
+        """Test deactivating charging with no strategy returns False."""
+        controller = VehicleController(hass, "test_vehicle")
+        result = await controller.async_deactivate_charging()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_get_charging_status_no_strategy(self, hass: HomeAssistant):
+        """Test getting charging status with no strategy returns False."""
+        controller = VehicleController(hass, "test_vehicle")
+        status = await controller.async_get_charging_status()
+        assert status is False
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_activate_charging_success(self, hass: HomeAssistant):
+        """Test successful charging activation."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Create and set strategy
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test"})
+        controller.set_strategy(strategy)
+
+        # Mock the service call
+        calls = []
+        async def mock_service_call(domain, service, data):
+            calls.append((domain, service, data))
+        wrapper.async_call_service = mock_service_call
+
+        # Activate should succeed
+        result = await controller.async_activate_charging()
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_ready(self, hass: HomeAssistant):
+        """Test presence check returns ready when no presence config."""
+        controller = VehicleController(hass, "test_vehicle")
+        is_ready, reason = await controller.async_check_presence_status()
+        assert is_ready is True
+        assert reason is None
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_already_charging(self, hass: HomeAssistant):
+        """Test presence check returns ready when already charging."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock the charging sensor to return "charging"
+        mock_state = Mock()
+        mock_state.state = "charging"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        assert is_ready is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_charging_on(self, hass: HomeAssistant):
+        """Test presence check returns ready when charging sensor is 'on'."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock the charging sensor to return "on"
+        mock_state = Mock()
+        mock_state.state = "on"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        assert is_ready is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_charging_true(self, hass: HomeAssistant):
+        """Test presence check returns ready when charging sensor is 'true'."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock the charging sensor to return "true"
+        mock_state = Mock()
+        mock_state.state = "true"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        assert is_ready is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_charging_yes(self, hass: HomeAssistant):
+        """Test presence check returns ready when charging sensor is 'yes'."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock the charging sensor to return "yes"
+        mock_state = Mock()
+        mock_state.state = "yes"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        assert is_ready is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_sensor_not_found(self, hass: HomeAssistant):
+        """Test presence check returns ready when charging sensor not found."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock sensor not found
+        hass.states.get = lambda entity_id: None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        # Sensor not found should return False for charging, but ready overall
+        assert is_ready is True
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_check_presence_status_sensor_off(self, hass: HomeAssistant):
+        """Test presence check returns ready when charging sensor is 'off'."""
+        # Use only charging_sensor (not full presence config) to skip presence monitor
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Mock the charging sensor to return "off"
+        mock_state = Mock()
+        mock_state.state = "off"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        is_ready, reason = await controller.async_check_presence_status()
+        # Should still be ready (not currently charging)
+        assert is_ready is True
+
+
+class TestHomeAssistantWrapper:
+    """Tests for HomeAssistantWrapper class."""
+
+    @pytest.mark.asyncio
+    async def test_wrapper_get_state(self, hass: HomeAssistant):
+        """Test wrapper can get entity state."""
+        wrapper = HomeAssistantWrapper(hass)
+        # hass.states.get should return None for unknown entity
+        state = wrapper.get_state("sensor.unknown")
+        assert state is None
