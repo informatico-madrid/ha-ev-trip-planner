@@ -247,7 +247,7 @@ We're following an **incremental development approach** (Option B):
 - [ ] **Improvement #3**: Add label "Use planning horizon sensor" + helper text
 - [ ] **Improvement #4**: Filter numeric sensors only + add description with examples
 - [ ] **Improvement #5**: Add `description` and `helper` to all config flow fields
-
+- [ ] **Improvement #6**: Auto-dashboard registration – Implement `integration_dashboard.py` to register Lovelace dashboard automatically upon vehicle setup
 **Files to Modify**:
 - `custom_components/ev_trip_planner/config_flow.py` (entity selectors, labels)
 - `custom_components/ev_trip_planner/strings.json` (helper texts)

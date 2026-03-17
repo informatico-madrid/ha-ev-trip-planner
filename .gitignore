@@ -11,8 +11,13 @@ venv/
 htmlcov/
 
 # VS Code
+.vscode
 .vscode/
 .roo/
+
+#specify
+.specify/
+
 # Coverage and reports
 .coverage
 coverage.xml

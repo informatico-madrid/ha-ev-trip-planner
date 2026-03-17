@@ -33,3 +33,24 @@
 {"level":"info","message":"Hostname: Cerebro","timestamp":"2026-03-15T07:24:18.930Z"}
 {"level":"info","message":"Username: malka","timestamp":"2026-03-15T07:24:18.931Z"}
 {"level":"info","message":"MCP Shell Server ready","timestamp":"2026-03-15T07:24:18.949Z"}
+{"level":"info","message":"MCP Shell Server started","timestamp":"2026-03-16T22:28:46.893Z"}
+{"level":"info","message":"Shell: /bin/bash","timestamp":"2026-03-16T22:28:46.895Z"}
+{"level":"info","message":"Working Directory: /home/malka","timestamp":"2026-03-16T22:28:46.895Z"}
+{"level":"info","message":"Platform: linux","timestamp":"2026-03-16T22:28:46.895Z"}
+{"level":"info","message":"Hostname: Cerebro","timestamp":"2026-03-16T22:28:46.895Z"}
+{"level":"info","message":"Username: malka","timestamp":"2026-03-16T22:28:46.896Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2026-03-16T22:28:46.907Z"}
+{"level":"info","message":"MCP Shell Server started","timestamp":"2026-03-16T23:32:15.033Z"}
+{"level":"info","message":"Shell: /bin/bash","timestamp":"2026-03-16T23:32:15.035Z"}
+{"level":"info","message":"Working Directory: /home/malka","timestamp":"2026-03-16T23:32:15.036Z"}
+{"level":"info","message":"Platform: linux","timestamp":"2026-03-16T23:32:15.036Z"}
+{"level":"info","message":"Hostname: Cerebro","timestamp":"2026-03-16T23:32:15.036Z"}
+{"level":"info","message":"Username: malka","timestamp":"2026-03-16T23:32:15.037Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2026-03-16T23:32:15.054Z"}
+{"level":"info","message":"MCP Shell Server started","timestamp":"2026-03-17T09:05:46.887Z"}
+{"level":"info","message":"Shell: /bin/bash","timestamp":"2026-03-17T09:05:46.890Z"}
+{"level":"info","message":"Working Directory: /home/malka","timestamp":"2026-03-17T09:05:46.890Z"}
+{"level":"info","message":"Platform: linux","timestamp":"2026-03-17T09:05:46.890Z"}
+{"level":"info","message":"Hostname: Cerebro","timestamp":"2026-03-17T09:05:46.891Z"}
+{"level":"info","message":"Username: malka","timestamp":"2026-03-17T09:05:46.892Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2026-03-17T09:05:46.905Z"}
