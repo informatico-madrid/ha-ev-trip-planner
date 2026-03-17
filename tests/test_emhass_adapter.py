@@ -10,6 +10,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
+    CONF_NOTIFICATION_SERVICE,
 )
 
 
@@ -376,7 +377,6 @@ def test_calculate_deferrable_parameters_basic():
         CONF_CHARGING_POWER: 7.4,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -405,7 +405,6 @@ def test_calculate_deferrable_parameters_no_kwh():
         CONF_CHARGING_POWER: 7.4,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -429,7 +428,6 @@ def test_calculate_deferrable_parameters_no_deadline():
         CONF_CHARGING_POWER: 3.6,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -455,7 +453,6 @@ def test_calculate_power_profile_from_trips():
         CONF_CHARGING_POWER: 7.4,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -489,7 +486,6 @@ def test_calculate_power_profile_zero_kwh():
         CONF_CHARGING_POWER: 7.4,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -518,7 +514,6 @@ def test_generate_schedule_from_trips():
         CONF_CHARGING_POWER: 7.4,
     }
 
-    from unittest.mock import MagicMock
     hass = MagicMock()
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store'):
@@ -845,3 +840,230 @@ async def test_get_integration_status_no_sensor(hass: HomeAssistant, mock_store)
 
         assert status["status"] == "error"
         assert "not found" in status["message"]
+
+
+@pytest.mark.asyncio
+async def test_notify_error_with_notification_service(hass: HomeAssistant, mock_store):
+    """Test error notification with notification service configured."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        CONF_NOTIFICATION_SERVICE: "notify.notify",
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Send error notification
+        await adapter.async_notify_error(
+            error_type="emhass_unavailable",
+            message="Test error message",
+            trip_id="trip_001",
+        )
+
+        # Should update error status sensor
+        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.vehicle_id}"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        assert state.state == "error"
+        assert state.attributes.get("error_type") == "emhass_unavailable"
+        assert state.attributes.get("error_message") == "Test error message"
+        assert state.attributes.get("error_trip_id") == "trip_001"
+
+
+@pytest.mark.asyncio
+async def test_notify_error_without_notification_service(hass: HomeAssistant, mock_store):
+    """Test error notification without notification service."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        # No notification service
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Send error notification
+        await adapter.async_notify_error(
+            error_type="sensor_missing",
+            message="Test error message",
+        )
+
+        # Should still update error status sensor
+        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.vehicle_id}"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        assert state.state == "error"
+
+
+@pytest.mark.asyncio
+async def test_handle_emhass_unavailable(hass: HomeAssistant, mock_store):
+    """Test handling EMHASS unavailable error."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Handle unavailable
+        await adapter.async_handle_emhass_unavailable(
+            reason="Connection refused",
+            trip_id="trip_001",
+        )
+
+        # Check error stored
+        last_error = adapter.get_last_error()
+        assert last_error is not None
+        assert "Connection refused" in last_error["message"]
+
+        # Verify sensor has trip_id in attributes
+        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.vehicle_id}"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        assert state.attributes.get("error_trip_id") == "trip_001"
+
+
+@pytest.mark.asyncio
+async def test_handle_shell_command_failure(hass: HomeAssistant, mock_store):
+    """Test handling shell command failure."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Handle shell command failure
+        await adapter.async_handle_shell_command_failure(trip_id="trip_001")
+
+        # Check error stored
+        last_error = adapter.get_last_error()
+        assert last_error is not None
+        assert "shell command" in last_error["message"].lower()
+
+
+@pytest.mark.asyncio
+async def test_clear_error(hass: HomeAssistant, mock_store):
+    """Test clearing error status."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # First set an error
+        await adapter.async_notify_error(
+            error_type="test_error",
+            message="Test error",
+        )
+
+        # Verify error is set
+        assert adapter.get_last_error() is not None
+
+        # Clear error
+        await adapter.async_clear_error()
+
+        # Verify error is cleared
+        assert adapter.get_last_error() is None
+
+
+@pytest.mark.asyncio
+async def test_get_last_error_no_error(hass: HomeAssistant, mock_store):
+    """Test getting last error when no error occurred."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # No error set
+        last_error = adapter.get_last_error()
+        assert last_error is None
+
+
+@pytest.mark.asyncio
+async def test_error_notification_includes_trip_info(hass: HomeAssistant, mock_store):
+    """Test that error notification includes trip info when provided."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Set error with trip ID
+        await adapter.async_handle_emhass_unavailable(
+            reason="API timeout",
+            trip_id="trip_001",
+        )
+
+        # Verify trip ID is in sensor attributes
+        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.vehicle_id}"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+        assert state.attributes.get("error_trip_id") == "trip_001"
+
+
+@pytest.mark.asyncio
+async def test_adapter_with_notification_service_config(hass: HomeAssistant, mock_store):
+    """Test adapter initialization with notification service."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        CONF_NOTIFICATION_SERVICE: "notify.mobile",
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+
+        assert adapter.notification_service == "notify.mobile"
+
+
+@pytest.mark.asyncio
+async def test_async_handle_sensor_error(hass: HomeAssistant, mock_store):
+    """Test handling sensor errors."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Handle sensor error
+        await adapter.async_handle_sensor_error(
+            sensor_id="sensor.emhass_perfil_diferible_test",
+            error_details="Sensor not found",
+            trip_id="trip_001",
+        )
+
+        # Check error stored
+        last_error = adapter.get_last_error()
+        assert last_error is not None
+        assert "Sensor not found" in last_error["message"]
+        assert "sensor.emhass_perfil_diferible_test" in last_error["message"]

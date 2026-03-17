@@ -11,6 +11,7 @@ from .const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
     CONF_VEHICLE_NAME,
+    CONF_NOTIFICATION_SERVICE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,23 +19,31 @@ _LOGGER = logging.getLogger(__name__)
 
 class EMHASSAdapter:
     """Adapter to publish trips as EMHASS deferrable loads."""
-    
+
     def __init__(self, hass: HomeAssistant, vehicle_config: Dict[str, Any]):
         """Initialize adapter."""
         self.hass = hass
         self.vehicle_id = vehicle_config[CONF_VEHICLE_NAME]
         self.max_deferrable_loads = vehicle_config.get(CONF_MAX_DEFERRABLE_LOADS, 50)
         self.charging_power = vehicle_config.get(CONF_CHARGING_POWER, 7.4)
-        
+
+        # Notification configuration
+        self.notification_service = vehicle_config.get(CONF_NOTIFICATION_SERVICE)
+
         # Storage for trip_id → emhass_index mapping
         self._store = Store(hass, version=1, key=f"ev_trip_planner_{self.vehicle_id}_emhass_indices")
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
-        
+
+        # Error tracking
+        self._last_error: Optional[str] = None
+        self._last_error_time: Optional[datetime] = None
+
         _LOGGER.debug(
-            "Created EMHASSAdapter for %s with %d available indices",
+            "Created EMHASSAdapter for %s with %d available indices, notification_service=%s",
             self.vehicle_id,
-            len(self._available_indices)
+            len(self._available_indices),
+            self.notification_service,
         )
     
     async def async_load(self):
@@ -661,6 +670,335 @@ class EMHASSAdapter:
             "vehicle_id": self.vehicle_id,
             "details": details,
         }
+
+    async def async_notify_error(
+        self,
+        error_type: str,
+        message: str,
+        trip_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Send notification about EMHASS integration error.
+
+        This method:
+        - Logs the error at appropriate HA level (WARNING or ERROR)
+        - Sends notification via configured notification service
+        - Updates dashboard status sensor
+        - Stores error for later reference
+
+        Args:
+            error_type: Type of error (emhass_unavailable, sensor_missing, etc.)
+            message: Human-readable error message
+            trip_id: Optional trip ID related to the error
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        # Store error for reference
+        self._last_error = message
+        self._last_error_time = datetime.now()
+
+        # Log at appropriate level based on error type
+        if error_type in ["emhass_unavailable", "critical"]:
+            _LOGGER.error(
+                "EMHASS error for vehicle %s [%s]: %s%s",
+                self.vehicle_id,
+                error_type,
+                message,
+                f" (trip: {trip_id})" if trip_id else "",
+            )
+        else:
+            _LOGGER.warning(
+                "EMHASS warning for vehicle %s [%s]: %s%s",
+                self.vehicle_id,
+                error_type,
+                message,
+                f" (trip: {trip_id})" if trip_id else "",
+            )
+
+        # Update dashboard status sensor
+        await self._async_update_error_status(error_type, message, trip_id)
+
+        # Send notification if configured
+        return await self._async_send_error_notification(error_type, message, trip_id)
+
+    async def _async_update_error_status(
+        self,
+        error_type: str,
+        message: str,
+        trip_id: Optional[str] = None,
+    ) -> None:
+        """Update dashboard status sensor with error information."""
+        try:
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            attributes = {
+                "power_profile_watts": [0.0] * 168,
+                "deferrables_schedule": [],
+                "vehicle_id": self.vehicle_id,
+                "trips_count": 0,
+                "emhass_status": "error",
+                "error_type": error_type,
+                "error_message": message,
+                "error_time": datetime.now().isoformat(),
+            }
+
+            if trip_id:
+                attributes["error_trip_id"] = trip_id
+
+            await self.hass.states.async_set(
+                sensor_id,
+                "error",
+                attributes,
+            )
+
+            _LOGGER.debug(
+                "Updated dashboard status for vehicle %s: error=%s",
+                self.vehicle_id,
+                error_type,
+            )
+        except HomeAssistantError as err:
+            _LOGGER.error("Failed to update error status sensor: %s", err)
+
+    async def _async_send_error_notification(
+        self,
+        error_type: str,
+        message: str,
+        trip_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Send error notification via configured notification service.
+
+        Args:
+            error_type: Type of error
+            message: Error message to send
+            trip_id: Optional trip ID
+
+        Returns:
+            True if notification sent successfully
+        """
+        if not self.notification_service:
+            _LOGGER.debug(
+                "No notification service configured for %s, skipping error notification",
+                self.vehicle_id,
+            )
+            return False
+
+        # Build notification message
+        title = f"⚠️ EV Trip Planner - EMHASS Error: {self.vehicle_id}"
+
+        # Detailed message based on error type
+        if error_type == "emhass_unavailable":
+            body = (
+                "EMHASS no está disponible.\n\n"
+                f"Mensaje: {message}\n\n"
+                "El viaje se ha guardado pero NO tiene carga diferible en EMHASS. "
+                "Revisión manual requerida."
+            )
+        elif error_type == "sensor_missing":
+            body = (
+                "Sensor EMHASS no encontrado.\n\n"
+                f"Mensaje: {message}\n\n"
+                "Por favor verifica la configuración del shell command en configuration.yaml."
+            )
+        elif error_type == "shell_command_failure":
+            body = (
+                "Error en shell command de EMHASS.\n\n"
+                f"Mensaje: {message}\n\n"
+                "EMHASS maneja este error. Verifica los sensores de respuesta de EMHASS."
+            )
+        else:
+            body = f"Error: {message}"
+
+        if trip_id:
+            body += f"\n\nViaje afectado: {trip_id}"
+
+        body += "\n\nConsulta el panel de control para más detalles."
+
+        return await self._async_call_notification_service(title, body)
+
+    async def _async_call_notification_service(
+        self,
+        title: str,
+        message: str,
+    ) -> bool:
+        """
+        Call the configured notification service.
+
+        Args:
+            title: Notification title
+            message: Notification body
+
+        Returns:
+            True if notification sent successfully
+        """
+        if not self.notification_service:
+            return False
+
+        try:
+            domain, service = self.notification_service.split(".", 1)
+            await self.hass.services.async_call(
+                domain,
+                service,
+                {
+                    "title": title,
+                    "message": message,
+                    "notification_id": f"ev_trip_planner_emhass_{self.vehicle_id}",
+                },
+            )
+            _LOGGER.info(
+                "Error notification sent for vehicle %s: %s",
+                self.vehicle_id,
+                title,
+            )
+            return True
+        except Exception as err:  # pylint: disable=broad-except
+            _LOGGER.error(
+                "Failed to send error notification for vehicle %s: %s",
+                self.vehicle_id,
+                err,
+            )
+            return False
+
+    async def async_handle_emhass_unavailable(
+        self,
+        reason: str,
+        trip_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Handle EMHASS API unavailability.
+
+        When EMHASS is unavailable:
+        - Trip is saved but has no deferrable load in EMHASS
+        - User is notified via dashboard and notifications
+        - Operation continues (trip is still managed)
+
+        Args:
+            reason: Why EMHASS is unavailable
+            trip_id: Optional trip ID that was being published
+
+        Returns:
+            True if error handled successfully
+        """
+        message = (
+            f"EMHASS API no disponible: {reason}. "
+            "El viaje se ha guardado sin carga diferible - revisión manual requerida."
+        )
+
+        _LOGGER.warning(
+            "EMHASS unavailable for vehicle %s: %s%s",
+            self.vehicle_id,
+            reason,
+            f" (trip: {trip_id})" if trip_id else "",
+        )
+
+        return await self.async_notify_error(
+            error_type="emhass_unavailable",
+            message=message,
+            trip_id=trip_id,
+        )
+
+    async def async_handle_sensor_error(
+        self,
+        sensor_id: str,
+        error_details: str,
+        trip_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Handle sensor-related errors.
+
+        Args:
+            sensor_id: The sensor that has an error
+            error_details: Details about the error
+            trip_id: Optional trip ID
+
+        Returns:
+            True if error handled successfully
+        """
+        message = f"Sensor {sensor_id}: {error_details}"
+
+        return await self.async_notify_error(
+            error_type="sensor_missing",
+            message=message,
+            trip_id=trip_id,
+        )
+
+    async def async_handle_shell_command_failure(
+        self,
+        trip_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Handle shell command failure.
+
+        Note: Shell command failures are handled by EMHASS itself.
+        We only verify sensors and notify the user.
+
+        Args:
+            trip_id: Optional trip ID
+
+        Returns:
+            True if error handled successfully
+        """
+        message = (
+            "El shell command de EMHASS ha fallado. "
+            "EMHASS maneja este error. Verifica los sensores de respuesta de EMHASS "
+            "para confirmar que las cargas diferibles están activas."
+        )
+
+        _LOGGER.warning(
+            "Shell command failure for vehicle %s%s",
+            self.vehicle_id,
+            f" (trip: {trip_id})" if trip_id else "",
+        )
+
+        return await self.async_notify_error(
+            error_type="shell_command_failure",
+            message=message,
+            trip_id=trip_id,
+        )
+
+    def get_last_error(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the last error that occurred.
+
+        Returns:
+            Dict with error info or None if no errors
+        """
+        if not self._last_error:
+            return None
+
+        return {
+            "message": self._last_error,
+            "time": self._last_error_time.isoformat() if self._last_error_time else None,
+        }
+
+    async def async_clear_error(self) -> None:
+        """Clear the last error and restore normal status."""
+        self._last_error = None
+        self._last_error_time = None
+
+        # Restore normal status
+        try:
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            current_state = self.hass.states.get(sensor_id)
+
+            if current_state:
+                # Keep existing data but clear error
+                attributes = dict(current_state.attributes)
+                attributes.pop("error_type", None)
+                attributes.pop("error_message", None)
+                attributes.pop("error_time", None)
+                attributes.pop("error_trip_id", None)
+                attributes["emhass_status"] = "ok"
+
+                await self.hass.states.async_set(
+                    sensor_id,
+                    current_state.state,
+                    attributes,
+                )
+
+            _LOGGER.info("Cleared error status for vehicle %s", self.vehicle_id)
+        except HomeAssistantError as err:
+            _LOGGER.error("Failed to clear error status: %s", err)
 
     def _calculate_power_profile_from_trips(
         self,
