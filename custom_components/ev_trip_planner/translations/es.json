@@ -49,7 +49,7 @@
           "consumption": "Consumo medio de energía por km (ej: 0.15 para 15 kWh/100km). Valores más altos = más energía necesaria. Ejemplo: 0.15",
           "safety_margin": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
           "safety_margin_percent": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
-          "control_type": "¿Cómo se debe controlar la carga? 'Solo Notificaciones (sin control)' significa sin control automático, solo alertas."
+          "control_type": "Notificaciones Only - Solo avisar cuando sea necesario"
         }
       },
       "emhass": {
