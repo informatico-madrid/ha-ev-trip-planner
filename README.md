@@ -60,6 +60,7 @@
 - Home Assistant Core ≥ 2023.8.0 o Supervisor
 - HACS (Home Assistant Community Store) instalado
 - Acceso a "Modo Avanzado" en tu perfil de HA
+- **Opcional**: EMHASS instalado para optimización energética
 
 ### Para Desarrolladores
 - Python 3.11+
@@ -244,6 +245,125 @@ data:
 1. **Edita tu dashboard** Lovelace
 2. **Añade una tarjeta** → **Entidades**
 3. **Selecciona los 3 sensores** del vehículo
+
+---
+
+## ⚡ Integración EMHASS
+
+### ¿Qué es EMHASS?
+
+**EMHASS** (Energy Management for Home Assistant) es un optimizador energético
+que gestiona cargas diferibles (como la carga de vehículos eléctricos) para
+aprovechar tarifas variables y energía renovable.
+
+### Configuración EMHASS
+
+Al configurar tu vehículo, puedes configurar estos parámetros EMHASS:
+
+| Parámetro | Descripción | Valor recomendado |
+|-----------|-------------|-------------------|
+| Planning Horizon | Días de planificación (1-365) | 7 días |
+| Max Deferrable Loads | Cargas simultáneas (10-100) | 50 |
+| Planning Sensor | Sensor de horizonte (opcional) | - |
+
+### Ejemplo de shell command
+
+Para conectar EV Trip Planner con EMHASS, añade esto en tu
+`configuration.yaml`:
+
+```yaml
+shell_command:
+  emhass_day_ahead_optim: >
+    curl -i -H "Content-Type: application/json" -X POST -d '{
+      "P_deferrable": {{ (state_attr(
+        'sensor.emhass_perfil_diferible_chispitas',
+        'power_profile_watts'
+      ) | default([0]*168) + [0]*168) | tojson }}
+    }' http://192.168.1.100:5000/action/dayahead-optim
+```
+
+**Nota**: Ajusta la URL (`http://192.168.1.100:5000`) a la IP de tu
+servicio EMHASS.
+
+### Sensores de carga diferible
+
+El sistema crea sensores de plantilla con atributos:
+
+- `sensor.emhass_perfil_diferible_{vehicle_id}` - Perfil de potencia
+- `power_profile_watts` - Array de 168 valores (1 semana)
+- `deferrables_schedule` - Detalle por hora
+
+### Verificar integración
+
+1. **Dashboard**: Ve al dashboard `ev-trip-planner-{vehiculo}`
+2. **Sensores**: Busca `sensor.emhass_perfil_diferible_*`
+3. **Logs**: Busca "emhass" en registros para errores
+
+---
+
+## 🚗 Control de Vehículo
+
+### Tipos de control
+
+EV Trip Planner soporta 4 estrategias de control:
+
+| Tipo | Descripción | Cuándo usarlo |
+|------|-------------|---------------|
+| **None** | Sin control | Solo notificaciones |
+| **Switch** | Controla un switch | Wallbox con switch entity |
+| **Service** | Llama a un servicio | Integración con servicio |
+| **Script** | Ejecuta un script | Carga con script HA |
+| **External** | Notificaciones only | Solo avisa, no controla |
+
+### Configuración de control
+
+#### Switch (Recomendado)
+
+1. Selecciona "Switch" como tipo de control
+2. Elige el switch de carga (ej: `switch.wallbox_charging`)
+3. El sistema encenderá/apagará el switch según EMHASS
+
+#### Service
+
+1. Selecciona "Service" como tipo de control
+2. Proporciona el ID del servicio (ej: `button.start_charging`)
+3. El sistema llamará al servicio cuando sea necesario
+
+#### Script
+
+1. Selecciona "Script" como tipo de control
+2. Elige el script (ej: `script.charge_vehicle`)
+3. El sistema ejecutará el script para iniciar/detener carga
+
+#### External / Notificaciones Only
+
+1. Selecciona "Notificaciones Only"
+2. Solo recibirás alertas cuando la carga sea necesaria
+3. No se realiza ningún control automático
+
+### Detección de presencia
+
+Para un funcionamiento seguro, el sistema verifica:
+
+- **Sensor de carga**: ¿El vehículo está cargando? (OBLIGATORIO)
+- **Sensor de hogar**: ¿El vehículo está en casa?
+- **Sensor de enchufe**: ¿Está conectado el cable?
+
+### Flujo de control
+
+```
+EMHASS optimiza → Trip Planner recibe → ¿Vehículo en casa?
+    → Sí → ¿Enchufado? → Sí → Activar carga
+    → No → Enviar notificación
+```
+
+### Notificaciones
+
+Cuando la carga sea necesaria pero no se pueda ejecutar:
+
+- "Vehículo no en casa - No se puede cargar"
+- "Vehículo no enchufado - No se puede cargar"
+- "Carga activada para viaje a {destino}"
 
 ---
 
