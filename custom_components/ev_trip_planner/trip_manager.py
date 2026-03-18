@@ -23,6 +23,7 @@ from .const import (
 )
 from .utils import calcular_energia_kwh, generate_trip_id
 from .vehicle_controller import VehicleController
+from .emhass_adapter import EMHASSAdapter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +44,16 @@ class TripManager:
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
         self._last_update: Optional[datetime] = None
+        self._emhass_adapter: Optional[EMHASSAdapter] = None
+
+    def set_emhass_adapter(self, adapter: EMHASSAdapter) -> None:
+        """Set the EMHASS adapter for this trip manager."""
+        self._emhass_adapter = adapter
+        _LOGGER.debug("EMHASS adapter set for vehicle %s", self.vehicle_id)
+
+    def get_emhass_adapter(self) -> Optional[EMHASSAdapter]:
+        """Get the EMHASS adapter for this trip manager."""
+        return self._emhass_adapter
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -87,7 +98,7 @@ class TripManager:
         return list(self._punctual_trips.values())
 
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
-        """Añade un nuevo viaje recurrente."""
+        """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         # Generate trip ID using the new format: rec_{day}_{random}
         if "trip_id" in kwargs:
             trip_id = kwargs["trip_id"]
@@ -106,8 +117,12 @@ class TripManager:
         }
         await self.async_save_trips()
 
+        # T019.3: Publish new trip to EMHASS
+        if self._emhass_adapter:
+            await self._async_publish_new_trip_to_emhass(self._recurring_trips[trip_id])
+
     async def async_add_punctual_trip(self, **kwargs: Any) -> None:
-        """Añade un nuevo viaje puntual."""
+        """Añade un nuevo viaje puntual y sincroniza con EMHASS."""
         # Generate trip ID using the new format: pun_{date}_{random}
         if "trip_id" in kwargs:
             trip_id = kwargs["trip_id"]
@@ -130,21 +145,45 @@ class TripManager:
         }
         await self.async_save_trips()
 
+        # T019.3: Publish new trip to EMHASS
+        if self._emhass_adapter:
+            await self._async_publish_new_trip_to_emhass(self._punctual_trips[trip_id])
+
     async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:
-        """Actualiza un viaje existente."""
+        """Actualiza un viaje existente y sincroniza con EMHASS.
+
+        Detects trip edits and triggers EMHASS update when:
+        - km/kwh changes (affects energy calculation)
+        - datetime/hora changes (affects deadline/deferrable window)
+        - descripcion changes (informational only)
+        - activo/estado changes (affects if trip is published)
+        """
+        # Get old trip data before update for comparison
+        old_trip = None
         if trip_id in self._recurring_trips:
+            old_trip = self._recurring_trips[trip_id].copy()
             self._recurring_trips[trip_id].update(updates)
         elif trip_id in self._punctual_trips:
+            old_trip = self._punctual_trips[trip_id].copy()
             self._punctual_trips[trip_id].update(updates)
+
         await self.async_save_trips()
 
+        # T019.3: Detect trip changes and trigger EMHASS update
+        if old_trip and self._emhass_adapter:
+            await self._async_sync_trip_to_emhass(trip_id, old_trip, updates)
+
     async def async_delete_trip(self, trip_id: str) -> None:
-        """Elimina un viaje existente."""
+        """Elimina un viaje existente y sincroniza con EMHASS."""
         if trip_id in self._recurring_trips:
             del self._recurring_trips[trip_id]
         elif trip_id in self._punctual_trips:
             del self._punctual_trips[trip_id]
         await self.async_save_trips()
+
+        # T019.3: Remove from EMHASS when deleted
+        if self._emhass_adapter:
+            await self._async_remove_trip_from_emhass(trip_id)
 
     async def async_pause_recurring_trip(self, trip_id: str) -> None:
         """Pausa un viaje recurrente."""
@@ -169,6 +208,147 @@ class TripManager:
         if trip_id in self._punctual_trips:
             del self._punctual_trips[trip_id]
         await self.async_save_trips()
+        # T019.3: Remove from EMHASS when cancelled
+        if self._emhass_adapter:
+            await self._async_remove_trip_from_emhass(trip_id)
+
+    async def _async_sync_trip_to_emhass(
+        self,
+        trip_id: str,
+        old_trip: Dict[str, Any],
+        updates: Dict[str, Any],
+    ) -> None:
+        """Sync trip changes to EMHASS adapter.
+
+        Detects which fields changed and updates the deferrable load accordingly.
+        """
+        if not self._emhass_adapter:
+            return
+
+        try:
+            # Determine if this is an active trip (for publishing)
+            is_active = True
+            if trip_id in self._recurring_trips:
+                is_active = self._recurring_trips[trip_id].get("activo", True)
+            elif trip_id in self._punctual_trips:
+                is_active = self._punctual_trips[trip_id].get("estado") == "pendiente"
+
+            if not is_active:
+                # Trip is paused/cancelled - remove from EMHASS
+                await self._async_remove_trip_from_emhass(trip_id)
+                _LOGGER.info(
+                    "Trip %s is inactive, removed from EMHASS deferrable loads",
+                    trip_id
+                )
+                return
+
+            # Get the updated trip
+            trip = None
+            if trip_id in self._recurring_trips:
+                trip = self._recurring_trips[trip_id]
+            elif trip_id in self._punctual_trips:
+                trip = self._punctual_trips[trip_id]
+
+            if not trip:
+                await self._async_remove_trip_from_emhass(trip_id)
+                return
+
+            # Determine what changed
+            changed_fields = set(updates.keys())
+
+            # Check for critical changes that require recalculation
+            recalculate_fields = {"km", "kwh", "datetime", "hora", "dia_semana", "descripcion"}
+            needs_recalculate = bool(changed_fields & recalculate_fields)
+
+            if needs_recalculate:
+                # T019.3: Recalculate deferrable load parameters
+                # Get charging power from config
+                charging_power_kw = self._get_charging_power()
+
+                # Update the deferrable load with new parameters
+                await self._emhass_adapter.async_update_deferrable_load(trip)
+
+                # Also update all deferrable loads to recalculate schedule
+                all_trips = await self._get_all_active_trips()
+                await self._emhass_adapter.publish_deferrable_loads(all_trips, charging_power_kw)
+
+                _LOGGER.info(
+                    "Trip %s updated in EMHASS (recalculated): changed fields=%s",
+                    trip_id,
+                    changed_fields
+                )
+            else:
+                # Non-critical changes (just update attributes)
+                await self._emhass_adapter.async_update_deferrable_load(trip)
+                _LOGGER.debug(
+                    "Trip %s updated in EMHASS (attributes only): changed fields=%s",
+                    trip_id,
+                    changed_fields
+                )
+
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error(
+                "Error syncing trip %s to EMHASS: %s",
+                trip_id,
+                err
+            )
+
+    async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
+        """Remove a trip from EMHASS deferrable loads."""
+        if not self._emhass_adapter:
+            return
+
+        try:
+            await self._emhass_adapter.async_remove_deferrable_load(trip_id)
+
+            # Update all deferrable loads to reflect the removal
+            all_trips = await self._get_all_active_trips()
+            charging_power_kw = self._get_charging_power()
+            await self._emhass_adapter.publish_deferrable_loads(all_trips, charging_power_kw)
+
+            _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error(
+                "Error removing trip %s from EMHASS: %s",
+                trip_id,
+                err
+            )
+
+    async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
+        """Publish a new trip to EMHASS as a deferrable load."""
+        if not self._emhass_adapter:
+            return
+
+        try:
+            # Publish this trip
+            await self._emhass_adapter.async_publish_deferrable_load(trip)
+
+            # Also publish all trips to recalculate the schedule
+            all_trips = await self._get_all_active_trips()
+            charging_power_kw = self._get_charging_power()
+            await self._emhass_adapter.publish_deferrable_loads(all_trips, charging_power_kw)
+
+            _LOGGER.info(
+                "Published new trip %s to EMHASS deferrable loads",
+                trip.get("id")
+            )
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error(
+                "Error publishing trip %s to EMHASS: %s",
+                trip.get("id"),
+                err
+            )
+
+    async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
+        """Get all active trips for EMHASS publishing."""
+        all_trips = []
+        for trip in self._recurring_trips.values():
+            if trip.get("activo", True):
+                all_trips.append(trip)
+        for trip in self._punctual_trips.values():
+            if trip.get("estado") == "pendiente":
+                all_trips.append(trip)
+        return all_trips
 
     async def async_get_kwh_needed_today(self) -> float:
         """Calcula la energía necesaria para hoy basado en los viajes."""

@@ -611,6 +611,225 @@ class TestVehicleController:
         assert is_ready is True
 
 
+class TestRetryState:
+    """Tests for RetryState class."""
+
+    def test_retry_state_initially_allows_retry(self):
+        """Test that new RetryState allows retry attempts."""
+        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        state = RetryState()
+        assert state.should_retry() is True
+        assert state.get_attempt_count() == 0
+
+    def test_retry_state_add_attempt(self):
+        """Test adding an attempt increases count."""
+        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        state = RetryState()
+        state.add_attempt()
+        assert state.get_attempt_count() == 1
+        assert state.should_retry() is True
+
+    def test_retry_state_max_attempts(self):
+        """Test that max attempts limit is enforced."""
+        from custom_components.ev_trip_planner.vehicle_controller import RetryState, MAX_RETRY_ATTEMPTS
+        state = RetryState()
+        for _ in range(MAX_RETRY_ATTEMPTS):
+            state.add_attempt()
+        assert state.get_attempt_count() == MAX_RETRY_ATTEMPTS
+        assert state.should_retry() is False
+
+    def test_retry_state_reset(self):
+        """Test that reset clears all attempts."""
+        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        state = RetryState()
+        state.add_attempt()
+        state.add_attempt()
+        assert state.get_attempt_count() == 2
+        state.reset()
+        assert state.get_attempt_count() == 0
+        assert state.should_retry() is True
+
+
+class TestVehicleControllerRetry:
+    """Tests for VehicleController retry logic."""
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_activate_success_resets_retry(self, hass: HomeAssistant):
+        """Test that successful activation resets retry counter."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Add some attempts manually
+        controller._retry_state.add_attempt()
+        controller._retry_state.add_attempt()
+        assert controller._retry_state.get_attempt_count() == 2
+
+        # Create and set strategy
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test"})
+        controller.set_strategy(strategy)
+
+        # Mock service call
+        async def mock_service_call(domain, service, data):
+            pass
+        wrapper.async_call_service = mock_service_call
+
+        # Activate should succeed and reset retry
+        result = await controller.async_activate_charging()
+        assert result is True
+        assert controller._retry_state.get_attempt_count() == 0
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_activate_failure_increments_retry(self, hass: HomeAssistant):
+        """Test that failed activation increments retry counter."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Create and set strategy that fails
+        wrapper = HomeAssistantWrapper(hass)
+
+        class FailingStrategy(VehicleControlStrategy):
+            async def async_activate(self) -> bool:
+                return False
+            async def async_deactivate(self) -> bool:
+                return True
+            async def async_get_status(self) -> bool:
+                return False
+
+        strategy = FailingStrategy(wrapper, {})
+        controller.set_strategy(strategy)
+
+        # Initial state - should allow retry
+        assert controller._retry_state.should_retry() is True
+        initial_count = controller._retry_state.get_attempt_count()
+
+        # Activate should fail
+        result = await controller.async_activate_charging()
+        assert result is False
+        # Retry count should have increased
+        assert controller._retry_state.get_attempt_count() == initial_count + 1
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_max_retries_blocks(self, hass: HomeAssistant):
+        """Test that max retries blocks further attempts."""
+        from custom_components.ev_trip_planner.vehicle_controller import MAX_RETRY_ATTEMPTS
+
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Create and set strategy that always fails
+        wrapper = HomeAssistantWrapper(hass)
+
+        class FailingStrategy(VehicleControlStrategy):
+            async def async_activate(self) -> bool:
+                return False
+            async def async_deactivate(self) -> bool:
+                return True
+            async def async_get_status(self) -> bool:
+                return False
+
+        strategy = FailingStrategy(wrapper, {})
+        controller.set_strategy(strategy)
+
+        # Exhaust retry attempts
+        for _ in range(MAX_RETRY_ATTEMPTS):
+            await controller.async_activate_charging()
+
+        # Now should not allow retry
+        assert controller._retry_state.should_retry() is False
+
+        # Additional activation should fail immediately
+        result = await controller.async_activate_charging()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_reset_retry_state(self, hass: HomeAssistant):
+        """Test manual reset of retry state."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Add some attempts
+        controller._retry_state.add_attempt()
+        controller._retry_state.add_attempt()
+        assert controller._retry_state.get_attempt_count() == 2
+        assert controller._retry_state.should_retry() is True
+
+        # Reset manually
+        controller.reset_retry_state()
+        assert controller._retry_state.get_attempt_count() == 0
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_get_retry_state(self, hass: HomeAssistant):
+        """Test getting retry state information."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Add an attempt
+        controller._retry_state.add_attempt()
+
+        state = controller.get_retry_state()
+        assert state["attempts"] == 1
+        assert state["max_attempts"] == 3
+        assert state["can_retry"] is True
+        assert state["time_window_seconds"] == 300
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_disconnect_resets_retry(self, hass: HomeAssistant):
+        """Test that disconnect/reconnect resets retry counter."""
+        controller = VehicleController(hass, "test_vehicle")
+        controller._charging_sensor = "binary_sensor.charging"
+
+        # Simulate previously charging state
+        controller._last_charging_state = True
+
+        # Mock sensor now returns not charging (disconnect)
+        mock_state = Mock()
+        mock_state.state = "off"
+        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+
+        # Add some retry attempts
+        controller._retry_state.add_attempt()
+        controller._retry_state.add_attempt()
+        assert controller._retry_state.get_attempt_count() == 2
+
+        # Try to activate - should detect disconnect and reset
+        # Create a mock strategy
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test"})
+        controller.set_strategy(strategy)
+
+        async def mock_service_call(domain, service, data):
+            pass
+        wrapper.async_call_service = mock_service_call
+
+        # This should reset the retry state due to disconnect detection
+        result = await controller.async_activate_charging()
+
+        # Retry counter should be reset
+        assert controller._retry_state.get_attempt_count() == 0
+
+    @pytest.mark.asyncio
+    async def test_vehicle_controller_presence_check_failure_no_retry(self, hass: HomeAssistant):
+        """Test that presence check failure does not count as retry."""
+        controller = VehicleController(hass, "test_vehicle")
+
+        # Set up presence monitor that will fail
+        presence_config = {
+            "home_sensor": "binary_sensor.home",
+            "plugged_sensor": "binary_sensor.plugged",
+            "charging_sensor": "binary_sensor.charging",
+        }
+        controller._presence_monitor = Mock()
+        controller._presence_monitor.async_check_charging_readiness = AsyncMock(return_value=(False, "not at home"))
+
+        # Create and set strategy
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.test"})
+        controller.set_strategy(strategy)
+
+        # Attempt - should fail due to presence check
+        result = await controller.async_activate_charging()
+        assert result is False
+
+        # Should not have incremented retry counter (presence check failure is not a retry)
+        assert controller._retry_state.get_attempt_count() == 0
+
+
 class TestHomeAssistantWrapper:
     """Tests for HomeAssistantWrapper class."""
 

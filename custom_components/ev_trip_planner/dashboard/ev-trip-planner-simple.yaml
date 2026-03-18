@@ -8,6 +8,30 @@ views:
     path: "{{ vehicle_id }}"
     icon: mdi:car-electric
     cards:
+      # EMHASS Integration Setup Card
+      - type: markdown
+        title: "🔧 Configuración EMHASS"
+        content: |
+          ## ¡Integración EMHASS configurada!
+
+          Para completar la integración con EMHASS, añade este comando shell a tu `configuration.yaml`:
+
+          ```yaml
+          shell_command:
+            emhass_day_ahead_optim: >
+              curl -i -H "Content-Type: application/json" -X POST -d '{
+                "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_{{ vehicle_id }}', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+              }' http://TU_IP_EMHASS:5000/action/dayahead-optim
+          ```
+
+          **Reemplaza:**
+          - `TU_IP_EMHASS`: La IP de tu instancia EMHASS (ej: `192.168.1.100`)
+
+          📖 **[Ver documentación completa](https://github.com/davidusb-ge/emhass)** | **[Guía de integración EMHASS](../ev_trip_planner/docs/EMHASS_INTEGRATION.md)**
+
+          ---
+
+          *Después de añadir el comando, reinicia Home Assistant y prueba el servicio `shell_command.emhass_day_ahead_optim`*
       # Trip status card
       - type: markdown
         title: "🚗 Estado de Viajes - {{ vehicle_name }}"

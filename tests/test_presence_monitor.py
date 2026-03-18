@@ -10,6 +10,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_PLUGGED_SENSOR,
     CONF_HOME_COORDINATES,
     CONF_VEHICLE_COORDINATES_SENSOR,
+    CONF_NOTIFICATION_SERVICE,
 )
 
 
@@ -18,6 +19,8 @@ def mock_hass():
     """Create mock Home Assistant instance."""
     hass = Mock(spec=HomeAssistant)
     hass.states = Mock()
+    hass.services = Mock()
+    hass.services.async_call = AsyncMock()
     return hass
 
 
@@ -431,3 +434,279 @@ async def test_coordinate_priority_over_sensor(mock_hass):
     assert result is True
     # Should have called sensor, not used coordinates
     mock_hass.states.get.assert_called_once_with("binary_sensor.vehicle_home")
+
+
+@pytest.mark.asyncio
+async def test_presence_monitor_instantiation_with_notification_service(mock_hass):
+    """Test PresenceMonitor can be created with notification service config."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    assert monitor.notification_service == "notify.mobile_app"
+
+
+@pytest.mark.asyncio
+async def test_presence_monitor_instantiation_no_notification_service(mock_hass):
+    """Test PresenceMonitor works without notification service config."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    assert monitor.notification_service is None
+
+
+@pytest.mark.asyncio
+async def test_notify_charging_not_possible_no_service(mock_hass):
+    """Test notification returns False when no service configured."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    result = await monitor.async_notify_charging_not_possible("Vehicle not at home")
+
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_notify_charging_not_possible_with_service_success(mock_hass):
+    """Test notification sent successfully with valid service."""
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    result = await monitor.async_notify_charging_not_possible("Vehicle not at home")
+
+    assert result is True
+    mock_hass.services.async_call.assert_called_once()
+    call_args = mock_hass.services.async_call.call_args
+    assert call_args[0][0] == "notify"  # domain
+    assert call_args[0][1] == "mobile_app"  # service
+
+
+@pytest.mark.asyncio
+async def test_notify_charging_not_possible_with_trip_info(mock_hass):
+    """Test notification includes trip information."""
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    trip_info = {
+        "destination": "Madrid",
+        "energy_needed": 7.5,
+        "deadline": "22:00",
+    }
+
+    result = await monitor.async_notify_charging_not_possible(
+        "Vehicle not at home", trip_info
+    )
+
+    assert result is True
+    call_args = mock_hass.services.async_call.call_args
+    # args are (domain, service, data_dict) - data dict is the third positional arg
+    service_data = call_args[0][2]
+    assert "Madrid" in service_data["message"]
+    assert "7.5" in service_data["message"]
+    assert "22:00" in service_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_notify_vehicle_not_home(mock_hass):
+    """Test notification when vehicle not at home."""
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    trip_info = {"destination": "Barcelona", "energy_needed": 15.0}
+    result = await monitor.async_notify_vehicle_not_home(trip_info)
+
+    assert result is True
+    call_args = mock_hass.services.async_call.call_args
+    service_data = call_args[0][2]
+    assert "not at home" in service_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_notify_vehicle_not_plugged(mock_hass):
+    """Test notification when vehicle not plugged in."""
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    trip_info = {"destination": "Barcelona", "energy_needed": 15.0}
+    result = await monitor.async_notify_vehicle_not_plugged(trip_info)
+
+    assert result is True
+    call_args = mock_hass.services.async_call.call_args
+    service_data = call_args[0][2]
+    assert "not plugged" in service_data["message"]
+
+
+@pytest.mark.asyncio
+async def test_notify_charging_not_possible_service_failure(mock_hass):
+    """Test notification handles service failure gracefully."""
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Mock service call to raise exception
+    mock_hass.services.async_call = AsyncMock(side_effect=Exception("Service error"))
+
+    result = await monitor.async_notify_charging_not_possible("Vehicle not at home")
+
+    assert result is False
+
+
+def test_get_home_condition_config_with_sensor(mock_hass):
+    """Test getting native home condition config when sensor is configured."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition_config = monitor.get_home_condition_config()
+
+    assert condition_config is not None
+    assert condition_config["condition"] == "state"
+    assert condition_config["entity_id"] == "binary_sensor.vehicle_home"
+    assert condition_config["state"] == "on"
+
+
+def test_get_home_condition_config_no_sensor(mock_hass):
+    """Test getting home condition config when no sensor configured."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition_config = monitor.get_home_condition_config()
+
+    assert condition_config is None
+
+
+def test_get_plugged_condition_config_with_sensor(mock_hass):
+    """Test getting native plugged condition config when sensor is configured."""
+    config = {
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition_config = monitor.get_plugged_condition_config()
+
+    assert condition_config is not None
+    assert condition_config["condition"] == "state"
+    assert condition_config["entity_id"] == "binary_sensor.vehicle_plugged"
+    assert condition_config["state"] == "on"
+
+
+def test_get_plugged_condition_config_no_sensor(mock_hass):
+    """Test getting plugged condition config when no sensor configured."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition_config = monitor.get_plugged_condition_config()
+
+    assert condition_config is None
+
+
+def test_validate_condition_is_native_valid_state_condition(mock_hass):
+    """Test validation accepts native state condition."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition = {
+        "condition": "state",
+        "entity_id": "binary_sensor.vehicle_home",
+        "state": "on",
+    }
+
+    is_valid, error = monitor.validate_condition_is_native(condition)
+
+    assert is_valid is True
+    assert error is None
+
+
+def test_validate_condition_is_native_template_condition(mock_hass):
+    """Test validation rejects template condition with helpful message."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition = {
+        "condition": "template",
+        "value_template": "{{ is_state('binary_sensor.vehicle_home', 'on') }}",
+    }
+
+    is_valid, error = monitor.validate_condition_is_native(condition)
+
+    assert is_valid is False
+    assert "template" in error.lower()
+    assert "condition: state" in error
+
+
+def test_validate_condition_is_native_missing_entity_id(mock_hass):
+    """Test validation fails when state condition missing entity_id."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition = {
+        "condition": "state",
+        "state": "on",
+    }
+
+    is_valid, error = monitor.validate_condition_is_native(condition)
+
+    assert is_valid is False
+    assert "entity_id" in error
+
+
+def test_validate_condition_is_native_missing_state(mock_hass):
+    """Test validation fails when state condition missing state."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    condition = {
+        "condition": "state",
+        "entity_id": "binary_sensor.vehicle_home",
+    }
+
+    is_valid, error = monitor.validate_condition_is_native(condition)
+
+    assert is_valid is False
+    assert "state" in error
+
+
+def test_validate_condition_is_native_other_conditions(mock_hass):
+    """Test validation accepts other condition types."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Numeric state condition
+    condition = {
+        "condition": "numeric_state",
+        "entity_id": "sensor.battery",
+        "below": 50,
+    }
+
+    is_valid, error = monitor.validate_condition_is_native(condition)
+
+    assert is_valid is True
+    assert error is None
+
+
+def test_validate_condition_is_native_invalid_input(mock_hass):
+    """Test validation handles invalid input."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    is_valid, error = monitor.validate_condition_is_native("not a dict")
+
+    assert is_valid is False
+    assert "dictionary" in error

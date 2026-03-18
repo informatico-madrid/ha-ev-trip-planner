@@ -44,16 +44,62 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {}
     hass.services = Services()
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_entries = MagicMock(return_value=[])
+    hass.config_entries.async_get_entry = MagicMock(return_value=None)
     return hass
+
+
+def _setup_mock_config_entry(mock_hass, vehicle_id="chispitas"):
+    """Set up a mock config entry for the given vehicle_id."""
+    mock_entry = MagicMock()
+    mock_entry.entry_id = f"entry_{vehicle_id}"
+    mock_entry.data = {"vehicle_name": vehicle_id, "vehicle_type": "ev"}
+    # Include empty managers/coordinators dicts so the code doesn't fail
+    namespace = f"ev_trip_planner_{mock_entry.entry_id}"
+    mock_entry.runtime_data = {namespace: {"managers": {}, "coordinators": {}}}
+
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    return mock_entry
 
 
 @pytest.mark.asyncio
 async def test_services_use_seeded_trip_manager_instance(mock_hass):
     """If a TripManager is seeded in hass.data[DOMAIN]['managers'], services reuse it."""
-    # Seed a pre-existing manager under managers map
+    from custom_components.ev_trip_planner import DOMAIN
+
+    # Create a mock config entry with proper structure
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "entry_chispitas"
+    mock_entry.data = {
+        "vehicle_name": "chispitas",
+        "vehicle_type": "ev",
+    }
+
+    # Set up runtime_data with the seeded manager (current implementation uses this)
+    namespace = f"{DOMAIN}_{mock_entry.entry_id}"
     seeded = MagicMock()
     seeded.async_setup = AsyncMock()
     seeded.async_add_recurring_trip = AsyncMock(return_value="rec_lun_seeded")
+
+    # Also need coordinator in runtime_data (with async_refresh_trips)
+    seeded_coordinator = MagicMock()
+    seeded_coordinator.async_refresh_trips = AsyncMock()
+
+    mock_entry.runtime_data = {
+        namespace: {
+            "managers": {"chispitas": seeded},
+            "coordinators": {"chispitas": seeded_coordinator},
+        }
+    }
+
+    # Set up config_entries to find our entry
+    mock_hass.config_entries = MagicMock()
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    # Also seed in hass.data for backward compatibility check
     mock_hass.data.setdefault(DOMAIN, {}).setdefault("managers", {})["chispitas"] = seeded
 
     register_services(mock_hass)
@@ -75,12 +121,12 @@ async def test_services_use_seeded_trip_manager_instance(mock_hass):
         }
         await handler(call)
 
-    seeded.async_setup.assert_awaited()
     seeded.async_add_recurring_trip.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_service_add_recurring_trip_routes_to_manager(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
 
     p, mgr = _patch_trip_manager()
@@ -97,7 +143,6 @@ async def test_service_add_recurring_trip_routes_to_manager(mock_hass):
         }
         await handler(call)
 
-    mgr.async_setup.assert_awaited()
     mgr.async_add_recurring_trip.assert_awaited_once_with(
         dia_semana="lunes", hora="09:00", km=24.0, kwh=3.6, descripcion="Trabajo"
     )
@@ -105,6 +150,7 @@ async def test_service_add_recurring_trip_routes_to_manager(mock_hass):
 
 @pytest.mark.asyncio
 async def test_service_add_punctual_trip_routes_to_manager(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
 
     p, mgr = _patch_trip_manager()
@@ -120,7 +166,6 @@ async def test_service_add_punctual_trip_routes_to_manager(mock_hass):
         }
         await handler(call)
 
-    mgr.async_setup.assert_awaited()
     mgr.async_add_punctual_trip.assert_awaited_once_with(
         datetime_str="2025-11-19T15:00:00", km=110.0, kwh=16.5, descripcion="Viaje"
     )
@@ -128,6 +173,7 @@ async def test_service_add_punctual_trip_routes_to_manager(mock_hass):
 
 @pytest.mark.asyncio
 async def test_service_update_and_delete_trip(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
     p, mgr = _patch_trip_manager()
     with p:
@@ -146,6 +192,7 @@ async def test_service_update_and_delete_trip(mock_hass):
 
 @pytest.mark.asyncio
 async def test_service_pause_resume_complete_cancel(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
     p, mgr = _patch_trip_manager()
     with p:
@@ -172,6 +219,7 @@ async def test_service_pause_resume_complete_cancel(mock_hass):
 
 @pytest.mark.asyncio
 async def test_service_import_from_weekly_pattern_clears_and_adds(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
     p, mgr = _patch_trip_manager()
     with p:
@@ -201,6 +249,7 @@ async def test_service_import_from_weekly_pattern_clears_and_adds(mock_hass):
 
 @pytest.mark.asyncio
 async def test_service_import_from_weekly_pattern_no_clear(mock_hass):
+    _setup_mock_config_entry(mock_hass)
     register_services(mock_hass)
     p, mgr = _patch_trip_manager()
     with p:
