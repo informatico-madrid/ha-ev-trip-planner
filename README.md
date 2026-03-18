@@ -2,9 +2,12 @@
 
 **Planifica viajes eléctricos y optimiza el consumo energético de tu vehículo**
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Versión](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
-[![Licencia](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg
+  ?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![Versión](https://img.shields.io/badge/version-1.0.0-blue.svg
+  ?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
+[![Licencia](https://img.shields.io/badge/license-MIT-green.svg
+  ?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 ## 📋 Tabla de Contenidos
 
@@ -36,14 +39,14 @@
 - **⚡ Integración con EMHASS**: Optimización energética con horarios dinámicos
 - **🎮 Control de Vehículo**: 4 estrategias (switch, service, script, external)
 - **🏠 Detección de Presencia**: Sensor y coordenadas para seguridad
-- **🔔 Notificaciones Inteligentes**: Alertas cuando carga es necesaria pero no posible
-- **🔄 Asignación Dinámica de Índices**: Múltiples viajes por vehículo sin conflictos
+- **🔔 Notificaciones Inteligentes**: Alertas cuando carga necesaria pero no posible
+- **🔄 Asignación de Índices**: Múltiples viajes por vehículo sin conflictos
 
 ### ✅ Milestone 4 - Perfil de Carga Inteligente (COMPLETADO)
 - **📊 Perfil de Carga Binario**: 0W o máxima potencia, distribuido inteligentemente
 - **🔋 Cálculo SOC-Aware**: Considera batería actual y margen de seguridad del 40%
 - **⚠️ Alertas de Tiempo**: Notifica si no hay tiempo suficiente para cargar
-- **📈 Sensor de Perfil**: `sensor.{vehiculo}_power_profile` con 168 horas de planificación
+- **📈 Sensor de Perfil**: Perfil de potencia con 168 horas de planificación
 - **🧠 Optimización Inteligente**: Distribuye carga justo antes de cada viaje
 
 ### 🚀 Milestone 4.1 - Próximas Mejoras (PLANIFICADO)
@@ -382,7 +385,7 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 2. **Copia los archivos** sobreescribiendo los existentes
 3. **Reinicia Home Assistant**
 
-**⚠️ IMPORTANTE**: Las actualizaciones no borran tus viajes guardados (usan Storage API).
+**⚠️ IMPORTANTE**: Las actualizaciones no borran tus viajes (usan Storage API).
 
 ---
 
@@ -496,7 +499,8 @@ MIT License - Ver archivo [LICENSE](LICENSE) para detalles
 ## 🤝 Soporte
 
 - **Issues**: [GitHub Issues](https://github.com/tu-usuario/ha-ev-trip-planner/issues)
-- **Discusiones**: [GitHub Discussions](https://github.com/tu-usuario/ha-ev-trip-planner/discussions)
+- **Discusiones**: [GitHub
+  Discussions](https://github.com/tu-usuario/ha-ev-trip-planner/discussions)
 - **Documentación**: [Wiki](https://github.com/tu-usuario/ha-ev-trip-planner/wiki)
 
 ---
