@@ -1,0 +1,240 @@
+# Configuration Examples for EV Trip Planner
+# ============================================
+# This file provides complete configuration examples for integrating
+# EV Trip Planner with Home Assistant components.
+
+---
+
+# Section 1: EMHASS Shell Command
+# -------------------------------
+# Add this to your configuration.yaml to send deferrable load data
+# to EMHASS for optimized charging schedules.
+
+shell_command:
+  # Single vehicle example
+  emhass_day_ahead_optim: >
+    curl -i -H "Content-Type: application/json" -X POST -d '{
+      "P_deferrable": {{ (state_attr(
+        'sensor.emhass_perfil_diferible_YOUR_VEHICLE_ID',
+        'power_profile_watts') | default([0]*168, true)) | tojson }}
+    }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
+
+  # Multiple vehicles example - aggregate power profiles
+  emhass_day_ahead_optim_multi: >
+    curl -i -H "Content-Type: application/json" -X POST -d '{
+      "P_deferrable": {{ (
+        state_attr('sensor.emhass_perfil_diferible_vehicle_1',
+        'power_profile_watts') | default([0]*168, true) +
+        state_attr('sensor.emhass_perfil_diferible_vehicle_2',
+        'power_profile_watts') | default([0]*168, true)
+      ) | tojson }}
+    }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
+
+# Placeholder replacements:
+# - YOUR_VEHICLE_ID: e.g., ovms_chispitas, morgan, tesla_model_3
+# - YOUR_EMHASS_IP: e.g., 192.168.1.100
+
+---
+
+# Section 2: Deferrable Load Sensors
+# ---------------------------------
+# These template sensors are automatically created by EV Trip Planner.
+# Each vehicle configured will have its own sensor.
+
+# Sensor entity format:
+# sensor.emhass_perfil_diferible_{vehicle_id}
+
+# Example: If vehicle_id = "chispitas"
+# sensor.emhass_perfil_diferible_chispitas
+
+# Sensor attributes:
+# - power_profile_watts: Array of 168 values (7 days × 24 hours)
+#   - 0 = No charging scheduled at this hour
+#   - Positive value (e.g., 3600) = Charging power in watts
+# - deferrables_schedule: JSON array with timestamps and power values
+#   Format: [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0"}, ...]
+
+# Manual template sensor example (if needed):
+template:
+  - sensor:
+      - name: "emhass_perfil_diferible_manual"
+        unique_id: "emhass_perfil_diferible_manual"
+        state: "{{ now() }}"
+        attributes:
+          power_profile_watts: "{{ [0] * 168 }}"
+          deferrables_schedule: "[]"
+
+---
+
+# Section 3: Notification Configuration
+# -------------------------------------
+# EV Trip Planner can send notifications when:
+# - Charging is needed but vehicle is not plugged in
+# - Charging window is about to close
+# - Trip deadline is approaching
+
+# Example notification automation:
+automation:
+  - alias: "EV Trip Planner - Charging Notification"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_charging_needed
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_plugged
+        state: "off"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "EV Charging Required"
+          message: >
+            {% if trigger.to_state %}
+              {{ trigger.to_state.attributes.friendly_name }} needs
+              charging but is not plugged in.
+            {% else %}
+              Vehicle charging is required but vehicle is not plugged in.
+            {% endif %}
+          data:
+            priority: high
+            ttl: 0
+            channel: EV_Trip_Planner
+
+  - alias: "EV Trip Planner - Trip Deadline Warning"
+    trigger:
+      - platform: time
+        at: "08:00:00"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_deadline_approaching
+        state: "on"
+    action:
+      - service: notify.mobile_app_your_phone
+        data:
+          title: "Trip Deadline Warning"
+          message: >
+            A scheduled trip deadline is approaching. Check EV Trip Planner
+            for details.
+          data:
+            priority: high
+
+# Notification services supported:
+# - notify.mobile_app_* (Mobile app notifications)
+# - notify.persistent_notification (Persistent notifications)
+# - notify.email_*** (Email notifications)
+# - notify.telegram (Telegram notifications)
+# - Any other Home Assistant notify service
+
+---
+
+# Section 4: Presence Sensors
+# ---------------------------
+# These binary sensors are created by EV Trip Planner to monitor
+# vehicle presence and charging status.
+
+# Binary sensor entities (created per vehicle):
+# - binary_sensor.ev_trip_planner_{vehicle_id}_home
+#   True when vehicle is detected at home
+# - binary_sensor.ev_trip_planner_{vehicle_id}_plugged
+#   True when vehicle is plugged in for charging
+# - binary_sensor.ev_trip_planner_{vehicle_id}_charging
+#   True when vehicle is currently charging
+# - binary_sensor.ev_trip_planner_{vehicle_id}_charging_needed
+#   True when charging is needed for upcoming trip
+
+# Example usage in automations:
+automation:
+  - alias: "EV - Start Charging When Home and Plugged"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_home
+        to: "on"
+      - platform: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_plugged
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.ev_trip_planner_{vehicle_id}_charging_needed
+        state: "on"
+    action:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.ev_charger
+
+---
+
+# Section 5: EMHASS Automation
+# ----------------------------
+# Automate the EMHASS optimization to run periodically.
+
+automation:
+  - alias: "EMHASS - Run Daily Optimization"
+    trigger:
+      - platform: time
+        at: "00:00:00"
+      - platform: time
+        at: "06:00:00"
+      - platform: time
+        at: "12:00:00"
+      - platform: time
+        at: "18:00:00"
+    action:
+      - service: shell_command.emhass_day_ahead_optim
+
+  - alias: "EMHASS - Update After Trip Change"
+    trigger:
+      - platform: event
+        event_type: ev_trip_planner_trip_updated
+    action:
+      - service: shell_command.emhass_day_ahead_optim
+
+---
+
+# Section 6: Vehicle Control
+# --------------------------
+# EV Trip Planner can control vehicle charging using three strategies.
+
+# Strategy 1: Switch Control
+switch:
+  - platform: template
+    switches:
+      ev_charger:
+        value_template: "{{ states('binary_sensor.ev_charger_status') }}"
+        turn_on:
+          service: switch.turn_on
+          target:
+            entity_id: switch.wallbox_command
+        turn_off:
+          service: switch.turn_off
+          target:
+            entity_id: switch.wallbox_command
+
+# Strategy 2: Service Control
+# Uses a service call to control charging
+# Example: wallbox.call_action with appropriate parameters
+
+# Strategy 3: Script Control
+# Uses a script to control charging
+script:
+  ev_charge_control:
+    sequence:
+      - service: script.turn_on
+        target:
+          entity_id: script.wallbox_charging_sequence
+
+---
+
+# Quick Reference
+# ---------------
+# Replace these placeholders in the examples above:
+#
+# YOUR_VEHICLE_ID    -> e.g., ovms_chispitas, morgan, tesla_model_3
+# YOUR_EMHASS_IP    -> e.g., 192.168.1.100
+# your_phone        -> e.g., pixel_7_pro
+# ev_charger        -> your charger entity ID
+#
+# Sensor naming convention:
+# - Template sensor: sensor.emhass_perfil_diferible_{vehicle_id}
+# - Home presence: binary_sensor.ev_trip_planner_{vehicle_id}_home
+# - Plugged status: binary_sensor.ev_trip_planner_{vehicle_id}_plugged
+# - Charging status: binary_sensor.ev_trip_planner_{vehicle_id}_charging

@@ -15,6 +15,59 @@ Before starting, ensure you have:
 
 ---
 
+## Step 1: Install EMHASS Add-on
+
+### Home Assistant OS / Supervised
+
+1. Open Home Assistant and go to **Settings** → **Add-ons**
+2. Click the **Add-on Store** button (bottom right)
+3. Click the three dots menu (top right) → **Repositories**
+4. Add the EMHASS repository:
+   ```
+   https://github.com/davidusb-ge/emhass
+   ```
+5. Find **EMHASS** in the add-on store and click **Install**
+6. Configure the add-on with your settings:
+   ```json
+   {
+     "latitude": 40.7128,
+     "longitude": -74.0060,
+     "tz": "America/New_York",
+     "forecast_days": 2,
+     "optimization_time_step": 15,
+     "def_total_hours": 24,
+     "weather_config": {
+       "solar": "forecast",
+       "number_of_years": 1,
+       "solar_power": 5000
+     }
+   }
+   ```
+7. Start the add-on and enable **Start on boot**
+
+### Standalone Installation
+
+If running EMHASS separately:
+
+1. Install Docker: `docker pull davidusbf/emhass`
+2. Run the container:
+   ```bash
+   docker run -d \
+     -p 5000:5000 \
+     -v ./emhass_data:/data \
+     -e TZ=America/New_York \
+     davidusbf/emhass
+   ```
+3. Access EMHASS at `http://YOUR_EMHASS_IP:5000`
+
+### Verify EMHASS is Running
+
+1. Open your browser to `http://YOUR_EMHASS_IP:5000`
+2. You should see the EMHASS web interface
+3. Check the **Configuration** page to ensure deferrable loads are enabled
+
+---
+
 ## Integration Steps
 
 ### Step 1: Copy Shell Command to configuration.yaml
@@ -114,6 +167,10 @@ EMHASS provides sensors that show the received deferrable loads. Check for:
 
 ## Understanding Power Profiles
 
+EV Trip Planner creates template sensors with two important attributes:
+
+### power_profile_watts
+
 The `power_profile_watts` attribute contains an array of power values:
 
 | Value | Meaning |
@@ -124,6 +181,22 @@ The `power_profile_watts` attribute contains an array of power values:
 **Array structure:**
 - Default length: 168 values (7 days × 24 hours)
 - Each index represents one hour in the planning horizon
+
+### deferrables_schedule
+
+The `deferrables_schedule` attribute contains detailed schedule information in JSON format:
+
+```json
+[
+  {"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0"},
+  {"date": "2026-03-17T15:00:00+01:00", "p_deferrable0": "3600.0"},
+  ...
+]
+```
+
+**Fields:**
+- `date`: ISO 8601 timestamp for the hour
+- `p_deferrable{index}`: Power value in watts for each deferrable load (0, 1, 2, ...)
 
 ---
 
@@ -147,6 +220,7 @@ The `power_profile_watts` attribute contains an array of power values:
 2. Check network connectivity from HA to EMHASS
 3. Verify EMHASS API endpoint is correct (`/action/dayahead-optim`)
 4. Check EMHASS authentication settings if enabled
+5. Verify the correct port (default 5000) is open
 
 ### Empty Power Profile
 
@@ -156,6 +230,8 @@ The `power_profile_watts` attribute contains an array of power values:
 1. Check that trips are scheduled in EV Trip Planner
 2. Verify planning horizon includes the trip deadline
 3. Ensure the trip deadline is in the future
+4. Check that the departure time is set for each trip
+5. Verify consumption sensor is configured
 
 ### Invalid JSON Response
 
@@ -165,6 +241,36 @@ The `power_profile_watts` attribute contains an array of power values:
 1. Check EMHASS logs for detailed error information
 2. Verify the POST data format is correct
 3. Ensure EMHASS is properly configured for deferrable loads
+4. Check that the power profile array has the correct length
+
+### Power Profile Array Length Mismatch
+
+**Problem:** EMHASS expects 168 values but receives different length
+
+**Solution:**
+1. Verify planning horizon is set to 7 days (168 hours)
+2. Check the `default([0]*168)` filter in the shell command
+3. Ensure the sensor attribute has 168 values
+
+### EMHASS Not Optimizing
+
+**Problem:** EMHASS runs but doesn't produce optimized schedule
+
+**Solution:**
+1. Verify deferrable loads are published correctly
+2. Check EMHASS sensors for P_deferrable values
+3. Ensure load configuration is enabled in EMHASS
+4. Check for forecast data availability
+
+### Template Sensor Not Updating
+
+**Problem:** Sensor exists but attributes don't change
+
+**Solution:**
+1. Check EV Trip Planner trip configuration
+2. Verify departure time and charging power settings
+3. Restart EV Trip Planner integration
+4. Check Home Assistant logs for errors
 
 ---
 
@@ -209,6 +315,6 @@ Optimized Charging Schedule
 
 ## Additional Resources
 
-- [Shell Command Example](shell_command_example.yaml)
+- [Shell Command Example](SHELL_COMMAND_SETUP.md)
 - [EMHASS Add-on Documentation](https://github.com/davidusb-ge/emhass)
-- [EV Trip Planner Dashboard](docs/DASHBOARD.md)
+- [EV Trip Planner Dashboard](DASHBOARD.md)

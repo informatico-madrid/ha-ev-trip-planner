@@ -4,7 +4,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg
   ?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Versión](https://img.shields.io/badge/version-1.0.0-blue.svg
+[![Versión](https://img.shields.io/badge/version-0.4.0--dev-blue.svg
   ?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
 [![Licencia](https://img.shields.io/badge/license-MIT-green.svg
   ?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -281,7 +281,7 @@ shell_command:
       "P_deferrable": {{ (state_attr(
         'sensor.emhass_perfil_diferible_chispitas',
         'power_profile_watts'
-      ) | default([0]*168) + [0]*168) | tojson }}
+      ) | default([0]*168)) | tojson }}
     }' http://192.168.1.100:5000/action/dayahead-optim
 ```
 
