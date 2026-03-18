@@ -364,9 +364,10 @@ class TripManager:
 
     async def async_get_hours_needed_today(self) -> int:
         """Calcula las horas necesarias para cargar hoy."""
+        import math
         kwh_needed = await self.async_get_kwh_needed_today()
         charging_power = self._get_charging_power()
-        return int(kwh_needed / charging_power) if charging_power > 0 else 0
+        return math.ceil(kwh_needed / charging_power) if charging_power > 0 else 0
 
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
@@ -402,7 +403,9 @@ class TripManager:
     def _is_trip_today(self, trip: Dict[str, Any], today: datetime.date) -> bool:
         """Verifica si un viaje ocurre hoy."""
         if trip["tipo"] == TRIP_TYPE_RECURRING:
-            return today.strftime("%A").lower() == trip["dia_semana"]
+            # Use weekday index to compare (0=lunes, 6=domingo)
+            day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+            return day_map[today.weekday()] == trip["dia_semana"].lower()
         elif trip["tipo"] == TRIP_TYPE_PUNCTUAL:
             return datetime.strptime(trip["datetime"], "%Y-%m-%dT%H:%M").date() == today
         return False
@@ -507,7 +510,7 @@ class TripManager:
             # Trip has tipo and datetime - use _get_trip_time
             trip_time = self._get_trip_time(trip)
             if trip_time:
-                now = dt_util.now()
+                now = datetime.now()
                 delta = trip_time - now
                 horas_disponibles = delta.total_seconds() / 3600
                 if horas_carga > horas_disponibles:

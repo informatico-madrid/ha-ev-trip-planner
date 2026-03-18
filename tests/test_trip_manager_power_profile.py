@@ -13,14 +13,24 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 # Tests enabled for SOC-aware power profile feature
 # Note: Some tests (SOC-aware) disabled due to timezone implementation bug
-pytestmark = pytest.mark.skip(reason="SOC-aware tests require timezone-aware datetime handling in implementation")
 
 
 @pytest.fixture
 def mock_hass():
     """Create mock Home Assistant instance."""
     hass = Mock()
-    hass.data = {}
+    # Set up config_entries mock
+    mock_entry = Mock()
+    mock_entry.entry_id = "test_vehicle"
+    hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
+    # Set up data namespace for _load_trips()
+    hass.data = {
+        "ev_trip_planner_test_vehicle": {
+            "trips": {},
+            "recurring_trips": {},
+            "punctual_trips": {},
+        }
+    }
     return hass
 
 
@@ -55,16 +65,16 @@ def vehicle_config():
 
 
 @pytest.mark.asyncio
-async def test_power_profile_considers_soc_current(trip_manager, sample_trip, vehicle_config):
+async def test_power_profile_considers_soc_current(trip_manager, sample_trip, vehicle_config, mock_hass):
     """Test that power profile considers SOC and schedules charging when needed.
 
     Bug scenario: SOC=49% (19.6 kWh), needs 7.5 kWh for trip.
     After trip: 12.1 kWh left = 30% SOC (below 40% safety margin).
     Should schedule charging for ~3.9 kWh to reach 16 kWh minimum.
     """
-    # Add trip to internal state (implementation uses _punctual_trips, not async_get_all_trips_expanded)
+    # Add trip to hass.data so _load_trips() will find it
     trip_id = "test_trip_001"
-    trip_manager._punctual_trips[trip_id] = {
+    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
         **sample_trip,
         "id": trip_id,
         "estado": "pendiente",
@@ -87,7 +97,7 @@ async def test_power_profile_considers_soc_current(trip_manager, sample_trip, ve
 
 
 @pytest.mark.asyncio
-async def test_power_profile_with_soc_above_threshold(trip_manager, sample_trip):
+async def test_power_profile_with_soc_above_threshold(trip_manager, sample_trip, mock_hass):
     """Test that no charging is scheduled when SOC is already sufficient."""
     # High SOC: 80% = 32 kWh available, only needs 7.5 kWh
     # After trip: 24.5 kWh left = 61% SOC (above 40% safety margin)
@@ -97,9 +107,9 @@ async def test_power_profile_with_soc_above_threshold(trip_manager, sample_trip)
         "soc_current": 80.0,  # High SOC, no charging needed
     }
 
-    # Add trip to internal state
+    # Add trip to hass.data so _load_trips() will find it
     trip_id = "test_trip_001"
-    trip_manager._punctual_trips[trip_id] = {
+    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
         **sample_trip,
         "id": trip_id,
         "estado": "pendiente",
@@ -117,7 +127,7 @@ async def test_power_profile_with_soc_above_threshold(trip_manager, sample_trip)
 
 
 @pytest.mark.asyncio
-async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip):
+async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip, mock_hass):
     """Test that charging IS scheduled when SOC is below threshold."""
     # Low SOC: 30% = 12 kWh available, needs 7.5 kWh
     # After trip: 4.5 kWh left = 11% SOC (way below 40% safety margin)
@@ -127,9 +137,9 @@ async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip)
         "soc_current": 30.0,  # Low SOC, charging definitely needed
     }
 
-    # Add trip to internal state
+    # Add trip to hass.data so _load_trips() will find it
     trip_id = "test_trip_001"
-    trip_manager._punctual_trips[trip_id] = {
+    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
         **sample_trip,
         "id": trip_id,
         "estado": "pendiente",
@@ -153,11 +163,11 @@ async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip)
 
 
 @pytest.mark.asyncio
-async def test_power_profile_energy_calculation_accuracy(trip_manager, sample_trip, vehicle_config):
+async def test_power_profile_energy_calculation_accuracy(trip_manager, sample_trip, vehicle_config, mock_hass):
     """Test that energy calculation is accurate and considers safety margin."""
-    # Add trip to internal state
+    # Add trip to hass.data so _load_trips() will find it
     trip_id = "test_trip_001"
-    trip_manager._punctual_trips[trip_id] = {
+    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
         **sample_trip,
         "id": trip_id,
         "estado": "pendiente",
