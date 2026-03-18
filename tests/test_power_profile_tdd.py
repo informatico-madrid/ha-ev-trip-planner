@@ -17,11 +17,12 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 from custom_components.ev_trip_planner.const import DOMAIN
 
 
-pytestmark = pytest.mark.asyncio
 
 
 class TestCalcularEnergiaNecesaria:
     """Tests para el cálculo de energía necesaria considerando SOC actual."""
+
+    pytestmark = pytest.mark.asyncio
     
     async def test_calcular_energia_necesaria_soc_alto(self, hass):
         """Test: SOC alto (80%), no necesita carga."""
@@ -133,6 +134,8 @@ class TestCalcularEnergiaNecesaria:
 
 class TestGenerarPerfilPotencia:
     """Tests para la generación del perfil de potencia."""
+
+    pytestmark = pytest.mark.asyncio
     
     async def test_generar_perfil_potencia_maxima(self, hass):
         """Test: Perfil solo contiene 0W o max_power (3600W)."""
@@ -197,6 +200,8 @@ class TestGenerarPerfilPotencia:
 
 class TestGetVehicleSOC:
     """Tests para obtener el SOC del vehículo."""
+
+    pytestmark = pytest.mark.asyncio
     
     async def test_get_vehicle_soc_sensor_no_disponible(self, hass):
         """Test: Manejar sensor SOC unavailable."""
