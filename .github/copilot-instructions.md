@@ -37,3 +37,8 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 When asked to generate a commit message, strictly use Conventional Commits format:
 `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
 
+## USO HERRAMIENTA PARA HACER CAMBIOS
+
+- Leer el archivo completo antes de intentar hacer cambios
+- Asegurarse de que el texto a reemplazar coincide exactamente con el contenido del archivo
+- Usar read_file para verificar el contenido antes de hacer cambios
