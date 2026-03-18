@@ -1,0 +1,1 @@
+/home/malka/ha-ev-trip-planner/.github/copilot-instructions.md

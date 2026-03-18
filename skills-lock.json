@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "skills": {
+    "home-assistant-best-practices": {
+      "source": "homeassistant-ai/skills",
+      "sourceType": "github",
+      "computedHash": "d644eff308a0a4db05b9bd0d68ac2e3e81aeda961746223fd550d67ed15f0a2b"
+    },
+    "homeassistant-config": {
+      "source": "esjavadex/claude-homeassistant-plugins",
+      "sourceType": "github",
+      "computedHash": "90dadfc22b79816de0d6572d9189f50b0a9be19d487265715637ab631f5d9ba3"
+    },
+    "homeassistant-dashboard-designer": {
+      "source": "ccostan/home-assistantconfig",
+      "sourceType": "github",
+      "computedHash": "c73fbb2b98437733efa6cf56fe33bd41e8e333ee2bef69d1ae72a77788fd82be"
+    },
+    "homeassistant-ops": {
+      "source": "goncalossilva/.agents",
+      "sourceType": "github",
+      "computedHash": "847d6c59f20575f3a40472fc22d6dbc94ec74ce1d5fe52a404b779ff7b57639b"
+    },
+    "homeassistant-skill": {
+      "source": "anotb/homeassistant-skill",
+      "sourceType": "github",
+      "computedHash": "f2bebc24df85fbc9641f5fd12161f9eead03b5dabb238a7d73707afde8edf8de"
+    },
+    "python-cybersecurity-tool-development": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "computedHash": "5b64dbf6251565912a65eea6e180a5a73751a021d1fb8d81386a6bb099abac7e"
+    },
+    "python-performance-optimization": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "2a11c79dcd94b5424261b44247ab03a8365cbe62f05f9b52500211db8fda98f9"
+    },
+    "python-security-scanner": {
+      "source": "jorgealves/agent_skills",
+      "sourceType": "github",
+      "computedHash": "d80288a2ae3454ee3061c9904ba7463f8fa26cb17cd0c3d3860504c0487c53c0"
+    },
+    "python-testing-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "c9ac74e0ecade3d4aacc89b8eb9eec63d9125a3a02e4bac9781ae0ca371227ad"
+    }
+  }
+}
