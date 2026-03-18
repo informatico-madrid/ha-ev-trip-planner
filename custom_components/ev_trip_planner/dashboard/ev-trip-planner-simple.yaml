@@ -1,0 +1,121 @@
+# Simple dashboard template for EV Trip Planner - No charts
+# This template is used when Lovelace is not available or charts are not desired
+# Uses only markdown cards for compatibility
+
+title: "EV Trip Planner - {{ vehicle_name }}"
+views:
+  - title: "{{ vehicle_name }} - Estado"
+    path: "{{ vehicle_id }}"
+    icon: mdi:car-electric
+    cards:
+      # EMHASS Integration Setup Card
+      - type: markdown
+        title: "🔧 Configuración EMHASS"
+        content: |
+          ## ¡Integración EMHASS configurada!
+
+          Para completar la integración con EMHASS, añade este comando shell a tu `configuration.yaml`:
+
+          ```yaml
+          shell_command:
+            emhass_day_ahead_optim: >
+              curl -i -H "Content-Type: application/json" -X POST -d '{
+                "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_{{ vehicle_id }}', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+              }' http://TU_IP_EMHASS:5000/action/dayahead-optim
+          ```
+
+          **Reemplaza:**
+          - `TU_IP_EMHASS`: La IP de tu instancia EMHASS (ej: `192.168.1.100`)
+
+          📖 **[Ver documentación completa](https://github.com/davidusb-ge/emhass)** | **[Guía de integración EMHASS](../ev_trip_planner/docs/EMHASS_INTEGRATION.md)**
+
+          ---
+
+          *Después de añadir el comando, reinicia Home Assistant y prueba el servicio `shell_command.emhass_day_ahead_optim`*
+      # Trip status card
+      - type: markdown
+        title: "🚗 Estado de Viajes - {{ vehicle_name }}"
+        content: |
+          {% set trips_count = states('sensor.{{ vehicle_id }}_trips_count') | default('0') %}
+          {% set next_trip = states('sensor.{{ vehicle_id }}_next_trip') | default('N/A') %}
+          {% set kwh_needed = states('sensor.{{ vehicle_id }}_kwh_needed_today') | default('0') %}
+
+          **Viajes programados:** {{ trips_count }}
+          **Próximo viaje:** {{ next_trip }}
+          **kWh necesarios hoy:** {{ kwh_needed }} kWh
+
+          ---
+
+          *Estado actualizado automáticamente*
+
+      # Deferrable loads monitoring card
+      - type: markdown
+        title: "⚡ Cargas Diferibles - {{ vehicle_name }}"
+        content: |
+          {% set deferrable_sensor = 'sensor.emhass_perfil_diferible_' ~ vehicle_id %}
+          {% set deferrable_state = states(deferrable_sensor) | default('No disponible') %}
+          {% set power_profile = state_attr(deferrable_sensor, 'power_profile_watts') %}
+          {% set schedule = state_attr(deferrable_sensor, 'deferrables_schedule') %}
+
+          **Sensor de carga diferible:** {{ deferrable_sensor }}
+          **Estado:** {{ deferrable_state }}
+
+          {% if power_profile %}
+          **Perfil de potencia:** {{ power_profile | length }} horas
+          {% else %}
+          **Perfil de potencia:** No configurado
+          {% endif %}
+
+          {% if schedule %}
+          **Schedule configurado:** {{ schedule | length }} entradas
+          {% else %}
+          **Schedule:** No disponible
+          {% endif %}
+
+          ---
+
+          *Cargas diferibles para optimización EMHASS*
+
+      # Vehicle status card
+      - type: markdown
+        title: "🔋 Estado del Vehículo - {{ vehicle_name }}"
+        content: |
+          {% set soc_sensor = states('sensor.{{ vehicle_id }}_soc') | default('N/A') %}
+          {% set range_sensor = states('sensor.{{ vehicle_id }}_range') | default('N/A') %}
+          {% set charging_status = states('binary_sensor.{{ vehicle_id }}_charging') | default('N/A') %}
+
+          **SOC batería:** {{ soc_sensor }}%
+          **Autonomía:** {{ range_sensor }} km
+          **Estado de carga:** {{ charging_status }}
+
+          ---
+
+          *Información del vehículo*
+
+      # Presence status card
+      - type: markdown
+        title: "📍 Presencia - {{ vehicle_name }}"
+        content: |
+          {% set home_status = states('binary_sensor.{{ vehicle_id }}_home') | default('N/A') %}
+          {% set plugged_status = states('binary_sensor.{{ vehicle_id }}_plugged') | default('N/A') %}
+
+          **En casa:** {{ home_status }}
+          **Enchufado:** {{ plugged_status }}
+
+          ---
+
+          *Detección de presencia para carga automática*
+
+      # Quick stats entities card
+      - type: entities
+        title: "📊 Métricas"
+        entities:
+          - entity: sensor.{{ vehicle_id }}_trips_count
+            name: Viajes totales
+          - entity: sensor.{{ vehicle_id }}_kwh_needed_today
+            name: kWh necesarios hoy
+          - entity: sensor.{{ vehicle_id }}_next_trip
+            name: Próximo viaje
+          - entity: sensor.emhass_perfil_diferible_{{ vehicle_id }}
+            name: Carga diferible EMHASS
+            icon: mdi:lightning-bolt

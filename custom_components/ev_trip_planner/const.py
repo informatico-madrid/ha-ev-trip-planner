@@ -37,6 +37,7 @@ CONF_PLANNING_SENSOR = "planning_sensor_entity"
 # Presence Detection
 CONF_HOME_SENSOR = "home_sensor"
 CONF_PLUGGED_SENSOR = "plugged_sensor"
+CONF_CHARGING_SENSOR = "charging_sensor"
 CONF_HOME_COORDINATES = "home_coordinates"
 CONF_VEHICLE_COORDINATES_SENSOR = "vehicle_coordinates_sensor"
 
@@ -57,6 +58,7 @@ VEHICLE_TYPE_PHEV = "phev"
 
 # Defaults
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
+DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV

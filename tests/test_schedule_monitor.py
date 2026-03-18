@@ -456,3 +456,290 @@ async def test_async_notify_failure(
     
     # Should not raise exception
     await monitor._async_notify("Test Title", "Test Message")
+
+
+@pytest.mark.asyncio
+async def test_async_monitor_schedule_entity_not_found(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor handles missing schedule entity gracefully."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock schedule entity NOT found (returns None)
+    mock_hass.states.get = Mock(return_value=None)
+
+    # Should not raise, just log warning
+    await monitor._async_monitor_schedule(0)
+
+    # No handlers should be registered
+    assert 0 not in monitor._unsub_handlers
+
+
+@pytest.mark.asyncio
+async def test_async_handle_schedule_change_entity_disappears(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor handles schedule entity disappearing."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # First call returns a state, second call returns None (entity disappeared)
+    mock_hass.states.get = Mock(side_effect=[
+        Mock(state="on"),  # First call in _async_monitor_schedule
+        None,  # Second call in _async_handle_schedule_change
+    ])
+
+    # Mock async_create_task to avoid actual task creation
+    mock_hass.async_create_task = AsyncMock()
+
+    # Should handle gracefully when entity disappears
+    await monitor._async_handle_schedule_change(0)
+
+
+@pytest.mark.asyncio
+async def test_async_start_charging_presence_at_home(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor starts charging when at home."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Presence says at home
+    mock_presence_monitor.async_check_home_status = AsyncMock(return_value=True)
+
+    # Control strategy activate returns success
+    mock_control_strategy.async_activate = AsyncMock(return_value=True)
+
+    # Mock async_notify to avoid notification
+    monitor._async_notify = AsyncMock()
+
+    # Should start charging
+    await monitor._async_start_charging(0)
+
+    # Verify control strategy was called
+    mock_control_strategy.async_activate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_start_charging_presence_not_at_home(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor skips charging when not at home."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Presence says NOT at home
+    mock_presence_monitor.async_check_home_status = AsyncMock(return_value=False)
+
+    # Mock async_notify
+    mock_notify = AsyncMock()
+    monitor._async_notify = mock_notify
+
+    # Should NOT start charging
+    await monitor._async_start_charging(0)
+
+    # Control strategy should NOT be called
+    mock_control_strategy.async_start.assert_not_called()
+
+    # Notification should be sent
+    mock_notify.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_start_charging_no_presence_monitor(
+    mock_hass, mock_control_strategy, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor starts charging when no presence monitor."""
+    # Create monitor without presence monitor
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=None,  # No presence monitor
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Control strategy activate returns success
+    mock_control_strategy.async_activate = AsyncMock(return_value=True)
+
+    # Should start charging (no presence check)
+    await monitor._async_start_charging(0)
+
+    # Verify control strategy was called
+    mock_control_strategy.async_activate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_stop_charging(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor stops charging."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Set last action to "start" so we test the duplicate prevention
+    monitor._last_actions[0] = "start"
+
+    # Control strategy deactivate returns success
+    mock_control_strategy.async_deactivate = AsyncMock(return_value=True)
+
+    # Should stop charging
+    await monitor._async_stop_charging(0)
+
+    # Verify control strategy was called
+    mock_control_strategy.async_deactivate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_start_charging_already_started(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor avoids duplicate start charging."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Already started - this should prevent duplicate
+    monitor._last_actions[0] = "start"
+
+    # Control strategy should NOT be called
+    await monitor._async_start_charging(0)
+
+    mock_control_strategy.async_activate.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_stop_charging_already_stopped(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test VehicleScheduleMonitor avoids duplicate stop charging."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Already stopped - this should prevent duplicate
+    monitor._last_actions[0] = "stop"
+
+    # Control strategy should NOT be called
+    await monitor._async_stop_charging(0)
+
+    mock_control_strategy.async_deactivate.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_handle_schedule_change_charging_start(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test schedule change triggers charging start."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock schedule returns "on"
+    mock_hass.states.get = Mock(return_value=Mock(state="on"))
+
+    # Mock the charging methods
+    monitor._async_start_charging = AsyncMock()
+    monitor._async_stop_charging = AsyncMock()
+
+    await monitor._async_handle_schedule_change(0)
+
+    # Should start charging
+    monitor._async_start_charging.assert_called_once_with(0)
+    monitor._async_stop_charging.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_handle_schedule_change_charging_stop(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test schedule change triggers charging stop."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock schedule returns "off"
+    mock_hass.states.get = Mock(return_value=Mock(state="off"))
+
+    # Mock the charging methods
+    monitor._async_start_charging = AsyncMock()
+    monitor._async_stop_charging = AsyncMock()
+
+    await monitor._async_handle_schedule_change(0)
+
+    # Should stop charging
+    monitor._async_stop_charging.assert_called_once_with(0)
+    monitor._async_start_charging.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_handle_schedule_change_exception(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test schedule change handles exception gracefully."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock schedule get raises exception
+    mock_hass.states.get = Mock(side_effect=Exception("Test error"))
+
+    # Should not raise
+    await monitor._async_handle_schedule_change(0)

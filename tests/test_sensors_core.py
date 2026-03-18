@@ -22,12 +22,16 @@ def _sample_trips():
 
 
 class FakeCoordinator:
-    def __init__(self, trips_list):
+    def __init__(self, trips_list, mock_hass=None):
         # El coordinator real devuelve un dict con claves recurring_trips y punctual_trips
         self.data = {
             "recurring_trips": [t for t in trips_list if t.get("tipo") == "recurrente"],
             "punctual_trips": [t for t in trips_list if t.get("tipo") == "puntual"],
         }
+        # Add trip_manager with hass for sensor initialization
+        if mock_hass is not None:
+            self.trip_manager = MagicMock()
+            self.trip_manager.hass = mock_hass
 
 
 @pytest.mark.asyncio
@@ -37,7 +41,7 @@ async def test_recurring_and_punctual_counts(mock_hass):
         PunctualTripsCountSensor,
     )
 
-    coord = FakeCoordinator(_sample_trips())
+    coord = FakeCoordinator(_sample_trips(), mock_hass)
     rec = RecurringTripsCountSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
     pun = PunctualTripsCountSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
 
@@ -49,7 +53,7 @@ async def test_recurring_and_punctual_counts(mock_hass):
 async def test_trips_list_sensor_attributes(mock_hass):
     from custom_components.ev_trip_planner.sensor import TripsListSensor
 
-    coord = FakeCoordinator(_sample_trips())
+    coord = FakeCoordinator(_sample_trips(), mock_hass)
     s = TripsListSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
 
     # Valor nativo: total

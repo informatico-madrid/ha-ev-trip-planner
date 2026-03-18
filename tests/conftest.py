@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
-
-from custom_components.ev_trip_planner.const import DOMAIN
 
 
 @pytest.fixture(autouse=True)
@@ -162,23 +159,309 @@ def hass():
 def mock_store():
     """
     Fixture to provide a mock Store instance with async methods.
-    
+
     This is needed because Store.async_load() and Store.async_save()
     are async methods that need to be mocked with AsyncMock, not MagicMock.
-    
+
     This implementation also provides data persistence between calls.
     """
     store = MagicMock()
     store._storage = {}  # Internal storage for data persistence
-    
+
     async def _async_load():
         return store._storage.get("data", None)
-    
+
     async def _async_save(data):
         store._storage["data"] = data
         return True
-    
+
     store.async_load = _async_load
     store.async_save = _async_save
-    
+
     yield store
+
+
+# ============================================================================
+# Config Flow Testing Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def mock_entity_registry():
+    """Return a mock entity registry for entity selection in config flow."""
+    from unittest.mock import MagicMock
+
+    registry = MagicMock()
+    registry._entities = {}
+
+    def _get_entity(entity_id):
+        """Get entity from registry."""
+        return registry._entities.get(entity_id)
+
+    def _entities_for_domain(domain):
+        """Get all entities for a specific domain."""
+        return [
+            entity for entity_id, entity in registry._entities.items()
+            if entity_id.startswith(f"{domain}.")
+        ]
+
+    def _async_get_entity(entity_id):
+        """Async get entity from registry."""
+        return _get_entity(entity_id)
+
+    registry.get = _get_entity
+    registry.entities_for_domain = _entities_for_domain
+    registry.async_get = _async_get_entity
+
+    # Add some default entities
+    default_entities = {
+        "sensor.ovms_soc": MagicMock(
+            entity_id="sensor.ovms_soc",
+            domain="sensor",
+            original_name="OVMS SOC",
+            capabilities={"state_class": "measurement", "unit_of_measurement": "%"},
+        ),
+        "sensor.ovms_consumption": MagicMock(
+            entity_id="sensor.ovms_consumption",
+            domain="sensor",
+            original_name="OVMS Consumption",
+            capabilities={"state_class": "measurement", "unit_of_measurement": "kWh/100km"},
+        ),
+        "binary_sensor.home_presence": MagicMock(
+            entity_id="binary_sensor.home_presence",
+            domain="binary_sensor",
+            original_name="Home Presence",
+            capabilities={"device_class": "presence"},
+        ),
+        "binary_sensor.vehicle_plugged": MagicMock(
+            entity_id="binary_sensor.vehicle_plugged",
+            domain="binary_sensor",
+            original_name="Vehicle Plugged",
+            capabilities={"device_class": "plug"},
+        ),
+        "binary_sensor.charging_status": MagicMock(
+            entity_id="binary_sensor.charging_status",
+            domain="binary_sensor",
+            original_name="Charging Status",
+            capabilities={"device_class": "battery_charging"},
+        ),
+        "switch.ev_charger": MagicMock(
+            entity_id="switch.ev_charger",
+            domain="switch",
+            original_name="EV Charger",
+            capabilities=None,
+        ),
+    }
+
+    for entity_id, entity in default_entities.items():
+        registry._entities[entity_id] = entity
+
+    yield registry
+
+
+@pytest.fixture
+def mock_device_registry():
+    """Return a mock device registry for device selection in config flow."""
+    from unittest.mock import MagicMock
+
+    registry = MagicMock()
+    registry._devices = {}
+
+    def _get_device(device_id):
+        """Get device from registry."""
+        return registry._devices.get(device_id)
+
+    def _devices_for_config_entry(config_entry_id):
+        """Get all devices for a specific config entry."""
+        return [
+            device for device in registry._devices.values()
+            if device.config_entries.get(config_entry_id)
+        ]
+
+    def _async_get_device(device_id):
+        """Async get device from registry."""
+        return _get_device(device_id)
+
+    registry.get = _get_device
+    registry.devices_for_config_entry = _devices_for_config_entry
+    registry.async_get = _async_get_device
+
+    # Add a default device
+    default_device = MagicMock(
+        device_id="device_123",
+        name="Test Vehicle",
+        config_entries={"config_entry_123"},
+        manufacturer="Tesla",
+        model="Model 3",
+    )
+    registry._devices["device_123"] = default_device
+
+    yield registry
+
+
+@pytest.fixture
+def mock_config_entries():
+    """Return a mock config entries manager."""
+    from unittest.mock import MagicMock
+
+    entries_manager = MagicMock()
+    entries_manager._entries = {}
+
+    def _get_entry(entry_id):
+        """Get config entry by ID."""
+        return entries_manager._entries.get(entry_id)
+
+    def _async_entries():
+        """Get all config entries."""
+        return list(entries_manager._entries.values())
+
+    entries_manager.get_entry = _get_entry
+    entries_manager.async_entries = _async_entries
+
+    # Add a default config entry
+    default_entry = MagicMock()
+    default_entry.entry_id = "config_entry_123"
+    default_entry.data = {
+        "vehicle_name": "test_vehicle",
+        "vehicle_type": "ev",
+        "soc_sensor": "sensor.ovms_soc",
+        "battery_capacity_kwh": 60.0,
+        "charging_power_kw": 11.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10,
+    }
+    default_entry.options = {}
+    entries_manager._entries["config_entry_123"] = default_entry
+
+    yield entries_manager
+
+
+@pytest.fixture
+def mock_flow_manager():
+    """Return a mock flow manager for config flow testing."""
+    from unittest.mock import MagicMock
+
+    flow_manager = MagicMock()
+    flow_manager._flow_init = False
+
+    async def _async_init():
+        """Initialize the flow manager."""
+        flow_manager._flow_init = True
+
+    flow_manager.async_init = _async_init
+
+    yield flow_manager
+
+
+@pytest.fixture
+def mock_hass_with_entity_registry(hass, mock_entity_registry, mock_device_registry, mock_config_entries):
+    """
+    Return a mock hass instance with entity and device registries.
+
+    This extends the basic hass fixture with additional registries needed
+    for config flow testing.
+    """
+    # Add entity registry
+    hass.data = {"entity_registry": mock_entity_registry}
+
+    # Add device registry
+    hass.data["device_registry"] = mock_device_registry
+
+    # Add config entries
+    hass.data["config_entries"] = mock_config_entries
+
+    # Add mock states for common config flow entities
+    hass._states_dict = {
+        "sensor.ovms_soc": MagicMock(
+            state="75",
+            attributes={"unit_of_measurement": "%", "device_class": "battery"},
+        ),
+        "sensor.ovms_consumption": MagicMock(
+            state="15.0",
+            attributes={"unit_of_measurement": "kWh/100km"},
+        ),
+        "binary_sensor.home_presence": MagicMock(
+            state="on",
+            attributes={"device_class": "presence"},
+        ),
+        "binary_sensor.vehicle_plugged": MagicMock(
+            state="on",
+            attributes={"device_class": "plug"},
+        ),
+        "binary_sensor.charging_status": MagicMock(
+            state="on",
+            attributes={"device_class": "battery_charging"},
+        ),
+        "switch.ev_charger": MagicMock(
+            state="off",
+            attributes={},
+        ),
+    }
+
+    # Update the states.get method
+    def _mock_states_get(entity_id):
+        result = hass._states_dict.get(entity_id, None)
+        return result
+
+    hass.states.get = _mock_states_get
+
+    # Add mock services for notifications
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
+    # Mock notify services
+    def _mock_has_service(domain, service):
+        if domain == "notify":
+            return service in ["notify.mobile_app", "notify.persistent_notification"]
+        return True
+
+    hass.services.has_service = _mock_has_service
+
+    return hass
+
+
+@pytest.fixture
+def sample_vehicle_config():
+    """Return a sample vehicle configuration for testing."""
+    return {
+        "vehicle_name": "test_vehicle",
+        "vehicle_type": "ev",
+        "soc_sensor": "sensor.ovms_soc",
+        "battery_capacity_kwh": 60.0,
+        "charging_power_kw": 11.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10,
+        "range_sensor": "sensor.ovms_range",
+        "charging_status_sensor": "binary_sensor.charging_status",
+        "control_type": "none",
+    }
+
+
+@pytest.fixture
+def sample_emhass_config():
+    """Return a sample EMHASS configuration for testing."""
+    return {
+        "planning_horizon_days": 7,
+        "max_deferrable_loads": 50,
+        "planning_sensor_entity": None,
+    }
+
+
+@pytest.fixture
+def sample_presence_config():
+    """Return a sample presence detection configuration for testing."""
+    return {
+        "home_sensor": "binary_sensor.home_presence",
+        "plugged_sensor": "binary_sensor.vehicle_plugged",
+        "charging_sensor": "binary_sensor.charging_status",
+    }
+
+
+@pytest.fixture
+def sample_notification_config():
+    """Return a sample notification configuration for testing."""
+    return {
+        "notification_service": "notify.mobile_app",
+        "notification_devices": ["device_123"],
+    }

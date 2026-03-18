@@ -60,19 +60,20 @@
           "enable_max_loads_override": "Enable max loads override"
         },
         "data_description": {
-          "planning_horizon": "Number of days EMHASS should plan ahead (1-30 days). Usually matches your EMHASS day-ahead optimization horizon. Example: 7",
-          "planning_horizon_days": "Number of days EMHASS should plan ahead (1-30 days). Usually matches your EMHASS day-ahead optimization horizon. Example: 7",
+          "planning_horizon": "Número de días de planificación (1-365). Máximo: 365 días. Recomendado: 7 días para recurrencia semanal. Ejemplo: 7",
+          "planning_horizon_days": "Número de días de planificación (1-365). Máximo: 365 días. Recomendado: 7 días para recurrencia semanal. Ejemplo: 7",
           "planning_sensor": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
           "planning_sensor_entity": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
           "max_deferrable_loads": "Maximum number of simultaneous deferrable loads EMHASS is configured for (10-100). Usually 50. Example: 50",
-          "enable_planning_sensor": "Check to override planning horizon with sensor value. When checked, the planning horizon will be read from the selected sensor instead of the manual value above. When unchecked, the manual value entered above will be used.",
+          "enable_planning_sensor": "Usar sensor de horizonte de planificación de tu optimizador",
           "enable_max_loads_override": "Check to enable custom maximum deferrable loads. When checked, you can set a custom value below instead of the default (50). When unchecked, the default value (50) will be used."
         }
       },
       "presence": {
-        "title": "Presence Detection (Optional)",
-        "description": "Configure presence detection to prevent charging when vehicle is away. This step is optional - you can skip it.",
+        "title": "Presence Detection",
+        "description": "Configure presence detection to prevent charging when vehicle is away. Charging sensor is required.",
         "data": {
+          "charging_sensor": "Charging Sensor (binary_sensor) - REQUIRED",
           "home_sensor": "Home Sensor (binary_sensor)",
           "plugged_sensor": "Plugged Sensor (binary_sensor)",
           "home_coordinates": "Home Coordinates (lat, lon)",
@@ -82,6 +83,7 @@
           "notification_service": "Notification Service"
         },
         "data_description": {
+          "charging_sensor": "REQUIRED: Binary sensor that indicates if vehicle is currently charging (e.g., binary_sensor.ovms_chispitas_charging). Shows 'on' when charging. This is mandatory for the configuration.",
           "home_sensor": "Optional: Binary sensor that indicates if vehicle is at home (e.g., binary_sensor.chispitas_home). Shows 'on' when vehicle is home.",
           "plugged_sensor": "Optional: Binary sensor that indicates if charging cable is connected (e.g., binary_sensor.chispitas_plugged). Shows 'on' when plugged.",
           "home_coordinates": "Optional: Your home coordinates as 'latitude, longitude' (e.g., '40.1234, -3.5678'). Used if no home sensor available.",
@@ -90,15 +92,30 @@
           "vehicle_coordinates_sensor_lon": "Optional: Sensor providing vehicle longitude (e.g., sensor.ovms_chispitas_metric_v_pos_longitude). Use with latitude sensor above.",
           "notification_service": "Service to call for notifications (e.g., notify.mobile_app). Used to alert when charging needed but not possible."
         }
+      },
+      "notifications": {
+        "title": "Notifications (Optional)",
+        "description": "Configure notifications to receive alerts when charging is needed but not possible. This step is optional.",
+        "data": {
+          "notification_service": "Notification Service",
+          "notification_devices": "Notification Devices"
+        },
+        "data_description": {
+          "notification_service": "Select the notification service to use (e.g., notify.mobile_app_your_phone). This is optional - you can skip this step.",
+          "notification_devices": "Select the devices to receive notifications. Hold Ctrl/Cmd to select multiple. This is optional - you can skip this step."
+        }
       }
     },
     "error": {
       "already_configured": "This vehicle is already configured",
       "unknown": "Unknown error occurred",
-      "invalid_planning_horizon": "Planning horizon must be between 1 and 30 days",
+      "invalid_planning_horizon": "Planning horizon must be between 1 and 365 days. Recommended: 7 days for weekly recurrence",
       "invalid_max_deferrable_loads": "Maximum deferrable loads must be between 10 and 100",
       "home_sensor_not_found": "The selected home sensor was not found. Please check the entity ID.",
       "plugged_sensor_not_found": "The selected plugged sensor was not found. Please check the entity ID.",
+      "charging_sensor_required": "Charging sensor is required to configure this vehicle. This sensor indicates if the vehicle is currently charging.",
+      "charging_sensor_not_found": "The selected charging sensor was not found. Please check the entity ID.",
+      "notification_service_not_found": "The selected notification service was not found. Please check the entity ID and ensure the notify integration is configured.",
       "invalid_coordinates_format": "Invalid coordinates format. Use 'latitude, longitude' (e.g., '40.1234, -3.5678')"
     },
     "abort": {

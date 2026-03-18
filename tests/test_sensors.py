@@ -35,7 +35,7 @@ async def coordinator(hass: HomeAssistant, mock_trip_manager):
         kwh=3.75
     )
     await mock_trip_manager.async_add_punctual_trip(
-        datetime_str="2025-11-25T10:00:00",
+        datetime="2025-11-25T10:00",
         km=50,
         kwh=7.5,
         descripcion="Airport"

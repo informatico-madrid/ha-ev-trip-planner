@@ -2,7 +2,7 @@
 
 import logging
 from math import radians, sin, cos, sqrt, atan2
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from homeassistant.core import HomeAssistant
 
@@ -11,6 +11,7 @@ from .const import (
     CONF_PLUGGED_SENSOR,
     CONF_HOME_COORDINATES,
     CONF_VEHICLE_COORDINATES_SENSOR,
+    CONF_NOTIFICATION_SERVICE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,20 +29,25 @@ class PresenceMonitor:
         """Initialize presence monitor."""
         self.hass = hass
         self.vehicle_id = vehicle_id
-        
+
         # Sensor-based detection (priority 1)
         self.home_sensor = config.get(CONF_HOME_SENSOR)
         self.plugged_sensor = config.get(CONF_PLUGGED_SENSOR)
-        
+
         # Coordinate-based detection (priority 2)
         self.home_coords = self._parse_coordinates(config.get(CONF_HOME_COORDINATES))
         self.vehicle_coords_sensor = config.get(CONF_VEHICLE_COORDINATES_SENSOR)
-        
+
+        # Notification configuration
+        self.notification_service = config.get(CONF_NOTIFICATION_SERVICE)
+
         _LOGGER.debug(
-            "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s",
+            "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
+            "notification_service=%s",
             vehicle_id,
             self.home_sensor,
             self.home_coords,
+            self.notification_service,
         )
     
     async def async_check_home_status(self) -> bool:
@@ -232,5 +238,203 @@ class PresenceMonitor:
         
         # Earth's radius in meters
         earth_radius = 6371000
-        
+
         return earth_radius * c
+
+    async def async_notify_charging_not_possible(
+        self,
+        reason: str,
+        trip_info: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Send notification when charging is necessary but not possible.
+
+        Args:
+            reason: The reason why charging is not possible
+            trip_info: Optional trip information (destination, energy needed, etc.)
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        if not self.notification_service:
+            _LOGGER.debug(
+                "No notification service configured for %s, skipping notification",
+                self.vehicle_id,
+            )
+            return False
+
+        # Build notification message
+        title = f"⚠️ EV Trip Planner: {self.vehicle_id}"
+        message = f"Charging required but not possible: {reason}"
+
+        if trip_info:
+            if "destination" in trip_info:
+                message += f"\n\nTrip destination: {trip_info['destination']}"
+            if "energy_needed" in trip_info:
+                message += f"\nEnergy needed: {trip_info['energy_needed']} kWh"
+            if "deadline" in trip_info:
+                message += f"\nDeadline: {trip_info['deadline']}"
+
+        message += "\n\nPlease connect the vehicle or ensure it's at home."
+
+        return await self._async_send_notification(title, message)
+
+    async def async_notify_vehicle_not_home(self, trip_info: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Send notification when vehicle is not at home but charging is needed.
+
+        Args:
+            trip_info: Optional trip information
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        return await self.async_notify_charging_not_possible(
+            reason="Vehicle not at home",
+            trip_info=trip_info,
+        )
+
+    async def async_notify_vehicle_not_plugged(self, trip_info: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Send notification when vehicle is not plugged in but charging is needed.
+
+        Args:
+            trip_info: Optional trip information
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        return await self.async_notify_charging_not_possible(
+            reason="Vehicle not plugged in",
+            trip_info=trip_info,
+        )
+
+    async def _async_send_notification(self, title: str, message: str) -> bool:
+        """
+        Send notification via configured notification service.
+
+        Args:
+            title: Notification title
+            message: Notification message
+
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        if not self.notification_service:
+            _LOGGER.warning(
+                "No notification service configured for vehicle %s",
+                self.vehicle_id,
+            )
+            return False
+
+        try:
+            domain, service = self.notification_service.split(".", 1)
+            await self.hass.services.async_call(
+                domain,
+                service,
+                {
+                    "title": title,
+                    "message": message,
+                    "notification_id": f"ev_trip_planner_{self.vehicle_id}",
+                },
+            )
+            _LOGGER.info(
+                "Notification sent for vehicle %s: %s",
+                self.vehicle_id,
+                title,
+            )
+            return True
+        except Exception as err:  # pylint: disable=broad-except
+            _LOGGER.error(
+                "Failed to send notification for vehicle %s: %s",
+                self.vehicle_id,
+                err,
+            )
+            return False
+
+    def get_home_condition_config(self) -> Optional[Dict[str, Any]]:
+        """
+        Get native state condition configuration for home status.
+
+        Returns a native 'condition: state' configuration for use in
+        Home Assistant automations, following HA best practices:
+        https://www.home-assistant.io/docs/automation/templating/#state-conditions
+
+        Returns:
+            Dict with native condition: state configuration, or None if not configured
+        """
+        if not self.home_sensor:
+            _LOGGER.debug(
+                "No home sensor configured for %s, cannot provide condition config",
+                self.vehicle_id,
+            )
+            return None
+
+        # Native condition: state - more efficient than template conditions
+        return {
+            "condition": "state",
+            "entity_id": self.home_sensor,
+            "state": "on",
+        }
+
+    def get_plugged_condition_config(self) -> Optional[Dict[str, Any]]:
+        """
+        Get native state condition configuration for plugged status.
+
+        Returns a native 'condition: state' configuration for use in
+        Home Assistant automations, following HA best practices.
+
+        Returns:
+            Dict with native condition: state configuration, or None if not configured
+        """
+        if not self.plugged_sensor:
+            _LOGGER.debug(
+                "No plugged sensor configured for %s, cannot provide condition config",
+                self.vehicle_id,
+            )
+            return None
+
+        # Native condition: state - more efficient than template conditions
+        return {
+            "condition": "state",
+            "entity_id": self.plugged_sensor,
+            "state": "on",
+        }
+
+    def validate_condition_is_native(
+        self, condition: Dict[str, Any]
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Validate that an automation condition uses native state format.
+
+        This method checks if the condition follows Home Assistant best practices:
+        - Uses 'condition: state' instead of 'condition: template'
+        - Has 'entity_id' and 'state' keys
+
+        Args:
+            condition: The condition dict to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not isinstance(condition, dict):
+            return False, "Condition must be a dictionary"
+
+        # Check for template condition (anti-pattern)
+        if condition.get("condition") == "template":
+            return False, (
+                "Using 'condition: template' is not recommended. "
+                "Use native 'condition: state' instead for better performance. "
+                "Example: condition: state\n  entity_id: binary_sensor.vehicle_home\n  state: 'on'"
+            )
+
+        # Check for native state condition
+        if condition.get("condition") == "state":
+            if "entity_id" not in condition:
+                return False, "Native state condition missing 'entity_id'"
+            if "state" not in condition:
+                return False, "Native state condition missing 'state'"
+            return True, None
+
+        # Other condition types are acceptable
+        return True, None

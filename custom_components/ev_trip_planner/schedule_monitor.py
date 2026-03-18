@@ -1,8 +1,7 @@
 """Schedule Monitor for EV Trip Planner."""
 
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -204,7 +203,7 @@ class VehicleScheduleMonitor:
                 )
                 await self._async_notify(
                     f"⚠️ Charging skipped: {self.vehicle_id} not at home",
-                    f"Schedule requested charging but vehicle is not at home"
+                    "Schedule requested charging but vehicle is not at home"
                 )
                 return
             
@@ -217,7 +216,7 @@ class VehicleScheduleMonitor:
                 )
                 await self._async_notify(
                     f"🔌 Connect vehicle: {self.vehicle_id}",
-                    f"Schedule requested charging but vehicle is not plugged in"
+                    "Schedule requested charging but vehicle is not plugged in"
                 )
                 return
         
@@ -239,7 +238,7 @@ class VehicleScheduleMonitor:
             )
             await self._async_notify(
                 f"❌ Charging failed: {self.vehicle_id}",
-                f"Failed to start charging. Check logs for errors."
+                "Failed to start charging. Check logs for errors."
             )
     
     async def _async_stop_charging(self, emhass_index: int):

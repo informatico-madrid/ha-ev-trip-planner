@@ -5,6 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0-dev] - 2026-03-18 - Milestone 3.2 COMPLETED
+
+### Added
+- **Complete Config Flow (5 Steps)**: Full multi-step configuration wizard
+  - Step 1: Basic vehicle information (name, SOC sensor, consumption)
+  - Step 2: Battery configuration (capacity, charging power, range sensor)
+  - Step 3: EMHASS Integration (planning horizon, max deferrable loads, optional planning sensor)
+  - Step 4: Presence Detection (home sensor, plugged sensor, mandatory charging sensor)
+  - Step 5: Notifications (notification service and device selection)
+  - All steps include comprehensive descriptions and examples
+
+- **Trip ID Generation**: Structured unique identifiers for trips
+  - Recurrent trips: `rec_{day}_{random}` format (e.g., `rec_lun_abc123`)
+  - Punctual trips: `pun_{date}_{random}` format (e.g., `pun_20251119_abc123`)
+  - Generated automatically on trip creation
+
+- **Deferrable Load Template Sensors**: EMHASS integration sensors
+  - Entity: `sensor.emhass_perfil_diferible_{vehicle_id}`
+  - Attribute `power_profile_watts`: 168-value array (24h × 7d) - 0W = no charging, positive = charging power
+  - Attribute `deferrables_schedule`: Array with ISO 8601 timestamps and power values
+  - Automatic calculation based on trip deadlines and charging duration
+
+- **Vehicle Control System**: Three control strategy patterns
+  - **Switch Strategy**: Direct ON/OFF control via switch entity
+  - **Service Strategy**: Call HA services with parameters
+  - **Script Strategy**: Execute HA scripts with parameters
+  - Factory pattern for strategy instantiation based on configuration
+
+- **Retry Logic**: Robust charging activation with failure handling
+  - Retry attempts until charging window passes
+  - 3 attempts within 5-minute threshold
+  - Counter reset on disconnect/reconnect events
+
+- **Presence Monitor**: Real-time vehicle availability tracking
+  - Monitors home presence, plugged status, and charging state
+  - Sends notifications when charging needed but vehicle not available
+  - Uses native HA state conditions (not templates)
+
+- **EMHASS Adapter**: Full integration with EMHASS optimizer
+  - `publish_deferrable_loads()`: Publish trip data to EMHASS sensors
+  - `calculate_deferrable_parameters()`: Calculate power, duration, deadline
+  - Dynamic index assignment (0, 1, 2...) per trip
+  - Index persistence in HA storage (survives restarts)
+  - Automatic index reuse when trips deleted
+
+- **Auto-Import Dashboard**: Lovelace dashboard auto-creation
+  - Full dashboard: Comprehensive trip status and EMHASS monitoring
+  - Simple dashboard: Basic trip overview
+  - Auto-detection of Lovelace availability
+  - Imports during config flow completion
+
+- **Comprehensive Test Suite**: 398 tests passing
+  - Config flow tests (Steps 1-5)
+  - Trip ID generation tests
+  - Deferrable load sensor tests
+  - Vehicle controller tests (strategy pattern, presence, retry)
+  - EMHASS adapter tests
+  - End-to-end integration tests
+  - Edge case tests (API failures, sensor errors, multiple vehicles)
+
+### Changed
+- **Charging Sensor Validation**: Enhanced safety checks
+  - Config flow: Blocking error if charging sensor not configured
+  - Runtime: Notification + WARNING log if sensor fails (continues operation)
+- **Power Profile Semantics**: Clarified meaning
+  - 0W = no charging scheduled (False/Null)
+  - Positive values = charging power in Watts (e.g., 3600W = 3.6kW)
+- **EMHASS Label**: Clarified "Notifications Only" mode
+  - Changed from "External EMHASS" to "Notifications Only (no control)"
+
+### Technical Details
+- **New Files**:
+  - `custom_components/ev_trip_planner/utils.py` - Trip ID generation
+  - `docs/configuration_examples.yaml` - Complete configuration examples
+- **Modified Files**:
+  - `custom_components/ev_trip_planner/config_flow.py` - 5-step config flow
+  - `custom_components/ev_trip_planner/sensor.py` - Template sensors
+  - `custom_components/ev_trip_planner/trip_manager.py` - Trip ID integration
+  - `custom_components/ev_trip_planner/vehicle_controller.py` - Strategy pattern
+  - `custom_components/ev_trip_planner/presence_monitor.py` - Enhanced monitoring
+  - `custom_components/ev_trip_planner/emhass_adapter.py` - Enhanced publishing
+  - `README.md` - Updated with EMHASS and vehicle control sections
+- **Test Coverage**: 85%+ (improved from 81.55%)
+- **All Tests Passing**: 398/398 tests
+
+### Breaking Changes
+- None - fully backward compatible with existing configurations
+- Charging sensor is now mandatory in config flow (existing configs unaffected)
+
+### Deprecations
+- None
+
+### Documentation Added
+- `docs/configuration_examples.yaml` - Complete YAML configuration examples
+- Updated `README.md` with EMHASS integration and vehicle control sections
+
+---
+
 ## [Unreleased]
 
 ### Added
@@ -216,38 +314,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [0.1.0-dev] - 2025-11-18 - Initial Release
-
-### Added
-- Estructura inicial del proyecto
-- Config flow para configuración de vehículos
-- Sistema de gestión de viajes (recurrentes y puntuales)
-- 3 sensores básicos (trips_list, recurring_count, punctual_count)
-- Dashboard Lovelace de ejemplo
-
-### Changed
-- Migración de input_text a Storage API
-
-### Fixed
-- Issues iniciales de setup y configuración
-
-## [0.2.0-dev] - 2025-11-22
-
-### Added
-- 4 sensores de cálculo: next_trip, next_deadline, kwh_today, hours_today
-- Lógica de expansión de viajes recurrentes para 7 días
-- Combinación de viajes recurrentes y puntuales
-- Manejo completo de timezone con zoneinfo
-- Cobertura de tests: 84% (60/60 tests pasando)
-
-### Changed
-- Actualizado ROADMAP.md para reflejar Milestone 2 completado
-- Versión en manifest.json: 0.1.0-dev → 0.2.0-dev
-
-### Fixed
-- Timezone mismatch en cálculos de viajes
-- Issues con async/threadsafe en sensores
-
-## [0.1.0-dev] - 2025-11-18
 
 ### Added
 - Estructura inicial del proyecto
