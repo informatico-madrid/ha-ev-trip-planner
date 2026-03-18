@@ -31,7 +31,8 @@ class EMHASSAdapter:
         self.notification_service = vehicle_config.get(CONF_NOTIFICATION_SERVICE)
 
         # Storage for trip_id → emhass_index mapping
-        self._store = Store(hass, version=1, key=f"ev_trip_planner_{self.vehicle_id}_emhass_indices")
+        store_key = f"ev_trip_planner_{self.vehicle_id}_emhass_indices"
+        self._store = Store(hass, version=1, key=store_key)
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
 
@@ -40,7 +41,7 @@ class EMHASSAdapter:
         self._last_error_time: Optional[datetime] = None
 
         _LOGGER.debug(
-            "Created EMHASSAdapter for %s with %d available indices, notification_service=%s",
+            "Created EMHASSAdapter for %s, %d indices, notification_service=%s",
             self.vehicle_id,
             len(self._available_indices),
             self.notification_service,
@@ -53,7 +54,9 @@ class EMHASSAdapter:
             self._index_map = data.get("index_map", {})
             # Rebuild available indices
             used_indices = set(self._index_map.values())
-            self._available_indices = [i for i in range(self.max_deferrable_loads) if i not in used_indices]
+            self._available_indices = [
+                i for i in range(self.max_deferrable_loads) if i not in used_indices
+            ]
             _LOGGER.info(
                 "Loaded %d trip-index mappings for %s, %d indices still available",
                 len(self._index_map),
@@ -269,7 +272,9 @@ class EMHASSAdapter:
         """Update existing deferrable load with new parameters."""
         return await self.async_publish_deferrable_load(trip)
     
-    async def async_publish_all_deferrable_loads(self, trips: List[Dict[str, Any]]) -> bool:
+    async def async_publish_all_deferrable_loads(
+        self, trips: List[Dict[str, Any]]
+    ) -> bool:
         """
         Publish multiple trips, each with its own index.
         
@@ -429,7 +434,7 @@ class EMHASSAdapter:
         )
 
         _LOGGER.info(
-            "Published deferrable loads for vehicle %s: %d trips, power profile length: %d",
+            "Published deferrable loads for %s: %d trips, profile length: %d",
             self.vehicle_id,
             len(trips),
             len(power_profile)
@@ -522,8 +527,8 @@ class EMHASSAdapter:
             if not emhass_sensors:
                 result["errors"].append(
                     "No EMHASS response sensors found. "
-                    "Please verify your shell command is correctly configured in configuration.yaml. "
-                    "The shell command should use curl to POST to EMHASS API."
+                    "Verify shell command in configuration.yaml. "
+                    "Should use curl to POST to EMHASS API."
                 )
 
         _LOGGER.info(
@@ -650,16 +655,17 @@ class EMHASSAdapter:
         # Determine overall status
         if not verification["deferrable_sensor_exists"]:
             status = "error"
-            message = "Deferrable load sensor not found. Configure shell command in configuration.yaml."
+            message = "Deferrable sensor not found. Configure shell command."
         elif not verification["deferrable_sensor_has_data"]:
             status = "warning"
-            message = "Deferrable load sensor exists but has no data. Add trips to publish."
+            message = "Deferrable sensor has no data. Add trips to publish."
         elif not verification["is_configured"]:
             status = "warning"
-            message = "Shell command may not be configured. EMHASS response sensors not detected."
+            message = "Shell command may not be configured."
         elif not response_check["all_trips_verified"]:
             status = "warning"
-            message = f"EMHASS not responding to {len(response_check['missing_trips'])} trip(s)."
+            missing = len(response_check["missing_trips"])
+            message = f"EMHASS not responding to {missing} trip(s)."
         else:
             status = "ok"
             message = "EMHASS integration working correctly."
@@ -778,7 +784,7 @@ class EMHASSAdapter:
         """
         if not self.notification_service:
             _LOGGER.debug(
-                "No notification service configured for %s, skipping error notification",
+                "No notification service for %s, skipping",
                 self.vehicle_id,
             )
             return False
@@ -798,13 +804,13 @@ class EMHASSAdapter:
             body = (
                 "Sensor EMHASS no encontrado.\n\n"
                 f"Mensaje: {message}\n\n"
-                "Por favor verifica la configuración del shell command en configuration.yaml."
+                "Verifica shell command en configuration.yaml."
             )
         elif error_type == "shell_command_failure":
             body = (
                 "Error en shell command de EMHASS.\n\n"
                 f"Mensaje: {message}\n\n"
-                "EMHASS maneja este error. Verifica los sensores de respuesta de EMHASS."
+                "EMHASS maneja este error."
             )
         else:
             body = f"Error: {message}"
@@ -966,9 +972,12 @@ class EMHASSAdapter:
         if not self._last_error:
             return None
 
+        error_time = (
+            self._last_error_time.isoformat() if self._last_error_time else None
+        )
         return {
             "message": self._last_error,
-            "time": self._last_error_time.isoformat() if self._last_error_time else None,
+            "time": error_time,
         }
 
     async def async_clear_error(self) -> None:
@@ -1062,7 +1071,8 @@ class EMHASSAdapter:
             # Set charging hours (last hours before deadline)
             hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
 
-            for h in range(hora_inicio_carga, min(horas_hasta_viaje, planning_horizon_hours)):
+            hora_fin = min(horas_hasta_viaje, planning_horizon_hours)
+            for h in range(hora_inicio_carga, hora_fin):
                 if h >= 0 and h < planning_horizon_hours:
                     # Set positive value = charging
                     power_profile[h] = charging_power_watts
@@ -1077,7 +1087,8 @@ class EMHASSAdapter:
         """
         Generate deferrables schedule from trips.
 
-        Format: [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0", ...}, ...]
+        Format:
+            [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0"}, ...]
 
         Args:
             trips: List of trip dictionaries

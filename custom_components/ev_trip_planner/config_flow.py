@@ -63,7 +63,9 @@ STEP_SENSORS_SCHEMA = vol.Schema(
             default=DEFAULT_CONSUMPTION,
             description="Consumo en tiempo real (kWh/km) + fallback manual",
         ): vol.Coerce(float),
-        vol.Required(CONF_SAFETY_MARGIN, default=DEFAULT_SAFETY_MARGIN): vol.Coerce(int),
+        vol.Required(CONF_SAFETY_MARGIN, default=DEFAULT_SAFETY_MARGIN): vol.Coerce(
+            int
+        ),
     }
 )
 
@@ -76,7 +78,10 @@ STEP_EMHASS_SCHEMA = vol.Schema(
             description={
                 "suggested_value": "7",
                 "placeholder": "7",
-                "description": "Número de días de planificación (1-365). Máximo: 365 días. Recomendado: 7 días para recurrencia semanal.",
+                "description": (
+                    "Número de días de planificación (1-365). "
+                    "Máximo: 365 días. Recomendado: 7 días."
+                ),
             },
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=365)),
         vol.Required(
@@ -85,7 +90,7 @@ STEP_EMHASS_SCHEMA = vol.Schema(
             description={
                 "suggested_value": "50",
                 "placeholder": "50",
-                "description": "Número máximo de cargas diferibles (10-100). Valor recomendado: 50.",
+                "description": "Cargas diferibles (10-100). Valor recomendado: 50.",
             },
         ): vol.All(vol.Coerce(int), vol.Range(min=10, max=100)),
         vol.Optional(CONF_PLANNING_SENSOR): selector.EntitySelector(
@@ -140,7 +145,9 @@ STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
 )
 
 
-def _read_emhass_config(config_path: str = "/home/malka/emhass/config/config.json") -> Optional[Dict[str, Any]]:
+def _read_emhass_config(
+    config_path: str = "/home/malka/emhass/config/config.json",
+) -> Optional[Dict[str, Any]]:
     """Lee la configuración de EMHASS desde el archivo de configuración.
 
     Args:
@@ -163,7 +170,9 @@ def _read_emhass_config(config_path: str = "/home/malka/emhass/config/config.jso
         return None
 
 
-def _get_emhass_planning_horizon(emhass_config: Optional[Dict[str, Any]]) -> Optional[int]:
+def _get_emhass_planning_horizon(
+    emhass_config: Optional[Dict[str, Any]],
+) -> Optional[int]:
     """Extrae el horizonte de planificación desde la configuración de EMHASS.
 
     Args:
@@ -177,7 +186,9 @@ def _get_emhass_planning_horizon(emhass_config: Optional[Dict[str, Any]]) -> Opt
 
     # Get end_timesteps from the first deferrable load
     end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
-    if not end_timesteps or not isinstance(end_timesteps, list) or len(end_timesteps) == 0:
+    if not end_timesteps or not isinstance(end_timesteps, list):
+        return None
+    if len(end_timesteps) == 0:
         return None
 
     # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days
@@ -190,7 +201,9 @@ def _get_emhass_planning_horizon(emhass_config: Optional[Dict[str, Any]]) -> Opt
     return planning_horizon_days
 
 
-def _get_emhass_max_deferrable_loads(emhass_config: Optional[Dict[str, Any]]) -> Optional[int]:
+def _get_emhass_max_deferrable_loads(
+    emhass_config: Optional[Dict[str, Any]],
+) -> Optional[int]:
     """Extrae el número máximo de cargas diferibles desde la configuración de EMHASS.
 
     Args:
@@ -284,7 +297,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if emhass_horizon:
             _LOGGER.info(
-                "EMHASS config found: planning_horizon=%s days, max_deferrable_loads=%s",
+                "EMHASS config: horizon=%s days, max_loads=%s",
                 emhass_horizon,
                 emhass_max_loads,
             )
@@ -299,7 +312,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         data_schema=STEP_EMHASS_SCHEMA,
                         errors={"base": "invalid_planning_horizon"},
                         description_placeholders={
-                            "description": "Configure EMHASS integration for smart charging optimization. This step is optional."
+                            "description": "Configure EMHASS (optional)."
                         },
                     )
 
@@ -316,7 +329,11 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 planning_sensor = user_input.get(CONF_PLANNING_SENSOR)
                 if planning_sensor:
                     sensor_state = self.hass.states.get(planning_sensor)
-                    if sensor_state and sensor_state.state not in ("unknown", "unavailable", ""):
+                    if sensor_state and sensor_state.state not in (
+                        "unknown",
+                        "unavailable",
+                        "",
+                    ):
                         try:
                             sensor_horizon = int(float(sensor_state.state))
                             _LOGGER.info(
@@ -324,11 +341,11 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                                 planning_sensor,
                                 sensor_horizon,
                             )
-                            # Validate user input against sensor value - warn but don't modify
+                            # Warn if user input exceeds sensor value
                             if planning_horizon > sensor_horizon:
                                 _LOGGER.warning(
-                                    "User planning_horizon (%d) exceeds sensor value (%d days). "
-                                    "This may cause optimization issues. Consider using a value <= %d.",
+                                    "User horizon (%d) > sensor (%d days). "
+                                    "May cause issues. Consider <= %d.",
                                     planning_horizon,
                                     sensor_horizon,
                                     sensor_horizon,
@@ -341,7 +358,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                             )
                     else:
                         _LOGGER.info(
-                            "Planning sensor %s not available or has no valid value, using manual input",
+                            "Planning sensor %s not available, using manual input",
                             planning_sensor,
                         )
 
@@ -354,14 +371,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         data_schema=STEP_EMHASS_SCHEMA,
                         errors={"base": "invalid_max_deferrable_loads"},
                         description_placeholders={
-                            "description": "Configure EMHASS integration for smart charging optimization. This step is optional."
+                            "description": "Configure EMHASS (optional)."
                         },
                     )
 
                 # Validate against EMHASS config if available
                 if emhass_max_loads and max_loads > emhass_max_loads:
                     _LOGGER.warning(
-                        "User max_deferrable_loads (%d) exceeds EMHASS config (%d loads). "
+                        "User loads (%d) > EMHASS config (%d loads). "
                         "This may cause optimization issues.",
                         max_loads,
                         emhass_max_loads,
@@ -381,7 +398,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Log EMHASS configuration
             _LOGGER.info(
-                "EMHASS configuration: planning_horizon=%s days, max_deferrable_loads=%s, planning_sensor=%s",
+                "EMHASS config: horizon=%s, max_loads=%s, sensor=%s",
                 vehicle_data.get(CONF_PLANNING_HORIZON),
                 vehicle_data.get(CONF_MAX_DEFERRABLE_LOADS),
                 vehicle_data.get(CONF_PLANNING_SENSOR, "not configured"),
@@ -394,7 +411,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="emhass",
             data_schema=STEP_EMHASS_SCHEMA,
             description_placeholders={
-                "description": "Configure EMHASS integration for smart charging optimization. This step is optional."
+                "description": "Configure EMHASS (optional)."
             },
         )
 
@@ -414,7 +431,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
                 description_placeholders={
-                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                    "description": "Configure presence detection."
                 },
             )
 
@@ -423,25 +440,25 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_notifications(None)
 
         # Validate charging_sensor (mandatory)
-        if CONF_CHARGING_SENSOR not in user_input or not user_input[CONF_CHARGING_SENSOR]:
+        charging_sensor = user_input.get(CONF_CHARGING_SENSOR)
+        if not charging_sensor:
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
                 errors={"base": "charging_sensor_required"},
                 description_placeholders={
-                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                    "description": "Configure presence detection."
                 },
             )
 
         # Validate charging sensor exists
-        charging_sensor = user_input[CONF_CHARGING_SENSOR]
         if not self.hass.states.get(charging_sensor):
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
                 errors={"base": "charging_sensor_not_found"},
                 description_placeholders={
-                    "description": "Configure presence detection to prevent charging when vehicle is away."
+                    "description": "Configure presence detection."
                 },
             )
 
@@ -454,7 +471,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     data_schema=STEP_PRESENCE_SCHEMA,
                     errors={"base": "home_sensor_not_found"},
                     description_placeholders={
-                        "description": "Configure presence detection to prevent charging when vehicle is away."
+                        "description": "Configure presence detection."
                     },
                 )
 
@@ -467,7 +484,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     data_schema=STEP_PRESENCE_SCHEMA,
                     errors={"base": "plugged_sensor_not_found"},
                     description_placeholders={
-                        "description": "Configure presence detection to prevent charging when vehicle is away."
+                        "description": "Configure presence detection."
                     },
                 )
 
@@ -490,7 +507,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="notifications",
                 data_schema=STEP_NOTIFICATIONS_SCHEMA,
                 description_placeholders={
-                    "description": "Configure notifications to receive alerts when charging is needed but not possible. This step is optional."
+                    "description": "Configure notifications (optional)."
                 },
             )
 
@@ -516,22 +533,23 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_show_form(
                         step_id="notifications",
                         data_schema=STEP_NOTIFICATIONS_SCHEMA,
-                        errors={"notification_service": "notification_service_not_found"},
+                        errors={
+                            "notification_service": "notification_service_not_found"
+                        },
                         description_placeholders={
-                            "description": "Configure notifications to receive alerts when charging is needed but not possible. This step is optional."
+                            "description": "Configure notifications (optional)."
                         },
                     )
 
         # Log notification configuration
-        if CONF_NOTIFICATION_SERVICE in user_input and user_input[CONF_NOTIFICATION_SERVICE]:
-            _LOGGER.info(
-                "Notification service configured: %s",
-                user_input[CONF_NOTIFICATION_SERVICE],
-            )
-        if CONF_NOTIFICATION_DEVICES in user_input and user_input[CONF_NOTIFICATION_DEVICES]:
+        notify_service = user_input.get(CONF_NOTIFICATION_SERVICE)
+        if notify_service:
+            _LOGGER.info("Notification service configured: %s", notify_service)
+        notify_devices = user_input.get(CONF_NOTIFICATION_DEVICES)
+        if notify_devices:
             _LOGGER.info(
                 "Notification devices configured: %s",
-                user_input[CONF_NOTIFICATION_DEVICES],
+                notify_devices,
             )
 
         # Create entry after notifications step
@@ -600,23 +618,35 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        # Get current values from config entry
+        current_battery = self.config_entry.data.get(
+            CONF_BATTERY_CAPACITY, 60.0
+        )
+        current_charging = self.config_entry.data.get(CONF_CHARGING_POWER, 11.0)
+        current_consumption = self.config_entry.data.get(
+            CONF_CONSUMPTION, DEFAULT_CONSUMPTION
+        )
+        current_safety = self.config_entry.data.get(
+            CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN
+        )
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_BATTERY_CAPACITY, default=self.config_entry.data.get(CONF_BATTERY_CAPACITY, 60.0)
+                        CONF_BATTERY_CAPACITY, default=current_battery
                     ): vol.Coerce(float),
                     vol.Required(
-                        CONF_CHARGING_POWER, default=self.config_entry.data.get(CONF_CHARGING_POWER, 11.0)
+                        CONF_CHARGING_POWER, default=current_charging
                     ): vol.Coerce(float),
                     vol.Required(
                         CONF_CONSUMPTION,
-                        default=self.config_entry.data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION),
+                        default=current_consumption,
                         description="Consumo en tiempo real (kWh/km) + fallback manual",
                     ): vol.Coerce(float),
                     vol.Required(
-                        CONF_SAFETY_MARGIN, default=self.config_entry.data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
+                        CONF_SAFETY_MARGIN, default=current_safety
                     ): vol.Coerce(int),
                 }
             ),
