@@ -24,8 +24,8 @@
 #   CLAUDE_CMD           Claude CLI binary (default: claude)
 #   GOOSE_MODEL          Goose model for work phase
 #   GOOSE_PROVIDER       Goose provider for work phase
-#   RALPH_VLLM_URL       vLLM API URL (default: http://localhost:4000)
-#   RALPH_VLLM_MODEL     vLLM model name (default: qwen3-30b-a3b-thinking-fp8)
+#   RALPH_VLLM_URL       vLLM API URL (default: http://192.168.1.201:4000)
+#   RALPH_VLLM_MODEL     vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
 #   RALPH_VLLM_API_KEY   vLLM API key (default: EMPTY for local)
 #
 set -euo pipefail
@@ -38,7 +38,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RALPH_DIR="$SCRIPT_DIR"
 
 RALPH_AGENT="${RALPH_AGENT:-claude}"
-CLAUDE_CMD="${CLAUDE_CMD:-claude}"
+CLAUDE_CMD="${CLAUDE_CMD:-$PROJECT_DIR/run-claude-minimax.sh}"
 RALPH_MAX_ITER="${RALPH_MAX_ITER:-100}"
 RALPH_REVIEW_EVERY="${RALPH_REVIEW_EVERY:-5}"
 RALPH_MAX_RETRIES="${RALPH_MAX_RETRIES:-5}"
@@ -48,9 +48,11 @@ RALPH_YOLO="${RALPH_YOLO:-true}"
 RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-1}"
 
 # vLLM local backend configuration (for goose agent)
-RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://localhost:4000}"
-RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-30b-a3b-thinking-fp8}"
-RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-EMPTY}"
+RALPH_VLLM_URL="${RALPH_VLLM_URL:-http://192.168.1.201:4000}"
+RALPH_VLLM_MODEL="${RALPH_VLLM_MODEL:-qwen3-5-35b-a3b-nvfp4}"
+RALPH_VLLM_API_KEY="${RALPH_VLLM_API_KEY:-}"
+# Use CUSTOM_VLLM_API_KEY because goose custom provider expects this env var
+CUSTOM_VLLM_API_KEY="${CUSTOM_VLLM_API_KEY:-${RALPH_VLLM_API_KEY:-}}"
 
 # Worktree mode globals (T01)
 WORKTREE_ENABLED=true
@@ -173,12 +175,12 @@ VLLM BACKEND (for goose agent):
     When RALPH_VLLM_URL is set, goose will use the OpenAI-compatible
     API at that URL instead of external providers.
     Environment variables:
-    - RALPH_VLLM_URL      vLLM API URL (default: http://localhost:4000)
-    - RALPH_VLLM_MODEL    vLLM model name (default: qwen3-30b-a3b-thinking-fp8)
+    - RALPH_VLLM_URL      vLLM API URL (default: http://192.168.1.201:4000)
+    - RALPH_VLLM_MODEL    vLLM model name (default: qwen3-5-35b-a3b-nvfp4)
     - RALPH_VLLM_API_KEY  API key (default: EMPTY for local)
 
 Example:
-    RALPH_AGENT=goose RALPH_VLLM_URL=http://localhost:4000 .ralph/ralph-loop.sh specs/xxx
+    RALPH_AGENT=goose RALPH_VLLM_URL=http://192.168.1.201:4000 .ralph/ralph-loop.sh specs/xxx
 
 EOF
 }
@@ -270,7 +272,7 @@ init_state() {
         --set "reviewInterval=$RALPH_REVIEW_EVERY" \
         --set "lastReviewAt=0"
 
-    # Write worktree fields if worktree mode enabled (T11)
+    # Write worktree fields if worktree mode enabled (T01)
     if [[ "$WORKTREE_ENABLED" == "true" ]]; then
         python3 "$MERGE_SCRIPT" "$STATE_FILE" \
             --set "worktreePath=$WORKTREE_PATH" \
@@ -349,31 +351,39 @@ path.write_text('\n'.join(lines) + '\n')
 # Contradiction Detection (Layer 1)
 # ============================================================================
 CONTRADICTION_PHRASES=(
-    "requires manual"
-    "cannot be automated"
-    "could not complete"
-    "needs human"
-    "manual intervention"
-    "unable to"
-    "not possible"
     "i cannot"
     "i can't"
-    "beyond my capacity"
+    "i am unable"
+    "i'm unable"
+    "not able to"
+    "cannot complete"
+    "cannot do"
+    "cannot execute"
+    "requires human intervention"
+    "requires manual"
 )
 
 check_contradictions() {
     local output="$1"
-    local output_lower
-    output_lower=$(echo "$output" | tr '[:upper:]' '[:lower:]')
+    
+    # Only check for contradictions if TASK_COMPLETE signal is present
+    # We look for contradictions in the text BEFORE the completion signal
+    if echo "$output" | grep -qE "TASK_COMPLETE|ALL_TASKS_COMPLETE"; then
+        # Extract text before the completion signal
+        local output_before_signal
+        output_before_signal=$(echo "$output" | sed 's/TASK_COMPLETE.*//; s/ALL_TASKS_COMPLETE.*//')
+        
+        local output_lower
+        output_lower=$(echo "$output_before_signal" | tr '[:upper:]' '[:lower:]')
 
-    for phrase in "${CONTRADICTION_PHRASES[@]}"; do
-        if echo "$output_lower" | grep -qF "$phrase"; then
-            if echo "$output" | grep -qE "TASK_COMPLETE|<promise>DONE</promise>"; then
-                echo "CONTRADICTION: agent says '$phrase' but also claims completion"
+        for phrase in "${CONTRADICTION_PHRASES[@]}"; do
+            if echo "$output_lower" | grep -qF "$phrase"; then
+                echo "CONTRADICTION: agent says '$phrase'"
                 return 1
             fi
-        fi
-    done
+        done
+    fi
+    # If no completion signal, skip contradiction check
     return 0
 }
 
@@ -382,7 +392,18 @@ check_contradictions() {
 # ============================================================================
 check_completion_signal() {
     local output="$1"
-    if echo "$output" | grep -qE "TASK_COMPLETE|<promise>DONE</promise>"; then
+    # Look for TASK_COMPLETE as a standalone output line (not in quotes)
+    # Check last lines or lines that are just the signal
+    local last_lines
+    last_lines=$(echo "$output" | tail -3)
+    if echo "$last_lines" | grep -qF "TASK_COMPLETE"; then
+        # Make sure it's standalone, not quoted
+        if echo "$last_lines" | grep -qE "^TASK_COMPLETE$"; then
+            return 0
+        fi
+    fi
+    # Also check for promise format
+    if echo "$output" | grep -qF "<promise>DONE</promise>"; then
         return 0
     fi
     return 1
@@ -390,7 +411,18 @@ check_completion_signal() {
 
 check_all_complete_signal() {
     local output="$1"
-    if echo "$output" | grep -qE "ALL_TASKS_COMPLETE|<promise>ALL_DONE</promise>"; then
+    # Look for ALL_TASKS_COMPLETE as a standalone output line (not in quotes)
+    # Check last lines or lines that are just the signal
+    local last_lines
+    last_lines=$(echo "$output" | tail -3)
+    if echo "$last_lines" | grep -qF "ALL_TASKS_COMPLETE"; then
+        # Make sure it's standalone, not quoted
+        if echo "$last_lines" | grep -qE "^ALL_TASKS_COMPLETE$"; then
+            return 0
+        fi
+    fi
+    # Also check for promise format
+    if echo "$output" | grep -qF "<promise>ALL_DONE</promise>"; then
         return 0
     fi
     return 1
@@ -452,7 +484,7 @@ If issues found: output REVIEW_FAIL followed by specific feedback on each line.
 
 Be strict. Reject if constitution.md rules are violated.
 REVIEW_EOF
-    )
+)
 
     local review_output=""
     local exit_code=0
@@ -466,20 +498,23 @@ REVIEW_EOF
             exit_code=$?
             ;;
         goose)
-            # If vLLM is configured, use it for review as well
+            # Goose: pass prompt directly via stdin (like claude -p flag)
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM for review: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
                 review_output=$(
+                    echo "$review_prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1
+                    goose run -i - 2>&1
                 )
                 exit_code=$?
             else
-                review_output=$(GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
-                              GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
-                              goose run --recipe "$RALPH_DIR/recipes/ralph-review.yaml" 2>&1)
+                review_output=$(echo "$review_prompt" | \
+                    GOOSE_PROVIDER="${RALPH_REVIEWER_PROVIDER:-$GOOSE_PROVIDER}" \
+                    GOOSE_MODEL="${RALPH_REVIEWER_MODEL:-$GOOSE_MODEL}" \
+                    goose run -i - 2>&1)
                 exit_code=$?
             fi
             ;;
@@ -616,6 +651,31 @@ $speckit_implement_instructions
 6. If the task has [VERIFY] tag: run the verification command and report results
 7. Commit (from $WORKTREE_PATH) with a descriptive message referencing the task ID
 
+## OUTPUT FORMAT — CRITICAL
+Your output MUST be clean and structured ONLY. Do NOT include:
+- Shell command prompts or outputs
+- Thinking process or reasoning
+- Tool calls or tool results
+- Any intermediate steps
+
+ONLY output the final structured response:
+\`\`\`
+## Task Complete
+
+**<TASK_ID>** <task description> - **DONE**
+
+### Verification Results:
+- **<result 1>**
+- **<result 2>**
+
+### Files modified:
+- <file 1> - <change>
+- <file 2> - <change>
+
+---
+TASK_COMPLETE
+\`\`\`
+
 ## When Done
 - Mark the task as [x] in $spec_dir/tasks.md
 - Append your progress to $progress_file:
@@ -659,22 +719,32 @@ run_work_agent() {
             exit_code=$?
             ;;
         goose)
-            # Write prompt to task.md for goose recipe
+            # Goose: pass prompt directly via stdin (like claude -p flag)
+            # Write to temp file for logging reference and sync to worktree
+            mkdir -p "$PROJECT_DIR/.goose/ralph"
             echo "$prompt" > "$PROJECT_DIR/.goose/ralph/task.md"
             
+            # Also copy to worktree for goose to find
+            if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+                mkdir -p "$WORKTREE_PATH/.goose/ralph"
+                cp "$PROJECT_DIR/.goose/ralph/task.md" "$WORKTREE_PATH/.goose/ralph/task.md"
+            fi
+            
             # If vLLM is configured, set OpenAI environment variables for goose
+            # Note: goose uses CUSTOM_VLLM_API_KEY as defined in custom provider config
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
-                # Configure goose to use OpenAI-compatible API with vLLM
                 output=$(
+                    echo "$prompt" | \
                     OPENAI_HOST="$RALPH_VLLM_URL" \
-                    OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
+                    OPENAI_API_KEY="$CUSTOM_VLLM_API_KEY" \
+                    CUSTOM_VLLM_API_KEY="$CUSTOM_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file"
+                    goose run -i - 2>&1 | tee "$log_file"
                 )
                 exit_code=$?
             else
-                output=$(goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file")
+                output=$(echo "$prompt" | goose run -i - 2>&1 | tee "$log_file")
                 exit_code=$?
             fi
             ;;
@@ -819,18 +889,9 @@ configure_sparse_checkout() {
     mkdir -p "$git_dir/info"
     git -C "$wt_path" config core.sparseCheckout true
     git -C "$wt_path" config core.sparseCheckoutCone false
-    printf '/*\n!/specs/\n!/specs/**\n' > "$git_dir/info/sparse-checkout"
+    # Include all files but exclude large dirs that aren't needed
+    printf '/*\n' > "$git_dir/info/sparse-checkout"
     git -C "$wt_path" read-tree -mu HEAD
-
-    # Add specs/ to exclude as second layer of protection
-    if ! grep -qxF 'specs/' "$git_dir/info/exclude" 2>/dev/null; then
-        echo 'specs/' >> "$git_dir/info/exclude"
-    fi
-
-    # Remove specs/ directory if it still exists on disk (FR-010)
-    if [[ -d "$wt_path/specs" ]]; then
-        rm -rf "$wt_path/specs"
-    fi
 }
 
 # Generate a unique worktree name (FR-001, FR-002)
@@ -1399,12 +1460,8 @@ main() {
                 log_info "Spec dir (state basePath): $spec_dir"
                 log_info "Repo tasks path: $tasks_file"
                 log_info "Repo tasks SHA1 (pre/post): ${pre_repo_tasks_sha:-} / ${post_repo_tasks_sha:-}"
-                if [[ -n "$worktree_tasks" ]]; then
-                    log_info "Worktree tasks path: $worktree_tasks"
-                    log_info "Worktree tasks SHA1 (pre/post): ${pre_wt_tasks_sha:-} / ${post_wt_tasks_sha:-}"
-                else
-                    log_info "No worktree tasks file path computed (rel_spec='$rel_spec')"
-                fi
+                log_info "Worktree tasks path: $worktree_tasks"
+                log_info "Worktree tasks SHA1 (pre/post): ${pre_wt_tasks_sha:-} / ${post_wt_tasks_sha:-}"
                 log_info "Worktree HEAD (pre/post): ${pre_wt_head:-} / ${post_wt_head:-}"
                 if [[ -n "$pre_wt_head" && -n "$post_wt_head" && "$pre_wt_head" != "$post_wt_head" ]]; then
                     log_info "Recent commits in worktree:"

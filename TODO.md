@@ -326,3 +326,23 @@ Milestone 3 is complete when:
 **Last Updated**: 2025-12-08
 **Milestone 3 Start Date**: TBD (pending validation of EMHASS config)
 **Expected Completion**: 5-6 weeks after start
+
+---
+
+## 🐛 Known Issues - Ralph Loop
+
+### Issue: Goose Agent Output Truncation
+
+**Symptom**: When using `RALPH_AGENT=claude`, the log only shows the final response (e.g., "TASK_COMPLETE"), not the full output with thinking, commands, and reasoning.
+
+**Cause**: The vLLM model (qwen3-5-35b-a3b-nvfp4) has a tokenizer that truncates the output. The full prompt (instructions + context) is sent, but the response is limited.
+
+**Impact**: Harder to debug goose iterations compared to Claude, which shows the complete output.
+
+**Workaround**: Use Claude for debugging complex tasks. Goose is suitable for simpler tasks where only the final output matters.
+
+**Future Fix**: Consider using a larger model or adjusting the tokenizer settings for goose iterations.
+
+---
+
+**Last Updated**: 2026-03-17
