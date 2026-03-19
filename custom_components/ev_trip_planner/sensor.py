@@ -135,8 +135,16 @@ class RecurringTripsCountSensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "RecurringTripsCountSensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "recurring_trips" in data:
                 return len(data.get("recurring_trips", []))
+        _LOGGER.warning(
+            "RecurringTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        )
         return 0
 
 
@@ -158,8 +166,16 @@ class PunctualTripsCountSensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "PunctualTripsCountSensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "punctual_trips" in data:
                 return len(data.get("punctual_trips", []))
+        _LOGGER.warning(
+            "PunctualTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        )
         return 0
 
 
@@ -179,6 +195,11 @@ class TripsListSensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "TripsListSensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data:
                 recurring = data.get("recurring_trips", [])
                 punctual = data.get("punctual_trips", [])
@@ -186,6 +207,9 @@ class TripsListSensor(TripPlannerSensor):
                 self._cached_attrs["punctual_trips"] = punctual
                 self._cached_attrs["trips"] = recurring + punctual
                 return len(recurring) + len(punctual)
+        _LOGGER.warning(
+            "TripsListSensor(%s) no coordinator data available", self._vehicle_id
+        )
         return 0
 
 
@@ -206,8 +230,16 @@ class KwhTodaySensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "KwhTodaySensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "kwh_today" in data:
                 return data.get("kwh_today", 0.0)
+        _LOGGER.warning(
+            "KwhTodaySensor(%s) no coordinator data available", self._vehicle_id
+        )
         return 0.0
 
 
@@ -227,8 +259,16 @@ class HoursTodaySensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "HoursTodaySensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "hours_today" in data:
                 return data.get("hours_today", 0)
+        _LOGGER.warning(
+            "HoursTodaySensor(%s) no coordinator data available", self._vehicle_id
+        )
         return 0
 
 
@@ -248,10 +288,18 @@ class NextTripSensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "NextTripSensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "next_trip" in data:
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("descripcion", "No trips")
+        _LOGGER.warning(
+            "NextTripSensor(%s) no coordinator data available", self._vehicle_id
+        )
         return "No trips"
 
 
@@ -271,10 +319,18 @@ class NextDeadlineSensor(TripPlannerSensor):
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
             data = self._coordinator.data
+            _LOGGER.debug(
+                "NextDeadlineSensor(%s) reading from coordinator.data: %s",
+                self._vehicle_id,
+                data,
+            )
             if data and "next_trip" in data:
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("datetime")
+        _LOGGER.warning(
+            "NextDeadlineSensor(%s) no coordinator data available", self._vehicle_id
+        )
         return None
 
 
