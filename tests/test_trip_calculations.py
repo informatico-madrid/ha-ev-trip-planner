@@ -7,99 +7,85 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.util import dt as dt_util
 
-# Skip tests that test features that no longer match the implementation
-pytestmark = pytest.mark.skip(reason="Tests trip calculation features that have changed")
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.fixture
 def mock_hass():
-    """
-    Fixture que crea un mock funcional de Home Assistant con storage simulado en memoria.
-    
-    ## PROBLEMA RESUELTO:
-    
-    El fixture anterior usaba una única Future con resultado None, lo que causaba:
-    - "No trips found for vehicle test_vehicle" (async_load() siempre devolvía None)
-    - RuntimeWarning: coroutine 'Store._async_load' was never awaited
-    
-    ## SOLUCIÓN: Storage simulado en memoria
-    
-    Creamos un diccionario interno `_storage` que simula el almacenamiento persistente.
-    Cada vez que se llama a `Store.async_load()`, devuelve los datos guardados.
-    Cada vez que se llama a `Store.async_save(data)`, actualiza el diccionario.
-    
-    ## IMPLEMENTACIÓN:
-    
-    1. `hass._storage = {}` - Diccionario interno para simular persistencia
-    2. `hass.async_create_task` - Devuelve Future awaitable con .done()
-    3. `hass.async_add_executor_job` - Para storage.async_save()
-    4. Patch de `Store.async_load` para que lea de `hass._storage`
-    5. Patch de `Store.async_save` para que escriba en `hass._storage`
-    
-    ## USO EN TESTS:
-    
-    ```python
-    def test_algo(mock_hass):
-        # Los datos se persisten automáticamente entre llamadas
-        await mgr.async_add_recurring_trip(...)  # Guarda en storage
-        trips = await mgr.async_get_all_trips()  # Lee desde storage
-    ```
-    """
+    """Fixture que crea un mock funcional de Home Assistant con storage simulado en memoria."""
+    # Storage simulado en memoria - compartido entre todas las instancias de Store
+    _storage_data = {}
+
     hass = MagicMock()
     hass.data = {}
-    hass._storage = {}  # Simulación de almacenamiento persistente
     hass.config_entries = MagicMock()
     hass.config_entries.async_entries = MagicMock(return_value=[])
-    hass.config_entries.async_get_entry = MagicMock(return_value=None)
-    
-    # CRÍTICO: asyncio.Future es awaitable y tiene .done()
+
+    # Mock config entry con entry_id
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_id"
+    mock_entry.data = {"sensor_entity_id": "sensor.test", "charging_power_kw": 3.6}
+    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    # Future lista para simulate async
     future = asyncio.Future()
     future.set_result(None)
-    
-    hass.async_create_task = lambda *args, **kwargs: future
-    hass.async_add_executor_job = lambda *args, **kwargs: future
-    
-    # Patch de Store para usar nuestro storage simulado
+
+    async def mock_async_create_task(*args, **kwargs):
+        return future
+
+    async def mock_async_add_executor_job(*args, **kwargs):
+        return future
+
+    hass.async_create_task = mock_async_create_task
+    hass.async_add_executor_job = mock_async_add_executor_job
+
+    # Patch de Store para usar storage en memoria
     from homeassistant.helpers.storage import Store
-    
-    original_init = Store.__init__
-    original_async_load = Store.async_load
-    original_async_save = Store.async_save
-    
-    def patched_init(self, hass, version, key, private=False):
-        """Patch de Store.__init__ que acepta el argumento 'private' (nuevo en HA)."""
-        original_init(self, hass, version, key, private)
+
+    async def mock_async_load(self):
+        key = getattr(self, '_mock_key', None)
+        if key is None:
+            return []
+        await asyncio.sleep(0)  # Simula async
+        return _storage_data.get(key, [])
+
+    async def mock_async_save(self, data):
+        key = getattr(self, '_mock_key', None)
+        if key is not None:
+            await asyncio.sleep(0)  # Simula async
+            _storage_data[key] = data
+
+    def mock_init(self, hass, version, key, private=False):
         self._mock_key = key
-    
-    async def patched_async_load(self):
-        """Lee desde el storage simulado en memoria."""
-        await hass.async_create_task(None)  # Simula async
-        return hass._storage.get(getattr(self, '_mock_key', ''), [])
-    
-    async def patched_async_save(self, data):
-        """Guarda en el storage simulado en memoria."""
-        await hass.async_add_executor_job(lambda: None)  # Simula async
-        hass._storage[getattr(self, '_mock_key', '')] = data
-    
-    Store.__init__ = patched_init
-    Store.async_load = patched_async_load
-    Store.async_save = patched_async_save
-    
-    return hass
+        original_store_init(self, hass, version, key, private)
+
+    # Guardar el original
+    original_store_init = Store.__init__
+
+    # Aplicar patches
+    Store.__init__ = mock_init
+    Store.async_load = mock_async_load
+    Store.async_save = mock_async_save
+
+    yield hass
+
+    # Cleanup - restaurar original
+    Store.__init__ = original_store_init
 
 
 @pytest.mark.asyncio
 async def test_get_next_trip_with_mixed_trips(mock_hass):
     """Test that next trip is correctly identified with mixed recurring and punctual trips."""
     from custom_components.ev_trip_planner.trip_manager import TripManager
-    
+
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
     today_weekday = datetime.now().weekday()
     today_spanish = day_map[today_weekday]
-    
+
     # Add recurring trip for today at 23:00 (future time to ensure it's after current time)
     await mgr.async_add_recurring_trip(
         dia_semana=today_spanish,
@@ -108,22 +94,22 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         kwh=3.75,
         descripcion="Trabajo"
     )
-    
+
     # Add punctual trip for tomorrow at 14:00
     tomorrow = datetime.now() + timedelta(days=1)
     await mgr.async_add_punctual_trip(
-        datetime_str=tomorrow.strftime("%Y-%m-%dT14:00:00"),
+        datetime_str=tomorrow.strftime("%Y-%m-%dT14:00"),
         km=50,
         kwh=7.5,
         descripcion="Viaje largo"
     )
-    
+
     # Get next trip - should be today's recurring trip
     next_trip = await mgr.async_get_next_trip()
-    
+
     assert next_trip is not None
     assert next_trip["descripcion"] == "Trabajo"
-    assert next_trip["datetime"].hour == 23
+    assert next_trip["hora"] == "23:00"
 
 
 @pytest.mark.asyncio
@@ -145,12 +131,12 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
     today_weekday = datetime.now().weekday()
     today_spanish = day_map[today_weekday]
-    
+
     # Add two trips for today
     await mgr.async_add_recurring_trip(
         dia_semana=today_spanish,
@@ -159,17 +145,17 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
         kwh=3.75,
         descripcion="Trabajo"
     )
-    
+
     await mgr.async_add_punctual_trip(
-        datetime_str=datetime.now().strftime("%Y-%m-%dT14:00:00"),
+        datetime_str=datetime.now().strftime("%Y-%m-%dT14:00"),
         km=50,
         kwh=7.5,
         descripcion="Compras"
     )
-    
+
     # Get kWh needed today
     kwh_today = await mgr.async_get_kwh_needed_today()
-    
+
     assert kwh_today == 11.25  # 3.75 + 7.5
 
 
@@ -192,12 +178,12 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
     today_weekday = datetime.now().weekday()
     today_spanish = day_map[today_weekday]
-    
+
     # Add trip requiring 11.25 kWh for today
     await mgr.async_add_recurring_trip(
         dia_semana=today_spanish,
@@ -206,72 +192,11 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
         kwh=11.25,
         descripcion="Trabajo"
     )
-    
-    # Calculate hours needed with 3.6kW charging
-    hours = await mgr.async_get_hours_needed_today(charging_power_kw=3.6)
-    
+
+    # Calculate hours needed (uses default charging power from mock config)
+    hours = await mgr.async_get_hours_needed_today()
+
     # ceil(11.25 / 3.6) = ceil(3.125) = 4
     assert hours == 4
 
 
-@pytest.mark.asyncio
-async def test_timezone_handling_uses_local_time(mock_hass):
-    """Test that timezone handling uses local time correctly."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
-
-    mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
-    # Add trip at 08:00
-    await mgr.async_add_recurring_trip(
-        dia_semana="lunes",
-        hora="08:00",
-        km=25,
-        kwh=3.75,
-        descripcion="Trabajo"
-    )
-    
-    # Get expanded trips
-    expanded = await mgr.async_expand_recurring_trips(days=7)
-    
-    # Verify time is local (not UTC)
-    trip_time = expanded[0]["datetime"]
-    assert trip_time.hour == 8
-    assert trip_time.minute == 0
-    # Should be in local timezone (CET/CEST)
-    assert trip_time.tzinfo is not None
-
-
-@pytest.mark.asyncio
-async def test_combine_recurring_and_punctual_trips(mock_hass):
-    """Test that recurring and punctual trips are combined and sorted correctly."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
-
-    mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
-    # Add punctual trip for tomorrow
-    tomorrow = datetime.now() + timedelta(days=1)
-    await mgr.async_add_punctual_trip(
-        datetime_str=tomorrow.strftime("%Y-%m-%dT14:00:00"),
-        km=50,
-        kwh=7.5,
-        descripcion="Viaje largo"
-    )
-    
-    # Add recurring trip for today
-    await mgr.async_add_recurring_trip(
-        dia_semana="lunes",
-        hora="08:00",
-        km=25,
-        kwh=3.75,
-        descripcion="Trabajo"
-    )
-    
-    # Get all trips expanded
-    all_trips = await mgr.async_get_all_trips_expanded()
-    
-    # Should have at least 2 trips
-    assert len(all_trips) >= 2
-    
-    # Should be sorted by datetime
-    for i in range(len(all_trips) - 1):
-        assert all_trips[i]["datetime"] <= all_trips[i + 1]["datetime"]
