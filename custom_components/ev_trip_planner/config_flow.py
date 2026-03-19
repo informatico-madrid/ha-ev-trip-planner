@@ -241,6 +241,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # Store step 1 data in context
             vehicle_data = self._get_vehicle_data()
             vehicle_data.update(user_input)
+            _LOGGER.debug(
+                "Config flow step 1 (user): vehicle_name=%s",
+                user_input.get(CONF_VEHICLE_NAME),
+            )
             return await self.async_step_sensors()
 
         return self.async_show_form(
@@ -259,6 +263,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # Store step 2 data in context
             vehicle_data = self._get_vehicle_data()
             vehicle_data.update(user_input)
+            _LOGGER.debug(
+                "Config flow step 2 (sensors): battery_capacity=%.1f, "
+                "charging_power=%.1f, consumption=%.2f, safety_margin=%d",
+                user_input.get(CONF_BATTERY_CAPACITY, 0),
+                user_input.get(CONF_CHARGING_POWER, 0),
+                user_input.get(CONF_CONSUMPTION, 0),
+                user_input.get(CONF_SAFETY_MARGIN, 0),
+            )
             return await self.async_step_emhass()
 
         return self.async_show_form(
@@ -399,6 +411,12 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 vehicle_data.get(CONF_PLANNING_SENSOR, "not configured"),
             )
 
+            _LOGGER.debug(
+                "Config flow step 3 (emhass): horizon=%s, max_loads=%s",
+                user_input.get(CONF_PLANNING_HORIZON),
+                user_input.get(CONF_MAX_DEFERRABLE_LOADS),
+            )
+
             # Go to presence step
             return await self.async_step_presence(None)
 
@@ -486,6 +504,13 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         # Store the presence data and go to notifications step
         vehicle_data = self._get_vehicle_data()
         vehicle_data.update(user_input)
+        _LOGGER.debug(
+            "Config flow step 4 (presence): charging_sensor=%s, "
+            "home_sensor=%s, plugged_sensor=%s",
+            user_input.get(CONF_CHARGING_SENSOR),
+            user_input.get(CONF_HOME_SENSOR, "not set"),
+            user_input.get(CONF_PLUGGED_SENSOR, "not set"),
+        )
         return await self.async_step_notifications(None)
 
     async def async_step_notifications(
@@ -547,6 +572,12 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 notify_devices,
             )
 
+        _LOGGER.debug(
+            "Config flow step 5 (notifications): service=%s, devices=%s",
+            user_input.get(CONF_NOTIFICATION_SERVICE, "not set"),
+            user_input.get(CONF_NOTIFICATION_DEVICES, "not set"),
+        )
+
         # Create entry after notifications step
         return await self._async_create_entry()
 
@@ -555,6 +586,17 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         vehicle_data = self._get_vehicle_data()
         vehicle_name = vehicle_data[CONF_VEHICLE_NAME]
         vehicle_id = vehicle_name.lower().replace(" ", "_")
+
+        # Log all collected configuration data for diagnosis
+        _LOGGER.debug(
+            "Creating config entry for vehicle: %s (ID: %s)",
+            vehicle_name,
+            vehicle_id,
+        )
+        _LOGGER.debug(
+            "Config flow final data keys: %s",
+            list(vehicle_data.keys()),
+        )
 
         # Create the config entry
         result = self.async_create_entry(
