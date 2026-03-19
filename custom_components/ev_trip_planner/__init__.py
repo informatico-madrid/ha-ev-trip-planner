@@ -99,7 +99,7 @@ async def import_dashboard(
 
         # Try to save using the Lovelace storage API
         # This is the most reliable method for storage mode dashboards
-        if await _save_lovelace_dashboard(hass, dashboard_config):
+        if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
             _LOGGER.info(
                 "Dashboard imported successfully for %s", vehicle_name
             )
@@ -152,14 +152,25 @@ async def _load_dashboard_template(
     """
     try:
         # Determine template filename
-        template_file = "ev-trip-planner-full.yaml" if use_charts else "ev-trip-planner-simple.yaml"
+        if use_charts:
+            template_file = "ev-trip-planner-full.yaml"
+        else:
+            template_file = "ev-trip-planner-simple.yaml"
 
         # Find the dashboard template - check multiple locations
         # 1. Custom component directory (production)
         # 2. Parent directory (development/testing)
+        comp_dir = os.path.dirname(__file__)
+        parent_dir = os.path.dirname(os.path.dirname(__file__))
         possible_paths = [
-            os.path.join(os.path.dirname(__file__), "dashboard", template_file),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "custom_components", "ev_trip_planner", "dashboard", template_file),
+            os.path.join(comp_dir, "dashboard", template_file),
+            os.path.join(
+                parent_dir,
+                "custom_components",
+                "ev_trip_planner",
+                "dashboard",
+                template_file,
+            ),
         ]
 
         template_path = None
@@ -197,6 +208,7 @@ async def _load_dashboard_template(
 async def _save_lovelace_dashboard(
     hass: HomeAssistant,
     dashboard_config: dict[str, Any],
+    vehicle_id: str,
 ) -> bool:
     """Save dashboard to Lovelace storage.
 
@@ -241,9 +253,28 @@ async def _save_lovelace_dashboard(
                     current_data = lovelace_config["data"]
                     views = current_data.get("views", [])
 
-                    # Add our new dashboard view
-                    new_view = dashboard_config.get("views", [{}])[0] if dashboard_config.get("views") else {}
-                    views.append(new_view)
+                    # Get new dashboard view
+                    new_views = dashboard_config.get("views", [])
+                    if not new_views:
+                        _LOGGER.warning("No views found in dashboard config")
+                        return False
+                    new_view = new_views[0]
+
+                    # FR-004: Replace existing view with same path, or append
+                    new_path = new_view.get("path", vehicle_id)
+                    replaced = False
+                    for i, existing_view in enumerate(views):
+                        if existing_view.get("path") == new_path:
+                            views[i] = new_view
+                            replaced = True
+                            _LOGGER.info(
+                                "Replaced existing dashboard view: %s", new_path
+                            )
+                            break
+
+                    if not replaced:
+                        views.append(new_view)
+                        _LOGGER.info("Added new dashboard view: %s", new_path)
 
                     # Save updated config using async_write_dict
                     await hass.storage.async_write_dict(
@@ -271,7 +302,8 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"{DOMAIN}_coordinator",
-            update_interval=timedelta(seconds=30),  # Fallback interval, pero usaremos refresh manual
+            # Fallback interval, but we use manual refresh
+            update_interval=timedelta(seconds=30),
         )
         self.trip_manager = trip_manager
 
@@ -403,6 +435,7 @@ def register_services(hass: HomeAssistant) -> None:
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
     async def handle_add_punctual(call: ServiceCall) -> None:
@@ -419,6 +452,7 @@ def register_services(hass: HomeAssistant) -> None:
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
     async def handle_edit_trip(call: ServiceCall) -> None:
@@ -431,6 +465,7 @@ def register_services(hass: HomeAssistant) -> None:
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
     async def handle_delete_trip(call: ServiceCall) -> None:
@@ -443,6 +478,7 @@ def register_services(hass: HomeAssistant) -> None:
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
     async def handle_pause_recurring(call: ServiceCall) -> None:
