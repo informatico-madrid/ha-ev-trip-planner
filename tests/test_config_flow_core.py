@@ -17,13 +17,10 @@ from custom_components.ev_trip_planner.const import (
     CONF_SAFETY_MARGIN,
     CONF_SOC_SENSOR,
     CONF_VEHICLE_NAME,
-    CONF_VEHICLE_TYPE,
     CONTROL_TYPE_NONE,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
-    DEFAULT_VEHICLE_TYPE,
     DOMAIN,
-    VEHICLE_TYPE_EV,
 )
 from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 
@@ -53,7 +50,6 @@ async def test_full_flow_success():
         result = await flow.async_step_user(
             {
                 CONF_VEHICLE_NAME: "Chispitas",
-                CONF_VEHICLE_TYPE: VEHICLE_TYPE_EV,
             }
         )
         # Should advance to step 2 (sensors)
@@ -97,7 +93,6 @@ async def test_full_flow_success():
         assert result["title"] == "Chispitas"
         data = result["data"]
         assert data[CONF_VEHICLE_NAME] == "Chispitas"
-        assert data[CONF_VEHICLE_TYPE] == VEHICLE_TYPE_EV
         assert data[CONF_BATTERY_CAPACITY] == 60.0
         assert data[CONF_CHARGING_POWER] == 11.0
         assert data[CONF_CONSUMPTION] == 0.15
@@ -115,7 +110,6 @@ async def test_emhass_step_shows_form():
     # Initialize flow data in context
     flow.context["vehicle_data"] = {
         CONF_VEHICLE_NAME: "TestVehicle",
-        CONF_VEHICLE_TYPE: VEHICLE_TYPE_EV,
     }
     result = await flow.async_step_emhass()
     assert result["type"] == FlowResultType.FORM
@@ -130,7 +124,6 @@ async def test_emhass_step_with_sensor():
     flow.context = {}
     flow.context["vehicle_data"] = {
         CONF_VEHICLE_NAME: "TestVehicle",
-        CONF_VEHICLE_TYPE: VEHICLE_TYPE_EV,
     }
 
     with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
@@ -170,7 +163,6 @@ async def test_duplicate_vehicle_aborts():
             result = await flow.async_step_user(
                 {
                     CONF_VEHICLE_NAME: "Chispitas",
-                    CONF_VEHICLE_TYPE: DEFAULT_VEHICLE_TYPE,
                 }
             )
             # Step 2: sensors

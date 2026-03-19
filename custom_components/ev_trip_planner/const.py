@@ -17,7 +17,6 @@ SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
 
 # Configuration keys
 CONF_VEHICLE_NAME = "vehicle_name"
-CONF_VEHICLE_TYPE = "vehicle_type"
 CONF_SOC_SENSOR = "soc_sensor"
 CONF_BATTERY_CAPACITY = "battery_capacity_kwh"
 CONF_CHARGING_POWER = "charging_power_kw"
@@ -52,16 +51,11 @@ CONTROL_TYPE_SERVICE = "service"
 CONTROL_TYPE_SCRIPT = "script"
 CONTROL_TYPE_EXTERNAL = "external"
 
-# Vehicle types
-VEHICLE_TYPE_EV = "ev"
-VEHICLE_TYPE_PHEV = "phev"
-
 # Defaults
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
-DEFAULT_VEHICLE_TYPE = VEHICLE_TYPE_EV
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Maximum simultaneous trips (EMHASS integration limit)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"

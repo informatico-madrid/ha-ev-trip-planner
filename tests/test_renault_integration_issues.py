@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 from custom_components.ev_trip_planner.const import (
     DOMAIN,
     CONF_VEHICLE_NAME,
-    CONF_VEHICLE_TYPE,
     CONF_SOC_SENSOR,
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -60,9 +59,10 @@ async def test_config_flow_accepts_renault_without_coordinates(hass: HomeAssista
     # Act - Start config flow
     result = await flow.async_step_user()
     
-    # Assert - Should have vehicle_type selection including Renault
+    # Assert - Should have only vehicle_name (no vehicle_type selector per FR-001)
     assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert "vehicle_type" in result["data_schema"].schema
+    assert "vehicle_name" in result["data_schema"].schema
+    assert "vehicle_type" not in result["data_schema"].schema
 
 
 @pytest.mark.asyncio
@@ -76,7 +76,6 @@ async def test_renault_home_sensor_field_optional(hass: HomeAssistant):
         "unique_id": None,
         "vehicle_data": {
             CONF_VEHICLE_NAME: "Renault Test",
-            CONF_VEHICLE_TYPE: "renault",
             CONF_SOC_SENSOR: "sensor.renault_battery_level",
             CONF_BATTERY_CAPACITY: 52,
             CONF_CHARGING_POWER: 7.4,
