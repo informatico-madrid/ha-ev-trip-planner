@@ -62,20 +62,42 @@ class TripPlannerSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Actualiza el estado del sensor."""
+        vehicle_id = getattr(self.trip_manager, "vehicle_id", "unknown")
         try:
             if self._sensor_type == "kwh_needed_today":
+                _LOGGER.debug(
+                    "Sensor update kwh_needed_today for %s: fetching trips data", vehicle_id
+                )
                 self._attr_native_value = await self.trip_manager.async_get_kwh_needed_today()
                 # Cache attributes for synchronous access
                 recurring = await self.trip_manager.async_get_recurring_trips()
                 punctual = await self.trip_manager.async_get_punctual_trips()
                 self._cached_attrs["viajes_hoy"] = len(recurring)
                 self._cached_attrs["viajes_puntuales"] = len(punctual)
+                _LOGGER.debug(
+                    "Sensor update kwh_needed_today for %s: value=%s, recurring=%d, punctual=%d",
+                    vehicle_id,
+                    self._attr_native_value,
+                    len(recurring),
+                    len(punctual),
+                )
             elif self._sensor_type == "hours_needed_today":
+                _LOGGER.debug(
+                    "Sensor update hours_needed_today for %s: fetching hours data", vehicle_id
+                )
                 self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
-                self._cached_attrs["potencia_carga"] = (
-                    self.trip_manager.vehicle_controller.get_charging_power()
+                charging_power = self.trip_manager.vehicle_controller.get_charging_power()
+                self._cached_attrs["potencia_carga"] = charging_power
+                _LOGGER.debug(
+                    "Sensor update hours_needed_today for %s: value=%s, charging_power=%s",
+                    vehicle_id,
+                    self._attr_native_value,
+                    charging_power,
                 )
             elif self._sensor_type == "next_trip":
+                _LOGGER.debug(
+                    "Sensor update next_trip for %s: fetching next trip data", vehicle_id
+                )
                 next_trip = await self.trip_manager.async_get_next_trip()
                 self._attr_native_value = next_trip["descripcion"] if next_trip else "N/A"
                 if next_trip:
@@ -86,10 +108,25 @@ class TripPlannerSensor(SensorEntity):
                     )
                     self._cached_attrs["distancia"] = next_trip["km"]
                     self._cached_attrs["energia"] = next_trip["kwh"]
+                    _LOGGER.debug(
+                        "Sensor update next_trip for %s: next_trip=%s, datetime=%s, km=%s",
+                        vehicle_id,
+                        next_trip["descripcion"],
+                        self._cached_attrs.get("fecha_hora"),
+                        next_trip["km"],
+                    )
                 else:
                     self._cached_attrs.clear()
+                    _LOGGER.debug(
+                        "Sensor update next_trip for %s: no trips available", vehicle_id
+                    )
         except Exception as err:
-            _LOGGER.error("Error actualizando sensor %s: %s", self._sensor_type, err)
+            _LOGGER.error(
+                "Error actualizando sensor %s (vehicle=%s): %s",
+                self._sensor_type,
+                vehicle_id,
+                err,
+            )
             self._attr_native_value = None
 
     @property
@@ -392,6 +429,12 @@ class EmhassDeferrableLoadSensor(SensorEntity):
 
             charging_power_kw = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
             planning_horizon_days = entry.data.get("planning_horizon_days", 7)
+            _LOGGER.debug(
+                "EmhassDeferrableLoadSensor update for %s: charging_power=%s, horizon=%s",
+                self._vehicle_id,
+                charging_power_kw,
+                planning_horizon_days,
+            )
 
             power_profile = await self.trip_manager.async_generate_power_profile(
                 charging_power_kw=charging_power_kw,
@@ -408,6 +451,12 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 "deferrables_schedule": schedule,
             }
             self._attr_native_value = "ready"
+            _LOGGER.debug(
+                "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
+                self._vehicle_id,
+                len(power_profile) if power_profile else 0,
+                len(schedule) if schedule else 0,
+            )
 
         except Exception as err:
             _LOGGER.error("Error actualizando sensor EMHASS %s: %s", self._vehicle_id, err)
@@ -433,6 +482,13 @@ async def async_setup_entry(
         _LOGGER.error("No trip_manager found for %s", vehicle_id)
         return False
 
+    _LOGGER.debug(
+        "Setting up sensors for vehicle_id=%s, entry_id=%s, coordinator=%s",
+        vehicle_id,
+        entry_id,
+        coordinator is not None,
+    )
+
     entities = [
         TripsListSensor(vehicle_id, coordinator),
         RecurringTripsCountSensor(vehicle_id, coordinator),
@@ -443,6 +499,12 @@ async def async_setup_entry(
         NextDeadlineSensor(vehicle_id, coordinator),
         EmhassDeferrableLoadSensor(hass, trip_manager, vehicle_id),
     ]
+
+    _LOGGER.debug(
+        "Created sensors for %s: %s",
+        vehicle_id,
+        [type(e).__name__ for e in entities],
+    )
 
     async_add_entities(entities)
     return True

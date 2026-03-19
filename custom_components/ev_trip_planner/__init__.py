@@ -79,6 +79,14 @@ async def import_dashboard(
             dashboard_type,
         )
 
+        # DEBUG: Log input parameters for diagnosis
+        _LOGGER.debug(
+            "Dashboard import params: vehicle_id=%s, vehicle_name=%s, use_charts=%s",
+            vehicle_id,
+            vehicle_name,
+            use_charts,
+        )
+
         # Check if Lovelace is available
         if not is_lovelace_available(hass):
             _LOGGER.warning(
@@ -333,7 +341,7 @@ async def _save_lovelace_dashboard(
     try:
         # Check if we can use the lovelace.config service
         if hass.services.has_service("lovelace", "save"):
-            _LOGGER.debug("lovelace.save service is available")
+            _LOGGER.debug("lovelace.save service is available, will use service method")
             # Try to save each view as a separate dashboard
             # Get the views from the dashboard config
             views = dashboard_config.get("views", [])
@@ -363,6 +371,8 @@ async def _save_lovelace_dashboard(
                 return True
 
             _LOGGER.warning("Dashboard config has no views to save")
+        else:
+            _LOGGER.debug("lovelace.save service NOT available, will use storage API")
 
         # Try alternative method: use the storage API directly
         # Use hass.storage.async_read and hass.storage.async_write_dict
@@ -424,6 +434,7 @@ async def _save_lovelace_dashboard(
                         vehicle_id,
                     )
                     # Save updated config using async_write_dict
+                    _LOGGER.debug("Writing dashboard config to storage: lovelace")
                     await hass.storage.async_write_dict(
                         "lovelace",
                         {"version": 1, "data": {**current_data, "views": views}},

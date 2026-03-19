@@ -179,18 +179,22 @@
 
 ### Configuración básica (UI)
 
-1. **Después de añadir la integración**, el asistente te pedirá:
+1. **Después de añadir la integración**, el asistente te guiará a través de **4 pasos simplificados**:
 
-   - **Nombre del vehículo**: Ej. "Chispitas", "Morgan"
-   - **Capacidad de batería (kWh)**: Ej. 27 (Leaf), 52 (Tesla)
-   - **Eficiencia (kWh/100km)**: Ej. 15 (Leaf), 18 (Model 3)
+   - **Paso 1 - Vehículo**: Solo necesitas el nombre del vehículo (ej. "Chispitas", "Morgan")
+   - **Paso 2 - Sensores**: Capacidad de batería, potencia de carga, consumo
+   - **Paso 3 - EMHASS** (opcional): Configuración de optimización energética
+   - **Paso 4 - Control** (opcional): Tipo de control y notificaciones
 
-2. **Haz clic en ENVIAR**
+2. **Traducción completa al español**: Todos los pasos, mensajes y campos de ayuda están en español, incluyendo sugerencias claras para los sensores opcionales.
 
-3. **Los sensores se crearán automáticamente**:
+3. **Dashboard automático**: Al completar la configuración, el dashboard de Lovelace se importa automáticamente a tu sistema.
+
+4. **Los sensores se crearán automáticamente**:
    - `sensor.{vehiculo}_trips_list`
    - `sensor.{vehiculo}_recurring_trips_count`
    - `sensor.{vehiculo}_punctual_trips_count`
+   - Y sensores adicionales según la configuración
 
 ### Configuración avanzada (YAML)
 
@@ -440,11 +444,23 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 
 ### Los viajes no se guardan
 
+- **Los viajes ahora persisten entre reinicios**: El sistema usa Storage API de Home Assistant para guardar los viajes de forma persistente.
 - **Verifica permisos**:
   ```bash
   ls -la /home/malka/homeassistant/.storage/ | grep ev_trip_planner
   ```
 - Debe tener permisos `1000:1000` (usuario homeassistant)
+- Los archivos se guardan en `.storage/ev_trip_planner_{vehicle_id}.json`
+
+### El dashboard no se importa automáticamente
+
+- **Verifica que Lovelace está disponible**: El sistema necesita que Lovelace esté configurado en Home Assistant.
+- **Mira los logs**:
+  ```bash
+  docker logs homeassistant --tail 50 | grep ev_trip_planner
+  ```
+- Busca mensajes como "Lovelace not available" o "Dashboard imported successfully"
+- El dashboard se sobrescribe automáticamente si ya existe
 
 ---
 
