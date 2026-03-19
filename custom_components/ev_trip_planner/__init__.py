@@ -73,18 +73,22 @@ async def import_dashboard(
         # Determine which dashboard template to use (for logging)
         dashboard_type = "full" if use_charts else "simple"
         _LOGGER.info(
-            "Importing dashboard for %s (type: %s)",
+            "Importing dashboard for %s (ID: %s, type: %s)",
             vehicle_name,
+            vehicle_id,
             dashboard_type,
         )
 
         # Check if Lovelace is available
         if not is_lovelace_available(hass):
             _LOGGER.warning(
-                "Lovelace not available for %s, skipping dashboard import",
+                "Lovelace not available for %s (ID: %s), skipping dashboard import",
                 vehicle_name,
+                vehicle_id,
             )
             return False
+
+        _LOGGER.debug("Lovelace is available, proceeding with dashboard import")
 
         # Load dashboard template from custom_components folder
         dashboard_config = await _load_dashboard_template(
@@ -93,20 +97,44 @@ async def import_dashboard(
 
         if dashboard_config is None:
             _LOGGER.error(
-                "Could not load dashboard template for %s", vehicle_name
+                "Could not load dashboard template for %s (ID: %s)",
+                vehicle_name,
+                vehicle_id,
             )
             return False
 
+        # Log dashboard config details for debugging
+        _LOGGER.debug(
+            "Dashboard template loaded for %s: title=%s, views_count=%d",
+            vehicle_name,
+            dashboard_config.get("title"),
+            len(dashboard_config.get("views", [])),
+        )
+
         # Try to save using the Lovelace storage API
         # This is the most reliable method for storage mode dashboards
+        _LOGGER.debug(
+            "Attempting to save dashboard via storage API for %s", vehicle_id
+        )
         if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
             _LOGGER.info(
-                "Dashboard imported successfully for %s", vehicle_name
+                "Dashboard imported successfully for %s (ID: %s)",
+                vehicle_name,
+                vehicle_id,
             )
             return True
 
+        _LOGGER.debug(
+            "Storage API method failed, trying fallback: lovelace.import service"
+        )
+
         # Fallback: Try to use the import service
         if hass.services.has_service("lovelace", "import"):
+            _LOGGER.debug(
+                "Using lovelace.import service for %s (path: ev-trip-planner-%s)",
+                vehicle_name,
+                vehicle_id,
+            )
             await hass.services.async_call(
                 "lovelace",
                 "import",
@@ -157,6 +185,13 @@ async def _load_dashboard_template(
         else:
             template_file = "ev-trip-planner-simple.yaml"
 
+        _LOGGER.debug(
+            "Loading dashboard template: file=%s, vehicle_id=%s, vehicle_name=%s",
+            template_file,
+            vehicle_id,
+            vehicle_name,
+        )
+
         # Find the dashboard template - check multiple locations
         # 1. Custom component directory (production)
         # 2. Parent directory (development/testing)
@@ -173,19 +208,31 @@ async def _load_dashboard_template(
             ),
         ]
 
+        _LOGGER.debug("Searching for template in: %s", possible_paths)
+
         template_path = None
         for path in possible_paths:
             if os.path.exists(path):
                 template_path = path
+                _LOGGER.debug("Found template at: %s", template_path)
                 break
 
         if template_path is None:
-            _LOGGER.error("Dashboard template not found: %s", template_file)
+            _LOGGER.error(
+                "Dashboard template not found: %s (searched in %s)",
+                template_file,
+                possible_paths,
+            )
             return None
 
         # Read and parse YAML template
+        _LOGGER.debug("Reading template file: %s", template_path)
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
+
+        _LOGGER.debug(
+            "Template content length: %d chars", len(template_content)
+        )
 
         # Substitute template variables
         template_content = template_content.replace("{{ vehicle_id }}", vehicle_id)
@@ -195,7 +242,10 @@ async def _load_dashboard_template(
         dashboard_config = yaml.safe_load(template_content)
 
         _LOGGER.debug(
-            "Loaded dashboard template from %s", template_path
+            "Loaded dashboard template from %s: title=%s, views=%d",
+            template_path,
+            dashboard_config.get("title") if dashboard_config else "N/A",
+            len(dashboard_config.get("views", [])) if dashboard_config else 0,
         )
 
         return dashboard_config
@@ -222,13 +272,22 @@ async def _save_lovelace_dashboard(
     try:
         # Check if we can use the lovelace.config service
         if hass.services.has_service("lovelace", "save"):
+            _LOGGER.debug("lovelace.save service is available")
             # Try to save each view as a separate dashboard
             # Get the views from the dashboard config
             views = dashboard_config.get("views", [])
+            _LOGGER.debug(
+                "Dashboard config has %d views, will save first view", len(views)
+            )
 
             # For now, we'll save the first view as the main dashboard
             if views:
                 first_view = views[0]
+                view_path = first_view.get("path", "unknown")
+                view_title = first_view.get("title", "unknown")
+                _LOGGER.debug(
+                    "Saving first view: path=%s, title=%s", view_path, view_title
+                )
                 view_config = {
                     "title": dashboard_config.get("title", "EV Trip Planner"),
                     "views": [first_view],
@@ -242,16 +301,27 @@ async def _save_lovelace_dashboard(
                 _LOGGER.info("Dashboard saved via lovelace.save service")
                 return True
 
+            _LOGGER.warning("Dashboard config has no views to save")
+
         # Try alternative method: use the storage API directly
         # Use hass.storage.async_read and hass.storage.async_write_dict
+        _LOGGER.debug("Attempting to use storage API for dashboard import")
         if hasattr(hass, "storage") and hasattr(hass.storage, "async_read"):
             try:
                 # Get current lovelace config
+                _LOGGER.debug("Reading current Lovelace config from storage")
                 lovelace_config = await hass.storage.async_read("lovelace")
 
                 if lovelace_config and "data" in lovelace_config:
                     current_data = lovelace_config["data"]
                     views = current_data.get("views", [])
+                    _LOGGER.debug(
+                        "Current Lovelace config has %d views", len(views)
+                    )
+
+                    # Log existing view paths for debugging
+                    existing_paths = [v.get("path") for v in views]
+                    _LOGGER.debug("Existing view paths: %s", existing_paths)
 
                     # Get new dashboard view
                     new_views = dashboard_config.get("views", [])
@@ -262,6 +332,8 @@ async def _save_lovelace_dashboard(
 
                     # FR-004: Replace existing view with same path, or append
                     new_path = new_view.get("path", vehicle_id)
+                    _LOGGER.debug("New dashboard view path: %s", new_path)
+
                     replaced = False
                     for i, existing_view in enumerate(views):
                         if existing_view.get("path") == new_path:
@@ -276,6 +348,11 @@ async def _save_lovelace_dashboard(
                         views.append(new_view)
                         _LOGGER.info("Added new dashboard view: %s", new_path)
 
+                    _LOGGER.debug(
+                        "Saving dashboard: total views=%d, vehicle_id=%s",
+                        len(views),
+                        vehicle_id,
+                    )
                     # Save updated config using async_write_dict
                     await hass.storage.async_write_dict(
                         "lovelace",
@@ -283,9 +360,17 @@ async def _save_lovelace_dashboard(
                     )
                     _LOGGER.info("Dashboard saved via storage API")
                     return True
+
+                _LOGGER.warning(
+                    "Lovelace config not found in storage or has no data"
+                )
             except Exception as e:  # pragma: no cover
                 _LOGGER.debug("Storage API method failed: %s", e)
+                _LOGGER.warning(
+                    "Failed to save dashboard via storage API: %s", e
+                )
 
+        _LOGGER.debug("Storage API not available for dashboard import")
         return False
 
     except Exception as e:  # pragma: no cover
