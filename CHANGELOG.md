@@ -115,6 +115,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Validación de formato de hora**: Se añadió validación estricta en `async_add_recurring_trip()` para rechazar formatos de hora inválidos (ej: "16:400") antes de almacenarlos. Implementado con TDD: 3 tests añadidos y pasando, previniendo datos corruptos en el storage.
 
+---
+
+## [0.4.1-dev] - 2026-03-19 - Fix Config Flow, Dashboard & Sensors
+
+### Fixed
+- **Selector de tipo de vehículo eliminado**: Removido el selector irrelevante de "híbrido/eléctrico" del flujo de configuración. El sistema ahora se configura en 4 pasos simplificados (nombre, sensores, batería, EMHASS) en lugar de 5.
+- **charging_status_sensor traducido**: Traducido completamente al español con hint de ayuda claro para el usuario.
+- **Dashboard auto-import**: Implementada importación automática del dashboard Lovelace tras completar el flujo de configuración. Incluye verificación de permisos de storage y manejo de conflictos con dashboards manuales existentes.
+- **Sensores no actualizados**: Corregido el problema donde los sensores mostraban 0 viajes a pesar de tener datos guardados. Los sensores ahora leen correctamente del coordinator y se actualizan automáticamente cuando se añaden nuevos viajes.
+- **Persistencia de viajes**: Implementada correcta persistencia de viajes entre reinicios usando HA Storage API. Los viajes sobreviven a reinicios del sistema.
+
+### Technical Details
+- **Files Modified**:
+  - `custom_components/ev_trip_planner/config_flow.py` - Eliminado vehicle_type, mejorado logging
+  - `custom_components/ev_trip_planner/sensor.py` - Corregida lectura de datos del coordinator
+  - `custom_components/ev_trip_planner/__init__.py` - Mejorado logging de diagnóstico
+  - `custom_components/ev_trip_planner/strings.json` - Traducciones completas
+  - `tests/test_config_flow_issues.py` - Tests para验证ar fixes
+- **Test Coverage**: 87% (416 tests passing)
+- **Debug Logging**: Añadido logging de diagnóstico para facilitar troubleshooting en producción
+
 ## [0.3.1-dev] - 2025-12-08 - Milestone 3.2 UX Improvements COMPLETED
 
 ### Added
