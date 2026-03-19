@@ -6,7 +6,7 @@ This causes the profile to ignore SOC and not schedule charging when needed.
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from homeassistant.util import dt as dt_util
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -18,12 +18,12 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 @pytest.fixture
 def mock_hass():
     """Create mock Home Assistant instance."""
-    hass = Mock()
+    hass = MagicMock()
     # Set up config_entries mock
     mock_entry = Mock()
     mock_entry.entry_id = "test_vehicle"
     hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
-    # Set up data namespace for _load_trips()
+    # Legacy: Set up data namespace (not used anymore)
     hass.data = {
         "ev_trip_planner_test_vehicle": {
             "trips": {},
@@ -31,6 +31,10 @@ def mock_hass():
             "punctual_trips": {},
         }
     }
+    # New: Set up storage for persistence
+    hass.storage = MagicMock()
+    hass.storage.async_read = AsyncMock(return_value=None)
+    hass.storage.async_write_dict = AsyncMock(return_value=True)
     return hass
 
 
@@ -72,13 +76,24 @@ async def test_power_profile_considers_soc_current(trip_manager, sample_trip, ve
     After trip: 12.1 kWh left = 30% SOC (below 40% safety margin).
     Should schedule charging for ~3.9 kWh to reach 16 kWh minimum.
     """
-    # Add trip to hass.data so _load_trips() will find it
+    # Add trip to hass.storage so _load_trips() will find it
     trip_id = "test_trip_001"
-    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
-        **sample_trip,
-        "id": trip_id,
-        "estado": "pendiente",
+    existing_trips = {
+        trip_id: {
+            **sample_trip,
+            "id": trip_id,
+            "estado": "pendiente",
+        }
     }
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": existing_trips,
+                "recurring_trips": {},
+                "punctual_trips": existing_trips,
+            }
+        }
+    )
 
     # Generate profile with vehicle config (should consider SOC)
     profile = await trip_manager.async_generate_power_profile(
@@ -107,13 +122,24 @@ async def test_power_profile_with_soc_above_threshold(trip_manager, sample_trip,
         "soc_current": 80.0,  # High SOC, no charging needed
     }
 
-    # Add trip to hass.data so _load_trips() will find it
+    # Add trip to hass.storage so _load_trips() will find it
     trip_id = "test_trip_001"
-    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
-        **sample_trip,
-        "id": trip_id,
-        "estado": "pendiente",
+    existing_trips = {
+        trip_id: {
+            **sample_trip,
+            "id": trip_id,
+            "estado": "pendiente",
+        }
     }
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": existing_trips,
+                "recurring_trips": {},
+                "punctual_trips": existing_trips,
+            }
+        }
+    )
 
     profile = await trip_manager.async_generate_power_profile(
         charging_power_kw=vehicle_config_high_soc["charging_power_kw"],
@@ -137,13 +163,24 @@ async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip,
         "soc_current": 30.0,  # Low SOC, charging definitely needed
     }
 
-    # Add trip to hass.data so _load_trips() will find it
+    # Add trip to hass.storage so _load_trips() will find it
     trip_id = "test_trip_001"
-    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
-        **sample_trip,
-        "id": trip_id,
-        "estado": "pendiente",
+    existing_trips = {
+        trip_id: {
+            **sample_trip,
+            "id": trip_id,
+            "estado": "pendiente",
+        }
     }
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": existing_trips,
+                "recurring_trips": {},
+                "punctual_trips": existing_trips,
+            }
+        }
+    )
 
     profile = await trip_manager.async_generate_power_profile(
         charging_power_kw=vehicle_config_low_soc["charging_power_kw"],
@@ -165,13 +202,24 @@ async def test_power_profile_with_soc_below_threshold(trip_manager, sample_trip,
 @pytest.mark.asyncio
 async def test_power_profile_energy_calculation_accuracy(trip_manager, sample_trip, vehicle_config, mock_hass):
     """Test that energy calculation is accurate and considers safety margin."""
-    # Add trip to hass.data so _load_trips() will find it
+    # Add trip to hass.storage so _load_trips() will find it
     trip_id = "test_trip_001"
-    mock_hass.data["ev_trip_planner_test_vehicle"]["punctual_trips"][trip_id] = {
-        **sample_trip,
-        "id": trip_id,
-        "estado": "pendiente",
+    existing_trips = {
+        trip_id: {
+            **sample_trip,
+            "id": trip_id,
+            "estado": "pendiente",
+        }
     }
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": existing_trips,
+                "recurring_trips": {},
+                "punctual_trips": existing_trips,
+            }
+        }
+    )
 
     # Calculate expected energy needed manually
     # Current: 49% of 40 kWh = 19.6 kWh

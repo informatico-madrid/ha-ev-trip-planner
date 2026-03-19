@@ -37,8 +37,6 @@ from .const import (
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DOMAIN,
-    VEHICLE_TYPE_EV,
-    VEHICLE_TYPE_PHEV,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,9 +45,6 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_VEHICLE_NAME): str,
-        vol.Required("vehicle_type", default=VEHICLE_TYPE_EV): vol.In(
-            [VEHICLE_TYPE_EV, VEHICLE_TYPE_PHEV]
-        ),
     }
 )
 

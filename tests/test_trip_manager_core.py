@@ -22,14 +22,18 @@ def vehicle_id() -> str:
 
 @pytest.fixture
 def mock_hass():
-    """Create a mock hass with config_entries and data."""
+    """Create a mock hass with config_entries, data, and storage."""
     hass = MagicMock()
     # Mock config_entries
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_123"
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    # Mock hass.data with proper namespace
+    # Mock hass.data with proper namespace (legacy)
     hass.data = {}
+    # Mock hass.storage for persistence (new implementation)
+    hass.storage = MagicMock()
+    hass.storage.async_read = AsyncMock(return_value=None)
+    hass.storage.async_write_dict = AsyncMock(return_value=True)
     return hass
 
 
@@ -51,9 +55,8 @@ async def test_async_setup_initializes_empty_storage(mock_hass, vehicle_id):
 
 @pytest.mark.asyncio
 async def test_async_setup_loads_existing_and_does_not_save(mock_hass, vehicle_id):
-    """Test that async_setup loads existing trips from hass.data."""
-    # Pre-populate hass.data with trips
-    namespace = f"ev_trip_planner_test_entry_123"
+    """Test that async_setup loads existing trips from hass.storage."""
+    # Pre-populate hass.storage with trips (new persistence mechanism)
     existing_trips = {
         "rec_lun_123": {
             "id": "rec_lun_123",
@@ -62,11 +65,16 @@ async def test_async_setup_loads_existing_and_does_not_save(mock_hass, vehicle_i
             "hora": "09:00"
         }
     }
-    mock_hass.data[namespace] = {
-        "trips": existing_trips,
-        "recurring_trips": existing_trips,
-        "punctual_trips": {}
-    }
+    storage_key = f"ev_trip_planner_{vehicle_id}"
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": existing_trips,
+                "recurring_trips": existing_trips,
+                "punctual_trips": {}
+            }
+        }
+    )
 
     manager = TripManager(mock_hass, vehicle_id)
     await manager.async_setup()
@@ -88,9 +96,8 @@ async def test_async_load_trips_empty_returns_list(mock_hass, vehicle_id):
 
 @pytest.mark.asyncio
 async def test_async_load_trips_with_data(mock_hass, vehicle_id):
-    """Test that _load_trips loads data from hass.data."""
-    # Pre-populate hass.data with trips
-    namespace = f"ev_trip_planner_test_entry_123"
+    """Test that _load_trips loads data from hass.storage."""
+    # Pre-populate hass.storage with trips
     existing_recurring = {
         "rec_lun_123": {
             "id": "rec_lun_123",
@@ -106,11 +113,16 @@ async def test_async_load_trips_with_data(mock_hass, vehicle_id):
             "datetime": "2025-11-19T15:00:00",
         },
     }
-    mock_hass.data[namespace] = {
-        "trips": {**existing_recurring, **existing_punctual},
-        "recurring_trips": existing_recurring,
-        "punctual_trips": existing_punctual
-    }
+    storage_key = f"ev_trip_planner_{vehicle_id}"
+    mock_hass.storage.async_read = AsyncMock(
+        return_value={
+            "data": {
+                "trips": {**existing_recurring, **existing_punctual},
+                "recurring_trips": existing_recurring,
+                "punctual_trips": existing_punctual
+            }
+        }
+    )
 
     manager = TripManager(mock_hass, vehicle_id)
     await manager._load_trips()
@@ -123,7 +135,7 @@ async def test_async_load_trips_with_data(mock_hass, vehicle_id):
 
 @pytest.mark.asyncio
 async def test_async_save_trips_calls_store_save(mock_hass, vehicle_id):
-    """Test that async_save_trips saves to hass.data."""
+    """Test that async_save_trips saves to hass.storage."""
     manager = TripManager(mock_hass, vehicle_id)
     manager._recurring_trips = {
         "rec_lun_abc": {
@@ -136,10 +148,12 @@ async def test_async_save_trips_calls_store_save(mock_hass, vehicle_id):
 
     await manager.async_save_trips()
 
-    # Check data was saved to hass.data
-    namespace = f"ev_trip_planner_test_entry_123"
-    assert namespace in mock_hass.data
-    assert "rec_lun_abc" in mock_hass.data[namespace]["recurring_trips"]
+    # Check data was saved to hass.storage.async_write_dict
+    storage_key = f"ev_trip_planner_{vehicle_id}"
+    mock_hass.storage.async_write_dict.assert_called_once()
+    call_args = mock_hass.storage.async_write_dict.call_args
+    assert call_args[0][0] == storage_key
+    assert "rec_lun_abc" in call_args[0][1]["data"]["recurring_trips"]
 
 
 @pytest.mark.asyncio

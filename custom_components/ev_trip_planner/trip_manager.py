@@ -64,12 +64,27 @@ class TripManager:
     async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente."""
         try:
-            # FIX: Usar namespace con entry_id para acceso seguro a runtime_data
-            namespace = f"{DOMAIN}_{self.hass.config_entries.async_get_entry(self.vehicle_id).entry_id}"
-            self._trips = self.hass.data.get(namespace, {}).get("trips", {})
-            self._recurring_trips = self.hass.data.get(namespace, {}).get("recurring_trips", {})
-            self._punctual_trips = self.hass.data.get(namespace, {}).get("punctual_trips", {})
-            self._last_update = self.hass.data.get(namespace, {}).get("last_update")
+            # FIX: Usar hass.storage para persistencia entre reinicios
+            storage_key = f"{DOMAIN}_{self.vehicle_id}"
+            stored_data = await self.hass.storage.async_read(storage_key)
+
+            if stored_data and "data" in stored_data:
+                data = stored_data["data"]
+                self._trips = data.get("trips", {})
+                self._recurring_trips = data.get("recurring_trips", {})
+                self._punctual_trips = data.get("punctual_trips", {})
+                self._last_update = data.get("last_update")
+                _LOGGER.info(
+                    "Viajes cargados desde storage: %d recurrentes, %d puntuales",
+                    len(self._recurring_trips),
+                    len(self._punctual_trips),
+                )
+            else:
+                _LOGGER.info("No se encontraron viajes almacenados para %s", self.vehicle_id)
+                self._trips = {}
+                self._recurring_trips = {}
+                self._punctual_trips = {}
+                self._last_update = None
         except Exception as err:
             _LOGGER.error("Error cargando viajes: %s", err)
             self._trips = {}
@@ -80,12 +95,25 @@ class TripManager:
     async def async_save_trips(self) -> None:
         """Guarda los viajes en el almacenamiento persistente."""
         try:
-            # FIX: Usar namespace con entry_id para almacenamiento seguro
-            namespace = f"{DOMAIN}_{self.hass.config_entries.async_get_entry(self.vehicle_id).entry_id}"
-            self.hass.data.setdefault(namespace, {})["trips"] = self._trips
-            self.hass.data[namespace]["recurring_trips"] = self._recurring_trips
-            self.hass.data[namespace]["punctual_trips"] = self._punctual_trips
-            self.hass.data[namespace]["last_update"] = datetime.now()
+            # FIX: Usar hass.storage.async_write_dict para persistencia
+            storage_key = f"{DOMAIN}_{self.vehicle_id}"
+            await self.hass.storage.async_write_dict(
+                storage_key,
+                {
+                    "version": 1,
+                    "data": {
+                        "trips": self._trips,
+                        "recurring_trips": self._recurring_trips,
+                        "punctual_trips": self._punctual_trips,
+                        "last_update": datetime.now().isoformat(),
+                    },
+                },
+            )
+            _LOGGER.info(
+                "Viajes guardados en storage: %d recurrentes, %d puntuales",
+                len(self._recurring_trips),
+                len(self._punctual_trips),
+            )
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err)
 

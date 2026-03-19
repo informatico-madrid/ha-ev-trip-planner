@@ -10,12 +10,10 @@
         "title": "Planificador de Viajes EV - Configuración del Vehículo",
         "description": "Configura tu vehículo eléctrico para la planificación de viajes",
         "data": {
-          "vehicle_name": "Nombre del Vehículo",
-          "vehicle_type": "Tipo de Vehículo"
+          "vehicle_name": "Nombre del Vehículo"
         },
         "data_description": {
-          "vehicle_name": "Un nombre amigable para tu vehículo (ej: 'Chispitas', 'Morgan')",
-          "vehicle_type": "Selecciona el tipo de vehículo que quieres configurar"
+          "vehicle_name": "Un nombre amigable para tu vehículo (ej: 'Chispitas', 'Morgan')"
         }
       },
       "sensors": {
@@ -47,8 +45,8 @@
         },
         "data_description": {
           "consumption": "Consumo medio de energía por km (ej: 0.15 para 15 kWh/100km). Valores más altos = más energía necesaria. Ejemplo: 0.15",
-          "safety_margin": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
-          "safety_margin_percent": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Prevents quedarse sin batería. Ejemplo: 10",
+          "safety_margin": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Evita quedarse sin batería. Ejemplo: 10",
+          "safety_margin_percent": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Evita quedarse sin batería. Ejemplo: 10",
           "control_type": "Notificaciones Only - Solo avisar cuando sea necesario"
         }
       },
@@ -114,7 +112,7 @@
     "error": {
       "already_configured": "Este vehículo ya está configurado",
       "unknown": "Ocurrió un error desconocido",
-      "invalid_planning_horizon": "El horizonte de planificación debe estar entre 1 y 30 días",
+      "invalid_planning_horizon": "El horizonte de planificación debe estar entre 1 y 365 días. Recomendado: 7 días para recurrencia semanal",
       "invalid_max_deferrable_loads": "Las cargas diferibles máximas deben estar entre 10 y 100",
       "home_sensor_not_found": "El sensor de casa seleccionado no se encontró. Por favor verifica el ID de la entidad.",
       "plugged_sensor_not_found": "El sensor enchufado seleccionado no se encontró. Por favor verifica el ID de la entidad.",

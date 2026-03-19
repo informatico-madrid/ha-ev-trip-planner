@@ -323,7 +323,6 @@ def mock_config_entries():
     default_entry.entry_id = "config_entry_123"
     default_entry.data = {
         "vehicle_name": "test_vehicle",
-        "vehicle_type": "ev",
         "soc_sensor": "sensor.ovms_soc",
         "battery_capacity_kwh": 60.0,
         "charging_power_kw": 11.0,
@@ -426,7 +425,6 @@ def sample_vehicle_config():
     """Return a sample vehicle configuration for testing."""
     return {
         "vehicle_name": "test_vehicle",
-        "vehicle_type": "ev",
         "soc_sensor": "sensor.ovms_soc",
         "battery_capacity_kwh": 60.0,
         "charging_power_kw": 11.0,

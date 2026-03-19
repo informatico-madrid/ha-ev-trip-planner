@@ -54,7 +54,7 @@ def _setup_mock_config_entry(mock_hass, vehicle_id="chispitas"):
     """Set up a mock config entry for the given vehicle_id."""
     mock_entry = MagicMock()
     mock_entry.entry_id = f"entry_{vehicle_id}"
-    mock_entry.data = {"vehicle_name": vehicle_id, "vehicle_type": "ev"}
+    mock_entry.data = {"vehicle_name": vehicle_id}
     # Include empty managers/coordinators dicts so the code doesn't fail
     namespace = f"ev_trip_planner_{mock_entry.entry_id}"
     mock_entry.runtime_data = {namespace: {"managers": {}, "coordinators": {}}}
@@ -74,7 +74,6 @@ async def test_services_use_seeded_trip_manager_instance(mock_hass):
     mock_entry.entry_id = "entry_chispitas"
     mock_entry.data = {
         "vehicle_name": "chispitas",
-        "vehicle_type": "ev",
     }
 
     # Set up runtime_data with the seeded manager (current implementation uses this)

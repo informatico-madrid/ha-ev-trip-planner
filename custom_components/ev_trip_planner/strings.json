@@ -5,12 +5,10 @@
         "title": "EV Trip Planner - Vehicle Setup",
         "description": "Configure your electric vehicle for trip planning",
         "data": {
-          "vehicle_name": "Vehicle Name",
-          "vehicle_type": "Vehicle Type"
+          "vehicle_name": "Vehicle Name"
         },
         "data_description": {
-          "vehicle_name": "A friendly name for your vehicle (e.g., 'Chispitas', 'Morgan')",
-          "vehicle_type": "Select the type of vehicle you want to configure"
+          "vehicle_name": "A friendly name for your vehicle (e.g., 'Chispitas', 'Morgan')"
         }
       },
       "sensors": {
@@ -60,12 +58,12 @@
           "enable_max_loads_override": "Enable max loads override"
         },
         "data_description": {
-          "planning_horizon": "Número de días de planificación (1-365). Máximo: 365 días. Recomendado: 7 días para recurrencia semanal. Ejemplo: 7",
-          "planning_horizon_days": "Número de días de planificación (1-365). Máximo: 365 días. Recomendado: 7 días para recurrencia semanal. Ejemplo: 7",
+          "planning_horizon": "Number of days EMHASS should plan for (1-30 days). Usually matches your daily EMHASS optimization horizon. Example: 7",
+          "planning_horizon_days": "Number of days EMHASS should plan for (1-30 days). Usually matches your daily EMHASS optimization horizon. Example: 7",
           "planning_sensor": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
           "planning_sensor_entity": "Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.",
           "max_deferrable_loads": "Maximum number of simultaneous deferrable loads EMHASS is configured for (10-100). Usually 50. Example: 50",
-          "enable_planning_sensor": "Usar sensor de horizonte de planificación de tu optimizador",
+          "enable_planning_sensor": "Check to override planning horizon with sensor value. When checked, the planning horizon will be read from the selected sensor instead of the manual value above. When unchecked, the manual value will be used.",
           "enable_max_loads_override": "Check to enable custom maximum deferrable loads. When checked, you can set a custom value below instead of the default (50). When unchecked, the default value (50) will be used."
         }
       },
