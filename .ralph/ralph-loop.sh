@@ -1208,6 +1208,7 @@ main() {
 
         # Re-read task counts each iteration (tasks.md may have changed)
         local counts_json
+        # Always recalculate from tasks.md to get fresh counts
         counts_json=$(python3 "$COUNT_SCRIPT" "$tasks_file")
         local total completed incomplete next_idx percent
         total=$(echo "$counts_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['total'])")
