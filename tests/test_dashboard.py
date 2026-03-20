@@ -618,3 +618,155 @@ class TestContainerEnvironment:
             "Expected dashboard to be saved via YAML generation and "
             "manual import instructions."
         )
+
+
+class TestDuplicateDashboardNameCollision:
+    """Tests for duplicate dashboard name collision handling (P004).
+
+    When importing a dashboard with a name that already exists,
+    the system should append suffixes (-2-, -3-, etc.) to make it unique.
+    """
+
+    @pytest.fixture
+    def mock_hass_container(self):
+        """Create a mock HomeAssistant instance simulating Container environment."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.components = ["sensor"]  # No lovelace component
+
+        # Container: NO storage API available
+        hass.storage = None
+
+        # Container: lovelace.save service does NOT exist
+        def has_service(domain, service):
+            if domain == "lovelace" and service == "save":
+                return False
+            return False
+
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = has_service
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_duplicate_dashboard_name_appends_suffix(
+        self, mock_hass_container, tmp_path
+    ):
+        """Test that duplicate dashboard names get -2- suffix.
+
+        Test: Import dashboard when path already exists
+        Expected: Should append suffix (-2-, -3-)
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+
+        # Create config directory
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create existing file to simulate collision
+        existing_file = config_dir / "ev-trip-planner-vehicle1.yaml"
+        existing_file.write_text("# existing dashboard")
+
+        # Mock hass.config.config_dir
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        dashboard_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "vehicle1",
+                    "title": "Vehicle 1",
+                    "cards": [],
+                }
+            ],
+        }
+
+        # First import creates ev-trip-planner-vehicle1.yaml
+        result1 = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            dashboard_config,
+            "vehicle1",
+        )
+
+        # Second import should create ev-trip-planner-vehicle1.yaml.2
+        result2 = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            dashboard_config,
+            "vehicle1",
+        )
+
+        # Both should succeed
+        assert result1 is True, "First import should succeed"
+        assert result2 is True, "Second import should succeed with suffix"
+
+        # Verify both files exist
+        assert existing_file.exists(), "Original file should exist"
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml.2").exists(), \
+            "Duplicate file with .2 suffix should be created"
+
+    @pytest.mark.asyncio
+    async def test_multiple_duplicate_dashboard_names_appends_progressive_suffixes(
+        self, mock_hass_container, tmp_path
+    ):
+        """Test that multiple duplicate names get progressive suffixes (-2-, -3-, -4-).
+
+        Test: Import dashboard with name collision multiple times
+        Expected: Should append suffixes progressively
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+
+        # Create config directory
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Mock hass.config.config_dir
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        dashboard_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "vehicle1",
+                    "title": "Vehicle 1",
+                    "cards": [],
+                }
+            ],
+        }
+
+        # Import multiple times - should create .2, .3, .4, etc.
+        results = []
+        for i in range(5):
+            result = await _save_dashboard_yaml_fallback(
+                mock_hass_container,
+                dashboard_config,
+                "vehicle1",
+            )
+            results.append(result)
+
+        # All imports should succeed
+        assert all(results), f"All imports should succeed: {results}"
+
+        # Verify all files exist with progressive suffixes
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml").exists()
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml.2").exists()
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml.3").exists()
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml.4").exists()
+        assert (config_dir / "ev-trip-planner-vehicle1.yaml.5").exists()
