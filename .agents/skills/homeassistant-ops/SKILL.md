@@ -24,8 +24,8 @@ to a Home Assistant instance without SSHing into the host.
 Set environment variables (never pass tokens on the command line):
 
 ```bash
-export HA_URL="http://192.168.1.100:8123"
-export HA_TOKEN="<long-lived-access-token>" # Get from .env
+export HA_URL="http://<home-assistant-host>:8123"
+export HA_TOKEN="<long-lived-access-token>"
 ```
 
 Run scripts using `node`:
