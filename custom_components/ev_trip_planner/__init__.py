@@ -855,18 +855,15 @@ async def _save_dashboard_yaml_fallback(
         base_filename = f"ev-trip-planner-{vehicle_id}.yaml"
         yaml_path = os.path.join(config_dir, base_filename)
 
-        # Handle duplicate filenames
-        if os.path.exists(yaml_path):
-            counter = 2
-            while True:
-                yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
-                if not os.path.exists(yaml_path):
-                    break
-                counter += 1
-            _LOGGER.info(
-                "Dashboard path already exists, using %s",
-                os.path.basename(yaml_path),
-            )
+        # Handle duplicate filenames - append suffix like .2, .3, etc.
+        counter = 2
+        while os.path.exists(yaml_path):
+            yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
+            counter += 1
+        _LOGGER.info(
+            "Dashboard path: %s",
+            os.path.basename(yaml_path),
+        )
 
         # Create config directory if it doesn't exist
         if not os.path.exists(config_dir):
@@ -885,7 +882,7 @@ async def _save_dashboard_yaml_fallback(
             yaml_path,
         )
         _LOGGER.info(
-            "To import dashboard in Container, follow these steps:"
+            "To import dashboard in Home Assistant Container, follow these steps:"
         )
         _LOGGER.info(
             "1. Go to Settings > Dashboards in Home Assistant"
@@ -895,6 +892,10 @@ async def _save_dashboard_yaml_fallback(
         )
         _LOGGER.info(
             "3. Click 'Import dashboard' and select: %s",
+            yaml_path,
+        )
+        _LOGGER.info(
+            "Dashboard ready for import. File location: %s",
             yaml_path,
         )
 
