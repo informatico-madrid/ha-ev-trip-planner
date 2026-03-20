@@ -710,3 +710,39 @@ def test_validate_condition_is_native_invalid_input(mock_hass):
 
     assert is_valid is False
     assert "dictionary" in error
+
+
+@pytest.mark.asyncio
+async def test_check_plugged_status_sensor_not_found(mock_hass):
+    """Test plugged status check when sensor doesn't exist."""
+    config = {
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Mock hass.states.get to return None (sensor not found)
+    mock_hass.states.get = Mock(return_value=None)
+
+    # Should return True (assume plugged) when sensor not found
+    result = await monitor.async_check_plugged_status()
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_home_status_sensor_not_found(mock_hass):
+    """Test home status check when sensor doesn't exist."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Mock hass.states.get to return None (sensor not found)
+    mock_hass.states.get = Mock(return_value=None)
+
+    # Should return False (assume not home) when sensor not found
+    result = await monitor.async_check_home_status()
+
+    assert result is False

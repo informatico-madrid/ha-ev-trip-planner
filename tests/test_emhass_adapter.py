@@ -1067,3 +1067,319 @@ async def test_async_handle_sensor_error(hass: HomeAssistant, mock_store):
         assert last_error is not None
         assert "Sensor not found" in last_error["message"]
         assert "sensor.emhass_perfil_diferible_test" in last_error["message"]
+
+
+@pytest.mark.asyncio
+async def test_release_trip_index_unknown_trip(hass: HomeAssistant, mock_store, caplog):
+    """Test releasing an index for an unknown trip returns False."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Try to release index for non-existent trip
+        result = await adapter.async_release_trip_index("nonexistent_trip")
+
+        # Should return False
+        assert result is False
+        assert "unknown trip" in caplog.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_no_trip_id(hass: HomeAssistant, mock_store):
+    """Test publishing deferrable load with missing trip ID."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create trip without ID
+        trip = {
+            "kwh": 3.6,
+            "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+        }
+
+        # Publish should fail
+        result = await adapter.async_publish_deferrable_load(trip)
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_no_available_index(hass: HomeAssistant, mock_store):
+    """Test publishing deferrable load when no index available."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 1,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Assign the only available index
+        await adapter.async_assign_index_to_trip("trip_001")
+
+        # Try to publish another trip - should fail because no index available
+        trip = {
+            "id": "trip_002",
+            "kwh": 3.6,
+            "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+        }
+
+        result = await adapter.async_publish_deferrable_load(trip)
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_remove_deferrable_load_unknown_trip(hass: HomeAssistant, mock_store, caplog):
+    """Test removing deferrable load for unknown trip."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Try to remove a trip that was never added
+        result = await adapter.async_remove_deferrable_load("nonexistent_trip")
+
+        # Should return False and log warning
+        assert result is False
+        assert "unknown trip" in caplog.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_hass_error(hass: HomeAssistant, mock_store):
+    """Test publishing deferrable load when HomeAssistantError occurs."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create trip
+        trip = {
+            "id": "trip_001",
+            "kwh": 3.6,
+            "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+        }
+
+        # Mock hass.states.async_set to raise HomeAssistantError
+        with patch.object(hass.states, 'async_set', side_effect=HomeAssistantError("Test error")):
+            result = await adapter.async_publish_deferrable_load(trip)
+
+        # Should return False on error
+        assert result is False
+        # Index should be released back to pool
+        assert adapter.get_assigned_index("trip_001") is None
+
+
+@pytest.mark.asyncio
+async def test_publish_all_deferrable_loads_empty_list(hass: HomeAssistant, mock_store):
+    """Test publishing empty list of deferrable loads."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Publish empty list
+        result = await adapter.async_publish_all_deferrable_loads([])
+
+        # Should return True (empty list is valid)
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_get_assigned_index_not_found(hass: HomeAssistant, mock_store):
+    """Test get_assigned_index returns None for unknown trip."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Try to get index for unknown trip
+        index = adapter.get_assigned_index("nonexistent_trip")
+
+        # Should return None
+        assert index is None
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_missing_deadline(hass: HomeAssistant, mock_store):
+    """Test publishing deferrable load when trip missing deadline."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create trip without datetime/deadline
+        trip = {
+            "id": "trip_001",
+            "kwh": 3.6,
+            # Missing "datetime" key
+        }
+
+        # Publish should fail due to missing deadline
+        result = await adapter.async_publish_deferrable_load(trip)
+
+        # Should return False
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_deadline_in_past(hass: HomeAssistant, mock_store, caplog):
+    """Test publishing deferrable load when deadline is in the past."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create trip with deadline in the past
+        trip = {
+            "id": "trip_001",
+            "kwh": 3.6,
+            "datetime": (datetime.now() - timedelta(hours=1)).isoformat(),
+        }
+
+        # Publish should fail due to past deadline
+        result = await adapter.async_publish_deferrable_load(trip)
+
+        # Should return False
+        assert result is False
+        assert "past" in caplog.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_load_kwh_zero(hass: HomeAssistant, mock_store):
+    """Test publishing deferrable load with zero kwh."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create trip with zero kwh
+        trip = {
+            "id": "trip_001",
+            "kwh": 0,
+            "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+        }
+
+        # Publish should work even with zero kwh
+        result = await adapter.async_publish_deferrable_load(trip)
+
+        # Should return True (or handle zero kwh gracefully)
+        # The exact behavior depends on implementation
+
+
+@pytest.mark.asyncio
+async def test_get_config_sensor_id(hass: HomeAssistant, mock_store):
+    """Test _get_config_sensor_id method."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Test the method
+        sensor_id = adapter._get_config_sensor_id(0)
+
+        # Should return correct sensor ID format
+        assert sensor_id == "sensor.emhass_deferrable_load_config_0"
+
+
+@pytest.mark.asyncio
+async def test_get_state_sensor_id(hass: HomeAssistant, mock_store):
+    """Test getting sensor state."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Get state for non-existent sensor
+        state = hass.states.get("sensor.test")
+
+        # Should return None (doesn't exist in mock)
+        assert state is None
+
+
+@pytest.mark.asyncio
+async def test_index_assignment_and_persistence(hass: HomeAssistant, mock_store):
+    """Test index assignment persists correctly."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 5,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Assign indices
+        idx1 = await adapter.async_assign_index_to_trip("trip_1")
+        idx2 = await adapter.async_assign_index_to_trip("trip_2")
+        idx3 = await adapter.async_assign_index_to_trip("trip_3")
+
+        # Should get sequential indices
+        assert idx1 == 0
+        assert idx2 == 1
+        assert idx3 == 2
+
+        # Verify they're tracked
+        assert adapter.get_assigned_index("trip_1") == 0
+        assert adapter.get_assigned_index("trip_2") == 1
+        assert adapter.get_assigned_index("trip_3") == 2

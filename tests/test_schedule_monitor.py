@@ -743,3 +743,146 @@ async def test_async_handle_schedule_change_exception(
 
     # Should not raise
     await monitor._async_handle_schedule_change(0)
+
+
+@pytest.mark.asyncio
+async def test_async_start_charging_vehicle_not_plugged(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test start charging when vehicle not plugged in."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Presence monitor says at home but not plugged
+    mock_presence_monitor.async_check_home_status = AsyncMock(return_value=True)
+    mock_presence_monitor.async_check_plugged_status = AsyncMock(return_value=False)
+
+    # Mock control strategy
+    mock_control_strategy.async_activate = AsyncMock(return_value=True)
+
+    # Mock notify
+    monitor._async_notify = AsyncMock()
+
+    # Should skip charging when not plugged
+    await monitor._async_start_charging(0)
+
+    # Verify notification was sent
+    monitor._async_notify.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_stop_charging(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test stop charging."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Set up last action
+    monitor._last_actions[0] = "start"
+
+    # Mock control strategy
+    mock_control_strategy.async_deactivate = AsyncMock(return_value=True)
+
+    # Mock notify
+    monitor._async_notify = AsyncMock()
+
+    # Should stop charging
+    await monitor._async_stop_charging(0)
+
+    # Verify control strategy was called
+    mock_control_strategy.async_deactivate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_remove_trip_monitor_not_tracked(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test removing monitoring for trip that's not being tracked."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Try to remove trip that's not being monitored
+    # Should handle gracefully
+    await monitor.async_remove_trip_monitor(999)
+
+
+@pytest.mark.asyncio
+async def test_monitor_with_no_trips(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test monitor with no trips."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Verify initial state
+    assert len(monitor._last_actions) == 0
+    assert len(monitor._unsub_handlers) == 0
+
+
+@pytest.mark.asyncio
+async def test_parse_schedule_invalid(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test parsing invalid schedule."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Test with invalid schedule
+    result = monitor._parse_schedule("invalid")
+
+    # Should return False for invalid
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_async_notify(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
+    """Test async_notify."""
+    monitor = VehicleScheduleMonitor(
+        hass=mock_hass,
+        vehicle_id="test_vehicle",
+        control_strategy=mock_control_strategy,
+        presence_monitor=mock_presence_monitor,
+        notification_service="persistent_notification.create",
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Call notify
+    await monitor._async_notify("Test Title", "Test Message")
+
+    # Verify notification was sent via service
+    mock_hass.services.async_call.assert_called_once()
+
+
