@@ -322,6 +322,16 @@ class NextTripSensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
     @property
+    def device_class(self) -> None:
+        """Return device class (None for text sensor)."""
+        return None
+
+    @property
+    def state_class(self) -> None:
+        """Return state class (None for text sensor)."""
+        return None
+
+    @property
     def native_value(self) -> Any:
         """Return sensor value - read directly from coordinator.data."""
         if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):

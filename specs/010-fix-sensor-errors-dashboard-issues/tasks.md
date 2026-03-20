@@ -41,7 +41,7 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 **Purpose**: Verify current test state before making changes
 
-- [ ] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
+- [x] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
 
 ---
 
@@ -53,26 +53,26 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P001
 
-- [ ] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
+- [x] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
   - Test should call `trip_manager.get_charging_power()`
   - Expected: FAIL with AttributeError before fix
   - **Skill**: Use `python-testing-patterns` for pytest fixtures
 
 ### Implementation for P001
 
-- [ ] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
+- [x] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
   - Method should call internal `_get_charging_power()`
   - Add type hints and docstring
   - Returns: kW (kilowatts)
 
-- [ ] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
+- [x] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
   - Change: `self.trip_manager.vehicle_controller.get_charging_power()`
   - To: `self.trip_manager.get_charging_power()`
   - **Skill**: Use `homeassistant-best-practices` for sensor patterns
 
 ### Verification P001
 
-- [ ] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
+- [x] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
 
 ---
 
@@ -84,23 +84,23 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P003
 
-- [ ] T006 [P] [P003] Add test for NextTripSensor with no trips in tests/test_sensor_coverage.py
+- [x] T006 [P] [P003] Add test for NextTripSensor with no trips in tests/test_sensor_coverage.py
   - Test should create sensor with empty trip list
   - Expected: FAIL with ValueError before fix
   - **Skill**: Use `python-testing-patterns` for pytest fixtures
 
 ### Implementation for P003
 
-- [ ] T007 [P003] Remove device_class from NextTripSensor in custom_components/ev_trip_planner/sensor.py
+- [x] T007 [P003] Remove device_class from NextTripSensor in custom_components/ev_trip_planner/sensor.py
   - Find NextTripSensor class definition
   - Remove `_attr_device_class` attribute
-  - Remove `_attr_state_class` attribute  
+  - Remove `_attr_state_class` attribute
   - Remove `_attr_native_unit_of_measurement` attribute
   - **Skill**: Use `homeassistant-best-practices` for sensor entity config
 
 ### Verification P003
 
-- [ ] T008 Run test to verify fix: `cd src && pytest tests/test_sensor_coverage.py -v -k next_trip`
+- [x] T008 Run test to verify fix: `cd src && pytest tests/test_sensor_coverage.py -v -k next_trip`
 
 ---
 
@@ -112,7 +112,7 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P002
 
-- [ ] T009 [P] [P002] Add test validating device_class for each sensor type in tests/test_sensor.py
+- [x] T009 [P] [P002] Add test validating device_class for each sensor type in tests/test_sensor.py
   - Test: KwhTodaySensor should have device_class ENERGY
   - Test: HoursTodaySensor should NOT have device_class ENERGY
   - Test: NextTripSensor should NOT have device_class ENERGY
@@ -122,11 +122,16 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Implementation for P002
 
-- [ ] T010 [P002] Remove device_class from TripPlannerSensor base class in sensor.py lines 58-60
+- [x] T010 [P002] Remove device_class from TripPlannerSensor base class in sensor.py lines 58-60
   - Remove: `_attr_state_class`, `_attr_device_class`, `_attr_native_unit_of_measurement`
+  - Add device_class to derived sensors appropriately:
+    - KwhTodaySensor: ENERGY device_class
+    - HoursTodaySensor: UnitOfTime.HOURS
+    - NextTripSensor: No device_class (text sensor)
+    - Count sensors: state_class only
   - **Skill**: Use `homeassistant-best-practices` for sensor patterns
 
-- [ ] T011 [P002] Add device_class to KwhTodaySensor in sensor.py
+- [x] T011 [P002] Add device_class to KwhTodaySensor in sensor.py
   - Add: `_attr_device_class = SensorDeviceClass.ENERGY`
   - Add: `_attr_state_class = SensorStateClass.MEASUREMENT`
   - Add: `_attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR`
