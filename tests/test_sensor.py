@@ -56,12 +56,11 @@ async def test_trip_planner_sensor_hours_needed_today_async_update(mock_hass):
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
-    # Create mock trip manager with vehicle controller
+    # Create mock trip manager - get_charging_power is now on TripManager directly
     trip_manager = MagicMock(spec=TripManager)
     trip_manager.vehicle_id = "test_vehicle"
     trip_manager.async_get_hours_needed_today = AsyncMock(return_value=2)
-    trip_manager.vehicle_controller = MagicMock()
-    trip_manager.vehicle_controller.get_charging_power = MagicMock(return_value=7.4)
+    trip_manager.get_charging_power = MagicMock(return_value=7.4)
 
     # Create sensor
     sensor = TripPlannerSensor(mock_hass, trip_manager, "hours_needed_today")

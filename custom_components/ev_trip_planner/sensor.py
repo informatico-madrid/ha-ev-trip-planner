@@ -87,7 +87,7 @@ class TripPlannerSensor(SensorEntity):
                     "Sensor update hours_needed_today for %s: fetching hours data", vehicle_id
                 )
                 self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
-                charging_power = self.trip_manager.vehicle_controller.get_charging_power()
+                charging_power = self.trip_manager.get_charging_power()
                 self._cached_attrs["potencia_carga"] = charging_power
                 _LOGGER.debug(  # noqa: E501
                     "Sensor update hours_needed_today for %s: value=%s, charging_power=%s",
