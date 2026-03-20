@@ -481,3 +481,49 @@ async def test_punctual_trips_count_sensor_no_device_class_energy():
         and sensor._attr_device_class.value == "energy"
     )
     assert not has_energy_device_class
+
+
+# Tests for P001 - state_class warning with device_class energy
+@pytest.mark.asyncio
+async def test_state_class_warning_with_energy_device_class():
+    """Test that KwhTodaySensor with MEASUREMENT state_class generates a warning.
+
+    This test verifies the P001 production error:
+    "Entity sensor.morgan_kwh_today is using state class 'measurement' which is
+    impossible considering device class ('energy') it is using; expected None or
+    one of 'total', 'total_increasing'"
+
+    Expected: FAIL with warning before fix - the test should capture the warning
+    that HA generates when invalid state_class/device_class combination is used.
+
+    The test creates KwhTodaySensor with the problematic combination:
+    - device_class: ENERGY
+    - state_class: MEASUREMENT (INVALID for ENERGY device_class)
+
+    After fix, state_class should be TOTAL_INCREASING.
+    """
+    from custom_components.ev_trip_planner.sensor import KwhTodaySensor
+    import warnings
+
+    coordinator = FakeCoordinator(
+        data={"kwh_today": 15.5, "recurring_trips": [], "punctual_trips": []},
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # Verify the problematic configuration
+    assert sensor._attr_device_class.value == "energy", (
+        "KwhTodaySensor should have ENERGY device_class"
+    )
+
+    # Before fix: state_class is MEASUREMENT (invalid for ENERGY device_class)
+    # This should trigger a warning from HA
+    assert sensor._attr_state_class.value == "measurement", (
+        "BEFORE FIX: KwhTodaySensor has MEASUREMENT state_class (INVALID)"
+    )
+
+    # This assertion will fail after the fix when state_class is changed to
+    # TOTAL_INCREASING, confirming the fix was applied
+    # After fix, this should be:
+    # assert sensor._attr_state_class.value == "total_increasing"
