@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/informatico-madrid/ha-ev-trip-planner/issues",
   "requirements": [],
   "translations": ["es"],
-  "version": "0.3.1-dev"
+  "version": "0.3.2-dev"
 }
