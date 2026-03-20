@@ -66,7 +66,7 @@ class TripPlannerSensor(SensorEntity):
         vehicle_id = getattr(self.trip_manager, "vehicle_id", "unknown")
         try:
             if self._sensor_type == "kwh_needed_today":
-                _LOGGER.debug(
+                _LOGGER.debug(  # noqa: E501
                     "Sensor update kwh_needed_today for %s: fetching trips data", vehicle_id
                 )
                 self._attr_native_value = await self.trip_manager.async_get_kwh_needed_today()
@@ -75,7 +75,7 @@ class TripPlannerSensor(SensorEntity):
                 punctual = await self.trip_manager.async_get_punctual_trips()
                 self._cached_attrs["viajes_hoy"] = len(recurring)
                 self._cached_attrs["viajes_puntuales"] = len(punctual)
-                _LOGGER.debug(
+                _LOGGER.debug(  # noqa: E501
                     "Sensor update kwh_needed_today for %s: value=%s, recurring=%d, punctual=%d",
                     vehicle_id,
                     self._attr_native_value,
@@ -83,20 +83,20 @@ class TripPlannerSensor(SensorEntity):
                     len(punctual),
                 )
             elif self._sensor_type == "hours_needed_today":
-                _LOGGER.debug(
+                _LOGGER.debug(  # noqa: E501
                     "Sensor update hours_needed_today for %s: fetching hours data", vehicle_id
                 )
                 self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
                 charging_power = self.trip_manager.vehicle_controller.get_charging_power()
                 self._cached_attrs["potencia_carga"] = charging_power
-                _LOGGER.debug(
+                _LOGGER.debug(  # noqa: E501
                     "Sensor update hours_needed_today for %s: value=%s, charging_power=%s",
                     vehicle_id,
                     self._attr_native_value,
                     charging_power,
                 )
             elif self._sensor_type == "next_trip":
-                _LOGGER.debug(
+                _LOGGER.debug(  # noqa: E501
                     "Sensor update next_trip for %s: fetching next trip data", vehicle_id
                 )
                 next_trip = await self.trip_manager.async_get_next_trip()
@@ -109,7 +109,7 @@ class TripPlannerSensor(SensorEntity):
                     )
                     self._cached_attrs["distancia"] = next_trip["km"]
                     self._cached_attrs["energia"] = next_trip["kwh"]
-                    _LOGGER.debug(
+                    _LOGGER.debug(  # noqa: E501
                         "Sensor update next_trip for %s: next_trip=%s, datetime=%s, km=%s",
                         vehicle_id,
                         next_trip["descripcion"],
@@ -460,7 +460,12 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             )
 
         except Exception as err:
-            _LOGGER.error("Error actualizando sensor EMHASS %s: %s", self._vehicle_id, err)
+            _LOGGER.error(
+                "Error actualizando sensor EMHASS %s: %s",
+                self._vehicle_id,
+                err,
+                exc_info=True,
+            )
             self._attr_native_value = "error"
 
 
@@ -478,10 +483,27 @@ async def async_setup_entry(
     trip_manager = namespace_data.get("trip_manager")
     coordinator = namespace_data.get("coordinator")
 
+    _LOGGER.debug(
+        "trip_manager lookup for %s: namespace=%s, found=%s",
+        vehicle_id,
+        namespace,
+        trip_manager is not None,
+    )
+
     if not trip_manager:
         # Legacy fallback for older configurations
+        _LOGGER.debug(
+            "trip_manager lookup: trying legacy fallback for %s (entry_id=%s)",
+            vehicle_id,
+            entry_id,
+        )
         trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
         coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
+        _LOGGER.debug(
+            "trip_manager lookup: legacy fallback result for %s: found=%s",
+            vehicle_id,
+            trip_manager is not None,
+        )
 
     if not trip_manager:
         _LOGGER.error(
@@ -489,6 +511,7 @@ async def async_setup_entry(
             vehicle_id,
             namespace,
             list(runtime_data.keys()) if runtime_data else [],
+            exc_info=True,
         )
         return False
 

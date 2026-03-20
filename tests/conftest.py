@@ -409,13 +409,40 @@ def mock_hass_with_entity_registry(hass, mock_entity_registry, mock_device_regis
     hass.services.async_call = AsyncMock()
     hass.services.has_service = MagicMock(return_value=True)
 
-    # Mock notify services
+    # Mock notify services - including Nabu Casa devices
     def _mock_has_service(domain, service):
         if domain == "notify":
-            return service in ["notify.mobile_app", "notify.persistent_notification"]
+            # Return True for all mock notify services
+            return service in [
+                "notify.mobile_app",
+                "notify.persistent_notification",
+                "notify.alexa_media",
+                "notify.alexa_media_living_room",
+                "notify.alexa_media_bedroom",
+                "notify.google_assistant",
+                "notify.telegram",
+            ]
         return True
 
     hass.services.has_service = _mock_has_service
+
+    # Mock async_services to return available notify services (for selector)
+    def _mock_async_services():
+        return {
+            "notify": {
+                "mobile_app": MagicMock(),
+                "persistent_notification": MagicMock(),
+                # Nabu Casa Alexa Media devices
+                "alexa_media": MagicMock(),
+                "alexa_media_living_room": MagicMock(),
+                "alexa_media_bedroom": MagicMock(),
+                # Other notify services
+                "google_assistant": MagicMock(),
+                "telegram": MagicMock(),
+            }
+        }
+
+    hass.services.async_services = MagicMock(return_value=_mock_async_services())
 
     return hass
 

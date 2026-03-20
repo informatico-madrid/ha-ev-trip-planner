@@ -120,7 +120,9 @@ class SwitchStrategy(VehicleControlStrategy):
             _LOGGER.info("Activated charging via switch: %s", self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error("Error activating switch: %s", err)
+            _LOGGER.error(
+                "Error activating switch: %s", err, exc_info=True
+            )
             return False
     
     async def async_deactivate(self) -> bool:
@@ -132,7 +134,9 @@ class SwitchStrategy(VehicleControlStrategy):
             _LOGGER.info("Deactivated charging via switch: %s", self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error("Error deactivating switch: %s", err)
+            _LOGGER.error(
+                "Error deactivating switch: %s", err, exc_info=True
+            )
             return False
     
     async def async_get_status(self) -> bool:
@@ -163,7 +167,9 @@ class ServiceStrategy(VehicleControlStrategy):
             _LOGGER.info("Activated charging via service: %s", self.service_on)
             return True
         except Exception as err:
-            _LOGGER.error("Error calling service %s: %s", self.service_on, err)
+            _LOGGER.error(
+                "Error calling service %s: %s", self.service_on, err, exc_info=True
+            )
             return False
     
     async def async_deactivate(self) -> bool:
@@ -176,7 +182,9 @@ class ServiceStrategy(VehicleControlStrategy):
             _LOGGER.info("Deactivated charging via service: %s", self.service_off)
             return True
         except Exception as err:
-            _LOGGER.error("Error calling service %s: %s", self.service_off, err)
+            _LOGGER.error(
+                "Error calling service %s: %s", self.service_off, err, exc_info=True
+            )
             return False
     
     async def async_get_status(self) -> bool:
@@ -203,7 +211,9 @@ class ScriptStrategy(VehicleControlStrategy):
             _LOGGER.info("Activated charging via script: %s", self.script_on)
             return True
         except Exception as err:
-            _LOGGER.error("Error executing script %s: %s", self.script_on, err)
+            _LOGGER.error(
+                "Error executing script %s: %s", self.script_on, err, exc_info=True
+            )
             return False
     
     async def async_deactivate(self) -> bool:
@@ -215,7 +225,9 @@ class ScriptStrategy(VehicleControlStrategy):
             _LOGGER.info("Deactivated charging via script: %s", self.script_off)
             return True
         except Exception as err:
-            _LOGGER.error("Error executing script %s: %s", self.script_off, err)
+            _LOGGER.error(
+                "Error executing script %s: %s", self.script_off, err, exc_info=True
+            )
             return False
     
     async def async_get_status(self) -> bool:

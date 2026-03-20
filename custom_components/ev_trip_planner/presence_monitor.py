@@ -279,7 +279,9 @@ class PresenceMonitor:
 
         return await self._async_send_notification(title, message)
 
-    async def async_notify_vehicle_not_home(self, trip_info: Optional[Dict[str, Any]] = None) -> bool:
+    async def async_notify_vehicle_not_home(
+        self, trip_info: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Send notification when vehicle is not at home but charging is needed.
 
@@ -294,7 +296,9 @@ class PresenceMonitor:
             trip_info=trip_info,
         )
 
-    async def async_notify_vehicle_not_plugged(self, trip_info: Optional[Dict[str, Any]] = None) -> bool:
+    async def async_notify_vehicle_not_plugged(
+        self, trip_info: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Send notification when vehicle is not plugged in but charging is needed.
 
@@ -425,7 +429,8 @@ class PresenceMonitor:
             return False, (
                 "Using 'condition: template' is not recommended. "
                 "Use native 'condition: state' instead for better performance. "
-                "Example: condition: state\n  entity_id: binary_sensor.vehicle_home\n  state: 'on'"
+                "Example: condition: state\\n  entity_id: "
+                "binary_sensor.vehicle_home\\n  state: 'on'"
             )
 
         # Check for native state condition

@@ -57,7 +57,7 @@ DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
-DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Maximum simultaneous trips (EMHASS integration limit)
+DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types

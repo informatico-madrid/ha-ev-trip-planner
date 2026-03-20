@@ -84,8 +84,8 @@ class VehicleScheduleMonitor:
         if not assigned_indices:
             _LOGGER.info(
                 "No active trips for vehicle %s, monitoring will start when trips added",
-                self.vehicle_id
-            )
+                self.vehicle_id,
+            )  # noqa: E501
             return
         
         # Subscribe to schedule for each index
@@ -165,7 +165,9 @@ class VehicleScheduleMonitor:
                 await self._async_stop_charging(emhass_index)
                 
         except Exception as err:
-            _LOGGER.error("Error handling schedule change for index %d: %s", emhass_index, err)
+            _LOGGER.error(
+                "Error handling schedule change for index %d: %s", emhass_index, err
+            )
     
     def _parse_schedule(self, schedule_state: str) -> bool:
         """
@@ -199,7 +201,7 @@ class VehicleScheduleMonitor:
                 _LOGGER.info(
                     "Vehicle %s not at home, ignoring start charging request (index %d)",
                     self.vehicle_id,
-                    emhass_index
+                    emhass_index,
                 )
                 await self._async_notify(
                     f"⚠️ Charging skipped: {self.vehicle_id} not at home",
@@ -212,7 +214,7 @@ class VehicleScheduleMonitor:
                 _LOGGER.info(
                     "Vehicle %s not plugged, ignoring start charging request (index %d)",
                     self.vehicle_id,
-                    emhass_index
+                    emhass_index,
                 )
                 await self._async_notify(
                     f"🔌 Connect vehicle: {self.vehicle_id}",

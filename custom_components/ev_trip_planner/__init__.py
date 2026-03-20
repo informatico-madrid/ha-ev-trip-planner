@@ -55,6 +55,273 @@ def is_lovelace_available(hass: HomeAssistant) -> bool:
     return False
 
 
+async def create_dashboard_input_helpers(
+    hass: HomeAssistant,
+    vehicle_id: str,
+) -> bool:
+    """Create input helpers for dashboard CRUD forms.
+
+    Creates the required input entities that the dashboard template
+    uses for creating and editing trips.
+
+    Args:
+        hass: The Home Assistant instance.
+        vehicle_id: Unique identifier for the vehicle.
+
+    Returns:
+        True if helpers were created successfully, False otherwise.
+    """
+    _LOGGER.info("Creating input helpers for dashboard: %s", vehicle_id)
+
+    try:
+        # Create input_select for day of week (recurring trips)
+        day_options = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        try:
+            await hass.services.async_call(
+                "input_select",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Trip Day",
+                    "options": day_options,
+                    "icon": "mdi:calendar-week",
+                },
+            )
+            _LOGGER.debug("Created input_select for day: %s_trip_day", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input select may already exist: %s", e)
+
+        # Create input_datetime for recurring trip time
+        try:
+            await hass.services.async_call(
+                "input_datetime",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Trip Time",
+                    "has_date": False,
+                    "has_time": True,
+                    "icon": "mdi:clock",
+                },
+            )
+            _LOGGER.debug("Created input_datetime for time: %s_trip_time", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input datetime may already exist: %s", e)
+
+        # Create input_number for recurring trip km
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Trip km",
+                    "min": 0,
+                    "max": 1000,
+                    "unit_of_measurement": "km",
+                    "icon": "mdi:map-marker-distance",
+                },
+            )
+            _LOGGER.debug("Created input_number for km: %s_trip_km", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Create input_number for recurring trip kwh
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Trip kWh",
+                    "min": 0,
+                    "max": 200,
+                    "unit_of_measurement": "kWh",
+                    "icon": "mdi:lightning-bolt",
+                },
+            )
+            _LOGGER.debug("Created input_number for kwh: %s_trip_kwh", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Create input_text for recurring trip description
+        try:
+            await hass.services.async_call(
+                "input_text",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Trip Description",
+                    "icon": "mdi:text",
+                },
+            )
+            _LOGGER.debug("Created input_text for desc: %s_trip_desc", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input text may already exist: %s", e)
+
+        # Create input_datetime for punctual trip datetime
+        try:
+            await hass.services.async_call(
+                "input_datetime",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Punctual Trip DateTime",
+                    "has_date": True,
+                    "has_time": True,
+                    "icon": "mdi:calendar-clock",
+                },
+            )
+            _LOGGER.debug("Created input_datetime for datetime: %s_punctual_datetime", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input datetime may already exist: %s", e)
+
+        # Create input_number for punctual trip km
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Punctual Trip km",
+                    "min": 0,
+                    "max": 1000,
+                    "unit_of_measurement": "km",
+                    "icon": "mdi:map-marker-distance",
+                },
+            )
+            _LOGGER.debug("Created input_number for km: %s_punctual_km", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Create input_number for punctual trip kwh
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Punctual Trip kWh",
+                    "min": 0,
+                    "max": 200,
+                    "unit_of_measurement": "kWh",
+                    "icon": "mdi:lightning-bolt",
+                },
+            )
+            _LOGGER.debug("Created input_number for kwh: %s_punctual_kwh", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Create input_text for punctual trip description
+        try:
+            await hass.services.async_call(
+                "input_text",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Punctual Trip Description",
+                    "icon": "mdi:text",
+                },
+            )
+            _LOGGER.debug("Created input_text for desc: %s_punctual_desc", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input text may already exist: %s", e)
+
+        # === Edit Trip Input Helpers ===
+        # Input to select which trip to edit
+        try:
+            await hass.services.async_call(
+                "input_select",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Trip Selector",
+                    "options": ["-- Seleccionar viaje --"],
+                    "icon": "mdi:pencil",
+                },
+            )
+            _LOGGER.debug("Created input_select for edit: %s_edit_trip_selector", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input select may already exist: %s", e)
+
+        # Input datetime for edit trip time
+        try:
+            await hass.services.async_call(
+                "input_datetime",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Trip Time",
+                    "has_date": False,
+                    "has_time": True,
+                    "icon": "mdi:clock-edit",
+                },
+            )
+            _LOGGER.debug("Created input_datetime for edit time: %s_edit_trip_time", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input datetime may already exist: %s", e)
+
+        # Input number for edit trip km
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Trip km",
+                    "min": 0,
+                    "max": 1000,
+                    "unit_of_measurement": "km",
+                    "icon": "mdi:map-marker-distance",
+                },
+            )
+            _LOGGER.debug("Created input_number for edit km: %s_edit_trip_km", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Input number for edit trip kwh
+        try:
+            await hass.services.async_call(
+                "input_number",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Trip kWh",
+                    "min": 0,
+                    "max": 200,
+                    "unit_of_measurement": "kWh",
+                    "icon": "mdi:lightning-bolt",
+                },
+            )
+            _LOGGER.debug("Created input_number for edit kwh: %s_edit_trip_kwh", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input number may already exist: %s", e)
+
+        # Input text for edit trip description
+        try:
+            await hass.services.async_call(
+                "input_text",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Trip Description",
+                    "icon": "mdi:text",
+                },
+            )
+            _LOGGER.debug("Created input_text for edit desc: %s_edit_trip_desc", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input text may already exist: %s", e)
+
+        # Input datetime for edit punctual trip datetime
+        try:
+            await hass.services.async_call(
+                "input_datetime",
+                "create",
+                {
+                    "name": f"{vehicle_id} - Edit Punctual DateTime",
+                    "has_date": True,
+                    "has_time": True,
+                    "icon": "mdi:calendar-edit",
+                },
+            )
+            _LOGGER.debug("Created input_datetime for edit datetime: %s_edit_punctual_datetime", vehicle_id)
+        except Exception as e:
+            _LOGGER.debug("Input datetime may already exist: %s", e)
+
+        _LOGGER.info("Input helpers created successfully for: %s", vehicle_id)
+        return True
+
+    except Exception as e:
+        _LOGGER.error("Failed to create input helpers for %s: %s", vehicle_id, e)
+        return False
+
+
 async def import_dashboard(
     hass: HomeAssistant,
     vehicle_id: str,
@@ -136,6 +403,9 @@ async def import_dashboard(
         _LOGGER.info(
             "Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id
         )
+        _LOGGER.debug(
+            "METHOD SELECTION: Trying storage API first for %s", vehicle_id
+        )
         if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
             _LOGGER.info(
                 "=== DASHBOARD IMPORT SUCCESS === via storage API for %s (ID: %s)",
@@ -147,12 +417,19 @@ async def import_dashboard(
         _LOGGER.info(
             "Storage API method failed, trying fallback: lovelace.import service"
         )
+        _LOGGER.debug(
+            "METHOD SELECTION: Trying lovelace.import service fallback for %s",
+            vehicle_id,
+        )
 
         # Fallback: Try to use the import service
         if hass.services.has_service("lovelace", "import"):
             _LOGGER.info(
                 "Attempting DASHBOARD IMPORT via lovelace.import service for %s",
                 vehicle_name,
+            )
+            _LOGGER.debug(
+                "METHOD SELECTION: Using lovelace.import service for %s", vehicle_id
             )
             await hass.services.async_call(
                 "lovelace",
@@ -372,6 +649,9 @@ async def _save_lovelace_dashboard(
             _LOGGER.info(
                 "METHOD: Using lovelace.save service for dashboard import"
             )
+            _LOGGER.debug(
+                "METHOD SELECTION: lovelace.save service available, using it"
+            )
             # Try to save each view as a separate dashboard
             # Get the views from the dashboard config
             views = dashboard_config.get("views", [])
@@ -405,11 +685,17 @@ async def _save_lovelace_dashboard(
             _LOGGER.info(
                 "METHOD: lovelace.save service NOT available, trying storage API"
             )
+            _LOGGER.debug(
+                "METHOD SELECTION: lovelace.save not available, falling back to storage API"
+            )
 
         # Try alternative method: use the storage API directly
         # Use hass.storage.async_read and hass.storage.async_write_dict
         _LOGGER.info(
             "METHOD: Attempting storage API for dashboard import"
+        )
+        _LOGGER.debug(
+            "METHOD SELECTION: Using hass.storage API for dashboard import"
         )
 
         # Verify storage write permissions before attempting to write
@@ -609,6 +895,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("Services already registered or failed to register.")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Create input helpers for dashboard CRUD forms
+    # These are required for the dashboard to allow creating trips
+    try:
+        await create_dashboard_input_helpers(hass, vehicle_id)
+    except Exception:  # pragma: no cover
+        _LOGGER.debug("Input helpers creation failed or helpers already exist.")
 
     return True
 

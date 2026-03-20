@@ -122,6 +122,11 @@ STEP_PRESENCE_SCHEMA = vol.Schema(
 )
 
 # Step 5: Notifications configuration
+# Using EntitySelector with domain="notify" to show all notify services/entities
+# This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
+# The selector queries the entity registry for entities in the notify domain
+# Note: EntitySelector works with notify services in HA because they are registered
+# as entities in the entity registry (notify.<service_name>)
 STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
@@ -531,6 +536,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         _LOGGER.debug("Config flow step 5 (notifications): showing form")
         if user_input is None:
             # Log available notify services for debugging
+            # This helps verify Nabu Casa devices are visible
             notify_services = self.hass.services.async_services().get("notify", {})
             available_services = list(notify_services.keys())
             _LOGGER.debug(
@@ -541,6 +547,13 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 "Notification step: %d notify services available",
                 len(available_services),
             )
+            # Log Nabu Casa specific services for debugging
+            nabu_casa_services = [s for s in available_services if "alexa" in s.lower()]
+            if nabu_casa_services:
+                _LOGGER.info(
+                    "Nabu Casa notify services detected: %s",
+                    nabu_casa_services,
+                )
             return self.async_show_form(
                 step_id="notifications",
                 data_schema=STEP_NOTIFICATIONS_SCHEMA,

@@ -3,10 +3,15 @@
 # Includes visualization of power profiles and schedules
 
 title: "EV Trip Planner - {{ vehicle_name }}"
+# Auto-refresh every 30 seconds to reflect changes immediately
+refresh_interval: 30
 views:
   - title: "{{ vehicle_name }} - Estado"
     path: "{{ vehicle_id }}"
     icon: mdi:car-electric
+    # Responsive: 2 columns on tablet/desktop, 1 on mobile
+    columns: 2
+    # Auto-refresh this view to show updated trip data
     cards:
       # EMHASS Integration Setup Card
       - type: markdown
@@ -36,9 +41,10 @@ views:
       - type: markdown
         title: "🚗 Estado de Viajes"
         content: |
-          {% set trips_count = states('sensor.{{ vehicle_id }}_trips_count') | default('0') %}
-          {% set next_trip = states('sensor.{{ vehicle_id }}_next_trip') | default('N/A') %}
-          {% set kwh_needed = states('sensor.{{ vehicle_id }}_kwh_needed_today') | default('0') %}
+          {% set trips_list_sensor = 'sensor.' ~ vehicle_id ~ '_trips_list' %}
+          {% set trips_count = states(trips_list_sensor) | default('0') %}
+          {% set next_trip = states('sensor.' ~ vehicle_id ~ '_next_trip') | default('N/A') %}
+          {% set kwh_needed = states('sensor.' ~ vehicle_id ~ '_kwh_needed_today') | default('0') %}
 
           **Viajes programados:** {{ trips_count }}
           **Próximo viaje:** {{ next_trip }}
@@ -47,6 +53,52 @@ views:
           ---
 
           *Estado actualizado automáticamente*
+
+      # Recurring trips list card
+      - type: markdown
+        title: "🔄 Viajes Recurrentes"
+        style: |
+          ha-card { overflow-x: auto; }
+        content: |
+          {% set trips_list_sensor = 'sensor.' ~ vehicle_id ~ '_trips_list' %}
+          {% set trips = state_attr(trips_list_sensor, 'recurring_trips') | default([]) %}
+
+          {% if trips | length == 0 %}
+          *No hay viajes recurrentes programados*
+          {% else %}
+          | ID | Día | Hora | km | kWh | Descripción | Estado |
+          |----|-----|------|----|----|-------------|--------|
+          {% for trip in trips %}
+          | **{{ trip.id }}** | {{ trip.dia_semana | default('-') }} | {{ trip.hora | default('-') }} | {{ trip.km | default(0) }} | {{ trip.kwh | default(0) }} | {{ trip.descripcion | default('-') }} | {{ '⏸ Pausado' if not trip.activo else '✓ Activo' }} |
+          {% endfor %}
+          {% endif %}
+
+          ---
+
+          *Viajes semanales programados (usa el ID para editar)*
+
+      # Punctual trips list card
+      - type: markdown
+        title: "📅 Viajes Puntuales"
+        style: |
+          ha-card { overflow-x: auto; }
+        content: |
+          {% set trips_list_sensor = 'sensor.' ~ vehicle_id ~ '_trips_list' %}
+          {% set trips = state_attr(trips_list_sensor, 'punctual_trips') | default([]) %}
+
+          {% if trips | length == 0 %}
+          *No hay viajes puntuales programados*
+          {% else %}
+          | ID | Fecha/Hora | km | kWh | Descripción | Estado |
+          |----|------------|----|----|-------------|--------|
+          {% for trip in trips %}
+          | **{{ trip.id }}** | {{ trip.datetime | default('-') }} | {{ trip.km | default(0) }} | {{ trip.kwh | default(0) }} | {{ trip.descripcion | default('-') }} | {{ '✓ Completado' if trip.estado == 'completado' else ('❌ Cancelado' if trip.estado == 'cancelado' else '⏳ Pendiente') }} |
+          {% endfor %}
+          {% endif %}
+
+          ---
+
+          *Viajes únicos programados (usa el ID para editar)*
 
       # Power profile chart (only if apexcharts available)
       - type: custom:apexcharts-card
@@ -125,9 +177,9 @@ views:
       - type: entities
         title: "📊 Métricas"
         entities:
-          - entity: sensor.{{ vehicle_id }}_trips_count
+          - entity: sensor.{{ vehicle_id }}_trips_list
             name: Viajes totales
-          - entity: sensor.{{ vehicle_id }}_kwh_needed_today
+          - entity: sensor.{{ vehicle_id }}_kwh_today
             name: kWh necesarios hoy
           - entity: sensor.{{ vehicle_id }}_next_trip
             name: Próximo viaje
@@ -146,3 +198,431 @@ views:
           green: 50
           yellow: 20
           red: 10
+
+  # CRUD View - Create/Edit/Delete Trips
+  - title: "{{ vehicle_name }} - Gestionar Viajes"
+    path: "{{ vehicle_id }}-crud"
+    icon: mdi:calendar-edit
+    # Responsive: Single column on mobile for CRUD operations
+    columns: 1
+    # Auto-refresh to show immediate updates after CRUD operations
+    cards:
+      # Create Recurring Trip Section
+      - type: markdown
+        title: "➕ Crear Viaje Recurrente"
+        content: |
+          ### Viaje Recurrente Semanal
+
+          Programa un viaje que se repetirá cada semana en el día y hora especificados.
+
+      # Day of week selector for recurring trip
+      - type: entities
+        title: "Día de la semana"
+        entities:
+          - entity: input_select.{{ vehicle_id }}_trip_day
+            name: Seleccionar día
+
+      # Time selector for recurring trip
+      - type: entities
+        title: "Hora del viaje"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_trip_time
+            name: Seleccionar hora
+
+      # Distance input for recurring trip
+      - type: entities
+        title: "Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_trip_km
+            name: Kilómetros
+
+      # Energy input for recurring trip
+      - type: entities
+        title: "Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_trip_kwh
+            name: kWh necesarios
+
+      # Description input for recurring trip
+      - type: entities
+        title: "Descripción"
+        entities:
+          - entity: input_text.{{ vehicle_id }}_trip_desc
+            name: Descripción del viaje
+
+      # Button to add recurring trip
+      - type: custom:button-card
+        name: "✅ Crear Viaje Recurrente"
+        icon: mdi:plus-circle
+        color: var(--primary-color)
+        # Mobile-friendly: full width on small screens
+        size: 80%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.add_recurring_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            dia_semana: |
+              {{ states('input_select.' ~ vehicle_id ~ '_trip_day') }}
+            hora: |
+              {{ states('input_datetime.' ~ vehicle_id ~ '_trip_time') }}
+            km: |
+              {{ states('input_number.' ~ vehicle_id ~ '_trip_km') }}
+            kwh: |
+              {{ states('input_number.' ~ vehicle_id ~ '_trip_kwh') }}
+            descripcion: |
+              {{ states('input_text.' ~ vehicle_id ~ '_trip_desc') }}
+        style: |
+          .card {
+            background: var(--card-background-color);
+            border-radius: 10px;
+            min-height: 60px;
+          }
+          @media (max-width: 600px) {
+            .card {
+              width: 100% !important;
+            }
+          }
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Create Punctual Trip Section
+      - type: markdown
+        title: "📅 Crear Viaje Puntual"
+        content: |
+          ### Viaje Puntual
+
+          Programa un viaje único para una fecha y hora específica.
+
+      # Datetime selector for punctual trip
+      - type: entities
+        title: "Fecha y hora"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_punctual_datetime
+            name: Seleccionar fecha y hora
+
+      # Distance input for punctual trip
+      - type: entities
+        title: "Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_punctual_km
+            name: Kilómetros
+
+      # Energy input for punctual trip
+      - type: entities
+        title: "Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_punctual_kwh
+            name: kWh necesarios
+
+      # Description input for punctual trip
+      - type: entities
+        title: "Descripción"
+        entities:
+          - entity: input_text.{{ vehicle_id }}_punctual_desc
+            name: Descripción del viaje
+
+      # Button to add punctual trip
+      - type: custom:button-card
+        name: "✅ Crear Viaje Puntual"
+        icon: mdi:plus-circle
+        color: var(--primary-color)
+        # Mobile-friendly: full width on small screens
+        size: 80%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.add_punctual_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            datetime: |
+              {{ states('input_datetime.' ~ vehicle_id ~ '_punctual_datetime') }}
+            km: |
+              {{ states('input_number.' ~ vehicle_id ~ '_punctual_km') }}
+            kwh: |
+              {{ states('input_number.' ~ vehicle_id ~ '_punctual_kwh') }}
+            descripcion: |
+              {{ states('input_text.' ~ vehicle_id ~ '_punctual_desc') }}
+        style: |
+          .card {
+            background: var(--card-background-color);
+            border-radius: 10px;
+            min-height: 60px;
+          }
+          @media (max-width: 600px) {
+            .card {
+              width: 100% !important;
+            }
+          }
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Edit/Delete/Pause/Resume Section
+      - type: markdown
+        title: "✏️ Gestionar Viajes Existentes"
+        content: |
+          ### Acciones sobre viajes
+
+          Selecciona un viaje y realiza acciones sobre él.
+
+      # Quick action buttons for recurring trips (grid layout for responsiveness)
+      - type: vertical-stack
+        cards:
+          - type: custom:button-card
+            name: "⏸ Pausar"
+            icon: mdi:pause-circle
+            color: "#FFA500"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.pause_recurring_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "rec_*"
+            style: |
+              .card { min-height: 50px; }
+
+          - type: custom:button-card
+            name: "▶️ Reanudar"
+            icon: mdi:play-circle
+            color: "#4CAF50"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.resume_recurring_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "rec_*"
+            style: |
+              .card { min-height: 50px; }
+
+          - type: custom:button-card
+            name: "🗑️ Eliminar"
+            icon: mdi:delete
+            color: "#F44336"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.delete_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "rec_*"
+            style: |
+              .card { min-height: 50px; }
+
+      # Quick action buttons for punctual trips
+      - type: vertical-stack
+        cards:
+          - type: custom:button-card
+            name: "✅ Completar"
+            icon: mdi:check-circle
+            color: "#4CAF50"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.complete_punctual_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "pun_*"
+            style: |
+              .card { min-height: 50px; }
+
+          - type: custom:button-card
+            name: "❌ Cancelar"
+            icon: mdi:cancel
+            color: "#F44336"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.cancel_punctual_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "pun_*"
+            style: |
+              .card { min-height: 50px; }
+
+          - type: custom:button-card
+            name: "🗑️ Eliminar"
+            icon: mdi:delete
+            color: "#F44336"
+            size: 70%
+            tap_action:
+              action: call-service
+              service: ev_trip_planner.delete_trip
+              service_data:
+                vehicle_id: "{{ vehicle_id }}"
+                trip_id: "pun_*"
+            style: |
+              .card { min-height: 50px; }
+
+      # Refresh button
+      - type: custom:button-card
+        name: "🔄 Actualizar Dashboard"
+        icon: mdi:refresh
+        color: "#2196F3"
+        size: 80%
+        tap_action:
+          action: call-service
+          service: homeassistant.reload_core_config
+        style: |
+          .card {
+            min-height: 60px;
+            border-radius: 10px;
+          }
+          @media (max-width: 600px) {
+            .card {
+              width: 100% !important;
+            }
+          }
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Edit Trip Section
+      - type: markdown
+        title: "✏️ Editar Viaje"
+        content: |
+          ### Editar Viaje Existente
+
+          Para editar un viaje:
+          1. Copia el **trip_id** de la lista de viajes arriba (ej: `rec_1`, `pun_2`)
+          2. Pega el ID en el campo "ID del viaje"
+          3. Modifica los campos que quieras cambiar
+          4. Presiona el botón de guardar
+
+      # Trip ID input for editing
+      - type: entities
+        title: "ID del viaje a editar"
+        entities:
+          - entity: input_text.{{ vehicle_id }}_edit_trip_desc
+            name: "Trip ID (ej: rec_1, pun_2)"
+
+      # Edit fields for recurring trip
+      - type: markdown
+        title: "Editar Viaje Recurrente"
+        content: |
+          ### Datos del Viaje Recurrente
+
+      # Edit day selector
+      - type: entities
+        title: "Día de la semana"
+        entities:
+          - entity: input_select.{{ vehicle_id }}_trip_day
+            name: Nuevo día
+
+      # Edit time selector
+      - type: entities
+        title: "Hora del viaje"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_edit_trip_time
+            name: Nueva hora
+
+      # Edit distance
+      - type: entities
+        title: "Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_edit_trip_km
+            name: Nuevos km
+
+      # Edit energy
+      - type: entities
+        title: "Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_edit_trip_kwh
+            name: Nuevos kWh
+
+      # Button to edit recurring trip
+      - type: custom:button-card
+        name: "✏️ Guardar Cambios (Recurrente)"
+        icon: mdi:content-save
+        color: "#FF9800"
+        size: 80%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.edit_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            trip_id: "{{ states('input_text.' ~ vehicle_id ~ '_edit_trip_desc') }}"
+            updates: >
+              {
+                "dia_semana": "{{ states('input_select.' ~ vehicle_id ~ '_trip_day') }}",
+                "hora": "{{ states('input_datetime.' ~ vehicle_id ~ '_edit_trip_time') }}",
+                "km": "{{ states('input_number.' ~ vehicle_id ~ '_edit_trip_km') }}",
+                "kwh": "{{ states('input_number.' ~ vehicle_id ~ '_edit_trip_kwh') }}"
+              }
+        style: |
+          .card {
+            background: var(--card-background-color);
+            border-radius: 10px;
+            min-height: 60px;
+          }
+          @media (max-width: 600px) {
+            .card {
+              width: 100% !important;
+            }
+          }
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Edit Punctual Trip Section
+      - type: markdown
+        title: "📅 Editar Viaje Puntual"
+        content: |
+          ### Datos del Viaje Puntual
+
+      # Edit punctual datetime
+      - type: entities
+        title: "Nueva fecha y hora"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_edit_punctual_datetime
+            name: Fecha y hora
+
+      # Edit punctual distance
+      - type: entities
+        title: "Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_edit_trip_km
+            name: Nuevos km
+
+      # Edit punctual energy
+      - type: entities
+        title: "Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_edit_trip_kwh
+            name: Nuevos kWh
+
+      # Button to edit punctual trip
+      - type: custom:button-card
+        name: "✏️ Guardar Cambios (Puntual)"
+        icon: mdi:content-save
+        color: "#FF9800"
+        size: 80%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.edit_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            trip_id: "{{ states('input_text.' ~ vehicle_id ~ '_edit_trip_desc') }}"
+            updates: >
+              {
+                "datetime": "{{ states('input_datetime.' ~ vehicle_id ~ '_edit_punctual_datetime') }}",
+                "km": "{{ states('input_number.' ~ vehicle_id ~ '_edit_trip_km') }}",
+                "kwh": "{{ states('input_number.' ~ vehicle_id ~ '_edit_trip_kwh') }}"
+              }
+        style: |
+          .card {
+            background: var(--card-background-color);
+            border-radius: 10px;
+            min-height: 60px;
+          }
+          @media (max-width: 600px) {
+            .card {
+              width: 100% !important;
+            }
+          }

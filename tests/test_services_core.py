@@ -66,8 +66,9 @@ def _setup_mock_config_entry(mock_hass, vehicle_id="chispitas"):
 
 @pytest.mark.asyncio
 async def test_services_use_seeded_trip_manager_instance(mock_hass):
-    """If a TripManager is seeded in hass.data[DOMAIN]['managers'], services reuse it."""
+    """If a TripManager is seeded in hass.data[DATA_RUNTIME][namespace]['managers'], services reuse it."""
     from custom_components.ev_trip_planner import DOMAIN
+    from custom_components.ev_trip_planner.__init__ import DATA_RUNTIME
 
     # Create a mock config entry with proper structure
     mock_entry = MagicMock()
@@ -76,7 +77,7 @@ async def test_services_use_seeded_trip_manager_instance(mock_hass):
         "vehicle_name": "chispitas",
     }
 
-    # Set up runtime_data with the seeded manager (current implementation uses this)
+    # Set up runtime_data at the correct location (hass.data[DATA_RUNTIME][namespace])
     namespace = f"{DOMAIN}_{mock_entry.entry_id}"
     seeded = MagicMock()
     seeded.async_setup = AsyncMock()
@@ -86,20 +87,16 @@ async def test_services_use_seeded_trip_manager_instance(mock_hass):
     seeded_coordinator = MagicMock()
     seeded_coordinator.async_refresh_trips = AsyncMock()
 
-    mock_entry.runtime_data = {
-        namespace: {
-            "managers": {"chispitas": seeded},
-            "coordinators": {"chispitas": seeded_coordinator},
-        }
+    # Seed at hass.data[DATA_RUNTIME][namespace] - this is where _get_manager looks
+    mock_hass.data.setdefault(DATA_RUNTIME, {})[namespace] = {
+        "managers": {"chispitas": seeded},
+        "coordinators": {"chispitas": seeded_coordinator},
     }
 
     # Set up config_entries to find our entry
     mock_hass.config_entries = MagicMock()
     mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
     mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # Also seed in hass.data for backward compatibility check
-    mock_hass.data.setdefault(DOMAIN, {}).setdefault("managers", {})["chispitas"] = seeded
 
     register_services(mock_hass)
 
