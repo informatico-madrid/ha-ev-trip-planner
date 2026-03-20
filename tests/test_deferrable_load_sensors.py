@@ -39,7 +39,7 @@ def mock_hass():
     # Mock async_get_entry to return the entry
     hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
 
-    # Mock async_entries to return a list of config entries
+    # Mock async_entries to return a list of config entries (required for vehicle_name matching)
     hass.config_entries.async_entries = Mock(return_value=[mock_entry])
 
     return hass

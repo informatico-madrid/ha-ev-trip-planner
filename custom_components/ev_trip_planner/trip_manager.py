@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -82,6 +85,13 @@ class TripManager:
         try:
             # FIX: Usar hass.storage para persistencia entre reinicios
             storage_key = f"{DOMAIN}_{self.vehicle_id}"
+
+            # Check if storage API is available (not available in Container)
+            if not hasattr(self.hass, "storage") or self.hass.storage is None:
+                # YAML fallback for Container environment
+                await self._load_trips_yaml(storage_key)
+                return
+
             stored_data = await self.hass.storage.async_read(storage_key)
 
             if stored_data and "data" in stored_data:
@@ -111,11 +121,71 @@ class TripManager:
             self._punctual_trips = {}
             self._last_update = None
 
+    async def _load_trips_yaml(self, storage_key: str) -> None:
+        """Carga los viajes desde un archivo YAML (fallback para Container)."""
+        try:
+            # Get config directory from Home Assistant
+            config_dir = self.hass.config.config_dir
+            if not config_dir:
+                config_dir = "/config"
+
+            # Construct YAML file path
+            yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+
+            # Ensure directory exists
+            yaml_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Try to load YAML file
+            if yaml_file.exists():
+                with open(yaml_file, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+
+                if "data" in data:
+                    trip_data = data["data"]
+                    self._trips = trip_data.get("trips", {})
+                    self._recurring_trips = trip_data.get("recurring_trips", {})
+                    self._punctual_trips = trip_data.get("punctual_trips", {})
+                    self._last_update = trip_data.get("last_update")
+                    _LOGGER.info(
+                        "Viajes cargados desde YAML fallback: %d recurrentes, %d puntuales",
+                        len(self._recurring_trips),
+                        len(self._punctual_trips),
+                    )
+                else:
+                    _LOGGER.info(
+                        "No se encontraron viajes almacenados en YAML para %s",
+                        self.vehicle_id,
+                    )
+                    self._reset_trips()
+            else:
+                _LOGGER.info(
+                    "Archivo YAML no encontrado para %s, usando datos vacíos",
+                    self.vehicle_id,
+                )
+                self._reset_trips()
+        except Exception as err:
+            _LOGGER.error("Error cargando viajes desde YAML: %s", err)
+            self._reset_trips()
+
+    def _reset_trips(self) -> None:
+        """Resetea todas las colecciones de viajes."""
+        self._trips = {}
+        self._recurring_trips = {}
+        self._punctual_trips = {}
+        self._last_update = None
+
     async def async_save_trips(self) -> None:
         """Guarda los viajes en el almacenamiento persistente."""
         try:
-            # FIX: Usar hass.storage.async_write_dict para persistencia
             storage_key = f"{DOMAIN}_{self.vehicle_id}"
+
+            # Check if storage API is available (not available in Container)
+            if not hasattr(self.hass, "storage") or self.hass.storage is None:
+                # YAML fallback for Container environment
+                await self._save_trips_yaml(storage_key)
+                return
+
+            # Use storage API for Supervisor environment
             await self.hass.storage.async_write_dict(
                 storage_key,
                 {
@@ -135,6 +205,43 @@ class TripManager:
             )
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err)
+
+    async def _save_trips_yaml(self, storage_key: str) -> None:
+        """Guarda los viajes en un archivo YAML (fallback para Container)."""
+        try:
+            # Get config directory from Home Assistant
+            config_dir = self.hass.config.config_dir
+            if not config_dir:
+                config_dir = "/config"
+
+            # Construct YAML file path
+            yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+
+            # Ensure directory exists
+            yaml_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Prepare data
+            data = {
+                "version": 1,
+                "data": {
+                    "trips": self._trips,
+                    "recurring_trips": self._recurring_trips,
+                    "punctual_trips": self._punctual_trips,
+                    "last_update": datetime.now().isoformat(),
+                },
+            }
+
+            # Write to YAML file
+            with open(yaml_file, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+
+            _LOGGER.info(
+                "Viajes guardados en YAML fallback: %d recurrentes, %d puntuales",
+                len(self._recurring_trips),
+                len(self._punctual_trips),
+            )
+        except Exception as err:
+            _LOGGER.error("Error guardando viajes en YAML: %s", err)
 
     async def async_get_recurring_trips(self) -> List[Dict[str, Any]]:
         """Obtiene la lista de viajes recurrentes."""
