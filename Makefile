@@ -1,0 +1,54 @@
+.PHONY: help test test-cover test-verbose test-dashboard lint mypy format check clean htmlcov
+
+help:
+	@echo "Comandos disponibles:"
+	@echo "  make test            - Ejecutar todos los tests"
+	@echo "  make test-cover      - Ejecutar tests con reporte de cobertura"
+	@echo "  make test-verbose    - Ejecutar tests con salida detallada"
+	@echo "  make test-dashboard  - Ejecutar tests y abrir dashboard de cobertura"
+	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
+	@echo "  make mypy            - Ejecutar type checking"
+	@echo "  make format          - Formatear código con black e isort"
+	@echo "  make check           - Ejecutar todos los checks (test, lint, mypy)"
+	@echo "  make clean           - Limpiar archivos generados"
+	@echo "  make htmlcov         - Generar reporte HTML de cobertura"
+
+test:
+	python3 -m pytest tests -v --tb=short
+
+test-cover:
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80
+
+test-verbose:
+	python3 -m pytest tests -vv -s --tb=long
+
+test-dashboard:
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
+	@echo "Dashboard de cobertura generado en htmlcov/index.html"
+
+lint:
+	ruff check .
+	pylint custom_components/ tests/
+
+mypy:
+	mypy custom_components/ tests/
+
+format:
+	black .
+	isort .
+
+check: test lint mypy
+
+clean:
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	find . -type f -name "*.pyo" -delete 2>/dev/null || true
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".coverage" -delete 2>/dev/null || true
+	rm -rf .hypothesis
+
+htmlcov:
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
+	@echo "Reporte HTML generado en htmlcov/index.html"
