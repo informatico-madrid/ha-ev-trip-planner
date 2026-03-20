@@ -326,6 +326,104 @@ class TestTripPlannerSensorBase:
         assert sensor.native_value is None
 
 
+class TestNextTripSensorNoTrips:
+    """Tests for NextTripSensor when there are no trips scheduled.
+
+    These tests reproduce the P003 bug: NextTripSensor returns string values
+    ("N/A", "No trips") when there are no trips, but the base class
+    TripPlannerSensor has device_class=ENERGY which only accepts numeric values.
+    This causes:
+    ValueError: Sensor has device class 'energy', state class 'measurement'
+    unit 'kWh' thus indicating it has a numeric value; however, it has the
+    non-numeric value: 'N/A' (<class 'str'>)
+
+    Expected: FAIL with ValueError before fix
+    After fix (removing device_class from NextTripSensor): PASS
+    """
+
+    async def test_next_trip_sensor_has_energy_device_class(
+        self, hass: HomeAssistant
+    ):
+        """Test that NextTripSensor inherits device_class=ENERGY from base class.
+
+        This test verifies the root cause of the P003 bug: NextTripSensor
+        inherits device_class=ENERGY from TripPlannerSensor, but NextTripSensor
+        returns string values like "N/A" when there are no trips.
+
+        Before fix: NextTripSensor has device_class=ENERGY (BUG - incompatible)
+        After fix: NextTripSensor should NOT have device_class=ENERGY
+
+        This test should PASS now (verifying the bug exists) and the fix
+        will remove device_class from NextTripSensor.
+        """
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {
+            "next_trip": None,
+        }
+
+        sensor = NextTripSensor("test_vehicle", mock_coordinator)
+
+        # Verify the sensor has device_class (this is the bug - it should not)
+        # Before fix: sensor._attr_device_class == SensorDeviceClass.ENERGY
+        # After fix: sensor._attr_device_class should be None or not set
+        assert hasattr(sensor, "_attr_device_class"), (
+            "Sensor should have _attr_device_class attribute"
+        )
+
+        # This assertion documents the expected behavior after fix
+        # Currently NextTripSensor inherits device_class=ENERGY from base class
+        # which causes ValueError when returning string values
+        current_device_class = getattr(
+            sensor, "_attr_device_class", None
+        )
+
+        # Document that this is the bug we need to fix
+        # Before fix: current_device_class == SensorDeviceClass.ENERGY (BUG)
+        # After fix: current_device_class should be None
+        assert current_device_class is not None, (
+            "Sensor has device_class set (this is the P003 bug - "
+            "NextTripSensor should not have device_class=ENERGY because it "
+            "returns string values like 'N/A' when there are no trips)"
+        )
+
+    async def test_next_trip_sensor_returns_string_with_no_trips(self):
+        """Test that NextTripSensor returns string when no trips available.
+
+        This test verifies that when there are no trips, the sensor returns
+        a string value ("No trips"). This is the behavior that causes the
+        ValueError when device_class=ENERGY is set.
+        """
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {
+            "next_trip": None,
+        }
+
+        sensor = NextTripSensor("test_vehicle", mock_coordinator)
+
+        # The sensor returns "No trips" when there are no trips
+        # This is correct behavior but incompatible with device_class=ENERGY
+        value = sensor.native_value
+        assert value == "No trips", (
+            "NextTripSensor should return 'No trips' when no trips available"
+        )
+
+    async def test_next_trip_sensor_with_empty_trip_list(self):
+        """Test NextTripSensor when coordinator.data is empty dict.
+
+        This test verifies the sensor handles edge cases correctly.
+        """
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {}  # Empty data
+
+        sensor = NextTripSensor("test_vehicle", mock_coordinator)
+
+        # Should return a sensible default when data is empty
+        value = sensor.native_value
+        assert value == "No trips", (
+            "NextTripSensor should return 'No trips' for empty data"
+        )
+
+
 class TestAsyncSetupEntryErrorPath:
     """Tests for async_setup_entry error paths."""
 
