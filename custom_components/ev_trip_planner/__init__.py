@@ -22,6 +22,9 @@ from .const import DOMAIN
 from .emhass_adapter import EMHASSAdapter
 from .trip_manager import TripManager
 
+# Type aliases for cleaner signatures
+CoordinatorType = DataUpdateCoordinator
+
 _LOGGER = logging.getLogger(__name__)
 
 # Global storage for runtime data (compatible with HA versions without runtime_data)
@@ -76,7 +79,7 @@ async def import_dashboard(
         # Determine which dashboard template to use (for logging)
         dashboard_type = "full" if use_charts else "simple"
         _LOGGER.info(
-            "Importing dashboard for %s (ID: %s, type: %s)",
+            "=== DASHBOARD IMPORT START === Vehicle: %s | ID: %s | Type: %s",
             vehicle_name,
             vehicle_id,
             dashboard_type,
@@ -92,14 +95,14 @@ async def import_dashboard(
 
         # Check if Lovelace is available
         if not is_lovelace_available(hass):
-            _LOGGER.warning(
-                "Lovelace not available for %s (ID: %s), skipping dashboard import",
+            _LOGGER.error(
+                "DASHBOARD IMPORT FAILED: Lovelace not available for %s (ID: %s)",
                 vehicle_name,
                 vehicle_id,
             )
             return False
 
-        _LOGGER.debug("Lovelace is available, proceeding with dashboard import")
+        _LOGGER.info("Lovelace available, proceeding with dashboard import")
 
         # Load dashboard template from custom_components folder
         dashboard_config = await _load_dashboard_template(
@@ -108,11 +111,17 @@ async def import_dashboard(
 
         if dashboard_config is None:
             _LOGGER.error(
-                "Could not load dashboard template for %s (ID: %s)",
+                "DASHBOARD IMPORT FAILED: Could not load template for %s (ID: %s)",
                 vehicle_name,
                 vehicle_id,
             )
             return False
+
+        _LOGGER.info(
+            "Dashboard template loaded successfully for %s: %d views",
+            vehicle_name,
+            len(dashboard_config.get("views", [])),
+        )
 
         # Log dashboard config details for debugging
         _LOGGER.debug(
@@ -124,27 +133,26 @@ async def import_dashboard(
 
         # Try to save using the Lovelace storage API
         # This is the most reliable method for storage mode dashboards
-        _LOGGER.debug(
-            "Attempting to save dashboard via storage API for %s", vehicle_id
+        _LOGGER.info(
+            "Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id
         )
         if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
             _LOGGER.info(
-                "Dashboard imported successfully for %s (ID: %s)",
+                "=== DASHBOARD IMPORT SUCCESS === via storage API for %s (ID: %s)",
                 vehicle_name,
                 vehicle_id,
             )
             return True
 
-        _LOGGER.debug(
+        _LOGGER.info(
             "Storage API method failed, trying fallback: lovelace.import service"
         )
 
         # Fallback: Try to use the import service
         if hass.services.has_service("lovelace", "import"):
-            _LOGGER.debug(
-                "Using lovelace.import service for %s (path: ev-trip-planner-%s)",
+            _LOGGER.info(
+                "Attempting DASHBOARD IMPORT via lovelace.import service for %s",
                 vehicle_name,
-                vehicle_id,
             )
             await hass.services.async_call(
                 "lovelace",
@@ -159,18 +167,25 @@ async def import_dashboard(
                 },
             )
             _LOGGER.info(
-                "Dashboard imported via lovelace.import service for %s",
+                "=== DASHBOARD IMPORT SUCCESS === via lovelace.import service for %s",
                 vehicle_name,
             )
             return True
 
-        _LOGGER.warning(
-            "No dashboard import method available for %s", vehicle_name
+        _LOGGER.error(
+            "=== DASHBOARD IMPORT FAILED === No import method available for %s",
+            vehicle_name
         )
         return False
 
     except Exception as err:  # pragma: no cover
-        _LOGGER.error("Failed to import dashboard for %s: %s", vehicle_name, err)
+        _LOGGER.error(
+            "=== DASHBOARD IMPORT FAILED === Exception for %s (ID: %s): %s",
+            vehicle_name,
+            vehicle_id,
+            err,
+            exc_info=True,
+        )
         return False
 
 
@@ -262,7 +277,12 @@ async def _load_dashboard_template(
         return dashboard_config
 
     except Exception as err:  # pragma: no cover
-        _LOGGER.error("Failed to load dashboard template: %s", err)
+        _LOGGER.error(
+            "TEMPLATE LOAD FAILED for %s: %s",
+            vehicle_id,
+            err,
+            exc_info=True,
+        )
         return None
 
 
@@ -280,26 +300,30 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
         True if storage is writable, False otherwise.
     """
     try:
+        _LOGGER.info(
+            "VERIFYING STORAGE PERMISSIONS for vehicle %s", vehicle_id
+        )
         # Check if hass.storage is available
         if not hasattr(hass, "storage"):
-            _LOGGER.warning(
-                "Storage API not available for vehicle %s", vehicle_id
+            _LOGGER.error(
+                "STORAGE PERMISSION DENIED: Storage API not available for vehicle %s",
+                vehicle_id,
             )
             return False
 
         # Check if async_write_dict method is available
         if not hasattr(hass.storage, "async_write_dict"):
-            _LOGGER.warning(
-                "async_write_dict not available for vehicle %s", vehicle_id
+            _LOGGER.error(
+                "STORAGE PERMISSION DENIED: async_write_dict not available for vehicle %s",
+                vehicle_id,
             )
             return False
 
         # Try to read existing lovelace config to verify write access
         try:
             await hass.storage.async_read("lovelace")
-            _LOGGER.debug(
-                "Storage read test successful for %s, verifying write access",
-                vehicle_id,
+            _LOGGER.info(
+                "Storage read test successful for %s", vehicle_id
             )
         except Exception as e:
             _LOGGER.warning(
@@ -313,16 +337,17 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
         # We can't actually test write without modifying state, so we verify
         # the method exists and the storage component is properly initialized
         # For safety, we just verify the API is available and proceed
-        _LOGGER.debug(
-            "Storage write permissions verified for vehicle %s", vehicle_id
+        _LOGGER.info(
+            "STORAGE PERMISSION GRANTED for vehicle %s", vehicle_id
         )
         return True
 
     except Exception as e:
-        _LOGGER.warning(
-            "Storage permission verification failed for %s: %s",
+        _LOGGER.error(
+            "STORAGE PERMISSION VERIFICATION FAILED for %s: %s",
             vehicle_id,
             e,
+            exc_info=True,
         )
         return False
 
@@ -344,11 +369,13 @@ async def _save_lovelace_dashboard(
     try:
         # Check if we can use the lovelace.config service
         if hass.services.has_service("lovelace", "save"):
-            _LOGGER.debug("lovelace.save service is available, will use service method")
+            _LOGGER.info(
+                "METHOD: Using lovelace.save service for dashboard import"
+            )
             # Try to save each view as a separate dashboard
             # Get the views from the dashboard config
             views = dashboard_config.get("views", [])
-            _LOGGER.debug(
+            _LOGGER.info(
                 "Dashboard config has %d views, will save first view", len(views)
             )
 
@@ -357,7 +384,7 @@ async def _save_lovelace_dashboard(
                 first_view = views[0]
                 view_path = first_view.get("path", "unknown")
                 view_title = first_view.get("title", "unknown")
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Saving first view: path=%s, title=%s", view_path, view_title
                 )
                 view_config = {
@@ -370,21 +397,25 @@ async def _save_lovelace_dashboard(
                     "save",
                     {"config": view_config},
                 )
-                _LOGGER.info("Dashboard saved via lovelace.save service")
+                _LOGGER.info("DASHBOARD SAVED via lovelace.save service")
                 return True
 
             _LOGGER.warning("Dashboard config has no views to save")
         else:
-            _LOGGER.debug("lovelace.save service NOT available, will use storage API")
+            _LOGGER.info(
+                "METHOD: lovelace.save service NOT available, trying storage API"
+            )
 
         # Try alternative method: use the storage API directly
         # Use hass.storage.async_read and hass.storage.async_write_dict
-        _LOGGER.debug("Attempting to use storage API for dashboard import")
+        _LOGGER.info(
+            "METHOD: Attempting storage API for dashboard import"
+        )
 
         # Verify storage write permissions before attempting to write
         if not await _verify_storage_permissions(hass, vehicle_id):
-            _LOGGER.warning(
-                "Storage write permissions not available for %s, cannot import dashboard",
+            _LOGGER.error(
+                "STORAGE API FAILED: Write permissions not available for %s",
                 vehicle_id,
             )
             return False
@@ -392,30 +423,32 @@ async def _save_lovelace_dashboard(
         if hasattr(hass, "storage") and hasattr(hass.storage, "async_read"):
             try:
                 # Get current lovelace config
-                _LOGGER.debug("Reading current Lovelace config from storage")
+                _LOGGER.info("Reading current Lovelace config from storage")
                 lovelace_config = await hass.storage.async_read("lovelace")
 
                 if lovelace_config and "data" in lovelace_config:
                     current_data = lovelace_config["data"]
                     views = current_data.get("views", [])
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "Current Lovelace config has %d views", len(views)
                     )
 
                     # Log existing view paths for debugging
                     existing_paths = [v.get("path") for v in views]
-                    _LOGGER.debug("Existing view paths: %s", existing_paths)
+                    _LOGGER.info("Existing view paths: %s", existing_paths)
 
                     # Get new dashboard view
                     new_views = dashboard_config.get("views", [])
                     if not new_views:
-                        _LOGGER.warning("No views found in dashboard config")
+                        _LOGGER.error(
+                            "STORAGE API FAILED: No views found in dashboard config"
+                        )
                         return False
                     new_view = new_views[0]
 
                     # FR-004: Replace existing view with same path, or append
                     new_path = new_view.get("path", vehicle_id)
-                    _LOGGER.debug("New dashboard view path: %s", new_path)
+                    _LOGGER.info("New dashboard view path: %s", new_path)
 
                     replaced = False
                     for i, existing_view in enumerate(views):
@@ -431,30 +464,34 @@ async def _save_lovelace_dashboard(
                         views.append(new_view)
                         _LOGGER.info("Added new dashboard view: %s", new_path)
 
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "Saving dashboard: total views=%d, vehicle_id=%s",
                         len(views),
                         vehicle_id,
                     )
                     # Save updated config using async_write_dict
-                    _LOGGER.debug("Writing dashboard config to storage: lovelace")
+                    _LOGGER.info("Writing dashboard config to storage: lovelace")
                     await hass.storage.async_write_dict(
                         "lovelace",
                         {"version": 1, "data": {**current_data, "views": views}},
                     )
-                    _LOGGER.info("Dashboard saved via storage API")
+                    _LOGGER.info("DASHBOARD SAVED via storage API")
                     return True
 
-                _LOGGER.warning(
-                    "Lovelace config not found in storage or has no data"
+                _LOGGER.error(
+                    "STORAGE API FAILED: Lovelace config not found in storage or has no data"
                 )
             except Exception as e:  # pragma: no cover
-                _LOGGER.debug("Storage API method failed: %s", e)
-                _LOGGER.warning(
-                    "Failed to save dashboard via storage API: %s", e
+                _LOGGER.error(
+                    "STORAGE API FAILED for %s: %s",
+                    vehicle_id,
+                    e,
+                    exc_info=True,
                 )
 
-        _LOGGER.debug("Storage API not available for dashboard import")
+        _LOGGER.error(
+            "STORAGE API FAILED: Storage API not available for dashboard import"
+        )
         return False
 
     except Exception as e:  # pragma: no cover
@@ -530,7 +567,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create EMHASS adapter for this vehicle (if EMHASS config exists)
     emhass_adapter = None
-    if entry.data.get("planning_horizon_days") or entry.data.get("max_deferrable_loads"):
+    has_planning = entry.data.get("planning_horizon_days")
+    has_deferrable = entry.data.get("max_deferrable_loads")
+    if has_planning or has_deferrable:
         emhass_adapter = EMHASSAdapter(hass, entry.data)
         await emhass_adapter.async_load()
         # Wire EMHASS adapter to trip manager
@@ -555,7 +594,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Store EMHASS adapter for direct access by services
     if emhass_adapter:
-        emhass_adapters = hass.data[DATA_RUNTIME][namespace].setdefault("emhass_adapters", {})
+        runtime_data = hass.data[DATA_RUNTIME][namespace]
+        emhass_adapters = runtime_data.setdefault("emhass_adapters", {})
         emhass_adapters[vehicle_id] = emhass_adapter
     
     # FIX: Store coordinator by vehicle_id so services can access it
@@ -655,30 +695,54 @@ def register_services(hass: HomeAssistant) -> None:
     async def handle_pause_recurring(call: ServiceCall) -> None:
         """Handle pausing a recurring trip."""
         data = call.data
-        mgr = _get_manager(hass, data["vehicle_id"])
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_pause_recurring_trip(str(data["trip_id"]))
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
 
     async def handle_resume_recurring(call: ServiceCall) -> None:
         """Handle resuming a recurring trip."""
         data = call.data
-        mgr = _get_manager(hass, data["vehicle_id"])
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_resume_recurring_trip(str(data["trip_id"]))
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
 
     async def handle_complete_punctual(call: ServiceCall) -> None:
         """Handle completing a punctual trip."""
         data = call.data
-        mgr = _get_manager(hass, data["vehicle_id"])
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_complete_punctual_trip(str(data["trip_id"]))
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
 
     async def handle_cancel_punctual(call: ServiceCall) -> None:
         """Handle cancelling a punctual trip."""
         data = call.data
-        mgr = _get_manager(hass, data["vehicle_id"])
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_cancel_punctual_trip(str(data["trip_id"]))
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
 
     # Registro de servicios (schemas mínimos; validación completa en fases posteriores)
     hass.services.async_register(
@@ -722,35 +786,42 @@ def register_services(hass: HomeAssistant) -> None:
             }
         ),
     )
+
+    # Common schema for trip operations
+    trip_id_schema = vol.Schema({
+        vol.Required("vehicle_id"): str,
+        vol.Required("trip_id"): str,
+    })
+
     hass.services.async_register(
         DOMAIN,
         "delete_trip",
         handle_delete_trip,
-        schema=vol.Schema({vol.Required("vehicle_id"): str, vol.Required("trip_id"): str}),
+        schema=trip_id_schema,
     )
     hass.services.async_register(
         DOMAIN,
         "pause_recurring_trip",
         handle_pause_recurring,
-        schema=vol.Schema({vol.Required("vehicle_id"): str, vol.Required("trip_id"): str}),
+        schema=trip_id_schema,
     )
     hass.services.async_register(
         DOMAIN,
         "resume_recurring_trip",
         handle_resume_recurring,
-        schema=vol.Schema({vol.Required("vehicle_id"): str, vol.Required("trip_id"): str}),
+        schema=trip_id_schema,
     )
     hass.services.async_register(
         DOMAIN,
         "complete_punctual_trip",
         handle_complete_punctual,
-        schema=vol.Schema({vol.Required("vehicle_id"): str, vol.Required("trip_id"): str}),
+        schema=trip_id_schema,
     )
     hass.services.async_register(
         DOMAIN,
         "cancel_punctual_trip",
         handle_cancel_punctual,
-        schema=vol.Schema({vol.Required("vehicle_id"): str, vol.Required("trip_id"): str}),
+        schema=trip_id_schema,
     )
 
     async def handle_import_weekly_pattern(call: ServiceCall) -> None:
@@ -796,12 +867,18 @@ def register_services(hass: HomeAssistant) -> None:
     )
 
 # Helper functions with proper type hints
-def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
-    """Get or create TripManager for vehicle."""
-    entry = next(
-        (e for e in hass.config_entries.async_entries(DOMAIN) if e.data.get("vehicle_name") == vehicle_id),
+def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
+    """Find config entry by vehicle name."""
+    return next(
+        (e for e in hass.config_entries.async_entries(DOMAIN)
+         if e.data.get("vehicle_name") == vehicle_id),
         None,
     )
+
+
+def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
+    """Get or create TripManager for vehicle."""
+    entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
         raise ValueError(f"Vehicle {vehicle_id} not found in config entries")
     # Use hass.data for runtime storage
@@ -821,12 +898,12 @@ async def _ensure_setup(mgr: TripManager) -> None:
         pass
 
 @callback
-def _get_coordinator(hass: HomeAssistant, vehicle_id: str) -> Optional[TripPlannerCoordinator]:
+def _get_coordinator(
+    hass: HomeAssistant,
+    vehicle_id: str,
+) -> Optional[CoordinatorType]:
     """Get coordinator for vehicle."""
-    entry = next(
-        (e for e in hass.config_entries.async_entries(DOMAIN) if e.data.get("vehicle_name") == vehicle_id),
-        None,
-    )
+    entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
         return None
     # Use hass.data for runtime storage
@@ -836,12 +913,12 @@ def _get_coordinator(hass: HomeAssistant, vehicle_id: str) -> Optional[TripPlann
     return coordinators.get(vehicle_id) if entry else None
 
 
-def _get_emhass_adapter(hass: HomeAssistant, vehicle_id: str) -> Optional[EMHASSAdapter]:
+def _get_emhass_adapter(
+    hass: HomeAssistant,
+    vehicle_id: str,
+) -> Optional[EMHASSAdapter]:
     """Get EMHASS adapter for vehicle."""
-    entry = next(
-        (e for e in hass.config_entries.async_entries(DOMAIN) if e.data.get("vehicle_name") == vehicle_id),
-        None,
-    )
+    entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
         return None
     namespace = f"{DOMAIN}_{entry.entry_id}"
