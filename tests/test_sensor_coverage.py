@@ -1,7 +1,7 @@
 """Additional tests for sensor coverage - EmhassDeferrableLoadSensor and error paths."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
