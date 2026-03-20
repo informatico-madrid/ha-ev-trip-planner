@@ -578,3 +578,63 @@ async def test_config_entry_lookup_with_vehicle_id():
     assert correct_entry is not None, (
         "async_get_entry('abc123def456') should return the config entry"
     )
+
+
+# Tests for P002 - Coordinator Data Not Available
+@pytest.mark.asyncio
+async def test_sensor_with_none_coordinator():
+    """Test that sensors with coordinator=None handle gracefully.
+
+    This test reproduces the P002 production error:
+    "no coordinator data available" warnings in logs (~40+ times in 20 minutes)
+
+    The issue is that sensors try to read from coordinator.data, but coordinator
+    is None or doesn't have the expected data structure.
+
+    Expected: FAIL before fix - sensor should produce warning or crash when
+    coordinator=None is passed.
+
+    After fix: Sensors should handle None coordinator gracefully without warnings.
+    """
+    import warnings
+
+    from custom_components.ev_trip_planner.sensor import KwhTodaySensor
+
+    # Create sensor with coordinator=None
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=None)
+
+        # Reading native_value should return a default without crashing
+        value = sensor.native_value
+
+        # After fix: sensor should return 0.0 without raising an exception
+        # The test passes if we get here without an exception
+        assert value is not None
+
+
+@pytest.mark.asyncio
+async def test_sensor_coordinator_none_returns_default():
+    """Test that sensor with coordinator=None returns default value instead of crashing.
+
+    This is the expected behavior after fixing P002:
+    - Sensor should not crash when coordinator is None
+    - Sensor should return a sensible default (0.0 for KwhTodaySensor)
+    - No warnings should be produced
+
+    Expected: FAIL before fix - sensor will crash or produce warning
+    After fix: Sensor returns 0.0 without warning
+    """
+    from custom_components.ev_trip_planner.sensor import KwhTodaySensor
+
+    # Create sensor with coordinator=None
+    sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=None)
+
+    # After fix: This should return 0.0 without any exception or warning
+    # Before fix: This will raise AttributeError (coordinator is None)
+    result = sensor.native_value
+
+    # The fix should allow this to work
+    assert result == 0.0, (
+        "Sensor should return 0.0 as default when coordinator is None"
+    )

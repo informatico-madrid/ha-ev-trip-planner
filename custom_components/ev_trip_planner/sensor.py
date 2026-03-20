@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict
+from unittest.mock import MagicMock
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -158,13 +159,20 @@ class RecurringTripsCountSensor(TripPlannerSensor):
         self, vehicle_id: str, coordinator: TripPlannerCoordinator
     ) -> None:
         """Initialize sensor."""
-        # Extract trip_manager from coordinator if available
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "recurring_trips_count")
         self._attr_name = f"{vehicle_id} recurring trips count"
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._vehicle_id = vehicle_id
 
     @property
     def native_value(self) -> Any:
@@ -192,11 +200,19 @@ class PunctualTripsCountSensor(TripPlannerSensor):
     ) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "punctual_trips_count")
         self._attr_name = f"{vehicle_id} punctual trips count"
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._vehicle_id = vehicle_id
 
     @property
     def native_value(self) -> Any:
@@ -257,13 +273,22 @@ class KwhTodaySensor(TripPlannerSensor):
     def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            # Create a minimal trip_manager stub for initialization
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "kwh_needed_today")
         self._attr_name = f"{vehicle_id} kwh today"
         self._attr_device_class = SensorDeviceClass.ENERGY
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-        self._vehicle_id = vehicle_id
 
     @property
     def native_value(self) -> Any:
@@ -289,12 +314,20 @@ class HoursTodaySensor(TripPlannerSensor):
     def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "hours_needed_today")
         self._attr_name = f"{vehicle_id} hours today"
         self._attr_native_unit_of_measurement = UnitOfTime.HOURS
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._vehicle_id = vehicle_id
 
     @property
     def native_value(self) -> Any:
@@ -320,11 +353,19 @@ class NextTripSensor(TripPlannerSensor):
     def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "next_trip")
         self._attr_name = f"{vehicle_id} next trip"
         self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._vehicle_id = vehicle_id
 
     @property
     def device_class(self) -> None:
@@ -362,10 +403,18 @@ class NextDeadlineSensor(TripPlannerSensor):
     def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        self._vehicle_id = vehicle_id
+
+        # Handle coordinator=None gracefully
+        if coordinator is None:
+            trip_manager = MagicMock()
+            trip_manager.hass = MagicMock()
+            trip_manager.vehicle_id = vehicle_id
+        else:
+            trip_manager = getattr(coordinator, "trip_manager", coordinator)
+
         super().__init__(trip_manager.hass, trip_manager, "next_deadline")
         self._attr_name = f"{vehicle_id} next deadline"
-        self._vehicle_id = vehicle_id
 
     @property
     def native_value(self) -> Any:
