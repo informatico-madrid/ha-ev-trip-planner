@@ -238,6 +238,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso 1: Configuración básica del vehículo."""
+        _LOGGER.debug("Config flow step 1 (user): showing form")
         if user_input is not None:
             # Store step 1 data in context
             vehicle_data = self._get_vehicle_data()
@@ -260,6 +261,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso 2: Configuración de sensores del vehículo."""
+        _LOGGER.debug("Config flow step 2 (sensors): showing form")
         if user_input is not None:
             # Store step 2 data in context
             vehicle_data = self._get_vehicle_data()
@@ -298,6 +300,8 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - Validate planning horizon against sensor value if available
         - Manual input fallback if sensor not available
         """
+        _LOGGER.debug("Config flow step 3 (emhass): showing form")
+
         # Try to read EMHASS config for validation defaults
         emhass_config = _read_emhass_config()
         emhass_horizon = _get_emhass_planning_horizon(emhass_config)
@@ -440,6 +444,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - plugged_sensor (entity selector, binary_sensor domain)
         """
         # Show the presence form with entity selectors
+        _LOGGER.debug("Config flow step 4 (presence): showing form")
         if user_input is None:
             return self.async_show_form(
                 step_id="presence",
@@ -523,7 +528,19 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - notification_service (entity selector, notify domain)
         - notification_devices (multi-select, notify devices)
         """
+        _LOGGER.debug("Config flow step 5 (notifications): showing form")
         if user_input is None:
+            # Log available notify services for debugging
+            notify_services = self.hass.services.async_services().get("notify", {})
+            available_services = list(notify_services.keys())
+            _LOGGER.debug(
+                "Available notify services: %s",
+                available_services,
+            )
+            _LOGGER.info(
+                "Notification step: %d notify services available",
+                len(available_services),
+            )
             return self.async_show_form(
                 step_id="notifications",
                 data_schema=STEP_NOTIFICATIONS_SCHEMA,
@@ -653,7 +670,16 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso inicial del flujo de opciones."""
+        _LOGGER.debug("Options flow step init: showing form")
         if user_input is not None:
+            _LOGGER.debug(
+                "Options flow step init: battery=%.1f, charging=%.1f, "
+                "consumption=%.2f, safety=%d",
+                user_input.get(CONF_BATTERY_CAPACITY, 0),
+                user_input.get(CONF_CHARGING_POWER, 0),
+                user_input.get(CONF_CONSUMPTION, 0),
+                user_input.get(CONF_SAFETY_MARGIN, 0),
+            )
             return self.async_create_entry(title="", data=user_input)
 
         # Get current values from config entry
