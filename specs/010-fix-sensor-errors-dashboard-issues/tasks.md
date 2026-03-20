@@ -41,7 +41,7 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 **Purpose**: Verify current test state before making changes
 
-- [ ] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
+- [x] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
 
 ---
 
@@ -53,14 +53,14 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P001
 
-- [ ] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
-  - Test should call `trip_manager.get_charging_power()` 
+- [x] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
+  - Test should call `trip_manager.get_charging_power()`
   - Expected: FAIL with AttributeError before fix
   - **Skill**: Use `python-testing-patterns` for pytest fixtures
 
 ### Implementation for P001
 
-- [ ] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
+- [x] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
   - Method should call internal `_get_charging_power()`
   - Add type hints and docstring
   - Returns: kW (kilowatts)

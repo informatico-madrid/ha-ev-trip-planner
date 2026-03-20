@@ -519,6 +519,21 @@ class TripManager:
             pass
         return DEFAULT_CHARGING_POWER
 
+    def get_charging_power(self) -> float:
+        """Obtiene la potencia de carga configurada para el vehículo.
+
+        Returns:
+            float: Potencia de carga en kW (kilowatts). Retorna el valor configurado
+                en la configuración del vehículo, o el valor predeterminado si no
+                hay configuración disponible.
+
+        Example:
+            >>> power = trip_manager.get_charging_power()
+            >>> print(f"{power} kW")
+            "7.4 kW"
+        """
+        return self._get_charging_power()
+
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
         now = datetime.now()

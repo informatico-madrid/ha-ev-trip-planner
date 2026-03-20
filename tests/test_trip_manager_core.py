@@ -794,6 +794,41 @@ async def test_update_trip_not_found_no_emhass(mock_hass, vehicle_id):
 
 
 @pytest.mark.asyncio
+async def test_get_charging_power_returns_correct_value(mock_hass, vehicle_id):
+    """Test get_charging_power returns configured value."""
+    # Configure entry with charging power
+    mock_entry = MagicMock()
+    mock_entry.data = {"charging_power_kw": 7.4}
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Call public get_charging_power method
+    power = manager.get_charging_power()
+
+    # Should return configured value
+    assert power == 7.4
+
+
+@pytest.mark.asyncio
+async def test_get_charging_power_returns_default_when_not_configured(mock_hass, vehicle_id):
+    """Test get_charging_power returns default when not configured."""
+    # Configure entry without charging power
+    mock_entry = MagicMock()
+    mock_entry.data = {}
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Call public get_charging_power method
+    power = manager.get_charging_power()
+
+    # Should return default charging power
+    from custom_components.ev_trip_planner.trip_manager import DEFAULT_CHARGING_POWER
+    assert power == DEFAULT_CHARGING_POWER
+
+
+@pytest.mark.asyncio
 async def test_get_charging_power_sensor_not_found(mock_hass, vehicle_id):
     """Test get_charging_power returns default when sensor not found."""
     manager = TripManager(mock_hass, vehicle_id)
