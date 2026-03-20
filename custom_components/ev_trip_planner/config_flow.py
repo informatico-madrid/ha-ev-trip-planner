@@ -17,7 +17,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from . import import_dashboard, is_lovelace_available
+from .__init__ import import_dashboard, is_lovelace_available
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -217,7 +217,8 @@ def _get_emhass_max_deferrable_loads(
     return num_loads
 
 
-class EVTripPlannerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+@config_entries.HANDLERS.register(DOMAIN)
+class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     """Maneja el flujo de configuración para EV Trip Planner."""
 
     VERSION = 1

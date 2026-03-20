@@ -24,6 +24,9 @@ from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
+# Global storage for runtime data (compatible with HA versions without runtime_data)
+DATA_RUNTIME = f"{DOMAIN}_runtime_data"
+
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
@@ -516,9 +519,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicle_id = entry.data.get("vehicle_name")
     _LOGGER.info("Setting up EV Trip Planner for vehicle: %s", vehicle_id)
 
-    # FIX: Usar namespace con entry_id para runtime_data
+    # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
-    entry.runtime_data.setdefault(namespace, {})
+    hass.data.setdefault(DATA_RUNTIME, {})
+    hass.data[DATA_RUNTIME].setdefault(namespace, {})
     
     # Create and initialize TripManager for this vehicle
     trip_manager = TripManager(hass, vehicle_id)
@@ -538,7 +542,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
     
     # Store config, trip_manager, coordinator AND emhass_adapter
-    entry.runtime_data[namespace] = {
+    hass.data[DATA_RUNTIME][namespace] = {
         "config": entry.data,
         "trip_manager": trip_manager,
         "coordinator": coordinator,
@@ -546,16 +550,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     # Ensure services use the same TripManager instance for this vehicle
-    managers = entry.runtime_data[namespace].setdefault("managers", {})
+    managers = hass.data[DATA_RUNTIME][namespace].setdefault("managers", {})
     managers[vehicle_id] = trip_manager
 
     # Store EMHASS adapter for direct access by services
     if emhass_adapter:
-        emhass_adapters = entry.runtime_data[namespace].setdefault("emhass_adapters", {})
+        emhass_adapters = hass.data[DATA_RUNTIME][namespace].setdefault("emhass_adapters", {})
         emhass_adapters[vehicle_id] = emhass_adapter
     
     # FIX: Store coordinator by vehicle_id so services can access it
-    coordinators = entry.runtime_data[namespace].setdefault("coordinators", {})
+    coordinators = hass.data[DATA_RUNTIME][namespace].setdefault("coordinators", {})
     coordinators[vehicle_id] = coordinator
 
     # Registrar servicios del dominio (idempotente)
@@ -576,9 +580,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        # FIX: Usar namespace con entry_id para limpiar runtime_data
+        # Clean up runtime data
         namespace = f"{DOMAIN}_{entry.entry_id}"
-        entry.runtime_data.pop(namespace, None)
+        if DATA_RUNTIME in hass.data:
+            hass.data[DATA_RUNTIME].pop(namespace, None)
 
     return unload_ok
 
@@ -799,9 +804,11 @@ def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
     )
     if not entry:
         raise ValueError(f"Vehicle {vehicle_id} not found in config entries")
-    # FIX: Usar namespace con entry_id para acceder a managers
+    # Use hass.data for runtime storage
     namespace = f"{DOMAIN}_{entry.entry_id}"
-    return entry.runtime_data[namespace]["managers"].get(vehicle_id) or TripManager(hass, vehicle_id)
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    managers = runtime_data.get(namespace, {}).get("managers", {})
+    return managers.get(vehicle_id) or TripManager(hass, vehicle_id)
 
 
 async def _ensure_setup(mgr: TripManager) -> None:
@@ -822,9 +829,11 @@ def _get_coordinator(hass: HomeAssistant, vehicle_id: str) -> Optional[TripPlann
     )
     if not entry:
         return None
-    # FIX: Usar namespace con entry_id para acceder a coordinators
+    # Use hass.data for runtime storage
     namespace = f"{DOMAIN}_{entry.entry_id}"
-    return entry.runtime_data[namespace]["coordinators"].get(vehicle_id) if entry else None
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    coordinators = runtime_data.get(namespace, {}).get("coordinators", {})
+    return coordinators.get(vehicle_id) if entry else None
 
 
 def _get_emhass_adapter(hass: HomeAssistant, vehicle_id: str) -> Optional[EMHASSAdapter]:
@@ -836,4 +845,6 @@ def _get_emhass_adapter(hass: HomeAssistant, vehicle_id: str) -> Optional[EMHASS
     if not entry:
         return None
     namespace = f"{DOMAIN}_{entry.entry_id}"
-    return entry.runtime_data[namespace].get("emhass_adapters", {}).get(vehicle_id)
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    emhass_adapters = runtime_data.get(namespace, {}).get("emhass_adapters", {})
+    return emhass_adapters.get(vehicle_id)
