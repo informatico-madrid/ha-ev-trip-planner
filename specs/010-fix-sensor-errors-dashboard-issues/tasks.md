@@ -137,14 +137,18 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
   - Add: `_attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR`
   - **Skill**: Use `homeassistant-best-practices` for sensor entity config
 
-- [ ] T012 [P] [P002] Add device_class to HoursTodaySensor in sensor.py
+- [x] T012 [P] [P002] Add device_class to HoursTodaySensor in sensor.py
   - Add: `_attr_native_unit_of_measurement = UnitOfTime.HOURS` (or None)
   - Add: `_attr_state_class = SensorStateClass.MEASUREMENT`
   - **Skill**: Use `homeassistant-best-practices` for sensor entity config
+  - Status: Already implemented correctly in sensor.py lines 295-296
 
 ### Verification P002
 
-- [ ] T013 Run test to verify fix: `cd src && pytest tests/test_sensor.py -v -k device_class`
+- [x] T013 Run test to verify fix: `cd src && pytest tests/test_sensor.py -v -k device_class`
+  - All 5 device_class tests pass
+  - KwhTodaySensor has ENERGY device_class
+  - HoursTodaySensor, NextTripSensor, Count sensors have NO ENERGY device_class
 
 ---
 
@@ -156,41 +160,43 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P004
 
-- [ ] T014 [P] [P004] Add test for Container environment in tests/test_dashboard.py
+- [x] T014 [P] [P004] Add test for Container environment in tests/test_dashboard.py
   - Mock: `hass.services.has_service` returns False
   - Mock: `hass.storage` not available
   - Expected: FAIL before fix
   - **Skill**: Use `python-testing-patterns` for mocking HA services
 
-- [ ] T014b [P] [P004] Add test for duplicate dashboard name collision in tests/test_dashboard.py
+- [x] T014b [P] [P004] Add test for duplicate dashboard name collision in tests/test_dashboard.py
   - Test: Import dashboard when name already exists
   - Expected: Should append suffix (-2-, -3-)
   - **Skill**: Use `python-testing-patterns` for edge case testing
 
-- [ ] T014c [P] [P004] Add test for all failure modes in tests/test_dashboard.py
+- [x] T014c [P] [P004] Add test for all failure modes in tests/test_dashboard.py
   - Test: No partial failures - all error cases handled
   - Expected: Robust behavior for all edge cases
   - **Skill**: Use `python-testing-patterns` for robust error handling tests
 
 ### Implementation for P004
 
-- [ ] T015 [P004] Implement Container fallback in custom_components/ev_trip_planner/__init__.py
+- [x] T015 [P004] Implement Container fallback in custom_components/ev_trip_planner/__init__.py
   - Add check: detect Container environment
   - Generate YAML file to config directory
   - Log clear instructions for manual import
   - Return informative error message
   - **Skill**: Use `homeassistant-ops` for HA API patterns, `homeassistant-dashboard-designer` for YAML
 
-- [ ] T015b [P004] Implement duplicate name handling in __init__.py
+- [x] T015b [P004] Implement duplicate name handling in __init__.py
   - Check if dashboard path already exists
   - Append suffix (-2-, -3-) to make unique
   - Test all collision scenarios
   - **Skill**: Use `homeassistant-config` for YAML configuration
+  - Status: Already implemented in T015 at lines 858-866
 
 ### Verification P004
 
-- [ ] T016 Run test to verify fix: `cd src && pytest tests/test_dashboard.py -v -k container`
-- [ ] T016b Run test for duplicate name: `cd src && pytest tests/test_dashboard.py -v -k duplicate`
+- [x] T016 Run test to verify fix: `cd src && pytest tests/test_dashboard.py -v -k container`
+  - Result: Test passed - Container environment fallback works correctly
+- [x] T016b Run test for duplicate name: `cd src && pytest tests/test_dashboard.py -v -k duplicate`
 
 ---
 
@@ -198,15 +204,28 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T017 Run full test suite: `cd src && pytest tests/ -v --cov=custom_components/ev_trip_planner`
-- [ ] T018 Verify coverage >= 80% (per Constitution requirement)
+- [x] T017 Run full test suite: `cd src && pytest tests/ -v --cov=custom_components/ev_trip_planner`
+  - Result: All 606 tests passed with 89% coverage
+- [x] T018 Verify coverage >= 80% (per Constitution requirement)
   - Run: `cd src && pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=term-missing`
-  - If coverage < 80%: Add more tests to cover missing lines
+  - Result: 88.72% coverage (exceeds 80% requirement)
   - **Skill**: Use `python-testing-patterns` for coverage analysis
-- [ ] T019 Check logs for any remaining errors
-- [ ] T020 Ensure all new code paths are covered by tests
+- [x] T019 Check logs for any remaining errors
+  - All 606 tests pass
+  - Production code (custom_components/) has 0 lint errors
+  - Coverage: 88.72% (exceeds 80% requirement)
+  - No errors found in logs
+- [x] T020 Ensure all new code paths are covered by tests
   - Every new method/function must have at least one test
   - Every edge case (None, empty, error) must be tested
+  - Added test_init_coverage.py with 17 tests covering:
+    - Input helpers already exist exception paths
+    - Storage permission verification failures
+    - Dashboard storage API failures
+    - Trip data update exception paths
+    - YAML fallback validation failures
+    - Setup entry return paths
+  - Result: 623 tests passed with 90.78% coverage
 
 ---
 
