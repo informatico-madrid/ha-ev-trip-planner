@@ -30,3 +30,6 @@ coverage.xml
 mcp-shell.log
 progress.txt
 .venv/
+progress.txt
+.ralph/memory.log
+progress.txt
