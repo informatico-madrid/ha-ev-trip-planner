@@ -363,27 +363,16 @@ class TestNextTripSensorNoTrips:
 
         sensor = NextTripSensor("test_vehicle", mock_coordinator)
 
-        # Verify the sensor has device_class (this is the bug - it should not)
-        # Before fix: sensor._attr_device_class == SensorDeviceClass.ENERGY
-        # After fix: sensor._attr_device_class should be None or not set
-        assert hasattr(sensor, "_attr_device_class"), (
-            "Sensor should have _attr_device_class attribute"
-        )
-
-        # This assertion documents the expected behavior after fix
-        # Currently NextTripSensor inherits device_class=ENERGY from base class
-        # which causes ValueError when returning string values
+        # After fix: NextTripSensor should NOT have device_class=ENERGY
+        # because it returns string values like "N/A" when there are no trips
         current_device_class = getattr(
             sensor, "_attr_device_class", None
         )
 
-        # Document that this is the bug we need to fix
-        # Before fix: current_device_class == SensorDeviceClass.ENERGY (BUG)
-        # After fix: current_device_class should be None
-        assert current_device_class is not None, (
-            "Sensor has device_class set (this is the P003 bug - "
+        # Verify device_class is not ENERGY (this is the fix for P003)
+        assert current_device_class is None or current_device_class.value != "energy", (
             "NextTripSensor should not have device_class=ENERGY because it "
-            "returns string values like 'N/A' when there are no trips)"
+            "returns string values like 'N/A' when there are no trips (P003 fix)"
         )
 
     async def test_next_trip_sensor_returns_string_with_no_trips(self):
