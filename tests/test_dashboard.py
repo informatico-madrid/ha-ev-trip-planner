@@ -1,5 +1,6 @@
 """Tests for EV Trip Planner Dashboard YAML structure."""
 
+from unittest.mock import MagicMock
 import pytest
 import yaml
 from pathlib import Path
@@ -1053,4 +1054,283 @@ class TestAllFailureModes:
             saved_config = yaml.safe_load(f)
 
         assert saved_config is not None, "Saved config should be valid YAML"
+        assert saved_config.get("title") == "Test Dashboard"
+
+
+class TestDashboardCreationAfterVehicleSetup:
+    """Tests for dashboard creation after vehicle setup (T018).
+
+    Verifies that:
+    - Dashboard is created after vehicle setup completes
+    - No errors occur during dashboard import process
+    - Dashboard configuration is valid and loadable
+    """
+
+    @pytest.fixture
+    def mock_hass_with_vehicle(self, tmp_path):
+        """Create a mock HA instance with a vehicle configured."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = str(tmp_path / "config")
+        hass.config.components = ["lovelace", "sensor"]
+
+        # Create config directory
+        config_dir = tmp_path / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Mock storage API (Supervisor environment)
+        hass.storage = MagicMock()
+        hass.storage.async_read = AsyncMock(return_value={
+            "data": {
+                "views": [
+                    {
+                        "path": "existing-dashboard",
+                        "title": "Existing",
+                        "cards": []
+                    }
+                ]
+            }
+        })
+        hass.storage.async_write_dict = AsyncMock(return_value=True)
+
+        # Mock services
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_dashboard_created_after_vehicle_setup(
+        self, mock_hass_with_vehicle, tmp_path
+    ):
+        """Test that dashboard is created after vehicle setup completes.
+
+        This test simulates the complete vehicle setup flow:
+        1. Vehicle is configured
+        2. Input helpers are created
+        3. Dashboard template is loaded
+        4. Dashboard is imported successfully
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import (
+            import_dashboard,
+            _load_dashboard_template,
+            create_dashboard_input_helpers,
+        )
+
+        vehicle_id = "test_vehicle"
+        vehicle_name = "Test Vehicle"
+
+        # Step 1: Create input helpers (simulating vehicle setup)
+        result_helpers = await create_dashboard_input_helpers(
+            mock_hass_with_vehicle, vehicle_id
+        )
+        assert result_helpers is True, (
+            "Input helpers should be created successfully after vehicle setup"
+        )
+
+        # Step 2: Load dashboard template
+        dashboard_config = await _load_dashboard_template(
+            vehicle_id, vehicle_name, use_charts=False
+        )
+
+        assert dashboard_config is not None, (
+            "Dashboard template should load successfully after vehicle setup"
+        )
+        assert "title" in dashboard_config, (
+            "Loaded dashboard should have a title"
+        )
+        assert "views" in dashboard_config, (
+            "Loaded dashboard should have views"
+        )
+        assert isinstance(dashboard_config["views"], list), (
+            "Dashboard views should be a list"
+        )
+        assert len(dashboard_config["views"]) > 0, (
+            "Dashboard should have at least one view"
+        )
+
+        # Step 3: Import dashboard
+        result_import = await import_dashboard(
+            mock_hass_with_vehicle,
+            vehicle_id,
+            vehicle_name,
+            use_charts=False,
+        )
+
+        assert result_import is True, (
+            "Dashboard import should succeed after vehicle setup"
+        )
+
+    @pytest.mark.asyncio
+    async def test_dashboard_with_charts_created_after_vehicle_setup(
+        self, mock_hass_with_vehicle, tmp_path
+    ):
+        """Test that full dashboard with charts is created after vehicle setup."""
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import (
+            import_dashboard,
+            _load_dashboard_template,
+        )
+
+        vehicle_id = "tesla_model_3"
+        vehicle_name = "Tesla Model 3"
+
+        # Load full dashboard template (with charts)
+        dashboard_config = await _load_dashboard_template(
+            vehicle_id, vehicle_name, use_charts=True
+        )
+
+        assert dashboard_config is not None, (
+            "Full dashboard template should load successfully"
+        )
+        assert "title" in dashboard_config, (
+            "Full dashboard should have a title"
+        )
+        assert "views" in dashboard_config, (
+            "Full dashboard should have views"
+        )
+
+        # Verify the title contains the vehicle name
+        assert vehicle_name in dashboard_config["title"], (
+            "Dashboard title should contain vehicle name"
+        )
+
+        # Verify there are multiple views (status + CRUD)
+        assert len(dashboard_config["views"]) >= 2, (
+            "Full dashboard should have multiple views (status + CRUD)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_dashboard_import_no_errors_in_logs(
+        self, mock_hass_with_vehicle, caplog
+    ):
+        """Test that dashboard import does not produce error logs.
+
+        This verifies that the dashboard import process is error-free
+        and does not generate warning or error messages in logs.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import import_dashboard
+
+        vehicle_id = "no_error_test"
+        vehicle_name = "No Error Test"
+
+        # Capture logs during dashboard import
+        with caplog.at_level("ERROR"):
+            result = await import_dashboard(
+                mock_hass_with_vehicle,
+                vehicle_id,
+                vehicle_name,
+                use_charts=False,
+            )
+
+        # Dashboard import should succeed
+        assert result is True, "Dashboard import should not produce errors"
+
+        # Check for error logs during import
+        error_logs = [
+            record for record in caplog.records
+            if record.levelname == "ERROR"
+        ]
+
+        # No error logs related to dashboard import
+        dashboard_errors = [
+            log for log in error_logs
+            if any(keyword in log.message.lower()
+                   for keyword in ["dashboard", "import", "fail", "error"])
+        ]
+
+        assert len(dashboard_errors) == 0, (
+            f"Dashboard import should not produce error logs. "
+            f"Found: {dashboard_errors}"
+        )
+
+
+class TestDashboardAPICompatibility:
+    """Tests for dashboard API compatibility with current Home Assistant versions."""
+
+    @pytest.mark.asyncio
+    async def test_dashboard_uses_current_lovelace_api(self, tmp_path):
+        """Test that dashboard import uses current Lovelace API patterns.
+
+        Verifies that the dashboard import follows current HA patterns:
+        - Uses hass.storage for Supervisor environments
+        - Falls back to YAML files for Container environments
+        - Validates dashboard config before saving
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import (
+            _save_dashboard_yaml_fallback,
+        )
+
+        config_dir = tmp_path / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        hass = MagicMock()
+        hass.config.config_dir = str(config_dir)
+
+        # Container environment - no storage API
+        hass.storage = None
+
+        dashboard_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "test-path",
+                    "title": "Test View",
+                    "cards": [
+                        {
+                            "type": "markdown",
+                            "content": "Test content"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        result = await _save_dashboard_yaml_fallback(
+            hass, dashboard_config, "test_vehicle"
+        )
+
+        # Should succeed with YAML fallback
+        assert result is True, (
+            "Dashboard should be saved via YAML fallback in Container mode"
+        )
+
+        # Verify YAML file was created
+        yaml_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
+        assert yaml_file.exists(), (
+            "YAML file should be created in Container environment"
+        )
+
+        # Verify file content is valid YAML
+        import yaml
+        with open(yaml_file, "r") as f:
+            saved_config = yaml.safe_load(f)
+
+        assert saved_config is not None, "Saved YAML should be valid"
         assert saved_config.get("title") == "Test Dashboard"
