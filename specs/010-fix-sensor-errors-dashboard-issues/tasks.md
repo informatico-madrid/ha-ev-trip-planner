@@ -65,14 +65,14 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
   - Add type hints and docstring
   - Returns: kW (kilowatts)
 
-- [ ] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
+- [x] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
   - Change: `self.trip_manager.vehicle_controller.get_charging_power()`
   - To: `self.trip_manager.get_charging_power()`
   - **Skill**: Use `homeassistant-best-practices` for sensor patterns
 
 ### Verification P001
 
-- [ ] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
+- [x] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
 
 ---
 

@@ -141,6 +141,7 @@ USAGE:
     .ralph/ralph-loop.sh <spec-dir>              # Execute spec tasks
     .ralph/ralph-loop.sh <spec-dir> --max 50     # Limit iterations
     .ralph/ralph-loop.sh --resume                 # Resume from state.json
+    .ralph/ralph-loop.sh --reset                  # Reset state and restart from beginning
 
 OPTIONS:
     --max N           Maximum iterations (default: 100)
@@ -148,6 +149,7 @@ OPTIONS:
     --agent TYPE      Agent: claude|goose|custom (default: claude)
     --no-yolo         Disable skip-permissions flag
     --resume          Resume from existing .ralph/state.json
+    --reset           Reset state to taskIndex=0 and restart (clears completed tasks)
     --no-worktree     Run in legacy mode without git worktree
     --skip-preflight  Skip preflight checks [WARN]
     --clean [slug]    Remove merged worktrees for given spec slug
@@ -188,6 +190,7 @@ EOF
 # ============================================================================
 SPEC_DIR=""
 RESUME_MODE=false
+RESET_MODE=false
 
 parse_args() {
     while [[ $# -gt 0 ]]; do
@@ -206,6 +209,9 @@ parse_args() {
                 shift ;;
             --resume)
                 RESUME_MODE=true
+                shift ;;
+            --reset)
+                RESET_MODE=true
                 shift ;;
             --no-worktree)
                 WORKTREE_ENABLED=false
@@ -390,8 +396,10 @@ check_contradictions() {
 # ============================================================================
 check_completion_signal() {
     local output="$1"
-    # Accept TASK_COMPLETE, task_complete, task_completions, task_completions, etc. (case-insensitive, singular/plural)
-    if echo "$output" | grep -qiE "task_complete(s)?|<promise>(done|DONE)</promise>"; then
+    # Accept TASK_COMPLETE, task_complete, task_completions, task_completed, etc. (case-insensitive)
+    # Also accept DONE, done, <promise>DONE</promise>, <promise>done</promise>, etc.
+    # Accept various formats: task_complete, task_complete!, task_complete!, TASK_COMPLETE!, etc.
+    if echo "$output" | grep -qiE "task_complete(s)?!?|task_complete|done(s)?|<promise>(done|DONE)(s)?</promise>|<promise>(done|DONE)(s)?!</promise>|<promise>(done|DONE)(s)?</promise>"; then
         return 0
     fi
     return 1
@@ -399,8 +407,9 @@ check_completion_signal() {
 
 check_all_complete_signal() {
     local output="$1"
-    # Accept ALL_TASKS_COMPLETE, all_tasks_complete, all-tasks-complete, etc. (case-insensitive, variants)
-    if echo "$output" | grep -qiE "all_(tasks?_)?complete|all_done|all-tasks-complete"; then
+    # Accept ALL_TASKS_COMPLETE, all_tasks_complete, all-tasks-complete, ALL_DONE, all_done, etc. (case-insensitive, variants)
+    # Accept various formats: ALL_TASKS_COMPLETE!, all_tasks_complete!, ALL_DONE!, etc.
+    if echo "$output" | grep -qiE "all_(tasks?_)?complete!?|all_done!?|all-tasks-complete!?|ALL_DONE!?|all_tasks_complete!?"; then
         return 0
     fi
     return 1
@@ -617,8 +626,15 @@ $feedback_section
 $progress_tail
 $speckit_implement_instructions
 
+## ⚠ CRITICAL: ONE TASK PER ITERATION RULE ⚠
+**YOU MUST COMPLETE EXACTLY ONE TASK PER ITERATION.**
+- This is a HARD CONSTRAINT, not a suggestion.
+- The loop expects exactly ONE task to be marked [x] after each iteration.
+- If you mark multiple tasks [x], the loop will detect a mismatch and retry.
+- Do NOT attempt to complete multiple tasks in one go.
+
 ## Execution Rules
-1. Implement EXACTLY this one task
+1. Implement EXACTLY this ONE task at index $task_index
 2. Follow constitution.md rules strictly (typing, headers, naming, etc.)
 3. Follow the architecture in plan.md
 4. Run tests: $tests_cmd
@@ -626,8 +642,8 @@ $speckit_implement_instructions
 6. If the task has [VERIFY] tag: run the verification command and report results
 7. Commit (from $WORKTREE_PATH) with a descriptive message referencing the task ID
 
-## When Done
-- Mark the task as [x] in $spec_dir/tasks.md
+## When Done (Single Task Only)
+- Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md
 - Append your progress to $progress_file:
   \`\`\`
   === $(date '+%Y-%m-%d %H:%M') | Task $task_index ===
@@ -646,11 +662,13 @@ $speckit_implement_instructions
 - The loop will retry with a fresh context
 
 ## FORBIDDEN
-- Do not mark tasks [x] unless they are actually verified working
-- Do not skip tests or lint checks
-- Do not edit files outside $WORKTREE_PATH
-- Do not hallucinate dependencies not in plan.md
-- Do not ask for human input — you are fully autonomous
+- Do NOT mark multiple tasks as [x] in one iteration
+- Do NOT skip tasks (e.g., mark T006 when T005 is incomplete)
+- Do NOT mark tasks [x] unless they are actually verified working
+- Do NOT skip tests or lint checks
+- Do NOT edit files outside $WORKTREE_PATH
+- Do NOT hallucinate dependencies not in plan.md
+- Do NOT ask for human input — you are fully autonomous
 PROMPT_EOF
 }
 
@@ -1074,6 +1092,19 @@ main() {
 
     cd "$PROJECT_DIR"
 
+    # Handle --reset subcommand - reset state and restart
+    if [[ "$RESET_MODE" == "true" ]]; then
+        if [[ -z "$SPEC_DIR" ]]; then
+            log_error "Spec directory required for --reset"
+            show_help
+            exit 1
+        fi
+        log_info "Resetting state for spec: $SPEC_DIR"
+        python3 "$RALPH_DIR/scripts/reset_state.py" "$SPEC_DIR" --confirm || exit 1
+        log_info "State reset. Please re-run without --reset to start fresh"
+        exit 0
+    fi
+
     # Handle --clean subcommand (T10)
     if [[ "${CLEAN_MODE:-false}" == "true" ]]; then
         run_clean "${CLEAN_SLUG:-}"
@@ -1464,6 +1495,30 @@ main() {
             verify_counts2=$(python3 "$COUNT_SCRIPT" "$tasks_file")
             local new_completed
             new_completed=$(echo "$verify_counts2" | python3 -c "import json,sys; print(json.load(sys.stdin)['completed'])")
+
+            # Check if more than one task was completed (agent completed multiple tasks)
+            local tasks_completed=$((new_completed - completed))
+            if (( tasks_completed > 1 )); then
+                log_warn "MULTIPLE TASKS COMPLETED IN ONE ITERATION: $tasks_completed tasks marked [x]"
+                log_warn "Agent must complete EXACTLY ONE task per iteration"
+                log_warn "Resetting taskIteration to force retry"
+                update_state --set "taskIteration=$((task_iter + 1))"
+                update_state --set "taskIndex=$next_idx"  # Stay on same task
+                consecutive_failures=$((consecutive_failures + 1))
+                log_progress "$next_idx" "$task_desc" "MULTIPLE_TASKS_COMPLETED (retry $((task_iter + 1)))" "$global_iter"
+                sleep 2
+                continue
+            elif (( tasks_completed == 0 )); then
+                log_warn "ZERO TASKS COMPLETED IN ONE ITERATION"
+                log_warn "Agent did not mark the current task as [x]"
+                log_warn "Resetting taskIteration to force retry"
+                update_state --set "taskIteration=$((task_iter + 1))"
+                update_state --set "taskIndex=$next_idx"  # Stay on same task
+                consecutive_failures=$((consecutive_failures + 1))
+                log_progress "$next_idx" "$task_desc" "ZERO_TASKS_COMPLETED (retry $((task_iter + 1)))" "$global_iter"
+                sleep 2
+                continue
+            fi
 
             if (( new_completed > completed )); then
                 log_ok "Task verified: checkbox updated in tasks.md"
