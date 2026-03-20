@@ -56,12 +56,11 @@ async def test_trip_planner_sensor_hours_needed_today_async_update(mock_hass):
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
-    # Create mock trip manager with vehicle controller
+    # Create mock trip manager - get_charging_power is now on TripManager directly
     trip_manager = MagicMock(spec=TripManager)
     trip_manager.vehicle_id = "test_vehicle"
     trip_manager.async_get_hours_needed_today = AsyncMock(return_value=2)
-    trip_manager.vehicle_controller = MagicMock()
-    trip_manager.vehicle_controller.get_charging_power = MagicMock(return_value=7.4)
+    trip_manager.get_charging_power = MagicMock(return_value=7.4)
 
     # Create sensor
     sensor = TripPlannerSensor(mock_hass, trip_manager, "hours_needed_today")
@@ -353,3 +352,132 @@ async def test_next_deadline_sensor_no_data():
     sensor = NextDeadlineSensor(vehicle_id="test_vehicle", coordinator=coordinator)
 
     assert sensor.native_value is None
+
+
+# Tests for device_class validation - T009
+@pytest.mark.asyncio
+async def test_kwh_today_sensor_device_class_energy():
+    """Test KwhTodaySensor should have device_class ENERGY.
+
+    This sensor measures energy consumption in kWh.
+    Expected: PASS (should have SensorDeviceClass.ENERGY)
+    """
+    from custom_components.ev_trip_planner.sensor import KwhTodaySensor
+
+    coordinator = FakeCoordinator(
+        data={"kwh_today": 15.5, "recurring_trips": [], "punctual_trips": []},
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # KwhTodaySensor measures energy, should have ENERGY device_class
+    assert sensor._attr_device_class.value == "energy"
+
+
+@pytest.mark.asyncio
+async def test_hours_today_sensor_no_device_class_energy():
+    """Test HoursTodaySensor should NOT have device_class ENERGY.
+
+    This sensor measures time in hours, not energy.
+    Expected: FAIL before fix (currently inherits ENERGY from base class)
+    """
+    from custom_components.ev_trip_planner.sensor import HoursTodaySensor
+
+    coordinator = FakeCoordinator(
+        data={"hours_today": 2, "recurring_trips": [], "punctual_trips": []},
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = HoursTodaySensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # HoursTodaySensor measures time, should NOT have ENERGY device_class
+    # This test will FAIL before fix because base class sets ENERGY
+    # After fix: either no device_class or device_class is not ENERGY
+    has_energy_device_class = (
+        hasattr(sensor, "_attr_device_class")
+        and sensor._attr_device_class.value == "energy"
+    )
+    assert not has_energy_device_class
+
+
+@pytest.mark.asyncio
+async def test_next_trip_sensor_no_device_class_energy():
+    """Test NextTripSensor should NOT have device_class ENERGY.
+
+    This sensor returns text (trip description), not energy.
+    Expected: FAIL before fix (currently inherits ENERGY from base class)
+    """
+    from custom_components.ev_trip_planner.sensor import NextTripSensor
+
+    coordinator = FakeCoordinator(
+        data={
+            "next_trip": {"descripcion": "Trabajo", "tipo": "recurrente"},
+            "recurring_trips": [],
+            "punctual_trips": [],
+        },
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = NextTripSensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # NextTripSensor returns text, should NOT have ENERGY device_class
+    # This test will FAIL before fix because base class sets ENERGY
+    # After fix: either no device_class or device_class is not ENERGY
+    has_energy_device_class = (
+        hasattr(sensor, "_attr_device_class")
+        and sensor._attr_device_class.value == "energy"
+    )
+    assert not has_energy_device_class
+
+
+@pytest.mark.asyncio
+async def test_recurring_trips_count_sensor_no_device_class_energy():
+    """Test RecurringTripsCountSensor should NOT have device_class ENERGY.
+
+    This sensor counts trips (integer), not energy.
+    Expected: FAIL before fix (currently inherits ENERGY from base class)
+    """
+    from custom_components.ev_trip_planner.sensor import RecurringTripsCountSensor
+
+    coordinator = FakeCoordinator(
+        data={"recurring_trips": [1, 2, 3], "punctual_trips": []},
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = RecurringTripsCountSensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # RecurringTripsCountSensor counts trips, should NOT have ENERGY device_class
+    # This test will FAIL before fix because base class sets ENERGY
+    # After fix: either no device_class or device_class is not ENERGY
+    has_energy_device_class = (
+        hasattr(sensor, "_attr_device_class")
+        and sensor._attr_device_class.value == "energy"
+    )
+    assert not has_energy_device_class
+
+
+@pytest.mark.asyncio
+async def test_punctual_trips_count_sensor_no_device_class_energy():
+    """Test PunctualTripsCountSensor should NOT have device_class ENERGY.
+
+    This sensor counts trips (integer), not energy.
+    Expected: FAIL before fix (currently inherits ENERGY from base class)
+    """
+    from custom_components.ev_trip_planner.sensor import PunctualTripsCountSensor
+
+    coordinator = FakeCoordinator(
+        data={"recurring_trips": [], "punctual_trips": [1, 2]},
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = PunctualTripsCountSensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # PunctualTripsCountSensor counts trips, should NOT have ENERGY device_class
+    # This test will FAIL before fix because base class sets ENERGY
+    # After fix: either no device_class or device_class is not ENERGY
+    has_energy_device_class = (
+        hasattr(sensor, "_attr_device_class")
+        and sensor._attr_device_class.value == "energy"
+    )
+    assert not has_energy_device_class

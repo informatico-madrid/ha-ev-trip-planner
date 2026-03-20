@@ -15,7 +15,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy
+from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
@@ -55,9 +55,6 @@ class TripPlannerSensor(SensorEntity):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_has_entity_name = True
         self._attr_name = f"EV Trip Planner {sensor_type}"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_device_class = SensorDeviceClass.ENERGY
-        self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
         # Store cached attributes for synchronous access
         self._cached_attrs: Dict[str, Any] = {}
 
@@ -87,7 +84,7 @@ class TripPlannerSensor(SensorEntity):
                     "Sensor update hours_needed_today for %s: fetching hours data", vehicle_id
                 )
                 self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
-                charging_power = self.trip_manager.vehicle_controller.get_charging_power()
+                charging_power = self.trip_manager.get_charging_power()
                 self._cached_attrs["potencia_carga"] = charging_power
                 _LOGGER.debug(  # noqa: E501
                     "Sensor update hours_needed_today for %s: value=%s, charging_power=%s",
@@ -166,6 +163,7 @@ class RecurringTripsCountSensor(TripPlannerSensor):
         trip_manager = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "recurring_trips_count")
         self._attr_name = f"{vehicle_id} recurring trips count"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._vehicle_id = vehicle_id
 
     @property
@@ -197,6 +195,7 @@ class PunctualTripsCountSensor(TripPlannerSensor):
         trip_manager = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "punctual_trips_count")
         self._attr_name = f"{vehicle_id} punctual trips count"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._vehicle_id = vehicle_id
 
     @property
@@ -261,6 +260,9 @@ class KwhTodaySensor(TripPlannerSensor):
         trip_manager = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "kwh_needed_today")
         self._attr_name = f"{vehicle_id} kwh today"
+        self._attr_device_class = SensorDeviceClass.ENERGY
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
         self._vehicle_id = vehicle_id
 
     @property
@@ -290,6 +292,8 @@ class HoursTodaySensor(TripPlannerSensor):
         trip_manager = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "hours_needed_today")
         self._attr_name = f"{vehicle_id} hours today"
+        self._attr_native_unit_of_measurement = UnitOfTime.HOURS
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._vehicle_id = vehicle_id
 
     @property
@@ -319,6 +323,7 @@ class NextTripSensor(TripPlannerSensor):
         trip_manager = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "next_trip")
         self._attr_name = f"{vehicle_id} next trip"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._vehicle_id = vehicle_id
 
     @property
