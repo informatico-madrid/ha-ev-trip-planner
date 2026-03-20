@@ -41,7 +41,7 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 **Purpose**: Verify current test state before making changes
 
-- [x] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
+- [ ] T001 Verify existing tests pass: `cd src && pytest tests/ -v`
 
 ---
 
@@ -53,26 +53,26 @@ description: "Task list for fixing sensor errors, dashboard issues in Home Assis
 
 ### Tests for P001
 
-- [x] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
+- [ ] T002 [P] [P001] Add test reproducing get_charging_power error in tests/test_trip_manager_core.py
   - Test should call `trip_manager.get_charging_power()`
   - Expected: FAIL with AttributeError before fix
   - **Skill**: Use `python-testing-patterns` for pytest fixtures
 
 ### Implementation for P001
 
-- [x] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
+- [ ] T003 [P001] Add public get_charging_power() method in custom_components/ev_trip_planner/trip_manager.py
   - Method should call internal `_get_charging_power()`
   - Add type hints and docstring
   - Returns: kW (kilowatts)
 
-- [x] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
+- [ ] T004 [P001] Update sensor.py line 90 to use trip_manager.get_charging_power()
   - Change: `self.trip_manager.vehicle_controller.get_charging_power()`
   - To: `self.trip_manager.get_charging_power()`
   - **Skill**: Use `homeassistant-best-practices` for sensor patterns
 
 ### Verification P001
 
-- [x] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
+- [ ] T005 Run test to verify fix: `cd src && pytest tests/test_trip_manager_core.py -v -k charging_power`
 
 ---
 
