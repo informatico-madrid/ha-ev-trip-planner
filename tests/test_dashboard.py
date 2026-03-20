@@ -1863,3 +1863,354 @@ class TestDashboardAPICompatibility:
 
         assert saved_config is not None, "Saved YAML should be valid"
         assert saved_config.get("title") == "Test Dashboard"
+
+
+class TestDashboardNoErrorsInLogs:
+    """Tests to verify no dashboard errors appear in logs.
+
+    This class verifies that dashboard operations do not produce:
+    - Import errors
+    - YAML errors
+    - Lovelace errors
+    - Any other error-level logs
+    """
+
+    @pytest.mark.asyncio
+    async def test_no_import_errors_when_loading_dashboard_template(
+        self, hass, caplog
+    ):
+        """Test that loading dashboard template produces no import errors.
+
+        Verifies that the dashboard template loading process does not:
+        - Raise ImportError
+        - Produce import-related error logs
+        - Fail to load required YAML files
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _load_dashboard_template
+
+        vehicle_id = "test_vehicle"
+        vehicle_name = "Test Vehicle"
+
+        # Capture logs at ERROR level
+        with caplog.at_level("ERROR"):
+            dashboard_config = await _load_dashboard_template(
+                vehicle_id, vehicle_name, use_charts=False
+            )
+
+        # Dashboard should load successfully
+        assert dashboard_config is not None, (
+            "Dashboard template should load without import errors"
+        )
+
+        # Check for import-related error logs
+        import_errors = [
+            record.message.lower()
+            for record in caplog.records
+            if record.levelname == "ERROR" and "import" in record.message.lower()
+        ]
+
+        assert len(import_errors) == 0, (
+            f"No import errors should occur when loading dashboard. "
+            f"Found: {import_errors}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_yaml_errors_in_dashboard_templates(self, caplog):
+        """Test that all dashboard YAML files are valid and parseable.
+
+        Verifies that:
+        - All dashboard YAML files can be parsed without YAML errors
+        - No YAML syntax errors exist
+        - Required fields are present in all templates
+        """
+        # Load all dashboard YAML files
+        dashboard_files = [
+            "ev-trip-planner-full.yaml",
+            "ev-trip-planner-simple.yaml",
+            "ev-trip-planner-{vehicle_id}.yaml",
+        ]
+
+        for filename in dashboard_files:
+            yaml_path = DASHBOARD_DIR / filename
+
+            with caplog.at_level("ERROR"):
+                try:
+                    with open(yaml_path, "r") as f:
+                        config = yaml.safe_load(f)
+
+                    # Verify YAML is valid
+                    assert config is not None, (
+                        f"YAML file {filename} should be valid"
+                    )
+
+                    # Verify required fields
+                    assert "title" in config, (
+                        f"YAML file {filename} should have title"
+                    )
+                    assert "views" in config, (
+                        f"YAML file {filename} should have views"
+                    )
+                    assert isinstance(config["views"], list), (
+                        f"YAML file {filename} views should be a list"
+                    )
+
+                except yaml.YAMLError as e:
+                    assert False, f"YAML error in {filename}: {e}"
+
+        # Check for YAML-related error logs
+        yaml_errors = [
+            record.message.lower()
+            for record in caplog.records
+            if record.levelname == "ERROR" and "yaml" in record.message.lower()
+        ]
+
+        assert len(yaml_errors) == 0, (
+            f"No YAML errors should occur when loading dashboard templates. "
+            f"Found: {yaml_errors}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_lovelace_errors_when_importing_dashboard(
+        self, hass, caplog
+    ):
+        """Test that dashboard import produces no Lovelace errors.
+
+        Verifies that the Lovelace dashboard import:
+        - Does not produce Lovelace-related error logs
+        - Does not fail due to missing Lovelace component
+        - Handles Lovelace errors gracefully
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import import_dashboard
+
+        vehicle_id = "test_vehicle"
+        vehicle_name = "Test Vehicle"
+
+        # Capture logs at ERROR level
+        with caplog.at_level("ERROR"):
+            result = await import_dashboard(
+                hass,
+                vehicle_id,
+                vehicle_name,
+                use_charts=False,
+            )
+
+        # Dashboard import should succeed
+        assert result is True, (
+            "Dashboard import should succeed without Lovelace errors"
+        )
+
+        # Check for Lovelace-related error logs
+        lovelace_errors = [
+            record.message.lower()
+            for record in caplog.records
+            if record.levelname == "ERROR" and any(
+                kw in record.message.lower()
+                for kw in ["lovelace", "dashboard", "save", "import"]
+            )
+        ]
+
+        assert len(lovelace_errors) == 0, (
+            f"No Lovelace errors should occur during dashboard import. "
+            f"Found: {lovelace_errors}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_errors_in_dashboard_import_process(self, caplog):
+        """Test that the entire dashboard import process produces no errors.
+
+        This is a comprehensive test that verifies:
+        - Template loading has no errors
+        - Dashboard configuration is valid
+        - Import process completes without error logs
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _load_dashboard_template
+
+        vehicle_id = "comprehensive_test"
+        vehicle_name = "Comprehensive Test"
+
+        # Capture all logs
+        with caplog.at_level("ERROR"):
+            dashboard_config = await _load_dashboard_template(
+                vehicle_id, vehicle_name, use_charts=True
+            )
+
+        # Dashboard should load
+        assert dashboard_config is not None, (
+            "Dashboard should load successfully"
+        )
+
+        # Check for ANY error logs during import
+        error_logs = [
+            record for record in caplog.records
+            if record.levelname == "ERROR"
+        ]
+
+        assert len(error_logs) == 0, (
+            f"No error logs should occur during dashboard import. "
+            f"Found {len(error_logs)} error(s): "
+            f"{[log.message for log in error_logs]}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_errors_with_full_dashboard(self, caplog):
+        """Test that full dashboard (with charts) produces no errors.
+
+        Verifies that the full dashboard template with charts:
+        - Loads without errors
+        - Has valid YAML structure
+        - Does not produce error logs
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _load_dashboard_template
+
+        vehicle_id = "full_dashboard_test"
+        vehicle_name = "Full Dashboard Test"
+
+        # Capture all logs
+        with caplog.at_level("ERROR"):
+            dashboard_config = await _load_dashboard_template(
+                vehicle_id, vehicle_name, use_charts=True
+            )
+
+        # Should load successfully
+        assert dashboard_config is not None, (
+            "Full dashboard should load without errors"
+        )
+
+        # Should have multiple views
+        assert len(dashboard_config.get("views", [])) >= 2, (
+            "Full dashboard should have status and CRUD views"
+        )
+
+        # Check for any error logs
+        error_logs = [
+            record for record in caplog.records
+            if record.levelname == "ERROR"
+        ]
+
+        assert len(error_logs) == 0, (
+            f"No error logs should occur during full dashboard load. "
+            f"Found {len(error_logs)} error(s)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_errors_with_simple_dashboard(self, caplog):
+        """Test that simple dashboard produces no errors.
+
+        Verifies that the simple dashboard template:
+        - Loads without errors
+        - Has valid YAML structure
+        - Does not produce error logs
+        """
+        import sys
+
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _load_dashboard_template
+
+        vehicle_id = "simple_dashboard_test"
+        vehicle_name = "Simple Dashboard Test"
+
+        # Capture all logs
+        with caplog.at_level("ERROR"):
+            dashboard_config = await _load_dashboard_template(
+                vehicle_id, vehicle_name, use_charts=False
+            )
+
+        # Should load successfully
+        assert dashboard_config is not None, (
+            "Simple dashboard should load without errors"
+        )
+
+        # Should have at least one view
+        assert len(dashboard_config.get("views", [])) >= 1, (
+            "Simple dashboard should have views"
+        )
+
+        # Check for any error logs
+        error_logs = [
+            record for record in caplog.records
+            if record.levelname == "ERROR"
+        ]
+
+        assert len(error_logs) == 0, (
+            f"No error logs should occur during simple dashboard load. "
+            f"Found {len(error_logs)} error(s)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_yaml_syntax_errors_in_all_templates(self, caplog):
+        """Test that all dashboard templates have valid YAML syntax.
+
+        Verifies that:
+        - All YAML files are syntactically valid
+        - No indentation errors
+        - No special character errors
+        - No encoding errors
+        """
+        # Get all YAML files in dashboard directory
+        yaml_files = list(DASHBOARD_DIR.glob("*.yaml"))
+
+        assert len(yaml_files) > 0, (
+            "Should have at least one YAML file in dashboard directory"
+        )
+
+        for yaml_file in yaml_files:
+            with caplog.at_level("ERROR"):
+                try:
+                    with open(yaml_file, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        # Parse to verify validity
+                        config = yaml.safe_load(content)
+                        assert config is not None, (
+                            f"YAML file {yaml_file.name} should parse successfully"
+                        )
+                except yaml.YAMLError as e:
+                    assert False, f"YAML syntax error in {yaml_file.name}: {e}"
+                except UnicodeDecodeError as e:
+                    assert False, f"Encoding error in {yaml_file.name}: {e}"
+
+        # Check for YAML errors
+        yaml_errors = [
+            record.message.lower()
+            for record in caplog.records
+            if record.levelname == "ERROR" and any(
+                kw in record.message.lower()
+                for kw in ["yaml", "syntax", "indent", "parse"]
+            )
+        ]
+
+        assert len(yaml_errors) == 0, (
+            f"No YAML syntax errors should occur. "
+            f"Found: {yaml_errors}"
+        )
