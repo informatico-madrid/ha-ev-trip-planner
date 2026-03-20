@@ -438,7 +438,13 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     async def async_update(self) -> None:
         """Actualiza el estado del sensor."""
         try:
-            entry = self.hass.config_entries.async_get_entry(self._vehicle_id)
+            # Find config entry by matching vehicle_id in data
+            entry = None
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data.get("vehicle_name") == self._vehicle_id:
+                    entry = config_entry
+                    break
+
             if not entry or not entry.data:
                 _LOGGER.warning("No config entry found for %s", self._vehicle_id)
                 return

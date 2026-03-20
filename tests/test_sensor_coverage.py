@@ -69,6 +69,7 @@ class TestEmhassDeferrableLoadSensor:
         }
         mock_entry.entry_id = "test_entry_id"
         hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
         # Mock the power profile and schedule generation
         mock_trip_manager_for_sensor.async_generate_power_profile = AsyncMock(
@@ -92,6 +93,7 @@ class TestEmhassDeferrableLoadSensor:
     ):
         """Test EmhassDeferrableLoadSensor async_update without config entry."""
         hass.config_entries.async_get_entry = MagicMock(return_value=None)
+        hass.config_entries.async_entries = MagicMock(return_value=[])
 
         sensor = EmhassDeferrableLoadSensor(
             hass, mock_trip_manager_for_sensor, "test_vehicle"
@@ -114,6 +116,7 @@ class TestEmhassDeferrableLoadSensor:
         }
         mock_entry.entry_id = "test_entry_id"
         hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
         # Mock to raise exception
         mock_trip_manager_for_sensor.async_generate_power_profile = AsyncMock(
