@@ -261,7 +261,7 @@ class KwhTodaySensor(TripPlannerSensor):
         super().__init__(trip_manager.hass, trip_manager, "kwh_needed_today")
         self._attr_name = f"{vehicle_id} kwh today"
         self._attr_device_class = SensorDeviceClass.ENERGY
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
         self._vehicle_id = vehicle_id
 
