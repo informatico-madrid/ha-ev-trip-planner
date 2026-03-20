@@ -33,3 +33,4 @@ progress.txt
 progress.txt
 .ralph/memory.log
 progress.txt
+.ralph/*.json
