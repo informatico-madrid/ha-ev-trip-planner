@@ -554,6 +554,7 @@ build_work_prompt() {
     local task_index="$2"
     local task_body="$3"
     local iteration="$4"
+    local slug="$5"
     local feedback_file="$PROJECT_DIR/.ralph/review-feedback.txt"
 
     # Add working directory line for worktree mode (T07)
@@ -643,7 +644,9 @@ $speckit_implement_instructions
 7. Commit (from $WORKTREE_PATH) with a descriptive message referencing the task ID
 
 ## When Done (Single Task Only)
-- Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md
+- Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md (main repo path)
+  IMPORTANT: This is the tasks.md file in the main repo, NOT in the worktree!
+  Use: $PROJECT_DIR/specs/$slug/tasks.md
 - Append your progress to $progress_file:
   \`\`\`
   === $(date '+%Y-%m-%d %H:%M') | Task $task_index ===
@@ -1294,7 +1297,7 @@ main() {
 
         # Build prompt
         local work_prompt
-        work_prompt=$(build_work_prompt "$spec_dir" "$next_idx" "$task_body" "$global_iter")
+        work_prompt=$(build_work_prompt "$spec_dir" "$next_idx" "$task_body" "$global_iter" "$SLUG")
 
         # Run work agent
         local iter_log="$log_dir/ralph_iter_${global_iter}_$(date '+%Y%m%d_%H%M%S').log"
