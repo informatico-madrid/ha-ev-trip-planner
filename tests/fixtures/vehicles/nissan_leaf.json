@@ -1,0 +1,11 @@
+{
+    "vehicle_name": "nissan_leaf",
+    "soc_sensor": "sensor.nissan_leaf_soc",
+    "battery_capacity_kwh": 40.0,
+    "charging_power_kw": 6.6,
+    "kwh_per_km": 0.18,
+    "safety_margin_percent": 15,
+    "range_sensor": "sensor.nissan_leaf_range",
+    "charging_status_sensor": "binary_sensor.nissan_leaf_charging",
+    "control_type": "none"
+}

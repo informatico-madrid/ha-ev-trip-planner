@@ -1,0 +1,11 @@
+{
+    "vehicle_name": "tesla_model3",
+    "soc_sensor": "sensor.tesla_model3_soc",
+    "battery_capacity_kwh": 60.0,
+    "charging_power_kw": 11.0,
+    "kwh_per_km": 0.15,
+    "safety_margin_percent": 10,
+    "range_sensor": "sensor.tesla_model3_range",
+    "charging_status_sensor": "binary_sensor.tesla_model3_charging",
+    "control_type": "none"
+}

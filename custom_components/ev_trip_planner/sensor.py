@@ -19,6 +19,7 @@ from homeassistant.const import UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
+from . import DATA_RUNTIME
 from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
@@ -471,15 +472,24 @@ async def async_setup_entry(
     entry_id = entry.entry_id
     namespace = f"ev_trip_planner_{entry_id}"
 
-    trip_manager = hass.data.get(namespace, {}).get("trip_manager")
-    coordinator = hass.data.get(namespace, {}).get("coordinator")
+    # Use DATA_RUNTIME namespace correctly
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_manager = namespace_data.get("trip_manager")
+    coordinator = namespace_data.get("coordinator")
 
     if not trip_manager:
+        # Legacy fallback for older configurations
         trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
         coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
 
     if not trip_manager:
-        _LOGGER.error("No trip_manager found for %s", vehicle_id)
+        _LOGGER.error(
+            "No trip_manager found for %s (namespace=%s, runtime_data keys=%s)",
+            vehicle_id,
+            namespace,
+            list(runtime_data.keys()) if runtime_data else [],
+        )
         return False
 
     _LOGGER.debug(

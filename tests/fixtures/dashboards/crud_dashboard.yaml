@@ -1,0 +1,16 @@
+title: "EV Trip Planner - {{ vehicle_name }}"
+path: "ev-trip-planner-{{ vehicle_id }}"
+icon: "mdi:car-electric"
+views:
+  - title: "Viajes"
+    cards:
+      - type: entities
+        title: "Viajes Recurrentes"
+        entities:
+          - entity: input_text.ev_trip_planner_recurring_trips
+            secondary_info: last-changed
+      - type: entities
+        title: "Viajes Puntuales"
+        entities:
+          - entity: input_text.ev_trip_planner_punctual_trips
+            secondary_info: last-changed
