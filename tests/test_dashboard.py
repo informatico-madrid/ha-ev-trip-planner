@@ -532,3 +532,89 @@ class TestDashboardImport:
         hass.services.has_service = has_service
 
         assert is_lovelace_available(hass) is True
+
+
+class TestContainerEnvironment:
+    """Tests for Home Assistant Container environment (P004).
+
+    HA Container does not have:
+    - hass.services.has_service("lovelace", "save") - service doesn't exist
+    - hass.storage - Storage API not available
+
+    This test should FAIL before the fix and PASS after the fix.
+    """
+
+    @pytest.fixture
+    def mock_hass_container(self):
+        """Create a mock HomeAssistant instance simulating Container environment.
+
+        Container environment characteristics:
+        - hass.services.has_service returns False for lovelace.save
+        - hass.storage is not available (None or no async_write_dict)
+        """
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.components = ["sensor"]  # No lovelace component
+
+        # Container: NO storage API available
+        hass.storage = None
+
+        # Container: lovelace.save service does NOT exist
+        def has_service(domain, service):
+            if domain == "lovelace" and service == "save":
+                return False
+            return False
+
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = has_service
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_container_environment_fallback(self, mock_hass_container):
+        """Test that Container environment generates YAML file with instructions.
+
+        In Container environment:
+        - lovelace.save service is NOT available
+        - hass.storage is NOT available
+        - Should generate YAML file to config directory
+        - Should return informative message for manual import
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner import _save_lovelace_dashboard
+
+        vehicle_id = "container_test_vehicle"
+
+        # This test should FAIL before fix (returns False)
+        # and PASS after fix (returns True or handles gracefully)
+        result = await _save_lovelace_dashboard(
+            mock_hass_container,
+            {
+                "title": "{{ vehicle_name }}",
+                "views": [
+                    {
+                        "path": "{{ vehicle_id }}",
+                        "title": "{{ vehicle_name }}",
+                        "cards": [],
+                    }
+                ],
+            },
+            vehicle_id,
+        )
+
+        # Before fix: result will be False (storage not available)
+        # After fix: result should be True (fallback implemented)
+        assert result is True, (
+            "Container environment should have fallback mechanism. "
+            "Expected dashboard to be saved via YAML generation and "
+            "manual import instructions."
+        )

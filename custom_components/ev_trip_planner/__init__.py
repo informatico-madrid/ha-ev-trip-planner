@@ -636,9 +636,12 @@ async def _save_lovelace_dashboard(
 ) -> bool:
     """Save dashboard to Lovelace storage.
 
+    Handles both Supervisor (storage API) and Container (YAML fallback) environments.
+
     Args:
         hass: The Home Assistant instance.
         dashboard_config: The dashboard configuration dictionary.
+        vehicle_id: The vehicle ID for logging purposes.
 
     Returns:
         True if saved successfully, False otherwise.
@@ -700,11 +703,12 @@ async def _save_lovelace_dashboard(
 
         # Verify storage write permissions before attempting to write
         if not await _verify_storage_permissions(hass, vehicle_id):
-            _LOGGER.error(
-                "STORAGE API FAILED: Write permissions not available for %s",
+            _LOGGER.warning(
+                "STORAGE API NOT AVAILABLE for %s, using YAML fallback",
                 vehicle_id,
             )
-            return False
+            # Container environment: generate YAML file as fallback
+            return await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
 
         if hasattr(hass, "storage") and hasattr(hass.storage, "async_read"):
             try:
@@ -782,6 +786,88 @@ async def _save_lovelace_dashboard(
 
     except Exception as e:  # pragma: no cover
         _LOGGER.debug("Failed to save dashboard: %s", e)
+        return False
+
+
+async def _save_dashboard_yaml_fallback(
+    hass: HomeAssistant,
+    dashboard_config: dict[str, Any],
+    vehicle_id: str,
+) -> bool:
+    """Save dashboard as YAML file for Container environment.
+
+    In HA Container, storage API is not available. This function generates
+    a YAML file that can be manually imported via Lovelace UI.
+
+    Args:
+        hass: The Home Assistant instance.
+        dashboard_config: The dashboard configuration dictionary.
+        vehicle_id: The vehicle ID for file naming.
+
+    Returns:
+        True if YAML file was created successfully, False otherwise.
+    """
+    try:
+        import os
+        import stat
+
+        # Get config directory path
+        config_dir = hass.config.config_dir
+        if not config_dir:
+            _LOGGER.error("Could not determine config directory")
+            return False
+
+        # Generate unique filename to avoid collisions
+        base_filename = f"ev-trip-planner-{vehicle_id}.yaml"
+        yaml_path = os.path.join(config_dir, base_filename)
+
+        # Handle duplicate filenames
+        if os.path.exists(yaml_path):
+            counter = 2
+            while True:
+                yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
+                if not os.path.exists(yaml_path):
+                    break
+                counter += 1
+            _LOGGER.info(
+                "Dashboard path already exists, using %s",
+                os.path.basename(yaml_path),
+            )
+
+        # Create config directory if it doesn't exist
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir, mode=0o755)
+            _LOGGER.info("Created config directory: %s", config_dir)
+
+        # Convert dashboard config to YAML
+        yaml_content = yaml.dump(dashboard_config, default_flow_style=False)
+
+        # Write YAML file to config directory
+        with open(yaml_path, "w") as f:
+            f.write(yaml_content)
+
+        _LOGGER.info(
+            "YAML file created at %s",
+            yaml_path,
+        )
+        _LOGGER.info(
+            "To import dashboard in Container, follow these steps:"
+        )
+        _LOGGER.info(
+            "1. Go to Settings > Dashboards in Home Assistant"
+        )
+        _LOGGER.info(
+            "2. Click the three dots menu > Manage dashboards"
+        )
+        _LOGGER.info(
+            "3. Click 'Import dashboard' and select: %s",
+            yaml_path,
+        )
+
+        return True
+
+    except Exception as e:
+        _LOGGER.error("YAML fallback failed: %s", e, exc_info=True)
         return False
 
 
