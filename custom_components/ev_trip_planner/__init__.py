@@ -809,7 +809,41 @@ async def _save_dashboard_yaml_fallback(
     """
     try:
         import os
-        import stat
+
+        # Validate dashboard config before writing
+        if not dashboard_config:
+            _LOGGER.error("Dashboard config is empty or None")
+            return False
+
+        if "title" not in dashboard_config:
+            _LOGGER.error("Dashboard config missing required 'title' field")
+            return False
+
+        if "views" not in dashboard_config:
+            _LOGGER.error("Dashboard config missing required 'views' field")
+            return False
+
+        if not isinstance(dashboard_config["views"], list):
+            _LOGGER.error("Dashboard 'views' must be a list")
+            return False
+
+        if len(dashboard_config["views"]) == 0:
+            _LOGGER.error("Dashboard 'views' list cannot be empty")
+            return False
+
+        for i, view in enumerate(dashboard_config["views"]):
+            if not isinstance(view, dict):
+                _LOGGER.error("Dashboard view at index %d must be a dict", i)
+                return False
+            if "path" not in view:
+                _LOGGER.error("Dashboard view at index %d missing required 'path' field", i)
+                return False
+            if "title" not in view:
+                _LOGGER.error("Dashboard view at index %d missing required 'title' field", i)
+                return False
+            if "cards" not in view:
+                _LOGGER.error("Dashboard view at index %d missing required 'cards' field", i)
+                return False
 
         # Get config directory path
         config_dir = hass.config.config_dir
