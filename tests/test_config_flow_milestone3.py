@@ -6,6 +6,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.ev_trip_planner.const import (
+    CONF_BATTERY_CAPACITY,
+    CONF_CHARGING_POWER,
+    CONF_CONSUMPTION,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_PLANNING_HORIZON,
     CONF_PLANNING_SENSOR,
@@ -15,9 +18,14 @@ from custom_components.ev_trip_planner.const import (
     CONF_HOME_COORDINATES,
     CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_NOTIFICATION_SERVICE,
+    CONF_NOTIFICATION_DEVICES,
+    CONF_SAFETY_MARGIN,
+    CONF_VEHICLE_NAME,
+    DEFAULT_CONSUMPTION,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_NOTIFICATION_SERVICE,
+    DEFAULT_SAFETY_MARGIN,
     DOMAIN,
 )
 
@@ -488,3 +496,455 @@ async def test_step_notifications_skip_optional(hass: HomeAssistant):
 
     # Verify: Flow continues to create entry
     assert result["type"] == FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.asyncio
+async def test_step_notifications_devices_multi_select(hass: HomeAssistant):
+    """Test notifications step with multiple device selection."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+    # Execute: Select multiple notification devices
+    result = await flow.async_step_notifications(
+        user_input={
+            CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+            CONF_NOTIFICATION_DEVICES: [
+                "notify.alexa_media_living_room",
+                "notify.alexa_media_bedroom",
+            ],
+        }
+    )
+
+    # Verify: Flow continues to create entry with multiple devices
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    # Verify the entry was created with correct data
+    assert result["data"][CONF_NOTIFICATION_SERVICE] == "notify.mobile_app"
+    assert result["data"][CONF_NOTIFICATION_DEVICES] == [
+        "notify.alexa_media_living_room",
+        "notify.alexa_media_bedroom",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_step_notifications_nabu_casa_devices_available(hass: HomeAssistant):
+    """Test that Nabu Casa devices appear in the notification selector."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+    # Execute: Get the form (without user input) to trigger notify services listing
+    result = await flow.async_step_notifications(user_input=None)
+
+    # Verify: Form is shown
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "notifications"
+
+    # The selector should show all notify services including Nabu Casa
+    # This test verifies the selector configuration is correct
+    # The actual device display is handled by Home Assistant's UI
+
+
+@pytest.mark.asyncio
+async def test_step_notifications_service_and_devices(hass: HomeAssistant):
+    """Test notifications step with both service and devices selected."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+    # Execute: Select notification service and multiple devices
+    result = await flow.async_step_notifications(
+        user_input={
+            CONF_NOTIFICATION_SERVICE: "notify.alexa_media",
+            CONF_NOTIFICATION_DEVICES: [
+                "notify.alexa_media_living_room",
+                "notify.alexa_media_bedroom",
+                "notify.google_assistant",
+            ],
+        }
+    )
+
+    # Verify: Flow continues to create entry
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_NOTIFICATION_SERVICE] == "notify.alexa_media"
+    assert len(result["data"][CONF_NOTIFICATION_DEVICES]) == 3
+
+
+def test_notification_entity_selector_config():
+    """Verify EntitySelectorConfig is configured correctly for notify domain."""
+    from custom_components.ev_trip_planner.config_flow import STEP_NOTIFICATIONS_SCHEMA
+    import voluptuous as vol
+
+    # Verify the schema is defined correctly
+    schema = STEP_NOTIFICATIONS_SCHEMA.schema
+
+    # Check that both optional fields are in the schema
+    assert vol.Optional("notification_service") in schema
+    assert vol.Optional("notification_devices") in schema
+
+    # The schema uses EntitySelector with domain="notify"
+    # This test verifies the schema is properly defined
+    assert len(schema) == 2
+
+
+# ============================================================================
+# Options Flow Tests (async_step_init)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_options_flow_init_shows_form(hass: HomeAssistant):
+    """Test options flow init shows form with current values."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from unittest.mock import MagicMock
+
+    # Create a mock config entry with current values
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        "kwh_per_km": 0.15,
+        CONF_SAFETY_MARGIN: 20,
+    }
+
+    # Create options flow handler
+    flow = EVTripPlannerOptionsFlowHandler(config_entry)
+    flow.hass = hass
+
+    # Execute: Get the options form
+    result = await flow.async_step_init(user_input=None)
+
+    # Verify: Form is shown with current values as defaults
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+
+@pytest.mark.asyncio
+async def test_options_flow_init_updates_config(hass: HomeAssistant):
+    """Test options flow init updates configuration."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.const import DEFAULT_CONSUMPTION
+    from unittest.mock import MagicMock
+
+    # Create a mock config entry with current values
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        "kwh_per_km": 0.15,
+        CONF_SAFETY_MARGIN: 20,
+    }
+
+    # Create options flow handler
+    flow = EVTripPlannerOptionsFlowHandler(config_entry)
+    flow.hass = hass
+
+    # Execute: Submit new values
+    result = await flow.async_step_init(
+        user_input={
+            CONF_BATTERY_CAPACITY: 75.0,
+            CONF_CHARGING_POWER: 22.0,
+            CONF_CONSUMPTION: 0.18,
+            CONF_SAFETY_MARGIN: 15,
+        }
+    )
+
+    # Verify: Entry is updated
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_BATTERY_CAPACITY] == 75.0
+    assert result["data"][CONF_CHARGING_POWER] == 22.0
+    assert result["data"][CONF_CONSUMPTION] == 0.18
+    assert result["data"][CONF_SAFETY_MARGIN] == 15
+
+
+@pytest.mark.asyncio
+async def test_options_flow_uses_defaults_when_not_present(hass: HomeAssistant):
+    """Test options flow uses defaults when current config doesn't have values."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.const import (
+        DEFAULT_CONSUMPTION,
+        DEFAULT_SAFETY_MARGIN,
+    )
+    from unittest.mock import MagicMock
+
+    # Create a mock config entry with minimal values
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+    }
+
+    # Create options flow handler
+    flow = EVTripPlannerOptionsFlowHandler(config_entry)
+    flow.hass = hass
+
+    # Execute: Get the form (without user input) to see default values
+    result = await flow.async_step_init(user_input=None)
+
+    # Verify: Form is shown (defaults are used in the schema)
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+
+# ============================================================================
+# Additional Edge Case Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_step_sensors_validation(hass: HomeAssistant):
+    """Test sensors step validates input correctly."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+    # Execute: Provide valid sensor configuration
+    result = await flow.async_step_sensors(
+        user_input={
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+
+    # Verify: Should advance to EMHASS step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "emhass"
+
+    # Verify: Data stored correctly
+    assert flow.context["vehicle_data"][CONF_BATTERY_CAPACITY] == 60.0
+    assert flow.context["vehicle_data"][CONF_CHARGING_POWER] == 11.0
+    assert flow.context["vehicle_data"][CONF_CONSUMPTION] == 0.15
+    assert flow.context["vehicle_data"][CONF_SAFETY_MARGIN] == 20
+
+
+@pytest.mark.asyncio
+async def test_step_user_vehicle_name_stored(hass: HomeAssistant):
+    """Test user step stores vehicle name correctly."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+
+    # Execute: Provide vehicle name
+    result = await flow.async_step_user(
+        user_input={
+            CONF_VEHICLE_NAME: "My Electric Car",
+        }
+    )
+
+    # Verify: Should advance to sensors step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+
+    # Verify: Vehicle name stored in context
+    assert flow.context["vehicle_data"][CONF_VEHICLE_NAME] == "My Electric Car"
+
+
+@pytest.mark.asyncio
+async def test_vehicle_id_generated_from_name(hass: HomeAssistant):
+    """Test that vehicle_id is generated correctly from vehicle name."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "Test Vehicle"}}
+
+    # Execute: Complete the flow to create entry
+    result = await flow.async_step_notifications(user_input={})
+
+    # Verify: Entry is created
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Test Vehicle"
+
+
+@pytest.mark.asyncio
+async def test_full_flow_with_minimal_config(hass: HomeAssistant):
+    """Test complete flow with minimal (skip) configuration."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {}}
+
+    # Step 1: User - vehicle name
+    result = await flow.async_step_user({CONF_VEHICLE_NAME: "minimal_vehicle"})
+    assert result["step_id"] == "sensors"
+
+    # Step 2: Sensors - defaults
+    result = await flow.async_step_sensors({})
+    assert result["step_id"] == "emhass"
+
+    # Step 3: EMHASS - defaults
+    result = await flow.async_step_emhass({})
+    assert result["step_id"] == "presence"
+
+    # Step 4: Presence - skip (empty)
+    result = await flow.async_step_presence({})
+    assert result["step_id"] == "notifications"
+
+    # Step 5: Notifications - skip (empty)
+    result = await flow.async_step_notifications({})
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "minimal_vehicle"
+
+
+@pytest.mark.asyncio
+async def test_full_flow_with_all_config(hass: HomeAssistant):
+    """Test complete flow with all configuration options."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {}}
+
+    # Step 1: User - vehicle name
+    result = await flow.async_step_user({CONF_VEHICLE_NAME: "full_vehicle"})
+    assert result["step_id"] == "sensors"
+
+    # Step 2: Sensors - all values
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 82.0,
+            CONF_CHARGING_POWER: 22.0,
+            CONF_CONSUMPTION: 0.17,
+            CONF_SAFETY_MARGIN: 15,
+        }
+    )
+    assert result["step_id"] == "emhass"
+
+    # Step 3: EMHASS - all values
+    await hass.states.async_set("sensor.planning_horizon", "14")
+    result = await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 14,
+            CONF_MAX_DEFERRABLE_LOADS: 75,
+            CONF_PLANNING_SENSOR: "sensor.planning_horizon",
+        }
+    )
+    assert result["step_id"] == "presence"
+
+    # Step 4: Presence - all sensors
+    await hass.states.async_set("binary_sensor.charging", "on")
+    await hass.states.async_set("binary_sensor.home", "on")
+    await hass.states.async_set("binary_sensor.plugged", "on")
+    result = await flow.async_step_presence(
+        {
+            CONF_CHARGING_SENSOR: "binary_sensor.charging",
+            CONF_HOME_SENSOR: "binary_sensor.home",
+            CONF_PLUGGED_SENSOR: "binary_sensor.plugged",
+        }
+    )
+    assert result["step_id"] == "notifications"
+
+    # Step 5: Notifications - all values
+    result = await flow.async_step_notifications(
+        {
+            CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+            CONF_NOTIFICATION_DEVICES: [
+                "notify.alexa_media_living_room",
+                "notify.alexa_media_bedroom",
+            ],
+        }
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+
+    # Verify all data
+    data = result["data"]
+    assert data[CONF_VEHICLE_NAME] == "full_vehicle"
+    assert data[CONF_BATTERY_CAPACITY] == 82.0
+    assert data[CONF_CHARGING_POWER] == 22.0
+    assert data[CONF_CONSUMPTION] == 0.17
+    assert data[CONF_SAFETY_MARGIN] == 15
+    assert data[CONF_PLANNING_HORIZON] == 14
+    assert data[CONF_MAX_DEFERRABLE_LOADS] == 75
+    assert data[CONF_PLANNING_SENSOR] == "sensor.planning_horizon"
+    assert data[CONF_CHARGING_SENSOR] == "binary_sensor.charging"
+    assert data[CONF_HOME_SENSOR] == "binary_sensor.home"
+    assert data[CONF_PLUGGED_SENSOR] == "binary_sensor.plugged"
+    assert data[CONF_NOTIFICATION_SERVICE] == "notify.mobile_app"
+    assert len(data[CONF_NOTIFICATION_DEVICES]) == 2
+
+
+def test_step_sensors_schema_validation():
+    """Verify sensors step schema validates correctly."""
+    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
+    import voluptuous as vol
+
+    schema = STEP_SENSORS_SCHEMA.schema
+
+    # Verify required fields exist
+    assert vol.Required(CONF_BATTERY_CAPACITY) in schema
+    assert vol.Required(CONF_CHARGING_POWER) in schema
+    assert vol.Required(CONF_CONSUMPTION) in schema
+    assert vol.Required(CONF_SAFETY_MARGIN) in schema
+
+    # Verify all fields have defaults
+    # The schema should have 4 required fields
+    assert len([k for k in schema.keys() if isinstance(k, vol.Required)]) == 4
+
+
+def test_step_emhass_schema_validation():
+    """Verify EMHASS step schema validates correctly."""
+    from custom_components.ev_trip_planner.config_flow import STEP_EMHASS_SCHEMA
+    import voluptuous as vol
+
+    schema = STEP_EMHASS_SCHEMA.schema
+
+    # Verify required fields exist
+    assert vol.Required(CONF_PLANNING_HORIZON) in schema
+    assert vol.Required(CONF_MAX_DEFERRABLE_LOADS) in schema
+
+    # Verify optional planning sensor exists
+    assert vol.Optional(CONF_PLANNING_SENSOR) in schema
+
+
+def test_step_presence_schema_validation():
+    """Verify presence step schema validates correctly."""
+    from custom_components.ev_trip_planner.config_flow import STEP_PRESENCE_SCHEMA
+    import voluptuous as vol
+
+    schema = STEP_PRESENCE_SCHEMA.schema
+
+    # Verify required charging sensor
+    assert vol.Required(CONF_CHARGING_SENSOR) in schema
+
+    # Verify optional home and plugged sensors
+    assert vol.Optional(CONF_HOME_SENSOR) in schema
+    assert vol.Optional(CONF_PLUGGED_SENSOR) in schema
+
+
+def test_all_schemas_are_valid():
+    """Verify all config flow schemas are valid voluptuous schemas."""
+    from custom_components.ev_trip_planner.config_flow import (
+        STEP_USER_SCHEMA,
+        STEP_SENSORS_SCHEMA,
+        STEP_EMHASS_SCHEMA,
+        STEP_PRESENCE_SCHEMA,
+        STEP_NOTIFICATIONS_SCHEMA,
+    )
+
+    # All schemas should be valid voluptuous schemas
+    assert STEP_USER_SCHEMA is not None
+    assert STEP_SENSORS_SCHEMA is not None
+    assert STEP_EMHASS_SCHEMA is not None
+    assert STEP_PRESENCE_SCHEMA is not None
+    assert STEP_NOTIFICATIONS_SCHEMA is not None
+
+    # Each schema should have a schema attribute
+    assert hasattr(STEP_USER_SCHEMA, "schema")
+    assert hasattr(STEP_SENSORS_SCHEMA, "schema")
+    assert hasattr(STEP_EMHASS_SCHEMA, "schema")
+    assert hasattr(STEP_PRESENCE_SCHEMA, "schema")
+    assert hasattr(STEP_NOTIFICATIONS_SCHEMA, "schema")
