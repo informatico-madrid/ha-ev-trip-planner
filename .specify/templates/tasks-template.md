@@ -12,11 +12,24 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story] Description`
+## Format: `[ID] [P?] [Story] [VERIFY:TEST|API|BROWSER] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- **[VERIFY:...]**: Verification type (see below)
 - Include exact file paths in descriptions
+
+### Verification Types
+
+**IMPORTANT**: Before assigning verification types, consult the plan's "Available Tools for Verification" section to see which skills/MCPs are installed.
+
+| Tag | When to Use | Verification Method | Available Tools |
+|-----|-------------|---------------------|----------------|
+| `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns, e2e-testing-patterns |
+| `[VERIFY:API]` | REST API verification (HA entities) | Use curl/MCP to HA API | homeassistant-ops, homeassistant-skill |
+| `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
+
+**Task Assignment Rule**: For each task, determine which verification type applies, then select the most appropriate tool from the available skills/MCPs listed in plan.md.
 
 ## Path Conventions
 
@@ -62,12 +75,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
+- [ ] T004 [VERIFY:TEST] Setup database schema and migrations framework (use: python-testing-patterns)
+- [ ] T005 [P] [VERIFY:TEST] Implement authentication/authorization framework (use: python-testing-patterns)
+- [ ] T006 [P] [VERIFY:API] Setup API routing and middleware structure (use: homeassistant-ops, homeassistant-skill)
 - [ ] T007 Create base models/entities that all stories depend on
 - [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T009 [VERIFY:API] Setup environment configuration management (use: homeassistant-config)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -83,17 +96,17 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] [VERIFY:TEST] Contract test for [endpoint] in tests/contract/test_[name].py (use: python-testing-patterns)
+- [ ] T011 [P] [US1] [VERIFY:TEST] Integration test for [user journey] in tests/integration/test_[name].py (use: python-testing-patterns)
 
 ### Implementation for User Story 1
 
 - [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
 - [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T014 [US1] [VERIFY:API] Implement [Service] in src/services/[service].py (depends on T012, T013)
+- [ ] T015 [US1] [VERIFY:API] Implement [endpoint/feature] in src/[location]/[file].py
 - [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T017 [US1] [VERIFY:API] Add logging for user story 1 operations
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -244,6 +257,9 @@ With multiple developers:
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
+- [VERIFY:TEST] = unit/integration tests (pytest)
+- [VERIFY:API] = REST API verification (curl to HA)
+- [VERIFY:BROWSER] = Playwright E2E tests
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
 - Commit after each task or logical group

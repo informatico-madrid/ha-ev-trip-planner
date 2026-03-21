@@ -19,12 +19,15 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {}
     hass.config_entries = MagicMock()
-    hass.config_entries.async_entries = MagicMock(return_value=[])
-
-    # Mock config entry con entry_id
+    
+    # Mock config entry con vehicle_name y charging_power_kw (para que async_entries lo encuentre)
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {"sensor_entity_id": "sensor.test", "charging_power_kw": 3.6}
+    mock_entry.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 3.6
+    }
+    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
     # Future lista para simulate async

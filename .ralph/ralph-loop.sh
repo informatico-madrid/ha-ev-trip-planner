@@ -405,6 +405,17 @@ check_completion_signal() {
     return 1
 }
 
+# Check for STATE_MATCH signal from agent verification
+check_verification_signal() {
+    local output="$1"
+    # Accept STATE_MATCH, verification_passed, verification_ok, etc.
+    # This signal is emitted by the agent after it verifies using [VERIFY:TEST/API/BROWSER] tags
+    if echo "$output" | grep -qiE "state_match|verification_passed|verification_ok|verification_success|signal.*state_match"; then
+        return 0
+    fi
+    return 1
+}
+
 check_all_complete_signal() {
     local output="$1"
     # Accept ALL_TASKS_COMPLETE, all_tasks_complete, all-tasks-complete, ALL_DONE, all_done, etc. (case-insensitive, variants)
@@ -613,6 +624,23 @@ $worktree_section
 You are the SpecKit Implementation running inside a Ralph Loop.
 You are 100% autonomous. Your work persists through FILES ONLY.
 
+## ⚠ VERIFICATION VIA TAGS ⚠
+**Tasks include verification tags - use them:**
+
+| Tag | Tool | Usage |
+|-----|------|-------|
+| `[VERIFY:TEST]` | pytest | Run tests |
+| `[VERIFY:API]` | curl/MCP HA | Verify via REST API |
+| `[VERIFY:BROWSER]` | Playwright | Verify via browser |
+
+**Your task includes the necessary tools (MCPs, skills) already configured.**
+
+**BEFORE marking [x], execute verifications according to your task's tags:**
+1. Read the [VERIFY:TEST/API/BROWSER] tags from your task
+2. Use the available MCP tools (already configured)
+3. Verify the real result
+4. Emit SIGNAL: STATE_MATCH if everything passes
+
 ## CRITICAL: Read these files FIRST
 1. $constitution_path (project rules — NON-NEGOTIABLE)
 2. $spec_dir/plan.md (architectural design)
@@ -644,17 +672,26 @@ $speckit_implement_instructions
 7. Commit (from $WORKTREE_PATH) with a descriptive message referencing the task ID
 
 ## When Done (Single Task Only)
-- Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md (main repo path)
-  IMPORTANT: This is the tasks.md file in the main repo, NOT in the worktree!
-  Use: $PROJECT_DIR/specs/$slug/tasks.md
-- Append your progress to $progress_file:
+1. **VERIFICATION**: Before marking task complete, you MUST:
+   - Read the [VERIFY:TEST/API/BROWSER] tags from your task
+   - Execute verification using the tools indicated by those tags
+   - Example: [VERIFY:API] → use curl/MCP to verify entities exist and work
+   - Emit SIGNAL: STATE_MATCH if verification passes
+
+2. Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md (main repo path)
+   IMPORTANT: This is the tasks.md file in the main repo, NOT in the worktree!
+   Use: $PROJECT_DIR/specs/$slug/tasks.md
+
+3. Append your progress to $progress_file:
   \`\`\`
   === $(date '+%Y-%m-%d %H:%M') | Task $task_index ===
   Task: <task ID and description>
   Files changed: <list>
+  Verification: <verification method used based on tags>
   Status: DONE
   \`\`\`
-- Output: TASK_COMPLETE
+
+4. Output: TASK_COMPLETE
 
 ## If ALL tasks in tasks.md are now [x]:
 - Output: ALL_TASKS_COMPLETE
@@ -1536,6 +1573,43 @@ main() {
 
             # Remove review feedback if it was addressed
             rm -f "$PROJECT_DIR/.ralph/review-feedback.txt"
+
+            # ========================================================================
+            # VERIFICATION PHASE - Agent emits STATE_MATCH after verification
+            # Only runs if task has [VERIFY:TEST/API/BROWSER] tags
+            # ========================================================================
+            
+            # Check if task has verification tags - only verify if present
+            if echo "$task_desc" | grep -qiE '\[VERIFY:(TEST|API|BROWSER)\]'; then
+                echo ""
+                echo -e "${CYAN}▶ VERIFICATION (task has [VERIFY:*] tags)${NC}"
+                
+                # Verification signal from agent (via [VERIFY:TEST/API/BROWSER] tags)
+                if check_verification_signal "$agent_output"; then
+                    log_ok "STATE_MATCH signal detected - Agent verification successful"
+                else
+                    log_error "No STATE_MATCH signal in agent output"
+                    log_error "Agent must verify using [VERIFY:TEST/API/BROWSER] tags and emit STATE_MATCH"
+                    log_error "Unchecking task and restarting iteration"
+                    
+                    # Uncheck the task (mark as [ ])
+                    python3 -c "
+import re
+with open('$tasks_file', 'r') as f:
+    content = f.read()
+content = re.sub(r'- \[X\]', '- [ ]', content)
+with open('$tasks_file', 'w') as f:
+    f.write(content)
+" 2>/dev/null || true
+                    
+                    update_state --set "taskIteration=$((task_iter + 1))"
+                    log_progress "$next_idx" "$task_desc" "STATE_SIGNAL_MISSING (retry $((task_iter + 1)))" "$global_iter"
+                    consecutive_failures=$((consecutive_failures + 1))
+                    continue
+                fi
+            else
+                log_info "Task has no [VERIFY:*] tags - skipping verification"
+            fi
 
             log_progress "$next_idx" "$task_desc" "DONE" "$global_iter"
 

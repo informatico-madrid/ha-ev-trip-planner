@@ -545,7 +545,9 @@ async def async_setup_entry(
     """Set up sensors from config entry."""
     vehicle_id = entry.data.get("vehicle_name", "")
     entry_id = entry.entry_id
-    namespace = f"ev_trip_planner_{entry_id}"
+    
+    # Use the same namespace pattern as __init__.py: f"{DOMAIN}_{entry_id}"
+    namespace = f"{DOMAIN}_{entry_id}"
 
     # Use DATA_RUNTIME namespace correctly
     runtime_data = hass.data.get(DATA_RUNTIME, {})
@@ -567,8 +569,17 @@ async def async_setup_entry(
             vehicle_id,
             entry_id,
         )
-        trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
-        coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
+        # Try legacy namespace pattern
+        legacy_namespace = f"ev_trip_planner_{entry_id}"
+        legacy_runtime_data = hass.data.get(DATA_RUNTIME, {})
+        legacy_namespace_data = legacy_runtime_data.get(legacy_namespace, {})
+        trip_manager = legacy_namespace_data.get("trip_manager")
+        coordinator = legacy_namespace_data.get("coordinator")
+        
+        if not trip_manager:
+            # Try old DOMAIN-based storage
+            trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
+            coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
         _LOGGER.debug(
             "trip_manager lookup: legacy fallback result for %s: found=%s",
             vehicle_id,

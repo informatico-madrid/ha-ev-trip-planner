@@ -44,11 +44,53 @@ You **MUST** consider the user input before proceeding (if not empty).
     ```
 - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
+> ℹ️ **Ralph-loop Integration**: When running via `ralph-loop.sh`, tasks already include `[VERIFY:TEST/API/BROWSER]` tags with assigned tools. Instructions below apply for **standalone** mode (GitHub Copilot / Roo direct).
+
+## ⚠ VERIFICATION BASED ON TAGS ⚠
+
+**Each task has verification tags:**
+
+| Tag | Tool | Usage |
+|-----|------|-------|
+| `[VERIFY:TEST]` | pytest | Run unit tests |
+| `[VERIFY:API]` | curl/MCP HA | Verify entities via REST API |
+| `[VERIFY:BROWSER]` | Playwright | Verify via browser UI |
+
+**You can combine multiple tags**: `[VERIFY:TEST] [VERIFY:API]`
+
+### How to verify:
+
+1. **Read the task's tags**
+2. **Use the available MCP tools and SKILLS**
+3. **Execute verification based on tags**
+4. **Emit SIGNAL: STATE_MATCH** if everything passes
+
+### Example:
+
+```
+- [ ] T001 [VERIFY:API] Create sensor ev_trip_distance
+  → curl http://192.168.1.100:8123/api/states/sensor.ev_trip_distance
+  → Verify state ≠ unavailable
+  → If passes → Emit STATE_MATCH
+```
+
+### Deployment Routes
+
+For this project, use these paths:
+- **Dev**: `/home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner`
+- **HA**: `/home/malka/homeassistant/custom_components/ev_trip_planner`
+
+Copy to HA: `cp -r /home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/`
+
 ## Outline
 
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Load task context**:
+   - Read [VERIFY:TEST/API/BROWSER] tags from the task
+   - Use the assigned MCP tools
 
-2. **Check checklists status** (if FEATURE_DIR/checklists/ exists):
+2. Run check-prerequisites.sh and parse results
+
+3. **Verify checklist status**:
    - Scan all checklist files in the checklists/ directory
    - For each checklist, count:
      - Total items: All lines matching `- [ ]` or `- [X]` or `- [x]`

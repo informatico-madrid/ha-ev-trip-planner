@@ -223,11 +223,15 @@ class TestGetVehicleSOC:
     
     async def test_get_vehicle_soc_sensor_valido(self):
         """Test: Obtener SOC válido desde sensor."""
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, AsyncMock
         
         # Crear hass mock completamente nuevo para evitar problemas con el fixture
         hass = MagicMock()
-        hass.data = {DOMAIN: {"test_vehicle": {"soc_sensor": "sensor.soc_valido"}}}
+        
+        # Configurar config_entries.async_entries para simular la nueva implementación
+        mock_entry = MagicMock()
+        mock_entry.data = {"vehicle_name": "test_vehicle", "soc_sensor": "sensor.soc_valido"}
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
         
         # Crear un mock para el sensor con estado 65.0
         mock_state = MagicMock()

@@ -373,6 +373,12 @@ class TestDashboardImport:
         hass.services.async_call = AsyncMock()
         hass.services.has_service = MagicMock(return_value=True)
 
+        # Mock async_add_executor_job for non-blocking I/O
+        async def mock_executor_job(func, *args):
+            """Mock executor job that runs function synchronously."""
+            return func(*args)
+        hass.async_add_executor_job = mock_executor_job
+
         return hass
 
     @pytest.fixture
@@ -390,6 +396,7 @@ class TestDashboardImport:
         from custom_components.ev_trip_planner import _load_dashboard_template
 
         result = await _load_dashboard_template(
+            mock_hass,
             "test_vehicle",
             "Test Vehicle",
             use_charts=False
@@ -407,6 +414,7 @@ class TestDashboardImport:
         from custom_components.ev_trip_planner import _load_dashboard_template
 
         result = await _load_dashboard_template(
+            mock_hass,
             "test_vehicle",
             "Test Vehicle",
             use_charts=True
@@ -426,6 +434,7 @@ class TestDashboardImport:
         vehicle_id = "my_tesla_123"
 
         result = await _load_dashboard_template(
+            mock_hass,
             vehicle_id,
             "My Tesla",
             use_charts=False
@@ -447,6 +456,7 @@ class TestDashboardImport:
         vehicle_name = "Family EV"
 
         result = await _load_dashboard_template(
+            mock_hass,
             "test_vehicle",
             vehicle_name,
             use_charts=False
@@ -458,13 +468,14 @@ class TestDashboardImport:
         assert vehicle_name in result_str or "family" in result_str.lower(), \
             "Vehicle name should be in the loaded template"
 
-    def test_load_dashboard_template_returns_dict(self):
+    def test_load_dashboard_template_returns_dict(self, mock_hass):
         """Test that _load_dashboard_template returns a valid dictionary."""
         import asyncio
 
         async def run_test():
             from custom_components.ev_trip_planner import _load_dashboard_template
             result = await _load_dashboard_template(
+                mock_hass,
                 "test_id",
                 "Test Name",
                 use_charts=False
@@ -474,13 +485,14 @@ class TestDashboardImport:
         result = asyncio.get_event_loop().run_until_complete(run_test())
         assert isinstance(result, dict), "Template should parse to a dictionary"
 
-    def test_load_dashboard_template_has_views_list(self):
+    def test_load_dashboard_template_has_views_list(self, mock_hass):
         """Test that loaded template has views as a list."""
         import asyncio
 
         async def run_test():
             from custom_components.ev_trip_planner import _load_dashboard_template
             result = await _load_dashboard_template(
+                mock_hass,
                 "test_id",
                 "Test Name",
                 use_charts=False
@@ -1668,7 +1680,7 @@ class TestDashboardCreationAfterVehicleSetup:
 
         # Step 2: Load dashboard template
         dashboard_config = await _load_dashboard_template(
-            vehicle_id, vehicle_name, use_charts=False
+            mock_hass_with_vehicle, vehicle_id, vehicle_name, use_charts=False
         )
 
         assert dashboard_config is not None, (

@@ -535,25 +535,51 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         """
         _LOGGER.debug("Config flow step 5 (notifications): showing form")
         if user_input is None:
-            # Log available notify services for debugging
-            # This helps verify Nabu Casa devices are visible
-            notify_services = self.hass.services.async_services().get("notify", {})
-            available_services = list(notify_services.keys())
-            _LOGGER.debug(
-                "Available notify services: %s",
-                available_services,
-            )
-            _LOGGER.info(
-                "Notification step: %d notify services available",
-                len(available_services),
-            )
-            # Log Nabu Casa specific services for debugging
-            nabu_casa_services = [s for s in available_services if "alexa" in s.lower()]
-            if nabu_casa_services:
-                _LOGGER.info(
-                    "Nabu Casa notify services detected: %s",
-                    nabu_casa_services,
+            # Use entity registry to get all notify entities
+            # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
+            # EntitySelector works with notify entities because they are registered
+            # as entities in the entity registry (notify.<entity_name>)
+            available_services = []
+            try:
+                # Import the entity registry module and get the async function
+                from homeassistant.helpers import entity_registry
+                entity_registry_obj = await entity_registry.async_get_registry(self.hass)
+                notify_entities = [
+                    entity.entity_id
+                    for entity in entity_registry_obj.entities.values()
+                    if entity.domain == "notify"
+                ]
+                available_services = sorted(notify_entities)
+                
+                _LOGGER.debug(
+                    "Available notify entities: %s",
+                    available_services,
                 )
+                _LOGGER.info(
+                    "Notification step: %d notify entities available",
+                    len(available_services),
+                )
+                
+                # Log Nabu Casa specific entities for debugging
+                nabu_casa_entities = [s for s in available_services if "alexa" in s.lower() or "nabu" in s.lower()]
+                if nabu_casa_entities:
+                    _LOGGER.info(
+                        "Nabu Casa notify entities detected: %s",
+                        nabu_casa_entities,
+                    )
+            except Exception as err:
+                _LOGGER.warning(
+                    "Failed to get notify entities from registry: %s, using services API",
+                    err
+                )
+                # Fallback to services if registry fails
+                notify_services = self.hass.services.async_services().get("notify", {})
+                available_services = sorted(notify_services.keys())
+                _LOGGER.info(
+                    "Using services API: %d notify services available",
+                    len(available_services),
+                )
+            
             return self.async_show_form(
                 step_id="notifications",
                 data_schema=STEP_NOTIFICATIONS_SCHEMA,
@@ -567,6 +593,8 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         vehicle_data.update(user_input)
 
         # Validate notification service if provided
+        # Note: We skip validation for entity-based notifications (notify.*) because
+        # the EntitySelector ensures only valid entities are selectable
         if (
             CONF_NOTIFICATION_SERVICE in user_input
             and user_input[CONF_NOTIFICATION_SERVICE]
@@ -575,22 +603,17 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             # Extract domain and service from entity ID (e.g., "notify.mobile_app")
             if "." in notification_service:
                 domain, service = notification_service.split(".", 1)
-                # Check if service exists in Home Assistant
-                if not self.hass.services.has_service(domain, service):
-                    _LOGGER.warning(
-                        "Notification service not found: %s",
-                        notification_service,
-                    )
-                    return self.async_show_form(
-                        step_id="notifications",
-                        data_schema=STEP_NOTIFICATIONS_SCHEMA,
-                        errors={
-                            "notification_service": "notification_service_not_found"
-                        },
-                        description_placeholders={
-                            "description": "Configure notifications (optional)."
-                        },
-                    )
+                # For notify domain entities, validation is handled by EntitySelector
+                # so we don't need to check with has_service
+                # Only validate non-notify services (legacy support)
+                if domain != "notify":
+                    if not self.hass.services.has_service(domain, service):
+                        _LOGGER.warning(
+                            "Notification service not found: %s",
+                            notification_service,
+                        )
+                        # Don't fail - just log a warning and continue
+                        # The EntitySelector ensures valid entities are selected
 
         # Log notification configuration
         notify_service = user_input.get(CONF_NOTIFICATION_SERVICE)
@@ -684,6 +707,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Paso inicial del flujo de opciones."""
         _LOGGER.debug("Options flow step init: showing form")
+        
         if user_input is not None:
             _LOGGER.debug(
                 "Options flow step init: battery=%.1f, charging=%.1f, "
@@ -693,17 +717,33 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                 user_input.get(CONF_CONSUMPTION, 0),
                 user_input.get(CONF_SAFETY_MARGIN, 0),
             )
-            return self.async_create_entry(title="", data=user_input)
+            
+            # Only include options that were actually provided
+            update_data = {}
+            if CONF_BATTERY_CAPACITY in user_input:
+                update_data[CONF_BATTERY_CAPACITY] = user_input[CONF_BATTERY_CAPACITY]
+            if CONF_CHARGING_POWER in user_input:
+                update_data[CONF_CHARGING_POWER] = user_input[CONF_CHARGING_POWER]
+            if CONF_CONSUMPTION in user_input:
+                update_data[CONF_CONSUMPTION] = user_input[CONF_CONSUMPTION]
+            if CONF_SAFETY_MARGIN in user_input:
+                update_data[CONF_SAFETY_MARGIN] = user_input[CONF_SAFETY_MARGIN]
+            
+            return self.async_create_entry(title="", data=update_data)
 
-        # Get current values from config entry
-        current_battery = self.config_entry.data.get(
+        # Get current values from config entry with safe defaults
+        # Use .get() with safe handling for None data
+        config_data = self.config_entry.data or {}
+        current_battery = config_data.get(
             CONF_BATTERY_CAPACITY, 60.0
         )
-        current_charging = self.config_entry.data.get(CONF_CHARGING_POWER, 11.0)
-        current_consumption = self.config_entry.data.get(
+        current_charging = config_data.get(
+            CONF_CHARGING_POWER, 11.0
+        )
+        current_consumption = config_data.get(
             CONF_CONSUMPTION, DEFAULT_CONSUMPTION
         )
-        current_safety = self.config_entry.data.get(
+        current_safety = config_data.get(
             CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN
         )
 

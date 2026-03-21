@@ -430,10 +430,12 @@ async def test_complete_config_flow_with_emhass_and_presence(hass: HomeAssistant
 
 @pytest.mark.asyncio
 async def test_step_notifications_service_not_found(hass: HomeAssistant):
-    """Test notifications step validates service exists."""
+    """Test notifications step skips validation for notify domain (EntitySelector handles it)."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 
-    # Set up mock to return False for non-existent service
+    # For notify domain, we skip validation because EntitySelector ensures valid entities
+    # This test now verifies that non-existent notify services are accepted
+    # (EntitySelector handles validation, not has_service)
     def _mock_has_service(domain, service):
         if domain == "notify":
             # Only allow known services
@@ -445,18 +447,18 @@ async def test_step_notifications_service_not_found(hass: HomeAssistant):
     flow.hass = hass
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
-    # Execute: Select non-existent notification service
+    # Execute: Select non-existent notification service (notify.nonexistent_service)
+    # This should now be accepted because EntitySelector handles validation
     result = await flow.async_step_notifications(
         user_input={
             CONF_NOTIFICATION_SERVICE: "notify.nonexistent_service",
         }
     )
 
-    # Verify: Error shown
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "notifications"
-    assert "errors" in result
-    assert result["errors"]["notification_service"] == "notification_service_not_found"
+    # Verify: Should succeed (no error) because EntitySelector handles validation
+    # The flow should continue to create entry
+    # With the new behavior, notify services are accepted without validation
+    assert result["type"] == FlowResultType.CREATE_ENTRY
 
 
 @pytest.mark.asyncio

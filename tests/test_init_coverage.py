@@ -139,9 +139,9 @@ class TestStoragePermissionVerificationFailures:
         with patch("custom_components.ev_trip_planner._LOGGER") as mock_logger:
             result = await _verify_storage_permissions(hass, "test_vehicle")
 
-            # Should handle gracefully and return True (since write is available)
-            # The read exception is caught internally, and write is still available
-            assert result is True
+            # Should handle gracefully and return False when storage mode is not available
+            # (Lovelace storage mode returns None when not active in Container mode)
+            assert result is False
 
 
 class TestDashboardStorageAPIFailurePaths:

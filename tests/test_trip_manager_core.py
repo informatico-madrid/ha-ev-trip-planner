@@ -26,9 +26,14 @@ def vehicle_id() -> str:
 def mock_hass():
     """Create a mock hass with config_entries, data, and storage."""
     hass = MagicMock()
-    # Mock config_entries
+    # Mock config_entries with async_entries returning list of entries
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_123"
+    # Use a dict for data, and a MagicMock that proxies to the dict
+    data_dict = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
+    mock_entry.data = MagicMock()
+    mock_entry.data.get = MagicMock(side_effect=lambda key, default=None: data_dict.get(key, default))
+    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
     # Mock hass.data with proper namespace (legacy)
     hass.data = {}
@@ -796,10 +801,13 @@ async def test_update_trip_not_found_no_emhass(mock_hass, vehicle_id):
 @pytest.mark.asyncio
 async def test_get_charging_power_returns_correct_value(mock_hass, vehicle_id):
     """Test get_charging_power returns configured value."""
-    # Configure entry with charging power
+    # Configure entry with charging_power_kw (correct key used by code)
     mock_entry = MagicMock()
-    mock_entry.data = {"charging_power_kw": 7.4}
-    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    mock_entry.data = {
+        "vehicle_name": vehicle_id,
+        "charging_power_kw": 7.4,
+    }
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
     manager = TripManager(mock_hass, vehicle_id)
 
@@ -813,10 +821,10 @@ async def test_get_charging_power_returns_correct_value(mock_hass, vehicle_id):
 @pytest.mark.asyncio
 async def test_get_charging_power_returns_default_when_not_configured(mock_hass, vehicle_id):
     """Test get_charging_power returns default when not configured."""
-    # Configure entry without charging power
+    # Configure entry without charging_power_kw
     mock_entry = MagicMock()
-    mock_entry.data = {}
-    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    mock_entry.data = {"vehicle_name": vehicle_id}
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
     manager = TripManager(mock_hass, vehicle_id)
 

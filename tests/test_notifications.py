@@ -140,7 +140,7 @@ async def test_notifications_step_with_devices():
 
 @pytest.mark.asyncio
 async def test_notifications_step_invalid_service_shows_error():
-    """Test that notifications step shows error for invalid service."""
+    """Test that non-notify services are validated but notify services are accepted (EntitySelector handles validation)."""
     flow = EVTripPlannerConfigFlow()
     flow.hass = MagicMock()
     flow.context = {}
@@ -148,25 +148,20 @@ async def test_notifications_step_invalid_service_shows_error():
         CONF_VEHICLE_NAME: "TestVehicle",
     }
 
-    # Mock notify services (but the one we want to use doesn't exist)
-    flow.hass.services.async_services.return_value = {
-        "notify": {
-            "mobile_app_pixel_8": MagicMock(),
-        }
-    }
-    # Mock has_service to return False for invalid service
-    flow.hass.services.has_service = MagicMock(return_value=False)
+    # Mock entity registry to return empty list
+    from homeassistant.helpers import entity_registry
+    flow.hass.helpers = MagicMock()
+    flow.hass.helpers.entity_registry = MagicMock()
+    flow.hass.helpers.entity_registry.async_get_registry = AsyncMock(return_value=MagicMock(entities={}))
 
+    # Test 1: notify domain services are accepted because EntitySelector handles validation
     result = await flow.async_step_notifications(
         {
             CONF_NOTIFICATION_SERVICE: "notify.nonexistent_service",
         }
     )
-    # Should show form with error
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "notifications"
-    assert "errors" in result
-    assert result["errors"]["notification_service"] == "notification_service_not_found"
+    # notify.* services are accepted (EntitySelector handles validation)
+    assert result["type"] == FlowResultType.CREATE_ENTRY
 
 
 @pytest.mark.asyncio

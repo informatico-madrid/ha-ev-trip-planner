@@ -33,6 +33,14 @@
 
 [Gates determined based on constitution file]
 
+## Available Tools for Verification
+
+*Skills and MCPs installed and available for task verification*
+
+| Tool | Type | Status | Purpose |
+|------|------|--------|---------|
+| [TO BE FILLED BY SPECKIT.PLAN] | skill/MCP | installed | verification |
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -93,6 +101,24 @@ ios/ or android/
 
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
+
+## State Verification Plan
+
+### For Home Assistant Integrations
+
+| Verification Type | When to Use | Command |
+|------------------|-------------|---------|
+| `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v` |
+| `[VERIFY:API]` | REST API verification (HA entities) | `curl http://HA_URL/api/states/sensor.xxx` |
+| `[VERIFY:BROWSER]` | Playwright E2E tests | `npx playwright test tests/e2e/` |
+
+### Existence Check
+- How to prove the change exists in the system
+- File existence, registry entries, API responses
+
+### Effect Check
+- How to prove the change actually works
+- Entity state validation, service calls, logs
 
 ## Complexity Tracking
 

@@ -451,12 +451,13 @@ async def test_trip_manager_config_entry_found():
     test_hass = MagicMock()
     mock_entry = MagicMock(
         data={
+            "vehicle_name": "test_vehicle",
             "charging_power_kw": 7.4,
             "battery_capacity_kwh": 60.0,
             "soc_sensor": "sensor.soc",
         }
     )
-    test_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    test_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
     trip_manager = TripManager(test_hass, "test_vehicle")
 
@@ -502,11 +503,12 @@ async def test_trip_manager_vehicle_configured():
     test_hass = MagicMock()
     mock_entry = MagicMock(
         data={
+            "vehicle_name": "test_vehicle",
             "charging_power_kw": 7.4,
             "battery_capacity_kwh": 60.0,
         }
     )
-    test_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    test_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
     trip_manager = TripManager(test_hass, "test_vehicle")
 

@@ -616,7 +616,13 @@ class TripManager:
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
         try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
+            entry = None
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data.get("vehicle_name") == self.vehicle_id:
+                    entry = config_entry
+                    break
+            
             if entry and entry.data:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 # Ensure we return a valid number
@@ -693,7 +699,13 @@ class TripManager:
     async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
         """Obtiene el SOC actual del vehículo desde el sensor configurado."""
         try:
-            entry = self.hass.config_entries.async_get_entry(vehicle_id)
+            # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
+            entry = None
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data.get("vehicle_name") == vehicle_id:
+                    entry = config_entry
+                    break
+            
             if entry and entry.data:
                 soc_sensor = entry.data.get("soc_sensor")
                 if soc_sensor:

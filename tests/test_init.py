@@ -23,6 +23,13 @@ def mock_hass():
     hass.config.components = []
     hass.services = Mock()
     hass.services.has_service = Mock(return_value=False)
+
+    # Mock async_add_executor_job for non-blocking I/O
+    async def mock_executor_job(func, *args):
+        """Mock executor job that runs function synchronously."""
+        return func(*args)
+    hass.async_add_executor_job = mock_executor_job
+
     return hass
 
 
@@ -155,6 +162,7 @@ class TestLoadDashboardTemplate:
 
         # Test with use_charts=False - should use ev-trip-planner-simple.yaml
         result = await _load_dashboard_template(
+            mock_hass,
             vehicle_id="test_vehicle",
             vehicle_name="Test Vehicle",
             use_charts=False,
@@ -171,6 +179,7 @@ class TestLoadDashboardTemplate:
 
         # Test with use_charts=True - should use ev-trip-planner-full.yaml
         result = await _load_dashboard_template(
+            mock_hass,
             vehicle_id="test_vehicle",
             vehicle_name="Test Vehicle",
             use_charts=True,
@@ -199,6 +208,7 @@ views:
                     mock_open(read_data=template_content),
                 ):
                     result = await _load_dashboard_template(
+                        mock_hass,
                         vehicle_id="my_vehicle",
                         vehicle_name="My Vehicle",
                         use_charts=False,
