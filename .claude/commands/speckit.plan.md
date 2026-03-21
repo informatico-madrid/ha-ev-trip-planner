@@ -33,6 +33,22 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
 
+## State Verification Plan
+
+### ⚠️ IMPORTANT: Only 3 Verification Types (CLOSED set)
+
+| Verification Type | When to Use | Example Command (not a new type!) |
+|------------------|-------------|-----------------------------------|
+| `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
+| `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
+| `[VERIFY:BROWSER]` | Playwright/Selenium UI automation | `npx playwright test` |
+
+**RULES:**
+- ✅ ONLY these 3 types are valid in tasks
+- ✅ Details of HOW to verify (services, logs, dashboard, etc.) are decided per-task in the task description
+- ❌ DO NOT add more verification types like `[VERIFY:SERVICES]`, `[VERIFY:LOGS]`, `[VERIFY:LOVELACE]`
+- ❌ The "Example Command" column shows HOW to use each type - it's NOT a new verification type
+
 4. **Tool Requirements Check** *(REQUIRED before generating tasks)*:
    - Analyze the generated plan.md for required technologies
    - **SEARCH AND INSTALL** skills/MCPs from official libraries
@@ -111,7 +127,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Skip if project is purely internal (build scripts, one-off tools, etc.)
 
 3. **Agent context update**:
-   - Run `.specify/scripts/bash/update-agent-context.sh roo`
+   - Run `.specify/scripts/bash/update-agent-context.sh copilot`
    - These scripts detect which AI agent is in use
    - Update the appropriate agent-specific context file
    - Add only new technology from current plan

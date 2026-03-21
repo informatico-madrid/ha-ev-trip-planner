@@ -104,13 +104,19 @@ directories captured above]
 
 ## State Verification Plan
 
-### For Home Assistant Integrations
+### ⚠️ IMPORTANT: Only 3 Verification Types (CLOSED set)
 
-| Verification Type | When to Use | Command |
-|------------------|-------------|---------|
-| `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v` |
-| `[VERIFY:API]` | REST API verification (HA entities) | `curl http://HA_URL/api/states/sensor.xxx` |
-| `[VERIFY:BROWSER]` | Playwright E2E tests | `npx playwright test tests/e2e/` |
+| Verification Type | When to Use | Example Command (not a new type!) |
+|------------------|-------------|-----------------------------------|
+| `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
+| `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
+| `[VERIFY:BROWSER]` | Playwright/Selenium UI automation | `npx playwright test` |
+
+**RULES:**
+- ✅ ONLY these 3 types are valid in tasks
+- ✅ Details of HOW to verify (services, logs, dashboard, etc.) are decided per-task in the task description
+- ❌ DO NOT add more verification types like `[VERIFY:SERVICES]`, `[VERIFY:LOGS]`, `[VERIFY:LOVELACE]`
+- ❌ The "Example Command" column shows HOW to use each type - it's NOT a new verification type
 
 ### Existence Check
 - How to prove the change exists in the system
