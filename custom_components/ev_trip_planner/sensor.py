@@ -705,6 +705,18 @@ class TripSensor(SensorEntity):
         """Return trip details as attributes."""
         return self._attr_extra_state_attributes.copy()
 
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Return device info for the trip sensor."""
+        return {
+            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self._trip_id}")},
+            "name": f"Trip {self._trip_id} - {self.trip_manager.vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
+        }
+
     def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
         """Update sensor state from trip data.
 
@@ -825,8 +837,6 @@ async def async_setup_entry(
 async def async_create_trip_sensor(
     hass: HomeAssistant,
     entry_id: str,
-    trip_id: str,
-    trip_type: str,
     trip_data: Dict[str, Any],
 ) -> bool:
     """Create a sensor entity for a trip.
@@ -834,14 +844,15 @@ async def async_create_trip_sensor(
     Args:
         hass: The Home Assistant instance.
         entry_id: The config entry ID.
-        trip_id: The trip identifier.
-        trip_type: The trip type (recurrente or puntual).
-        trip_data: The trip data dictionary.
+        trip_data: The trip data dictionary (includes id and tipo).
 
     Returns:
         True if sensor was created successfully.
     """
     from . import DATA_RUNTIME, DOMAIN
+
+    trip_id = trip_data.get("id")
+    trip_type = trip_data.get("tipo", "recurrente")
 
     _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
 
@@ -855,9 +866,9 @@ async def async_create_trip_sensor(
         _LOGGER.error("No trip_manager found for entry %s", entry_id)
         return False
 
-    # Create the trip sensor
+    # Create the trip sensor (new signature - trip_id and trip_type derived from trip_data)
     try:
-        sensor = TripSensor(hass, trip_manager, trip_id, trip_type, trip_data)
+        sensor = TripSensor(hass, trip_manager, trip_data)
         hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
         hass.data[DATA_RUNTIME][namespace]["trip_sensors"][trip_id] = sensor
         _LOGGER.debug("Trip sensor created for trip %s", trip_id)
@@ -870,7 +881,6 @@ async def async_create_trip_sensor(
 async def async_update_trip_sensor(
     hass: HomeAssistant,
     entry_id: str,
-    trip_id: str,
     trip_data: Dict[str, Any],
 ) -> bool:
     """Update a trip sensor entity with new data.
@@ -878,13 +888,14 @@ async def async_update_trip_sensor(
     Args:
         hass: The Home Assistant instance.
         entry_id: The config entry ID.
-        trip_id: The trip identifier.
-        trip_data: The updated trip data dictionary.
+        trip_data: The updated trip data dictionary (includes id).
 
     Returns:
         True if sensor was updated successfully.
     """
     from . import DATA_RUNTIME, DOMAIN
+
+    trip_id = trip_data.get("id")
 
     _LOGGER.debug("Updating trip sensor for trip %s", trip_id)
 
@@ -902,15 +913,14 @@ async def async_update_trip_sensor(
     trip_sensors = namespace_data.get("trip_sensors", {})
     if trip_id in trip_sensors:
         sensor = trip_sensors[trip_id]
-        sensor.trip_type = "recurrente" if trip_data.get("dia_semana") else "puntual"
         # Update the trip data before refreshing the sensor
         sensor._trip_data = trip_data
-        sensor._update_from_trip_data()
+        sensor.update_from_trip_data(trip_data)
         _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
         return True
     else:
-        # Sensor doesn't exist, create it
-        return await async_create_trip_sensor(hass, entry_id, trip_id, "recurrente" if trip_data.get("dia_semana") else "puntual", trip_data)
+        # Sensor doesn't exist, create it (new signature)
+        return await async_create_trip_sensor(hass, entry_id, trip_data)
 
 
 async def async_remove_trip_sensor(

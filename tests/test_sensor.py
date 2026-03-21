@@ -29,32 +29,34 @@ async def test_trip_sensor_creation(mock_hass_with_storage):
     trip_manager = MagicMock()
     trip_manager.vehicle_id = "tesla_model_3"
 
-    # Create trip data
+    # Create trip data (new signature - tipo included in trip_data)
     trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Work commute",
         "km": 25.5,
         "kwh": 4.2,
         "dia_semana": "monday",
     }
 
-    # Create sensor
+    # Create sensor (new signature - trip_id and trip_type derived from trip_data)
     sensor = TripSensor(
         hass=mock_hass_with_storage,
         trip_manager=trip_manager,
-        trip_id="trip_001",
-        trip_type="recurrente",
         trip_data=trip_data,
     )
 
-    # Verify sensor properties
-    assert sensor._attr_unique_id == f"{DOMAIN}_trip_trip_001"
+    # Verify sensor properties (new implementation - native_value is trip_type for recurring)
+    assert sensor._attr_unique_id == "trip_trip_001"
     assert sensor._attr_name == "Trip Work commute"
-    assert sensor._attr_native_value == "Work commute"
-    assert sensor._cached_attrs.get("distance_km") == 25.5
-    assert sensor._cached_attrs.get("energy_kwh") == 4.2
-    assert sensor._cached_attrs.get("trip_type") == "recurrente"
-    assert sensor._cached_attrs.get("trip_id") == "trip_001"
+    assert sensor._attr_native_value == "recurrente"
+    # Description and details are in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert attrs.get("descripcion") == "Work commute"
+    assert attrs.get("km") == 25.5
+    assert attrs.get("kwh") == 4.2
+    assert attrs.get("trip_type") == "recurrente"
+    assert attrs.get("trip_id") == "trip_001"
 
 
 @pytest.mark.asyncio
@@ -66,29 +68,31 @@ async def test_trip_sensor_punctual_type(mock_hass_with_storage):
     trip_manager = MagicMock()
     trip_manager.vehicle_id = "tesla_model_3"
 
-    # Create punctual trip data (no dia_semana)
+    # Create punctual trip data (new signature - tipo included in trip_data)
     trip_data = {
         "id": "pun_001",
+        "tipo": "puntual",
         "descripcion": "Airport trip",
         "km": 45.0,
         "kwh": 7.5,
         "datetime": "2026-03-25T10:00:00",
     }
 
-    # Create sensor for punctual trip
+    # Create sensor for punctual trip (new signature)
     sensor = TripSensor(
         hass=mock_hass_with_storage,
         trip_manager=trip_manager,
-        trip_id="pun_001",
-        trip_type="puntual",
         trip_data=trip_data,
     )
 
-    # Verify sensor properties
-    assert sensor._attr_native_value == "Airport trip"
-    assert sensor._cached_attrs.get("distance_km") == 45.0
-    assert sensor._cached_attrs.get("energy_kwh") == 7.5
-    assert sensor._cached_attrs.get("trip_type") == "puntual"
+    # Verify sensor properties (new implementation - punctual trips show estado)
+    assert sensor._attr_native_value == "pendiente"  # default estado for punctual
+    # Description and details are in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert attrs.get("descripcion") == "Airport trip"
+    assert attrs.get("km") == 45.0
+    assert attrs.get("kwh") == 7.5
+    assert attrs.get("trip_type") == "puntual"
 
 
 @pytest.mark.asyncio
@@ -100,25 +104,25 @@ async def test_trip_sensor_device_info(mock_hass_with_storage):
     trip_manager = MagicMock()
     trip_manager.vehicle_id = "tesla_model_3"
 
-    # Create trip data
+    # Create trip data (new signature - tipo included)
     trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Work commute",
         "km": 25.5,
         "kwh": 4.2,
     }
 
-    # Create sensor
+    # Create sensor (new signature)
     sensor = TripSensor(
         hass=mock_hass_with_storage,
         trip_manager=trip_manager,
-        trip_id="trip_001",
-        trip_type="recurrente",
         trip_data=trip_data,
     )
 
-    # Verify device info
+    # Verify device info (new implementation)
     device_info = sensor.device_info
+    assert device_info is not None
     assert device_info["identifiers"] == {(
         "ev_trip_planner",
         "tesla_model_3_trip_001"
@@ -155,31 +159,30 @@ async def test_async_create_trip_sensor(mock_hass_with_storage):
         }
     }
 
-    # Create trip data
+    # Create trip data (new signature - tipo included in trip_data)
     trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Work commute",
         "km": 25.5,
         "kwh": 4.2,
         "dia_semana": "monday",
     }
 
-    # Create sensor
+    # Create sensor (new signature - trip_id and trip_type derived from trip_data)
     result = await async_create_trip_sensor(
         hass=mock_hass_with_storage,
         entry_id=mock_entry.entry_id,
-        trip_id="trip_001",
-        trip_type="recurrente",
         trip_data=trip_data,
     )
 
     # Verify result
     assert result is True
-    # Verify sensor was stored
+    # Verify sensor was stored (new implementation - native_value is trip_type for recurring)
     namespace = f"{DOMAIN}_{mock_entry.entry_id}"
     stored_sensors = mock_hass_with_storage.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
     assert "trip_001" in stored_sensors
-    assert stored_sensors["trip_001"]._attr_native_value == "Work commute"
+    assert stored_sensors["trip_001"]._attr_native_value == "recurrente"
 
 
 @pytest.mark.asyncio
@@ -207,45 +210,45 @@ async def test_async_update_trip_sensor(mock_hass_with_storage):
         }
     }
 
-    # Create initial trip data
+    # Create initial trip data (new signature - tipo included)
     trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Work commute",
         "km": 25.5,
         "kwh": 4.2,
     }
 
-    # Create sensor first
+    # Create sensor first (new signature)
     await async_create_trip_sensor(
         hass=mock_hass_with_storage,
         entry_id=mock_entry.entry_id,
-        trip_id="trip_001",
-        trip_type="recurrente",
         trip_data=trip_data,
     )
 
     # Update trip data
     updated_trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Updated commute",
         "km": 30.0,
         "kwh": 5.0,
     }
 
-    # Update sensor
+    # Update sensor (new signature - trip_id derived from trip_data)
     result = await async_update_trip_sensor(
         hass=mock_hass_with_storage,
         entry_id=mock_entry.entry_id,
-        trip_id="trip_001",
         trip_data=updated_trip_data,
     )
 
     # Verify result
     assert result is True
-    # Verify sensor was updated
+    # Verify sensor was updated (new implementation - native_value is trip_type)
     stored_sensors = mock_hass_with_storage.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
-    assert stored_sensors["trip_001"]._attr_native_value == "Updated commute"
-    assert stored_sensors["trip_001"]._cached_attrs.get("distance_km") == 30.0
+    assert stored_sensors["trip_001"]._attr_native_value == "recurrente"
+    attrs = stored_sensors["trip_001"].extra_state_attributes
+    assert attrs.get("km") == 30.0
 
 
 @pytest.mark.asyncio
@@ -273,20 +276,19 @@ async def test_async_remove_trip_sensor(mock_hass_with_storage):
         }
     }
 
-    # Create initial trip data
+    # Create initial trip data (new signature - tipo included)
     trip_data = {
         "id": "trip_001",
+        "tipo": "recurrente",
         "descripcion": "Work commute",
         "km": 25.5,
         "kwh": 4.2,
     }
 
-    # Create sensor first
+    # Create sensor first (new signature)
     await async_create_trip_sensor(
         hass=mock_hass_with_storage,
         entry_id=mock_entry.entry_id,
-        trip_id="trip_001",
-        trip_type="recurrente",
         trip_data=trip_data,
     )
 
