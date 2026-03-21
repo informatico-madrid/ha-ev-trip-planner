@@ -109,7 +109,7 @@ directories captured above]
 | Verification Type | When to Use | Example Command (not a new type!) |
 |------------------|-------------|-----------------------------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
-| `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
+| `[VERIFY:API]` | REST API verification (use homeassistant-ops skill) | Use skill to query HA API (no hardcoded curl) |
 | `[VERIFY:BROWSER]` | Playwright/Selenium UI automation | `npx playwright test` |
 
 **RULES:**

@@ -127,9 +127,9 @@
 Cómo probar que el cambio existe en el sistema real:
 
 - [ ] Verificar que el componente está desplegado (buscar en /config/custom_components/ev_trip_planner)
-- [ ] Verificar que las entidades existen (curl a /api/states con filtro de vehicle_id)
+- [ ] Verificar que las entidades existen (use homeassistant-ops skill to query /api/states)
 - [ ] Verificar que el dashboard aparece en /api/lovelace
-- [ ] Verificar que los servicios están disponibles (curl a /api/services con filtro ev_trip_planner)
+- [ ] Verificar que los servicios están disponibles (use homeassistant-ops skill to query /api/services)
 
 ### Effect Check
 
@@ -137,7 +137,7 @@ Cómo probar que el cambio funciona:
 
 - [ ] Estado de entidad ≠ unavailable/unknown
 - [ ] Log de HA muestra inicialización exitosa (buscar mensajes de éxito en logs)
-- [ ] Servicios disponibles (curl a /api/services)
+- [ ] Servicios disponibles (use homeassistant-ops skill)
 - [ ] Dashboard visible en interfaz de usuario
 - [ ] Operaciones CRUD exitosas (crear viaje → aparece en dashboard → editar → actualizar → eliminar → desaparece)
 

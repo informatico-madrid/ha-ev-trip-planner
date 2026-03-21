@@ -8,7 +8,7 @@ description: "Task list for dashboard CRUD verification feature"
 **Input**: Design documents from `/specs/012-dashboard-crud-verify/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories)
 
-**Tests**: Test tasks included - pytest for unit/integration tests, curl for API verification
+**Tests**: Test tasks included - pytest for unit/integration tests, homeassistant-ops skill for API verification
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -24,7 +24,7 @@ description: "Task list for dashboard CRUD verification feature"
 | Tag | When to Use | Verification Method | Available Tools |
 |-----|-------------|---------------------|-----------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns |
-| `[VERIFY:API]` | REST API verification (HA entities) | Use curl/MCP to HA API | homeassistant-ops, homeassistant-skill |
+| `[VERIFY:API]` | REST API verification (HA entities) | Use homeassistant-ops skill (no hardcoded curl) | homeassistant-ops, homeassistant-skill |
 | `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
 
 ## Phase 1: Setup (Shared Infrastructure)
@@ -45,10 +45,10 @@ description: "Task list for dashboard CRUD verification feature"
 **CRITICAL**: These are the P001-P004 fixes from spec 011 - they must be fixed first
 
 - [ ] T005 [VERIFY:TEST] Fix KwhTodaySensor state_class from MEASUREMENT to TOTAL_INCREASING in custom_components/ev_trip_planner/sensor.py (FR-001, FR-004)
-- [ ] T006 [VERIFY:API] Verify sensor creates without warnings: `curl http://localhost:8123/api/states/sensor.{vehicle_id}_kwh_today`
+- [ ] T006 [VERIFY:API] Verify sensor creates without warnings: Use homeassistant-ops skill to check sensor entity state
 - [ ] T007 [VERIFY:TEST] Fix NextTripSensor to handle coordinator=None case in custom_components/ev_trip_planner/sensor.py
 - [ ] T008 [VERIFY:TEST] Fix EmhassDeferrableLoadSensor to use entry_id instead of vehicle_id in custom_components/ev_trip_planner/sensor.py (FR-004)
-- [ ] T009 [VERIFY:API] Verify config entry lookup works: `curl http://localhost:8123/api/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner")'`
+- [ ] T009 [VERIFY:API] Verify config entry lookup works: Use homeassistant-ops skill to check config entries
 - [ ] T010 [VERIFY:TEST] Implement YAML fallback for trip persistence in custom_components/ev_trip_planner/trip_manager.py (FR-005)
 - [ ] T011 [VERIFY:TEST] Write unit tests for trip_manager CRUD operations in tests/test_trip_manager.py
 - [ ] T012 [VERIFY:API] Verify sensors are functional without coordinator warnings: check logs for "no coordinator data available"
@@ -88,7 +88,7 @@ description: "Task list for dashboard CRUD verification feature"
 - [ ] T025 [US1] Add vehicle configuration storage in custom_components/ev_trip_planner/__init__.py
 - [ ] T026 [US1] [VERIFY:API] Create vehicle sensors on config entry setup in custom_components/ev_trip_planner/sensor.py (FR-004)
 - [ ] T027 [US1] [VERIFY:API] Implement dashboard auto-deployment in custom_components/ev_trip_planner/dashboard.py (FR-002)
-- [ ] T028 [US1] [VERIFY:API] Test dashboard visibility: `curl http://localhost:8123/api/lovelace/dashboard`
+- [ ] T028 [US1] [VERIFY:API] Test dashboard visibility: Use homeassistant-ops skill to check Lovelace dashboards
 - [ ] T029 [US1] Add error handling for dashboard deployment failures in custom_components/ev_trip_planner/dashboard.py
 
 ### Trip CRUD Implementation for User Story 1
@@ -124,9 +124,9 @@ description: "Task list for dashboard CRUD verification feature"
 - [ ] T047 [P] [VERIFY:TEST] Run complete test suite: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
 - [ ] T048 [P] Verify 100% tests passing (0 failures)
 - [ ] T049 [P] Verify test coverage >=80% for all CRUD functionality
-- [ ] T050 [P] [VERIFY:API] Verify no CRITICAL errors in logs: `grep -i "critical\|error" /config/home-assistant.log | grep -i "ev_trip_planner"`
-- [ ] T051 [P] [VERIFY:API] Verify all services available: `curl http://localhost:8123/api/services | jq '.[] | select(.domain == "ev_trip_planner")'`
-- [ ] T052 [P] [VERIFY:API] Verify dashboard accessible: `curl http://localhost:8123/api/lovelace/dashboard`
+- [ ] T050 [P] [VERIFY:API] Verify no CRITICAL errors in logs: Use homeassistant-ops skill to check HA logs
+- [ ] T051 [P] [VERIFY:API] Verify all services available: Use homeassistant-ops skill to check services
+- [ ] T052 [P] [VERIFY:API] Verify dashboard accessible: Use homeassistant-ops skill to check dashboard access
 - [ ] T053 [P] [VERIFY:API] Verify all vehicle sensors functional: check each sensor state
 - [ ] T054 [P] [VERIFY:API] Full user journey test: create vehicle → create trip → view trips → update trip → delete trip
 - [ ] T055 [P] [VERIFY:BROWSER] Playwright E2E test: complete CRUD flow through dashboard UI
@@ -260,8 +260,8 @@ No separate stories for CRUD - they are all part of the MVP.
 - Unit tests: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
 - Test results: Check for 0 failures
 - Coverage: `pytest --cov-report=term-missing | grep "TOTAL"`
-- API verification: `curl http://localhost:8123/api/states/sensor.{vehicle_id}_trips_count`
-- Dashboard check: `curl http://localhost:8123/api/lovelace/dashboard`
-- Services check: `curl http://localhost:8123/api/services | jq '.[] | select(.domain == "ev_trip_planner")'`
+- API verification: Use homeassistant-ops skill to check sensor entities
+- Dashboard check: Use homeassistant-ops skill to check Lovelace dashboards
+- Services check: Use homeassistant-ops skill to check services
 - Log check: `grep -i "critical\|error" /config/home-assistant.log | grep -i "ev_trip_planner"`
 - E2E test: `npx playwright test tests/e2e/`

@@ -156,7 +156,7 @@ CRUD functionality will be added as a new module `dashboard.py` and templates in
 | Verification Type | When to Use | Example Command |
 |------------------|-------------|----------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
-| `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
+| `[VERIFY:API]` | REST API verification (use homeassistant-ops skill) | Use skill to query HA API (no hardcoded curl) |
 | `[VERIFY:BROWSER]` | Playwright/Selenium UI automation | `npx playwright test` |
 
 **RULES:**
@@ -166,13 +166,13 @@ CRUD functionality will be added as a new module `dashboard.py` and templates in
 
 ### Existence Check
 - [ ] Component desplegado: `ls /config/custom_components/ev_trip_planner/`
-- [ ] Sensores creados: `curl http://localhost:8123/api/states | jq '.[] | select(.entity_id | contains("sensor."))'`
-- [ ] Dashboard disponible: `curl http://localhost:8123/api/lovelace/dashboard`
-- [ ] Servicios disponibles: `curl http://localhost:8123/api/services | jq '.[] | select(.domain == "ev_trip_planner")'`
-- [ ] Config entries existentes: `curl http://localhost:8123/api/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner")'`
+- [ ] Sensores creados: Use homeassistant-ops skill to query states API
+- [ ] Dashboard disponible: Use homeassistant-ops skill to query Lovelace dashboards
+- [ ] Servicios disponibles: Use homeassistant-ops skill to query services
+- [ ] Config entries existentes: Use homeassistant-ops skill to query config entries
 
 ### Effect Check
-- [ ] Estado de entidad ≠ unavailable/unknown: `curl http://localhost:8123/api/states/sensor.{vehicle_id}_trips_count`
+- [ ] Estado de entidad ≠ unavailable/unknown: Use homeassistant-ops skill to check entity state
 - [ ] Log de HA muestra inicialización exitosa: `grep "EV Trip Planner" /config/home-assistant.log`
 - [ ] CRUD operaciones funcionan:
   - Create: POST `/api/services/ev_trip_planner/create_trip`

@@ -26,7 +26,7 @@ description: "Task list template for feature implementation"
 | Tag | When to Use | Verification Method | Available Tools |
 |-----|-------------|---------------------|----------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns, e2e-testing-patterns |
-| `[VERIFY:API]` | REST API verification (HA entities) | Use curl/MCP to HA API | homeassistant-ops, homeassistant-skill |
+| `[VERIFY:API]` | REST API verification (HA entities) | Use homeassistant-ops skill (no hardcoded curl) | homeassistant-ops, homeassistant-skill |
 | `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
 
 **Task Assignment Rule**: For each task, determine which verification type applies, then select the most appropriate tool from the available skills/MCPs listed in plan.md.
