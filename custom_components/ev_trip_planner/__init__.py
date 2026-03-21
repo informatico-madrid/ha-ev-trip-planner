@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+from .dashboard import DashboardImportResult
 from .dashboard import import_dashboard as import_dashboard
 from .dashboard import is_lovelace_available as is_lovelace_available
 from .emhass_adapter import EMHASSAdapter

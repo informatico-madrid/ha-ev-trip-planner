@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
+    TRIP_TYPE_RECURRING,
 )
 from .trip_manager import TripManager
 
