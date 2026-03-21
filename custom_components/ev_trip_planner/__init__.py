@@ -493,6 +493,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:  # pragma: no cover
         _LOGGER.debug("Input helpers creation failed or helpers already exist.")
 
+    # Deploy dashboard for the vehicle (FR-002)
+    try:
+        use_charts = entry.data.get("use_charts", False)
+        import_result = await import_dashboard(
+            hass,
+            vehicle_id,
+            entry.data.get("vehicle_name", vehicle_id),
+            use_charts=use_charts,
+        )
+        if not import_result.success:
+            _LOGGER.warning(
+                "Dashboard import failed for %s: %s",
+                entry.data.get("vehicle_name", vehicle_id),
+                import_result.error,
+            )
+    except Exception as e:
+        _LOGGER.warning(
+            "Dashboard import exception for %s: %s",
+            entry.data.get("vehicle_name", vehicle_id),
+            e,
+        )
+
     return True
 
 
