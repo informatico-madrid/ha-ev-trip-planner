@@ -31,10 +31,10 @@ description: "Task list for dashboard CRUD verification feature"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Review existing project structure in custom_components/ev_trip_planner/
-- [ ] T002 Verify pytest-homeassistant-custom-component is installed and configured
-- [ ] T003 [P] Set up test directory structure (tests/ for integration tests)
-- [ ] T004 [P] Create conftest.py with HA test fixtures
+- [x] T001 Review existing project structure in custom_components/ev_trip_planner/
+- [x] T002 Verify pytest-homeassistant-custom-component is installed and configured
+- [x] T003 [P] Set up test directory structure (tests/ for integration tests)
+- [x] T004 [P] Create conftest.py with HA test fixtures
 
 ---
 
@@ -44,14 +44,14 @@ description: "Task list for dashboard CRUD verification feature"
 
 **CRITICAL**: These are the P001-P004 fixes from spec 011 - they must be fixed first
 
-- [ ] T005 [VERIFY:TEST] Fix KwhTodaySensor state_class from MEASUREMENT to TOTAL_INCREASING in custom_components/ev_trip_planner/sensor.py (FR-001, FR-004)
-- [ ] T006 [VERIFY:API] Verify sensor creates without warnings: Use homeassistant-ops skill to check sensor entity state
-- [ ] T007 [VERIFY:TEST] Fix NextTripSensor to handle coordinator=None case in custom_components/ev_trip_planner/sensor.py
-- [ ] T008 [VERIFY:TEST] Fix EmhassDeferrableLoadSensor to use entry_id instead of vehicle_id in custom_components/ev_trip_planner/sensor.py (FR-004)
-- [ ] T009 [VERIFY:API] Verify config entry lookup works: Use homeassistant-ops skill to check config entries
-- [ ] T010 [VERIFY:TEST] Implement YAML fallback for trip persistence in custom_components/ev_trip_planner/trip_manager.py (FR-005)
-- [ ] T011 [VERIFY:TEST] Write unit tests for trip_manager CRUD operations in tests/test_trip_manager.py
-- [ ] T012 [VERIFY:API] Verify sensors are functional without coordinator warnings: check logs for "no coordinator data available"
+- [x] T005 [VERIFY:TEST] Fix KwhTodaySensor state_class from MEASUREMENT to TOTAL_INCREASING in custom_components/ev_trip_planner/sensor.py (FR-001, FR-004)
+- [x] T006 [VERIFY:API] Verify sensor creates without warnings: Use homeassistant-ops skill to check sensor entity state
+- [x] T007 [VERIFY:TEST] Fix NextTripSensor to handle coordinator=None case in custom_components/ev_trip_planner/sensor.py
+- [x] T008 [VERIFY:TEST] Fix EmhassDeferrableLoadSensor to use entry_id instead of vehicle_id in custom_components/ev_trip_planner/sensor.py (FR-004)
+- [x] T009 [VERIFY:API] Verify config entry lookup works: Use homeassistant-ops skill to check config entries
+- [x] T010 [VERIFY:TEST] Implement YAML fallback for trip persistence in custom_components/ev_trip_planner/trip_manager.py (FR-005)
+- [x] T011 [VERIFY:TEST] Write unit tests for trip_manager CRUD operations in tests/test_trip_manager.py
+- [x] T012 [VERIFY:API] Verify sensors are functional without coordinator warnings: check logs for "no coordinator data available"
 
 **Checkpoint**: Foundation ready - all P001-P004 fixes complete, sensors functional
 
@@ -77,37 +77,37 @@ description: "Task list for dashboard CRUD verification feature"
 
 > Write tests FIRST, ensure they FAIL before implementation
 
-- [ ] T020 [P] [US1] [VERIFY:TEST] Add test configflow for vehicle setup in tests/test_config_flow.py (use: python-testing-patterns)
-- [ ] T021 [P] [US1] [VERIFY:TEST] Add test dashboard deployment in tests/test_dashboard.py (use: python-testing-patterns)
-- [ ] T022 [P] [US1] [VERIFY:TEST] Add test trip CRUD operations in tests/test_trip_crud.py (use: python-testing-patterns)
-- [ ] T023 [P] [US1] [VERIFY:BROWSER] Add Playwright E2E test for dashboard UI flows in tests/e2e/test_dashboard_ui.py (use: e2e-testing-patterns)
+- [x] T020 [P] [US1] [VERIFY:TEST] Add test configflow for vehicle setup in tests/test_config_flow.py (use: python-testing-patterns)
+- [x] T021 [P] [US1] [VERIFY:TEST] Add test dashboard deployment in tests/test_dashboard.py (use: python-testing-patterns)
+- [x] T022 [P] [US1] [VERIFY:TEST] Add test trip CRUD operations in tests/test_trip_crud.py (use: python-testing-patterns)
+- [x] T023 [P] [US1] [VERIFY:BROWSER] Add Playwright E2E test for dashboard UI flows in tests/e2e/test_dashboard_ui.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Implement configflow validation for vehicle data in custom_components/ev_trip_planner/config_flow.py (FR-001)
-- [ ] T025 [US1] Add vehicle configuration storage in custom_components/ev_trip_planner/__init__.py
-- [ ] T026 [US1] [VERIFY:API] Create vehicle sensors on config entry setup in custom_components/ev_trip_planner/sensor.py (FR-004)
-- [ ] T027 [US1] [VERIFY:API] Implement dashboard auto-deployment in custom_components/ev_trip_planner/dashboard.py (FR-002)
-- [ ] T028 [US1] [VERIFY:API] Test dashboard visibility: Use homeassistant-ops skill to check Lovelace dashboards
-- [ ] T029 [US1] Add error handling for dashboard deployment failures in custom_components/ev_trip_planner/dashboard.py
+- [x] T024 [US1] Implement configflow validation for vehicle data in custom_components/ev_trip_planner/config_flow.py (FR-001)
+- [x] T025 [US1] Add vehicle configuration storage in custom_components/ev_trip_planner/__init__.py
+- [x] T026 [US1] [VERIFY:API] Create vehicle sensors on config entry setup in custom_components/ev_trip_planner/sensor.py (FR-004)
+- [x] T027 [US1] [VERIFY:API] Implement dashboard auto-deployment in custom_components/ev_trip_planner/dashboard.py (FR-002)
+- [x] T028 [US1] [VERIFY:API] Test dashboard visibility: Use homeassistant-ops skill to check Lovelace dashboards
+- [x] T029 [US1] Add error handling for dashboard deployment failures in custom_components/ev_trip_planner/dashboard.py
 
 ### Trip CRUD Implementation for User Story 1
 
-- [ ] T030 [US1] [VERIFY:API] Implement trip_create service in custom_components/ev_trip_planner/__init__.py (FR-003, FR-005)
-- [ ] T031 [US1] [VERIFY:API] Implement trip_list service in custom_components/ev_trip_planner/__init__.py (FR-003)
-- [ ] T032 [US1] [VERIFY:API] Implement trip_update service in custom_components/ev_trip_planner/__init__.py (FR-003)
-- [ ] T033 [US1] [VERIFY:API] Implement trip_delete service in custom_components/ev_trip_planner/__init__.py (FR-003)
-- [ ] T034 [US1] [VERIFY:API] Create trip sensor entity on trip creation in custom_components/ev_trip_planner/sensor.py (FR-004)
-- [ ] T035 [US1] [VERIFY:API] Update trip sensor entity on trip update in custom_components/ev_trip_planner/sensor.py
-- [ ] T036 [US1] [VERIFY:API] Remove trip sensor entity on trip deletion in custom_components/ev_trip_planner/sensor.py
+- [x] T030 [US1] [VERIFY:API] Implement trip_create service in custom_components/ev_trip_planner/__init__.py (FR-003, FR-005)
+- [x] T031 [US1] [VERIFY:API] Implement trip_list service in custom_components/ev_trip_planner/__init__.py (FR-003)
+- [x] T032 [US1] [VERIFY:API] Implement trip_update service in custom_components/ev_trip_planner/__init__.py (FR-003)
+- [x] T033 [US1] [VERIFY:API] Implement trip_delete service in custom_components/ev_trip_planner/__init__.py (FR-003)
+- [x] T034 [US1] [VERIFY:API] Create trip sensor entity on trip creation in custom_components/ev_trip_planner/sensor.py (FR-004)
+- [x] T035 [US1] [VERIFY:API] Update trip sensor entity on trip update in custom_components/ev_trip_planner/sensor.py
+- [x] T036 [US1] [VERIFY:API] Remove trip sensor entity on trip deletion in custom_components/ev_trip_planner/sensor.py
 
 ### Dashboard UI Implementation for User Story 1
 
-- [ ] T037 [US1] [VERIFY:BROWSER] Implement dashboard create trip form in custom_components/ev_trip_planner/dashboard/dashboard-create.yaml
-- [ ] T038 [US1] [VERIFY:BROWSER] Implement dashboard trip list view in custom_components/ev_trip_planner/dashboard/dashboard-list.yaml
-- [ ] T039 [US1] [VERIFY:BROWSER] Implement dashboard trip edit form in custom_components/ev_trip_planner/dashboard/dashboard-edit.yaml
-- [ ] T040 [US1] [VERIFY:BROWSER] Implement dashboard trip delete confirmation in custom_components/ev_trip_planner/dashboard/dashboard-delete.yaml
-- [ ] T041 [US1] [VERIFY:BROWSER] Add JavaScript handlers for CRUD operations in custom_components/ev_trip_planner/dashboard/dashboard.js
+- [x] T037 [US1] [VERIFY:BROWSER] Implement dashboard create trip form in custom_components/ev_trip_planner/dashboard/dashboard-create.yaml
+- [x] T038 [US1] [VERIFY:BROWSER] Implement dashboard trip list view in custom_components/ev_trip_planner/dashboard/dashboard-list.yaml
+- [x] T039 [US1] [VERIFY:BROWSER] Implement dashboard trip edit form in custom_components/ev_trip_planner/dashboard/dashboard-edit.yaml
+- [x] T040 [US1] [VERIFY:BROWSER] Implement dashboard trip delete confirmation in custom_components/ev_trip_planner/dashboard/dashboard-delete.yaml
+- [x] T041 [US1] [VERIFY:BROWSER] Add JavaScript handlers for CRUD operations in custom_components/ev_trip_planner/dashboard/dashboard.js
 
 **Checkpoint**: User Story 1 complete - vehicle configured, dashboard deployed, full CRUD operations working through UI
 
@@ -121,7 +121,7 @@ description: "Task list for dashboard CRUD verification feature"
 
 **CRITICAL**: This phase runs ALL tests and verifies everything works end-to-end
 
-- [ ] T047 [P] [VERIFY:TEST] Run complete test suite: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
+- [x] T047 [P] [VERIFY:TEST] Run complete test suite: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
 - [ ] T048 [P] Verify 100% tests passing (0 failures)
 - [ ] T049 [P] Verify test coverage >=80% for all CRUD functionality
 - [ ] T050 [P] [VERIFY:API] Verify no CRITICAL errors in logs: Use homeassistant-ops skill to check HA logs
