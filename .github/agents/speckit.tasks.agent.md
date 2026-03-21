@@ -138,7 +138,7 @@ The tasks.md should be immediately executable - each task must be specific enoug
 Every task MUST strictly follow this format:
 
 ```text
-- [ ] [TaskID] [P?] [Story?] Description with file path
+- [ ] [TaskID] [P?] [Story?] [VERIFY:TEST|API|BROWSER] Description with file path
 ```
 
 **Format Components**:
@@ -152,7 +152,12 @@ Every task MUST strictly follow this format:
    - Foundational phase: NO story label  
    - User Story phases: MUST have story label
    - Polish phase: NO story label
-5. **Description**: Clear action with exact file path
+5. **Verification Type** *(recommended)*: Specify the verification method for this task:
+   - `[VERIFY:TEST]` - Unit/integration tests (pytest, unittest)
+   - `[VERIFY:API]` - REST API verification (curl commands to Home Assistant API)
+   - `[VERIFY:BROWSER]` - Browser automation (Playwright, Selenium for HA UI testing)
+   - Omit if task doesn't require verification or is not HA-related
+6. **Description**: Clear action with exact file path
 
 **Examples**:
 
@@ -160,6 +165,9 @@ Every task MUST strictly follow this format:
 - ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
 - ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
 - ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
+- ✅ CORRECT (API): `- [ ] T020 [US2] [VERIFY:API] Add sensor in sensor.py [VERIFY: curl http://192.168.1.100:8123/api/states/sensor.ev_trip_distance]`
+- ✅ CORRECT (TEST): `- [ ] T021 [VERIFY:TEST] Add unit tests for trip calculations in tests/test_trip_calculations.py`
+- ✅ CORRECT (BROWSER): `- [ ] T022 [VERIFY:BROWSER] Create Playwright test for dashboard login in tests/e2e/test_dashboard_login.py`
 - ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
 - ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
 - ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)

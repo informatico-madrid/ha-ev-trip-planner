@@ -18,6 +18,31 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## ⚠ STATE VERIFICATION PLAN — Requerido para integraciones HA
+
+Cuando la feature involucra un componente de Home Assistant (sensores, servicios, config entries, dispositivos), el spec.md generado **DEBE incluir** una sección de verificación:
+
+```markdown
+## State Verification Plan
+
+### Existence Check
+Cómo probar que el cambio existe en el sistema real:
+- [ ] Verificar que el componente está desplegado (buscar método de verificación)
+- [ ] Verificar que las entidades existen (curl a /api/states)
+
+### Effect Check
+Cómo probar que el cambio funciona:
+- [ ] Estado de entidad ≠ unavailable/unknown
+- [ ] Log de HA muestra inicialización (buscar en logs)
+- [ ] Servicios disponibles (curl a /api/services)
+
+### Reality Sensor Result
+- STATE_MATCH = éxito real ✓
+- STATE_MISMATCH = fallo real, tarea NO marcada [x]
+```
+
+Si la feature NO involucra HA directamente, esta sección es opcional.
+
 ## Outline
 
 The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
@@ -76,6 +101,7 @@ Given that feature description, do this:
        Each criterion must be verifiable without implementation details
     7. Identify Key Entities (if data involved)
     8. Return: SUCCESS (spec ready for planning)
+    9. Stop here do not create plan 
 
 5. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
 

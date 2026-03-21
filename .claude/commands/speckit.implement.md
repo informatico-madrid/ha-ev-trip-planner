@@ -44,6 +44,40 @@ You **MUST** consider the user input before proceeding (if not empty).
     ```
 - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
+## ⚠ CICLO DE VIDA COMPLETO — User Journey en HA Real ⚠
+
+> **Este comando ejecuta en modo standalone desde VS Code (Roo/Copilot). El User Journey completo es requerido antes de marcar cualquier tarea [x].**
+
+### Step 1: Deploy
+| Propósito | Qué verificar | Cómo |
+|-----------|---------------|------|
+| Copiar código a HA | Archivos en custom_components/ | cp + ls |
+| Validar despliegue | Script retorna `DEPLOYED ✓` | `verify_deployment.py <component>` |
+
+### Step 2: Registro en HA
+| Propósito | Qué verificar | Cómo |
+|-----------|---------------|------|
+| Crear config entry | POST a API config entries | curl POST |
+| Dominio habilitado | Entry visible en GET | curl GET |
+
+### Step 3: Usar la funcionalidad
+| Propósito | Qué verificar | Cómo |
+|-----------|---------------|------|
+| Sensores funcionan | Estados ≠ unavailable | GET /api/states |
+| Servicios disponibles | Dominio visible | GET /api/services |
+
+### Step 4: Verificar en entorno real
+| Propósito | Qué verificar | Cómo |
+|-----------|---------------|------|
+| Sin errores | Logs de HA | grep |
+| Entidades existen | Count en /api/states > 0 | curl + jq |
+
+### Step 5: Solo entonces marcar [x]
+- ✅ `verify_deployment.py` → DEPLOYED ✓
+- ✅ Entidades con estado ≠ unavailable/unknown
+- ✅ Servicios disponibles en dominio del componente
+- ✅ Sin errores en logs de HA
+
 ## Outline
 
 1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").

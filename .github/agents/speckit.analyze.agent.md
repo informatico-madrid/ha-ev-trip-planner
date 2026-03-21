@@ -51,6 +51,7 @@ Load only the minimal necessary context from each artifact:
 - Data Model references
 - Phases
 - Technical constraints
+- **Available Tools for Verification** section (skills/MCPs for task verification)
 
 **From tasks.md:**
 
@@ -59,6 +60,7 @@ Load only the minimal necessary context from each artifact:
 - Phase grouping
 - Parallel markers [P]
 - Referenced file paths
+- **Verification tags** [VERIFY:TEST|API|BROWSER] (if present)
 
 **From constitution:**
 
@@ -72,6 +74,7 @@ Create internal representations (do not include raw artifacts in output):
 - **User story/action inventory**: Discrete user actions with acceptance criteria
 - **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
+- **Verification inventory**: Extract [VERIFY:TEST|API|BROWSER] tags from tasks, identify HA-related keywords (sensor, service, config_entry, entity, dashboard) without verification tags
 
 ### 4. Detection Passes (Token-Efficient Analysis)
 
@@ -111,6 +114,19 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
 
+#### G. Verification Flow Analysis *(NEW - Real Environment Verification)*
+
+- **Missing [VERIFY:*] tags**: Tasks touching Home Assistant entities, services, or config entries MUST have a verification tag:
+  - `[VERIFY:TEST]` - Unit/integration tests (pytest)
+  - `[VERIFY:API]` - HA REST API calls (curl to HA)
+  - `[VERIFY:BROWSER]` - Browser automation (Playwright)
+- **Missing Available Tools section**: plan.md MUST have "Available Tools for Verification" section filled with installed skills/MCPs
+- **Verification type mismatch**: 
+  - HA sensor/service tasks → should have `[VERIFY:API]`
+  - Dashboard/UI tasks → should have `[VERIFY:BROWSER]`
+  - Core logic/data tasks → should have `[VERIFY:TEST]`
+- **Skills not listed**: If tasks require verification, corresponding skills must be listed in plan.md's "Available Tools for Verification"
+
 ### 5. Severity Assignment
 
 Use this heuristic to prioritize findings:
@@ -149,6 +165,13 @@ Output a Markdown report (no file writes) with the following structure:
 - Ambiguity Count
 - Duplication Count
 - Critical Issues Count
+
+**Verification Flow Metrics:**
+
+- Tasks with [VERIFY:*] tags
+- HA-related tasks missing verification tags
+- Missing "Available Tools for Verification" in plan.md
+- Verification type mismatches
 
 ### 7. Provide Next Actions
 
