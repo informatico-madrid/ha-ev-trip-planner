@@ -582,7 +582,18 @@ build_work_prompt() {
     # files in the main branch instead of the worktree.
     local worktree_section=""
     local constitution_path="$PROJECT_DIR/.specify/memory/constitution.md"
+    local github_context_path="$PROJECT_DIR/.github/copilot-instructions.md"
     local tests_cmd="pytest tests/ -x --tb=short"
+    
+    # Load GitHub context for HA configuration
+    local github_context=""
+    if [[ -f "$github_context_path" ]]; then
+        github_context="
+---
+## GitHub Context (HA Configuration - IMPORTANT)
+$(cat "$github_context_path")
+---"
+    fi
     local lint_cmd="ruff check src/"
     local progress_file="$PROJECT_DIR/progress.txt"
     if [[ "$WORKTREE_ENABLED" == "true" ]]; then
@@ -661,6 +672,7 @@ $task_body
 $feedback_section
 $progress_tail
 $speckit_implement_instructions
+$github_context
 
 ## ⚠ CRITICAL: ONE TASK PER ITERATION RULE ⚠
 **YOU MUST COMPLETE EXACTLY ONE TASK PER ITERATION.**
