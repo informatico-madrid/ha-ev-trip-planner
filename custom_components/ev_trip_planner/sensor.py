@@ -186,8 +186,8 @@ class RecurringTripsCountSensor(TripPlannerSensor):
             )
             if data and "recurring_trips" in data:
                 return len(data.get("recurring_trips", []))
-        _LOGGER.warning(
-            "RecurringTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "RecurringTripsCountSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -226,8 +226,8 @@ class PunctualTripsCountSensor(TripPlannerSensor):
             )
             if data and "punctual_trips" in data:
                 return len(data.get("punctual_trips", []))
-        _LOGGER.warning(
-            "PunctualTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "PunctualTripsCountSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -260,8 +260,8 @@ class TripsListSensor(TripPlannerSensor):
                 self._cached_attrs["punctual_trips"] = punctual
                 self._cached_attrs["trips"] = recurring + punctual
                 return len(recurring) + len(punctual)
-        _LOGGER.warning(
-            "TripsListSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "TripsListSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -302,8 +302,8 @@ class KwhTodaySensor(TripPlannerSensor):
             )
             if data and "kwh_today" in data:
                 return data.get("kwh_today", 0.0)
-        _LOGGER.warning(
-            "KwhTodaySensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "KwhTodaySensor(%s) returning default value 0.0", self._vehicle_id
         )
         return 0.0
 
@@ -341,8 +341,8 @@ class HoursTodaySensor(TripPlannerSensor):
             )
             if data and "hours_today" in data:
                 return data.get("hours_today", 0)
-        _LOGGER.warning(
-            "HoursTodaySensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "HoursTodaySensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -391,8 +391,8 @@ class NextTripSensor(TripPlannerSensor):
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("descripcion", "No trips")
-        _LOGGER.warning(
-            "NextTripSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "NextTripSensor(%s) returning default value 'No trips'", self._vehicle_id
         )
         return "No trips"
 
@@ -430,8 +430,8 @@ class NextDeadlineSensor(TripPlannerSensor):
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("datetime")
-        _LOGGER.warning(
-            "NextDeadlineSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "NextDeadlineSensor(%s) returning default value None", self._vehicle_id
         )
         return None
 
@@ -444,21 +444,21 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     - deferrables_schedule: Calendario de cargas diferibles
 
     Platform: template
-    Entity: sensor.emhass_perfil_diferible_{vehicle_id}
+    Entity: sensor.emhass_perfil_diferible_{entry_id}
     """
 
     def __init__(
         self,
         hass: HomeAssistant,
         trip_manager: TripManager,
-        vehicle_id: str,
+        entry_id: str,
     ) -> None:
         """Inicializa el sensor de carga diferible."""
         self.hass = hass
         self.trip_manager = trip_manager
-        self._vehicle_id = vehicle_id
-        self._attr_unique_id = f"emhass_perfil_diferible_{vehicle_id}"
-        self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
+        self._entry_id = entry_id
+        self._attr_unique_id = f"emhass_perfil_diferible_{entry_id}"
+        self._attr_name = f"EMHASS Perfil Diferible {entry_id}"
         self._attr_has_entity_name = True
         self._attr_native_value = "ready"
         self._cached_attrs: Dict[str, Any] = {}
@@ -472,8 +472,8 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     def device_info(self) -> Dict[str, Any]:
         """Return device info."""
         return {
-            "identifiers": {(DOMAIN, self._vehicle_id)},
-            "name": f"EV Trip Planner {self._vehicle_id}",
+            "identifiers": {(DOMAIN, self._entry_id)},
+            "name": f"EV Trip Planner {self._entry_id}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
@@ -487,22 +487,22 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     async def async_update(self) -> None:
         """Actualiza el estado del sensor."""
         try:
-            # Find config entry by matching vehicle_id in data
+            # Find config entry by entry_id
             entry = None
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data.get("vehicle_name") == self._vehicle_id:
+                if config_entry.entry_id == self._entry_id:
                     entry = config_entry
                     break
 
             if not entry or not entry.data:
-                _LOGGER.warning("No config entry found for %s", self._vehicle_id)
+                _LOGGER.warning("No config entry found for %s", self._entry_id)
                 return
 
             charging_power_kw = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
             planning_horizon_days = entry.data.get("planning_horizon_days", 7)
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: charging_power=%s, horizon=%s",
-                self._vehicle_id,
+                self._entry_id,
                 charging_power_kw,
                 planning_horizon_days,
             )
@@ -524,7 +524,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             self._attr_native_value = "ready"
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
-                self._vehicle_id,
+                self._entry_id,
                 len(power_profile) if power_profile else 0,
                 len(schedule) if schedule else 0,
             )
@@ -532,7 +532,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         except Exception as err:
             _LOGGER.error(
                 "Error actualizando sensor EMHASS %s: %s",
-                self._vehicle_id,
+                self._entry_id,
                 err,
                 exc_info=True,
             )
@@ -611,7 +611,7 @@ async def async_setup_entry(
         HoursTodaySensor(vehicle_id, coordinator),
         NextTripSensor(vehicle_id, coordinator),
         NextDeadlineSensor(vehicle_id, coordinator),
-        EmhassDeferrableLoadSensor(hass, trip_manager, vehicle_id),
+        EmhassDeferrableLoadSensor(hass, trip_manager, entry_id),
     ]
 
     _LOGGER.debug(
