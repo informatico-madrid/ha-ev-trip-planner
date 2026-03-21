@@ -4,6 +4,8 @@
 
 title: "EV Trip Planner - Crear Viaje"
 refresh_interval: 10
+javascript:
+  - /local/custom_components/ev_trip_planner/dashboard/dashboard.js
 views:
   - title: "Crear Viaje - {{ vehicle_name }}"
     path: "{{ vehicle_id }}-create"
