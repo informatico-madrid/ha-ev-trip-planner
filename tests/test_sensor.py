@@ -6,6 +6,303 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+# =============================================================================
+# Trip Sensor Tests (FR-004)
+# =============================================================================
+
+@pytest.fixture
+def mock_hass_with_storage():
+    """Create a mock hass instance with storage support."""
+    hass = MagicMock()
+    hass.config.config_dir = "/tmp/test_config"
+    hass.storage = MagicMock()
+    return hass
+
+
+@pytest.mark.asyncio
+async def test_trip_sensor_creation(mock_hass_with_storage):
+    """Test that a TripSensor is created correctly for a trip."""
+    from custom_components.ev_trip_planner.sensor import TripSensor
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data
+    trip_data = {
+        "id": "trip_001",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "dia_semana": "monday",
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_id="trip_001",
+        trip_type="recurrente",
+        trip_data=trip_data,
+    )
+
+    # Verify sensor properties
+    assert sensor._attr_unique_id == f"{DOMAIN}_trip_trip_001"
+    assert sensor._attr_name == "Trip Work commute"
+    assert sensor._attr_native_value == "Work commute"
+    assert sensor._cached_attrs.get("distance_km") == 25.5
+    assert sensor._cached_attrs.get("energy_kwh") == 4.2
+    assert sensor._cached_attrs.get("trip_type") == "recurrente"
+    assert sensor._cached_attrs.get("trip_id") == "trip_001"
+
+
+@pytest.mark.asyncio
+async def test_trip_sensor_punctual_type(mock_hass_with_storage):
+    """Test that a TripSensor works correctly for punctual trips."""
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create punctual trip data (no dia_semana)
+    trip_data = {
+        "id": "pun_001",
+        "descripcion": "Airport trip",
+        "km": 45.0,
+        "kwh": 7.5,
+        "datetime": "2026-03-25T10:00:00",
+    }
+
+    # Create sensor for punctual trip
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_id="pun_001",
+        trip_type="puntual",
+        trip_data=trip_data,
+    )
+
+    # Verify sensor properties
+    assert sensor._attr_native_value == "Airport trip"
+    assert sensor._cached_attrs.get("distance_km") == 45.0
+    assert sensor._cached_attrs.get("energy_kwh") == 7.5
+    assert sensor._cached_attrs.get("trip_type") == "puntual"
+
+
+@pytest.mark.asyncio
+async def test_trip_sensor_device_info(mock_hass_with_storage):
+    """Test that TripSensor has correct device info."""
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data
+    trip_data = {
+        "id": "trip_001",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_id="trip_001",
+        trip_type="recurrente",
+        trip_data=trip_data,
+    )
+
+    # Verify device info
+    device_info = sensor.device_info
+    assert device_info["identifiers"] == {(
+        "ev_trip_planner",
+        "tesla_model_3_trip_001"
+    )}
+    assert device_info["name"] == "Trip trip_001 - tesla_model_3"
+    assert device_info["via_device"] == ("ev_trip_planner", "tesla_model_3")
+
+
+# =============================================================================
+# Trip Sensor Management Tests (FR-004)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_async_create_trip_sensor(mock_hass_with_storage):
+    """Test that async_create_trip_sensor creates a sensor correctly."""
+    from custom_components.ev_trip_planner.sensor import async_create_trip_sensor
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    # Create mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_123"
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Set up hass.data
+    from custom_components.ev_trip_planner import DATA_RUNTIME
+    mock_hass_with_storage.data = {
+        DATA_RUNTIME: {
+            f"{DOMAIN}_{mock_entry.entry_id}": {
+                "trip_manager": trip_manager,
+            }
+        }
+    }
+
+    # Create trip data
+    trip_data = {
+        "id": "trip_001",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "dia_semana": "monday",
+    }
+
+    # Create sensor
+    result = await async_create_trip_sensor(
+        hass=mock_hass_with_storage,
+        entry_id=mock_entry.entry_id,
+        trip_id="trip_001",
+        trip_type="recurrente",
+        trip_data=trip_data,
+    )
+
+    # Verify result
+    assert result is True
+    # Verify sensor was stored
+    namespace = f"{DOMAIN}_{mock_entry.entry_id}"
+    stored_sensors = mock_hass_with_storage.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+    assert "trip_001" in stored_sensors
+    assert stored_sensors["trip_001"]._attr_native_value == "Work commute"
+
+
+@pytest.mark.asyncio
+async def test_async_update_trip_sensor(mock_hass_with_storage):
+    """Test that async_update_trip_sensor updates a sensor correctly."""
+    from custom_components.ev_trip_planner.sensor import async_create_trip_sensor, async_update_trip_sensor
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    # Create mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_123"
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Set up hass.data
+    from custom_components.ev_trip_planner import DATA_RUNTIME
+    namespace = f"{DOMAIN}_{mock_entry.entry_id}"
+    mock_hass_with_storage.data = {
+        DATA_RUNTIME: {
+            namespace: {
+                "trip_manager": trip_manager,
+            }
+        }
+    }
+
+    # Create initial trip data
+    trip_data = {
+        "id": "trip_001",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor first
+    await async_create_trip_sensor(
+        hass=mock_hass_with_storage,
+        entry_id=mock_entry.entry_id,
+        trip_id="trip_001",
+        trip_type="recurrente",
+        trip_data=trip_data,
+    )
+
+    # Update trip data
+    updated_trip_data = {
+        "id": "trip_001",
+        "descripcion": "Updated commute",
+        "km": 30.0,
+        "kwh": 5.0,
+    }
+
+    # Update sensor
+    result = await async_update_trip_sensor(
+        hass=mock_hass_with_storage,
+        entry_id=mock_entry.entry_id,
+        trip_id="trip_001",
+        trip_data=updated_trip_data,
+    )
+
+    # Verify result
+    assert result is True
+    # Verify sensor was updated
+    stored_sensors = mock_hass_with_storage.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+    assert stored_sensors["trip_001"]._attr_native_value == "Updated commute"
+    assert stored_sensors["trip_001"]._cached_attrs.get("distance_km") == 30.0
+
+
+@pytest.mark.asyncio
+async def test_async_remove_trip_sensor(mock_hass_with_storage):
+    """Test that async_remove_trip_sensor removes a sensor correctly."""
+    from custom_components.ev_trip_planner.sensor import async_create_trip_sensor, async_remove_trip_sensor
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    # Create mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_123"
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Set up hass.data
+    from custom_components.ev_trip_planner import DATA_RUNTIME
+    namespace = f"{DOMAIN}_{mock_entry.entry_id}"
+    mock_hass_with_storage.data = {
+        DATA_RUNTIME: {
+            namespace: {
+                "trip_manager": trip_manager,
+            }
+        }
+    }
+
+    # Create initial trip data
+    trip_data = {
+        "id": "trip_001",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor first
+    await async_create_trip_sensor(
+        hass=mock_hass_with_storage,
+        entry_id=mock_entry.entry_id,
+        trip_id="trip_001",
+        trip_type="recurrente",
+        trip_data=trip_data,
+    )
+
+    # Remove sensor
+    result = await async_remove_trip_sensor(
+        hass=mock_hass_with_storage,
+        entry_id=mock_entry.entry_id,
+        trip_id="trip_001",
+    )
+
+    # Verify result
+    assert result is True
+    # Verify sensor was removed
+    stored_sensors = mock_hass_with_storage.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+    assert "trip_001" not in stored_sensors
+
 
 @pytest.fixture
 def mock_hass():

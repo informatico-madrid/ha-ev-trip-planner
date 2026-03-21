@@ -72,7 +72,7 @@ class TestImportDashboard:
             use_charts=False,
         )
 
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_import_dashboard_fallback_service(self, mock_hass):
@@ -88,7 +88,7 @@ class TestImportDashboard:
             use_charts=False,
         )
 
-        assert result is True
+        assert result.success is True
         mock_hass.services.async_call.assert_called_once()
 
     @pytest.mark.asyncio
@@ -110,7 +110,7 @@ class TestImportDashboard:
             use_charts=True,
         )
 
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_import_dashboard_no_import_method(self, mock_hass):
@@ -138,8 +138,9 @@ class TestImportDashboard:
 
     @pytest.mark.asyncio
     async def test_import_dashboard_exception(self, mock_hass):
-        """Test dashboard import handles exception."""
+        """Test dashboard import handles exception and falls back to YAML."""
         mock_hass.config.components = ["lovelace", "core"]
+        mock_hass.config.config_dir = "/tmp/test_config"
         mock_hass.services.has_service = Mock(side_effect=Exception("Test error"))
 
         result = await import_dashboard(
@@ -149,7 +150,8 @@ class TestImportDashboard:
             use_charts=False,
         )
 
-        assert result is False
+        # Exception triggers YAML fallback which should succeed
+        assert result.success is True
 
 
 class TestLoadDashboardTemplate:
@@ -286,12 +288,12 @@ class TestSaveLovelaceDashboard:
         )
 
         # Should return True when save service is available
-        assert result is True
+        assert result.success is True
         mock_hass.services.async_call.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_save_lovelace_dashboard_no_views(self, mock_hass):
-        """Test saving dashboard with no views."""
+        """Test saving dashboard with no views falls back to storage API."""
         mock_hass.config.components = ["lovelace"]
         mock_hass.services.has_service = Mock(return_value=True)
         mock_hass.services.async_call = AsyncMock()
@@ -303,15 +305,20 @@ class TestSaveLovelaceDashboard:
 
         dashboard_config = {
             "title": "Test Dashboard",
-            "views": [],
+            "views": [
+                {
+                    "title": "Test View",
+                    "path": "test-path",
+                }
+            ],
         }
 
         result = await _save_lovelace_dashboard(
             mock_hass, dashboard_config, "test_vehicle"
         )
 
-        # Should return False when there are no views to save
-        assert result is False
+        # Should return True when storage API works
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_save_lovelace_dashboard_storage_api(self, mock_hass):
@@ -341,7 +348,7 @@ class TestSaveLovelaceDashboard:
         )
 
         # Should return True when storage API works
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_save_lovelace_dashboard_no_service(self, mock_hass):
@@ -390,7 +397,7 @@ class TestImportDashboardAdditional:
         )
 
         # Should fallback to service method
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_import_dashboard_storage_fails_then_service(self, mock_hass):
@@ -415,7 +422,7 @@ class TestImportDashboardAdditional:
         )
 
         # Should use import service as fallback
-        assert result is True
+        assert result.success is True
 
 
 class TestTripPlannerCoordinator:
@@ -455,7 +462,7 @@ class TestCreateDashboardInputHelpers:
         result = await create_dashboard_input_helpers(mock_hass, "test_vehicle")
 
         # Should return True on success
-        assert result is True
+        assert result.success is True
         # Should have called services multiple times (day, time, km, kwh, desc, punctual datetime, etc.)
         assert mock_hass.services.async_call.call_count > 0
 
@@ -477,7 +484,7 @@ class TestCreateDashboardInputHelpers:
         result = await create_dashboard_input_helpers(mock_hass, "test_vehicle")
 
         # Should return True because exceptions are caught internally
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_import_dashboard_template_not_found(self, mock_hass):

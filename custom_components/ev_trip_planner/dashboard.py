@@ -20,7 +20,7 @@ from typing import Any, Optional
 import yaml
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+# from .const import DOMAIN  # Not directly used in this module
 
 _LOGGER = logging.getLogger(__name__)
 

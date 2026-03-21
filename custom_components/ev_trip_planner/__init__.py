@@ -7,19 +7,18 @@ Supports recurring weekly routines and one-time punctual trips.
 from __future__ import annotations
 
 import logging
-import os
 from datetime import timedelta
 from typing import Any, Optional
 
 import voluptuous as vol
-import yaml
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
-from .dashboard import import_dashboard, is_lovelace_available
+from .dashboard import import_dashboard as import_dashboard
+from .dashboard import is_lovelace_available as is_lovelace_available
 from .emhass_adapter import EMHASSAdapter
 from .trip_manager import TripManager
 
@@ -546,6 +545,12 @@ def register_services(hass: HomeAssistant) -> None:
         trip_type = data.get("type", data.get("trip_type", "recurrente"))
         mgr = _get_manager(hass, vehicle_id)
 
+        # Find config entry to get entry_id
+        entry = _find_entry_by_vehicle(hass, vehicle_id)
+        if not entry:
+            _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
+            return
+
         if trip_type == "recurrente":
             # Create recurring trip
             await mgr.async_add_recurring_trip(
@@ -584,21 +589,36 @@ def register_services(hass: HomeAssistant) -> None:
             )
             return
 
-        # Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(hass, vehicle_id)
-        if coordinator:
-            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
-            await coordinator.async_refresh_trips()
-        """Handle adding a punctual trip."""
-        data = call.data
-        vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
-        await mgr.async_add_punctual_trip(
-            datetime_str=data["datetime"],
-            km=float(data["km"]),
-            kwh=float(data["kwh"]),
-            descripcion=str(data.get("descripcion", "")),
-        )
+        # Get the newly created trip to create sensor
+        if trip_type == "recurrente":
+            trips = await mgr.async_get_recurring_trips()
+            for trip in trips:
+                if (trip.get("dia_semana") == data["dia_semana"] and
+                    trip.get("hora") == data["hora"] and
+                    trip.get("km") == float(data["km"])):
+                    # Create trip sensor
+                    try:
+                        from .sensor import async_create_trip_sensor
+                        await async_create_trip_sensor(
+                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
+                        )
+                    except Exception as err:  # pragma: no cover
+                        _LOGGER.warning("Failed to create trip sensor: %s", err)
+                    break
+        elif trip_type == "puntual":
+            trips = await mgr.async_get_punctual_trips()
+            for trip in trips:
+                if trip.get("datetime") == data["datetime"] and trip.get("km") == float(data["km"]):
+                    # Create trip sensor
+                    try:
+                        from .sensor import async_create_trip_sensor
+                        await async_create_trip_sensor(
+                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
+                        )
+                    except Exception as err:  # pragma: no cover
+                        _LOGGER.warning("Failed to create trip sensor: %s", err)
+                    break
+
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
@@ -625,9 +645,31 @@ def register_services(hass: HomeAssistant) -> None:
             updates,
         )
 
+        # Find config entry to get entry_id
+        entry = _find_entry_by_vehicle(hass, vehicle_id)
+        if not entry:
+            _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
+            return
+
         mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_update_trip(trip_id, updates)
+
+        # Get the updated trip and update sensor
+        try:
+            from .sensor import async_update_trip_sensor
+            trip_type = "recurrente" if updates.get("dia_semana") else "puntual"
+            if trip_type == "recurrente":
+                trips = await mgr.async_get_recurring_trips()
+            else:
+                trips = await mgr.async_get_punctual_trips()
+
+            for trip in trips:
+                if str(trip.get("id")) == trip_id:
+                    await async_update_trip_sensor(hass, entry.entry_id, trip_id, trip)
+                    break
+        except Exception as err:  # pragma: no cover
+            _LOGGER.warning("Failed to update trip sensor: %s", err)
 
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
@@ -652,9 +694,27 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle deleting a trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
+        trip_id = str(data["trip_id"])
+
+        # Find config entry to get entry_id
+        entry = _find_entry_by_vehicle(hass, vehicle_id)
+        if not entry:
+            _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
+            return
+
         mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_delete_trip(str(data["trip_id"]))
+
+        # Delete the trip
+        await mgr.async_delete_trip(trip_id)
+
+        # Remove trip sensor
+        try:
+            from .sensor import async_remove_trip_sensor
+            await async_remove_trip_sensor(hass, entry.entry_id, trip_id)
+        except Exception as err:  # pragma: no cover
+            _LOGGER.warning("Failed to remove trip sensor: %s", err)
+
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:

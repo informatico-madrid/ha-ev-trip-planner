@@ -148,6 +148,98 @@ class TripPlannerSensor(SensorEntity):
         }
 
 
+class TripSensor(SensorEntity):
+    """Sensor para un viaje individual."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        trip_manager: TripManager,
+        trip_id: str,
+        trip_type: str,
+        trip_data: Dict[str, Any],
+    ) -> None:
+        """Inicializa el sensor del viaje."""
+        self.hass = hass
+        self.trip_manager = trip_manager
+        self.trip_id = trip_id
+        self.trip_type = trip_type
+        self._trip_data = trip_data
+        self._attr_unique_id = f"{DOMAIN}_trip_{trip_id}"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Trip {trip_data.get('descripcion', trip_id)}"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._cached_attrs: Dict[str, Any] = {}
+        self._update_from_trip_data()
+
+    def _update_from_trip_data(self) -> None:
+        """Update sensor attributes from trip data."""
+        trip = self._trip_data
+        if trip:
+            self._attr_native_value = trip.get("descripcion", "Unknown")
+            distance = trip.get("km", 0)
+            energy = trip.get("kwh", 0)
+            self._cached_attrs["distance_km"] = distance
+            self._cached_attrs["energy_kwh"] = energy
+            self._cached_attrs["trip_type"] = self.trip_type
+            self._cached_attrs["trip_id"] = self.trip_id
+
+            # Set device class based on attribute
+            if "kwh" in str(self._cached_attrs.get("energy_kwh", "")):
+                self._attr_device_class = SensorDeviceClass.ENERGY
+                self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+            else:
+                self._attr_device_class = None
+
+            # Update state class for energy sensors
+            if self._attr_device_class == SensorDeviceClass.ENERGY:
+                self._attr_state_class = SensorStateClass.MEASUREMENT
+
+            _LOGGER.debug(
+                "TripSensor %s: value=%s, distance=%s km, energy=%s kWh",
+                self.trip_id,
+                self._attr_native_value,
+                distance,
+                energy,
+            )
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Devuelve atributos adicionales para el sensor."""
+        return self._cached_attrs.copy()
+
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Devuelve información del dispositivo."""
+        return {
+            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self.trip_id}")},
+            "name": f"Trip {self.trip_id} - {self.trip_manager.vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
+        }
+
+    async def async_update(self) -> None:
+        """Actualiza el estado del sensor desde el trip_manager."""
+        try:
+            if self.trip_type == TRIP_TYPE_RECURRING:
+                trips = await self.trip_manager.async_get_recurring_trips()
+                for trip in trips:
+                    if str(trip.get("id")) == self.trip_id:
+                        self._update_from_trip_data()
+                        return
+            elif self.trip_type == TRIP_TYPE_PUNCTUAL:
+                trips = await self.trip_manager.async_get_punctual_trips()
+                for trip in trips:
+                    if str(trip.get("id")) == self.trip_id:
+                        self._update_from_trip_data()
+                        return
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error("Error updating trip sensor %s: %s", self.trip_id, err)
+            self._attr_native_value = "error"
+
+
 # Backward compatibility aliases for tests
 # These map test expectations to the actual TripPlannerSensor implementation
 
@@ -622,3 +714,129 @@ async def async_setup_entry(
 
     async_add_entities(entities)
     return True
+
+
+async def async_create_trip_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    trip_id: str,
+    trip_type: str,
+    trip_data: Dict[str, Any],
+) -> bool:
+    """Create a sensor entity for a trip.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier.
+        trip_type: The trip type (recurrente or puntual).
+        trip_data: The trip data dictionary.
+
+    Returns:
+        True if sensor was created successfully.
+    """
+    from . import DATA_RUNTIME, DOMAIN
+
+    _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
+
+    # Get the namespace and trip_manager
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_manager = namespace_data.get("trip_manager")
+
+    if not trip_manager:
+        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        return False
+
+    # Create the trip sensor
+    try:
+        sensor = TripSensor(hass, trip_manager, trip_id, trip_type, trip_data)
+        hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+        hass.data[DATA_RUNTIME][namespace]["trip_sensors"][trip_id] = sensor
+        _LOGGER.debug("Trip sensor created for trip %s", trip_id)
+        return True
+    except Exception as err:  # pragma: no cover
+        _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
+        return False
+
+
+async def async_update_trip_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    trip_id: str,
+    trip_data: Dict[str, Any],
+) -> bool:
+    """Update a trip sensor entity with new data.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier.
+        trip_data: The updated trip data dictionary.
+
+    Returns:
+        True if sensor was updated successfully.
+    """
+    from . import DATA_RUNTIME, DOMAIN
+
+    _LOGGER.debug("Updating trip sensor for trip %s", trip_id)
+
+    # Get the namespace and trip_manager
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_manager = namespace_data.get("trip_manager")
+
+    if not trip_manager:
+        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        return False
+
+    # Get existing sensor and update it
+    trip_sensors = namespace_data.get("trip_sensors", {})
+    if trip_id in trip_sensors:
+        sensor = trip_sensors[trip_id]
+        sensor.trip_type = "recurrente" if trip_data.get("dia_semana") else "puntual"
+        # Update the trip data before refreshing the sensor
+        sensor._trip_data = trip_data
+        sensor._update_from_trip_data()
+        _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
+        return True
+    else:
+        # Sensor doesn't exist, create it
+        return await async_create_trip_sensor(hass, entry_id, trip_id, "recurrente" if trip_data.get("dia_semana") else "puntual", trip_data)
+
+
+async def async_remove_trip_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    trip_id: str,
+) -> bool:
+    """Remove a trip sensor entity.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier to remove.
+
+    Returns:
+        True if sensor was removed successfully.
+    """
+    from . import DATA_RUNTIME, DOMAIN
+
+    _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
+
+    # Get the namespace
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+
+    # Remove from trip_sensors dict
+    trip_sensors = namespace_data.get("trip_sensors", {})
+    if trip_id in trip_sensors:
+        del trip_sensors[trip_id]
+        _LOGGER.debug("Trip sensor removed for trip %s", trip_id)
+        return True
+    else:
+        _LOGGER.debug("Trip sensor %s not found", trip_id)
+        return False

@@ -1,7 +1,7 @@
-"""Tests for __init__.py coverage - ensuring all exception paths are covered.
+"""Tests for dashboard.py coverage - ensuring all exception paths are covered.
 
 This test file ensures coverage of exception handling and error paths
-that were previously untested in __init__.py.
+that were previously untested in dashboard.py.
 """
 
 import pytest
@@ -85,7 +85,7 @@ class TestInputHelpersAlreadyExist:
 class TestStoragePermissionVerificationFailures:
     """Tests for storage permission verification failure paths.
 
-    Tests lines 605-606, 622-629 in __init__.py - exception handlers
+    Tests lines in dashboard.py - exception handlers
     for storage permission verification failures.
     """
 
@@ -101,9 +101,9 @@ class TestStoragePermissionVerificationFailures:
     async def test_no_storage_attribute(self, mock_hass_no_storage):
         """Test that missing storage attribute returns False.
 
-        Covers lines 584-589: Error logged when storage not available.
+        Covers error logged when storage not available.
         """
-        from custom_components.ev_trip_planner import _verify_storage_permissions
+        from custom_components.ev_trip_planner.dashboard import _verify_storage_permissions
 
         result = await _verify_storage_permissions(
             mock_hass_no_storage,
@@ -117,10 +117,10 @@ class TestStoragePermissionVerificationFailures:
     async def test_general_exception_handling(self):
         """Test that general exception in storage verification is handled.
 
-        Covers lines 622-629: Error logged for storage permission verification failure.
+        Covers error logged for storage permission verification failure.
         """
         from unittest.mock import AsyncMock, MagicMock, patch
-        from custom_components.ev_trip_planner import _verify_storage_permissions
+        from custom_components.ev_trip_planner.dashboard import _verify_storage_permissions
 
         hass = MagicMock()
 
@@ -134,9 +134,9 @@ class TestStoragePermissionVerificationFailures:
         hass.storage.async_write_dict = AsyncMock()
         hass.storage.async_read = AsyncMock(side_effect=async_read_side_effect)
 
-        # This will trigger the outer exception handler (lines 622-629)
+        # This will trigger the outer exception handler
         # when the storage read exception is not caught properly
-        with patch("custom_components.ev_trip_planner._LOGGER") as mock_logger:
+        with patch("custom_components.ev_trip_planner.dashboard._LOGGER") as mock_logger:
             result = await _verify_storage_permissions(hass, "test_vehicle")
 
             # Should handle gracefully and return False when storage mode is not available
@@ -147,7 +147,7 @@ class TestStoragePermissionVerificationFailures:
 class TestDashboardStorageAPIFailurePaths:
     """Tests for dashboard storage API failure paths.
 
-    Tests lines 745-751, 771-785 in __init__.py - exception handlers
+    Tests lines in dashboard.py - exception handlers
     for dashboard storage API failures.
     """
 
@@ -181,9 +181,9 @@ class TestDashboardStorageAPIFailurePaths:
     async def test_storage_api_write_failure(self, mock_hass_storage_no_data):
         """Test that storage write failure is handled.
 
-        Covers lines 771-785: Storage API failed path when write fails.
+        Covers storage API failed path when write fails.
         """
-        from custom_components.ev_trip_planner import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
 
         dashboard_config = {
             "title": "Test",
@@ -209,9 +209,9 @@ class TestDashboardStorageAPIFailurePaths:
     async def test_lovelace_config_no_data(self, mock_hass_storage_no_data):
         """Test handling when lovelace config has no data.
 
-        Covers lines 771-773: Error logged when config has no data.
+        Covers error logged when config has no data.
         """
-        from custom_components.ev_trip_planner import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
 
         dashboard_config = {
             "title": "Test",
@@ -237,7 +237,7 @@ class TestDashboardStorageAPIFailurePaths:
 class TestTripDataUpdateExceptionPaths:
     """Tests for trip data update exception paths.
 
-    Tests lines 941-943 in __init__.py - exception handler
+    Tests lines in __init__.py - exception handler
     for _async_update_data when trip manager calls fail.
     """
 
@@ -245,7 +245,7 @@ class TestTripDataUpdateExceptionPaths:
     async def test_trip_update_exception_handling(self):
         """Test that exception in trip update returns default values.
 
-        Covers lines 941-943: Exception handler in _async_update_data.
+        Covers exception handler in _async_update_data.
         """
         from unittest.mock import MagicMock, AsyncMock
         from custom_components.ev_trip_planner import TripPlannerCoordinator
@@ -278,14 +278,14 @@ class TestTripDataUpdateExceptionPaths:
 class TestSetupEntryPaths:
     """Tests for async_setup_entry paths.
 
-    Tests lines 958, 963-1027 in __init__.py - setup entry exception paths.
+    Tests lines in __init__.py - setup entry exception paths.
     """
 
     @pytest.mark.asyncio
     async def test_async_setup_entry_returns_true(self):
         """Test that async_setup_entry returns True on success.
 
-        Covers lines 958, 1027: Return values for setup success.
+        Covers return values for setup success.
         """
         from unittest.mock import MagicMock, AsyncMock, patch
         from custom_components.ev_trip_planner import async_setup_entry
@@ -325,7 +325,7 @@ class TestSetupEntryPaths:
     async def test_async_setup_returns_true(self):
         """Test that async_setup returns True.
 
-        Covers line 958: Return value for setup.
+        Covers return value for setup.
         """
         from custom_components.ev_trip_planner import async_setup
 
@@ -341,8 +341,7 @@ class TestSetupEntryPaths:
 class TestYamlFallbackValidationFailures:
     """Tests for YAML fallback validation failures.
 
-    Tests lines 827-828, 836-837, 839-840, 842-843, 851-852, 870-871 in __init__.py
-    - validation failures in _save_dashboard_yaml_fallback.
+    Tests lines in dashboard.py - validation failures in _save_dashboard_yaml_fallback.
     """
 
     @pytest.fixture
@@ -364,9 +363,9 @@ class TestYamlFallbackValidationFailures:
     async def test_invalid_views_type_rejected(self, mock_hass_container, tmp_path):
         """Test that non-list views is rejected.
 
-        Covers line 827-828: Validation for views being a list.
+        Covers validation for views being a list.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         dashboard_config = {
             "title": "Test",
@@ -386,9 +385,9 @@ class TestYamlFallbackValidationFailures:
     async def test_invalid_view_type_rejected(self, mock_hass_container, tmp_path):
         """Test that non-dict view is rejected.
 
-        Covers line 836-837: Validation for view being a dict.
+        Covers validation for view being a dict.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         dashboard_config = {
             "title": "Test",
@@ -408,9 +407,9 @@ class TestYamlFallbackValidationFailures:
     async def test_missing_view_path_rejected(self, mock_hass_container, tmp_path):
         """Test that missing view path is rejected.
 
-        Covers line 839-840: Validation for view path field.
+        Covers validation for view path field.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         dashboard_config = {
             "title": "Test",
@@ -436,9 +435,9 @@ class TestYamlFallbackValidationFailures:
     async def test_missing_view_title_rejected(self, mock_hass_container, tmp_path):
         """Test that missing view title is rejected.
 
-        Covers line 842-843: Validation for view title field.
+        Covers validation for view title field.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         dashboard_config = {
             "title": "Test",
@@ -464,9 +463,9 @@ class TestYamlFallbackValidationFailures:
     async def test_missing_view_cards_rejected(self, mock_hass_container, tmp_path):
         """Test that missing view cards is rejected.
 
-        Covers line 844-845: Validation for view cards field.
+        Covers validation for view cards field.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         dashboard_config = {
             "title": "Test",
@@ -492,9 +491,9 @@ class TestYamlFallbackValidationFailures:
     async def test_missing_config_dir_rejected(self, mock_hass_container, tmp_path):
         """Test that missing config dir is rejected.
 
-        Covers line 851-852: Validation for config directory.
+        Covers validation for config directory.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         # Set config_dir to None
         mock_hass_container.config.config_dir = None
@@ -523,9 +522,9 @@ class TestYamlFallbackValidationFailures:
     async def test_config_dir_permission_error(self, mock_hass_container, tmp_path):
         """Test that permission error in config dir is handled.
 
-        Covers line 870-871: Exception for config directory issues.
+        Covers exception for config directory issues.
         """
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         # Simulate permission error by setting read-only directory
         tmp_path.chmod(0o444)
