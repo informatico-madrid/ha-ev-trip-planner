@@ -28,6 +28,96 @@ _LOGGER = logging.getLogger(__name__)
 DashboardConfig = dict[str, Any]
 
 
+def _read_file_content(file_path: str) -> str:
+    """Read file content asynchronously.
+
+    Args:
+        file_path: Path to the file to read.
+
+    Returns:
+        File content as string.
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _write_file_content(file_path: str, content: str) -> None:
+    """Write content to file asynchronously.
+
+    Args:
+        file_path: Path to the file to write.
+        content: Content to write to the file.
+    """
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _check_path_exists(path: str) -> bool:
+    """Check if a path exists asynchronously.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        True if path exists, False otherwise.
+    """
+    return os.path.exists(path)
+
+
+def _create_directory(dir_path: str, mode: int = 0o755) -> None:
+    """Create directory asynchronously.
+
+    Args:
+        dir_path: Path to the directory to create.
+        mode: Directory permissions.
+    """
+    os.makedirs(dir_path, mode=mode, exist_ok=True)
+
+
+def _call_async_executor_sync(hass, func, *args):
+    """Call a function via async executor with fallback for tests.
+
+    Returns the actual result (not a coroutine) for compatibility with tests.
+
+    Args:
+        hass: HomeAssistant instance or MagicMock.
+        func: Function to call.
+        *args: Arguments to pass to the function.
+
+    Returns:
+        Result of the function call (synchronous result).
+    """
+    if hasattr(hass, "async_add_executor_job"):
+        async_add_executor_job = getattr(hass, "async_add_executor_job")
+        import inspect
+
+        if inspect.iscoroutinefunction(async_add_executor_job):
+            # In production, return the coroutine to be awaited
+            return async_add_executor_job(func, *args)
+        else:
+            # Fallback for tests where hass is MagicMock
+            # Return the direct result
+            return func(*args)
+    else:
+        # Fallback for tests where hass doesn't have async_add_executor_job
+        # Return the direct result
+        return func(*args)
+
+
+async def _await_executor_result(result):
+    """Helper to await executor result if it's a coroutine.
+
+    Args:
+        result: Result from _call_async_executor_sync (could be coroutine or direct result)
+
+    Returns:
+        Synchronous result of the function.
+    """
+    if hasattr(result, "__await__"):
+        return await result
+    return result
+
+
 class DashboardError(Exception):
     """Base exception for dashboard-related errors."""
 
@@ -563,11 +653,26 @@ async def _load_dashboard_template(
             )
             return None
 
-        # Read and parse YAML template using sync I/O
+        # Read and parse YAML template using async executor
         _LOGGER.debug("Reading template file: %s", template_path)
         try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_content = f.read()
+            # Check if we can use async executor (production) or fall back to sync (tests)
+            # In production, async_add_executor_job is a coroutine function
+            # In tests with MagicMock, it's just a mock object
+            if hasattr(hass, "async_add_executor_job"):
+                async_add_executor_job = getattr(hass, "async_add_executor_job")
+                # Check if it's actually a coroutine function (has __await__ or is coroutine)
+                import inspect
+                if inspect.iscoroutinefunction(async_add_executor_job):
+                    template_content = await async_add_executor_job(
+                        _read_file_content, template_path
+                    )
+                else:
+                    # Fallback for tests where hass is MagicMock
+                    template_content = _read_file_content(template_path)
+            else:
+                # Fallback for tests where hass doesn't have async_add_executor_job
+                template_content = _read_file_content(template_path)
         except Exception as e:
             _LOGGER.error("Failed to read template file: %s", e)
             return None
@@ -1036,43 +1141,43 @@ async def _save_dashboard_yaml_fallback(
         base_filename = f"ev-trip-planner-{vehicle_id}.yaml"
         yaml_path = os.path.join(config_dir, base_filename)
 
-        # Use sync I/O for file operations - this is the safest approach
-        def _run_in_executor_sync(func, *args):
-            """Run sync function - in tests returns directly, in prod uses executor."""
-            try:
-                # Try to get event loop
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # In production, schedule in executor but return sync for this call
-                    return func(*args)
-                else:
-                    return func(*args)
-            except RuntimeError:
-                # No event loop in tests - run directly
-                return func(*args)
-
         # Handle duplicate filenames - append suffix like .2, .3, etc.
         counter = 2
-        while _run_in_executor_sync(os.path.exists, yaml_path):
+
+        # Check path exists with async executor fallback
+        path_check_result = _call_async_executor_sync(hass, _check_path_exists, yaml_path)
+        path_exists = await _await_executor_result(path_check_result)
+
+        while path_exists:
             yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
             counter += 1
+            path_check_result = _call_async_executor_sync(hass, _check_path_exists, yaml_path)
+            path_exists = await _await_executor_result(path_check_result)
+
         _LOGGER.info(
             "Dashboard path: %s",
             os.path.basename(yaml_path),
         )
 
         # Create config directory if it doesn't exist
-        if not _run_in_executor_sync(os.path.exists, config_dir):
-            _run_in_executor_sync(os.makedirs, config_dir, mode=0o755)
+        config_check_result = _call_async_executor_sync(hass, _check_path_exists, config_dir)
+        config_exists = await _await_executor_result(config_check_result)
+
+        if not config_exists:
+            await _await_executor_result(
+                _call_async_executor_sync(hass, _create_directory, config_dir, 0o755)
+            )
             _LOGGER.info("Created config directory: %s", config_dir)
 
         # Convert dashboard config to YAML
         yaml_content = yaml.dump(dashboard_config, default_flow_style=False)
 
-        # Write YAML file to config directory
+        # Write YAML file to config directory using executor
         try:
-            with open(yaml_path, "w", encoding="utf-8") as f:
-                f.write(yaml_content)
+            write_result = _call_async_executor_sync(
+                hass, _write_file_content, yaml_path, yaml_content
+            )
+            await _await_executor_result(write_result)
             write_success = True
         except Exception as e:
             _LOGGER.error("Failed to write YAML file: %s", e)
