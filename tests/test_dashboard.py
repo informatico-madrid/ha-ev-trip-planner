@@ -626,7 +626,7 @@ class TestContainerEnvironment:
 
         # Before fix: result will be False (storage not available)
         # After fix: result should be True (fallback implemented)
-        assert result is True, (
+        assert result.success is True, (
             "Container environment should have fallback mechanism. "
             "Expected dashboard to be saved via YAML generation and "
             "manual import instructions."
@@ -736,7 +736,7 @@ class TestDuplicateDashboardNameCollision:
 
         # Note: In Container environment, file is not overwritten
         # Instead, a new file with .N suffix is created
-        assert result is True, "Should succeed with suffix"
+        assert result.success is True, "Should succeed with suffix"
         # Original file should remain unchanged
         original_content = existing_file.read_text()
         assert "existing: content" in original_content, "Original file should be preserved"
@@ -1218,8 +1218,8 @@ class TestCRUDOperationsViaDashboard:
         )
 
         # Both should succeed
-        assert result1 is True, "First import should succeed"
-        assert result2 is True, "Second import should succeed with suffix"
+        assert result1.success is True, "First import should succeed"
+        assert result2.success is True, "Second import should succeed with suffix"
 
         # Verify both files exist
         existing_file = config_dir / "ev-trip-planner-vehicle1.yaml"
@@ -1374,7 +1374,7 @@ class TestAllFailureModes:
         )
 
         # Should fail gracefully - no partial file created
-        assert result is False, "Invalid config should return False"
+        assert result.success is False, "Invalid config should return False"
 
         # No file should be created for invalid config
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1409,7 +1409,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Empty config should return False"
+        assert result.success is False, "Empty config should return False"
 
         # No file should be created
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1452,7 +1452,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Config without title should return False"
+        assert result.success is False, "Config without title should return False"
 
     @pytest.mark.asyncio
     async def test_empty_views_list_rejected(self, mock_hass_container, tmp_path):
@@ -1486,7 +1486,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Empty views should return False"
+        assert result.success is False, "Empty views should return False"
 
     @pytest.mark.asyncio
     async def test_no_partial_failure_on_all_errors(self, mock_hass_container, tmp_path):
@@ -1527,7 +1527,7 @@ class TestAllFailureModes:
                 config,
                 "test_vehicle",
             )
-            assert result is False, f"Invalid config should return False: {config}"
+            assert result.success is False, f"Invalid config should return False: {config}"
 
         # Final file count should still be initial (no partial files)
         final_files = list(config_dir.glob("*.yaml"))
@@ -1578,7 +1578,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is True, "Valid config should return True"
+        assert result.success is True, "Valid config should return True"
 
         # File should be created
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1669,7 +1669,7 @@ class TestDashboardCreationAfterVehicleSetup:
         result_helpers = await create_dashboard_input_helpers(
             mock_hass_with_vehicle, vehicle_id
         )
-        assert result_helpers is True, (
+        assert result_helpers.success is True, (
             "Input helpers should be created successfully after vehicle setup"
         )
 
@@ -1852,7 +1852,7 @@ class TestDashboardAPICompatibility:
         )
 
         # Should succeed with YAML fallback
-        assert result is True, (
+        assert result.success is True, (
             "Dashboard should be saved via YAML fallback in Container mode"
         )
 

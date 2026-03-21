@@ -1,0 +1,224 @@
+# Dashboard Trip Delete Confirmation for EV Trip Planner
+# This template provides a confirmation interface for deleting trips
+# It displays trip details and requires explicit confirmation to prevent accidental deletion
+
+title: "EV Trip Planner - Eliminar Viaje"
+refresh_interval: 10
+javascript:
+  - /local/custom_components/ev_trip_planner/dashboard/dashboard.js
+views:
+  - title: "Eliminar Viaje - {{ vehicle_name }}"
+    path: "{{ vehicle_id }}-delete"
+    icon: mdi:trash-can
+    columns: 1
+    cards:
+      # Header card with warning
+      - type: markdown
+        content: |
+          # ⚠️ Atención: Eliminar Viaje
+
+          Esta acción no se puede deshacer. Por favor confirma que deseas eliminar este viaje.
+
+      # Warning card
+      - type: grid
+        columns: 1
+        cards:
+          - type: custom:button-card
+            name: "⚠️ Esta acción eliminará permanentemente el viaje seleccionado"
+            icon: mdi:alert
+            color: "#F44336"
+            tap_action:
+              action: none
+            styles:
+              card:
+                - background: "#F44336"
+                - color: white
+                - border-radius: 10px
+                - padding: 20px
+                - font-size: 16px
+                - font-weight: bold
+              name:
+                - text-align: center
+                - font-weight: bold
+              icon:
+                - color: white
+            layout: icon_header_name
+            show_name: true
+            show_icon: true
+
+      # Trip details to confirm
+      - type: markdown
+        title: "📋 Detalles del Viaje"
+        content: |
+          Los siguientes datos del viaje se eliminarán permanentemente:
+
+      # Recurring trip details section
+      - type: entities
+        title: "🔄 Viaje Recurrente"
+        entities:
+          - entity: input_select.{{ vehicle_id }}_trip_day
+            name: Día de la semana
+          - entity: input_datetime.{{ vehicle_id }}_trip_time
+            name: Hora de salida
+          - entity: input_number.{{ vehicle_id }}_trip_km
+            name: Distancia (km)
+          - entity: input_number.{{ vehicle_id }}_trip_kwh
+            name: Energía (kWh)
+          - entity: input_text.{{ vehicle_id }}_trip_desc
+            name: Descripción
+          - entity: input_boolean.{{ vehicle_id }}_trip_active
+            name: Estado
+
+      # Punctual trip details section
+      - type: entities
+        title: "📅 Viaje Puntual"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_punctual_datetime
+            name: Fecha y hora
+          - entity: input_number.{{ vehicle_id }}_punctual_km
+            name: Distancia (km)
+          - entity: input_number.{{ vehicle_id }}_punctual_kwh
+            name: Energía (kWh)
+          - entity: input_text.{{ vehicle_id }}_punctual_desc
+            name: Descripción
+          - entity: input_select.{{ vehicle_id }}_punctual_state
+            name: Estado
+
+      # Confirmation checkbox
+      - type: custom:button-card
+        name: "✅ Confirmo que entiendo que esta acción no se puede deshacer"
+        icon: mdi:checkbox-marked
+        color: "#FF9800"
+        tap_action:
+          action: perform-visual-refresh
+        styles:
+          card:
+            - background: "#FF9800"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Delete button (RED - requires confirmation)
+      - type: custom:button-card
+        name: "🗑️ SÍ, ELIMINAR VIAJE (Confirmado)"
+        icon: mdi:trash-can-outline
+        color: "#F44336"
+        size: 100%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.delete_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            trip_type: recurring
+        styles:
+          card:
+            - background: "#F44336"
+            - color: white
+            - border-radius: 10px
+            - padding: 20px
+            - font-size: 18px
+            - font-weight: bold
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Delete punctual button
+      - type: custom:button-card
+        name: "🗑️ ELIMINAR VIAJE PUNTUAL"
+        icon: mdi:trash-can-outline
+        color: "#F44336"
+        size: 100%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.delete_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            trip_type: punctual
+        styles:
+          card:
+            - background: "#F44336"
+            - color: white
+            - border-radius: 10px
+            - padding: 20px
+            - font-size: 18px
+            - font-weight: bold
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Cancel section
+      - type: markdown
+        content: "---"
+
+      - type: markdown
+        title: "⚠️ ¿Deseas cancelar?"
+        content: |
+          Si cancelas, el viaje NO se eliminará y podrás intentar más tarde.
+
+      # Cancel button (gray - safe)
+      - type: custom:button-card
+        name: "❌ CANCELAR - Volver sin eliminar"
+        icon: mdi:close-circle
+        color: "#757575"
+        size: 100%
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-trips
+        styles:
+          card:
+            - background: "#757575"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 16px
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Navigation back to list
+      - type: custom:button-card
+        name: "📋 Volver a la Lista de Viajes"
+        icon: mdi:list-status
+        color: "#607D8B"
+        size: 100%
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-trips
+        styles:
+          card:
+            - background: "#607D8B"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Help text
+      - type: markdown
+        content: |
+          ---
+
+          ### 💡 Información
+
+          - La eliminación de viajes es permanente y no se puede deshacer
+          - Los sensores asociados al viaje también se eliminarán
+          - Puedes crear un nuevo viaje después si es necesario
+          - Para viajes recurrentes, se elimina la programación semanal
+          - Para viajes puntuales, se elimina el evento único programado
+
+      # Footer card
+      - type: markdown
+        content: |
+          ---
+
+          **EV Trip Planner** - Gestión de Viajes Eléctricos

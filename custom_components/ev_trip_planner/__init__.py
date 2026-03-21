@@ -38,7 +38,7 @@ PLATFORMS: list[Platform] = [
 async def create_dashboard_input_helpers(
     hass: HomeAssistant,
     vehicle_id: str,
-) -> bool:
+) -> DashboardImportResult:
     """Create input helpers for dashboard CRUD forms.
 
     Creates the required input entities that the dashboard template
@@ -49,7 +49,7 @@ async def create_dashboard_input_helpers(
         vehicle_id: Unique identifier for the vehicle.
 
     Returns:
-        True if helpers were created successfully, False otherwise.
+        DashboardImportResult with success status.
     """
     _LOGGER.info("Creating input helpers for dashboard: %s", vehicle_id)
 
@@ -295,11 +295,26 @@ async def create_dashboard_input_helpers(
             _LOGGER.debug("Input datetime may already exist: %s", e)
 
         _LOGGER.info("Input helpers created successfully for: %s", vehicle_id)
-        return True
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+        return DashboardImportResult(
+            success=True,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_id,
+            dashboard_type="simple",
+            storage_method="input_helpers",
+        )
 
     except Exception as e:
         _LOGGER.error("Failed to create input helpers for %s: %s", vehicle_id, e)
-        return False
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+        return DashboardImportResult(
+            success=False,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_id,
+            error=str(e),
+            dashboard_type="simple",
+            storage_method="input_helpers",
+        )
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):

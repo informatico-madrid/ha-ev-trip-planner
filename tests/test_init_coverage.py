@@ -45,7 +45,7 @@ class TestInputHelpersAlreadyExist:
         result = await create_dashboard_input_helpers(mock_hass, vehicle_id)
 
         # Should return True (graceful handling, still succeeds)
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_input_datetime_already_exists(self, mock_hass):
@@ -62,7 +62,7 @@ class TestInputHelpersAlreadyExist:
         result = await create_dashboard_input_helpers(mock_hass, vehicle_id)
 
         # Should return True (graceful handling)
-        assert result is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_input_number_already_exists(self, mock_hass):
@@ -79,7 +79,7 @@ class TestInputHelpersAlreadyExist:
         result = await create_dashboard_input_helpers(mock_hass, vehicle_id)
 
         # Should return True (graceful handling)
-        assert result is True
+        assert result.success is True
 
 
 class TestStoragePermissionVerificationFailures:
@@ -202,8 +202,8 @@ class TestDashboardStorageAPIFailurePaths:
             "test_vehicle"
         )
 
-        # Should return False (storage write failed)
-        assert result is False
+        # Should return DashboardImportResult with success=False (storage write failed)
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_lovelace_config_no_data(self, mock_hass_storage_no_data):
@@ -230,8 +230,8 @@ class TestDashboardStorageAPIFailurePaths:
             "test_vehicle"
         )
 
-        # Should handle gracefully and return False
-        assert result is False
+        # Should handle gracefully and return DashboardImportResult with success=False
+        assert result.success is False
 
 
 class TestTripDataUpdateExceptionPaths:
@@ -379,7 +379,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_invalid_view_type_rejected(self, mock_hass_container, tmp_path):
@@ -401,7 +401,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_missing_view_path_rejected(self, mock_hass_container, tmp_path):
@@ -429,7 +429,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_missing_view_title_rejected(self, mock_hass_container, tmp_path):
@@ -457,7 +457,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_missing_view_cards_rejected(self, mock_hass_container, tmp_path):
@@ -485,7 +485,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_missing_config_dir_rejected(self, mock_hass_container, tmp_path):
@@ -516,7 +516,7 @@ class TestYamlFallbackValidationFailures:
         )
 
         # Should return False
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_config_dir_permission_error(self, mock_hass_container, tmp_path):
@@ -546,8 +546,8 @@ class TestYamlFallbackValidationFailures:
             "test_vehicle"
         )
 
-        # Should handle gracefully and return False
-        assert result is False
+        # Should handle gracefully and return DashboardImportResult with success=False
+        assert result.success is False
 
         # Restore permissions
         tmp_path.chmod(0o755)

@@ -115,26 +115,17 @@ class TestImportDashboard:
     @pytest.mark.asyncio
     async def test_import_dashboard_no_import_method(self, mock_hass):
         """Test dashboard import when no import method available."""
-        mock_hass.config.components = ["lovelace", "core"]
+        mock_hass.config.components = ["core"]  # No lovelace
         mock_hass.services.has_service = Mock(return_value=False)
 
-        # Force ImportError for async_import_dashboard
-        original_import = __builtins__["__import__"]
+        result = await import_dashboard(
+            mock_hass,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            use_charts=False,
+        )
 
-        def mock_import(name, *args, **kwargs):
-            if "importer" in name:
-                raise ImportError("No module named 'homeassistant.helpers.importer'")
-            return original_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=mock_import):
-            result = await import_dashboard(
-                mock_hass,
-                vehicle_id="test_vehicle",
-                vehicle_name="Test Vehicle",
-                use_charts=False,
-            )
-
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_import_dashboard_exception(self, mock_hass):
@@ -372,7 +363,7 @@ class TestSaveLovelaceDashboard:
         )
 
         # Should return False when no method available
-        assert result is False
+        assert result.success is False
 
 
 class TestImportDashboardAdditional:
@@ -501,7 +492,7 @@ class TestCreateDashboardInputHelpers:
         )
 
         # Should return False when Lovelace not available
-        assert result is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_verify_storage_permissions_no_storage(self, mock_hass):

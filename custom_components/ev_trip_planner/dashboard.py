@@ -610,7 +610,7 @@ async def _save_lovelace_dashboard(
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
-) -> bool:
+) -> DashboardImportResult:
     """Save dashboard to Lovelace storage.
 
     Handles both Supervisor (storage API) and Container (YAML fallback) environments.
@@ -621,7 +621,7 @@ async def _save_lovelace_dashboard(
         vehicle_id: The vehicle ID for logging purposes.
 
     Returns:
-        True if saved successfully, False otherwise.
+        DashboardImportResult object with success status.
 
     Raises:
         DashboardStorageError: If storage operation fails with structured error.
@@ -660,7 +660,13 @@ async def _save_lovelace_dashboard(
                     {"config": view_config},
                 )
                 _LOGGER.info("DASHBOARD SAVED via lovelace.save service")
-                return True
+                return DashboardImportResult(
+                    success=True,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    dashboard_type="simple",
+                    storage_method="lovelace_save_service",
+                )
 
             _LOGGER.warning("Dashboard config has no views to save")
             raise DashboardStorageError(
@@ -743,7 +749,13 @@ async def _save_lovelace_dashboard(
                         {"version": 1, "data": {**current_data, "views": views}},
                     )
                     _LOGGER.info("DASHBOARD SAVED via storage API")
-                    return True
+                    return DashboardImportResult(
+                        success=True,
+                        vehicle_id=vehicle_id,
+                        vehicle_name=vehicle_id,
+                        dashboard_type="simple",
+                        storage_method="storage_api",
+                    )
 
                 _LOGGER.error(
                     "STORAGE API FAILED: Lovelace config not found in storage or has no data"
@@ -769,9 +781,13 @@ async def _save_lovelace_dashboard(
             "STORAGE API FAILED: Storage API not available for dashboard import"
         )
 
-    except DashboardStorageError:
-        # Re-raise structured errors
-        raise
+    except DashboardStorageError as e:
+        # Storage operation failed - fall back to YAML
+        _LOGGER.warning(
+            "STORAGE API FAILED for %s: %s, falling back to YAML",
+            vehicle_id,
+            e,
+        )
     except Exception as e:  # pragma: no cover
         _LOGGER.error(
             "Unexpected error in _save_lovelace_dashboard for %s: %s",
@@ -779,16 +795,33 @@ async def _save_lovelace_dashboard(
             e,
             exc_info=True,
         )
-        raise DashboardStorageError(
-            storage_method,
-            f"Unexpected error: {str(e)}",
+        # Fall back to YAML on any error
+        yaml_result = await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
+        if isinstance(yaml_result, DashboardImportResult):
+            return yaml_result
+        return DashboardImportResult(
+            success=yaml_result if isinstance(yaml_result, bool) else yaml_result.success,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_id,
+            dashboard_type="simple",
+            storage_method="yaml_fallback",
         )
 
     # Storage not available - fall back to YAML
     _LOGGER.info(
         "Storage API not available, falling back to YAML for %s", vehicle_id
     )
-    return await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
+    yaml_result = await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
+    if isinstance(yaml_result, DashboardImportResult):
+        return yaml_result
+    # If YAML fallback returns boolean, wrap it
+    return DashboardImportResult(
+        success=yaml_result if isinstance(yaml_result, bool) else yaml_result.success,
+        vehicle_id=vehicle_id,
+        vehicle_name=vehicle_id,
+        dashboard_type="simple",
+        storage_method="yaml_fallback",
+    )
 
 
 async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bool:
@@ -871,7 +904,7 @@ async def _save_dashboard_yaml_fallback(
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
-) -> bool:
+) -> DashboardImportResult:
     """Save dashboard as YAML file for Container environment.
 
     In HA Container, storage API is not available. This function generates
@@ -883,7 +916,7 @@ async def _save_dashboard_yaml_fallback(
         vehicle_id: The vehicle ID for file naming.
 
     Returns:
-        True if YAML file was created successfully, False otherwise.
+        DashboardImportResult object with success status.
     """
     try:
         import asyncio
@@ -891,43 +924,113 @@ async def _save_dashboard_yaml_fallback(
         # Validate dashboard config before writing
         if not dashboard_config:
             _LOGGER.error("Dashboard config is empty or None")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         if "title" not in dashboard_config:
             _LOGGER.error("Dashboard config missing required 'title' field")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         if "views" not in dashboard_config:
             _LOGGER.error("Dashboard config missing required 'views' field")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         if not isinstance(dashboard_config["views"], list):
             _LOGGER.error("Dashboard 'views' must be a list")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         if len(dashboard_config["views"]) == 0:
             _LOGGER.error("Dashboard 'views' list cannot be empty")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         for i, view in enumerate(dashboard_config["views"]):
             if not isinstance(view, dict):
                 _LOGGER.error("Dashboard view at index %d must be a dict", i)
-                return False
+                return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
             if "path" not in view:
                 _LOGGER.error("Dashboard view at index %d missing required 'path' field", i)
-                return False
+                return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
             if "title" not in view:
                 _LOGGER.error("Dashboard view at index %d missing required 'title' field", i)
-                return False
+                return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
             if "cards" not in view:
                 _LOGGER.error("Dashboard view at index %d missing required 'cards' field", i)
-                return False
+                return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         # Get config directory path
         config_dir = hass.config.config_dir
         if not config_dir:
             _LOGGER.error("Could not determine config directory")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         # Generate unique filename to avoid collisions
         base_filename = f"ev-trip-planner-{vehicle_id}.yaml"
@@ -977,7 +1080,14 @@ async def _save_dashboard_yaml_fallback(
 
         if not write_success:
             _LOGGER.error("Failed to write dashboard YAML file")
-            return False
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_id,
+                error="Invalid dashboard config",
+                dashboard_type="simple",
+                storage_method="yaml_fallback",
+            )
 
         _LOGGER.info(
             "YAML file created at %s",
@@ -1001,8 +1111,21 @@ async def _save_dashboard_yaml_fallback(
             yaml_path,
         )
 
-        return True
+        return DashboardImportResult(
+            success=True,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_id,
+            dashboard_type="simple",
+            storage_method="yaml_fallback",
+        )
 
     except Exception as e:
         _LOGGER.error("YAML fallback failed: %s", e, exc_info=True)
-        return False
+        return DashboardImportResult(
+            success=False,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_id,
+            error=str(e),
+            dashboard_type="simple",
+            storage_method="yaml_fallback",
+        )
