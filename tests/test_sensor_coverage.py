@@ -33,25 +33,25 @@ class TestEmhassDeferrableLoadSensor:
     async def test_emhass_sensor_unique_id(self, hass: HomeAssistant, mock_trip_manager_for_sensor):
         """Test EmhassDeferrableLoadSensor unique_id property."""
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
-        assert sensor.unique_id == "emhass_perfil_diferible_test_vehicle"
+        assert sensor.unique_id == "emhass_perfil_diferible_test_entry_id"
 
     async def test_emhass_sensor_device_info(self, hass: HomeAssistant, mock_trip_manager_for_sensor):
         """Test EmhassDeferrableLoadSensor device_info property."""
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
         device_info = sensor.device_info
-        assert device_info["identifiers"] == {("ev_trip_planner", "test_vehicle")}
-        assert device_info["name"] == "EV Trip Planner test_vehicle"
+        assert device_info["identifiers"] == {("ev_trip_planner", "test_entry_id")}
+        assert device_info["name"] == "EV Trip Planner test_entry_id"
 
     async def test_emhass_sensor_extra_state_attributes(
         self, hass: HomeAssistant, mock_trip_manager_for_sensor
     ):
         """Test EmhassDeferrableLoadSensor extra_state_attributes property."""
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
         # Initially empty
         assert sensor.extra_state_attributes == {}
@@ -80,7 +80,7 @@ class TestEmhassDeferrableLoadSensor:
         )
 
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
         await sensor.async_update()
 
@@ -96,7 +96,7 @@ class TestEmhassDeferrableLoadSensor:
         hass.config_entries.async_entries = MagicMock(return_value=[])
 
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
         await sensor.async_update()
 
@@ -124,7 +124,7 @@ class TestEmhassDeferrableLoadSensor:
         )
 
         sensor = EmhassDeferrableLoadSensor(
-            hass, mock_trip_manager_for_sensor, "test_vehicle"
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
         await sensor.async_update()
 

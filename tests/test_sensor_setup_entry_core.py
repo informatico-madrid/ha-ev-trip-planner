@@ -52,4 +52,4 @@ async def test_async_setup_entry_creates_three_sensors():
     # Verify EMHASS sensor has correct unique_id
     emhass_sensor = next((e for e in created if hasattr(e, '_attr_unique_id') and e._attr_unique_id and 'emhass' in e._attr_unique_id), None)
     assert emhass_sensor is not None, "EMHASS sensor should be created"
-    assert emhass_sensor._attr_unique_id == "emhass_perfil_diferible_Chispitas"
+    assert emhass_sensor._attr_unique_id == "emhass_perfil_diferible_eid123"

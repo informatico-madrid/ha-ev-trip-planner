@@ -386,14 +386,14 @@ class TestDashboardImport:
         """Import and return the ev_trip_planner module."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
-        from custom_components.ev_trip_planner import import_dashboard
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
         return import_dashboard
 
     @pytest.mark.asyncio
     async def test_import_dashboard_loads_template(self, mock_hass, dashboard_module):
         """Test that import_dashboard loads the YAML template correctly."""
         # This test verifies the template loading works
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         result = await _load_dashboard_template(
             mock_hass,
@@ -411,7 +411,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that import_dashboard loads the full template correctly."""
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         result = await _load_dashboard_template(
             mock_hass,
@@ -429,7 +429,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that vehicle_id is substituted in the template."""
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_id = "my_tesla_123"
 
@@ -451,7 +451,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that vehicle_name is substituted in the template."""
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_name = "Family EV"
 
@@ -473,7 +473,7 @@ class TestDashboardImport:
         import asyncio
 
         async def run_test():
-            from custom_components.ev_trip_planner import _load_dashboard_template
+            from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
             result = await _load_dashboard_template(
                 mock_hass,
                 "test_id",
@@ -490,7 +490,7 @@ class TestDashboardImport:
         import asyncio
 
         async def run_test():
-            from custom_components.ev_trip_planner import _load_dashboard_template
+            from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
             result = await _load_dashboard_template(
                 mock_hass,
                 "test_id",
@@ -507,7 +507,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_with_lovelace_in_components(self):
         """Test is_lovelace_available returns True when lovelace is in components."""
         from unittest.mock import MagicMock
-        from custom_components.ev_trip_planner import is_lovelace_available
+        from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
         hass.config.components = ["lovelace", "sensor"]
@@ -517,7 +517,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_without_lovelace(self):
         """Test is_lovelace_available returns False when lovelace is not available."""
         from unittest.mock import MagicMock
-        from custom_components.ev_trip_planner import is_lovelace_available
+        from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
         hass.config.components = ["sensor", "automation"]
@@ -528,7 +528,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_with_import_service(self):
         """Test is_lovelace_available returns True when import service exists."""
         from unittest.mock import MagicMock
-        from custom_components.ev_trip_planner import is_lovelace_available
+        from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
         hass.config.components = []  # No lovelace in components
@@ -603,7 +603,7 @@ class TestContainerEnvironment:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
 
         vehicle_id = "container_test_vehicle"
 
@@ -626,7 +626,7 @@ class TestContainerEnvironment:
 
         # Before fix: result will be False (storage not available)
         # After fix: result should be True (fallback implemented)
-        assert result is True, (
+        assert result.success is True, (
             "Container environment should have fallback mechanism. "
             "Expected dashboard to be saved via YAML generation and "
             "manual import instructions."
@@ -681,14 +681,9 @@ class TestDuplicateDashboardNameCollision:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
-
         # Create config directory
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create existing file to simulate collision
-        existing_file = config_dir / "ev-trip-planner-vehicle1.yaml"
 
     @pytest.mark.asyncio
     async def test_duplicate_dashboard_name_overwrites(
@@ -707,7 +702,7 @@ class TestDuplicateDashboardNameCollision:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         # Use the same config directory as mock_hass_container
         config_dir = Path("/tmp/test_config")
@@ -741,7 +736,7 @@ class TestDuplicateDashboardNameCollision:
 
         # Note: In Container environment, file is not overwritten
         # Instead, a new file with .N suffix is created
-        assert result is True, "Should succeed with suffix"
+        assert result.success is True, "Should succeed with suffix"
         # Original file should remain unchanged
         original_content = existing_file.read_text()
         assert "existing: content" in original_content, "Original file should be preserved"
@@ -1188,7 +1183,7 @@ class TestCRUDOperationsViaDashboard:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         # Create config directory
         config_dir = tmp_path / "test_config"
@@ -1223,8 +1218,8 @@ class TestCRUDOperationsViaDashboard:
         )
 
         # Both should succeed
-        assert result1 is True, "First import should succeed"
-        assert result2 is True, "Second import should succeed with suffix"
+        assert result1.success is True, "First import should succeed"
+        assert result2.success is True, "Second import should succeed with suffix"
 
         # Verify both files exist
         existing_file = config_dir / "ev-trip-planner-vehicle1.yaml"
@@ -1273,7 +1268,7 @@ class TestCRUDOperationsViaDashboard:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         # Create config directory
         config_dir = tmp_path / "test_config"
@@ -1359,7 +1354,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1379,7 +1374,7 @@ class TestAllFailureModes:
         )
 
         # Should fail gracefully - no partial file created
-        assert result is False, "Invalid config should return False"
+        assert result.success is False, "Invalid config should return False"
 
         # No file should be created for invalid config
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1398,7 +1393,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1414,7 +1409,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Empty config should return False"
+        assert result.success is False, "Empty config should return False"
 
         # No file should be created
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1433,7 +1428,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1457,7 +1452,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Config without title should return False"
+        assert result.success is False, "Config without title should return False"
 
     @pytest.mark.asyncio
     async def test_empty_views_list_rejected(self, mock_hass_container, tmp_path):
@@ -1472,7 +1467,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1491,7 +1486,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is False, "Empty views should return False"
+        assert result.success is False, "Empty views should return False"
 
     @pytest.mark.asyncio
     async def test_no_partial_failure_on_all_errors(self, mock_hass_container, tmp_path):
@@ -1507,7 +1502,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1532,7 +1527,7 @@ class TestAllFailureModes:
                 config,
                 "test_vehicle",
             )
-            assert result is False, f"Invalid config should return False: {config}"
+            assert result.success is False, f"Invalid config should return False: {config}"
 
         # Final file count should still be initial (no partial files)
         final_files = list(config_dir.glob("*.yaml"))
@@ -1553,7 +1548,7 @@ class TestAllFailureModes:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1583,7 +1578,7 @@ class TestAllFailureModes:
             "test_vehicle",
         )
 
-        assert result is True, "Valid config should return True"
+        assert result.success is True, "Valid config should return True"
 
         # File should be created
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
@@ -1661,11 +1656,11 @@ class TestDashboardCreationAfterVehicleSetup:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import (
+        from custom_components.ev_trip_planner.dashboard import (
             import_dashboard,
             _load_dashboard_template,
-            create_dashboard_input_helpers,
         )
+        from custom_components.ev_trip_planner import create_dashboard_input_helpers
 
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
@@ -1674,7 +1669,7 @@ class TestDashboardCreationAfterVehicleSetup:
         result_helpers = await create_dashboard_input_helpers(
             mock_hass_with_vehicle, vehicle_id
         )
-        assert result_helpers is True, (
+        assert result_helpers.success is True, (
             "Input helpers should be created successfully after vehicle setup"
         )
 
@@ -1707,8 +1702,8 @@ class TestDashboardCreationAfterVehicleSetup:
             use_charts=False,
         )
 
-        assert result_import is True, (
-            "Dashboard import should succeed after vehicle setup"
+        assert result_import.success is True, (
+            f"Dashboard import should succeed after vehicle setup. Result: {result_import}"
         )
 
     @pytest.mark.asyncio
@@ -1722,8 +1717,7 @@ class TestDashboardCreationAfterVehicleSetup:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import (
-            import_dashboard,
+        from custom_components.ev_trip_planner.dashboard import (
             _load_dashboard_template,
         )
 
@@ -1770,7 +1764,7 @@ class TestDashboardCreationAfterVehicleSetup:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import import_dashboard
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
 
         vehicle_id = "no_error_test"
         vehicle_name = "No Error Test"
@@ -1785,7 +1779,7 @@ class TestDashboardCreationAfterVehicleSetup:
             )
 
         # Dashboard import should succeed
-        assert result is True, "Dashboard import should not produce errors"
+        assert result.success is True, f"Dashboard import should not produce errors. Result: {result}"
 
         # Check for error logs during import
         error_logs = [
@@ -1824,7 +1818,7 @@ class TestDashboardAPICompatibility:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import (
+        from custom_components.ev_trip_planner.dashboard import (
             _save_dashboard_yaml_fallback,
         )
 
@@ -1858,7 +1852,7 @@ class TestDashboardAPICompatibility:
         )
 
         # Should succeed with YAML fallback
-        assert result is True, (
+        assert result.success is True, (
             "Dashboard should be saved via YAML fallback in Container mode"
         )
 
@@ -1905,7 +1899,7 @@ class TestDashboardNoErrorsInLogs:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
@@ -2006,7 +2000,7 @@ class TestDashboardNoErrorsInLogs:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import import_dashboard
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
 
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
@@ -2021,8 +2015,8 @@ class TestDashboardNoErrorsInLogs:
             )
 
         # Dashboard import should succeed
-        assert result is True, (
-            "Dashboard import should succeed without Lovelace errors"
+        assert result.success is True, (
+            f"Dashboard import should succeed without Lovelace errors. Result: {result}"
         )
 
         # Check for Lovelace-related error logs
@@ -2041,7 +2035,7 @@ class TestDashboardNoErrorsInLogs:
         )
 
     @pytest.mark.asyncio
-    async def test_no_errors_in_dashboard_import_process(self, caplog):
+    async def test_no_errors_in_dashboard_import_process(self, hass, caplog):
         """Test that the entire dashboard import process produces no errors.
 
         This is a comprehensive test that verifies:
@@ -2056,7 +2050,7 @@ class TestDashboardNoErrorsInLogs:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_id = "comprehensive_test"
         vehicle_name = "Comprehensive Test"
@@ -2064,7 +2058,7 @@ class TestDashboardNoErrorsInLogs:
         # Capture all logs
         with caplog.at_level("ERROR"):
             dashboard_config = await _load_dashboard_template(
-                caplog, vehicle_id, vehicle_name, use_charts=True
+                hass, vehicle_id, vehicle_name, use_charts=True
             )
 
         # Dashboard should load
@@ -2100,7 +2094,7 @@ class TestDashboardNoErrorsInLogs:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_id = "full_dashboard_test"
         vehicle_name = "Full Dashboard Test"
@@ -2148,7 +2142,7 @@ class TestDashboardNoErrorsInLogs:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
 
         vehicle_id = "simple_dashboard_test"
         vehicle_name = "Simple Dashboard Test"

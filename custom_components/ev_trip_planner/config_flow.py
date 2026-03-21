@@ -17,7 +17,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .__init__ import import_dashboard, is_lovelace_available
+from .dashboard import import_dashboard, is_lovelace_available
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DOMAIN,
+    CONFIG_VERSION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,7 +45,10 @@ _LOGGER = logging.getLogger(__name__)
 # Step 1: Vehicle basic info
 STEP_USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_VEHICLE_NAME): str,
+        vol.Required(CONF_VEHICLE_NAME): vol.All(
+            str,
+            vol.Length(min=1, max=100, msg="vehicle_name_required"),
+        ),
     }
 )
 
@@ -226,7 +230,7 @@ def _get_emhass_max_deferrable_loads(
 class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     """Maneja el flujo de configuración para EV Trip Planner."""
 
-    VERSION = 1
+    VERSION = CONFIG_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     def __init__(self) -> None:
@@ -245,12 +249,35 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         """Paso 1: Configuración básica del vehículo."""
         _LOGGER.debug("Config flow step 1 (user): showing form")
         if user_input is not None:
+            # Validate vehicle name
+            vehicle_name = user_input.get(CONF_VEHICLE_NAME, "").strip()
+            if not vehicle_name:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=STEP_USER_SCHEMA,
+                    errors={"base": "vehicle_name_required"},
+                    description_placeholders={
+                        "description": "Configure your electric vehicle for trip planning"
+                    },
+                )
+
+            # Validate vehicle name length
+            if len(vehicle_name) > 100:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=STEP_USER_SCHEMA,
+                    errors={"base": "vehicle_name_too_long"},
+                    description_placeholders={
+                        "description": "Vehicle name must be less than 100 characters"
+                    },
+                )
+
             # Store step 1 data in context
             vehicle_data = self._get_vehicle_data()
-            vehicle_data.update(user_input)
+            vehicle_data[CONF_VEHICLE_NAME] = vehicle_name
             _LOGGER.debug(
                 "Config flow step 1 (user): vehicle_name=%s",
-                user_input.get(CONF_VEHICLE_NAME),
+                vehicle_name,
             )
             return await self.async_step_sensors()
 
@@ -265,9 +292,54 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     async def async_step_sensors(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Paso 2: Configuración de sensores del vehículo."""
+        """Paso 2: Configuración de sensores del vehículo.
+
+        Validates:
+        - Battery capacity: 10-200 kWh
+        - Consumption: 0.05-0.5 kWh/km
+        - Safety margin: 0-50%
+        """
         _LOGGER.debug("Config flow step 2 (sensors): showing form")
         if user_input is not None:
+            # Validate battery capacity (reasonable range: 10-200 kWh)
+            battery_capacity = user_input.get(CONF_BATTERY_CAPACITY)
+            if battery_capacity is not None:
+                if battery_capacity < 10 or battery_capacity > 200:
+                    return self.async_show_form(
+                        step_id="sensors",
+                        data_schema=STEP_SENSORS_SCHEMA,
+                        errors={"base": "invalid_battery_capacity"},
+                        description_placeholders={
+                            "description": "Battery capacity must be between 10 and 200 kWh"
+                        },
+                    )
+
+            # Validate consumption (reasonable range: 0.05-0.5 kWh/km)
+            consumption = user_input.get(CONF_CONSUMPTION)
+            if consumption is not None:
+                if consumption < 0.05 or consumption > 0.5:
+                    return self.async_show_form(
+                        step_id="sensors",
+                        data_schema=STEP_SENSORS_SCHEMA,
+                        errors={"base": "invalid_consumption"},
+                        description_placeholders={
+                            "description": "Consumption must be between 0.05 and 0.5 kWh/km"
+                        },
+                    )
+
+            # Validate safety margin (reasonable range: 0-50%)
+            safety_margin = user_input.get(CONF_SAFETY_MARGIN)
+            if safety_margin is not None:
+                if safety_margin < 0 or safety_margin > 50:
+                    return self.async_show_form(
+                        step_id="sensors",
+                        data_schema=STEP_SENSORS_SCHEMA,
+                        errors={"base": "invalid_safety_margin"},
+                        description_placeholders={
+                            "description": "Safety margin must be between 0 and 50%"
+                        },
+                    )
+
             # Store step 2 data in context
             vehicle_data = self._get_vehicle_data()
             vehicle_data.update(user_input)

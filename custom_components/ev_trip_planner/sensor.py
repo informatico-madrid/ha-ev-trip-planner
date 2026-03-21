@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
+    TRIP_TYPE_RECURRING,
 )
 from .trip_manager import TripManager
 
@@ -148,6 +149,98 @@ class TripPlannerSensor(SensorEntity):
         }
 
 
+class TripSensor(SensorEntity):
+    """Sensor para un viaje individual."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        trip_manager: TripManager,
+        trip_id: str,
+        trip_type: str,
+        trip_data: Dict[str, Any],
+    ) -> None:
+        """Inicializa el sensor del viaje."""
+        self.hass = hass
+        self.trip_manager = trip_manager
+        self.trip_id = trip_id
+        self.trip_type = trip_type
+        self._trip_data = trip_data
+        self._attr_unique_id = f"{DOMAIN}_trip_{trip_id}"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Trip {trip_data.get('descripcion', trip_id)}"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._cached_attrs: Dict[str, Any] = {}
+        self._update_from_trip_data()
+
+    def _update_from_trip_data(self) -> None:
+        """Update sensor attributes from trip data."""
+        trip = self._trip_data
+        if trip:
+            self._attr_native_value = trip.get("descripcion", "Unknown")
+            distance = trip.get("km", 0)
+            energy = trip.get("kwh", 0)
+            self._cached_attrs["distance_km"] = distance
+            self._cached_attrs["energy_kwh"] = energy
+            self._cached_attrs["trip_type"] = self.trip_type
+            self._cached_attrs["trip_id"] = self.trip_id
+
+            # Set device class based on attribute
+            if "kwh" in str(self._cached_attrs.get("energy_kwh", "")):
+                self._attr_device_class = SensorDeviceClass.ENERGY
+                self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+            else:
+                self._attr_device_class = None
+
+            # Update state class for energy sensors
+            if self._attr_device_class == SensorDeviceClass.ENERGY:
+                self._attr_state_class = SensorStateClass.MEASUREMENT
+
+            _LOGGER.debug(
+                "TripSensor %s: value=%s, distance=%s km, energy=%s kWh",
+                self.trip_id,
+                self._attr_native_value,
+                distance,
+                energy,
+            )
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Devuelve atributos adicionales para el sensor."""
+        return self._cached_attrs.copy()
+
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Devuelve información del dispositivo."""
+        return {
+            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self.trip_id}")},
+            "name": f"Trip {self.trip_id} - {self.trip_manager.vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
+        }
+
+    async def async_update(self) -> None:
+        """Actualiza el estado del sensor desde el trip_manager."""
+        try:
+            if self.trip_type == TRIP_TYPE_RECURRING:
+                trips = await self.trip_manager.async_get_recurring_trips()
+                for trip in trips:
+                    if str(trip.get("id")) == self.trip_id:
+                        self._update_from_trip_data()
+                        return
+            elif self.trip_type == TRIP_TYPE_PUNCTUAL:
+                trips = await self.trip_manager.async_get_punctual_trips()
+                for trip in trips:
+                    if str(trip.get("id")) == self.trip_id:
+                        self._update_from_trip_data()
+                        return
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error("Error updating trip sensor %s: %s", self.trip_id, err)
+            self._attr_native_value = "error"
+
+
 # Backward compatibility aliases for tests
 # These map test expectations to the actual TripPlannerSensor implementation
 
@@ -186,8 +279,8 @@ class RecurringTripsCountSensor(TripPlannerSensor):
             )
             if data and "recurring_trips" in data:
                 return len(data.get("recurring_trips", []))
-        _LOGGER.warning(
-            "RecurringTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "RecurringTripsCountSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -226,8 +319,8 @@ class PunctualTripsCountSensor(TripPlannerSensor):
             )
             if data and "punctual_trips" in data:
                 return len(data.get("punctual_trips", []))
-        _LOGGER.warning(
-            "PunctualTripsCountSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "PunctualTripsCountSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -260,8 +353,8 @@ class TripsListSensor(TripPlannerSensor):
                 self._cached_attrs["punctual_trips"] = punctual
                 self._cached_attrs["trips"] = recurring + punctual
                 return len(recurring) + len(punctual)
-        _LOGGER.warning(
-            "TripsListSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "TripsListSensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -302,8 +395,8 @@ class KwhTodaySensor(TripPlannerSensor):
             )
             if data and "kwh_today" in data:
                 return data.get("kwh_today", 0.0)
-        _LOGGER.warning(
-            "KwhTodaySensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "KwhTodaySensor(%s) returning default value 0.0", self._vehicle_id
         )
         return 0.0
 
@@ -341,8 +434,8 @@ class HoursTodaySensor(TripPlannerSensor):
             )
             if data and "hours_today" in data:
                 return data.get("hours_today", 0)
-        _LOGGER.warning(
-            "HoursTodaySensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "HoursTodaySensor(%s) returning default value 0", self._vehicle_id
         )
         return 0
 
@@ -391,8 +484,8 @@ class NextTripSensor(TripPlannerSensor):
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("descripcion", "No trips")
-        _LOGGER.warning(
-            "NextTripSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "NextTripSensor(%s) returning default value 'No trips'", self._vehicle_id
         )
         return "No trips"
 
@@ -430,8 +523,8 @@ class NextDeadlineSensor(TripPlannerSensor):
                 next_trip = data.get("next_trip")
                 if next_trip:
                     return next_trip.get("datetime")
-        _LOGGER.warning(
-            "NextDeadlineSensor(%s) no coordinator data available", self._vehicle_id
+        _LOGGER.debug(
+            "NextDeadlineSensor(%s) returning default value None", self._vehicle_id
         )
         return None
 
@@ -444,21 +537,21 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     - deferrables_schedule: Calendario de cargas diferibles
 
     Platform: template
-    Entity: sensor.emhass_perfil_diferible_{vehicle_id}
+    Entity: sensor.emhass_perfil_diferible_{entry_id}
     """
 
     def __init__(
         self,
         hass: HomeAssistant,
         trip_manager: TripManager,
-        vehicle_id: str,
+        entry_id: str,
     ) -> None:
         """Inicializa el sensor de carga diferible."""
         self.hass = hass
         self.trip_manager = trip_manager
-        self._vehicle_id = vehicle_id
-        self._attr_unique_id = f"emhass_perfil_diferible_{vehicle_id}"
-        self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
+        self._entry_id = entry_id
+        self._attr_unique_id = f"emhass_perfil_diferible_{entry_id}"
+        self._attr_name = f"EMHASS Perfil Diferible {entry_id}"
         self._attr_has_entity_name = True
         self._attr_native_value = "ready"
         self._cached_attrs: Dict[str, Any] = {}
@@ -472,8 +565,8 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     def device_info(self) -> Dict[str, Any]:
         """Return device info."""
         return {
-            "identifiers": {(DOMAIN, self._vehicle_id)},
-            "name": f"EV Trip Planner {self._vehicle_id}",
+            "identifiers": {(DOMAIN, self._entry_id)},
+            "name": f"EV Trip Planner {self._entry_id}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
@@ -487,22 +580,22 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     async def async_update(self) -> None:
         """Actualiza el estado del sensor."""
         try:
-            # Find config entry by matching vehicle_id in data
+            # Find config entry by entry_id
             entry = None
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data.get("vehicle_name") == self._vehicle_id:
+                if config_entry.entry_id == self._entry_id:
                     entry = config_entry
                     break
 
             if not entry or not entry.data:
-                _LOGGER.warning("No config entry found for %s", self._vehicle_id)
+                _LOGGER.warning("No config entry found for %s", self._entry_id)
                 return
 
             charging_power_kw = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
             planning_horizon_days = entry.data.get("planning_horizon_days", 7)
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: charging_power=%s, horizon=%s",
-                self._vehicle_id,
+                self._entry_id,
                 charging_power_kw,
                 planning_horizon_days,
             )
@@ -524,7 +617,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             self._attr_native_value = "ready"
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
-                self._vehicle_id,
+                self._entry_id,
                 len(power_profile) if power_profile else 0,
                 len(schedule) if schedule else 0,
             )
@@ -532,7 +625,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         except Exception as err:
             _LOGGER.error(
                 "Error actualizando sensor EMHASS %s: %s",
-                self._vehicle_id,
+                self._entry_id,
                 err,
                 exc_info=True,
             )
@@ -710,7 +803,7 @@ async def async_setup_entry(
         HoursTodaySensor(vehicle_id, coordinator),
         NextTripSensor(vehicle_id, coordinator),
         NextDeadlineSensor(vehicle_id, coordinator),
-        EmhassDeferrableLoadSensor(hass, trip_manager, vehicle_id),
+        EmhassDeferrableLoadSensor(hass, trip_manager, entry_id),
     ]
 
     # Create trip sensors for existing trips
@@ -729,44 +822,127 @@ async def async_setup_entry(
     return True
 
 
-async def _async_create_trip_sensors(
+async def async_create_trip_sensor(
     hass: HomeAssistant,
-    trip_manager: TripManager,
-    vehicle_id: str,
-    async_add_entities: Any,
-) -> List[TripSensor]:
-    """Create sensor entities for all existing trips.
+    entry_id: str,
+    trip_id: str,
+    trip_type: str,
+    trip_data: Dict[str, Any],
+) -> bool:
+    """Create a sensor entity for a trip.
 
     Args:
-        hass: Home Assistant instance
-        trip_manager: TripManager for this vehicle
-        vehicle_id: Vehicle identifier
-        async_add_entities: Function to add entities
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier.
+        trip_type: The trip type (recurrente or puntual).
+        trip_data: The trip data dictionary.
 
     Returns:
-        List of created TripSensor entities
+        True if sensor was created successfully.
     """
-    trip_sensors: List[TripSensor] = []
+    from . import DATA_RUNTIME, DOMAIN
 
-    # Get all trips
-    recurring_trips = await trip_manager.async_get_recurring_trips()
-    punctual_trips = await trip_manager.async_get_punctual_trips()
+    _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
 
-    # Create sensors for recurring trips
-    for trip in recurring_trips:
-        sensor = TripSensor(hass, trip_manager, trip)
-        trip_sensors.append(sensor)
+    # Get the namespace and trip_manager
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_manager = namespace_data.get("trip_manager")
 
-    # Create sensors for punctual trips
-    for trip in punctual_trips:
-        sensor = TripSensor(hass, trip_manager, trip)
-        trip_sensors.append(sensor)
+    if not trip_manager:
+        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        return False
 
-    if trip_sensors:
-        _LOGGER.info(
-            "Created %d trip sensors for vehicle %s",
-            len(trip_sensors),
-            vehicle_id,
-        )
+    # Create the trip sensor
+    try:
+        sensor = TripSensor(hass, trip_manager, trip_id, trip_type, trip_data)
+        hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+        hass.data[DATA_RUNTIME][namespace]["trip_sensors"][trip_id] = sensor
+        _LOGGER.debug("Trip sensor created for trip %s", trip_id)
+        return True
+    except Exception as err:  # pragma: no cover
+        _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
+        return False
 
-    return trip_sensors
+
+async def async_update_trip_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    trip_id: str,
+    trip_data: Dict[str, Any],
+) -> bool:
+    """Update a trip sensor entity with new data.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier.
+        trip_data: The updated trip data dictionary.
+
+    Returns:
+        True if sensor was updated successfully.
+    """
+    from . import DATA_RUNTIME, DOMAIN
+
+    _LOGGER.debug("Updating trip sensor for trip %s", trip_id)
+
+    # Get the namespace and trip_manager
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_manager = namespace_data.get("trip_manager")
+
+    if not trip_manager:
+        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        return False
+
+    # Get existing sensor and update it
+    trip_sensors = namespace_data.get("trip_sensors", {})
+    if trip_id in trip_sensors:
+        sensor = trip_sensors[trip_id]
+        sensor.trip_type = "recurrente" if trip_data.get("dia_semana") else "puntual"
+        # Update the trip data before refreshing the sensor
+        sensor._trip_data = trip_data
+        sensor._update_from_trip_data()
+        _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
+        return True
+    else:
+        # Sensor doesn't exist, create it
+        return await async_create_trip_sensor(hass, entry_id, trip_id, "recurrente" if trip_data.get("dia_semana") else "puntual", trip_data)
+
+
+async def async_remove_trip_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    trip_id: str,
+) -> bool:
+    """Remove a trip sensor entity.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        trip_id: The trip identifier to remove.
+
+    Returns:
+        True if sensor was removed successfully.
+    """
+    from . import DATA_RUNTIME, DOMAIN
+
+    _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
+
+    # Get the namespace
+    namespace = f"{DOMAIN}_{entry_id}"
+    runtime_data = hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+
+    # Remove from trip_sensors dict
+    trip_sensors = namespace_data.get("trip_sensors", {})
+    if trip_id in trip_sensors:
+        del trip_sensors[trip_id]
+        _LOGGER.debug("Trip sensor removed for trip %s", trip_id)
+        return True
+    else:
+        _LOGGER.debug("Trip sensor %s not found", trip_id)
+        return False
