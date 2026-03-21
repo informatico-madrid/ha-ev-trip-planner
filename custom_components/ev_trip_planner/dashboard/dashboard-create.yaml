@@ -1,0 +1,322 @@
+# Dashboard Create Trip Form for EV Trip Planner
+# This template provides a dedicated form for creating trips (recurring and punctual)
+# It is used when users need to create new trips through a visual interface
+
+title: "EV Trip Planner - Crear Viaje"
+refresh_interval: 10
+views:
+  - title: "Crear Viaje - {{ vehicle_name }}"
+    path: "{{ vehicle_id }}-create"
+    icon: mdi:plus-box
+    columns: 1
+    cards:
+      # Header card
+      - type: markdown
+        content: |
+          # Crear Nuevo Viaje
+
+          Utiliza este formulario para programar viajes recurrentes o puntuales.
+
+      # Tab navigation
+      - type: grid
+        columns: 2
+        cards:
+          - type: custom:button-card
+            name: "🔄 Viaje Recurrente"
+            icon: mdi:calendar-repeat
+            tap_action:
+              action: perform-visual-refresh
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--primary-color);
+                  color: white;
+                }
+            styles:
+              card:
+                - background: var(--primary-color)
+                - color: white
+
+          - type: custom:button-card
+            name: "📅 Viaje Puntual"
+            icon: mdi:calendar
+            tap_action:
+              action: perform-visual-refresh
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--secondary-background-color);
+                  color: var(--primary-text-color);
+                }
+            styles:
+              card:
+                - background: var(--secondary-background-color)
+                - color: var(--primary-text-color)
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Create Recurring Trip Form Section
+      - type: markdown
+        title: "➕ Crear Viaje Recurrente Semanal"
+        content: |
+          Programa un viaje que se repetirá cada semana en el día y hora especificados.
+
+      # Day of week selector for recurring trip
+      - type: entities
+        title: "📅 Día de la semana"
+        entities:
+          - entity: input_select.{{ vehicle_id }}_trip_day
+            name: Seleccionar día
+          - entity: input_select.{{ vehicle_id }}_trip_day
+            name: Día
+
+      # Time selector for recurring trip
+      - type: entities
+        title: "⏰ Hora del viaje"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_trip_time
+            name: Hora de salida
+
+      # Distance input for recurring trip
+      - type: entities
+        title: "📏 Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_trip_km
+            name: Kilómetros
+            icon: mdi:map-marker-distance
+
+      # Energy input for recurring trip
+      - type: entities
+        title: "⚡ Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_trip_kwh
+            name: kWh necesarios
+            icon: mdi:lightning-bolt
+
+      # Description input for recurring trip
+      - type: entities
+        title: "📝 Descripción (opcional)"
+        entities:
+          - entity: input_text.{{ vehicle_id }}_trip_desc
+            name: Descripción del viaje
+            icon: mdi:text-box-outline
+
+      # Button to add recurring trip
+      - type: custom:button-card
+        name: "✅ Guardar Viaje Recurrente"
+        icon: mdi:content-save
+        color: "#4CAF50"
+        size: 100%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.add_recurring_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            dia_semana: "{{ states('input_select.' ~ vehicle_id ~ '_trip_day') }}"
+            hora: "{{ states('input_datetime.' ~ vehicle_id ~ '_trip_time') }}"
+            km: "{{ states('input_number.' ~ vehicle_id ~ '_trip_km') }}"
+            kwh: "{{ states('input_number.' ~ vehicle_id ~ '_trip_kwh') }}"
+            descripcion: "{{ states('input_text.' ~ vehicle_id ~ '_trip_desc') }}"
+        styles:
+          card:
+            - background: "#4CAF50"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 16px
+            - font-weight: bold
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Create Punctual Trip Section
+      - type: markdown
+        title: "📅 Crear Viaje Puntual"
+        content: |
+          Programa un viaje único para una fecha y hora específica.
+
+      # Datetime selector for punctual trip
+      - type: entities
+        title: "📅 Fecha y hora"
+        entities:
+          - entity: input_datetime.{{ vehicle_id }}_punctual_datetime
+            name: Fecha y hora del viaje
+
+      # Distance input for punctual trip
+      - type: entities
+        title: "📏 Distancia (km)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_punctual_km
+            name: Kilómetros
+            icon: mdi:map-marker-distance
+
+      # Energy input for punctual trip
+      - type: entities
+        title: "⚡ Energía (kWh)"
+        entities:
+          - entity: input_number.{{ vehicle_id }}_punctual_kwh
+            name: kWh necesarios
+            icon: mdi:lightning-bolt
+
+      # Description input for punctual trip
+      - type: entities
+        title: "📝 Descripción (opcional)"
+        entities:
+          - entity: input_text.{{ vehicle_id }}_punctual_desc
+            name: Descripción del viaje
+            icon: mdi:text-box-outline
+
+      # Button to add punctual trip
+      - type: custom:button-card
+        name: "✅ Guardar Viaje Puntual"
+        icon: mdi:content-save
+        color: "#2196F3"
+        size: 100%
+        tap_action:
+          action: call-service
+          service: ev_trip_planner.add_punctual_trip
+          service_data:
+            vehicle_id: "{{ vehicle_id }}"
+            datetime: "{{ states('input_datetime.' ~ vehicle_id ~ '_punctual_datetime') }}"
+            km: "{{ states('input_number.' ~ vehicle_id ~ '_punctual_km') }}"
+            kwh: "{{ states('input_number.' ~ vehicle_id ~ '_punctual_kwh') }}"
+            descripcion: "{{ states('input_text.' ~ vehicle_id ~ '_punctual_desc') }}"
+        styles:
+          card:
+            - background: "#2196F3"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 16px
+            - font-weight: bold
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Helper entities creation section
+      - type: markdown
+        title: "🔧 Crear Helpers (si no existen)"
+        content: |
+          Si los helpers no existen, crea estos elementos en Home Assistant:
+
+          ### Input Helpers YAML
+
+          ```yaml
+          input_select:
+            {{ vehicle_id }}_trip_day:
+              name: Día de la semana
+              options:
+                - Lunes
+                - Martes
+                - Miércoles
+                - Jueves
+                - Viernes
+                - Sábado
+                - Domingo
+              initial: Lunes
+
+          input_datetime:
+            {{ vehicle_id }}_trip_time:
+              name: Hora del viaje recurrente
+              has_date: false
+              has_time: true
+
+            {{ vehicle_id }}_punctual_datetime:
+              name: Fecha y hora del viaje puntual
+              has_date: true
+              has_time: true
+
+          input_number:
+            {{ vehicle_id }}_trip_km:
+              name: Kilómetros recurrente
+              min: 0
+              max: 1000
+              step: 1
+              mode: box
+
+            {{ vehicle_id }}_trip_kwh:
+              name: kWh recurrente
+              min: 0
+              max: 200
+              step: 0.5
+              mode: box
+
+            {{ vehicle_id }}_punctual_km:
+              name: Kilómetros puntual
+              min: 0
+              max: 1000
+              step: 1
+              mode: box
+
+            {{ vehicle_id }}_punctual_kwh:
+              name: kWh puntual
+              min: 0
+              max: 200
+              step: 0.5
+              mode: box
+
+          input_text:
+            {{ vehicle_id }}_trip_desc:
+              name: Descripción viaje recurrente
+
+            {{ vehicle_id }}_punctual_desc:
+              name: Descripción viaje puntual
+          ```
+
+      # Help text
+      - type: markdown
+        content: |
+          ---
+
+          ### 💡 Información
+
+          - Los viajes recurrentes se repiten cada semana
+          - Los viajes puntuales son únicos para una fecha específica
+          - La energía (kWh) se calcula automáticamente según la distancia
+
+      # Refresh button
+      - type: custom:button-card
+        name: "🔄 Actualizar Dashboard"
+        icon: mdi:refresh
+        color: "#9C27B0"
+        size: 100%
+        tap_action:
+          action: perform-visual-refresh
+        styles:
+          card:
+            - background: "#9C27B0"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 16px
+
+      # Navigation back button
+      - type: custom:button-card
+        name: "⬅️ Volver al Dashboard"
+        icon: mdi:arrow-left
+        color: "#607D8B"
+        size: 100%
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}
+        styles:
+          card:
+            - background: "#607D8B"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
