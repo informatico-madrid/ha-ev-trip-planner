@@ -19,6 +19,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+from .dashboard import import_dashboard, is_lovelace_available
 from .emhass_adapter import EMHASSAdapter
 from .trip_manager import TripManager
 
@@ -33,26 +34,6 @@ DATA_RUNTIME = f"{DOMAIN}_runtime_data"
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
-
-
-def is_lovelace_available(hass: HomeAssistant) -> bool:
-    """Check if Lovelace UI is available in Home Assistant.
-
-    Returns True if Lovelace is installed and accessible.
-
-    Args:
-        hass: The Home Assistant instance.
-
-    Returns:
-        True if Lovelace is available, False otherwise.
-    """
-    # Check if lovelace is in loaded components
-    if "lovelace" in hass.config.components:
-        return True
-    # Also check for the legacy method
-    if hass.services.has_service("lovelace", "import"):
-        return True
-    return False
 
 
 async def create_dashboard_input_helpers(
@@ -322,666 +303,6 @@ async def create_dashboard_input_helpers(
         return False
 
 
-async def import_dashboard(
-    hass: HomeAssistant,
-    vehicle_id: str,
-    vehicle_name: str,
-    use_charts: bool = False,
-) -> bool:
-    """Import a Lovelace dashboard for the vehicle.
-
-    Loads the dashboard template from the custom_components folder,
-    substitutes variables, and saves it to Lovelace storage.
-
-    Args:
-        hass: The Home Assistant instance.
-        vehicle_id: Unique identifier for the vehicle.
-        vehicle_name: Display name for the vehicle.
-        use_charts: Whether to use full dashboard with charts.
-
-    Returns:
-        True if dashboard was imported successfully, False otherwise.
-    """
-    try:
-        # Determine which dashboard template to use (for logging)
-        dashboard_type = "full" if use_charts else "simple"
-        _LOGGER.info(
-            "=== DASHBOARD IMPORT START === Vehicle: %s | ID: %s | Type: %s",
-            vehicle_name,
-            vehicle_id,
-            dashboard_type,
-        )
-
-        # DEBUG: Log input parameters for diagnosis
-        _LOGGER.debug(
-            "Dashboard import params: vehicle_id=%s, vehicle_name=%s, use_charts=%s",
-            vehicle_id,
-            vehicle_name,
-            use_charts,
-        )
-
-        # Check if Lovelace is available
-        if not is_lovelace_available(hass):
-            _LOGGER.error(
-                "DASHBOARD IMPORT FAILED: Lovelace not available for %s (ID: %s)",
-                vehicle_name,
-                vehicle_id,
-            )
-            return False
-
-        _LOGGER.info("Lovelace available, proceeding with dashboard import")
-
-        # Load dashboard template from custom_components folder
-        dashboard_config = await _load_dashboard_template(
-            hass, vehicle_id, vehicle_name, use_charts
-        )
-
-        if dashboard_config is None:
-            _LOGGER.error(
-                "DASHBOARD IMPORT FAILED: Could not load template for %s (ID: %s)",
-                vehicle_name,
-                vehicle_id,
-            )
-            return False
-
-        _LOGGER.info(
-            "Dashboard template loaded successfully for %s: %d views",
-            vehicle_name,
-            len(dashboard_config.get("views", [])),
-        )
-
-        # Log dashboard config details for debugging
-        _LOGGER.debug(
-            "Dashboard template loaded for %s: title=%s, views_count=%d",
-            vehicle_name,
-            dashboard_config.get("title"),
-            len(dashboard_config.get("views", [])),
-        )
-
-        # Try to save using the Lovelace storage API
-        # This is the most reliable method for storage mode dashboards
-        _LOGGER.info(
-            "Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id
-        )
-        _LOGGER.debug(
-            "METHOD SELECTION: Trying storage API first for %s", vehicle_id
-        )
-        if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
-            _LOGGER.info(
-                "=== DASHBOARD IMPORT SUCCESS === via storage API for %s (ID: %s)",
-                vehicle_name,
-                vehicle_id,
-            )
-            return True
-
-        _LOGGER.info(
-            "Storage API method failed, trying fallback: lovelace.import service"
-        )
-        _LOGGER.debug(
-            "METHOD SELECTION: Trying lovelace.import service fallback for %s",
-            vehicle_id,
-        )
-
-        # Fallback: Try to use the import service
-        if hass.services.has_service("lovelace", "import"):
-            _LOGGER.info(
-                "Attempting DASHBOARD IMPORT via lovelace.import service for %s",
-                vehicle_name,
-            )
-            _LOGGER.debug(
-                "METHOD SELECTION: Using lovelace.import service for %s", vehicle_id
-            )
-            await hass.services.async_call(
-                "lovelace",
-                "import",
-                {
-                    "url": f"ev-trip-planner-{vehicle_id}",
-                    "config": {
-                        "title": f"EV Trip Planner - {vehicle_name}",
-                        "path": f"ev-trip-planner-{vehicle_id}",
-                        "icon": "mdi:car-electric",
-                    },
-                },
-            )
-            _LOGGER.info(
-                "=== DASHBOARD IMPORT SUCCESS === via lovelace.import service for %s",
-                vehicle_name,
-            )
-            return True
-
-        _LOGGER.error(
-            "=== DASHBOARD IMPORT FAILED === No import method available for %s",
-            vehicle_name
-        )
-        return False
-
-    except Exception as err:  # pragma: no cover
-        _LOGGER.error(
-            "=== DASHBOARD IMPORT FAILED === Exception for %s (ID: %s): %s",
-            vehicle_name,
-            vehicle_id,
-            err,
-            exc_info=True,
-        )
-        return False
-
-
-async def _load_dashboard_template(
-    hass: HomeAssistant,
-    vehicle_id: str,
-    vehicle_name: str,
-    use_charts: bool,
-) -> Optional[dict[str, Any]]:
-    """Load dashboard template and substitute variables.
-
-    Uses async I/O when hass.async_add_executor_job is available (production).
-    Falls back to sync I/O for testing compatibility.
-
-    Args:
-        hass: The Home Assistant instance.
-        vehicle_id: Unique identifier for the vehicle.
-        vehicle_name: Display name for the vehicle.
-        use_charts: Whether to use full dashboard with charts.
-
-    Returns:
-        Dashboard configuration dictionary or None if failed.
-    """
-    try:
-        # Determine template filename
-        if use_charts:
-            template_file = "ev-trip-planner-full.yaml"
-        else:
-            template_file = "ev-trip-planner-simple.yaml"
-
-        _LOGGER.debug(
-            "Loading dashboard template: file=%s, vehicle_id=%s, vehicle_name=%s",
-            template_file,
-            vehicle_id,
-            vehicle_name,
-        )
-
-        # Find the dashboard template - check multiple locations
-        # 1. Custom component directory (production)
-        # 2. Parent directory (development/testing)
-        comp_dir = os.path.dirname(__file__)
-        parent_dir = os.path.dirname(os.path.dirname(__file__))
-        possible_paths = [
-            os.path.join(comp_dir, "dashboard", template_file),
-            os.path.join(
-                parent_dir,
-                "custom_components",
-                "ev_trip_planner",
-                "dashboard",
-                template_file,
-            ),
-        ]
-
-        _LOGGER.debug("Searching for template in: %s", possible_paths)
-
-        # Use sync I/O for file operations - works in both production and test
-        template_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                template_path = path
-                _LOGGER.debug("Found template at: %s", template_path)
-                break
-
-        if template_path is None:
-            _LOGGER.error(
-                "Dashboard template not found: %s (searched in %s)",
-                template_file,
-                possible_paths,
-            )
-            return None
-
-        # Read and parse YAML template using sync I/O
-        _LOGGER.debug("Reading template file: %s", template_path)
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_content = f.read()
-        except Exception as e:
-            _LOGGER.error("Failed to read template file: %s", e)
-            return None
-
-        if template_content is None:
-            _LOGGER.error("Failed to read template file: %s", template_path)
-            return None
-
-        _LOGGER.debug(
-            "Template content length: %d chars", len(template_content)
-        )
-
-        # Substitute template variables
-        template_content = template_content.replace("{{ vehicle_id }}", vehicle_id)
-        template_content = template_content.replace("{{ vehicle_name }}", vehicle_name)
-
-        # Parse YAML to dict
-        dashboard_config = yaml.safe_load(template_content)
-
-        _LOGGER.debug(
-            "Loaded dashboard template from %s: title=%s, views=%d",
-            template_path,
-            dashboard_config.get("title") if dashboard_config else "N/A",
-            len(dashboard_config.get("views", [])) if dashboard_config else 0,
-        )
-
-        return dashboard_config
-
-    except Exception as err:  # pragma: no cover
-        _LOGGER.error(
-            "TEMPLATE LOAD FAILED for %s: %s",
-            vehicle_id,
-            err,
-            exc_info=True,
-        )
-        return None
-
-
-def _read_file_safe(filepath: str) -> Optional[str]:
-    """Read file safely using os.open to avoid blocking I/O in executor.
-
-    Args:
-        filepath: Path to the file to read.
-
-    Returns:
-        File content as string, or None if failed.
-    """
-    try:
-        import os
-        fd = os.open(filepath, os.O_RDONLY)
-        try:
-            content = os.read(fd, 1024 * 1024)  # Read up to 1MB
-            return content.decode("utf-8")
-        finally:
-            os.close(fd)
-    except Exception as e:
-        _LOGGER.error("Failed to read file %s: %s", filepath, e)
-        return None
-
-
-async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bool:
-    """Verify storage write permissions for dashboard import.
-
-    Checks if the storage API is available and writable before attempting
-    to import a dashboard.
-
-    In Home Assistant Container, the Lovelace storage mode may not be available
-    (YAML mode is active by default). This function detects the mode and returns
-    False to trigger YAML fallback when storage mode is not available.
-
-    Args:
-        hass: The Home Assistant instance.
-        vehicle_id: The vehicle ID for logging purposes.
-
-    Returns:
-        True if storage is writable, False otherwise.
-    """
-    try:
-        _LOGGER.info(
-            "VERIFYING STORAGE PERMISSIONS for vehicle %s", vehicle_id
-        )
-        
-        # Check if hass.storage is available
-        if not hasattr(hass, "storage"):
-            _LOGGER.warning(
-                "STORAGE PERMISSION DENIED: Storage API not available for vehicle %s",
-                vehicle_id,
-            )
-            return False
-
-        # Check if async_write_dict method is available
-        if not hasattr(hass.storage, "async_write_dict"):
-            _LOGGER.warning(
-                "STORAGE PERMISSION DENIED: async_write_dict not available for vehicle %s",
-                vehicle_id,
-            )
-            return False
-
-        # Try to read existing lovelace config to verify storage mode is available
-        try:
-            lovelace_config = await hass.storage.async_read("lovelace")
-            
-            # If we get here, storage mode is available
-            if lovelace_config is not None:
-                _LOGGER.info(
-                    "Storage API available for %s (lovelace config exists)", vehicle_id
-                )
-                return True
-            
-            # lovelace config is None, which means storage mode is not active
-            # This happens in Container mode where YAML mode is default
-            _LOGGER.info(
-                "Lovelace storage mode not active for %s (config is None), using YAML fallback",
-                vehicle_id
-            )
-            return False
-            
-        except Exception as e:
-            # Storage read failed - this indicates storage mode is not available
-            _LOGGER.info(
-                "Lovelace storage mode not available for %s: %s, using YAML fallback",
-                vehicle_id,
-                e
-            )
-            return False
-
-    except Exception as e:
-        _LOGGER.error(
-            "STORAGE PERMISSION VERIFICATION FAILED for %s: %s",
-            vehicle_id,
-            e,
-            exc_info=True,
-        )
-        return False
-
-
-async def _save_lovelace_dashboard(
-    hass: HomeAssistant,
-    dashboard_config: dict[str, Any],
-    vehicle_id: str,
-) -> bool:
-    """Save dashboard to Lovelace storage.
-
-    Handles both Supervisor (storage API) and Container (YAML fallback) environments.
-
-    Args:
-        hass: The Home Assistant instance.
-        dashboard_config: The dashboard configuration dictionary.
-        vehicle_id: The vehicle ID for logging purposes.
-
-    Returns:
-        True if saved successfully, False otherwise.
-    """
-    try:
-        # Check if we can use the lovelace.config service
-        if hass.services.has_service("lovelace", "save"):
-            _LOGGER.info(
-                "METHOD: Using lovelace.save service for dashboard import"
-            )
-            _LOGGER.debug(
-                "METHOD SELECTION: lovelace.save service available, using it"
-            )
-            # Try to save each view as a separate dashboard
-            # Get the views from the dashboard config
-            views = dashboard_config.get("views", [])
-            _LOGGER.info(
-                "Dashboard config has %d views, will save first view", len(views)
-            )
-
-            # For now, we'll save the first view as the main dashboard
-            if views:
-                first_view = views[0]
-                view_path = first_view.get("path", "unknown")
-                view_title = first_view.get("title", "unknown")
-                _LOGGER.info(
-                    "Saving first view: path=%s, title=%s", view_path, view_title
-                )
-                view_config = {
-                    "title": dashboard_config.get("title", "EV Trip Planner"),
-                    "views": [first_view],
-                }
-
-                await hass.services.async_call(
-                    "lovelace",
-                    "save",
-                    {"config": view_config},
-                )
-                _LOGGER.info("DASHBOARD SAVED via lovelace.save service")
-                return True
-
-            _LOGGER.warning("Dashboard config has no views to save")
-        else:
-            _LOGGER.info(
-                "METHOD: lovelace.save service NOT available, trying storage API"
-            )
-            _LOGGER.debug(
-                "METHOD SELECTION: lovelace.save not available, falling back to storage API"
-            )
-
-        # Try alternative method: use the storage API directly
-        # Use hass.storage.async_read and hass.storage.async_write_dict
-        _LOGGER.info(
-            "METHOD: Attempting storage API for dashboard import"
-        )
-        _LOGGER.debug(
-            "METHOD SELECTION: Using hass.storage API for dashboard import"
-        )
-
-        # Verify storage write permissions before attempting to write
-        if not await _verify_storage_permissions(hass, vehicle_id):
-            _LOGGER.warning(
-                "STORAGE API NOT AVAILABLE for %s, using YAML fallback",
-                vehicle_id,
-            )
-            # Container environment: generate YAML file as fallback
-            return await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
-
-        if hasattr(hass, "storage") and hasattr(hass.storage, "async_read"):
-            try:
-                # Get current lovelace config
-                _LOGGER.info("Reading current Lovelace config from storage")
-                lovelace_config = await hass.storage.async_read("lovelace")
-
-                if lovelace_config and "data" in lovelace_config:
-                    current_data = lovelace_config["data"]
-                    views = current_data.get("views", [])
-                    _LOGGER.info(
-                        "Current Lovelace config has %d views", len(views)
-                    )
-
-                    # Log existing view paths for debugging
-                    existing_paths = [v.get("path") for v in views]
-                    _LOGGER.info("Existing view paths: %s", existing_paths)
-
-                    # Get new dashboard view
-                    new_views = dashboard_config.get("views", [])
-                    if not new_views:
-                        _LOGGER.error(
-                            "STORAGE API FAILED: No views found in dashboard config"
-                        )
-                        return False
-                    new_view = new_views[0]
-
-                    # FR-004: Replace existing view with same path, or append
-                    new_path = new_view.get("path", vehicle_id)
-                    _LOGGER.info("New dashboard view path: %s", new_path)
-
-                    replaced = False
-                    for i, existing_view in enumerate(views):
-                        if existing_view.get("path") == new_path:
-                            views[i] = new_view
-                            replaced = True
-                            _LOGGER.info(
-                                "Replaced existing dashboard view: %s", new_path
-                            )
-                            break
-
-                    if not replaced:
-                        views.append(new_view)
-                        _LOGGER.info("Added new dashboard view: %s", new_path)
-
-                    _LOGGER.info(
-                        "Saving dashboard: total views=%d, vehicle_id=%s",
-                        len(views),
-                        vehicle_id,
-                    )
-                    # Save updated config using async_write_dict
-                    _LOGGER.info("Writing dashboard config to storage: lovelace")
-                    await hass.storage.async_write_dict(
-                        "lovelace",
-                        {"version": 1, "data": {**current_data, "views": views}},
-                    )
-                    _LOGGER.info("DASHBOARD SAVED via storage API")
-                    return True
-
-                _LOGGER.error(
-                    "STORAGE API FAILED: Lovelace config not found in storage or has no data"
-                )
-            except Exception as e:  # pragma: no cover
-                _LOGGER.error(
-                    "STORAGE API FAILED for %s: %s",
-                    vehicle_id,
-                    e,
-                    exc_info=True,
-                )
-
-        _LOGGER.error(
-            "STORAGE API FAILED: Storage API not available for dashboard import"
-        )
-        return False
-
-    except Exception as e:  # pragma: no cover
-        _LOGGER.debug("Failed to save dashboard: %s", e)
-        return False
-
-
-async def _save_dashboard_yaml_fallback(
-    hass: HomeAssistant,
-    dashboard_config: dict[str, Any],
-    vehicle_id: str,
-) -> bool:
-    """Save dashboard as YAML file for Container environment.
-
-    In HA Container, storage API is not available. This function generates
-    a YAML file that can be manually imported via Lovelace UI.
-
-    Args:
-        hass: The Home Assistant instance.
-        dashboard_config: The dashboard configuration dictionary.
-        vehicle_id: The vehicle ID for file naming.
-
-    Returns:
-        True if YAML file was created successfully, False otherwise.
-    """
-    try:
-        import os
-
-        # Validate dashboard config before writing
-        if not dashboard_config:
-            _LOGGER.error("Dashboard config is empty or None")
-            return False
-
-        if "title" not in dashboard_config:
-            _LOGGER.error("Dashboard config missing required 'title' field")
-            return False
-
-        if "views" not in dashboard_config:
-            _LOGGER.error("Dashboard config missing required 'views' field")
-            return False
-
-        if not isinstance(dashboard_config["views"], list):
-            _LOGGER.error("Dashboard 'views' must be a list")
-            return False
-
-        if len(dashboard_config["views"]) == 0:
-            _LOGGER.error("Dashboard 'views' list cannot be empty")
-            return False
-
-        for i, view in enumerate(dashboard_config["views"]):
-            if not isinstance(view, dict):
-                _LOGGER.error("Dashboard view at index %d must be a dict", i)
-                return False
-            if "path" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'path' field", i)
-                return False
-            if "title" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'title' field", i)
-                return False
-            if "cards" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'cards' field", i)
-                return False
-
-        # Get config directory path
-        config_dir = hass.config.config_dir
-        if not config_dir:
-            _LOGGER.error("Could not determine config directory")
-            return False
-
-        # Generate unique filename to avoid collisions
-        base_filename = f"ev-trip-planner-{vehicle_id}.yaml"
-        yaml_path = os.path.join(config_dir, base_filename)
-
-        # Use sync I/O for file operations - this is the safest approach
-        # that works in both production and test environments
-        # Note: In production HA, this runs in the event loop but file I/O
-        # is fast enough for dashboard templates to not cause issues
-        import asyncio
-        
-        def _run_in_executor_sync(func, *args):
-            """Run sync function - in tests returns directly, in prod uses executor."""
-            try:
-                # Try to get event loop
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # In production, schedule in executor but return sync for this call
-                    # This is a simplified approach - proper async would need full refactor
-                    return func(*args)
-                else:
-                    return func(*args)
-            except RuntimeError:
-                # No event loop in tests - run directly
-                return func(*args)
-
-        # Handle duplicate filenames - append suffix like .2, .3, etc.
-        counter = 2
-        while _run_in_executor_sync(os.path.exists, yaml_path):
-            yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
-            counter += 1
-        _LOGGER.info(
-            "Dashboard path: %s",
-            os.path.basename(yaml_path),
-        )
-
-        # Create config directory if it doesn't exist
-        if not _run_in_executor_sync(os.path.exists, config_dir):
-            _run_in_executor_sync(os.makedirs, config_dir, mode=0o755)
-            _LOGGER.info("Created config directory: %s", config_dir)
-
-        # Convert dashboard config to YAML
-        yaml_content = yaml.dump(dashboard_config, default_flow_style=False)
-
-        # Write YAML file to config directory
-        try:
-            with open(yaml_path, "w", encoding="utf-8") as f:
-                f.write(yaml_content)
-            write_success = True
-        except Exception as e:
-            _LOGGER.error("Failed to write YAML file: %s", e)
-            write_success = False
-
-        if not write_success:
-            _LOGGER.error("Failed to write dashboard YAML file")
-            return False
-
-        _LOGGER.info(
-            "YAML file created at %s",
-            yaml_path,
-        )
-        _LOGGER.info(
-            "To import dashboard in Home Assistant Container, follow these steps:"
-        )
-        _LOGGER.info(
-            "1. Go to Settings > Dashboards in Home Assistant"
-        )
-        _LOGGER.info(
-            "2. Click the three dots menu > Manage dashboards"
-        )
-        _LOGGER.info(
-            "3. Click 'Import dashboard' and select: %s",
-            yaml_path,
-        )
-        _LOGGER.info(
-            "Dashboard ready for import. File location: %s",
-            yaml_path,
-        )
-
-        return True
-
-    except Exception as e:
-        _LOGGER.error("YAML fallback failed: %s", e, exc_info=True)
-        return False
-
-
 class TripPlannerCoordinator(DataUpdateCoordinator):
     """Coordinator to manage and update trip data."""
 
@@ -1034,8 +355,66 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entry to latest schema version.
+
+    This handles schema migrations when configuration format changes.
+    Currently V1 is the only version, so we just log the migration.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry: The config entry to migrate.
+
+    Returns:
+        True if migration was successful, False otherwise.
+    """
+    _LOGGER.info(
+        "Migrating config entry from version %s to %s",
+        entry.version,
+        entry.REQUIRED_VERSION,
+    )
+
+    # Migrate data from old format to new format if needed
+    new_data = entry.data.copy()
+    changed = False
+
+    # Example migration: Convert old 'battery_capacity' to 'battery_capacity_kwh'
+    if "battery_capacity" in new_data and "battery_capacity_kwh" not in new_data:
+        new_data["battery_capacity_kwh"] = new_data.pop("battery_capacity")
+        changed = True
+        _LOGGER.info(
+            "Migrated battery_capacity to battery_capacity_kwh for vehicle %s",
+            new_data.get("vehicle_name"),
+        )
+
+    # Update the entry if data changed
+    if changed:
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        _LOGGER.info(
+            "Updated config entry data for vehicle %s",
+            new_data.get("vehicle_name"),
+        )
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up EV Trip Planner from a config entry."""
+    """Set up EV Trip Planner from a config entry.
+
+    This function is called when a config entry is first added or reloaded.
+    It initializes all vehicle-specific components:
+    - TripManager for CRUD operations
+    - DataUpdateCoordinator for real-time updates
+    - EMHASS adapter for energy-aware planning (if configured)
+    - Services registration for CRUD operations
+
+    Args:
+        hass: The Home Assistant instance.
+        entry: The config entry containing vehicle configuration.
+
+    Returns:
+        True if setup was successful, False otherwise.
+    """
     vehicle_id = entry.data.get("vehicle_name")
     _LOGGER.info("Setting up EV Trip Planner for vehicle: %s", vehicle_id)
 
@@ -1156,8 +535,108 @@ def register_services(hass: HomeAssistant) -> None:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
+    async def handle_trip_create(call: ServiceCall) -> None:
+        """Handle creating a trip (either recurring or punctual).
+
+        This unified service accepts a 'type' parameter to determine whether
+        to create a recurring trip (recurrente) or a punctual trip (puntual).
+        """
+        data = call.data
+        vehicle_id = data["vehicle_id"]
+        trip_type = data.get("type", data.get("trip_type", "recurrente"))
+        mgr = _get_manager(hass, vehicle_id)
+
+        if trip_type == "recurrente":
+            # Create recurring trip
+            await mgr.async_add_recurring_trip(
+                dia_semana=data["dia_semana"],
+                hora=data["hora"],
+                km=float(data["km"]),
+                kwh=float(data["kwh"]),
+                descripcion=str(data.get("descripcion", "")),
+            )
+            _LOGGER.info(
+                "Created recurring trip for vehicle %s: %s at %s, %s km",
+                vehicle_id,
+                data["dia_semana"],
+                data["hora"],
+                data["km"],
+            )
+        elif trip_type == "puntual":
+            # Create punctual trip
+            await mgr.async_add_punctual_trip(
+                datetime_str=data["datetime"],
+                km=float(data["km"]),
+                kwh=float(data["kwh"]),
+                descripcion=str(data.get("descripcion", "")),
+            )
+            _LOGGER.info(
+                "Created punctual trip for vehicle %s: %s, %s km",
+                vehicle_id,
+                data["datetime"],
+                data["km"],
+            )
+        else:
+            _LOGGER.error(
+                "Invalid trip type '%s' for vehicle %s. Must be 'recurrente' or 'puntual'",
+                trip_type,
+                vehicle_id,
+            )
+            return
+
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
+        """Handle adding a punctual trip."""
+        data = call.data
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
+        await mgr.async_add_punctual_trip(
+            datetime_str=data["datetime"],
+            km=float(data["km"]),
+            kwh=float(data["kwh"]),
+            descripcion=str(data.get("descripcion", "")),
+        )
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
+
+    async def handle_trip_update(call: ServiceCall) -> None:
+        """Handle updating a trip.
+
+        This unified service accepts:
+        - vehicle_id: The vehicle to update the trip for
+        - trip_id: The ID of the trip to update
+        - updates: Dictionary of fields to update (e.g., {"km": 100.0, "descripcion": "New description"})
+        """
+        data = call.data
+        vehicle_id = data["vehicle_id"]
+        trip_id = str(data["trip_id"])
+        updates = dict(data["updates"])
+
+        _LOGGER.info(
+            "Updating trip %s for vehicle %s with updates: %s",
+            trip_id,
+            vehicle_id,
+            updates,
+        )
+
+        mgr = _get_manager(hass, vehicle_id)
+        await _ensure_setup(mgr)
+        await mgr.async_update_trip(trip_id, updates)
+
+        # Refresh coordinator using vehicle_id
+        coordinator = _get_coordinator(hass, vehicle_id)
+        if coordinator:
+            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+            await coordinator.async_refresh_trips()
+
     async def handle_edit_trip(call: ServiceCall) -> None:
-        """Handle editing a trip."""
+        """Handle editing a trip (deprecated alias for trip_update)."""
         data = call.data
         vehicle_id = data["vehicle_id"]
         mgr = _get_manager(hass, vehicle_id)
@@ -1277,11 +756,51 @@ def register_services(hass: HomeAssistant) -> None:
         ),
     )
 
+    # Schema for trip_update service
+    trip_update_schema = vol.Schema(
+        {
+            vol.Required("vehicle_id"): str,
+            vol.Required("trip_id"): str,
+            vol.Required("updates"): dict,
+        }
+    )
+
+    # Register trip_update service
+    hass.services.async_register(
+        DOMAIN,
+        "trip_update",
+        handle_trip_update,
+        schema=trip_update_schema,
+    )
+
     # Common schema for trip operations
     trip_id_schema = vol.Schema({
         vol.Required("vehicle_id"): str,
         vol.Required("trip_id"): str,
     })
+
+    # Schema for unified trip_create service
+    trip_create_schema = vol.Schema({
+        vol.Required("vehicle_id"): str,
+        vol.Required("type"): vol.In(["recurrente", "puntual"]),
+        # Recurring trip fields (required if type == 'recurrente')
+        vol.Optional("dia_semana"): str,
+        vol.Optional("hora"): str,
+        # Punctual trip fields (required if type == 'puntual')
+        vol.Optional("datetime"): str,
+        # Common fields (required for both types)
+        vol.Required("km"): vol.Coerce(float),
+        vol.Required("kwh"): vol.Coerce(float),
+        vol.Optional("descripcion", default=""): str,
+    })
+
+    # Register trip_create service
+    hass.services.async_register(
+        DOMAIN,
+        "trip_create",
+        handle_trip_create,
+        schema=trip_create_schema,
+    )
 
     hass.services.async_register(
         DOMAIN,
@@ -1315,6 +834,7 @@ def register_services(hass: HomeAssistant) -> None:
     )
 
     async def handle_import_weekly_pattern(call: ServiceCall) -> None:
+        """Handle importing a weekly pattern."""
         data = call.data
         mgr = _get_manager(hass, data["vehicle_id"])
         await _ensure_setup(mgr)
@@ -1343,6 +863,44 @@ def register_services(hass: HomeAssistant) -> None:
                     descripcion=str(item.get("descripcion", "")),
                 )
 
+    async def handle_trip_list(call: ServiceCall) -> None:
+        """Handle listing all trips for a vehicle.
+
+        Returns both recurring and punctual trips in a single list.
+        """
+        data = call.data
+        vehicle_id = data["vehicle_id"]
+        mgr = _get_manager(hass, vehicle_id)
+        await _ensure_setup(mgr)
+
+        try:
+            recurring_trips = await mgr.async_get_recurring_trips()
+            punctual_trips = await mgr.async_get_punctual_trips()
+
+            _LOGGER.info(
+                "Retrieved %d recurring trips and %d punctual trips for vehicle %s",
+                len(recurring_trips),
+                len(punctual_trips),
+                vehicle_id,
+            )
+
+            # Combine trips for dashboard display
+            call.return_data = {
+                "vehicle_id": vehicle_id,
+                "recurring_trips": recurring_trips,
+                "punctual_trips": punctual_trips,
+                "total_trips": len(recurring_trips) + len(punctual_trips),
+            }
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error("Error listing trips for vehicle %s: %s", vehicle_id, err)
+            call.return_data = {
+                "vehicle_id": vehicle_id,
+                "recurring_trips": [],
+                "punctual_trips": [],
+                "total_trips": 0,
+                "error": str(err),
+            }
+
     hass.services.async_register(
         DOMAIN,
         "import_from_weekly_pattern",
@@ -1354,6 +912,19 @@ def register_services(hass: HomeAssistant) -> None:
                 vol.Optional("clear_existing", default=True): bool,
             }
         ),
+    )
+
+    # Schema for trip_list service
+    trip_list_schema = vol.Schema({
+        vol.Required("vehicle_id"): str,
+    })
+
+    # Register trip_list service
+    hass.services.async_register(
+        DOMAIN,
+        "trip_list",
+        handle_trip_list,
+        schema=trip_list_schema,
     )
 
 # Helper functions with proper type hints

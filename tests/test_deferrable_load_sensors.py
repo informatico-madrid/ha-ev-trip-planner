@@ -34,13 +34,16 @@ def mock_hass():
         "charging_power_kw": 3.6,
         "planning_horizon_days": 7,
     }
-    mock_entry.config_entry_id = "test_entry_id"
+    mock_entry.entry_id = "test_entry_id"
 
     # Mock async_get_entry to return the entry
     hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
 
     # Mock async_entries to return a list of config entries (required for vehicle_name matching)
-    hass.config_entries.async_entries = Mock(return_value=[mock_entry])
+    def _async_entries(domain=None):
+        return [mock_entry]
+
+    hass.config_entries.async_entries = _async_entries
 
     return hass
 
@@ -50,6 +53,8 @@ def mock_trip_manager():
     """Create mock TripManager instance."""
     trip_manager = Mock(spec=TripManager)
     trip_manager.vehicle_id = "test_vehicle"
+    trip_manager.async_generate_power_profile = AsyncMock()
+    trip_manager.async_generate_deferrables_schedule = AsyncMock()
     return trip_manager
 
 
@@ -59,7 +64,7 @@ def sensor(mock_hass, mock_trip_manager):
     return EmhassDeferrableLoadSensor(
         hass=mock_hass,
         trip_manager=mock_trip_manager,
-        vehicle_id="test_vehicle",
+        entry_id="test_entry_id",
     )
 
 
@@ -248,7 +253,7 @@ class TestEmhassDeferrableLoadSensor:
         """Test sensor initial state."""
         assert sensor._attr_native_value == "ready"
         assert sensor._cached_attrs == {}
-        assert sensor.unique_id == "emhass_perfil_diferible_test_vehicle"
+        assert sensor.unique_id == "emhass_perfil_diferible_test_entry_id"
 
     async def test_sensor_updates_attributes(self, sensor):
         """Test that sensor correctly updates all attributes."""
@@ -294,8 +299,8 @@ class TestEmhassDeferrableLoadSensor:
         """Test sensor device info."""
         device_info = sensor.device_info
 
-        assert device_info["identifiers"] == {(DOMAIN, "test_vehicle")}
-        assert device_info["name"] == "EV Trip Planner test_vehicle"
+        assert device_info["identifiers"] == {(DOMAIN, "test_entry_id")}
+        assert device_info["name"] == "EV Trip Planner test_entry_id"
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
 

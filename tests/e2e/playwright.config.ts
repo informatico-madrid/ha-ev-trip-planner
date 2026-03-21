@@ -1,9 +1,9 @@
 /**
  * Playwright E2E Configuration for Home Assistant
- * 
+ *
  * This configuration is designed for testing the Home Assistant UI
  * including the EV Trip Planner integration dashboard.
- * 
+ *
  * Usage:
  *   npx playwright test              # Run all tests
  *   npx playwright test --headed     # Run with browser visible
@@ -61,5 +61,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: '',
     url: haUrl,
+    timeout: 120 * 1000,
+    reuseExistingServer: true,
+  },
+});

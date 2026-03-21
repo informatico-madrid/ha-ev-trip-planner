@@ -12,6 +12,9 @@ Default values are optimized for typical EV/PHEV usage patterns.
 
 DOMAIN = "ev_trip_planner"
 
+# Config entry version for migrations
+CONFIG_VERSION = 1
+
 # Dispatcher signal for reactive updates
 SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
 

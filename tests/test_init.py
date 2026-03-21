@@ -4,12 +4,14 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch, mock_open
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner import (
+from custom_components.ev_trip_planner.dashboard import (
     is_lovelace_available,
     import_dashboard,
     _load_dashboard_template,
     _verify_storage_permissions,
     _save_lovelace_dashboard,
+)
+from custom_components.ev_trip_planner import (
     TripPlannerCoordinator,
     create_dashboard_input_helpers,
 )

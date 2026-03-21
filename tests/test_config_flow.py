@@ -450,6 +450,148 @@ async def test_vehicle_data_persistence_across_steps():
 
 
 @pytest.mark.asyncio
+async def test_user_step_validation_empty_vehicle_name():
+    """Test that empty vehicle name is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    result = await flow.async_step_user({CONF_VEHICLE_NAME: ""})
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result.get("errors") == {"base": "vehicle_name_required"}
+
+
+@pytest.mark.asyncio
+async def test_user_step_validation_whitespace_vehicle_name():
+    """Test that whitespace-only vehicle name is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    result = await flow.async_step_user({CONF_VEHICLE_NAME: "   "})
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result.get("errors") == {"base": "vehicle_name_required"}
+
+
+@pytest.mark.asyncio
+async def test_user_step_validation_too_long_vehicle_name():
+    """Test that vehicle name longer than 100 characters is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    long_name = "A" * 101
+    result = await flow.async_step_user({CONF_VEHICLE_NAME: long_name})
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result.get("errors") == {"base": "vehicle_name_too_long"}
+
+
+@pytest.mark.asyncio
+async def test_sensors_step_validation_invalid_battery_capacity():
+    """Test that battery capacity outside 10-200 kWh range is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {CONF_VEHICLE_NAME: "TestVehicle"}}
+
+    # Test battery too low
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 5.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_battery_capacity"}
+
+    # Test battery too high
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 250.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_battery_capacity"}
+
+
+@pytest.mark.asyncio
+async def test_sensors_step_validation_invalid_consumption():
+    """Test that consumption outside 0.05-0.5 kWh/km range is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {CONF_VEHICLE_NAME: "TestVehicle"}}
+
+    # Test consumption too low
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.01,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_consumption"}
+
+    # Test consumption too high
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 1.0,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_consumption"}
+
+
+@pytest.mark.asyncio
+async def test_sensors_step_validation_invalid_safety_margin():
+    """Test that safety margin outside 0-50% range is rejected."""
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {CONF_VEHICLE_NAME: "TestVehicle"}}
+
+    # Test safety margin negative
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: -10,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_safety_margin"}
+
+    # Test safety margin too high
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 100,
+        }
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    assert result.get("errors") == {"base": "invalid_safety_margin"}
+
+
+@pytest.mark.asyncio
 async def test_default_values_are_used():
     """Test that default values are used when not specified."""
     flow = EVTripPlannerFlowHandler()
