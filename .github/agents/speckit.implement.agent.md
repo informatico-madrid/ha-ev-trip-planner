@@ -52,9 +52,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 | Tag | Tool | Usage |
 |-----|------|-------|
-| `[VERIFY:TEST]` | pytest | Run unit tests |
-| `[VERIFY:API]` | curl/MCP HA | Verify entities via REST API |
-| `[VERIFY:BROWSER]` | Playwright | Verify via browser UI |
+| `[VERIFY:TEST]` | pytest | Run unit tests with pytest |
+| `[VERIFY:API]` | homeassistant-ops skill | Use skill to query HA REST API (NOT curl command) |
+| `[VERIFY:BROWSER]` | Playwright | Run E2E tests with Playwright |
 
 **You can combine multiple tags**: `[VERIFY:TEST] [VERIFY:API]`
 
@@ -69,9 +69,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ```
 - [ ] T001 [VERIFY:API] Create sensor ev_trip_distance
-  → curl http://192.168.1.100:8123/api/states/sensor.ev_trip_distance
+  → Use homeassistant-ops skill to query API: GET /api/states/sensor.ev_trip_distance
   → Verify state ≠ unavailable
-  → If passes → Emit STATE_MATCH
+  → If passes → Emit SIGNAL: STATE_MATCH
 ```
 
 ### Deployment Routes

@@ -29,6 +29,10 @@ async def test_async_setup_entry_creates_three_sensors():
     coordinator.data = {}
     coordinator.async_config_entry_first_refresh = AsyncMock()  # FIX: Hacerlo awaitable
     
+    # Add async_get_recurring_trips and async_get_punctual_trips to the mock trip_manager
+    tm.async_get_recurring_trips = AsyncMock(return_value=[])
+    tm.async_get_punctual_trips = AsyncMock(return_value=[])
+
     hass.data = {"ev_trip_planner": {"eid123": {"trip_manager": tm, "config": {}, "coordinator": coordinator}}}
 
     entry = FakeEntry(

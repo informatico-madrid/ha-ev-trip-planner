@@ -7,7 +7,7 @@ Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
 from homeassistant.components.sensor import (
@@ -539,13 +539,112 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             self._attr_native_value = "error"
 
 
+class TripSensor(SensorEntity):
+    """Sensor para un viaje específico.
+
+    Crea una entidad de sensor para cada viaje programado.
+    El sensor muestra información del viaje como:
+    - Descripción/destino
+    - Distancia (km)
+    - Energía estimada (kWh)
+    - Fecha/hora del viaje
+    - Estado (pendiente/completado/cancelado)
+
+    Entity: sensor.trip_{trip_id}
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        trip_manager: TripManager,
+        trip_data: Dict[str, Any],
+    ) -> None:
+        """Inicializa el sensor del viaje.
+
+        Args:
+            hass: Home Assistant instance
+            trip_manager: TripManager instance for this vehicle
+            trip_data: Complete trip data including id, tipo, etc.
+        """
+        self.hass = hass
+        self.trip_manager = trip_manager
+        self._trip_data = trip_data
+        self._trip_id = trip_data.get("id", "unknown")
+        self._trip_type = trip_data.get("tipo", "unknown")
+
+        # Build unique_id from trip_id
+        self._attr_unique_id = f"trip_{self._trip_id}"
+        self._attr_name = f"Trip {trip_data.get('descripcion', self._trip_id)}"
+        self._attr_has_entity_name = True
+        self._attr_device_class = SensorDeviceClass.ENUM
+        self._attr_state_class = None
+
+        # Set enum options for estado
+        self._attr_options = ["pendiente", "completado", "cancelado"]
+
+        # Set native value (estado)
+        if self._trip_type == TRIP_TYPE_PUNCTUAL:
+            self._attr_native_value = trip_data.get("estado", "pendiente")
+        else:
+            self._attr_native_value = "recurrente"
+
+        # Store trip details as attributes
+        self._attr_extra_state_attributes: Dict[str, Any] = {
+            "trip_id": self._trip_id,
+            "trip_type": self._trip_type,
+            "descripcion": trip_data.get("descripcion", ""),
+            "km": trip_data.get("km", 0.0),
+            "kwh": trip_data.get("kwh", 0.0),
+            "fecha_hora": trip_data.get("datetime", trip_data.get("hora", "")),
+            "activo": trip_data.get("activo", True),
+            "estado": trip_data.get("estado", "pendiente"),
+        }
+
+    @property
+    def native_value(self) -> Any:
+        """Return sensor value based on trip type and status."""
+        if self._trip_type == TRIP_TYPE_PUNCTUAL:
+            return self._trip_data.get("estado", "pendiente")
+        return "recurrente"
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return trip details as attributes."""
+        return self._attr_extra_state_attributes.copy()
+
+    def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
+        """Update sensor state from trip data.
+
+        Args:
+            trip_data: Updated trip data
+        """
+        self._trip_data = trip_data
+        self._attr_name = f"Trip {trip_data.get('descripcion', self._trip_id)}"
+        if self._trip_type == TRIP_TYPE_PUNCTUAL:
+            self._attr_native_value = trip_data.get("estado", "pendiente")
+        else:
+            self._attr_native_value = "recurrente"
+        self._attr_extra_state_attributes = {
+            "trip_id": self._trip_id,
+            "trip_type": self._trip_type,
+            "descripcion": trip_data.get("descripcion", ""),
+            "km": trip_data.get("km", 0.0),
+            "kwh": trip_data.get("kwh", 0.0),
+            "fecha_hora": trip_data.get("datetime", trip_data.get("hora", "")),
+            "activo": trip_data.get("activo", True),
+            "estado": trip_data.get("estado", "pendiente"),
+        }
+        # Trigger state update
+        self.async_schedule_update_ha_state()
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Any
 ) -> bool:
     """Set up sensors from config entry."""
     vehicle_id = entry.data.get("vehicle_name", "")
     entry_id = entry.entry_id
-    
+
     # Use the same namespace pattern as __init__.py: f"{DOMAIN}_{entry_id}"
     namespace = f"{DOMAIN}_{entry_id}"
 
@@ -575,7 +674,7 @@ async def async_setup_entry(
         legacy_namespace_data = legacy_runtime_data.get(legacy_namespace, {})
         trip_manager = legacy_namespace_data.get("trip_manager")
         coordinator = legacy_namespace_data.get("coordinator")
-        
+
         if not trip_manager:
             # Try old DOMAIN-based storage
             trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
@@ -614,6 +713,12 @@ async def async_setup_entry(
         EmhassDeferrableLoadSensor(hass, trip_manager, vehicle_id),
     ]
 
+    # Create trip sensors for existing trips
+    trip_sensors = await _async_create_trip_sensors(
+        hass, trip_manager, vehicle_id, async_add_entities
+    )
+    entities.extend(trip_sensors)
+
     _LOGGER.debug(
         "Created sensors for %s: %s",
         vehicle_id,
@@ -622,3 +727,46 @@ async def async_setup_entry(
 
     async_add_entities(entities)
     return True
+
+
+async def _async_create_trip_sensors(
+    hass: HomeAssistant,
+    trip_manager: TripManager,
+    vehicle_id: str,
+    async_add_entities: Any,
+) -> List[TripSensor]:
+    """Create sensor entities for all existing trips.
+
+    Args:
+        hass: Home Assistant instance
+        trip_manager: TripManager for this vehicle
+        vehicle_id: Vehicle identifier
+        async_add_entities: Function to add entities
+
+    Returns:
+        List of created TripSensor entities
+    """
+    trip_sensors: List[TripSensor] = []
+
+    # Get all trips
+    recurring_trips = await trip_manager.async_get_recurring_trips()
+    punctual_trips = await trip_manager.async_get_punctual_trips()
+
+    # Create sensors for recurring trips
+    for trip in recurring_trips:
+        sensor = TripSensor(hass, trip_manager, trip)
+        trip_sensors.append(sensor)
+
+    # Create sensors for punctual trips
+    for trip in punctual_trips:
+        sensor = TripSensor(hass, trip_manager, trip)
+        trip_sensors.append(sensor)
+
+    if trip_sensors:
+        _LOGGER.info(
+            "Created %d trip sensors for vehicle %s",
+            len(trip_sensors),
+            vehicle_id,
+        )
+
+    return trip_sensors

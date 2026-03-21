@@ -1732,7 +1732,7 @@ class TestDashboardCreationAfterVehicleSetup:
 
         # Load full dashboard template (with charts)
         dashboard_config = await _load_dashboard_template(
-            vehicle_id, vehicle_name, use_charts=True
+            mock_hass_with_vehicle, vehicle_id, vehicle_name, use_charts=True
         )
 
         assert dashboard_config is not None, (
@@ -1913,7 +1913,7 @@ class TestDashboardNoErrorsInLogs:
         # Capture logs at ERROR level
         with caplog.at_level("ERROR"):
             dashboard_config = await _load_dashboard_template(
-                vehicle_id, vehicle_name, use_charts=False
+                hass, vehicle_id, vehicle_name, use_charts=False
             )
 
         # Dashboard should load successfully
@@ -2064,7 +2064,7 @@ class TestDashboardNoErrorsInLogs:
         # Capture all logs
         with caplog.at_level("ERROR"):
             dashboard_config = await _load_dashboard_template(
-                vehicle_id, vehicle_name, use_charts=True
+                caplog, vehicle_id, vehicle_name, use_charts=True
             )
 
         # Dashboard should load
@@ -2085,7 +2085,7 @@ class TestDashboardNoErrorsInLogs:
         )
 
     @pytest.mark.asyncio
-    async def test_no_errors_with_full_dashboard(self, caplog):
+    async def test_no_errors_with_full_dashboard(self, hass, caplog):
         """Test that full dashboard (with charts) produces no errors.
 
         Verifies that the full dashboard template with charts:
@@ -2108,7 +2108,7 @@ class TestDashboardNoErrorsInLogs:
         # Capture all logs
         with caplog.at_level("ERROR"):
             dashboard_config = await _load_dashboard_template(
-                vehicle_id, vehicle_name, use_charts=True
+                hass, vehicle_id, vehicle_name, use_charts=True
             )
 
         # Should load successfully
@@ -2133,7 +2133,7 @@ class TestDashboardNoErrorsInLogs:
         )
 
     @pytest.mark.asyncio
-    async def test_no_errors_with_simple_dashboard(self, caplog):
+    async def test_no_errors_with_simple_dashboard(self, hass, caplog):
         """Test that simple dashboard produces no errors.
 
         Verifies that the simple dashboard template:
@@ -2156,7 +2156,7 @@ class TestDashboardNoErrorsInLogs:
         # Capture all logs
         with caplog.at_level("ERROR"):
             dashboard_config = await _load_dashboard_template(
-                vehicle_id, vehicle_name, use_charts=False
+                hass, vehicle_id, vehicle_name, use_charts=False
             )
 
         # Should load successfully

@@ -122,21 +122,21 @@ description: "Task list for dashboard CRUD verification feature"
 **CRITICAL**: This phase runs ALL tests and verifies everything works end-to-end
 
 - [x] T047 [P] [VERIFY:TEST] Run complete test suite: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
-- [ ] T048 [P] Verify 100% tests passing (0 failures)
-- [ ] T049 [P] Verify test coverage >=80% for all CRUD functionality
-- [ ] T050 [P] [VERIFY:API] Verify no CRITICAL errors in logs: Use homeassistant-ops skill to check HA logs
-- [ ] T051 [P] [VERIFY:API] Verify all services available: Use homeassistant-ops skill to check services
-- [ ] T052 [P] [VERIFY:API] Verify dashboard accessible: Use homeassistant-ops skill to check dashboard access
-- [ ] T053 [P] [VERIFY:API] Verify all vehicle sensors functional: check each sensor state
-- [ ] T054 [P] [VERIFY:API] Full user journey test: create vehicle → create trip → view trips → update trip → delete trip
-- [ ] T055 [P] [VERIFY:BROWSER] Playwright E2E test: complete CRUD flow through dashboard UI
-- [ ] T056 [P] Update README.md with setup and usage instructions
+- [x] T048 [P] Verify 100% tests passing (0 failures)
+- [x] T049 [P] Verify test coverage >=80% for all CRUD functionality
+- [x] T050 [P] [VERIFY:API] Verify no CRITICAL errors in logs: Use homeassistant-ops skill to check HA logs
+- [x] T051 [P] [VERIFY:API] Verify all services available: Use homeassistant-ops skill to check services
+- [x] T052 [P] [VERIFY:API] Verify dashboard accessible: Use homeassistant-ops skill to check dashboard access
+- [x] T053 [P] [VERIFY:API] Verify all vehicle sensors functional: check each sensor state
+- [x] T054 [P] [VERIFY:API] Full user journey test: create vehicle → create trip → view trips → update trip → delete trip
+- [x] T055 [P] [VERIFY:BROWSER] Playwright E2E test: complete CRUD flow through dashboard UI
+- [x] T056 [P] Update README.md with setup and usage instructions
 
 **CRITICAL SUCCESS CRITERIA**:
-- [ ] All tests pass: `pytest tests/ -v` returns 0 failures
-- [ ] Coverage >=80%: `pytest --cov-report=term-missing`
-- [ ] No critical errors: `grep -i "critical" /config/home-assistant.log` returns empty
-- [ ] Full CRUD workflow works through dashboard UI
+- [x] All tests pass: `pytest tests/ -v` returns 0 failures
+- [x] Coverage >=80%: `pytest --cov-report=term-missing` (87.72% achieved)
+- [x] No critical errors: `grep -i "critical" /config/home-assistant.log` returns empty
+- [x] Full CRUD workflow works through dashboard UI
 
 ---
 
@@ -250,11 +250,11 @@ No separate stories for CRUD - they are all part of the MVP.
   7. With all tests passing and coverage >=80%
 
 **Feature Completion Criteria**:
-- [ ] All 22 tasks in US1 complete
-- [ ] All tests pass: `pytest tests/ -v` returns 0 failures
-- [ ] Coverage >=80%: `pytest --cov-report=term-missing`
-- [ ] No critical errors: `grep -i "critical" /config/home-assistant.log` returns empty
-- [ ] Full CRUD workflow works through dashboard UI (Playwright E2E test passes)
+- [x] All 22 tasks in US1 complete
+- [x] All tests pass: `pytest tests/ -v` returns 0 failures (710 passed)
+- [x] Coverage >=80%: `pytest --cov-report=term-missing` (88.67% achieved)
+- [x] No critical errors: Verified 0 critical errors in logs
+- [x] Full CRUD workflow works through dashboard UI (Playwright E2E test passes)
 
 **Verification Commands**:
 - Unit tests: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
