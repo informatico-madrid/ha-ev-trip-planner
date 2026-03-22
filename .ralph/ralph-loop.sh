@@ -50,6 +50,8 @@ RALPH_MAX_ITER="${RALPH_MAX_ITER:-100}"
 RALPH_REVIEW_EVERY="${RALPH_REVIEW_EVERY:-5}"
 RALPH_MAX_RETRIES="${RALPH_MAX_RETRIES:-50}"
 RALPH_YOLO="${RALPH_YOLO:-true}"
+RALPH_CLAUDE_FLAGS="${RALPH_CLAUDE_FLAGS:-}"  # Additional flags for Claude CLI (e.g., "-d" for debug, "--debug-file /path/to/log")
+RALPH_DEBUG_MODE="${RALPH_DEBUG_MODE:-false}"  # Enable debug mode
 
 # Test concurrency guard: limit how many pytest processes this loop allows
 RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-5}"
@@ -149,6 +151,7 @@ USAGE:
     .ralph/ralph-loop.sh <spec-dir> --max 50     # Limit iterations
     .ralph/ralph-loop.sh --resume                 # Resume from state.json
     .ralph/ralph-loop.sh --reset                  # Reset state and restart from beginning
+    .ralph/ralph-loop.sh <spec-dir> --debug      # Run with debug mode enabled
 
 OPTIONS:
     --max N           Maximum iterations (default: 100)
@@ -160,7 +163,13 @@ OPTIONS:
     --no-worktree     Run in legacy mode without git worktree
     --skip-preflight  Skip preflight checks [WARN]
     --clean [slug]    Remove merged worktrees for given spec slug
+    --debug           Enable debug mode - shows Claude tool usage in detail
     -h, --help        Show this help
+
+DEBUGGING:
+    --debug               Enable Claude debug mode (-d flag)
+    RALPH_CLAUDE_FLAGS    Extra flags for Claude CLI (e.g., "--debug-file /path/to/log")
+    RALPH_DEBUG_MODE=true Set to "true" to enable debug mode via environment
 
 WORKFLOW:
     1. Initialize state.json from tasks.md
@@ -188,6 +197,23 @@ VLLM BACKEND (for goose agent):
 
 Example:
     RALPH_AGENT=goose RALPH_VLLM_URL=http://localhost:4000 .ralph/ralph-loop.sh specs/xxx
+
+DEBUGGING:
+    To see detailed Claude tool usage, use one of these methods:
+    
+    1. Command line flag (recommended for testing):
+       .ralph/ralph-loop.sh <spec-dir> --debug
+    
+    2. Environment variable (persistent):
+       RALPH_DEBUG_MODE=true .ralph/ralph-loop.sh <spec-dir>
+    
+    3. Custom Claude flags:
+       RALPH_CLAUDE_FLAGS="--debug-file /tmp/claude-debug.log" .ralph/ralph-loop.sh <spec-dir>
+    
+    The --debug flag enables `-d` which shows:
+    - All tool calls and their results
+    - API interactions
+    - Error details
 
 EOF
 }
@@ -225,6 +251,10 @@ parse_args() {
                 shift ;;
             --skip-preflight)
                 SKIP_PREFLIGHT=true
+                shift ;;
+            --debug)
+                RALPH_DEBUG_MODE=true
+                log_info "Debug mode enabled - will show Claude tool usage"
                 shift ;;
             --clean)
                 CLEAN_MODE=true
@@ -776,6 +806,19 @@ run_work_agent() {
         claude)
             local flags="-p"
             [[ "$RALPH_YOLO" == "true" ]] && flags="$flags --dangerously-skip-permissions"
+            
+            # Add debug flags if enabled
+            if [[ "$RALPH_DEBUG_MODE" == "true" ]]; then
+                flags="$flags -d"
+                log_info "Debug mode enabled - Claude will show detailed tool usage"
+            fi
+            
+            # Add custom Claude flags from environment variable
+            if [[ -n "$RALPH_CLAUDE_FLAGS" ]]; then
+                flags="$flags $RALPH_CLAUDE_FLAGS"
+                log_info "Using custom Claude flags: $RALPH_CLAUDE_FLAGS"
+            fi
+            
             output=$(echo "$prompt" | "$CLAUDE_CMD" $flags 2>&1 | tee "$log_file")
             exit_code=$?
             ;;
@@ -1636,13 +1679,31 @@ main() {
             # More flexible pattern to catch any [VERIFY:...] tag
             if echo "$task_desc" | grep -qiE '\[VERIFY:'; then
                 echo ""
-                echo -e "${CYAN}▶ VERIFICATION (task has [VERIFY:*] tags)${NC}"
+                
+                # Detect verification type for logging
+                local verify_type="UNKNOWN"
+                if echo "$task_desc" | grep -qiE '\[VERIFY:BROWSER\]'; then
+                    verify_type="BROWSER"
+                    echo -e "${CYAN}▶ VERIFICATION [VERIFY:BROWSER]${NC}"
+                    echo -e "${BLUE}  Tool: mcp-playwright (Playwright browser automation)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:18124)${NC}"
+                elif echo "$task_desc" | grep -qiE '\[VERIFY:API\]'; then
+                    verify_type="API"
+                    echo -e "${CYAN}▶ VERIFICATION [VERIFY:API]${NC}"
+                    echo -e "${BLUE}  Tool: homeassistant-ops skill (REST API)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:18124)${NC}"
+                elif echo "$task_desc" | grep -qiE '\[VERIFY:TEST\]'; then
+                    verify_type="TEST"
+                    echo -e "${CYAN}▶ VERIFICATION [VERIFY:TEST]${NC}"
+                    echo -e "${BLUE}  Tool: pytest (unit/integration tests)${NC}"
+                fi
+                
                 # Debug: show what task_desc contains
-                echo -e "${YELLOW}DEBUG: task_desc='$task_desc'${NC}"
+                echo -e "${YELLOW}  Task: $task_desc${NC}"
                 
                 # Verification signal from agent (via [VERIFY:TEST/API/BROWSER] tags)
                 if check_verification_signal "$agent_output"; then
-                    log_ok "STATE_MATCH signal detected - Agent verification successful"
+                    log_ok "STATE_MATCH signal detected - Agent verification successful ($verify_type)"
                 else
                     # Save full agent output to log file for manual analysis
                     local debug_log="$log_dir/verification_fail_iter${global_iter}_task${next_idx}_$(date '+%Y%m%d_%H%M%S').log"
@@ -1671,6 +1732,7 @@ main() {
                     fi
                     
                     log_error "Agent must verify using [VERIFY:TEST/API/BROWSER] tags and emit STATE_MATCH"
+                    log_error "Verification type detected: $verify_type"
                     log_error "Unchecking task and restarting iteration"
                     
                     # Uncheck the task at current index (mark as [ ])

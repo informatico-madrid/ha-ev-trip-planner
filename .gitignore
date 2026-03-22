@@ -59,3 +59,6 @@ tests/test-ha-config/
 !tests/test-ha-config/custom_components/
 !tests/test-ha-config/blueprints/
 !tests/test-ha-config/.HA_VERSION
+
+
+.ruff_cache
