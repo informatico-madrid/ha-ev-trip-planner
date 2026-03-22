@@ -8,7 +8,7 @@ Esta investigación documenta las mejores prácticas y decisiones técnicas para
 
 ### Decision 1: Usar Playwright Test Framework
 
-**What**: Implementar testing E2E con Playwright en lugar de Cypress o Selenium
+**What**: Implementar testing E2E con Playwright
 
 **Why**:
 - Playwright ofrece mejor manejo de waits automáticos (no requiere explicit waits)

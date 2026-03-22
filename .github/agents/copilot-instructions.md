@@ -1,10 +1,12 @@
 # ha-ev-trip-planner Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-21
+Auto-generated from all feature plans. Last updated: 2026-03-22
 
 ## Active Technologies
 - Python 3.11+ (HA custom component) + JavaScript/TypeScript (web component) + homeassistant.core, panel_custom, frontend, hass.http.register_static_path (017-native-panel-core)
 - N/A (usa la API REST de HA existente) (017-native-panel-core)
+- Python 3.11+, JavaScript (panel.js) + Home Assistant Core 2026, voluptuous, panel_custom (019-panel-vehicle-crud)
+- YAML files in config_dir/ev_trip_planner/ (019-panel-vehicle-crud)
 
 - Python 3.11 + Home Assistant 2026.x, pytest-homeassistant-custom-component (007-complete-milestone-3-verify-1-2)
 
@@ -24,6 +26,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11: Follow standard conventions
 
 ## Recent Changes
+- 019-panel-vehicle-crud: Added Python 3.11+, JavaScript (panel.js) + Home Assistant Core 2026, voluptuous, panel_custom
 - 017-native-panel-core: Added Python 3.11+ (HA custom component) + JavaScript/TypeScript (web component) + homeassistant.core, panel_custom, frontend, hass.http.register_static_path
 
 - 007-complete-milestone-3-verify-1-2: Added Python 3.11 + Home Assistant 2026.x, pytest-homeassistant-custom-component

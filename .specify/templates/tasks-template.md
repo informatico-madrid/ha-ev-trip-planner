@@ -21,15 +21,58 @@ description: "Task list template for feature implementation"
 
 ### Verification Types
 
-**IMPORTANT**: Before assigning verification types, consult the plan's "Available Tools for Verification" section to see which skills/MCPs are installed.
+**IMPORTANT**: Before assigning verification types, consult the "Available Tools for Verification" section in plan.md to see which skills/MCPs are available in this project.
 
-| Tag | When to Use | Verification Method | Available Tools |
-|-----|-------------|---------------------|----------------|
-| `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns, e2e-testing-patterns |
-| `[VERIFY:API]` | REST API verification (HA entities) | Use homeassistant-ops skill (no hardcoded curl) | homeassistant-ops, homeassistant-skill |
-| `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
+| Tag | When to Use | Verification Method | Available MCP/SKILL |
+|-----|-------------|---------------------|---------------------|
+| `[VERIFY:TEST]` | pytest unit/integration tests | Run `pytest tests/ -v` | `[MCP_TESTING]` or `[SKILL_TESTING]` |
+| `[VERIFY:BROWSER]` | Playwright browser navigation (autonomous) | Agent navigates autonomously to complete task | `[MCP_BROWSER]` or `[SKILL_BROWSER]` |
+| `[VERIFY:API]` | HA REST API verification | Use HA API tools | `[MCP_API]` or `[SKILL_API]` |
+| `[VERIFY:CONFIG]` | HA YAML configuration | Use HA config tools | `[MCP_CONFIG]` or `[SKILL_CONFIG]` |
 
-**Task Assignment Rule**: For each task, determine which verification type applies, then select the most appropriate tool from the available skills/MCPs listed in plan.md.
+**Task Assignment Rule**: For each task, determine which verification type applies. Only add a skill/MCP reference if you find relevant tools for that specific verification type in plan.md - otherwise omit the reference.
+
+### VERIFY:API - Home Assistant API Verification Steps
+
+When a task has `[VERIFY:API]`, use the homeassistant-ops skill to verify:
+
+**IMPORTANT**: Replace the placeholders below with actual working endpoints from the project before generating tasks.
+
+1. **Check API connectivity**: `[API_ENDPOINT_CONNECTIVITY]` - expect 200
+2. **List all entities**: `[API_ENDPOINT_STATES]`
+3. **Get specific entity**: `[API_ENDPOINT_ENTITY]` - use entity_id from data-model.md
+4. **List services**: `[API_ENDPOINT_SERVICES]`
+5. **Check config**: `[API_ENDPOINT_CONFIG]`
+6. **Call a service**: `[API_ENDPOINT_SERVICE_CALL]` - use domain/service from services.yaml
+
+**Required**: Set `HA_URL` and `HA_TOKEN` environment variables before running.
+
+**Note**: The agent must verify which endpoints are actually working in the HA instance before substituting these placeholders.
+
+### VERIFY:BROWSER - Playwright Autonomous Navigation Steps
+
+When a task has `[VERIFY:BROWSER]`, the agent must navigate autonomously with Playwright:
+
+1. **Install dependencies**: `npm install && npx playwright install chromium`
+2. **Environment setup**: Ensure `.env` has `HA_URL`, `HA_USERNAME`, `HA_PASSWORD`
+3. **Launch browser**: Use Playwright to navigate to HA URL
+4. **Login flow**: Navigate login page, fill credentials, submit
+5. **Find path to goal**: Navigate through UI elements to reach target
+6. **Verify result**: Check expected elements appear or actions complete
+
+**Debug Commands** (use when tests fail):
+
+| Command | Description |
+|---------|-------------|
+| `npx playwright test --debug` | Run with Playwright Inspector (pauses on each step) |
+| `npx playwright test --trace on` | Record trace for all tests |
+| `npx playwright test --trace retain-on-failure` | Keep trace only on failures |
+| `npx playwright show-trace <trace-file>` | View recorded trace |
+| `npx playwright test --headed` | Run visible browser (not headless) |
+| `npx playwright test --ui` | Interactive UI mode |
+| `npx playwright test --shard 1/3` | Run specific shard of tests |
+
+**Key difference from [VERIFY:TEST]**: `[VERIFY:BROWSER]` is a navigable user story where the agent must FIND THE PATH autonomously, not a predefined test script.
 
 ## Path Conventions
 
@@ -75,12 +118,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 [VERIFY:TEST] Setup database schema and migrations framework (use: python-testing-patterns)
-- [ ] T005 [P] [VERIFY:TEST] Implement authentication/authorization framework (use: python-testing-patterns)
-- [ ] T006 [P] [VERIFY:API] Setup API routing and middleware structure (use: homeassistant-ops, homeassistant-skill)
+- [ ] T004 [VERIFY:TEST] Setup database schema and migrations framework (use: `[SKILL_TESTING]`)
+- [ ] T005 [P] [VERIFY:TEST] Implement authentication/authorization framework (use: `[SKILL_TESTING]`)
+- [ ] T006 [P] [VERIFY:API] Setup API routing and middleware structure (use: `[SKILL_API]`)
 - [ ] T007 Create base models/entities that all stories depend on
 - [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 [VERIFY:API] Setup environment configuration management (use: homeassistant-config)
+- [ ] T009 [VERIFY:API] Setup environment configuration management (use: `[SKILL_CONFIG]`)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -257,9 +300,9 @@ With multiple developers:
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
-- [VERIFY:TEST] = unit/integration tests (pytest)
-- [VERIFY:API] = REST API verification (curl to HA)
-- [VERIFY:BROWSER] = Playwright E2E tests
+- [VERIFY:TEST] = pytest unit/integration tests (use `[SKILL_TESTING]`)
+- [VERIFY:API] = Home Assistant REST API verification (use `[SKILL_API]`)
+- [VERIFY:BROWSER] = Playwright autonomous browser navigation - agent must find the path to complete goal (use `[SKILL_BROWSER]`)
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
 - Commit after each task or logical group

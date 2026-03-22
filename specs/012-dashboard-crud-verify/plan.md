@@ -157,7 +157,7 @@ CRUD functionality will be added as a new module `dashboard.py` and templates in
 |------------------|-------------|----------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
 | `[VERIFY:API]` | REST API verification (use homeassistant-ops skill) | Use skill to query HA API (no hardcoded curl) |
-| `[VERIFY:BROWSER]` | Playwright/Selenium UI automation | `npx playwright test` |
+| `[VERIFY:BROWSER]` | Playwright UI automation | `npx playwright test` |
 
 **RULES:**
 - ✅ ONLY these 3 types are valid in tasks

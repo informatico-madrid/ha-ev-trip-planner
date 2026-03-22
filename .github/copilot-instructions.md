@@ -6,15 +6,14 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - **Framework**: Home Assistant Core
 
 ## 🏛️ HOME ASSISTANT ARCHITECTURE - STRICT RULES
-1. **Config Flow Only:** The integration MUST be based on Config Entries (`config_flow.py`). Manual YAML configuration is strictly forbidden.
-2. **Unique IDs:** Always use stable, physical data for `unique_id` (e.g., MAC Address, Account ID, Serial). NEVER use IP addresses or user-editable names to avoid collisions.
-3. **Flow Lifecycle:** Properly implement `user`, `reauth`, and `reconfigure` steps. Always use `self._abort_if_unique_id_mismatch()` in reconfigure/reauth flows to protect data integrity.
+
 4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`.
 
 ## 🏠 HOME ASSISTANT INSTANCE CONTEXT
 - **Instance Understanding:** When testing modules, ALWAYS read `/home/malka/homeassistant/.github/copilot-instructions.md` to understand the Home Assistant instance configuration, environment setup, and testing requirements.
 - **Token Access:** HA token is in `/home/malka/.env` - reference as `HA_TOKEN` environment variable.
 - **URL:** `http://192.168.1.100:8123`
+- **Playwright:** Use `http://192.168.1.100:8123` for testing UI interactions. User and password are in `/home/malka/.env` as `HA_USER` and `HA_PASSWORD`.
 - **NO SUPERVISOR API:** Use REST API skills at `/home/malka/.agents/skills/home-assistant-rest-api` instead.
 
 ## 📋 PYTHON CODING STANDARDS
@@ -31,7 +30,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - Write tests for EVERY new feature with >80% coverage target.
 - **Mandatory HA Tools:** Always use the `pytest-homeassistant-custom-component` library.
 - **Fixtures:** You MUST include the `enable_custom_integrations` fixture in the test suite to prevent core blocking.
-- **API Mocking:** Never make real network requests. Use `aioclient_mock` to simulate all HTTP/API responses (both 200 successes and errors like 401/404).
+- **API Mocking:** Never make real network requests. Use `aioclient_mock` to simulate and mocking all HTTP/API responses (both 200 successes and errors like 401/404).
 
 ## 📝 COMMIT MESSAGES
 When asked to generate a commit message, strictly use Conventional Commits format:

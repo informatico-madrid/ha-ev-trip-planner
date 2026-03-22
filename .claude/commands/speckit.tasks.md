@@ -131,6 +131,42 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
+### Skill/MCP Placeholder Substitution
+
+When generating tasks from the template, you MUST replace skill/MCP placeholders with actual available tools (skills or MCPs):
+
+**Available Placeholders**:
+- `[MCP_TESTING]` or `[SKILL_TESTING]` - For testing tasks (pytest, unit/integration tests)
+- `[MCP_BROWSER]` or `[SKILL_BROWSER]` - For browser automation tasks (Playwright)
+- `[MCP_API]` or `[SKILL_API]` - For Home Assistant API verification tasks
+- `[MCP_CONFIG]` or `[SKILL_CONFIG]` - For Home Assistant configuration tasks
+
+**Mapping to Available Tools** (from plan.md):
+Get it from plan.md's tech stack and libraries sections. For example:
+
+**Substitution Rules**:
+1. Check the "Available Tools for Verification" section in plan.md
+2. Replace each placeholder with a relevant tool (skill or MCP) from the mapping IF one exists - otherwise omit the reference
+3. Keep only ONE tool per task (select the most relevant one)
+4. If no matching tool is found, omit the reference but keep the task
+
+**Example**:
+- Template: `- [ ] T001 [VERIFY:TEST] Create unit tests (use: [MCP_TESTING])`
+- Generated: `- [ ] T001 [VERIFY:TEST] Create unit tests (use: python-testing-patterns)`
+
+### API Endpoint Placeholder Substitution
+
+When generating tasks, you MUST verify and replace API endpoint placeholders with actual working endpoints:
+
+**API Placeholders** (from template):
+- `[API_ENDPOINT_CONNECTIVITY]` - Check API connectivity
+- `[API_ENDPOINT_STATES]` - List all entities
+- `[API_ENDPOINT_ENTITY]` - Get specific entity
+- `[API_ENDPOINT_SERVICES]` - List services
+- `[API_ENDPOINT_CONFIG]` - Check config
+- `[API_ENDPOINT_SERVICE_CALL]` - Call a service
+- `[API_ENDPOINT_CUSTOM]` - Any custom endpoint you can find available in the running HA instance that is relevant to the task
+
 **Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
 
 ### Checklist Format (REQUIRED)
@@ -155,7 +191,7 @@ Every task MUST strictly follow this format:
 5. **Verification Type** *(recommended)*: Specify the verification method for this task:
    - `[VERIFY:TEST]` - Unit/integration tests (pytest, unittest)
    - `[VERIFY:API]` - REST API verification (curl commands to Home Assistant API)
-   - `[VERIFY:BROWSER]` - Browser automation (Playwright, Selenium for HA UI testing)
+   - `[VERIFY:BROWSER]` - Browser automation (Playwright for HA UI testing)
    - Omit if task doesn't require verification or is not HA-related
 6. **Description**: Clear action with exact file path
 
@@ -165,9 +201,9 @@ Every task MUST strictly follow this format:
 - ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
 - ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
 - ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
-- ✅ CORRECT (API): `- [ ] T020 [US2] [VERIFY:API] Add sensor in sensor.py [VERIFY: curl http://192.168.1.100:8123/api/states/sensor.ev_trip_distance]`
-- ✅ CORRECT (TEST): `- [ ] T021 [VERIFY:TEST] Add unit tests for trip calculations in tests/test_trip_calculations.py`
-- ✅ CORRECT (BROWSER): `- [ ] T022 [VERIFY:BROWSER] Create Playwright test for dashboard login in tests/e2e/test_dashboard_login.py`
+- ✅ CORRECT (API): `- [ ] T020 [US2] [VERIFY:API] Add sensor in sensor.py [use: [MCP_API] or [SKILL_API]]`
+- ✅ CORRECT (TEST): `- [ ] T021 [VERIFY:TEST] Add unit tests for trip calculations in tests/test_trip_calculations.py [use: [MCP_TESTING] or [SKILL_TESTING]]`
+- ✅ CORRECT (BROWSER): `- [ ] T022 [VERIFY:BROWSER] Navigate to HA dashboard and verify vehicle panel loads [use: [MCP_BROWSER] or [SKILL_BROWSER]]`
 - ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
 - ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
 - ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
