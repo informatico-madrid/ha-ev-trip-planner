@@ -722,6 +722,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 2. Use the available MCP tools (already configured)
 3. Verify the real result
 4. Emit SIGNAL: STATE_MATCH if everything passes
+5. Emit TASK_COMPLETE if you can complete the task
 
 ## CRITICAL: Read these files FIRST
 1. $constitution_path (project rules — NON-NEGOTIABLE)
@@ -755,11 +756,14 @@ $github_context
 7. Commit (from $WORKTREE_PATH) with a descriptive message referencing the task ID
 
 ## When Done (Single Task Only)
-1. **VERIFICATION**: Before marking task complete, you MUST:
+1. **VERIFICATION** (COMPULSORY for [VERIFY:*] tasks): Before marking task complete, you MUST:
    - Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
    - Execute verification using the tools indicated by those tags
-   - Example: [[VERIFY:API]] → use curl/MCP to verify entities exist and work
-   - Emit SIGNAL: STATE_MATCH if verification passes
+     - [VERIFY:TEST] → Run pytest tests
+     - [VERIFY:API] → Use Home Assistant REST API (curl or MCP)
+     - [VERIFY:BROWSER] → Use mcp-playwright browser automation
+   - If verification FAILS → Do NOT output TASK_COMPLETE, document error in progress
+   - If verification PASSES → Emit SIGNAL: STATE_MATCH THEN TASK_COMPLETE
 
 2. Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md (main repo path)
    IMPORTANT: This is the tasks.md file in the main repo, NOT in the worktree!
@@ -774,7 +778,34 @@ $github_context
   Status: DONE
   \`\`\`
 
-4. Output: TASK_COMPLETE
+4. Output signals:
+   - TASK_COMPLETE (always required)
+   - SIGNAL: STATE_MATCH (required ONLY for [VERIFY:*] tasks after successful verification)
+
+## CRITICAL: Signal Requirements - READ THIS CAREFULLY
+
+**==================================================================**
+**If your task has [VERIFY:TEST], [VERIFY:API], or [VERIFY:BROWSER] tags:**
+**==================================================================**
+You MUST emit BOTH signals:
+
+Step 1: Execute the verification using the appropriate tool:
+Step 2: If verification PASSES, output BOTH signals:
+```
+TASK_COMPLETE
+SIGNAL: STATE_MATCH
+```
+
+Step 3: If verification FAILS:
+  - Do NOT output TASK_COMPLETE
+  - Document what failed in $progress_file
+  - The loop will retry with feedback
+
+**==================================================================**
+**If your task has NO verification tags (no [VERIFY:*]):**
+**==================================================================**
+- Just output: TASK_COMPLETE
+- No verification required
 
 ## If ALL tasks in tasks.md are now [x]:
 - Output: ALL_TASKS_COMPLETE
