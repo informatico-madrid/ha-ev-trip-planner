@@ -636,10 +636,6 @@ $(cat "$SPECKIT_IMPLEMENT_AGENT")
 "
     fi
 
-    # Escape task_body to prevent bash from interpreting [VERIFY:*] as commands
-    local escaped_task_body
-    escaped_task_body=$(printf '%s' "$task_body" | sed 's/\[/\\[/g; s/\]/\\]/g')
-
     cat <<PROMPT_EOF
 # Ralph Loop — Work Phase (Iteration $iteration)
 $worktree_section
@@ -651,14 +647,14 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 | Tag | Tool | Usage |
 |-----|------|-------|
-| `[VERIFY:TEST]` | pytest | Run tests |
-| `[VERIFY:API]` | curl/MCP HA | Verify via REST API |
-| `[VERIFY:BROWSER]` | Playwright | Verify via browser |
+| [[VERIFY:TEST]] | pytest | Run tests |
+| [[VERIFY:API]] | curl/MCP HA | Verify via REST API |
+| [[VERIFY:BROWSER]] | Playwright | Verify via browser |
 
 **Your task includes the necessary tools (MCPs, skills) already configured.**
 
 **BEFORE marking [x], execute verifications according to your task's tags:**
-1. Read the [VERIFY:TEST/API/BROWSER] tags from your task
+1. Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
 2. Use the available MCP tools (already configured)
 3. Verify the real result
 4. Emit SIGNAL: STATE_MATCH if everything passes
@@ -671,7 +667,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 ## Your Current Task (index $task_index)
 \`\`\`
-$escaped_task_body
+$task_body
 \`\`\`
 $feedback_section
 $progress_tail
@@ -696,9 +692,9 @@ $github_context
 
 ## When Done (Single Task Only)
 1. **VERIFICATION**: Before marking task complete, you MUST:
-   - Read the [VERIFY:TEST/API/BROWSER] tags from your task
+   - Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
    - Execute verification using the tools indicated by those tags
-   - Example: [VERIFY:API] → use curl/MCP to verify entities exist and work
+   - Example: [[VERIFY:API]] → use curl/MCP to verify entities exist and work
    - Emit SIGNAL: STATE_MATCH if verification passes
 
 2. Mark ONLY the current task ($task_index) as [x] in $spec_dir/tasks.md (main repo path)
