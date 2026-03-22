@@ -31,6 +31,11 @@
       "sourceType": "github",
       "computedHash": "f2bebc24df85fbc9641f5fd12161f9eead03b5dabb238a7d73707afde8edf8de"
     },
+    "playwright-best-practices": {
+      "source": "currents-dev/playwright-best-practices-skill",
+      "sourceType": "github",
+      "computedHash": "320eaf861e3a0a923bfaad0726cb311a3fe30093378f8d26c89b9c5ae5c42b35"
+    },
     "python-cybersecurity-tool-development": {
       "source": "mindrally/skills",
       "sourceType": "github",

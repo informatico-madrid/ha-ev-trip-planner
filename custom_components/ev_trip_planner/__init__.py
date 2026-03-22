@@ -21,6 +21,7 @@ from .dashboard import DashboardImportResult
 from .dashboard import import_dashboard as import_dashboard
 from .dashboard import is_lovelace_available as is_lovelace_available
 from .emhass_adapter import EMHASSAdapter
+from .panel import async_unregister_panel
 from .trip_manager import TripManager
 
 # Type aliases for cleaner signatures
@@ -367,6 +368,39 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the EV Trip Planner component."""
+    # Register static paths for the native panel
+    # This makes the panel.js and panel.css files available at /local/ev_trip_planner/
+    from pathlib import Path
+
+    # Check if http is available and has register_static_path
+    if not hasattr(hass.http, "register_static_path"):
+        _LOGGER.debug(
+            "HTTP component not available or register_static_path not supported, skipping static path registration"
+        )
+    else:
+        # Get the component's directory
+        component_dir = Path(__file__).parent
+        panel_js_path = component_dir / "frontend" / "panel.js"
+        panel_css_path = component_dir / "frontend" / "panel.css"
+
+        # Register the JavaScript file
+        if panel_js_path.exists():
+            hass.http.register_static_path(
+                "/local/ev_trip_planner/panel.js",
+                str(panel_js_path),
+                cache_headers=True,
+            )
+            _LOGGER.info("Registered panel.js at /local/ev_trip_planner/panel.js")
+
+        # Register the CSS file
+        if panel_css_path.exists():
+            hass.http.register_static_path(
+                "/local/ev_trip_planner/panel.css",
+                str(panel_css_path),
+                cache_headers=True,
+            )
+            _LOGGER.info("Registered panel.css at /local/ev_trip_planner/panel.css")
+
     return True
 
 
@@ -456,7 +490,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator for this vehicle
     coordinator = TripPlannerCoordinator(hass, trip_manager)
     await coordinator.async_config_entry_first_refresh()
-    
+
+    # Register native panel for this vehicle
+    # This creates a sidebar entry in HA without requiring Lovelace
+    vehicle_name = entry.data.get("name", vehicle_id)
+    try:
+        # Import the panel module
+        from . import panel as panel_module
+        await panel_module.async_register_panel(
+            hass,
+            vehicle_id=vehicle_id,
+            vehicle_name=vehicle_name,
+        )
+    except Exception as err:  # pragma: no cover
+        # Log but don't fail - panel registration is optional
+        _LOGGER.warning(
+            "Could not register native panel for %s: %s",
+            vehicle_name,
+            err,
+        )
+
     # Store config, trip_manager, coordinator AND emhass_adapter
     hass.data[DATA_RUNTIME][namespace] = {
         "config": entry.data,
@@ -521,8 +574,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    vehicle_id = entry.data.get("vehicle_id", "")
+    vehicle_name = entry.data.get("vehicle_name", vehicle_id)
+
     _LOGGER.info(
-        "Unloading EV Trip Planner for vehicle: %s", entry.data.get("vehicle_name")
+        "Unloading EV Trip Planner for vehicle: %s", vehicle_name
     )
 
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
@@ -530,6 +586,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         namespace = f"{DOMAIN}_{entry.entry_id}"
         if DATA_RUNTIME in hass.data:
             hass.data[DATA_RUNTIME].pop(namespace, None)
+
+        # Remove the native panel from sidebar
+        if vehicle_id:
+            try:
+                await async_unregister_panel(hass, vehicle_id)
+            except Exception as ex:  # pragma: no cover
+                _LOGGER.warning(
+                    "Failed to unregister panel for vehicle %s: %s",
+                    vehicle_id,
+                    ex,
+                )
 
     return unload_ok
 

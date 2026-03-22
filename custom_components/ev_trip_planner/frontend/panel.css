@@ -1,0 +1,145 @@
+/**
+ * EV Trip Planner Native Panel Styles
+ *
+ * Additional styles for the native panel component.
+ * The main styles are embedded in the JavaScript component.
+ */
+
+/* Additional panel-specific styles */
+:host {
+  --panel-primary-color: #2196f3;
+  --panel-primary-dark: #1976d2;
+  --panel-primary-light: #bbdefb;
+  --panel-background: #fafafa;
+  --panel-card-background: #ffffff;
+  --panel-text-primary: #212121;
+  --panel-text-secondary: #757575;
+  --panel-divider: #e0e0e0;
+  --panel-success: #4caf50;
+  --panel-warning: #ff9800;
+  --panel-error: #f44336;
+}
+
+.panel-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Status card enhancements */
+.status-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Charging status indicator */
+.charging-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.charging-indicator.charging {
+  background-color: var(--panel-success);
+  animation: pulse 1.5s infinite;
+}
+
+.charging-indicator.not-charging {
+  background-color: var(--panel-text-secondary);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Trip list enhancements */
+.trip-card {
+  transition: background-color 0.2s ease;
+}
+
+.trip-card:hover {
+  background-color: var(--panel-primary-light);
+}
+
+.trip-card.pending {
+  border-left: 3px solid var(--panel-warning);
+}
+
+.trip-card.completed {
+  border-left: 3px solid var(--panel-success);
+}
+
+/* Button enhancements */
+.btn {
+  transition: all 0.2s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-edit {
+  background-color: var(--panel-primary-color);
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: var(--panel-primary-dark);
+}
+
+.btn-delete {
+  background-color: transparent;
+  color: var(--panel-error);
+  border: 1px solid var(--panel-error);
+}
+
+.btn-delete:hover {
+  background-color: var(--panel-error);
+  color: white;
+}
+
+/* Power profile chart area */
+.power-profile {
+  min-height: 120px;
+}
+
+.profile-chart {
+  padding: 8px;
+}
+
+.profile-chart pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trips-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .trip-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trip-actions {
+    margin-top: 12px;
+  }
+}

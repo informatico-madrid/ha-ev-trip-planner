@@ -34,3 +34,11 @@ progress.txt
 .ralph/memory.log
 progress.txt
 .ralph/*.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
