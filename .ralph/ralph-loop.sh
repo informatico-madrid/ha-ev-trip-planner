@@ -345,23 +345,47 @@ sys.exit(1)
 }
 
 mark_task_done() {
-    # Mark the Nth task (0-based) as [x] in tasks.md
-    local tasks_file="$1"
-    local index="$2"
-    python3 -c "
+	# Mark the Nth task (0-based) as [x] in tasks.md
+	local tasks_file="$1"
+	local index="$2"
+	python3 -c "
 import re
 from pathlib import Path
 
-TASK_RE = re.compile(r'^- \[ \] ')
+# Match both [x] and [X]
+TASK_RE = re.compile(r'^- \[ \] ', re.IGNORECASE)
 path = Path('$tasks_file')
 lines = path.read_text().splitlines()
 count = 0
 for i, line in enumerate(lines):
-    if TASK_RE.match(line):
-        if count == $index:
-            lines[i] = line.replace('- [ ] ', '- [x] ', 1)
-            break
-        count += 1
+	if TASK_RE.match(line):
+		if count == $index:
+			lines[i] = re.sub(r'^- \[ \] ', '- [x] ', line, flags=re.IGNORECASE, count=1)
+			break
+		count += 1
+path.write_text('\n'.join(lines) + '\n')
+"
+}
+
+unmark_task() {
+	# Unmark the Nth task (0-based) as [ ] in tasks.md (for retry scenarios)
+	local tasks_file="$1"
+	local index="$2"
+	python3 -c "
+import re
+from pathlib import Path
+
+# Match both [x] and [X]
+TASK_RE = re.compile(r'^- \[X\] ', re.IGNORECASE)
+path = Path('$tasks_file')
+lines = path.read_text().splitlines()
+count = 0
+for i, line in enumerate(lines):
+	if TASK_RE.match(line):
+		if count == $index:
+			lines[i] = re.sub(r'^- \[X\] ', '- [ ] ', line, flags=re.IGNORECASE, count=1)
+			break
+		count += 1
 path.write_text('\n'.join(lines) + '\n')
 "
 }
@@ -1621,15 +1645,8 @@ main() {
                     log_error "Agent must verify using [VERIFY:TEST/API/BROWSER] tags and emit STATE_MATCH"
                     log_error "Unchecking task and restarting iteration"
                     
-                    # Uncheck the task (mark as [ ])
-                    python3 -c "
-import re
-with open('$tasks_file', 'r') as f:
-    content = f.read()
-content = re.sub(r'- \[X\]', '- [ ]', content)
-with open('$tasks_file', 'w') as f:
-    f.write(content)
-" 2>/dev/null || true
+                    # Uncheck the task at current index (mark as [ ])
+                    unmark_task "$tasks_file" "$next_idx"
                     
                     update_state --set "taskIteration=$((task_iter + 1))"
                     log_progress "$next_idx" "$task_desc" "STATE_SIGNAL_MISSING (retry $((task_iter + 1)))" "$global_iter"
