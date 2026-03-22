@@ -636,6 +636,10 @@ $(cat "$SPECKIT_IMPLEMENT_AGENT")
 "
     fi
 
+    # Escape task_body to prevent bash from interpreting [VERIFY:*] as commands
+    local escaped_task_body
+    escaped_task_body=$(printf '%s' "$task_body" | sed 's/\[/\\[/g; s/\]/\\]/g')
+
     cat <<PROMPT_EOF
 # Ralph Loop — Work Phase (Iteration $iteration)
 $worktree_section
@@ -667,7 +671,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 ## Your Current Task (index $task_index)
 \`\`\`
-$(echo "$task_body" | sed 's/\[/\\[/g' | sed 's/\]/\\]/g')
+$escaped_task_body
 \`\`\`
 $feedback_section
 $progress_tail
