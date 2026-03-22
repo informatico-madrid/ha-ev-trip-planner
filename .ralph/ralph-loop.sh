@@ -1633,15 +1633,43 @@ main() {
             # ========================================================================
             
             # Check if task has verification tags - only verify if present
-            if echo "$task_desc" | grep -qiE '\[VERIFY:(TEST|API|BROWSER)\]'; then
+            # More flexible pattern to catch any [VERIFY:...] tag
+            if echo "$task_desc" | grep -qiE '\[VERIFY:'; then
                 echo ""
                 echo -e "${CYAN}▶ VERIFICATION (task has [VERIFY:*] tags)${NC}"
+                # Debug: show what task_desc contains
+                echo -e "${YELLOW}DEBUG: task_desc='$task_desc'${NC}"
                 
                 # Verification signal from agent (via [VERIFY:TEST/API/BROWSER] tags)
                 if check_verification_signal "$agent_output"; then
                     log_ok "STATE_MATCH signal detected - Agent verification successful"
                 else
+                    # Save full agent output to log file for manual analysis
+                    local debug_log="$log_dir/verification_fail_iter${global_iter}_task${next_idx}_$(date '+%Y%m%d_%H%M%S').log"
+                    echo "$agent_output" > "$debug_log"
+                    
+                    # Extract what signals the agent was looking for (for debugging)
+                    local signals_searched="state_match|verification_passed|verification_ok|verification_success|signal.*state_match"
+                    
+                    # Try to find any partial matches in the output
+                    local partial_matches
+                    partial_matches=$(echo "$agent_output" | grep -iE "$signals_searched" || echo "")
+                    
                     log_error "No STATE_MATCH signal in agent output"
+                    log_error "Debug log saved to: $debug_log"
+                    log_error "Signals searched (case-insensitive): $signals_searched"
+                    
+                    if [[ -n "$partial_matches" ]]; then
+                        log_warn "Partial matches found in output:"
+                        echo "$partial_matches" | head -10 | while read -r line; do
+                            log_warn "  -> $line"
+                        done
+                        log_warn "These did not match the required pattern - check exact format in agent output"
+                    else
+                        log_warn "NO partial matches found - agent did not emit ANY verification signal"
+                        log_warn "Expected: STATE_MATCH (or verification_passed/verification_ok/verification_success)"
+                    fi
+                    
                     log_error "Agent must verify using [VERIFY:TEST/API/BROWSER] tags and emit STATE_MATCH"
                     log_error "Unchecking task and restarting iteration"
                     
@@ -1671,14 +1699,45 @@ main() {
                 update_state --set "lastReviewAt=$next_idx"
             fi
         else
+            # Save agent output for debugging
+            local no_signal_debug="$log_dir/no_signal_debug_iter${global_iter}_task${next_idx}_$(date '+%Y%m%d_%H%M%S').log"
+            echo "$agent_output" > "$no_signal_debug"
+            
+            # Extract what signals we were looking for
+            local completion_signals="task_complete|task_completes|done(s)?|<promise>done</promise>"
+            
+            # Try to find any partial matches in the output
+            local partial_matches
+            partial_matches=$(echo "$agent_output" | grep -iE "$completion_signals" || echo "")
+            
             log_warn "Layer 2: No completion signal found"
+            log_warn "Debug log saved to: $no_signal_debug"
+            log_warn "Signals searched (case-insensitive): $completion_signals"
+            
+            if [[ -n "$partial_matches" ]]; then
+                log_warn "Partial matches found in output:"
+                echo "$partial_matches" | head -10 | while read -r line; do
+                    log_warn "  -> $line"
+                done
+                log_warn "These did not match the required pattern - check exact format"
+            else
+                log_warn "NO partial matches found - agent did not emit ANY completion signal"
+                log_warn "Expected: TASK_COMPLETE or DONE (case insensitive, with or without <promise> tags)"
+            fi
+            
             update_state --set "taskIteration=$((task_iter + 1))"
             log_progress "$next_idx" "$task_desc" "NO_SIGNAL (retry $((task_iter + 1)))" "$global_iter"
             consecutive_failures=$((consecutive_failures + 1))
 
-            if (( consecutive_failures >= 3 )); then
-                log_warn "3 consecutive no-signal iterations — agent may be stuck"
-                log_warn "Check logs: $log_dir"
+            if (( consecutive_failures >= 30 )); then
+                log_error "=============================================="
+                log_error "MAX RETRIES EXCEEDED FOR TASK $task_id"
+                log_error "Task failed after $RALPH_MAX_RETRIES attempts"
+                log_error "Debug log: $no_signal_debug"
+                log_error "Agent output shows no TASK_COMPLETE signal"
+                log_error "=============================================="
+                log_warn "Unmarking task and continuing to next task"
+                unmark_task "$tasks_file" "$next_idx"
                 consecutive_failures=0
             fi
         fi
