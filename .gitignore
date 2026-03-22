@@ -42,3 +42,20 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+test-ha/config/.cache/
+test-ha/config/.storage/
+test-ha/config/*.log*
+test-ha/config/.ha_run.lock
+
+# Test HA pre-configured - EXCEPT these critical files that need to be in repo
+# (onboarding, auth, config, sensors, custom_components)
+tests/test-ha-config/
+
+# But explicitly allow these critical files/directories in tests/test-ha-config/
+!tests/test-ha-config/.storage/
+!tests/test-ha-config/configuration.yaml
+!tests/test-ha-config/input_*.yaml
+!tests/test-ha-config/template_sensors.yaml
+!tests/test-ha-config/custom_components/
+!tests/test-ha-config/blueprints/
+!tests/test-ha-config/.HA_VERSION

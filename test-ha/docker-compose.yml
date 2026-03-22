@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  homeassistant-test:
+    container_name: ha-ev-test
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    user: "1000:1000"  # UID:GID del usuario host (malka en local)
+    ports:
+      - "18123:8123"
+    environment:
+      - TZ=Europe/Madrid
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+      # Montar integración desde workspace - permite escritura para pycache
+      - ../custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8124/api/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+volumes:
+  test_config:

@@ -9,11 +9,9 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 
 4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`.
 
-## 🏠 HOME ASSISTANT INSTANCE CONTEXT
-- **Instance Understanding:** When testing modules, ALWAYS read `/home/malka/homeassistant/.github/copilot-instructions.md` to understand the Home Assistant instance configuration, environment setup, and testing requirements.
-- **Token Access:** HA token is in `/home/malka/.env` - reference as `HA_TOKEN` environment variable.
-- **URL:** `http://192.168.1.100:8123`
-- **Playwright:** Use `http://192.168.1.100:8123` for testing UI interactions. User and password are in `/home/malka/.env` as `HA_USER` and `HA_PASSWORD`.
+## 🏠 HOME ASSISTANT PRODUCTION INSTANCE CONTEXT
+- Access credentials and URL are in `/home/malka/ha-ev-trip-planner/.env`:
+- **Playwright:** Use for testing UI interactions.
 - **NO SUPERVISOR API:** Use REST API skills at `/home/malka/.agents/skills/home-assistant-rest-api` instead.
 
 ## 📋 PYTHON CODING STANDARDS
@@ -31,6 +29,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - **Mandatory HA Tools:** Always use the `pytest-homeassistant-custom-component` library.
 - **Fixtures:** You MUST include the `enable_custom_integrations` fixture in the test suite to prevent core blocking.
 - **API Mocking:** Never make real network requests. Use `aioclient_mock` to simulate and mocking all HTTP/API responses (both 200 successes and errors like 401/404).
+- **Playwright for UI:** Use Playwright for e2e testing. 
 
 ## 📝 COMMIT MESSAGES
 When asked to generate a commit message, strictly use Conventional Commits format:

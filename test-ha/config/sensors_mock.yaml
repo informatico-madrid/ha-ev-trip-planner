@@ -1,0 +1,389 @@
+# ============================================
+# SENSORES MOCK PARA TESTS E2E
+# ============================================
+# Estos sensores simulan los sensores OVMS reales
+# y pueden ser manipulados via API REST para los tests
+# 
+# Para manipularlos:
+#   curl -X POST "http://localhost:18123/api/services/input_number/set" \
+#     -H "Authorization: Bearer $TOKEN" \
+#     -H "Content-Type: application/json" \
+#     -d '{"entity_id": "input_number.coche1_battery_capacity", "value": 75}'
+# ============================================
+
+# -----------------------------------------------------------
+# COCHE 1 - Chispitas (basado en configuración de producción)
+# -----------------------------------------------------------
+input_number:
+  # Sensores de configuración
+  coche1_battery_capacity:
+    name: "Coche1 Capacidad Batería"
+    initial: 60.0
+    min: 10.0
+    max: 200.0
+    step: 1.0
+    unit_of_measurement: "kWh"
+    mode: box
+
+  coche1_charging_power:
+    name: "Coche1 Potencia Carga"
+    initial: 11.0
+    min: 1.0
+    max: 22.0
+    step: 0.5
+    unit_of_measurement: "kW"
+    mode: box
+
+  coche1_consumption:
+    name: "Coche1 Consumo"
+    initial: 0.15
+    min: 0.05
+    max: 0.5
+    step: 0.01
+    unit_of_measurement: "kWh/km"
+    mode: box
+
+  coche1_safety_margin:
+    name: "Coche1 Margen Seguridad"
+    initial: 10
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+
+# Sensores binarios (presence/charging)
+input_boolean:
+  coche1_charging:
+    name: "Coche1 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche1_home:
+    name: "Coche1 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche1_plugged:
+    name: "Coche1 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+# Sensores derivados (template)
+template:
+  - sensor:
+      - name: "Coche1 SOC Actual"
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche1_battery_capacity') | float(0) }}"
+        
+      - name: "Coche1 Estado Carga"
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche1_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche1_charging', 'on') else 'idle' }}"
+        
+      - name: "Coche1 Presencia"
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche1_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche1_home', 'on') else 'away' }}"
+        
+      - name: "Coche1 Conexión"
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche1_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche1_plugged', 'on') else 'unplugged' }}"
+
+
+# -----------------------------------------------------------
+# COCHE 2 - Morgan (basado en configuración de producción)
+# -----------------------------------------------------------
+input_number:
+  coche2_battery_capacity:
+    name: "Coche2 Capacidad Batería"
+    initial: 75.0
+    min: 10.0
+    max: 200.0
+    step: 1.0
+    unit_of_measurement: "kWh"
+    mode: box
+
+  coche2_charging_power:
+    name: "Coche2 Potencia Carga"
+    initial: 7.4
+    min: 1.0
+    max: 22.0
+    step: 0.5
+    unit_of_measurement: "kW"
+    mode: box
+
+  coche2_consumption:
+    name: "Coche2 Consumo"
+    initial: 0.18
+    min: 0.05
+    max: 0.5
+    step: 0.01
+    unit_of_measurement: "kWh/km"
+    mode: box
+
+  coche2_safety_margin:
+    name: "Coche2 Margen Seguridad"
+    initial: 15
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+
+input_boolean:
+  coche2_charging:
+    name: "Coche2 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche2_home:
+    name: "Coche2 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche2_plugged:
+    name: "Coche2 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+template:
+  - sensor:
+      - name: "Coche2 SOC Actual"
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche2_battery_capacity') | float(0) }}"
+        
+      - name: "Coche2 Estado Carga"
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche2_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche2_charging', 'on') else 'idle' }}"
+        
+      - name: "Coche2 Presencia"
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche2_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche2_home', 'on') else 'away' }}"
+        
+      - name: "Coche2 Conexión"
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche2_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche2_plugged', 'on') else 'unplugged' }}"
+
+
+# -----------------------------------------------------------
+# COCHE 3 - Vehículo de pruebas adicional
+# -----------------------------------------------------------
+input_number:
+  coche3_battery_capacity:
+    name: "Coche3 Capacidad Batería"
+    initial: 50.0
+    min: 10.0
+    max: 200.0
+    step: 1.0
+    unit_of_measurement: "kWh"
+    mode: box
+
+  coche3_charging_power:
+    name: "Coche3 Potencia Carga"
+    initial: 22.0
+    min: 1.0
+    max: 22.0
+    step: 0.5
+    unit_of_measurement: "kW"
+    mode: box
+
+  coche3_consumption:
+    name: "Coche3 Consumo"
+    initial: 0.20
+    min: 0.05
+    max: 0.5
+    step: 0.01
+    unit_of_measurement: "kWh/km"
+    mode: box
+
+  coche3_safety_margin:
+    name: "Coche3 Margen Seguridad"
+    initial: 20
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+
+input_boolean:
+  coche3_charging:
+    name: "Coche3 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche3_home:
+    name: "Coche3 En Casa"
+    initial: off
+    icon: mdi:home
+
+  coche3_plugged:
+    name: "Coche3 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+template:
+  - sensor:
+      - name: "Coche3 SOC Actual"
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche3_battery_capacity') | float(0) }}"
+        
+      - name: "Coche3 Estado Carga"
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche3_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche3_charging', 'on') else 'idle' }}"
+        
+      - name: "Coche3 Presencia"
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche3_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche3_home', 'on') else 'away' }}"
+        
+      - name: "Coche3 Conexión"
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche3_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche3_plugged', 'on') else 'unplugged' }}"
+
+
+# -----------------------------------------------------------
+# COCHE 4 - Vehículo de pruebas adicional
+# -----------------------------------------------------------
+input_number:
+  coche4_battery_capacity:
+    name: "Coche4 Capacidad Batería"
+    initial: 40.0
+    min: 10.0
+    max: 200.0
+    step: 1.0
+    unit_of_measurement: "kWh"
+    mode: box
+
+  coche4_charging_power:
+    name: "Coche4 Potencia Carga"
+    initial: 3.7
+    min: 1.0
+    max: 22.0
+    step: 0.5
+    unit_of_measurement: "kW"
+    mode: box
+
+  coche4_consumption:
+    name: "Coche4 Consumo"
+    initial: 0.12
+    min: 0.05
+    max: 0.5
+    step: 0.01
+    unit_of_measurement: "kWh/km"
+    mode: box
+
+  coche4_safety_margin:
+    name: "Coche4 Margen Seguridad"
+    initial: 25
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+
+input_boolean:
+  coche4_charging:
+    name: "Coche4 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche4_home:
+    name: "Coche4 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche4_plugged:
+    name: "Coche4 Enchufado"
+    initial: off
+    icon: mdi:power-plug
+
+template:
+  - sensor:
+      - name: "Coche4 SOC Actual"
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche4_battery_capacity') | float(0) }}"
+        
+      - name: "Coche4 Estado Carga"
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche4_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche4_charging', 'on') else 'idle' }}"
+        
+      - name: "Coche4 Presencia"
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche4_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche4_home', 'on') else 'away' }}"
+        
+      - name: "Coche4 Conexión"
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche4_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche4_plugged', 'on') else 'unplugged' }}"
+
+
+# -----------------------------------------------------------
+# COCHE 5 - Vehículo de pruebas adicional
+# -----------------------------------------------------------
+input_number:
+  coche5_battery_capacity:
+    name: "Coche5 Capacidad Batería"
+    initial: 82.0
+    min: 10.0
+    max: 200.0
+    step: 1.0
+    unit_of_measurement: "kWh"
+    mode: box
+
+  coche5_charging_power:
+    name: "Coche5 Potencia Carga"
+    initial: 11.0
+    min: 1.0
+    max: 22.0
+    step: 0.5
+    unit_of_measurement: "kW"
+    mode: box
+
+  coche5_consumption:
+    name: "Coche5 Consumo"
+    initial: 0.17
+    min: 0.05
+    max: 0.5
+    step: 0.01
+    unit_of_measurement: "kWh/km"
+    mode: box
+
+  coche5_safety_margin:
+    name: "Coche5 Margen Seguridad"
+    initial: 5
+    min: 0
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+
+input_boolean:
+  coche5_charging:
+    name: "Coche5 Cargando"
+    initial: on
+    icon: mdi:lightning-bolt
+
+  coche5_home:
+    name: "Coche5 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche5_plugged:
+    name: "Coche5 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+template:
+  - sensor:
+      - name: "Coche5 SOC Actual"
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche5_battery_capacity') | float(0) }}"
+        
+      - name: "Coche5 Estado Carga"
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche5_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche5_charging', 'on') else 'idle' }}"
+        
+      - name: "Coche5 Presencia"
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche5_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche5_home', 'on') else 'away' }}"
+        
+      - name: "Coche5 Conexión"
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche5_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche5_plugged', 'on') else 'unplugged' }}"
