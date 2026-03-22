@@ -20,7 +20,7 @@
 #   RALPH_AGENT          Agent CLI: claude (default), goose, custom
 #   RALPH_MAX_ITER       Global max iterations (default: 100)
 #   RALPH_REVIEW_EVERY   Run artifact review every N tasks (default: 5)
-#   RALPH_MAX_RETRIES    Per-task retry limit (default: 5)
+#   RALPH_MAX_RETRIES    Per-task retry limit (default: 50)
 #   CLAUDE_CMD           Claude CLI binary (default: claude)
 #   GOOSE_MODEL          Goose model for work phase
 #   GOOSE_PROVIDER       Goose provider for work phase
@@ -48,7 +48,7 @@ RALPH_AGENT="${RALPH_AGENT:-claude}"
 CLAUDE_CMD="${CLAUDE_CMD:-claude}"
 RALPH_MAX_ITER="${RALPH_MAX_ITER:-100}"
 RALPH_REVIEW_EVERY="${RALPH_REVIEW_EVERY:-5}"
-RALPH_MAX_RETRIES="${RALPH_MAX_RETRIES:-30}"
+RALPH_MAX_RETRIES="${RALPH_MAX_RETRIES:-50}"
 RALPH_YOLO="${RALPH_YOLO:-true}"
 
 # Test concurrency guard: limit how many pytest processes this loop allows
@@ -604,10 +604,20 @@ $(cat "$github_context_path")
         worktree_section="
 ## ⚠ WORKTREE MODE — MANDATORY CONSTRAINTS
 - Your working directory is: $WORKTREE_PATH
-- **ALL file reads and writes MUST use this absolute path as base.**
-- DO NOT edit any files outside $WORKTREE_PATH (the main repo at $PROJECT_DIR is OFF-LIMITS).
-- When running shell commands use: cd $WORKTREE_PATH before any relative path.
-- git commits must be made from $WORKTREE_PATH (already on branch: $WORKTREE_BRANCH).
+- **ALL file reads and writes MUST use $WORKTREE_PATH as base**
+- When editing files, use ABSOLUTE PATH: $WORKTREE_PATH/custom_components/...
+- DO NOT edit any files outside $WORKTREE_PATH (the main repo at $PROJECT_DIR is OFF-LIMITS)
+- When running shell commands ALWAYS use: cd $WORKTREE_PATH && <command>
+- git commits must be made from $WORKTREE_PATH (already on branch: $WORKTREE_BRANCH)
+- IMPORTANT: When using MCP shell tools, always prefix paths with $WORKTREE_PATH/
+- Example of correct path: $WORKTREE_PATH/custom_components/ev_trip_planner/frontend/panel.js
+
+## ⚠ SAFETY CHECK - AFTER EVERY FILE OPERATION except task.md updates:
+After creating, editing, or deleting ANY file:
+1. Check: Is the path starting with $PROJECT_DIR (not $WORKTREE_PATH)?
+2. If YES - this is WRONG - replicate the change in $WORKTREE_PATH instead
+3. If you accidentally edited $PROJECT_DIR, COPY the changes to $WORKTREE_PATH manually
+4. Then revert the change in $PROJECT_DIR: cd $PROJECT_DIR && git checkout -- <wrong-file>
 "
     fi
 
