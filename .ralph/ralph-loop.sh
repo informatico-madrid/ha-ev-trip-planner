@@ -667,7 +667,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 ## Your Current Task (index $task_index)
 \`\`\`
-$task_body
+$(echo "$task_body" | sed 's/\[/\\[/g' | sed 's/\]/\\]/g')
 \`\`\`
 $feedback_section
 $progress_tail
