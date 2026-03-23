@@ -39,6 +39,10 @@ When not in a Ralph loop:
 
 ## Core Principles
 
+### Verification Rules
+- DO NOT use screenshot verification - verify using text/element selectors only
+- DO NOT use mcp-playwright for screenshot capture - use API or text-based verification
+
 ### Code Style
 MUST adhere to the following coding standards:
 - Line length: 88 characters
