@@ -27,18 +27,7 @@ HA_CONTAINER="ha-ev-test"
 HA_URL="${HA_URL:-http://localhost:18123}"
 WAIT_SECONDS="${WAIT_SECONDS:-180}"
 
-# Determine integration source:
-# - WORKTREE_PATH (set by ralph-loop): use worktree files
-# - Otherwise: use PROJECT_DIR (manual execution)
-if [[ -n "${WORKTREE_PATH:-}" ]]; then
-    INTEGRATION_SOURCE="$WORKTREE_PATH/custom_components/ev_trip_planner"
-    log_info "Using worktree integration: $INTEGRATION_SOURCE"
-else
-    INTEGRATION_SOURCE="$PROJECT_DIR/custom_components/ev_trip_planner"
-    log_info "Using project integration: $INTEGRATION_SOURCE"
-fi
-
-# Colors
+# Colors (defined before use)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -49,6 +38,17 @@ log_info()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# Determine integration source:
+# - WORKTREE_PATH (set by ralph-loop): use worktree files
+# - Otherwise: use PROJECT_DIR (manual execution)
+if [[ -n "${WORKTREE_PATH:-}" ]]; then
+    INTEGRATION_SOURCE="$WORKTREE_PATH/custom_components/ev_trip_planner"
+    log_info "Using worktree integration: $INTEGRATION_SOURCE"
+else
+    INTEGRATION_SOURCE="$PROJECT_DIR/custom_components/ev_trip_planner"
+    log_info "Using project integration: $INTEGRATION_SOURCE"
+fi
 
 # Check if already running
 is_running() {
