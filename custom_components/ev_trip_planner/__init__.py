@@ -460,33 +460,59 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register static paths for the native panel (must be done in async_setup_entry)
     from pathlib import Path
+
+    # Try to import StaticPathConfig for HA 2024.7+
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        HAS_STATIC_PATH_CONFIG = True
+    except ImportError:
+        HAS_STATIC_PATH_CONFIG = False
+
     component_dir = Path(__file__).parent
-    panel_js_path = component_dir / "frontend" / "panel.js"
-    panel_css_path = component_dir / "frontend" / "panel.css"
+    # Use static folder for panel files
+    panel_js_path = component_dir / "static" / "ev_trip_planner" / "panel.js"
+    panel_css_path = component_dir / "static" / "ev_trip_planner" / "panel.css"
+
+    # Build list of static paths to register
+    static_paths = []
 
     # Register the JavaScript file
     if panel_js_path.exists():
-        # HA 2026+ uses async_register_static_paths with tuple (path, file_path, cache_headers_dict)
-        try:
-            hass.http.async_register_static_paths(
-                ("ev-trip-planner-panel/panel.js", str(panel_js_path), {"cache_headers": True})
-            )
-            _LOGGER.info("Registered panel.js at ev-trip-planner-panel/panel.js")
-        except TypeError:
-            # Fallback for different HA versions
-            _LOGGER.debug("async_register_static_paths not available, using legacy approach")
-            pass
+        static_paths.append(
+            StaticPathConfig("/ev_trip_planner/panel.js", str(panel_js_path), cache_headers=True)
+            if HAS_STATIC_PATH_CONFIG
+            else ("ev_trip_planner/panel.js", str(panel_js_path), True)
+        )
+        _LOGGER.info("Registering panel.js at ev_trip_planner/panel.js from %s", panel_js_path)
 
     # Register the CSS file
     if panel_css_path.exists():
+        static_paths.append(
+            StaticPathConfig("/ev_trip_planner/panel.css", str(panel_css_path), cache_headers=True)
+            if HAS_STATIC_PATH_CONFIG
+            else ("ev_trip_planner/panel.css", str(panel_css_path), True)
+        )
+        _LOGGER.info("Registering panel.css at ev_trip_planner/panel.css from %s", panel_css_path)
+
+    # Register all static paths
+    if static_paths:
         try:
-            hass.http.async_register_static_paths(
-                ("ev-trip-planner-panel/panel.css", str(panel_css_path), {"cache_headers": True})
+            await hass.http.async_register_static_paths(static_paths)
+            _LOGGER.info("Registered %d static path(s) for EV Trip Planner panel", len(static_paths))
+        except (TypeError, AttributeError) as err:
+            # Fallback for different HA versions - use legacy register_static_path
+            _LOGGER.warning(
+                "async_register_static_paths not available or error: %s, trying legacy method",
+                err,
             )
-            _LOGGER.info("Registered panel.css at ev-trip-planner-panel/panel.css")
-        except TypeError:
-            _LOGGER.debug("async_register_static_paths not available for CSS, using legacy approach")
-            pass
+            for path_spec in static_paths:
+                if isinstance(path_spec, tuple):
+                    url_path, file_path, _ = path_spec
+                    hass.http.register_static_path(url_path, file_path)
+                else:
+                    # StaticPathConfig - try to extract values
+                    hass.http.register_static_path(path_spec.path, path_spec.url_path)
 
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace

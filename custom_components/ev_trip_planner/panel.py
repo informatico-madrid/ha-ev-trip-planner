@@ -46,9 +46,7 @@ async def async_register_panel(
     Returns:
         True if panel was registered successfully, False otherwise
     """
-    # Sanitize vehicle_id for URL path (replace spaces with underscores, lowercase)
-    sanitized_vehicle_id = vehicle_id.lower().replace(" ", "_")
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{sanitized_vehicle_id}"
+    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
 
     try:
         # First, try to unregister any existing panel to avoid "Overwriting panel" error
@@ -60,12 +58,11 @@ async def async_register_panel(
             pass
 
         # Use panel_custom.async_register_panel - this is the correct API
-        # The js_url is served from /<component_name>/<js_url>
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=frontend_url_path,
             webcomponent_name=PANEL_COMPONENT_NAME,
-            js_url="ev-trip-planner-panel/panel.js",  # Served from /ev-trip-planner-panel/panel.js
+            js_url="ev_trip_planner/panel.js",
             sidebar_title=vehicle_name,
             sidebar_icon=DEFAULT_SIDEBAR_ICON,
             config={"vehicle_id": vehicle_id},
@@ -106,9 +103,7 @@ async def async_unregister_panel(
     Returns:
         True if panel was unregistered successfully, False otherwise
     """
-    # Sanitize vehicle_id for URL path (replace spaces with underscores, lowercase)
-    sanitized_vehicle_id = vehicle_id.lower().replace(" ", "_")
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{sanitized_vehicle_id}"
+    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
 
     try:
         # Remove the panel from frontend

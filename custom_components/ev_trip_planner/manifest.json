@@ -14,6 +14,6 @@
   "version": "0.3.2-dev",
   "frontend": {
     "name": "ev-trip-planner-panel",
-    "js_url": "panel.js"
+    "js_url": "ev_trip_planner/panel.js"
   }
 }
