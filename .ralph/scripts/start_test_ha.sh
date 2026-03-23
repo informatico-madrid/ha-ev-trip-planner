@@ -117,6 +117,12 @@ main() {
     if is_running && [[ -n "${WORKTREE_PATH:-}" ]]; then
         log_info "Recreating container with worktree volume..."
         docker-compose down
+        
+        # Create and start container with environment variables
+        log_info "Creating container with worktree volume..."
+        INTEGRATION_SOURCE="$INTEGRATION_SOURCE" \
+        EMHASS_CONFIG_PATH="/home/malka/emhass" \
+        docker-compose up -d
     elif is_running; then
         log_ok "Container $HA_CONTAINER is already running"
     elif container_exists; then
