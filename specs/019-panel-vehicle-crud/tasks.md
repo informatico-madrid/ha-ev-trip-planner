@@ -11,7 +11,7 @@ Usuario: available in environment (obtener de variables de entorno)
 Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
 ```
-
+**VERIFY:BROSER** HAY QUE CORREGIR LOS ERRORES DEL LOG DEL CONTENDOR PARA SEGUIR AVANZANDO Y NO QUEDARSE BLOQUEADO. Limpiar basura si es necesario  
 ## Dependencies
 
 ```
@@ -38,7 +38,7 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ## Phase 2: Foundational
 
-- [ ] T001 Investigar métodos de implementación en Home Assistant Core para panel_custom y EntitySelector [use: mcp-shell]
+- [x] T001 Investigar métodos de implementación en Home Assistant Core para panel_custom y EntitySelector [use: mcp-shell]
 
 ---
 
@@ -49,10 +49,18 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ### Implementation
 
-- [ ] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
-- [ ] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
-- [ ] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
+- [x] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
+- [x] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+- [x] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
 - [ ] T005 [VERIFY:BROWSER] Verificar que el panel del vehículo renderiza correctamente:
+  **ANTES DE COMENZAR - Revisa los logs del contenedor de HA:**
+  ```
+  docker logs ha-ev-test --tail 50
+  ```
+  Busca errores o advertencias relacionadas con el componente ev_trip_planner.
+  Si hay errores, documéntalos e intenta resolverlos antes de continuar.
+  
+  **Verificación:**
   1. Navegar a HA (hacer login si es necesario)
   2. Ir a Integraciones y crear un vehículo de prueba si no existe
   3. Navegar al panel /ev-trip-planner-{vehicle_id}
@@ -88,7 +96,14 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 ### Implementation
 
 - [ ] T009 [P] [US3] Modificar config_flow.py STEP_NOTIFICATIONS_SCHEMA para incluir domain=["notify", "assist_satellite"] [use: homeassistant-config]
-- [ ] T010 [VERIFY:BROWSER] Verificar selector de notificaciones: 1. Navegar a HA (hacer login si es necesario) 2. Ir a Integraciones > Añadir > EV Trip Planner 3. Avanzar hasta el paso de notificaciones 4. Verificar que dispositivos assist_satellite aparecen en el dropdown 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T010 [VERIFY:BROWSER] Verificar selector de notificaciones:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Navegar a HA (hacer login si es necesario)
+  2. Ir a Integraciones > Añadir > EV Trip Planner
+  3. Avanzar hasta el paso de notificaciones
+  4. Verificar que dispositivos assist_satellite aparecen en el dropdown
+  5. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -100,7 +115,15 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 ### Implementation
 
 - [ ] T011 [US4] Verificar que async_unload_entry llama correctamente a async_unregister_panel [use: homeassistant-config]
-- [ ] T012 [VERIFY:BROWSER] Verificar eliminación de panel: 1. Crear un vehículo de prueba si no existe 2. Verificar que el panel aparece en el sidebar 3. Eliminar el vehículo desde Integraciones 4. Verificar que el panel ya no aparece en el sidebar 5. Verificar que la URL del panel devuelve error 404 6. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T012 [VERIFY:BROWSER] Verificar eliminación de panel:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Crear un vehículo de prueba si no existe
+  2. Verificar que el panel aparece en el sidebar
+  3. Eliminar el vehículo desde Integraciones
+  4. Verificar que el panel ya no aparece en el sidebar
+  5. Verificar que la URL del panel devuelve error 404
+  6. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -112,7 +135,15 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 ### Implementation
 
 - [ ] T013 [US5] El panel ya obtiene datos de hass.states en tiempo real - no se necesita cambio [use: homeassistant-config]
-- [ ] T014 [VERIFY:BROWSER] Verificar actualización de sensores: 1. Crear un vehículo si no existe 2. Acceder al panel y notar los valores de sensores actuales 3. Cambiar sensores en opciones de la integración 4. Recargar el panel 5. Verificar que los valores se actualizaron 6. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T014 [VERIFY:BROWSER] Verificar actualización de sensores:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Crear un vehículo si no existe
+  2. Acceder al panel y notar los valores de sensores actuales
+  3. Cambiar sensores en opciones de la integración
+  4. Recargar el panel
+  5. Verificar que los valores se actualizaron
+  6. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -125,7 +156,13 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 - [ ] T015 [P] [US6] Expandir panel.js _getVehicleStates() para incluir TODOS los sensores del vehículo [use: homeassistant-config]
 - [ ] T016 [US6] Mejorar la UI de sensores en panel.js para mostrar todos los valores legibles [use: homeassistant-dashboard-designer]
-- [ ] T017 [VERIFY:BROWSER] Verificar sensores en panel: 1. Crear vehículo si no existe 2. Acceder al panel 3. Verificar que se muestran sensores: SOC, Range, Charging, kwh_today, hours_today, next_trip, etc. 4. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T017 [VERIFY:BROWSER] Verificar sensores en panel:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Crear vehículo si no existe
+  2. Acceder al panel
+  3. Verificar que se muestran sensores: SOC, Range, Charging, kwh_today, hours_today, next_trip, etc.
+  4. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -139,7 +176,15 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 - [ ] T018 [P] [US7] Agregar en panel.js función para obtener lista de viajes via hass.connection.call_service [use: homeassistant-ops]
 - [ ] T019 [US7] Crear UI de lista de viajes en panel.js con formato legible [use: homeassistant-dashboard-designer]
 - [ ] T020 [US7] Manejar caso "no hay viajes" con mensaje apropiado [use: homeassistant-config]
-- [ ] T021 [VERIFY:BROWSER] Verificar viajes en panel: 1. Crear vehículo si no existe 2. Crear algunos viajes de prueba usando servicios HA 3. Acceder al panel 4. Verificar que los viajes aparecen en formato legible (ej: "Lunes 08:00 - Trabajo - 25km") 5. Si no hay viajes, verificar mensaje "No hay viajes programados" 6. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T021 [VERIFY:BROWSER] Verificar viajes en panel:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Crear vehículo si no existe
+  2. Crear algunos viajes de prueba usando servicios HA
+  3. Acceder al panel
+  4. Verificar que los viajes aparecen en formato legible (ej: "Lunes 08:00 - Trabajo - 25km")
+  5. Si no hay viajes, verificar mensaje "No hay viajes programados"
+  6. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -155,11 +200,32 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 - [ ] T024 [P] [US8] Integrar llamadas a servicios HA: trip_create, trip_update, delete_trip [use: homeassistant-ops]
 - [ ] T025 [US8] Agregar botones de pausar/reanudar para viajes recurrentes [use: homeassistant-dashboard-designer]
 - [ ] T026 [US8] Agregar botones de completar/cancelar para viajes puntuales [use: homeassistant-dashboard-designer]
-- [ ] T027 [VERIFY:BROWSER] CRUD - Crear viaje: 1. Acceder al panel del vehículo 2. Hacer clic en "Agregar Viaje" 3. Llenar formulario y enviar 4. Verificar que el viaje aparece en la lista 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T027 [VERIFY:BROWSER] CRUD - Crear viaje:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Acceder al panel del vehículo
+  2. Hacer clic en "Agregar Viaje"
+  3. Llenar formulario y enviar
+  4. Verificar que el viaje aparece en la lista
+  5. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
-- [ ] T028 [VERIFY:BROWSER] CRUD - Editar viaje: 1 Seleccionar un viaje existente 2. Hacer clic en editar 3. Modificar datos y guardar 4. Verificar cambios reflejados 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T028 [VERIFY:BROWSER] CRUD - Editar viaje:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Seleccionar un viaje existente
+  2. Hacer clic en editar
+  3. Modificar datos y guardar
+  4. Verificar cambios reflejados
+  5. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
-- [ ] T029 [VERIFY:BROWSER] CRUD - Eliminar viaje: 1. Seleccionar un viaje existente 2. Hacer clic en eliminar 3. Confirmar eliminación 4. Verificar que el viaje ya no aparece 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T029 [VERIFY:BROWSER] CRUD - Eliminar viaje:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Seleccionar un viaje existente
+  2. Hacer clic en eliminar
+  3. Confirmar eliminación
+  4. Verificar que el viaje ya no aparece
+  5. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
@@ -173,14 +239,25 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 - [ ] T030 [P] [US9] Aplicar estilos CSS consistentes en panel.css [use: homeassistant-dashboard-designer]
 - [ ] T031 [P] [US9] Organizar secciones con headers claros y espaciado adecuado [use: homeassistant-dashboard-designer]
 - [ ] T032 [US9] Agrupar botones de acciones lógicamente [use: homeassistant-dashboard-designer]
-- [ ] T033 [VERIFY:BROWSER] Verificar diseño: 1. Acceder al panel 2. Tomar snapshot de la página 3. Verificar visualmente diseño limpio y profesional 4. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T033 [VERIFY:BROWSER] Verificar diseño:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Acceder al panel
+  2. Verificar diseño limpio y profesional
+  3. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 ---
 
 ## Phase Final: Polish & Cross-Cutting
 
 - [ ] T034 Revisar y corregir cualquier error de JavaScript en panel.js [use: mcp-shell]
-- [ ] T035 [VERIFY:BROWSER] Verificar consola: 1. Abrir panel en navegador 2. Revisar consola del navegador (F12) 3. Verificar que no hay errores JavaScript 4. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T035 [VERIFY:BROWSER] Verificar consola:
+  **ANTES DE COMENZAR**: Revisa `docker logs ha-ev-test --tail 30`
+  1. Abrir panel en navegador
+  2. Revisar consola del navegador (F12)
+  3. Verificar que no hay errores JavaScript
+  4. SI TODO OK: Emitir SIGNAL: STATE_MATCH
+  [use: mcp-playwright]
 
 - [ ] T036 [VERIFY:API] Verificar entidades: 1. Obtener token de acceso (HA_TOKEN de variables de entorno) 2. Consultar /api/states para verificar sensores del vehículo 3. Verificar que todas las entidades relacionadas existen 4. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright o curl]
 

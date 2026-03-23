@@ -10,6 +10,7 @@
 # - Starts the HA test container using pre-configured volume
 # - Pre-configured state: onboarding bypass, admin user, HACS, mock sensors
 # - Does NOT clean up the container (persists for debugging)
+# - IMPORTANT: Does NOT restart container if already running (to avoid volume issues)
 #
 # The volume (test-ha/config/) already contains:
 #   - .storage/onboarding - bypass onboarding
@@ -113,18 +114,11 @@ main() {
 
     log_info "Starting Home Assistant test container..."
 
-    # If running from ralph-loop (WORKTREE_PATH set), ensure correct volume by recreating
-    if is_running && [[ -n "${WORKTREE_PATH:-}" ]]; then
-        log_info "Recreating container with worktree volume..."
-        docker-compose down
-        
-        # Create and start container with environment variables
-        log_info "Creating container with worktree volume..."
-        INTEGRATION_SOURCE="$INTEGRATION_SOURCE" \
-        EMHASS_CONFIG_PATH="/home/malka/emhass" \
-        docker-compose up -d
-    elif is_running; then
-        log_ok "Container $HA_CONTAINER is already running"
+    # CRITICAL: DO NOT RESTART container if already running
+    # This prevents volume mismatches when agent runs docker-compose down/up
+    if is_running; then
+        log_ok "Container $HA_CONTAINER is already running - NOT restarting"
+        log_info "This prevents volume configuration issues"
     elif container_exists; then
         log_info "Container exists but stopped, starting..."
         docker start "$HA_CONTAINER"
