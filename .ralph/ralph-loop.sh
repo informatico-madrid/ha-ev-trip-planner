@@ -551,7 +551,7 @@ REVIEW_EOF
     set +e
     case "$RALPH_AGENT" in
         claude)
-            local flags="-p"
+            local flags="-p --disallowed-tools browser_take_screenshot"
             [[ "$RALPH_YOLO" == "true" ]] && flags="$flags --dangerously-skip-permissions"
             review_output=$(echo "$review_prompt" | "$CLAUDE_CMD" $flags 2>&1)
             exit_code=$?
@@ -833,7 +833,7 @@ run_work_agent() {
     set +e
     case "$RALPH_AGENT" in
         claude)
-            local flags="-p"
+            local flags="-p --disallowed-tools browser_take_screenshot"
             [[ "$RALPH_YOLO" == "true" ]] && flags="$flags --dangerously-skip-permissions"
             
             # Add debug flags if enabled
