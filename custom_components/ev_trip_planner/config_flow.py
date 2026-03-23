@@ -781,9 +781,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         return result
 
+    @staticmethod
     @callback
     def async_get_options_flow(
-        self, config_entry: config_entries.ConfigEntry
+        config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Devuelve el flujo de opciones para la entrada de configuración."""
         return EVTripPlannerOptionsFlowHandler(config_entry)

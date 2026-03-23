@@ -334,15 +334,10 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Clean up subscriptions
-   * The unsubscribe function returned by subscribeMessage should be called to unsubscribe
    */
   _cleanup() {
-    if (this._unsubscribe && typeof this._unsubscribe === 'function') {
-      try {
-        this._unsubscribe();
-      } catch (e) {
-        console.warn('EV Trip Planner Panel: Error calling unsubscribe:', e);
-      }
+    if (this._unsubscribe) {
+      this._unsubscribe();
       this._unsubscribe = null;
     }
   }

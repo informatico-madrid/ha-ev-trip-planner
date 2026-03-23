@@ -368,39 +368,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the EV Trip Planner component."""
-    # Register static paths for the native panel
-    # This makes the panel.js and panel.css files available at /local/ev_trip_planner/
-    from pathlib import Path
-
-    # Check if http is available and has register_static_path
-    if not hasattr(hass.http, "register_static_path"):
-        _LOGGER.debug(
-            "HTTP component not available or register_static_path not supported, skipping static path registration"
-        )
-    else:
-        # Get the component's directory
-        component_dir = Path(__file__).parent
-        panel_js_path = component_dir / "frontend" / "panel.js"
-        panel_css_path = component_dir / "frontend" / "panel.css"
-
-        # Register the JavaScript file
-        if panel_js_path.exists():
-            hass.http.register_static_path(
-                "/local/ev_trip_planner/panel.js",
-                str(panel_js_path),
-                cache_headers=True,
-            )
-            _LOGGER.info("Registered panel.js at /local/ev_trip_planner/panel.js")
-
-        # Register the CSS file
-        if panel_css_path.exists():
-            hass.http.register_static_path(
-                "/local/ev_trip_planner/panel.css",
-                str(panel_css_path),
-                cache_headers=True,
-            )
-            _LOGGER.info("Registered panel.css at /local/ev_trip_planner/panel.css")
-
     return True
 
 
@@ -490,6 +457,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator for this vehicle
     coordinator = TripPlannerCoordinator(hass, trip_manager)
     await coordinator.async_config_entry_first_refresh()
+
+    # Register static paths for the native panel (must be done in async_setup_entry)
+    from pathlib import Path
+    component_dir = Path(__file__).parent
+    panel_js_path = component_dir / "frontend" / "panel.js"
+    panel_css_path = component_dir / "frontend" / "panel.css"
+
+    # Register the JavaScript file
+    if panel_js_path.exists():
+        # HA 2026+ uses async_register_static_paths with tuple (path, file_path, cache_headers_dict)
+        try:
+            hass.http.async_register_static_paths(
+                ("ev-trip-planner-panel/panel.js", str(panel_js_path), {"cache_headers": True})
+            )
+            _LOGGER.info("Registered panel.js at ev-trip-planner-panel/panel.js")
+        except TypeError:
+            # Fallback for different HA versions
+            _LOGGER.debug("async_register_static_paths not available, using legacy approach")
+            pass
+
+    # Register the CSS file
+    if panel_css_path.exists():
+        try:
+            hass.http.async_register_static_paths(
+                ("ev-trip-planner-panel/panel.css", str(panel_css_path), {"cache_headers": True})
+            )
+            _LOGGER.info("Registered panel.css at ev-trip-planner-panel/panel.css")
+        except TypeError:
+            _LOGGER.debug("async_register_static_paths not available for CSS, using legacy approach")
+            pass
 
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace
