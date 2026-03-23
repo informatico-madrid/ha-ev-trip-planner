@@ -6,7 +6,7 @@
 ## Credenciales para Verificaciones
 
 ```
-Home Assistant URL: http://192.168.1.100:8123
+Home Assistant URL: http://localhost:18124 (test-ha para verificaciones AUTOMÁTICAS)
 Usuario: available in environment (obtener de variables de entorno)
 Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
@@ -14,18 +14,21 @@ Token LTA: available in environment (obtener de variables de entorno)
 
 ## Despliegue para Verificaciones
 
-**IMPORTANTE**: Antes de ejecutar cualquier verificación [VERIFY:BROWSER] o [VERIFY:API], DEBES desplegar los cambios en Home Assistant:
+**IMPORTANTE**: Antes de ejecutar cualquier verificación [VERIFY:BROWSER] o [VERIFY:API], DEBES iniciar test-ha y desplegar los cambios:
 
 ```bash
-# Desplegar cambios y reiniciar HA
-# $WORKTREE_PATH está disponible en el contexto del agente (worktree activo)
-.ralph/scripts/deploy_and_verify.sh $WORKTREE_PATH
+# Iniciar test-ha si no está运行
+.ralph/scripts/start_test_ha.sh
+
+# Copia componentes al directorio de test-ha
+cp -r $WORKTREE_PATH/custom_components/ev_trip_planner test-ha/config/custom_components/
+
+# Espera a que HA esté disponible
+sleep 30
+
+# Verifica que test-ha responde en http://localhost:18124
+curl -s http://localhost:18124/api/ | grep -q "auth" && echo "test-ha OK"
 ```
-OBLIGATORIO DEBES ESPERAR 30 SEGUNDOS !!!!!!!! 
-Este script:
-1. Copia `custom_components/ev_trip_planner` del worktree a `/home/malka/homeassistant/custom_components/`
-2. Reinicia el contenedor Docker `homeassistant`
-3. Espera a que HA esté disponible (~30 segundos)
 
 **Después del despliegue**, ejecuta la verificación específica de la tarea.
 
@@ -240,7 +243,7 @@ Las tareas mínimas para tener un MVP funcional son:
 - Debe agregar logs adicionales si no tiene información suficiente
 
 **Credenciales HA**:
-- URL: http://192.168.1.100:8123
-- Usuario: malka
-- Password: Darkpunk666/
-- Token: Obtener de variable de entorno HA_TOKEN o similar
+- URL: http://localhost:18124 (test-ha)
+- Usuario: available in environment
+- Password: available in environment
+- Token: Obtener de variable de entorno
