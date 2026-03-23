@@ -721,7 +721,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 1. Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
 2. Use the available MCP tools (already configured)
 3. Verify the real result
-4. Emit SIGNAL: STATE_MATCH if everything passes
+4. Emit SIGNAL  STATE_MATCH if everything passes
 5. Emit TASK_COMPLETE if you can complete the task
 
 ## CRITICAL: Read these files FIRST
@@ -791,10 +791,8 @@ You MUST emit BOTH signals:
 
 Step 1: Execute the verification using the appropriate tool:
 Step 2: If verification PASSES, output BOTH signals:
-```
 TASK_COMPLETE
 SIGNAL: STATE_MATCH
-```
 
 Step 3: If verification FAILS:
   - Do NOT output TASK_COMPLETE
