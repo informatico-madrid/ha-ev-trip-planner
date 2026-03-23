@@ -124,12 +124,21 @@ main() {
         # Ensure config directory exists
         mkdir -p "$TEST_HA_DIR/config"
 
+        # Copy EMHASS config if exists (needed for config flow)
+        if [[ -f "/home/malka/emhass/config/config.json" ]]; then
+            mkdir -p /home/malka/emhass/config
+            cp /home/malka/emhass/config/config.json /home/malka/emhass/config/
+            log_info "Copied EMHASS config to host"
+        fi
+
         # Pull latest image
         log_info "Pulling latest Home Assistant image..."
         docker-compose pull
 
-        # Create and start container with environment variable for integration source
-        INTEGRATION_SOURCE="$INTEGRATION_SOURCE" docker-compose up -d
+        # Create and start container with environment variables
+        INTEGRATION_SOURCE="$INTEGRATION_SOURCE" \
+        EMHASS_CONFIG_PATH="/home/malka/emhass" \
+        docker-compose up -d
     fi
 
     # Wait for HA to respond (with polling instead of fixed sleep)
@@ -138,8 +147,6 @@ main() {
 
     log_ok "Home Assistant test container is ready at $HA_URL"
     log_info "Pre-configured state loaded from volume:"
-    log_info "  - Onboarding bypass: done"
-    log_info "  - Admin user: configured"
     log_info "  - HACS: pre-installed"
     log_info "  - Mock sensors: ready"
     log_info "Use: HA_URL=$HA_URL npx playwright test"

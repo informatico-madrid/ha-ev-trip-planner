@@ -16,7 +16,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - **Usage**: See real usage examples - DO NOT make direct changes
 
 ### Test Instance (test-ha)
-- **URL**: http://localhost:18124 (mapped internally to 8123)
+- **URL**: http://localhost:18123 (mapped internally to 8123)
 - **Docker**: `test-ha/docker-compose.yml`
 - **Credentials and Access**: In `/home/malka/ha-ev-trip-planner/.env`
 - **Purpose**: E2E tests, verifications during development

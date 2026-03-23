@@ -848,8 +848,13 @@ run_work_agent() {
                 log_info "Using custom Claude flags: $RALPH_CLAUDE_FLAGS"
             fi
             
-            output=$(echo "$prompt" | "$CLAUDE_CMD" $flags 2>&1 | tee "$log_file")
+            # Debug: show agent output in real-time
+            log_info "Running Claude agent..."
+            output=$(echo "$prompt" | "$CLAUDE_CMD" $flags 2>&1)
             exit_code=$?
+            
+            # Save to log file AND show on screen
+            echo "$output" | tee "$log_file"
             ;;
         goose)
             # Write prompt to task.md for goose recipe
@@ -1386,6 +1391,22 @@ main() {
     local global_iter=0
     local consecutive_failures=0
 
+    # Start test-ha container ONCE before the loop (if using worktree mode)
+    if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+        log_info "Starting test-ha container with worktree integration..."
+        
+        WORKTREE_PATH="$WORKTREE_PATH" bash "$RALPH_DIR/scripts/start_test_ha.sh" --wait-only || {
+            log_error "=============================================="
+            log_error "FATAL: Failed to start test-ha container"
+            log_error "Cannot proceed without test-ha for verification"
+            log_error "Please fix the container issue and restart ralph-loop"
+            log_error "=============================================="
+            exit 1
+        }
+        
+        log_ok "test-ha container is ready with worktree integration"
+    fi
+
     while true; do
         global_iter=$((global_iter + 1))
 
@@ -1455,23 +1476,6 @@ main() {
             mark_task_done "$tasks_file" "$next_idx"
             update_state --set "taskIteration=1"
             continue
-        fi
-
-        # Start test-ha container with worktree integration (ralph-loop always uses worktree)
-        if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
-            log_info "Starting test-ha container with worktree integration..."
-            
-            # Start the container with worktree integration
-            WORKTREE_PATH="$WORKTREE_PATH" bash "$RALPH_DIR/scripts/start_test_ha.sh" --wait-only || {
-                log_error "=============================================="
-                log_error "FATAL: Failed to start test-ha container"
-                log_error "Cannot proceed without test-ha for verification"
-                log_error "Please fix the container issue and restart ralph-loop"
-                log_error "=============================================="
-                exit 1
-            }
-            
-            log_ok "test-ha container is ready with worktree integration"
         fi
 
         # Build prompt
