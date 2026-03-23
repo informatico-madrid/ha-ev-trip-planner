@@ -26,33 +26,62 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Called when the panel is attached to the DOM
+   * Extracts vehicle_id from URL BEFORE waiting for hass
    */
   connectedCallback() {
     console.log('EV Trip Planner Panel: connectedCallback');
     console.log('EV Trip Planner Panel: full URL:', window.location.href);
     console.log('EV Trip Planner Panel: pathname:', window.location.pathname);
     console.log('EV Trip Planner Panel: hash:', window.location.hash);
-    
-    // Try to get vehicle_id from URL path as early as possible
+
+    // CRITICAL: Get vehicle_id from URL BEFORE waiting for hass
+    // This ensures vehicle_id is available even if hass/config timing is off
+    this._extractVehicleIdFromUrl();
+
+    // Start polling for hass after vehicle_id is extracted
+    this._startHassPolling();
+  }
+
+  /**
+   * Extract vehicle_id from the URL path or hash
+   * This is called in connectedCallback to get vehicle_id BEFORE waiting for hass
+   * @returns {boolean} true if vehicle_id was extracted successfully
+   */
+  _extractVehicleIdFromUrl() {
     // URL format: /ev-trip-planner-{vehicle_id}
     const path = window.location.pathname;
-    console.log('EV Trip Planner Panel: trying to extract from path:', path);
-    const match = path.match(/\/ev-trip-planner-(.+)/);
+    console.log('EV Trip Planner Panel: extracting vehicle_id from path:', path);
+
+    // Method 1: Regex match
+    let match = path.match(/\/ev-trip-planner-(.+)/);
     if (match && match[1]) {
       this._vehicleId = match[1];
-      console.log('EV Trip Planner Panel: vehicle_id from URL (early):', this._vehicleId);
-    } else {
-      console.log('EV Trip Planner Panel: no match found in path');
-      // Try with hash (some HA versions use hash routing)
+      console.log('EV Trip Planner Panel: vehicle_id from path regex:', this._vehicleId);
+      return true;
+    }
+
+    // Method 2: Hash routing (fallback)
+    if (window.location.hash) {
       const hashMatch = window.location.hash.match(/\/ev-trip-planner-(.+)/);
       if (hashMatch && hashMatch[1]) {
         this._vehicleId = hashMatch[1];
         console.log('EV Trip Planner Panel: vehicle_id from hash:', this._vehicleId);
+        return true;
       }
     }
-    
-    // Start polling for hass if not available
-    this._startHassPolling();
+
+    // Method 3: Simple split (last resort)
+    if (path.includes('ev-trip-planner-')) {
+      const parts = path.split('ev-trip-planner-');
+      if (parts.length > 1) {
+        this._vehicleId = parts[1].split('/')[0];
+        console.log('EV Trip Planner Panel: vehicle_id from split:', this._vehicleId);
+        return true;
+      }
+    }
+
+    console.log('EV Trip Planner Panel: no vehicle_id found in URL');
+    return false;
   }
 
   /**
@@ -165,22 +194,28 @@ class EVTripPlannerPanel extends HTMLElement {
   _startHassPolling() {
     const poll = () => {
       this._initAttempts++;
-      
+
+      // Check if vehicle_id is available - critical for rendering
+      if (!this._vehicleId) {
+        console.warn('EV Trip Planner Panel: vehicle_id still not available, retrying extraction');
+        this._extractVehicleIdFromUrl();
+      }
+
       // Check if hass is now available as a property
-      if (this._hass && !this._rendered) {
-        console.log('EV Trip Planner Panel: hass found via polling, rendering');
+      if (this._hass && !this._rendered && this._vehicleId) {
+        console.log('EV Trip Planner Panel: hass found via polling with vehicle_id:', this._vehicleId);
         this._render();
         return;
       }
-      
+
       // Also try reading directly from element properties (HA sets these)
-      if (this.hass && !this._rendered) {
-        console.log('EV Trip Planner Panel: hass found via getter, rendering');
+      if (this.hass && !this._rendered && this._vehicleId) {
+        console.log('EV Trip Planner Panel: hass found via getter with vehicle_id:', this._vehicleId);
         this._hass = this.hass;
         this._render();
         return;
       }
-      
+
       if (this._initAttempts < this._maxInitAttempts) {
         console.log(`EV Trip Planner Panel: waiting for hass... attempt ${this._initAttempts}/${this._maxInitAttempts}`);
         setTimeout(poll, 500);
@@ -191,12 +226,12 @@ class EVTripPlannerPanel extends HTMLElement {
           <div style="padding: 20px; text-align: center; color: red;">
             <h3>Error: Home Assistant not initialized</h3>
             <p>Please refresh the page or check HA logs.</p>
-            <p>Debug: init attempts = ${this._initAttempts}</p>
+            <p>Debug: init attempts = ${this._initAttempts}, vehicle_id = ${this._vehicleId || 'not found'}</p>
           </div>
         `;
       }
     };
-    
+
     // Start polling after a short delay
     setTimeout(poll, 100);
   }
