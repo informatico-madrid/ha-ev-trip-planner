@@ -113,7 +113,11 @@ main() {
 
     log_info "Starting Home Assistant test container..."
 
-    if is_running; then
+    # If running from ralph-loop (WORKTREE_PATH set), ensure correct volume by recreating
+    if is_running && [[ -n "${WORKTREE_PATH:-}" ]]; then
+        log_info "Recreating container with worktree volume..."
+        docker-compose down
+    elif is_running; then
         log_ok "Container $HA_CONTAINER is already running"
     elif container_exists; then
         log_info "Container exists but stopped, starting..."
