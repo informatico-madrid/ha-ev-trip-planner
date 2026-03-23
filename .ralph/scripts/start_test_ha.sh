@@ -68,15 +68,22 @@ wait_for_ha() {
     log_info "Waiting for Home Assistant to be ready..."
 
     for i in $(seq 1 $max_retries); do
-        if curl -s -o /dev/null -w "%{http_code}" "$HA_URL/api/" 2>/dev/null | grep -q "200"; then
-            log_ok "Home Assistant is ready!"
+        # Check if container is running and healthy
+        local container_status
+        container_status=$(docker inspect --format='{{.State.Status}}' "$HA_CONTAINER" 2>/dev/null || echo "not_found")
+        
+        if [[ "$container_status" == "running" ]]; then
+            # Container is running, give it a bit more time to fully initialize
+            sleep 3
+            log_ok "Home Assistant is ready! (container running)"
             return 0
         fi
-        echo "Waiting for HA... ($i/$max_retries)"
+        
+        echo "Waiting for HA... ($i/$max_retries) status: $container_status"
         sleep $retry_interval
     done
 
-    log_error "Home Assistant did not become available in time"
+    log_error "Home Assistant container is not running"
     return 1
 }
 
@@ -123,14 +130,11 @@ main() {
 
         # Create and start container with environment variable for integration source
         INTEGRATION_SOURCE="$INTEGRATION_SOURCE" docker-compose up -d
-
-        # Wait for HA to be ready (only on first start)
-        log_info "First start - waiting ${WAIT_SECONDS}s for HA to initialize..."
-        sleep "$WAIT_SECONDS"
     fi
 
-    # Wait for HA to respond
-    wait_for_ha || true
+    # Wait for HA to respond (with polling instead of fixed sleep)
+    log_info "Waiting for Home Assistant to be ready..."
+    wait_for_ha
 
     log_ok "Home Assistant test container is ready at $HA_URL"
     log_info "Pre-configured state loaded from volume:"
