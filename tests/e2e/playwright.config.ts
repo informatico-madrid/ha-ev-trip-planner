@@ -13,7 +13,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Get HA URL from environment or use default
-const haUrl = process.env.HA_URL || 'http://192.168.1.100:8123';
+const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 const haToken = process.env.HA_TOKEN || '';
 
 export default defineConfig({
