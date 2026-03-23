@@ -149,6 +149,9 @@ STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
     }
 )
 
+# TODO: Make EMHASS config path configurable via HA config or environment variable
+# Hardcoded /home/malka/emhass path is not portable
+
 
 def _read_emhass_config(
     config_path: str = "/home/malka/emhass/config/config.json",
