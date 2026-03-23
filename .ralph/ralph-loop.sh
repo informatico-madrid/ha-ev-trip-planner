@@ -1401,7 +1401,9 @@ main() {
     if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
         log_info "Starting test-ha container with worktree integration..."
         
-        WORKTREE_PATH="$WORKTREE_PATH" bash "$RALPH_DIR/scripts/start_test_ha.sh" --wait-only || {
+        WORKTREE_PATH="$WORKTREE_PATH" \
+        INTEGRATION_SOURCE="$WORKTREE_PATH/custom_components/ev_trip_planner" \
+        bash "$RALPH_DIR/scripts/start_test_ha.sh" --wait-only || {
             log_error "=============================================="
             log_error "FATAL: Failed to start test-ha container"
             log_error "Cannot proceed without test-ha for verification"
