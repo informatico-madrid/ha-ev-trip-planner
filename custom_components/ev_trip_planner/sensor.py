@@ -26,7 +26,6 @@ from .const import (
     DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
-    TRIP_TYPE_RECURRING,
 )
 from .trip_manager import TripManager
 
@@ -140,105 +139,27 @@ class TripPlannerSensor(SensorEntity):
     @property
     def device_info(self) -> Dict[str, Any]:
         """Devuelve información del dispositivo."""
-        return {
-            "identifiers": {(DOMAIN, self.trip_manager.vehicle_id)},
-            "name": f"EV Trip Planner {self.trip_manager.vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-        }
+        # Get vehicle_name from config entry for display name
+        # The config entry stores the actual vehicle name in data["vehicle_name"]
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
 
-
-class TripSensor(SensorEntity):
-    """Sensor para un viaje individual."""
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        trip_manager: TripManager,
-        trip_id: str,
-        trip_type: str,
-        trip_data: Dict[str, Any],
-    ) -> None:
-        """Inicializa el sensor del viaje."""
-        self.hass = hass
-        self.trip_manager = trip_manager
-        self.trip_id = trip_id
-        self.trip_type = trip_type
-        self._trip_data = trip_data
-        self._attr_unique_id = f"{DOMAIN}_trip_{trip_id}"
-        self._attr_has_entity_name = True
-        self._attr_name = f"Trip {trip_data.get('descripcion', trip_id)}"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-        self._cached_attrs: Dict[str, Any] = {}
-        self._update_from_trip_data()
-
-    def _update_from_trip_data(self) -> None:
-        """Update sensor attributes from trip data."""
-        trip = self._trip_data
-        if trip:
-            self._attr_native_value = trip.get("descripcion", "Unknown")
-            distance = trip.get("km", 0)
-            energy = trip.get("kwh", 0)
-            self._cached_attrs["distance_km"] = distance
-            self._cached_attrs["energy_kwh"] = energy
-            self._cached_attrs["trip_type"] = self.trip_type
-            self._cached_attrs["trip_id"] = self.trip_id
-
-            # Set device class based on attribute
-            if "kwh" in str(self._cached_attrs.get("energy_kwh", "")):
-                self._attr_device_class = SensorDeviceClass.ENERGY
-                self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-            else:
-                self._attr_device_class = None
-
-            # Update state class for energy sensors
-            if self._attr_device_class == SensorDeviceClass.ENERGY:
-                self._attr_state_class = SensorStateClass.MEASUREMENT
-
-            _LOGGER.debug(
-                "TripSensor %s: value=%s, distance=%s km, energy=%s kWh",
-                self.trip_id,
-                self._attr_native_value,
-                distance,
-                energy,
-            )
-
-    @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
-        """Devuelve atributos adicionales para el sensor."""
-        return self._cached_attrs.copy()
-
-    @property
-    def device_info(self) -> Dict[str, Any]:
-        """Devuelve información del dispositivo."""
-        return {
-            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self.trip_id}")},
-            "name": f"Trip {self.trip_id} - {self.trip_manager.vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
-        }
-
-    async def async_update(self) -> None:
-        """Actualiza el estado del sensor desde el trip_manager."""
         try:
-            if self.trip_type == TRIP_TYPE_RECURRING:
-                trips = await self.trip_manager.async_get_recurring_trips()
-                for trip in trips:
-                    if str(trip.get("id")) == self.trip_id:
-                        self._update_from_trip_data()
-                        return
-            elif self.trip_type == TRIP_TYPE_PUNCTUAL:
-                trips = await self.trip_manager.async_get_punctual_trips()
-                for trip in trips:
-                    if str(trip.get("id")) == self.trip_id:
-                        self._update_from_trip_data()
-                        return
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error("Error updating trip sensor %s: %s", self.trip_id, err)
-            self._attr_native_value = "error"
+            # Try to get the config entry to extract the actual vehicle_name
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and "vehicle_name" in config_entry.data:
+                    vehicle_name = config_entry.data["vehicle_name"]
+                    break
+        except Exception:
+            pass
+
+        return {
+            "identifiers": {(DOMAIN, vehicle_id)},
+            "name": f"EV Trip Planner {vehicle_name}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+        }
 
 
 # Backward compatibility aliases for tests
@@ -564,9 +485,22 @@ class EmhassDeferrableLoadSensor(SensorEntity):
     @property
     def device_info(self) -> Dict[str, Any]:
         """Return device info."""
+        # Get vehicle_name from config entry for display name
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
+
+        try:
+            # Try to get the config entry to extract the actual vehicle_name
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and "vehicle_name" in config_entry.data:
+                    vehicle_name = config_entry.data["vehicle_name"]
+                    break
+        except Exception:
+            pass
+
         return {
             "identifiers": {(DOMAIN, self._entry_id)},
-            "name": f"EV Trip Planner {self._entry_id}",
+            "name": f"EV Trip Planner {vehicle_name}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
@@ -708,13 +642,26 @@ class TripSensor(SensorEntity):
     @property
     def device_info(self) -> Dict[str, Any]:
         """Return device info for the trip sensor."""
+        # Get vehicle_name from config entry for display name
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
+
+        try:
+            # Try to get the config entry to extract the actual vehicle_name
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and "vehicle_name" in config_entry.data:
+                    vehicle_name = config_entry.data["vehicle_name"]
+                    break
+        except Exception:
+            pass
+
         return {
-            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self._trip_id}")},
-            "name": f"Trip {self._trip_id} - {self.trip_manager.vehicle_id}",
+            "identifiers": {(DOMAIN, f"{vehicle_id}_{self._trip_id}")},
+            "name": f"Trip {self._trip_id} - {vehicle_name}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
+            "via_device": (DOMAIN, vehicle_id),
         }
 
     def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
@@ -916,15 +863,6 @@ async def _async_create_trip_sensors(
         )
 
     return entities
-
-    _LOGGER.debug(
-        "Created sensors for %s: %s",
-        vehicle_id,
-        [type(e).__name__ for e in entities],
-    )
-
-    async_add_entities(entities)
-    return True
 
 
 async def async_create_trip_sensor(
