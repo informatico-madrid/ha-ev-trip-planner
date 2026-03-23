@@ -236,24 +236,267 @@ class EVTripPlannerPanel extends HTMLElement {
   }
 
   /**
-   * Get vehicle sensor states
+   * Get all vehicle sensor states
+   *
+   * This method retrieves ALL sensors associated with the vehicle, including:
+   * - EV Trip Planner sensors (sensor.ev_trip_planner_{entry_id}_{sensor_name})
+   * - Trip sensors (sensor.trip_{trip_id})
+   * - Any other sensors registered to the vehicle's device
+   *
+   * @returns {Object} Dictionary of entity IDs to state objects
    */
   _getVehicleStates() {
     if (!this._hass || !this._hass.states) {
       return {};
     }
+
     const states = this._hass.states;
-    // Use the correct prefix for EV Trip Planner sensors: sensor.ev_trip_planner_{vehicle_id}_{sensor_name}
-    const prefix = `sensor.ev_trip_planner_${this._vehicleId}`;
     const result = {};
-    
+
+    // Collect all vehicle-related sensors
     for (const [entityId, state] of Object.entries(states)) {
-      if (entityId.startsWith(prefix)) {
+      // Skip if no state available
+      if (!state) {
+        continue;
+      }
+
+      // Include EV Trip Planner sensors (all domains under ev_trip_planner)
+      if (entityId.startsWith('sensor.ev_trip_planner_')) {
         result[entityId] = state;
+        continue;
+      }
+
+      // Include trip sensors (sensor.trip_{trip_id})
+      if (entityId.startsWith('sensor.trip_')) {
+        result[entityId] = state;
+        continue;
+      }
+
+      // Include any other sensors that might be registered to this vehicle
+      // Check if the entity has device_info pointing to our vehicle
+      if (state.attributes && state.attributes.device_id) {
+        // Get the device and check if it belongs to our vehicle
+        // The device identifier pattern is (DOMAIN, vehicle_id)
+        // We look for entities that have our vehicle_id in their attributes or name
+        const deviceId = state.attributes.device_id;
+        if (deviceId && deviceId.includes(this._vehicleId)) {
+          result[entityId] = state;
+        }
       }
     }
-    
+
     return result;
+  }
+
+  /**
+   * Convert entity ID to a human-readable name
+   * @param {string} entityId - The entity ID (e.g., sensor.ev_trip_planner_morgan_soc)
+   * @returns {string} Human-readable name (e.g., "State of Charge")
+   */
+  _entityIdToName(entityId) {
+    // Remove prefix and split by underscores
+    const name = entityId
+      .replace('sensor.ev_trip_planner_', '')
+      .replace('sensor.trip_', '')
+      .replace('sensor.', '')
+      .split('_')
+      .map((word, index) => {
+        // Capitalize first letter of each word
+        if (word.length === 0) return '';
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
+
+    return name || entityId;
+  }
+
+  /**
+   * Get the unit of measurement for an entity
+   * @param {string} entityId - The entity ID
+   * @param {Object} state - The state object
+   * @returns {string} Unit of measurement or empty string
+   */
+  _getUnit(entityId, state) {
+    if (state.attributes && state.attributes.unit_of_measurement) {
+      return state.attributes.unit_of_measurement;
+    }
+    return '';
+  }
+
+  /**
+   * Format a sensor value for display
+   * @param {string} entityId - The entity ID
+   * @param {Object} state - The state object
+   * @returns {string} Formatted value for display
+   */
+  _formatSensorValue(entityId, state) {
+    const stateValue = state.state;
+
+    // Handle unavailable or unknown states
+    if (stateValue === 'unavailable' || stateValue === 'unknown' || stateValue === 'none') {
+      return '<span style="color: var(--secondary-text-color, #757575);">No disponible</span>';
+    }
+
+    // Try to get display value from attributes first
+    if (state.attributes && state.attributes.device_class === 'battery') {
+      return `${stateValue}%`;
+    }
+
+    if (state.attributes && state.attributes.device_class === 'distance') {
+      return `${stateValue} km`;
+    }
+
+    if (state.attributes && state.attributes.device_class === 'energy') {
+      return `${stateValue} kWh`;
+    }
+
+    if (state.attributes && state.attributes.device_class === 'power') {
+      return `${stateValue} kW`;
+    }
+
+    if (state.attributes && state.attributes.device_class === 'current') {
+      return `${stateValue} A`;
+    }
+
+    if (state.attributes && state.attributes.device_class === 'voltage') {
+      return `${stateValue} V`;
+    }
+
+    // Format numeric values
+    const numericValue = parseFloat(stateValue);
+    if (!isNaN(numericValue)) {
+      // Format with appropriate precision
+      if (numericValue >= 1000) {
+        return `${Math.round(numericValue)}`;
+      } else if (numericValue >= 100) {
+        return `${Math.round(numericValue)}`;
+      } else if (numericValue >= 10) {
+        return numericValue.toFixed(1);
+      } else {
+        return numericValue.toFixed(2);
+      }
+    }
+
+    // Return string value as-is
+    return stateValue;
+  }
+
+  /**
+   * Get the icon for a sensor based on its entity ID
+   * @param {string} entityId - The entity ID
+   * @returns {string} Emoji icon
+   */
+  _getSensorIcon(entityId) {
+    const name = entityId.toLowerCase();
+
+    if (name.includes('soc') || name.includes('battery')) {
+      return '🔋';
+    }
+    if (name.includes('range')) {
+      return '📍';
+    }
+    if (name.includes('charging')) {
+      return '⚡';
+    }
+    if (name.includes('charge')) {
+      return '🔌';
+    }
+    if (name.includes('trip') || name.includes('destination')) {
+      return '🚗';
+    }
+    if (name.includes('consumption') || name.includes('energy')) {
+      return '💡';
+    }
+    if (name.includes('distance') || name.includes('range')) {
+      return '📏';
+    }
+    if (name.includes('speed')) {
+      return '🚀';
+    }
+    if (name.includes('temperature')) {
+      return '🌡️';
+    }
+    if (name.includes('power')) {
+      return '⚡';
+    }
+    if (name.includes('voltage')) {
+      return '🔋';
+    }
+    if (name.includes('current')) {
+      return 'A';
+    }
+
+    // Default icon for unknown sensors
+    return '📊';
+  }
+
+  /**
+   * Check if a sensor should be displayed in the status section
+   * @param {string} entityId - The entity ID
+   * @returns {boolean} True if sensor should be shown in status section
+   */
+  _isStatusSensor(entityId) {
+    const name = entityId.toLowerCase();
+    const statusSensors = [
+      'soc',
+      'state_of_charge',
+      'battery_level',
+      'range',
+      'charging',
+      'is_charging',
+      'trip_distance',
+      'total_distance',
+    ];
+    return statusSensors.some((sensor) => name.includes(sensor));
+  }
+
+  /**
+   * Group sensors by category for better organization
+   * @param {Object} states - Dictionary of entity IDs to states
+   * @returns {Object} Organized groups of sensors
+   */
+  _groupSensors(states) {
+    const groups = {
+      status: [],
+      battery: [],
+      trip: [],
+      energy: [],
+      other: [],
+    };
+
+    for (const [entityId, state] of Object.entries(states)) {
+      if (!state) continue;
+
+      const name = entityId.toLowerCase();
+
+      // Check if it should be in status section
+      if (this._isStatusSensor(entityId)) {
+        groups.status.push({ entityId, state });
+        continue;
+      }
+
+      // Group by category
+      if (name.includes('battery') || name.includes('soc') || name.includes('charge')) {
+        groups.battery.push({ entityId, state });
+      } else if (
+        name.includes('trip') ||
+        name.includes('destination') ||
+        name.includes('range')
+      ) {
+        groups.trip.push({ entityId, state });
+      } else if (
+        name.includes('consumption') ||
+        name.includes('energy') ||
+        name.includes('power') ||
+        name.includes('kwh')
+      ) {
+        groups.energy.push({ entityId, state });
+      } else {
+        groups.other.push({ entityId, state });
+      }
+    }
+
+    return groups;
   }
 
   /**
@@ -331,6 +574,49 @@ class EVTripPlannerPanel extends HTMLElement {
     const states = this._getVehicleStates();
     const stateKeys = Object.keys(states);
 
+    // Group sensors by category
+    const groups = this._groupSensors(states);
+
+    // Build status cards dynamically
+    const statusCards = groups.status.map(({ entityId, state }) => {
+      const name = this._entityIdToName(entityId);
+      const formattedValue = this._formatSensorValue(entityId, state);
+      const icon = this._getSensorIcon(entityId);
+      return `
+        <div class="status-card">
+          <span class="status-label">${icon} ${name}</span>
+          <span class="status-value">${formattedValue}</span>
+        </div>
+      `;
+    }).join('');
+
+    // Build sensor list for each group
+    const buildSensorList = (group, title) => {
+      if (group.length === 0) return '';
+      return `
+        <div class="sensor-group">
+          <h3>📊 ${title} (${group.length})</h3>
+          ${group.map(({ entityId, state }) => `
+            <div class="sensor-item">
+              <div class="sensor-info">
+                <span class="sensor-name">${this._getSensorIcon(entityId)} ${this._entityIdToName(entityId)}</span>
+                ${state.attributes && state.attributes.unit_of_measurement ? `<span class="sensor-unit">(${state.attributes.unit_of_measurement})</span>` : ''}
+              </div>
+              <div class="sensor-value">${this._formatSensorValue(entityId, state)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    const batterySection = buildSensorList(groups.battery, 'Batería');
+    const tripSection = buildSensorList(groups.trip, 'Viajes');
+    const energySection = buildSensorList(groups.energy, 'Energía');
+    const otherSection = buildSensorList(groups.other, 'Otros');
+
+    // Combine all sections
+    const allSensorsSections = [batterySection, tripSection, energySection, otherSection].filter(s => s !== '').join('');
+
     this.innerHTML = `
       <style>
         ${this._getStyles()}
@@ -340,33 +626,17 @@ class EVTripPlannerPanel extends HTMLElement {
           <h1>🚗 EV Trip Planner - ${this._vehicleId}</h1>
         </header>
         <main class="panel-content">
+          ${statusCards ? `
           <div class="status-section">
-            <h2>Vehicle Status</h2>
+            <h2>Estado del Vehículo</h2>
             <div class="status-grid">
-              <div class="status-card">
-                <span class="status-label">SOC</span>
-                <span class="status-value">${this._getSensorValue('soc')}%</span>
-              </div>
-              <div class="status-card">
-                <span class="status-label">Range</span>
-                <span class="status-value">${this._getSensorValue('range')} km</span>
-              </div>
-              <div class="status-card">
-                <span class="status-label">Charging</span>
-                <span class="status-value">${this._getSensorValue('charging')}</span>
-              </div>
+              ${statusCards}
             </div>
           </div>
+          ` : ''}
           <div class="sensors-section">
-            <h2>Available Sensors (${stateKeys.length})</h2>
-            <div class="sensor-list">
-              ${stateKeys.length > 0 ? stateKeys.map(key => `
-                <div class="sensor-item">
-                  <span class="sensor-name">${key}</span>
-                  <span class="sensor-value">${states[key].state}</span>
-                </div>
-              `).join('') : '<p>No sensors found</p>'}
-            </div>
+            <h2>Sensores Disponibles (${stateKeys.length})</h2>
+            ${stateKeys.length > 0 ? allSensorsSections : '<p class="no-sensors">No hay sensores disponibles</p>'}
           </div>
         </main>
       </div>
@@ -428,9 +698,14 @@ class EVTripPlannerPanel extends HTMLElement {
         margin-bottom: 12px;
         color: var(--secondary-text-color, #757575);
       }
+      .no-sensors {
+        text-align: center;
+        color: var(--secondary-text-color, #757575);
+        padding: 20px;
+      }
       .status-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 12px;
       }
       .status-card {
@@ -439,12 +714,17 @@ class EVTripPlannerPanel extends HTMLElement {
         padding: 16px;
         text-align: center;
         box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .status-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.16);
       }
       .status-label {
         display: block;
         font-size: 12px;
         color: var(--secondary-text-color, #757575);
-        margin-bottom: 4px;
+        margin-bottom: 8px;
       }
       .status-value {
         display: block;
@@ -458,23 +738,85 @@ class EVTripPlannerPanel extends HTMLElement {
         padding: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.12);
       }
+      .sensor-group {
+        margin-bottom: 16px;
+      }
+      .sensor-group:last-child {
+        margin-bottom: 0;
+      }
+      .sensor-group h3 {
+        font-size: 14px;
+        margin: 0 0 8px 0;
+        color: var(--primary-color, #03a9f4);
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--divider-color, #e0e0e0);
+      }
       .sensor-item {
         display: flex;
         justify-content: space-between;
-        padding: 8px;
+        align-items: center;
+        padding: 10px 8px;
         border-bottom: 1px solid var(--divider-color, #e0e0e0);
+        transition: background-color 0.2s ease;
+      }
+      .sensor-item:hover {
+        background-color: var(--secondary-background-color, #f5f5f5);
       }
       .sensor-item:last-child {
         border-bottom: none;
       }
+      .sensor-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
       .sensor-name {
         font-size: 14px;
         color: var(--primary-text-color, #212121);
+        font-weight: 500;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sensor-unit {
+        font-size: 12px;
+        color: var(--secondary-text-color, #757575);
+        margin-left: 8px;
+        flex-shrink: 0;
       }
       .sensor-value {
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--primary-color, #03a9f4);
+        padding: 4px 8px;
+        background-color: var(--primary-background-color, #f5f5f5);
+        border-radius: 4px;
+        min-width: 80px;
+        text-align: right;
+      }
+      /* Responsive adjustments */
+      @media (max-width: 600px) {
+        .status-grid {
+          grid-template-columns: 1fr;
+        }
+        .status-card {
+          padding: 12px;
+        }
+        .status-value {
+          font-size: 20px;
+        }
+        .sensor-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+        .sensor-value {
+          width: 100%;
+          text-align: left;
+        }
       }
     `;
   }
