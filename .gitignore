@@ -65,3 +65,6 @@ tests/test-ha-config/
 
 # MagicMock artifacts - debugging/testing temp files from scripts
 MagicMock/
+
+# Test HA backup folders (created by Docker volume issues)
+test-ha/config/custom_components/ev_trip_planner.bak/

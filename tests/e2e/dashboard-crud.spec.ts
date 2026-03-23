@@ -10,13 +10,13 @@
  * - At least one vehicle configured
  *
  * Environment Variables:
- * - HA_URL: Home Assistant URL (default: http://192.168.1.100:8123)
+ * - HA_URL: Home Assistant URL (default: http://192.168.1.100:18123)
  */
 
 import { test, expect } from '@playwright/test';
 
 // Get Home Assistant URL from environment or use default
-const haUrl = process.env.HA_URL || 'http://192.168.1.100:8123';
+const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 
 // =============================================================================
 // Dashboard Loading Tests

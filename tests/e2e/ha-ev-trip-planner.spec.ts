@@ -10,7 +10,7 @@
  * - HA instance running with EV Trip Planner integration
  * 
  * Environment Variables:
- * - HA_URL: Home Assistant URL (default: http://192.168.1.100:8123)
+ * - HA_URL: Home Assistant URL (default: http://192.168.1.100:18123)
  * - HA_TOKEN: Long-lived access token for HA
  * 
  * Usage:
@@ -516,7 +516,7 @@ test.describe('EV Trip Planner Dashboard - Performance & Accessibility', () => {
 
 test.describe('EV Trip Planner Dashboard - Integration Tests', () => {
   test('should display sensor entities via API', async ({ request }) => {
-    const haUrl = process.env.HA_URL || 'http://192.168.1.100:8123';
+    const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
     const haToken = process.env.HA_TOKEN;
 
     if (!haToken) {
@@ -559,7 +559,7 @@ test.describe('EV Trip Planner Dashboard - Integration Tests', () => {
 
 test.describe('EV Trip Planner Sensors', () => {
   test('should display sensor entities via API', async ({ request }) => {
-    const haUrl = process.env.HA_URL || 'http://192.168.1.100:8123';
+    const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
     const haToken = process.env.HA_TOKEN;
     
     if (!haToken) {
