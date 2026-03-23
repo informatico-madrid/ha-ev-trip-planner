@@ -38,7 +38,7 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ## Phase 2: Foundational
 
-- [x] T001 Investigar métodos de implementación en Home Assistant Core para panel_custom y EntitySelector [use: mcp-shell]
+- [ ] T001 Investigar métodos de implementación en Home Assistant Core para panel_custom y EntitySelector [use: mcp-shell]
 
 ---
 
@@ -49,10 +49,10 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ### Implementation
 
-- [x] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
-- [x] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
-- [x] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
-- [x] T005 [VERIFY:BROWSER] Verificar que el panel del vehículo renderiza correctamente:
+- [ ] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
+- [ ] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+- [ ] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
+- [ ] T005 [VERIFY:BROWSER] Verificar que el panel del vehículo renderiza correctamente:
   1. Navegar a HA (hacer login si es necesario)
   2. Ir a Integraciones y crear un vehículo de prueba si no existe
   3. Navegar al panel /ev-trip-planner-{vehicle_id}
@@ -69,9 +69,9 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ### Implementation
 
-- [x] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
-- [x] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
-- [x] T008 [VERIFY:API] Verificar dispositivo:
+- [ ] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
+- [ ] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
+- [ ] T008 [VERIFY:API] Verificar dispositivo:
   1. Obtener token de acceso de HA (HA_TOKEN)
   2. Consultar /api/states para encontrar entidades del componente
   3. Verificar que el device_info usa vehicle_name para el nombre y vehicle_id (slug) para identifier
@@ -87,8 +87,8 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ### Implementation
 
-- [x] T009 [P] [US3] Modificar config_flow.py STEP_NOTIFICATIONS_SCHEMA para incluir domain=["notify", "assist_satellite"] [use: homeassistant-config]
-- [x] T010 [VERIFY:BROWSER] Verificar selector de notificaciones: 1. Navegar a HA (hacer login si es necesario) 2. Ir a Integraciones > Añadir > EV Trip Planner 3. Avanzar hasta el paso de notificaciones 4. Verificar que dispositivos assist_satellite aparecen en el dropdown 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
+- [ ] T009 [P] [US3] Modificar config_flow.py STEP_NOTIFICATIONS_SCHEMA para incluir domain=["notify", "assist_satellite"] [use: homeassistant-config]
+- [ ] T010 [VERIFY:BROWSER] Verificar selector de notificaciones: 1. Navegar a HA (hacer login si es necesario) 2. Ir a Integraciones > Añadir > EV Trip Planner 3. Avanzar hasta el paso de notificaciones 4. Verificar que dispositivos assist_satellite aparecen en el dropdown 5. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
 
 ---
 
@@ -99,7 +99,7 @@ No hay tareas de setup requeridas - el proyecto ya existe.
 
 ### Implementation
 
-- [x] T011 [US4] Verificar que async_unload_entry llama correctamente a async_unregister_panel [use: homeassistant-config]
+- [ ] T011 [US4] Verificar que async_unload_entry llama correctamente a async_unregister_panel [use: homeassistant-config]
 - [ ] T012 [VERIFY:BROWSER] Verificar eliminación de panel: 1. Crear un vehículo de prueba si no existe 2. Verificar que el panel aparece en el sidebar 3. Eliminar el vehículo desde Integraciones 4. Verificar que el panel ya no aparece en el sidebar 5. Verificar que la URL del panel devuelve error 404 6. SI TODO OK: Emitir SIGNAL: STATE_MATCH [use: mcp-playwright]
 
 ---
