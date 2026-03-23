@@ -62,3 +62,6 @@ tests/test-ha-config/
 
 
 .ruff_cache
+
+# MagicMock artifacts - debugging/testing temp files from scripts
+MagicMock/
