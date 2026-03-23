@@ -26,97 +26,33 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Called when the panel is attached to the DOM
-   * Extracts vehicle_id from URL BEFORE waiting for hass
    */
   connectedCallback() {
-    console.log('=== EV Trip Planner Panel: connectedCallback START ===');
+    console.log('EV Trip Planner Panel: connectedCallback');
     console.log('EV Trip Planner Panel: full URL:', window.location.href);
     console.log('EV Trip Planner Panel: pathname:', window.location.pathname);
     console.log('EV Trip Planner Panel: hash:', window.location.hash);
-    console.log('EV Trip Planner Panel: initial vehicle_id:', this._vehicleId);
-    console.log('EV Trip Planner Panel: initial hass:', this._hass ? 'available' : 'null');
-
-    // CRITICAL: Get vehicle_id from URL BEFORE waiting for hass
-    // This ensures vehicle_id is available even if hass/config timing is off
-    const extracted = this._extractVehicleIdFromUrl();
-
-    console.log('EV Trip Planner Panel: extracted vehicle_id:', this._vehicleId);
-    console.log('EV Trip Planner Panel: _extractVehicleIdFromUrl returned:', extracted);
-    console.log('=== EV Trip Planner Panel: connectedCallback END ===');
-
-    // Start polling for hass after vehicle_id is extracted
-    this._startHassPolling();
-  }
-
-  /**
-   * Extract vehicle_id from the URL path or hash
-   * This is called in connectedCallback to get vehicle_id BEFORE waiting for hass
-   * @returns {boolean} true if vehicle_id was extracted successfully
-   */
-  _extractVehicleIdFromUrl() {
+    
+    // Try to get vehicle_id from URL path as early as possible
     // URL format: /ev-trip-planner-{vehicle_id}
     const path = window.location.pathname;
-    const hash = window.location.hash;
-    const href = window.location.href;
-
-    console.log('=== EV Trip Planner Panel: _extractVehicleIdFromUrl START ===');
-    console.log('EV Trip Planner Panel: URL details:');
-    console.log('  - pathname:', path);
-    console.log('  - hash:', hash);
-    console.log('  - href:', href);
-    console.log('EV Trip Planner Panel: current vehicle_id:', this._vehicleId);
-
-    let extracted = false;
-
-    // Method 1: Regex match on pathname
-    console.log('EV Trip Planner Panel: Attempt 1 - Regex match on pathname');
-    let match = path.match(/\/ev-trip-planner-(.+)/);
+    console.log('EV Trip Planner Panel: trying to extract from path:', path);
+    const match = path.match(/\/ev-trip-planner-(.+)/);
     if (match && match[1]) {
       this._vehicleId = match[1];
-      console.log('EV Trip Planner Panel: ✓ vehicle_id from pathname regex:', this._vehicleId);
-      extracted = true;
+      console.log('EV Trip Planner Panel: vehicle_id from URL (early):', this._vehicleId);
     } else {
-      console.log('EV Trip Planner Panel: ✗ Regex match failed on pathname');
-    }
-
-    // Method 2: Hash routing (fallback)
-    if (!extracted && hash) {
-      console.log('EV Trip Planner Panel: Attempt 2 - Hash routing');
-      const hashMatch = hash.match(/\/ev-trip-planner-(.+)/);
+      console.log('EV Trip Planner Panel: no match found in path');
+      // Try with hash (some HA versions use hash routing)
+      const hashMatch = window.location.hash.match(/\/ev-trip-planner-(.+)/);
       if (hashMatch && hashMatch[1]) {
         this._vehicleId = hashMatch[1];
-        console.log('EV Trip Planner Panel: ✓ vehicle_id from hash:', this._vehicleId);
-        extracted = true;
-      } else {
-        console.log('EV Trip Planner Panel: ✗ No vehicle_id in hash');
+        console.log('EV Trip Planner Panel: vehicle_id from hash:', this._vehicleId);
       }
     }
-
-    // Method 3: Simple split (last resort)
-    if (!extracted && path.includes('ev-trip-planner-')) {
-      console.log('EV Trip Planner Panel: Attempt 3 - Simple split fallback');
-      const parts = path.split('ev-trip-planner-');
-      if (parts.length > 1) {
-        this._vehicleId = parts[1].split('/')[0];
-        console.log('EV Trip Planner Panel: ✓ vehicle_id from split:', this._vehicleId);
-        extracted = true;
-      } else {
-        console.log('EV Trip Planner Panel: ✗ Split did not produce parts');
-      }
-    }
-
-    if (!extracted) {
-      console.log('EV Trip Planner Panel: ✗ No vehicle_id found in URL');
-      console.log('EV Trip Planner Panel: Available URL parts:');
-      console.log('  - pathname includes "ev-trip-planner-":', path.includes('ev-trip-planner-'));
-      console.log('  - hash:', hash || '(empty)');
-    }
-
-    console.log('EV Trip Planner Panel: Final vehicle_id after extraction:', this._vehicleId);
-    console.log('EV Trip Planner Panel: _extractVehicleIdFromUrl returning:', extracted);
-    console.log('=== EV Trip Planner Panel: _extractVehicleIdFromUrl END ===');
-
-    return extracted;
+    
+    // Start polling for hass if not available
+    this._startHassPolling();
   }
 
   /**
@@ -132,63 +68,46 @@ class EVTripPlannerPanel extends HTMLElement {
    * This is the main property that HA sets on custom elements
    */
   set hass(hass) {
-    console.log('=== EV Trip Planner Panel: hass setter START ===');
-    console.log('EV Trip Planner Panel: hass setter called:', hass ? 'available' : 'null', 'attempts:', this._initAttempts);
+    console.log('EV Trip Planner Panel: hass setter called', hass ? 'available' : 'null', 'attempts:', this._initAttempts);
     console.log('EV Trip Planner Panel: URL in hass setter:', window.location.href);
-    console.log('EV Trip Planner Panel: pathname in hass setter:', window.location.pathname);
-    console.log('EV Trip Planner Panel: vehicle_id before hass set:', this._vehicleId);
-
     this._hass = hass;
     this._initAttempts = 0; // Reset attempts on successful hass set
-
+    
     // Try to get vehicle_id from URL - multiple approaches
     if (!this._vehicleId) {
-      console.log('EV Trip Planner Panel: No vehicle_id yet, attempting extraction in hass setter');
       const path = window.location.pathname;
       console.log('EV Trip Planner Panel: pathname:', path);
-
+      
       // Method 1: Simple split approach
-      console.log('EV Trip Planner Panel: Attempting Method 1 - Simple split');
       if (path.includes('ev-trip-planner-')) {
         const parts = path.split('ev-trip-planner-');
         if (parts.length > 1) {
           this._vehicleId = parts[1].split('/')[0];
-          console.log('EV Trip Planner Panel: ✓ vehicle_id from split:', this._vehicleId);
-        } else {
-          console.log('EV Trip Planner Panel: ✗ Split did not produce parts');
+          console.log('EV Trip Planner Panel: vehicle_id from split:', this._vehicleId);
         }
-      } else {
-        console.log('EV Trip Planner Panel: ✗ pathname does not include "ev-trip-planner-"');
       }
-
+      
       // Method 2: regex (keep for backward compatibility)
       if (!this._vehicleId) {
-        console.log('EV Trip Planner Panel: Attempting Method 2 - Regex');
         const match = path.match(/\/ev-trip-planner-(.+)/);
         if (match && match[1]) {
           this._vehicleId = match[1];
-          console.log('EV Trip Planner Panel: ✓ vehicle_id from regex:', this._vehicleId);
-        } else {
-          console.log('EV Trip Planner Panel: ✗ Regex did not match');
+          console.log('EV Trip Planner Panel: vehicle_id from URL (in hass setter):', this._vehicleId);
         }
       }
-
+      
       // Method 3: from hash
       if (!this._vehicleId && window.location.hash) {
-        console.log('EV Trip Planner Panel: Attempting Method 3 - Hash');
         const hashMatch = window.location.hash.match(/\/ev-trip-planner-(.+)/);
         if (hashMatch && hashMatch[1]) {
           this._vehicleId = hashMatch[1];
-          console.log('EV Trip Planner Panel: ✓ vehicle_id from hash:', this._vehicleId);
-        } else {
-          console.log('EV Trip Planner Panel: ✗ Hash did not match');
+          console.log('EV Trip Planner Panel: vehicle_id from hash:', this._vehicleId);
         }
       }
     }
-
-    console.log('EV Trip Planner Panel: Final vehicle_id after hass setter:', this._vehicleId);
-    console.log('=== EV Trip Planner Panel: hass setter END ===');
-
+    
+    console.log('EV Trip Planner Panel: Final vehicle_id:', this._vehicleId);
+    
     if (!this._rendered) {
       this._render();
     } else {
@@ -244,66 +163,40 @@ class EVTripPlannerPanel extends HTMLElement {
    * Poll for hass property since it might be set after connectedCallback
    */
   _startHassPolling() {
-    console.log('=== EV Trip Planner Panel: _startHassPolling START ===');
-    console.log('EV Trip Planner Panel: Initial state for polling:');
-    console.log('  - hass:', this._hass ? 'available' : 'null');
-    console.log('  - vehicle_id:', this._vehicleId);
-    console.log('  - initAttempts:', this._initAttempts);
-    console.log('=== EV Trip Planner Panel: _startHassPolling END ===');
-
     const poll = () => {
       this._initAttempts++;
-
-      console.log('=== EV Trip Planner Panel: Poll attempt #' + this._initAttempts + ' START ===');
-      console.log('EV Trip Planner Panel: Poll state:');
-      console.log('  - hass:', this._hass ? 'available' : 'null');
-      console.log('  - vehicle_id:', this._vehicleId);
-
-      // Check if vehicle_id is available - critical for rendering
-      if (!this._vehicleId) {
-        console.warn('EV Trip Planner Panel: ⚠️ vehicle_id still not available, retrying extraction');
-        console.log('EV Trip Planner Panel: Extracting vehicle_id from URL...');
-        this._extractVehicleIdFromUrl();
-        console.log('EV Trip Planner Panel: vehicle_id after extraction:', this._vehicleId);
-      }
-
+      
       // Check if hass is now available as a property
-      if (this._hass && !this._rendered && this._vehicleId) {
-        console.log('✓ EV Trip Planner Panel: hass found via polling with vehicle_id:', this._vehicleId);
-        console.log('=== EV Trip Planner Panel: Poll attempt #' + this._initAttempts + ' END - SUCCESS ===');
+      if (this._hass && !this._rendered) {
+        console.log('EV Trip Planner Panel: hass found via polling, rendering');
         this._render();
         return;
       }
-
+      
       // Also try reading directly from element properties (HA sets these)
-      if (this.hass && !this._rendered && this._vehicleId) {
-        console.log('✓ EV Trip Planner Panel: hass found via getter with vehicle_id:', this._vehicleId);
+      if (this.hass && !this._rendered) {
+        console.log('EV Trip Planner Panel: hass found via getter, rendering');
         this._hass = this.hass;
         this._render();
         return;
       }
-
+      
       if (this._initAttempts < this._maxInitAttempts) {
         console.log(`EV Trip Planner Panel: waiting for hass... attempt ${this._initAttempts}/${this._maxInitAttempts}`);
-        console.log('=== EV Trip Planner Panel: Poll attempt #' + this._initAttempts + ' END - PENDING ===');
         setTimeout(poll, 500);
       } else {
-        console.error('✗ EV Trip Planner Panel: Max init attempts reached, hass not available');
-        console.error('Final state:');
-        console.error('  - initAttempts:', this._initAttempts);
-        console.error('  - vehicle_id:', this._vehicleId || 'not found');
-        console.error('  - hass:', this._hass ? 'available' : 'null');
+        console.error('EV Trip Planner Panel: Max init attempts reached, hass not available');
         // Show error message in the panel
         this.innerHTML = `
           <div style="padding: 20px; text-align: center; color: red;">
             <h3>Error: Home Assistant not initialized</h3>
             <p>Please refresh the page or check HA logs.</p>
-            <p>Debug: init attempts = ${this._initAttempts}, vehicle_id = ${this._vehicleId || 'not found'}</p>
+            <p>Debug: init attempts = ${this._initAttempts}</p>
           </div>
         `;
       }
     };
-
+    
     // Start polling after a short delay
     setTimeout(poll, 100);
   }
@@ -334,158 +227,105 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Clean up subscriptions
-   * The unsubscribe function returned by subscribeMessage should be called to unsubscribe
    */
   _cleanup() {
-    if (this._unsubscribe && typeof this._unsubscribe === 'function') {
-      try {
-        this._unsubscribe();
-      } catch (e) {
-        console.warn('EV Trip Planner Panel: Error calling unsubscribe:', e);
-      }
+    if (this._unsubscribe) {
+      this._unsubscribe();
       this._unsubscribe = null;
     }
   }
 
   /**
    * Get vehicle sensor states
-   * @returns {Object} Object containing vehicle sensor states
    */
   _getVehicleStates() {
-    console.log('=== EV Trip Planner Panel: _getVehicleStates START ===');
-
-    if (!this._hass) {
-      console.warn('EV Trip Planner Panel: hass not available in _getVehicleStates');
-      console.log('=== EV Trip Planner Panel: _getVehicleStates END (no hass) ===');
+    if (!this._hass || !this._hass.states) {
       return {};
     }
-
-    if (!this._hass.states) {
-      console.warn('EV Trip Planner Panel: hass.states not available in _getVehicleStates');
-      console.log('=== EV Trip Planner Panel: _getVehicleStates END (no states) ===');
-      return {};
-    }
-
     const states = this._hass.states;
     // Use the correct prefix for EV Trip Planner sensors: sensor.ev_trip_planner_{vehicle_id}_{sensor_name}
     const prefix = `sensor.ev_trip_planner_${this._vehicleId}`;
     const result = {};
-
-    console.log('EV Trip Planner Panel: Searching for sensors with prefix:', prefix);
-    console.log('EV Trip Planner Panel: Total entities in hass.states:', Object.keys(states).length);
-
+    
     for (const [entityId, state] of Object.entries(states)) {
       if (entityId.startsWith(prefix)) {
         result[entityId] = state;
-        console.log('EV Trip Planner Panel: Found sensor:', entityId, 'state:', state.state);
       }
     }
-
-    console.log('EV Trip Planner Panel: Found', Object.keys(result).length, 'sensors');
-    console.log('=== EV Trip Planner Panel: _getVehicleStates END ===');
-
+    
     return result;
   }
 
   /**
    * Get a specific sensor value
-   * @param {string} entityId - The sensor entity ID (without prefix)
-   * @param {string|null} attribute - Optional attribute to retrieve
-   * @returns {string} The sensor value or 'N/A' if not found
    */
   _getSensorValue(entityId, attribute = null) {
     // Try to get from hass states directly with the correct prefix
     const hassStates = this._hass?.states || {};
-
-    console.log('EV Trip Planner Panel: Getting sensor value for:', entityId);
-    console.log('EV Trip Planner Panel: Total entities in hass.states:', Object.keys(hassStates).length);
-
+    
     // Try full entity ID first: sensor.ev_trip_planner_{vehicle_id}_{entityId}
     let fullEntityId = entityId.startsWith('sensor.') ? entityId : `sensor.ev_trip_planner_${this._vehicleId}_${entityId}`;
     let state = hassStates[fullEntityId];
-
-    console.log('EV Trip Planner Panel: Trying entity:', fullEntityId);
-
+    
     if (!state) {
       // Try alternative: sensor.{vehicle_id}_{entityId}
-      console.log('EV Trip Planner Panel: First attempt failed, trying alternative...');
       fullEntityId = `sensor.${this._vehicleId}_${entityId}`;
       state = hassStates[fullEntityId];
-      console.log('EV Trip Planner Panel: Trying alternative entity:', fullEntityId);
     }
-
+    
     if (!state) {
-      console.log('EV Trip Planner Panel: Sensor not found:', entityId);
       return 'N/A';
     }
-
-    let value;
+    
     if (attribute && state.attributes) {
-      value = state.attributes[attribute];
-      console.log('EV Trip Planner Panel: Retrieved attribute:', attribute, 'value:', value);
-    } else {
-      value = state.state;
-      console.log('EV Trip Planner Panel: Retrieved state value:', value);
+      return state.attributes[attribute];
     }
-
-    return value;
+    
+    return state.state;
   }
 
   /**
    * Render the panel
    */
   _render() {
-    console.log('=== EV Trip Planner Panel: _render START ===');
-    console.log('EV Trip Planner Panel: _render called with:');
-    console.log('  - hass:', this._hass ? 'available' : 'null');
-    console.log('  - vehicle_id:', this._vehicleId);
-    console.log('  - _rendered:', this._rendered);
-
     if (!this._hass) {
-      console.warn('✗ EV Trip Planner Panel: Cannot render - no hass');
+      console.warn('EV Trip Planner Panel: Cannot render - no hass');
       this.innerHTML = `
         <div style="padding: 20px; text-align: center;">
           <p>Waiting for Home Assistant...</p>
         </div>
       `;
-      console.log('=== EV Trip Planner Panel: _render END (early exit - no hass) ===');
       return;
     }
 
-    // Try to get vehicle_id from URL as last resort (comprehensive fallback)
+    // Try to get vehicle_id from URL as last resort
     if (!this._vehicleId) {
-      console.warn('⚠️ EV Trip Planner Panel: vehicle_id missing, attempting extraction in _render');
-      console.log('EV Trip Planner Panel: Current URL:', window.location.href);
-      console.log('EV Trip Planner Panel: Current pathname:', window.location.pathname);
-      console.log('EV Trip Planner Panel: Current hash:', window.location.hash);
-      this._extractVehicleIdFromUrl();
-      if (this._vehicleId) {
-        console.log('✓ EV Trip Planner Panel: vehicle_id extracted in _render:', this._vehicleId);
-      } else {
-        console.error('✗ EV Trip Planner Panel: Failed to extract vehicle_id in _render');
+      console.warn('EV Trip Planner Panel: Trying to get vehicle_id from URL in _render');
+      const path = window.location.pathname;
+      console.log('EV Trip Planner Panel: URL in _render:', path);
+      
+      // Simple split approach
+      if (path.includes('ev-trip-planner-')) {
+        const parts = path.split('ev-trip-planner-');
+        if (parts.length > 1) {
+          this._vehicleId = parts[1].split('/')[0];
+          console.log('EV Trip Planner Panel: vehicle_id from split in _render:', this._vehicleId);
+        }
       }
     }
-
+    
     if (!this._vehicleId) {
-      console.error('✗ EV Trip Planner Panel: Cannot render - no vehicle_id');
+      console.warn('EV Trip Planner Panel: Cannot render - no vehicle_id');
       this.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: red;">
-          <h3>Error: No vehicle configured</h3>
-          <p>Debug information:</p>
-          <ul>
-            <li>URL: ${window.location.href}</li>
-            <li>pathname: ${window.location.pathname}</li>
-            <li>hash: ${window.location.hash}</li>
-          </ul>
-          <p>Please navigate to the correct panel URL: /ev-trip-planner-{vehicle_id}</p>
+        <div style="padding: 20px; text-align: center;">
+          <p>No vehicle configured</p>
         </div>
       `;
-      console.log('=== EV Trip Planner Panel: _render END (early exit - no vehicle_id) ===');
       return;
     }
 
     this._rendered = true;
-    console.log('✓ EV Trip Planner Panel: Rendering panel for vehicle:', this._vehicleId);
+    console.log('EV Trip Planner Panel: Rendering for vehicle', this._vehicleId);
 
     // Get vehicle states
     const states = this._getVehicleStates();
