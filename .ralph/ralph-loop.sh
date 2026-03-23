@@ -657,6 +657,12 @@ $(cat "$github_context_path")
         progress_file="$PROJECT_DIR/progress.txt"
         worktree_section="
 ## ⚠ WORKTREE MODE — MANDATORY CONSTRAINTS
+
+**FIRST ACTION**: Run this command IMMEDIATELY at the start of your session:
+```
+cd $WORKTREE_PATH
+```
+
 - Your working directory is: $WORKTREE_PATH
 - **ALL file reads and writes MUST use $WORKTREE_PATH as base**
 - When editing files, use ABSOLUTE PATH: $WORKTREE_PATH/custom_components/...
