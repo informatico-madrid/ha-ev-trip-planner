@@ -12,26 +12,6 @@ Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
 ```
 
-## Despliegue para Verificaciones
-
-**IMPORTANTE**: Antes de ejecutar cualquier verificación [VERIFY:BROWSER] o [VERIFY:API], DEBES iniciar test-ha y desplegar los cambios:
-
-```bash
-# Iniciar test-ha si no está运行
-.ralph/scripts/start_test_ha.sh
-
-# Copia componentes al directorio de test-ha
-cp -r $WORKTREE_PATH/custom_components/ev_trip_planner test-ha/config/custom_components/
-
-# Espera a que HA esté disponible
-sleep 30
-
-# Verifica que test-ha responde en http://localhost:18124
-curl -s http://localhost:18124/api/ | grep -q "auth" && echo "test-ha OK"
-```
-
-**Después del despliegue**, ejecuta la verificación específica de la tarea.
-
 ## Dependencies
 
 ```
