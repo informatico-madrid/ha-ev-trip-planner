@@ -6,7 +6,7 @@
 ## Credenciales para Verificaciones
 
 ```
-Home Assistant URL: http://localhost:18124 (test-ha para verificaciones AUTOMÁTICAS)
+Home Assistant URL: http://localhost:18123 (test-ha para verificaciones AUTOMÁTICAS)
 Usuario: available in environment (obtener de variables de entorno)
 Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
@@ -221,7 +221,7 @@ Las tareas mínimas para tener un MVP funcional son:
 - Debe agregar logs adicionales si no tiene información suficiente
 
 **Credenciales HA**:
-- URL: http://localhost:18124 (test-ha)
+- URL: http://localhost:18123 (test-ha)
 - Usuario: available in environment
 - Password: available in environment
 - Token: Obtener de variable de entorno

@@ -6,7 +6,7 @@ homeassistant:
   name: EV Trip Planner Test
   unit_system: metric
   time_zone: Europe/Madrid
-  external_url: http://localhost:18124
+  external_url: http://localhost:18123
   internal_url: http://localhost:8123
   # Disable onboarding for automated tests
   auth_providers:
@@ -15,8 +15,8 @@ homeassistant:
 http:
   server_port: 8123
   cors_allowed_origins:
-    - http://localhost:18124
-    - http://127.0.0.1:18124
+    - http://localhost:18123
+    - http://127.0.0.1:18123
     - http://localhost:8123
     - http://127.0.0.1:8123
 

@@ -1732,12 +1732,12 @@ main() {
                     verify_type="BROWSER"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:BROWSER]${NC}"
                     echo -e "${BLUE}  Tool: mcp-playwright (Playwright browser automation)${NC}"
-                    echo -e "${BLUE}  Target: test-ha (http://localhost:18124)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:18123)${NC}"
                 elif echo "$task_desc" | grep -qiE '\[VERIFY:API\]'; then
                     verify_type="API"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:API]${NC}"
                     echo -e "${BLUE}  Tool: homeassistant-ops skill (REST API)${NC}"
-                    echo -e "${BLUE}  Target: test-ha (http://localhost:18124)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:18123)${NC}"
                 elif echo "$task_desc" | grep -qiE '\[VERIFY:TEST\]'; then
                     verify_type="TEST"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:TEST]${NC}"
