@@ -1457,6 +1457,23 @@ main() {
             continue
         fi
 
+        # Start test-ha container with worktree integration (ralph-loop always uses worktree)
+        if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+            log_info "Starting test-ha container with worktree integration..."
+            
+            # Start the container with worktree integration
+            WORKTREE_PATH="$WORKTREE_PATH" bash "$RALPH_DIR/scripts/start_test_ha.sh" --wait-only || {
+                log_error "=============================================="
+                log_error "FATAL: Failed to start test-ha container"
+                log_error "Cannot proceed without test-ha for verification"
+                log_error "Please fix the container issue and restart ralph-loop"
+                log_error "=============================================="
+                exit 1
+            }
+            
+            log_ok "test-ha container is ready with worktree integration"
+        fi
+
         # Build prompt
         local work_prompt
         work_prompt=$(build_work_prompt "$spec_dir" "$next_idx" "$task_body" "$global_iter" "$SLUG")

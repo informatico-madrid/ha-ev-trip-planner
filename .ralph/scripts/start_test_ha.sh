@@ -27,6 +27,17 @@ HA_CONTAINER="ha-ev-test"
 HA_URL="${HA_URL:-http://localhost:18123}"
 WAIT_SECONDS="${WAIT_SECONDS:-180}"
 
+# Determine integration source:
+# - WORKTREE_PATH (set by ralph-loop): use worktree files
+# - Otherwise: use PROJECT_DIR (manual execution)
+if [[ -n "${WORKTREE_PATH:-}" ]]; then
+    INTEGRATION_SOURCE="$WORKTREE_PATH/custom_components/ev_trip_planner"
+    log_info "Using worktree integration: $INTEGRATION_SOURCE"
+else
+    INTEGRATION_SOURCE="$PROJECT_DIR/custom_components/ev_trip_planner"
+    log_info "Using project integration: $INTEGRATION_SOURCE"
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -110,8 +121,8 @@ main() {
         log_info "Pulling latest Home Assistant image..."
         docker-compose pull
 
-        # Create and start container
-        docker-compose up -d
+        # Create and start container with environment variable for integration source
+        INTEGRATION_SOURCE="$INTEGRATION_SOURCE" docker-compose up -d
 
         # Wait for HA to be ready (only on first start)
         log_info "First start - waiting ${WAIT_SECONDS}s for HA to initialize..."

@@ -14,9 +14,9 @@ services:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro
       # Montar integración desde workspace - permite escritura para pycache
-      - ../custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+      - ${INTEGRATION_SOURCE:-../custom_components/ev_trip_planner}:/config/custom_components/ev_trip_planner
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8124/api/"]
+      test: ["CMD", "curl", "-f", "http://localhost:18123/api/"]
       interval: 10s
       timeout: 5s
       retries: 30
