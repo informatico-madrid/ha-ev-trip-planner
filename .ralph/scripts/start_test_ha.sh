@@ -128,12 +128,7 @@ main() {
         # Ensure config directory exists
         mkdir -p "$TEST_HA_DIR/config"
 
-        # Copy EMHASS config if exists (needed for config flow)
-        if [[ -f "/home/malka/emhass/config/config.json" ]]; then
-            mkdir -p /home/malka/emhass/config
-            cp /home/malka/emhass/config/config.json /home/malka/emhass/config/
-            log_info "Copied EMHASS config to host"
-        fi
+        # Note: EMHASS config is mounted via docker-compose volume, no copy needed
 
         # Pull latest image
         log_info "Pulling latest Home Assistant image..."
