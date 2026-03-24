@@ -185,21 +185,22 @@ Every task MUST strictly follow this format:
 
 **Format Components**:
 
-1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
-2. **Task ID**: Sequential number (T001, T002, T003...) in execution order
-3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
-4. **[Story] label**: REQUIRED for user story phase tasks only
+1. **Checkbox**: ALWAYS start with `- [ ]` for real task rows only.
+2. **Reserved syntax rule**: `- [ ]` and `- [x]` are reserved for top-level task rows with task IDs (`T001`, `T002`, etc.). Never use checkbox markers in nested bullets, notes, error details, or test requirement subsections.
+3. **Task ID**: Sequential number (T001, T002, T003...) in execution order
+4. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
+5. **[Story] label**: REQUIRED for user story phase tasks only
    - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)
    - Setup phase: NO story label
    - Foundational phase: NO story label  
    - User Story phases: MUST have story label
    - Polish phase: NO story label
-5. **Verification Type** *(recommended)*: Specify the verification method for this task:
+6. **Verification Type** *(recommended)*: Specify the verification method for this task:
    - `[VERIFY:TEST]` - Unit/integration tests (pytest) OR E2E test creation
    - `[VERIFY:API]` - REST API verification (curl commands to Home Assistant API)
    - `[VERIFY:BROWSER]` - Browser automation (Playwright for HA UI testing)
    - Omit if task doesn't require verification or is not HA-related
-6. **Description**: Clear action with exact file path
+7. **Description**: Clear action with exact file path
 
 **Examples**:
 
@@ -210,10 +211,12 @@ Every task MUST strictly follow this format:
 - ✅ CORRECT (API): `- [ ] T020 [US2] [VERIFY:API] Add sensor in sensor.py [use: [MCP_API] or [SKILL_API]]`
 - ✅ CORRECT (TEST): `- [ ] T021 [VERIFY:TEST] Add unit tests for trip calculations in tests/test_trip_calculations.py [use: [MCP_TESTING] or [SKILL_TESTING]]`
 - ✅ CORRECT (BROWSER): `- [ ] T022 [VERIFY:BROWSER] Navigate to HA dashboard and verify vehicle panel loads [use: [MCP_BROWSER] or [SKILL_BROWSER]]`
+- ✅ CORRECT (nested note without checkbox): `  - Crear test e2e para capturar el error específico`
 - ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
 - ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
 - ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
 - ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+- ❌ WRONG: `  - [ ] Crear test e2e para capturar el error específico` (nested checkbox marker; reserved for real task rows)
 
 ### Task Organization
 
