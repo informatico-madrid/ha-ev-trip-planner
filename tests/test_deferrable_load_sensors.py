@@ -300,7 +300,7 @@ class TestEmhassDeferrableLoadSensor:
         device_info = sensor.device_info
 
         assert device_info["identifiers"] == {(DOMAIN, "test_entry_id")}
-        assert device_info["name"] == "EV Trip Planner test_entry_id"
+        assert device_info["name"] == "EV Trip Planner test_vehicle"
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
 

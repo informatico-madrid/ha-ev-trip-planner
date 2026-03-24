@@ -72,7 +72,17 @@
 .status-section,
 .sensors-section,
 .trips-section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--panel-divider, #e0e0e0);
+}
+
+.status-section:last-child,
+.sensors-section:last-child,
+.trips-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .status-section h2,
@@ -81,6 +91,33 @@
   font-size: 16px;
   margin-bottom: 12px;
   color: var(--secondary-text-color, #757575);
+}
+
+/* Section title with icon styling */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-text-color, #212121);
+  border-bottom: 3px solid var(--panel-primary-color, #2196f3);
+  padding-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.section-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.section-title-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* =============================================================================
@@ -400,10 +437,65 @@
 .trip-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 16px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--divider-color, #e0e0e0);
+}
+
+/* Action groups - logical separation of button categories */
+.trip-action-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.trip-action-group.status-actions {
+  padding-left: 12px;
+  border-left: 2px solid var(--panel-divider, #e0e0e0);
+  margin-left: 8px;
+}
+
+/* Group label for clarity */
+.trip-action-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--panel-text-secondary, #757575);
+  font-weight: 600;
+  margin-right: 8px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Action group header styling */
+.action-group-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.action-buttons-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Visual separator between action groups */
+.trip-action-group.status-actions {
+  padding-left: 16px;
+  border-left: 2px solid var(--panel-divider, #e0e0e0);
+  margin-left: 8px;
+}
+
+.trip-action-group.status-actions::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background-color: var(--panel-text-secondary, #757575);
+  border-radius: 50%;
+  margin-right: 8px;
 }
 
 .trip-action-btn {
@@ -794,5 +886,42 @@
 
   .trip-form-header h3 {
     font-size: 16px;
+  }
+
+  /* Responsive action button layout for mobile */
+  .action-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .action-buttons-container {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .trip-action-group {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .trip-action-group.status-actions {
+    width: 100%;
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+    margin-top: 8px;
+    border-top: 2px solid var(--panel-divider, #e0e0e0);
+    padding-top: 12px;
+  }
+
+  .trip-action-group.status-actions::before {
+    display: none;
+  }
+
+  .trip-action-group-label {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 4px;
   }
 }
