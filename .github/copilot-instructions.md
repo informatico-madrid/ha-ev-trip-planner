@@ -12,7 +12,6 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 ## 🏠 HOME ASSISTANT INSTANCES - PRODUCTION VS TEST
 
 ### Production Instance
-- **Credentials and Access**: In `/home/malka/.env`
 - **Usage**: See real usage examples - DO NOT make direct changes
 
 ### Test Instance (test-ha)
@@ -20,26 +19,6 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - **Docker**: `test-ha/docker-compose.yml`
 - **Credentials and Access**: In `/home/malka/ha-ev-trip-planner/.env`
 - **Purpose**: E2E tests, verifications during development
-
-**IMPORTANT**:
-- For **[VERIFY:BROWSER]** and **[VERIFY:API]** verifications during Ralph Loop, use test-ha
-- DO NOT use production credentials in tests - use `.env` with test tokens
-- **NO SUPERVISOR API:** Use REST API skills at `/home/malka/.agents/skills/home-assistant-rest-api` instead.
-
-### Difference: [VERIFY:BROWSER] vs E2E Tests
-
-| Aspect | [VERIFY:BROWSER] (in tasks.md) | E2E Tests (tests/e2e/) |
-|--------|--------------------------------|------------------------|
-| **Purpose** | Ad-hoc verification of a specific task | Formal complete test suite |
-| **Execution** | Once per task during implementation | Run independently |
-| **Tool** | mcp-playwright (browser) | Playwright (playwright.config.ts) |
-| **Signal** | Requires `STATE_MATCH` | Test suite results |
-| **Example** | "Verify that the panel renders and js error" | "Complete vehicle CRUD" |
-
-**To start test-ha before Ralph Loop:**
-```bash
-.ralph/scripts/start_test_ha.sh start
-```
 
 ## 📋 PYTHON CODING STANDARDS
 - **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `mypy`.

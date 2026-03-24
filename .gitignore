@@ -69,3 +69,12 @@ MagicMock/
 # Test HA backup folders (created by Docker volume issues)
 test-ha/config/custom_components/ev_trip_planner.bak/
 test-ha/config/ev-trip-planner*.yaml*
+tests/e2e/playwright-report/*.png
+tests/e2e/playwright-report/data/*
+.ralph/.claude_env
+claude.log
+.gitignore
+claude.log.positions
+tests/e2e/test-results
+tests/e2e/playwright-screenshots/*
+tests/e2e/test-results/.last-run.json

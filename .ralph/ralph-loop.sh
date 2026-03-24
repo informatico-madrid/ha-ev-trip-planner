@@ -53,7 +53,7 @@ RALPH_YOLO="${RALPH_YOLO:-true}"
 RALPH_CLAUDE_FLAGS="${RALPH_CLAUDE_FLAGS:-}"  # Additional flags for Claude CLI (e.g., "-d" for debug, "--debug-file /path/to/log")
 RALPH_DEBUG_MODE="${RALPH_DEBUG_MODE:-false}"  # Enable debug mode
 
-# Test concurrency guard: limit how many pytest processes this loop allows
+# Test concurrency guard: limit how many test processes (pytest/playwright) this loop allows
 RALPH_TEST_CONCURRENCY="${RALPH_TEST_CONCURRENCY:-5}"
 
 # vLLM local backend configuration (for goose agent)
@@ -692,7 +692,7 @@ $(cat "$feedback_file")
     local progress_tail=""
     if [[ -f "$PROJECT_DIR/progress.txt" ]]; then
         progress_tail="
-## Recent Progress (last 30 lines)
+## Recent Progress (last 30 lines) detect loops to avoid repeat yourself
 $(tail -30 "$PROJECT_DIR/progress.txt")
 "
     fi
@@ -717,7 +717,7 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 | Tag | Tool | Usage |
 |-----|------|-------|
-| [[VERIFY:TEST]] | pytest | Run tests |
+| [[VERIFY:TEST]] | [npx playwright] or [pytest] | Run tests |
 | [[VERIFY:API]] | curl/MCP HA | Verify via REST API |
 | [[VERIFY:BROWSER]] | Playwright | Verify via browser |
 
@@ -745,6 +745,34 @@ $progress_tail
 $speckit_implement_instructions
 $github_context
 
+## ⚠ CRITICAL: HOME ASSISTANT CONTAINER VOLUME RULES ⚠
+
+**RULE 1: NEVER restart the HA container manually**
+- If you need to restart the container, ALWAYS use the validation script
+- Run: ./.ralph/scripts/validate_volume.sh
+- This script ensures the container is mounted with the correct worktree volume
+
+**RULE 2: NEVER use docker-compose up -d without ACTIVE_WORKTREE**
+- If you must restart the container, example use:
+  cd /home/malka/ha-ev-trip-planner/test-ha && \
+  ACTIVE_WORKTREE=/home/malka/ha-ev-trip-planner/.worktrees/019-panel-vehicle-crud-20260323_085850 \
+  docker-compose up -d
+
+**RULE 3: ALWAYS validate the volume after any container operation**
+- After stopping, starting, or restarting the container example use :
+  docker inspect ha-ev-test | grep -A10 "Mounts" | grep "Source.*worktrees"
+- Verify the Source contains: /home/malka/ha-ev-trip-planner/.worktrees/019-panel-vehicle-crud-20260323_085850
+
+**RULE 4: If the volume is incorrect, the agent's changes will not be visible**
+- Your changes in the worktree will NOT appear in the HA container
+- The container will show the old version or "file not found" errors
+- Always validate the volume before testing
+
+**FORBIDDEN:**
+- DO NOT use: docker-compose up -d (without ACTIVE_WORKTREE)
+- DO NOT use: docker run (without explicit worktree volume)
+- DO NOT assume the container is using the correct volume
+
 ## ⚠ CRITICAL: ONE TASK PER ITERATION RULE ⚠
 **YOU MUST COMPLETE EXACTLY ONE TASK PER ITERATION.**
 - This is a HARD CONSTRAINT, not a suggestion.
@@ -765,7 +793,7 @@ $github_context
 1. **VERIFICATION** (COMPULSORY for [VERIFY:*] tasks): Before marking task complete, you MUST:
    - Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
    - Execute verification using the tools indicated by those tags
-     - [VERIFY:TEST] → Run pytest tests
+     - [VERIFY:TEST] → Run pytest tests or npx playwright tests
      - [VERIFY:API] → Use Home Assistant REST API (curl or MCP)
      - [VERIFY:BROWSER] → Use mcp-playwright browser automation
    - If verification FAILS → Do NOT output TASK_COMPLETE, document error in progress
@@ -958,15 +986,16 @@ run_preflight_checks() {
 
 # ============================================================================
 # Test concurrency guard
-# Ensure the loop doesn't launch test-heavy runs when other pytest processes
-# are already consuming RAM/swap. This provides a soft guard and a lockfile
-# to serialize test executions initiated by the loop.
+# Ensure the loop doesn't launch test-heavy runs when other test processes
+# (pytest, playwright) are already consuming RAM/swap. This provides a soft
+# guard and a lockfile to serialize test executions initiated by the loop.
 # ============================================================================
 
-count_pytest_processes() {
-    # Count processes that look like pytest runs. Use a forgiving matcher.
+count_test_processes() {
+    # Count processes that look like test runs (pytest, playwright, node tests).
+    # Use a forgiving matcher to catch various test runners.
     local cnt
-    cnt=$(pgrep -fc pytest || true)
+    cnt=$(pgrep -fcE 'pytest|playwright|node.*test|jest|mocha' || true)
     echo "${cnt:-0}"
 }
 
@@ -976,7 +1005,7 @@ wait_for_test_slot() {
 
     while true; do
         local running
-        running=$(count_pytest_processes)
+        running=$(count_test_processes)
         if [[ -z "$running" ]]; then
             running=0
         fi
@@ -1076,7 +1105,11 @@ init_worktree() {
         --set "worktreeCreatedAt=$WORKTREE_CREATED_AT" \
         --set "baseBranch=$BASE_BRANCH"
 
+    # Create active_worktree file for container volume validation
+    echo "$WORKTREE_PATH" > "$PROJECT_DIR/.worktrees/active_worktree"
+
     log_ok "Worktree created: $WORKTREE_PATH (branch: $WORKTREE_BRANCH)"
+    log_ok "Active worktree saved to: $PROJECT_DIR/.worktrees/active_worktree"
 }
 
 # ============================================================================
@@ -1413,6 +1446,13 @@ main() {
         }
         
         log_ok "test-ha container is ready with worktree integration"
+        
+        # Validate and correct the container volume mount
+        log_info "Validating container volume mount..."
+        "$RALPH_DIR/scripts/validate_volume.sh" || {
+            log_error "Failed to validate container volume"
+            exit 1
+        }
     fi
 
     while true; do
@@ -1522,14 +1562,15 @@ main() {
 
         pre_repo_tasks_sha=$(compute_sha1 "$tasks_file")
 
-        # Wait for a test slot to avoid saturating RAM/swap with parallel pytest runs
+        # Wait for a test slot to avoid saturating RAM/swap with parallel test runs
         wait_for_test_slot
 
-        # Purge any orphaned pytest processes left by previous agents before
-        # launching a new agent. The agent may have launched pytest in background
-        # (isBackground=true) without waiting; those become orphans consuming RAM.
+        # Purge any orphaned test processes left by previous agents before
+        # launching a new agent. The agent may have launched pytest/playwright in
+        # background (isBackground=true) without waiting; those become orphans
+        # consuming RAM.
         local orphans_before
-        orphans_before=$(pgrep -fc pytest 2>/dev/null || true)
+        orphans_before=$(pgrep -fcE 'pytest|playwright|node.*test' 2>/dev/null || true)
         if (( ${orphans_before:-0} > 0 )); then
             log_warn "Purging $orphans_before orphaned pytest process(es) before agent start"
             python3 "$RALPH_DIR/kill_pytest_orphans.py" --timeout 5 || true
@@ -1554,10 +1595,11 @@ main() {
         # Log memory after agent execution
         log_memory "after_agent"
 
-        # Purge any orphaned pytest processes the agent may have left running in
-        # background. Without this, isBackground=true pytest calls accumulate.
+        # Purge any orphaned test processes the agent may have left running in
+        # background. Without this, isBackground=true pytest/playwright calls
+        # accumulate.
         local orphans_after
-        orphans_after=$(pgrep -fc pytest 2>/dev/null || true)
+        orphans_after=$(pgrep -fcE 'pytest|playwright|node.*test' 2>/dev/null || true)
         if (( ${orphans_after:-0} > 0 )); then
             log_warn "Purging $orphans_after orphaned pytest process(es) after agent exit"
             python3 "$RALPH_DIR/kill_pytest_orphans.py" --timeout 5 || true

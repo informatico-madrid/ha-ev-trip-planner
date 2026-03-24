@@ -34,3 +34,12 @@ config:
 input_number: !include input_number.yaml
 input_boolean: !include input_boolean.yaml
 template: !include template_sensors.yaml
+
+# Panel Custom para EV Trip Planner
+panel_custom:
+  - name: "ev-trip-planner-Coche2"
+    sidebar_title: "Coche2"
+    sidebar_icon: "mdi:car"
+    js_url: "/ev-trip-planner/panel.js"
+    config:
+      vehicle_id: "Coche2"

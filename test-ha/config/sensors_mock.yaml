@@ -3,7 +3,7 @@
 # ============================================
 # Estos sensores simulan los sensores OVMS reales
 # y pueden ser manipulados via API REST para los tests
-# 
+#
 # Para manipularlos:
 #   curl -X POST "http://localhost:18123/api/services/input_number/set" \
 #     -H "Authorization: Bearer $TOKEN" \
@@ -12,10 +12,10 @@
 # ============================================
 
 # -----------------------------------------------------------
-# COCHE 1 - Chispitas (basado en configuración de producción)
+# Todos los input_numbers para todos los coches
 # -----------------------------------------------------------
 input_number:
-  # Sensores de configuración
+  # COCHE 1 - Chispitas
   coche1_battery_capacity:
     name: "Coche1 Capacidad Batería"
     initial: 60.0
@@ -52,47 +52,7 @@ input_number:
     unit_of_measurement: "%"
     mode: slider
 
-# Sensores binarios (presence/charging)
-input_boolean:
-  coche1_charging:
-    name: "Coche1 Cargando"
-    initial: off
-    icon: mdi:lightning-bolt
-
-  coche1_home:
-    name: "Coche1 En Casa"
-    initial: on
-    icon: mdi:home
-
-  coche1_plugged:
-    name: "Coche1 Enchufado"
-    initial: on
-    icon: mdi:power-plug
-
-# Sensores derivados (template)
-template:
-  - sensor:
-      - name: "Coche1 SOC Actual"
-        unit_of_measurement: "%"
-        state: "{{ states('input_number.coche1_battery_capacity') | float(0) }}"
-        
-      - name: "Coche1 Estado Carga"
-        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche1_charging', 'on') else 'mdi:battery' }}"
-        state: "{{ 'charging' if is_state('input_boolean.coche1_charging', 'on') else 'idle' }}"
-        
-      - name: "Coche1 Presencia"
-        icon: "{{ 'mdi:home' if is_state('input_boolean.coche1_home', 'on') else 'mdi:home-off' }}"
-        state: "{{ 'home' if is_state('input_boolean.coche1_home', 'on') else 'away' }}"
-        
-      - name: "Coche1 Conexión"
-        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche1_plugged', 'on') else 'mdi:power-plug-off' }}"
-        state: "{{ 'plugged' if is_state('input_boolean.coche1_plugged', 'on') else 'unplugged' }}"
-
-
-# -----------------------------------------------------------
-# COCHE 2 - Morgan (basado en configuración de producción)
-# -----------------------------------------------------------
-input_number:
+  # COCHE 2 - Morgan
   coche2_battery_capacity:
     name: "Coche2 Capacidad Batería"
     initial: 75.0
@@ -129,45 +89,7 @@ input_number:
     unit_of_measurement: "%"
     mode: slider
 
-input_boolean:
-  coche2_charging:
-    name: "Coche2 Cargando"
-    initial: off
-    icon: mdi:lightning-bolt
-
-  coche2_home:
-    name: "Coche2 En Casa"
-    initial: on
-    icon: mdi:home
-
-  coche2_plugged:
-    name: "Coche2 Enchufado"
-    initial: on
-    icon: mdi:power-plug
-
-template:
-  - sensor:
-      - name: "Coche2 SOC Actual"
-        unit_of_measurement: "%"
-        state: "{{ states('input_number.coche2_battery_capacity') | float(0) }}"
-        
-      - name: "Coche2 Estado Carga"
-        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche2_charging', 'on') else 'mdi:battery' }}"
-        state: "{{ 'charging' if is_state('input_boolean.coche2_charging', 'on') else 'idle' }}"
-        
-      - name: "Coche2 Presencia"
-        icon: "{{ 'mdi:home' if is_state('input_boolean.coche2_home', 'on') else 'mdi:home-off' }}"
-        state: "{{ 'home' if is_state('input_boolean.coche2_home', 'on') else 'away' }}"
-        
-      - name: "Coche2 Conexión"
-        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche2_plugged', 'on') else 'mdi:power-plug-off' }}"
-        state: "{{ 'plugged' if is_state('input_boolean.coche2_plugged', 'on') else 'unplugged' }}"
-
-
-# -----------------------------------------------------------
-# COCHE 3 - Vehículo de pruebas adicional
-# -----------------------------------------------------------
-input_number:
+  # COCHE 3
   coche3_battery_capacity:
     name: "Coche3 Capacidad Batería"
     initial: 50.0
@@ -204,45 +126,7 @@ input_number:
     unit_of_measurement: "%"
     mode: slider
 
-input_boolean:
-  coche3_charging:
-    name: "Coche3 Cargando"
-    initial: off
-    icon: mdi:lightning-bolt
-
-  coche3_home:
-    name: "Coche3 En Casa"
-    initial: off
-    icon: mdi:home
-
-  coche3_plugged:
-    name: "Coche3 Enchufado"
-    initial: on
-    icon: mdi:power-plug
-
-template:
-  - sensor:
-      - name: "Coche3 SOC Actual"
-        unit_of_measurement: "%"
-        state: "{{ states('input_number.coche3_battery_capacity') | float(0) }}"
-        
-      - name: "Coche3 Estado Carga"
-        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche3_charging', 'on') else 'mdi:battery' }}"
-        state: "{{ 'charging' if is_state('input_boolean.coche3_charging', 'on') else 'idle' }}"
-        
-      - name: "Coche3 Presencia"
-        icon: "{{ 'mdi:home' if is_state('input_boolean.coche3_home', 'on') else 'mdi:home-off' }}"
-        state: "{{ 'home' if is_state('input_boolean.coche3_home', 'on') else 'away' }}"
-        
-      - name: "Coche3 Conexión"
-        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche3_plugged', 'on') else 'mdi:power-plug-off' }}"
-        state: "{{ 'plugged' if is_state('input_boolean.coche3_plugged', 'on') else 'unplugged' }}"
-
-
-# -----------------------------------------------------------
-# COCHE 4 - Vehículo de pruebas adicional
-# -----------------------------------------------------------
-input_number:
+  # COCHE 4
   coche4_battery_capacity:
     name: "Coche4 Capacidad Batería"
     initial: 40.0
@@ -279,45 +163,7 @@ input_number:
     unit_of_measurement: "%"
     mode: slider
 
-input_boolean:
-  coche4_charging:
-    name: "Coche4 Cargando"
-    initial: off
-    icon: mdi:lightning-bolt
-
-  coche4_home:
-    name: "Coche4 En Casa"
-    initial: on
-    icon: mdi:home
-
-  coche4_plugged:
-    name: "Coche4 Enchufado"
-    initial: off
-    icon: mdi:power-plug
-
-template:
-  - sensor:
-      - name: "Coche4 SOC Actual"
-        unit_of_measurement: "%"
-        state: "{{ states('input_number.coche4_battery_capacity') | float(0) }}"
-        
-      - name: "Coche4 Estado Carga"
-        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche4_charging', 'on') else 'mdi:battery' }}"
-        state: "{{ 'charging' if is_state('input_boolean.coche4_charging', 'on') else 'idle' }}"
-        
-      - name: "Coche4 Presencia"
-        icon: "{{ 'mdi:home' if is_state('input_boolean.coche4_home', 'on') else 'mdi:home-off' }}"
-        state: "{{ 'home' if is_state('input_boolean.coche4_home', 'on') else 'away' }}"
-        
-      - name: "Coche4 Conexión"
-        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche4_plugged', 'on') else 'mdi:power-plug-off' }}"
-        state: "{{ 'plugged' if is_state('input_boolean.coche4_plugged', 'on') else 'unplugged' }}"
-
-
-# -----------------------------------------------------------
-# COCHE 5 - Vehículo de pruebas adicional
-# -----------------------------------------------------------
-input_number:
+  # COCHE 5
   coche5_battery_capacity:
     name: "Coche5 Capacidad Batería"
     initial: 82.0
@@ -354,7 +200,75 @@ input_number:
     unit_of_measurement: "%"
     mode: slider
 
+# -----------------------------------------------------------
+# Todos los input_booleanos para todos los coches
+# -----------------------------------------------------------
 input_boolean:
+  # COCHE 1
+  coche1_charging:
+    name: "Coche1 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche1_home:
+    name: "Coche1 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche1_plugged:
+    name: "Coche1 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+  # COCHE 2
+  coche2_charging:
+    name: "Coche2 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche2_home:
+    name: "Coche2 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche2_plugged:
+    name: "Coche2 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+  # COCHE 3
+  coche3_charging:
+    name: "Coche3 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche3_home:
+    name: "Coche3 En Casa"
+    initial: off
+    icon: mdi:home
+
+  coche3_plugged:
+    name: "Coche3 Enchufado"
+    initial: on
+    icon: mdi:power-plug
+
+  # COCHE 4
+  coche4_charging:
+    name: "Coche4 Cargando"
+    initial: off
+    icon: mdi:lightning-bolt
+
+  coche4_home:
+    name: "Coche4 En Casa"
+    initial: on
+    icon: mdi:home
+
+  coche4_plugged:
+    name: "Coche4 Enchufado"
+    initial: off
+    icon: mdi:power-plug
+
+  # COCHE 5
   coche5_charging:
     name: "Coche5 Cargando"
     initial: on
@@ -370,20 +284,252 @@ input_boolean:
     initial: on
     icon: mdi:power-plug
 
+# -----------------------------------------------------------
+# Sensores template para todos los coches
+# -----------------------------------------------------------
 template:
   - sensor:
+      # COCHE 1 Sensores
+      - name: "Coche1 SOC Actual"
+        unique_id: coche1_soc_actual_1
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche1_battery_capacity') | float(0) }}"
+
+      - name: "Coche1 Estado Carga"
+        unique_id: coche1_estado_carga_1
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche1_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche1_charging', 'on') else 'idle' }}"
+
+      - name: "Coche1 Presencia"
+        unique_id: coche1_presencia_1
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche1_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche1_home', 'on') else 'away' }}"
+
+      - name: "Coche1 Conexión"
+        unique_id: coche1_conexion_1
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche1_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche1_plugged', 'on') else 'unplugged' }}"
+
+      - name: "Coche1 KWh Hoy"
+        unique_id: coche1_kwh_today
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: "{{ 15.3 }}"
+
+      - name: "Coche1 Horas Hoy"
+        unique_id: coche1_hours_today
+        unit_of_measurement: "h"
+        state_class: measurement
+        state: "{{ 3.2 }}"
+
+      - name: "Coche1 Próximo Viaje"
+        unique_id: coche1_next_trip
+        state: "{{ 'No hay viajes programados' }}"
+
+      - name: "Coche1 Lista Viajes"
+        unique_id: coche1_trips_list
+        state: "{{ 0 }}"
+
+      - name: "Coche1 Viajes Recurrentes"
+        unique_id: coche1_recurring_trips_count
+        state: "{{ 0 }}"
+
+      - name: "Coche1 Viajes Puntuales"
+        unique_id: coche1_punctual_trips_count
+        state: "{{ 0 }}"
+
+      # COCHE 2 Sensores
+      - name: "Coche2 SOC Actual"
+        unique_id: coche2_soc_actual_2
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche2_battery_capacity') | float(0) }}"
+
+      - name: "Coche2 Estado Carga"
+        unique_id: coche2_estado_carga_2
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche2_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche2_charging', 'on') else 'idle' }}"
+
+      - name: "Coche2 Presencia"
+        unique_id: coche2_presencia_2
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche2_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche2_home', 'on') else 'away' }}"
+
+      - name: "Coche2 Conexión"
+        unique_id: coche2_conexion_2
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche2_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche2_plugged', 'on') else 'unplugged' }}"
+
+      - name: "Coche2 KWh Hoy"
+        unique_id: coche2_kwh_today
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: "{{ 12.5 }}"
+
+      - name: "Coche2 Horas Hoy"
+        unique_id: coche2_hours_today
+        unit_of_measurement: "h"
+        state_class: measurement
+        state: "{{ 2.5 }}"
+
+      - name: "Coche2 Próximo Viaje"
+        unique_id: coche2_next_trip
+        state: "{{ 'No hay viajes programados' }}"
+
+      - name: "Coche2 Lista Viajes"
+        unique_id: coche2_trips_list
+        state: "{{ 0 }}"
+
+      - name: "Coche2 Viajes Recurrentes"
+        unique_id: coche2_recurring_trips_count
+        state: "{{ 0 }}"
+
+      - name: "Coche2 Viajes Puntuales"
+        unique_id: coche2_punctual_trips_count
+        state: "{{ 0 }}"
+
+      # COCHE 3 Sensores
+      - name: "Coche3 SOC Actual"
+        unique_id: coche3_soc_actual_3
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche3_battery_capacity') | float(0) }}"
+
+      - name: "Coche3 Estado Carga"
+        unique_id: coche3_estado_carga_3
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche3_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche3_charging', 'on') else 'idle' }}"
+
+      - name: "Coche3 Presencia"
+        unique_id: coche3_presencia_3
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche3_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche3_home', 'on') else 'away' }}"
+
+      - name: "Coche3 Conexión"
+        unique_id: coche3_conexion_3
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche3_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche3_plugged', 'on') else 'unplugged' }}"
+
+      - name: "Coche3 KWh Hoy"
+        unique_id: coche3_kwh_today
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: "{{ 8.2 }}"
+
+      - name: "Coche3 Horas Hoy"
+        unique_id: coche3_hours_today
+        unit_of_measurement: "h"
+        state_class: measurement
+        state: "{{ 1.5 }}"
+
+      - name: "Coche3 Próximo Viaje"
+        unique_id: coche3_next_trip
+        state: "{{ 'No hay viajes programados' }}"
+
+      - name: "Coche3 Lista Viajes"
+        unique_id: coche3_trips_list
+        state: "{{ 0 }}"
+
+      - name: "Coche3 Viajes Recurrentes"
+        unique_id: coche3_recurring_trips_count
+        state: "{{ 0 }}"
+
+      - name: "Coche3 Viajes Puntuales"
+        unique_id: coche3_punctual_trips_count
+        state: "{{ 0 }}"
+
+      # COCHE 4 Sensores
+      - name: "Coche4 SOC Actual"
+        unique_id: coche4_soc_actual_4
+        unit_of_measurement: "%"
+        state: "{{ states('input_number.coche4_battery_capacity') | float(0) }}"
+
+      - name: "Coche4 Estado Carga"
+        unique_id: coche4_estado_carga_4
+        icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche4_charging', 'on') else 'mdi:battery' }}"
+        state: "{{ 'charging' if is_state('input_boolean.coche4_charging', 'on') else 'idle' }}"
+
+      - name: "Coche4 Presencia"
+        unique_id: coche4_presencia_4
+        icon: "{{ 'mdi:home' if is_state('input_boolean.coche4_home', 'on') else 'mdi:home-off' }}"
+        state: "{{ 'home' if is_state('input_boolean.coche4_home', 'on') else 'away' }}"
+
+      - name: "Coche4 Conexión"
+        unique_id: coche4_conexion_4
+        icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche4_plugged', 'on') else 'mdi:power-plug-off' }}"
+        state: "{{ 'plugged' if is_state('input_boolean.coche4_plugged', 'on') else 'unplugged' }}"
+
+      - name: "Coche4 KWh Hoy"
+        unique_id: coche4_kwh_today
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: "{{ 5.8 }}"
+
+      - name: "Coche4 Horas Hoy"
+        unique_id: coche4_hours_today
+        unit_of_measurement: "h"
+        state_class: measurement
+        state: "{{ 1.0 }}"
+
+      - name: "Coche4 Próximo Viaje"
+        unique_id: coche4_next_trip
+        state: "{{ 'No hay viajes programados' }}"
+
+      - name: "Coche4 Lista Viajes"
+        unique_id: coche4_trips_list
+        state: "{{ 0 }}"
+
+      - name: "Coche4 Viajes Recurrentes"
+        unique_id: coche4_recurring_trips_count
+        state: "{{ 0 }}"
+
+      - name: "Coche4 Viajes Puntuales"
+        unique_id: coche4_punctual_trips_count
+        state: "{{ 0 }}"
+
+      # COCHE 5 Sensores
       - name: "Coche5 SOC Actual"
+        unique_id: coche5_soc_actual_5
         unit_of_measurement: "%"
         state: "{{ states('input_number.coche5_battery_capacity') | float(0) }}"
-        
+
       - name: "Coche5 Estado Carga"
+        unique_id: coche5_estado_carga_5
         icon: "{{ 'mdi:battery-charging' if is_state('input_boolean.coche5_charging', 'on') else 'mdi:battery' }}"
         state: "{{ 'charging' if is_state('input_boolean.coche5_charging', 'on') else 'idle' }}"
-        
+
       - name: "Coche5 Presencia"
+        unique_id: coche5_presencia_5
         icon: "{{ 'mdi:home' if is_state('input_boolean.coche5_home', 'on') else 'mdi:home-off' }}"
         state: "{{ 'home' if is_state('input_boolean.coche5_home', 'on') else 'away' }}"
-        
+
       - name: "Coche5 Conexión"
+        unique_id: coche5_conexion_5
         icon: "{{ 'mdi:power-plug' if is_state('input_boolean.coche5_plugged', 'on') else 'mdi:power-plug-off' }}"
         state: "{{ 'plugged' if is_state('input_boolean.coche5_plugged', 'on') else 'unplugged' }}"
+
+      - name: "Coche5 KWh Hoy"
+        unique_id: coche5_kwh_today
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        state: "{{ 10.1 }}"
+
+      - name: "Coche5 Horas Hoy"
+        unique_id: coche5_hours_today
+        unit_of_measurement: "h"
+        state_class: measurement
+        state: "{{ 2.0 }}"
+
+      - name: "Coche5 Próximo Viaje"
+        unique_id: coche5_next_trip
+        state: "{{ 'No hay viajes programados' }}"
+
+      - name: "Coche5 Lista Viajes"
+        unique_id: coche5_trips_list
+        state: "{{ 0 }}"
+
+      - name: "Coche5 Viajes Recurrentes"
+        unique_id: coche5_recurring_trips_count
+        state: "{{ 0 }}"
+
+      - name: "Coche5 Viajes Puntuales"
+        unique_id: coche5_punctual_trips_count
+        state: "{{ 0 }}"

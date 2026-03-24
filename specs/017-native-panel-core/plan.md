@@ -133,7 +133,7 @@ hass.http.register_static_path(
 |------------------|-------------|----------------|
 | `[VERIFY:TEST]` | Unit/integration tests | `pytest tests/ -v --cov` |
 | `[VERIFY:API]` | REST API verification | `curl http://HA/api/states` + skill |
-| `[VERIFY:BROWSER]` | Playwright UI automation | `npx playwright test` |
+| `[VERIFY:BROWSER]` | Playwright UI automation | use mcp playwright |
 
 ### Existence Check
 

@@ -79,7 +79,7 @@ tests/
 |------------------|-------------|-----------------------------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
 | `[VERIFY:API]` | REST API verification (use homeassistant-ops skill) | Use skill to query HA API (no hardcoded curl) |
-| `[VERIFY:BROWSER]` | Playwright UI automation | `npx playwright test` or browser automation script |
+| `[VERIFY:BROWSER]` | Playwright UI automation | use mcp playwright |
 
 **RULES:**
 - ✅ ONLY these 3 types are valid in tasks

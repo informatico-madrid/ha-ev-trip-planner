@@ -1,0 +1,341 @@
+#!/bin/bash
+# Claude logs monitor - VERSIÓN SEGURA CON FILTRADO POR FECHA
+# Solo procesa logs nuevos desde una fecha específica para evitar bloqueos
+
+set -euo pipefail
+
+# ============================================================================
+# CONFIGURACIÓN
+# ============================================================================
+
+# Rutas
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+OUTPUT_DIR="$PROJECT_DIR/logs"
+OUTPUT_FILE="$OUTPUT_DIR/claude_tool_logs.log"
+MARKER_FILE="${OUTPUT_FILE}.marker"
+
+# Configuración de seguridad
+MAX_LOG_SIZE="10M"  # Tamaño máximo antes de rotar
+MAX_LINES_PER_SESSION=1000  # Límite de líneas por sesión
+DEFAULT_SINCE_DATE="$(date +%Y-%m-%d)"  # Fecha por defecto: hoy
+CLAUDE_LOGS_DIR_DEFAULT="$HOME/.claude/projects"
+
+# Variables globales
+SINCE_DATE=""
+CLAUDE_LOGS_DIR=""
+declare -gA FILE_POSITIONS
+
+# ============================================================================
+# FUNCIONES DE UTILIDAD
+# ============================================================================
+
+log_info() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*"
+}
+
+log_error() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*" >&2
+}
+
+log_warn() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] $*"
+}
+
+show_help() {
+    cat << EOF
+Claude Logs Monitor - Versión Segura
+
+Uso: $(basename "$0") [OPCIONES] [FECHA] [DIRECTORIO_LOGS]
+
+Opciones:
+  --help, -h          Mostrar esta ayuda
+  --since FECHA       Solo procesar logs desde esta fecha (YYYY-MM-DD)
+                      Por defecto: hoy ($(date +%Y-%m-%d))
+
+Ejemplos:
+  $(basename "$0")                    # Logs de hoy
+  $(basename "$0") --since 2026-03-24 # Logs desde fecha específica
+  $(basename "$0") 2026-03-17         # Logs desde hace una semana
+
+Parámetros posicionales:
+  1. FECHA       Fecha límite (YYYY-MM-DD), por defecto: hoy
+  2. DIRECTORIO  Directorio de logs de Claude, por defecto: $HOME/.claude/projects
+
+Características de seguridad:
+  • Solo procesa logs nuevos desde la fecha especificada
+  • Rotación automática de logs (máx ${MAX_LOG_SIZE})
+  • Límite de ${MAX_LINES_PER_SESSION} líneas por sesión
+  • Marcador de posición para evitar re-procesamiento
+
+Salida:
+  Archivo: $OUTPUT_FILE
+  Posiciones: $MARKER_FILE
+EOF
+    exit 0
+}
+
+# Verificar si existe un archivo JSONL válido
+validate_jsonl_file() {
+    local file="$1"
+    [[ -f "$file" && -r "$file" ]] || return 1
+    # Verificar que tenga contenido
+    [[ -s "$file" ]] || return 1
+    return 0
+}
+
+# Obtener línea actual del archivo (para tail -f)
+get_current_line_count() {
+    local file="$1"
+    wc -l < "$file" 2>/dev/null || echo "0"
+}
+
+# Rotar archivo de log si supera el tamaño máximo
+check_and_rotate_log() {
+    if [[ -f "$OUTPUT_FILE" ]]; then
+        local current_size
+        current_size=$(du -b "$OUTPUT_FILE" | cut -f1)
+        local max_size_bytes
+        
+        # Convertir tamaño máximo a bytes
+        case "$MAX_LOG_SIZE" in
+            *K) max_size_bytes=$((1024 * ${MAX_LOG_SIZE%K})) ;;
+            *M) max_size_bytes=$((1024*1024 * ${MAX_LOG_SIZE%M})) ;;
+            *) max_size_bytes=$MAX_LOG_SIZE ;;
+        esac
+        
+        if [[ $current_size -gt $max_size_bytes ]]; then
+            log_warn "Archivo de log excede tamaño máximo (${MAX_LOG_SIZE}), rotando..."
+            local rotated_file="${OUTPUT_FILE}.$(date +%Y%m%d%H%M%S)"
+            mv "$OUTPUT_FILE" "$rotated_file"
+            touch "$OUTPUT_FILE"
+            log_info "Log rotado a: $rotated_file"
+        fi
+    else
+        mkdir -p "$(dirname "$OUTPUT_FILE")"
+        touch "$OUTPUT_FILE"
+    fi
+}
+
+# Guardar posición de procesamiento
+save_position() {
+    local file="$1"
+    local position="$2"
+    echo "${file}:${position}" >> "$MARKER_FILE"
+}
+
+# Cargar posiciones anteriores
+load_positions() {
+    if [[ -f "$MARKER_FILE" ]]; then
+        while IFS=':' read -r file position; do
+            FILE_POSITIONS["$file"]="$position"
+        done < "$MARKER_FILE"
+    fi
+}
+
+# Procesar un solo archivo JSONL
+process_jsonl_file() {
+    local jsonl_file="$1"
+    local from_line="${FILE_POSITIONS[$jsonl_file]:-0}"
+    
+    # Si ya llegamos al final, saltar
+    if [[ "$from_line" -eq 0 ]]; then
+        from_line=$(get_current_line_count "$jsonl_file")
+        if [[ "$from_line" -eq 0 ]]; then
+            return 0
+        fi
+    fi
+    
+    local total_lines
+    total_lines=$(get_current_line_count "$jsonl_file")
+    
+    if [[ "$total_lines" -le "$from_line" ]]; then
+        return 0
+    fi
+    
+    log_info "Procesando $jsonl_file desde línea $from_line (total: $total_lines)"
+    
+    # Extraer sessionId del nombre del archivo o contenido
+    local filename
+    filename=$(basename "$jsonl_file")
+    local session_id
+    session_id=$(echo "$filename" | grep -oP '[0-9a-f]{8}-[0-9a-f]{12}' | head -1 || echo "unknown")
+    
+    # Procesar nuevas líneas
+    local line_count=0
+    while IFS= read -r line; do
+        ((line_count++)) || true
+        
+        # Limitar líneas por sesión
+        if [[ $line_count -gt $MAX_LINES_PER_SESSION ]]; then
+            log_warn "Límite de líneas alcanzado para $session_id ($MAX_LINES_PER_SESSION)"
+            break
+        fi
+        
+        # Parsear JSON
+        local timestamp tool_name tool_type tool_id tool_input tool_use_result thinking stop_reason
+        
+        timestamp=$(echo "$line" | jq -r '.timestamp // .message.timestamp // "unknown"' 2>/dev/null || echo "unknown")
+        tool_name=$(echo "$line" | jq -r '.message.content[0].tool_use.name // "none"' 2>/dev/null || echo "none")
+        tool_type=$(echo "$line" | jq -r '.message.content[0].type // "none"' 2>/dev/null || echo "none")
+        tool_id=$(echo "$line" | jq -r '.message.content[0].id // "none"' 2>/dev/null || echo "none")
+        tool_input=$(echo "$line" | jq -r '.message.content[0].input // "none"' 2>/dev/null || echo "none")
+        tool_use_result=$(echo "$line" | jq -r '.toolUseResult.stdout // ""' 2>/dev/null || echo "")
+        thinking=$(echo "$line" | jq -r '.message.content[0].thinking // ""' 2>/dev/null || echo "")
+        stop_reason=$(echo "$line" | jq -r '.message.stop_reason // "none"' 2>/dev/null || echo "none")
+        
+        # Validar campos
+        [[ "$tool_type" != "none" && -n "$tool_type" ]] && \
+            echo "[$timestamp] [$session_id] MSG_TYPE: $tool_type" >> "$OUTPUT_FILE"
+        
+        [[ "$tool_name" != "none" && -n "$tool_name" ]] && \
+            echo "[$timestamp] [$session_id] TOOL: $tool_name (id: ${tool_id:0:10})" >> "$OUTPUT_FILE"
+        
+        [[ "$tool_input" != "none" && -n "$tool_input" && "$tool_input" != "{}" ]] && \
+            echo "[$timestamp] [$session_id] INPUT: ${tool_input:0:150}" >> "$OUTPUT_FILE"
+        
+        [[ -n "$tool_use_result" ]] && \
+            echo "[$timestamp] [$session_id] STDOUT: ${tool_use_result:0:200}" >> "$OUTPUT_FILE"
+        
+        [[ -n "$thinking" ]] && \
+            echo "[$timestamp] [$session_id] THINKING: ${thinking:0:200}" >> "$OUTPUT_FILE"
+        
+        [[ "$stop_reason" != "none" && -n "$stop_reason" ]] && \
+            echo "[$timestamp] [$session_id] STOP_REASON: $stop_reason" >> "$OUTPUT_FILE"
+        
+    done < <(tail -n +"$((from_line + 1))" "$jsonl_file" 2>/dev/null)
+    
+    # Guardar nueva posición
+    save_position "$jsonl_file" "$total_lines"
+    
+    log_info "Procesadas $line_count líneas nuevas de $jsonl_file"
+}
+
+# Filtrar archivos por fecha (solo archivos modificados después de SINCE_DATE)
+filter_files_by_date() {
+    local files=()
+    local since_epoch
+    since_epoch=$(date -d "$SINCE_DATE" +%s 2>/dev/null || date -d "today" +%s)
+    
+    log_info "Filtrando archivos desde: $SINCE_DATE (epoch: $since_epoch)"
+    
+    while IFS= read -r -d '' file; do
+        if validate_jsonl_file "$file"; then
+            local file_epoch
+            file_epoch=$(stat -c %Y "$file" 2>/dev/null || stat -f %m "$file" 2>/dev/null || echo "0")
+            
+            if [[ "$file_epoch" -ge "$since_epoch" ]]; then
+                files+=("$file")
+                log_info "✓ Archivo nuevo/moderno: $(basename "$file")"
+            else
+                log_info "✗ Saltando archivo antiguo: $(basename "$file")"
+            fi
+        fi
+    done < <(find "$CLAUDE_LOGS_DIR" -name "*.jsonl" -type f -print0 2>/dev/null)
+    
+    echo "${files[@]}"
+}
+
+# ============================================================================
+# MAIN - Procesamiento de argumentos
+# ============================================================================
+
+main() {
+    # Variables para argumentos
+    local positional_args=()
+    
+    # Procesar argumentos
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                show_help
+                ;;
+            --since)
+                SINCE_DATE="$2"
+                shift 2
+                continue
+                ;;
+            *)
+                positional_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Asignar argumentos posicionales
+    if [[ ${#positional_args[@]} -ge 1 ]]; then
+        SINCE_DATE="${positional_args[0]:-$DEFAULT_SINCE_DATE}"
+    fi
+    
+    if [[ ${#positional_args[@]} -ge 2 ]]; then
+        CLAUDE_LOGS_DIR="${positional_args[1]:-$CLAUDE_LOGS_DIR_DEFAULT}"
+    fi
+    
+    # Establecer valores por defecto si no se proporcionaron
+    SINCE_DATE="${SINCE_DATE:-$DEFAULT_SINCE_DATE}"
+    CLAUDE_LOGS_DIR="${CLAUDE_LOGS_DIR:-$CLAUDE_LOGS_DIR_DEFAULT}"
+    
+    log_info "=== Claude Logs Monitor (Versión Segura) ==="
+    log_info "Fecha límite: $SINCE_DATE"
+    log_info "Directorio de logs: $CLAUDE_LOGS_DIR"
+    log_info "Archivo de salida: $OUTPUT_FILE"
+    
+    # Asegurar directorios
+    mkdir -p "$OUTPUT_DIR"
+    
+    # Verificar directorio de Claude
+    if [[ ! -d "$CLAUDE_LOGS_DIR" ]]; then
+        log_error "Directorio no encontrado: $CLAUDE_LOGS_DIR"
+        exit 1
+    fi
+    
+    # Cargar posiciones anteriores
+    load_positions
+    
+    # Filtrar archivos por fecha
+    local filtered_files
+    mapfile -t filtered_files < <(filter_files_by_date)
+    
+    if [[ ${#filtered_files[@]} -eq 0 ]]; then
+        log_warn "No se encontraron archivos JSONL nuevos desde $SINCE_DATE"
+        exit 0
+    fi
+    
+    log_info "Se encontraron ${#filtered_files[@]} archivos nuevos desde $SINCE_DATE"
+    
+    # Verificar y rotar log si es necesario
+    check_and_rotate_log
+    
+    # Procesar cada archivo en segundo plano (limitado a 5 procesos simultáneos)
+    local max_background=5
+    local background_count=0
+    
+    for jsonl_file in "${filtered_files[@]}"; do
+        # Esperar si hay muchos procesos en segundo plano
+        while [[ $(jobs -r | wc -l) -ge $max_background ]]; do
+            sleep 1
+        done
+        
+        # Procesar en segundo plano
+        (
+            process_jsonl_file "$jsonl_file"
+        ) &
+        
+        ((background_count++)) || true
+        
+        # Mostrar progreso
+        if [[ $((background_count % 10)) -eq 0 ]]; then
+            log_info "Procesando $background_count de ${#filtered_files[@]} archivos..."
+        fi
+    done
+    
+    # Esperar a que terminen todos los procesos
+    wait
+    
+    log_info "=== Proceso completado ==="
+    log_info "Archivos procesados: ${#filtered_files[@]}"
+    log_info "Posiciones guardadas en: $MARKER_FILE"
+}
+
+# Ejecutar main
+main "$@"

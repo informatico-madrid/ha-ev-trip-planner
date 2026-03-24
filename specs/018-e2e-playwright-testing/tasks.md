@@ -69,7 +69,7 @@ description: "Task list for E2E Playwright Testing feature"
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] [VERIFY:BROWSER] Implement navigation to HA login page in tests/e2e/test-config-flow.spec.js (use: e2e-testing-patterns)
+- [ ] T013 [P] [US1] [Test] Implement navigation to HA login page in tests/e2e/test-config-flow.spec.js (use: e2e-testing-patterns)
 - [ ] T014 [P] [US1] [VERIFY:BROWSER] Implement login flow with credentials in tests/e2e/test-config-flow.spec.js (use: e2e-testing-patterns)
 - [ ] T015 [US1] [VERIFY:BROWSER] Implement navigation to /config/integrations in tests/e2e/test-config-flow.spec.js (use: e2e-testing-patterns)
 - [ ] T016 [US1] [VERIFY:BROWSER] Implement adding EV Trip Planner integration in tests/e2e/test-config-flow.spec.js (use: e2e-testing-patterns)
