@@ -15,62 +15,15 @@
           - generic: Añadir a Home Assistant
           - generic: Buscar en Home Assistant
           - generic: Editar resumen
-  - generic [ref=e48]:
-    - paragraph [ref=e60]: Resúmenes
-    - generic [ref=e65]:
-      - paragraph [ref=e72]: Áreas
-      - generic [ref=e77]:
-        - button "Salón" [ref=e78] [cursor=pointer]
+  - generic [ref=e37]:
+    - heading "Bienvenido tests" [level=2] [ref=e47]
+    - generic [ref=e50]:
+      - paragraph [ref=e62]: Resúmenes
+      - generic [ref=e67]:
+        - paragraph [ref=e74]: Áreas
         - generic [ref=e79]:
-          - generic:
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic:
-                      - generic:
-                        - img
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic: Salón
-      - generic [ref=e84]:
-        - button "Cocina" [ref=e85] [cursor=pointer]
-        - generic [ref=e86]:
-          - generic:
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic:
-                      - generic:
-                        - img
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic: Cocina
-      - generic [ref=e91]:
-        - button "Dormitorio" [ref=e92] [cursor=pointer]
-        - generic [ref=e93]:
-          - generic:
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic:
-                      - generic:
-                        - img
-            - generic:
-              - generic:
-                - generic:
-                  - generic:
-                    - generic: Dormitorio
-      - generic [ref=e98]:
-        - button "Dispositivos" [ref=e99] [cursor=pointer]
-        - generic [ref=e100]:
-          - generic:
+          - button "Salón" [ref=e80] [cursor=pointer]
+          - generic [ref=e81]:
             - generic:
               - generic:
                 - generic:
@@ -79,8 +32,57 @@
                       - generic:
                         - generic:
                           - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Salón
+        - generic [ref=e86]:
+          - button "Cocina" [ref=e87] [cursor=pointer]
+          - generic [ref=e88]:
             - generic:
               - generic:
                 - generic:
                   - generic:
-                    - generic: Dispositivos
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Cocina
+        - generic [ref=e93]:
+          - button "Dormitorio" [ref=e94] [cursor=pointer]
+          - generic [ref=e95]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Dormitorio
+        - generic [ref=e100]:
+          - button "Dispositivos" [ref=e101] [cursor=pointer]
+          - generic [ref=e102]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Dispositivos
