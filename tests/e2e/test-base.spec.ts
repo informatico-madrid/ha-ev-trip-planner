@@ -1,86 +1,114 @@
 /**
  * Test Base Class for EV Trip Planner E2E Tests
  *
- * This base class provides common setup, helper methods, and utilities
- * for all E2E tests in the EV Trip Planner project.
- *
- * Usage:
- *   import { TripPanelTestBase, test } from './test-base.spec';
- *
- *   test.describe('My Tests', () => {
- *     const test = new TripPanelTestBase();
- *
- *     test('should do something', async ({ page }) => {
- *       await test.setup(page);
- *       // ... test logic
- *     });
- *   });
+ * Enhanced to validate Shadow DOM content and JavaScript errors
  */
 
-import { Page, TestInfo } from '@playwright/test';
+import { test as baseTest, expect, Page } from '@playwright/test';
 
-export class TripPanelTestBase {
-  protected page: Page | null = null;
-  protected testInfo: TestInfo | null = null;
-  protected vehicleId: string = 'chispitas';
-  protected haUrl: string = 'http://192.168.1.100:8123';
+export const test = baseTest.extend<{
+  tripPanel: TripPanel;
+}>({
+  tripPanel: async ({ page }, use) => {
+    const tripPanel = new TripPanel(page);
+    await use(tripPanel);
+  },
+});
 
-  /**
-   * Configure the test with custom settings
-   */
-  configure(options: {
-    vehicleId?: string;
-    haUrl?: string;
-    timeout?: number;
-  }) {
-    if (options.vehicleId) {
-      this.vehicleId = options.vehicleId;
-    }
-    if (options.haUrl) {
-      this.haUrl = options.haUrl;
-    }
-  }
+export { expect };
 
-  /**
-   * Setup test before each test case
-   */
-  async setup(page: Page, testInfo?: TestInfo, timeout = 30000) {
+export class TripPanel {
+  protected page: Page;
+  protected vehicleId: string;
+  protected haUrl: string;
+  protected consoleErrors: string[] = [];
+
+  constructor(page: Page, vehicleId: string = 'Coche2', haUrl: string = 'http://192.168.1.100:18123') {
     this.page = page;
-    this.testInfo = testInfo || null;
+    this.vehicleId = vehicleId;
+    this.haUrl = haUrl;
+    this.consoleErrors = [];
+  }
 
-    // Navigate to panel URL
-    await page.goto(`${this.haUrl}/ev-trip-planner-${this.vehicleId}`);
-
-    // Wait for panel to load
-    await this.waitForPanel(timeout);
-
-    // Set up dialog handler for confirmation dialogs
-    this.setupDialogHandler();
+  get haUrlValue(): string {
+    return this.haUrl;
   }
 
   /**
-   * Wait for panel to be ready
+   * Set up console error listener to catch JavaScript errors
    */
-  async waitForPanel(timeout = 30000) {
-    await this.page!.waitForFunction(
-      (url) => {
-        try {
-          const panel = (window as any)._tripPanel;
-          return panel !== undefined && panel._vehicleId !== undefined;
-        } catch (e) {
-          return false;
+  async setupConsoleErrorHandler(): Promise<void> {
+    this.consoleErrors = [];
+    this.page.on('console', msg => {
+      if (msg.type() === 'error') {
+        const errorText = msg.text();
+        // Skip harmless errors
+        if (!errorText.includes('Failed to load resource') &&
+            !errorText.includes('404') &&
+            !errorText.includes('CORS')) {
+          this.consoleErrors.push(`[${msg.type()}] ${errorText}`);
+          console.warn(`Console Error: ${errorText}`);
         }
-      },
-      this.haUrl,
-      { timeout }
-    );
+      }
+    });
+
+    this.page.on('pageerror', error => {
+      this.consoleErrors.push(`[PAGE_ERROR] ${error.message}`);
+      console.warn(`Page Error: ${error.message}`);
+    });
   }
 
   /**
-   * Set up dialog handler for confirmation dialogs
+   * Check for JavaScript errors
    */
-  setupDialogHandler(accept: boolean = true) {
-    this.page!.on('dialog', async (dialog) => {
+  async assertNoJsErrors(): Promise<void> {
+    if (this.consoleErrors.length > 0) {
+      console.error('JavaScript errors detected:');
+      this.consoleErrors.forEach(err => console.error(`  - ${err}`));
+      throw new Error(`JavaScript errors detected: ${this.consoleErrors.length} errors found`);
+    }
+  }
+
+  async login(username: string = 'tests', password: string = 'tests'): Promise<void> {
+    await this.setupConsoleErrorHandler();
+    await this.page.goto(this.haUrl, { waitUntil: 'networkidle' });
+
+    // Fill login form using HA's native input elements
+    await this.page.fill('input[name="username"]', username);
+    await this.page.fill('input[name="password"]', password);
+
+    // Click the brand-colored login button
+    await this.page.click('ha-button[variant="brand"]');
+
+    // Wait for home navigation (HA redirects to /home/overview after login)
+    await this.page.waitForURL(`${this.haUrl}/home*`, { waitUntil: 'networkidle', timeout: 30000 });
+  }
+
+  async navigateToPanel(): Promise<void> {
+    // Navigate to the panel using the correct URL format
+    const panelUrl = `${this.haUrl}/panel/ev-trip-planner-${this.vehicleId}`;
+    await this.page.goto(panelUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    // Wait for the web component to be defined
+    await this.page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Wait for the panel to be in the DOM
+    await this.page.waitForSelector('ev-trip-planner-panel', { timeout: 30000 });
+
+    // Wait for the panel to be visible and rendered with content
+    // Playwright's locator API automatically penetrates Shadow DOM
+    await this.page.locator('ev-trip-planner-panel').waitFor({ state: 'visible', timeout: 30000 });
+
+    // Verify panel content is rendered by looking for a specific element
+    // The add-trip-btn is inside the panel's shadow DOM and indicates successful rendering
+    await this.page.locator('ev-trip-planner-panel >> .add-trip-btn').waitFor({ state: 'visible', timeout: 30000 });
+  }
+
+  async setupDialogHandler(accept: boolean = true): Promise<void> {
+    this.page.on('dialog', async (dialog) => {
       console.log(`Dialog message: ${dialog.message()}`);
       if (accept) {
         await dialog.accept();
@@ -91,58 +119,85 @@ export class TripPanelTestBase {
   }
 
   /**
-   * Get panel URL
+   * Verify panel header by penetrating Shadow DOM
+   * The header is rendered inside the ev-trip-planner-panel shadow root
    */
-  getPanelUrl(suffix: string = ''): string {
-    return `${this.haUrl}${suffix}`;
+  async verifyPanelHeader(expectedText: string): Promise<void> {
+    // Wait for panel to be fully rendered
+    await this.page.locator('ev-trip-planner-panel').waitFor({ state: 'visible', timeout: 30000 });
+
+    // Use Playwright locator to penetrate Shadow DOM and get header text
+    // The panel-header class is inside the shadow root
+    const headerElement = this.page.locator('ev-trip-planner-panel >> .panel-header');
+    await expect(headerElement).toBeVisible({ timeout: 10000 });
+
+    const headerText = await headerElement.textContent();
+    if (!headerText) {
+      throw new Error('Panel header text is empty');
+    }
+
+    expect(headerText).toContain(expectedText);
   }
 
   /**
-   * Navigate to panel URL
+   * Verify trips section by penetrating Shadow DOM
    */
-  async navigateToPanel(suffix: string = '') {
-    await this.page!.goto(this.getPanelUrl(suffix));
+  async verifyTripsSectionVisible(): Promise<void> {
+    // Wait for panel to be fully rendered
+    await this.page.locator('ev-trip-planner-panel').waitFor({ state: 'visible', timeout: 30000 });
+
+    // Use Playwright locator to penetrate Shadow DOM
+    const tripsSection = this.page.locator('ev-trip-planner-panel >> .trips-section');
+    await expect(tripsSection).toBeVisible({ timeout: 10000 });
   }
 
   /**
-   * Verify panel header contains expected text
+   * Verify sensors section by penetrating Shadow DOM
    */
-  async verifyPanelHeader(expectedText: string) {
-    const header = this.page!.locator('.panel-header');
-    await expect(header).toBeVisible();
-    await expect(header).toContainText(expectedText);
+  async verifySensorsSectionVisible(): Promise<void> {
+    // Wait for panel to be fully rendered
+    await this.page.locator('ev-trip-planner-panel').waitFor({ state: 'visible', timeout: 30000 });
+
+    // Use Playwright locator to penetrate Shadow DOM
+    const sensorsSection = this.page.locator('ev-trip-planner-panel >> .sensors-section');
+    await expect(sensorsSection).toBeVisible({ timeout: 10000 });
   }
 
   /**
-   * Verify trips section is visible
+   * Get trip count by penetrating Shadow DOM
    */
-  async verifyTripsSectionVisible() {
-    const tripsSection = this.page!.locator('.trips-section');
-    await expect(tripsSection).toBeVisible();
+  async getTripCount(): Promise<number> {
+    const count = await this.page.evaluate(() => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.shadowRoot) {
+        return 0;
+      }
+      const trips = panel.shadowRoot.querySelectorAll('.trip-card');
+      return trips.length;
+    });
+    return count;
   }
 
   /**
-   * Verify sensors section is visible
+   * Wait for trips section to be populated by penetrating Shadow DOM
    */
-  async verifySensorsSectionVisible() {
-    const sensorsSection = this.page!.locator('.sensors-section');
-    await expect(sensorsSection).toBeVisible();
+  async waitForTripsSection(timeout: number = 10000): Promise<void> {
+    await this.page.waitForFunction(
+      () => {
+        const panel = (window as any)._tripPanel;
+        return panel !== undefined && panel.innerHTML.includes('trips-section');
+      },
+      { timeout }
+    );
   }
 
-  /**
-   * Click add trip button and wait for form
-   */
-  async openAddTripForm() {
-    const addTripButton = this.page!.locator('.add-trip-btn');
+  async openAddTripForm(): Promise<void> {
+    const addTripButton = this.page.locator('ev-trip-planner-panel').locator('.add-trip-btn');
     await addTripButton.click();
-
-    const formOverlay = this.page!.locator('.trip-form-overlay');
+    const formOverlay = this.page.locator('ev-trip-planner-panel').locator('.trip-form-overlay');
     await expect(formOverlay).toBeVisible({ timeout: 10000 });
   }
 
-  /**
-   * Fill trip creation/edit form
-   */
   async fillTripForm(data: {
     type: 'recurrente' | 'puntual';
     day?: string;
@@ -150,78 +205,35 @@ export class TripPanelTestBase {
     km?: string;
     kwh?: string;
     description?: string;
-  }) {
-    // Select trip type
-    await this.page!.selectOption('#trip-type', data.type);
-
-    // Set day if provided
+  }): Promise<void> {
+    await this.page.locator('ev-trip-planner-panel').selectOption('#trip-type', data.type);
     if (data.day !== undefined) {
-      await this.page!.selectOption('#trip-day', data.day);
+      await this.page.locator('ev-trip-planner-panel').selectOption('#trip-day', data.day);
     }
-
-    // Set time
-    await this.page!.fill('#trip-time', data.time);
-
-    // Set optional km
+    await this.page.locator('ev-trip-planner-panel').fill('#trip-time', data.time);
     if (data.km !== undefined) {
-      await this.page!.fill('#trip-km', data.km);
+      await this.page.locator('ev-trip-planner-panel').fill('#trip-km', data.km);
     }
-
-    // Set optional kwh
     if (data.kwh !== undefined) {
-      await this.page!.fill('#trip-kwh', data.kwh);
+      await this.page.locator('ev-trip-planner-panel').fill('#trip-kwh', data.kwh);
     }
-
-    // Set optional description
     if (data.description !== undefined) {
-      await this.page!.fill('#trip-description', data.description);
+      await this.page.locator('ev-trip-planner-panel').fill('#trip-description', data.description);
     }
   }
 
-  /**
-   * Submit trip form
-   */
-  async submitTripForm() {
-    await this.page!.locator('.btn-primary').click();
+  async submitTripForm(): Promise<void> {
+    await this.page.locator('ev-trip-planner-panel').locator('.btn-primary').click();
   }
 
-  /**
-   * Wait for form to close
-   */
-  async waitForFormToClose(timeout = 5000) {
-    const formOverlay = this.page!.locator('.trip-form-overlay');
+  async waitForFormToClose(timeout: number = 5000): Promise<void> {
+    const formOverlay = this.page.locator('ev-trip-planner-panel').locator('.trip-form-overlay');
     await expect(formOverlay).toBeHidden({ timeout });
   }
 
-  /**
-   * Get trip count
-   */
-  async getTripCount(): Promise<number> {
-    return await this.page!.locator('.trip-card').count();
-  }
-
-  /**
-   * Wait for trips section to be populated
-   */
-  async waitForTripsSection(timeout = 10000) {
-    await this.page!.waitForSelector('.trips-list', { timeout });
-  }
-
-  /**
-   * Log test progress
-   */
-  logProgress(message: string) {
-    console.log(`[TripPanelTest] ${message}`);
-  }
-
-  /**
-   * Cleanup after test
-   */
-  async cleanup() {
-    this.page = null;
-    this.testInfo = null;
+  logProgress(message: string): void {
+    console.log(`[TripPanel] ${message}`);
   }
 }
 
-// Export test and expect from Playwright
-export { test, expect } from '@playwright/test';
+export { Page, expect };

@@ -20,6 +20,18 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 - **Credentials and Access**: In `/home/malka/ha-ev-trip-planner/.env`
 - **Purpose**: E2E tests, verifications during development
 
+#### TESTS E2E
+un Test E2E Funcional e Interactivo real usando Playwright para el flujo de "Crear un viaje".
+Reglas obligatorias:
+Prohibido el testeo estático superficial: No me sirve que solo compruebes que el panel está visible. Tienes que simular a un usuario real.
+Interacción a través del Shadow DOM: Debes localizar los campos de entrada (input, select) y los botones de guardado que están dentro del panel utilizando el combinador de Shadow DOM de Playwright (ej. page.locator('ev-trip-planner-panel >> #campo-destino').fill('Madrid')).
+Flujo completo: El test debe hacer lo siguiente:
+Hacer clic en el botón de "Crear / Añadir Viaje" (penetrando el Shadow DOM).
+Rellenar el formulario del viaje simulando escritura.
+Hacer clic en el botón de guardar/enviar.
+Validación dinámica del resultado: Después de enviar el formulario, el test debe esperar y validar que la tarjeta o el texto del nuevo viaje ha aparecido dinámicamente en la interfaz de la lista de viajes dentro del Shadow DOM.
+
+
 ## 📋 PYTHON CODING STANDARDS
 - **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `mypy`.
 - **Typing & Docs:** Type hints and Google-style docstrings are REQUIRED for all public functions and classes.
