@@ -67,16 +67,21 @@ class EVTripPlannerPanel extends HTMLElement {
     // CRITICAL: Get vehicle_id from URL as early as possible - ALWAYS do this FIRST
     // URL format: /ev-trip-planner-{vehicle_id}
     const path = window.location.pathname;
-    console.log('EV Trip Planner Panel: trying to extract from path:', path);
+    console.log('EV Trip Planner Panel: === URL EXTRACTION ===');
+    console.log('EV Trip Planner Panel: full URL:', window.location.href);
+    console.log('EV Trip Planner Panel: pathname:', path);
+    console.log('EV Trip Planner Panel: hash:', window.location.hash);
 
     // Method 1: Simple split approach (most reliable)
     if (path.includes('ev-trip-planner-')) {
       const parts = path.split('ev-trip-planner-');
+      console.log('EV Trip Planner Panel: split parts:', parts);
       if (parts.length > 1) {
         const potentialId = parts[1].split('/')[0];
+        console.log('EV Trip Planner Panel: potentialId from split:', potentialId);
         if (potentialId) {
           this._vehicleId = potentialId;
-          console.log('EV Trip Planner Panel: vehicle_id from split:', this._vehicleId);
+          console.log('EV Trip Planner Panel: ✓ vehicle_id from split:', this._vehicleId);
         }
       }
     }
@@ -84,22 +89,24 @@ class EVTripPlannerPanel extends HTMLElement {
     // Method 2: regex (fallback)
     if (!this._vehicleId) {
       const match = path.match(/\/ev-trip-planner-(.+)/);
+      console.log('EV Trip Planner Panel: regex match:', match);
       if (match && match[1]) {
         this._vehicleId = match[1];
-        console.log('EV Trip Planner Panel: vehicle_id from regex:', this._vehicleId);
+        console.log('EV Trip Planner Panel: ✓ vehicle_id from regex:', this._vehicleId);
       }
     }
 
     // Method 3: from hash (fallback)
     if (!this._vehicleId && window.location.hash) {
       const hashMatch = window.location.hash.match(/\/ev-trip-planner-(.+)/);
+      console.log('EV Trip Planner Panel: hash match:', hashMatch);
       if (hashMatch && hashMatch[1]) {
         this._vehicleId = hashMatch[1];
-        console.log('EV Trip Planner Panel: vehicle_id from hash:', this._vehicleId);
+        console.log('EV Trip Planner Panel: ✓ vehicle_id from hash:', this._vehicleId);
       }
     }
 
-    console.log('EV Trip Planner Panel: Final vehicle_id:', this._vehicleId);
+    console.log('EV Trip Planner Panel: === FINAL vehicle_id:', this._vehicleId, '===');
 
     // CRITICAL: Check if we already have hass and vehicleId - render immediately
     if (this._hass && this._vehicleId) {
@@ -392,6 +399,8 @@ class EVTripPlannerPanel extends HTMLElement {
 
     try {
       console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
+      console.log('EV Trip Planner Panel: hass.available:', this._hass?.available);
+      console.log('EV Trip Planner Panel: URL pathname:', window.location.pathname);
 
       // Use hass.services.call for service calls
       const response = await this._hass.callService('ev_trip_planner', 'trip_list', {
@@ -399,7 +408,9 @@ class EVTripPlannerPanel extends HTMLElement {
       });
       // Response format: either direct result or wrapped in array/object
 
-      console.log('EV Trip Planner Panel: Trip list response:', response);
+      console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
+      console.log('EV Trip Planner Panel: Response type:', typeof response);
+      console.log('EV Trip Planner Panel: Response is Array:', Array.isArray(response));
 
       // In newer HA versions, callService returns the result directly
       // or as an array with [result]
@@ -407,29 +418,42 @@ class EVTripPlannerPanel extends HTMLElement {
 
       // Handle array response: [result]
       if (Array.isArray(response) && response.length > 0) {
+        console.log('EV Trip Planner Panel: Response is array with', response.length, 'elements');
         tripsData = response[0];
       }
       // Handle object with result property
       else if (response && response.result) {
+        console.log('EV Trip Planner Panel: Response has result property');
         tripsData = response.result;
       }
 
       console.log('EV Trip Planner Panel: Trips data:', tripsData);
+      console.log('EV Trip Planner Panel: tripsData type:', typeof tripsData);
+      console.log('EV Trip Planner Panel: tripsData has recurring_trips:', tripsData?.recurring_trips !== undefined);
+      console.log('EV Trip Planner Panel: tripsData has punctual_trips:', tripsData?.punctual_trips !== undefined);
 
-      if (tripsData && tripsData.recurring_trips) {
+      if (tripsData && tripsData.recurring_trips !== undefined) {
         // Combine recurring and punctual trips
+        const recurringTrips = tripsData.recurring_trips || [];
+        const punctualTrips = tripsData.punctual_trips || [];
+        console.log('EV Trip Planner Panel: recurringTrips count:', recurringTrips.length);
+        console.log('EV Trip Planner Panel: punctualTrips count:', punctualTrips.length);
+
         const allTrips = [
-          ...tripsData.recurring_trips.map(t => ({...t, trip_type: 'recurrente'})),
-          ...tripsData.punctual_trips.map(t => ({...t, trip_type: 'puntual'})),
+          ...recurringTrips.map(t => ({...t, trip_type: 'recurrente'})),
+          ...punctualTrips.map(t => ({...t, trip_type: 'puntual'})),
         ];
-        console.log('EV Trip Planner Panel: Retrieved', allTrips.length, 'trips');
+        console.log('EV Trip Planner Panel: Retrieved', allTrips.length, 'total trips');
         return allTrips;
       }
 
       console.warn('EV Trip Planner Panel: Unexpected response format:', tripsData);
+      console.warn('EV Trip Planner Panel: Expected object with recurring_trips and punctual_trips properties');
       return [];
     } catch (error) {
       console.error('EV Trip Planner Panel: Error fetching trips:', error);
+      console.error('EV Trip Planner Panel: Error message:', error.message);
+      console.error('EV Trip Planner Panel: Error stack:', error.stack);
       return [];
     }
   }
@@ -443,6 +467,10 @@ class EVTripPlannerPanel extends HTMLElement {
    * @returns {Promise<void>} Promise that resolves when trips are rendered
    */
   async _renderTripsSection() {
+    console.log('EV Trip Planner Panel: === _renderTripsSection START ===');
+    console.log('EV Trip Planner Panel: _hass:', !!this._hass);
+    console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+
     if (!this._hass) {
       console.warn('EV Trip Planner Panel: Cannot render trips - no hass connection');
       this._updateTripsSection('<p>No connection to Home Assistant</p>');
@@ -458,6 +486,7 @@ class EVTripPlannerPanel extends HTMLElement {
     try {
       console.log('EV Trip Planner Panel: Fetching trips for rendering...');
       const trips = await this._getTripsList();
+      console.log('EV Trip Planner Panel: Trips retrieved:', trips.length);
 
       if (trips.length === 0) {
         this._updateTripsSection(`
@@ -1736,6 +1765,7 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // Handle unavailable/unknown states - return null to filter them out
     if (value === 'unavailable' || value === 'unknown' || value === 'N/A' || value === 'none' || value === '' || value === null) {
+      console.log(`EV Trip Planner Panel: Filtering sensor ${entityId} with value: ${value}`);
       return null; // Filter out unavailable/unknown sensors
     }
 
@@ -2151,7 +2181,7 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // CRITICAL: Render the panel HTML first - this is the key line that writes to DOM
     const panelHtml = `
-      <link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${Date.now()}">
+      <link rel="stylesheet" href="/ev_trip_planner/panel.css?v=${Date.now()}">
       <div class="panel-container">
         <header class="panel-header">
           <h1>🚗 EV Trip Planner - ${this._vehicleId}</h1>
