@@ -204,6 +204,8 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
   - Syntax check: PASSED (node --check)
   - Playwright tests: 153/153 PASSED across Chromium, Firefox, WebKit
   - Console errors: NONE (only expected 401/404 from auth/favicon)
+  - Pytest: 801/801 PASSED
+  - Coverage: 88% (>79% required)
   - No JavaScript errors found in panel.js
 ---
 
