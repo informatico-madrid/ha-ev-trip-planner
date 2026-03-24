@@ -117,9 +117,9 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 #### G. Verification Flow Analysis *(NEW - Real Environment Verification)*
 
 - **Missing [VERIFY:*] tags**: Tasks touching Home Assistant entities, services, or config entries MUST have a verification tag:
-  - `[VERIFY:TEST]` - Unit/integration tests (pytest)
+  - `[VERIFY:TEST]` - Unit/integration tests (pytest) OR E2E test creation
   - `[VERIFY:API]` - HA REST API calls (curl to HA)
-  - `[VERIFY:BROWSER]` - Browser automation (Playwright)
+  - `[VERIFY:BROWSER]` - Browser automation (Playwright for HA UI testing)
 - **Missing Available Tools section**: plan.md MUST have "Available Tools for Verification" section filled with installed skills/MCPs
 - **Verification type mismatch**: 
   - HA sensor/service tasks → should have `[VERIFY:API]`
