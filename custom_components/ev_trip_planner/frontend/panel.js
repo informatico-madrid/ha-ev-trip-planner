@@ -38,11 +38,12 @@ class EVTripPlannerPanel extends HTMLElement {
     console.log('EV Trip Planner Panel: innerHTML.length:', this.innerHTML.length);
     console.log('EV Trip Planner Panel: innerHTML includes EV Trip Planner:', this.innerHTML.includes('EV Trip Planner'));
 
-    // CRITICAL: Exit early if already fully rendered with content
+    // CRITICAL: Exit early if already fully rendered with content AND trips section
     // This prevents re-rendering if the panel is already complete
+    const hasTripsSection = this.innerHTML.includes('trips-section') || this.innerHTML.includes('trips-list');
     const hasContent = this.innerHTML.length > 0 && this.innerHTML.includes('EV Trip Planner');
-    if (this._rendered && hasContent) {
-      console.log('EV Trip Planner Panel: Already fully rendered with content, exiting connectedCallback');
+    if (this._rendered && hasContent && hasTripsSection) {
+      console.log('EV Trip Planner Panel: Already fully rendered (with trips), exiting connectedCallback');
       return;
     }
 
@@ -53,16 +54,20 @@ class EVTripPlannerPanel extends HTMLElement {
       this._rendered = false;
     }
 
-    // CRITICAL: Exit if polling already started to prevent multiple poll loops
-    if (this._pollStarted) {
-      console.log('EV Trip Planner Panel: Polling already started, exiting connectedCallback');
+    // CRITICAL: Exit if polling already started AND panel is fully rendered
+    // This prevents multiple poll loops but allows rendering to complete
+    const hasTripsSection = this.innerHTML.includes('trips-section') || this.innerHTML.includes('trips-list');
+    if (this._pollStarted && this._rendered && hasTripsSection) {
+      console.log('EV Trip Planner Panel: Polling already started and panel fully rendered, exiting');
       return;
     }
 
     // CRITICAL: Mark polling as started BEFORE doing anything else
     // This prevents multiple connectedCallback calls from starting separate polling loops
-    this._pollStarted = true;
-    console.log('EV Trip Planner Panel: Marked _pollStarted=true');
+    if (!this._pollStarted) {
+      this._pollStarted = true;
+      console.log('EV Trip Planner Panel: Marked _pollStarted=true');
+    }
 
     // CRITICAL: Get vehicle_id from URL as early as possible - ALWAYS do this FIRST
     // URL format: /ev-trip-planner-{vehicle_id} or /panel/ev-trip-planner-{vehicle_id}
@@ -211,15 +216,20 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // Only render if we have BOTH hass AND vehicleId AND not already rendered with content
     if (this._hass && this._vehicleId) {
-      // Check if already rendered with actual content
+      // Check if already rendered with actual content AND trips section
+      const hasTripsSection = this.innerHTML.includes('trips-section') ||
+        this.innerHTML.includes('trips-list') ||
+        this.innerHTML.includes('trips-header');
       const alreadyFullyRendered = this._rendered &&
         this.innerHTML.length > 0 &&
-        this.innerHTML.includes('EV Trip Planner');
+        this.innerHTML.includes('EV Trip Planner') &&
+        hasTripsSection;
 
       if (alreadyFullyRendered) {
-        console.log('EV Trip Planner Panel: Already fully rendered, skipping in setter');
+        console.log('EV Trip Planner Panel: Already fully rendered (with trips), skipping in setter');
       } else {
         console.log('EV Trip Planner Panel: hass and vehicleId available in setter, rendering');
+        console.log('EV Trip Planner Panel: hasTripsSection:', hasTripsSection, '_rendered:', this._rendered);
         this._render();
       }
     }
@@ -456,6 +466,7 @@ class EVTripPlannerPanel extends HTMLElement {
       }
 
       console.warn('EV Trip Planner Panel: Unexpected response format:', tripsData);
+      console.warn('EV Trip Planner Panel: All keys in tripsData:', Object.keys(tripsData || {}));
       console.warn('EV Trip Planner Panel: Expected object with recurring_trips and punctual_trips properties');
       return [];
     } catch (error) {
@@ -476,25 +487,26 @@ class EVTripPlannerPanel extends HTMLElement {
    */
   async _renderTripsSection() {
     console.log('EV Trip Planner Panel: === _renderTripsSection START ===');
-    console.log('EV Trip Planner Panel: _hass:', !!this._hass);
-    console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+    console.log('EV Trip Planner Panel: _hass:', !!this._hass, '_vehicleId:', this._vehicleId);
 
     if (!this._hass) {
       console.warn('EV Trip Planner Panel: Cannot render trips - no hass connection');
-      this._updateTripsSection('<p>No connection to Home Assistant</p>');
+      const tripsSection = document.getElementById('trips-section');
+      if (tripsSection) tripsSection.innerHTML = '<p>No connection to Home Assistant</p>';
       return;
     }
 
     if (!this._vehicleId) {
       console.warn('EV Trip Planner Panel: Cannot render trips - no vehicle_id');
-      this._updateTripsSection('<p>No vehicle configured</p>');
+      const tripsSection = document.getElementById('trips-section');
+      if (tripsSection) tripsSection.innerHTML = '<p>No vehicle configured</p>';
       return;
     }
 
     try {
-      console.log('EV Trip Planner Panel: Fetching trips for rendering...');
+      console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
       const trips = await this._getTripsList();
-      console.log('EV Trip Planner Panel: Trips retrieved:', trips.length);
+      console.log('EV Trip Planner Panel: Trips retrieved:', trips.length, 'Type:', typeof trips);
 
       if (trips.length === 0) {
         this._updateTripsSection(`
@@ -2246,11 +2258,16 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // Schedule trips rendering after a delay to ensure panel is fully rendered
     setTimeout(() => {
+      console.log('EV Trip Planner Panel: Checking if trips need rendering, _rendered:', this._rendered);
       // Only render trips if not already rendered
       if (!this._rendered) {
+        console.log('EV Trip Planner Panel: Calling _renderTripsLater()');
         this._renderTripsLater().catch(error => {
           console.error('EV Trip Planner Panel: Error rendering trips section:', error);
+          console.error('EV Trip Planner Panel: Error stack:', error.stack);
         });
+      } else {
+        console.log('EV Trip Planner Panel: Trips already rendered, skipping');
       }
     }, 100);
   }
