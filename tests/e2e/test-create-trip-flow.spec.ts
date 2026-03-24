@@ -9,25 +9,27 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { TripPanel } from './test-base.spec';
+
+const HA_URL = 'http://192.168.1.100:18123';
+const VEHICLE_ID = 'Coche2';
 
 test.describe('Create Trip Flow - REAL E2E TEST', () => {
 
   /**
    * REAL USER FLOW TEST: Create a recurring trip
-   *
-   * This test simulates a real user:
-   * 1. Navigates to the EV Trip Planner panel
-   * 2. Clicks "Agregar Viaje" button
-   * 3. Fills out the trip form
-   * 4. Submits the form
-   * 5. Validates the trip appears in the list
    */
   test('should create a recurring trip through real user interaction', async ({ page }) => {
-    // Setup: Login and navigate to panel using helper
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    // Navigate to panel
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // STEP 1: Click the "Agregar Viaje" button
     const addTripBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
@@ -39,27 +41,21 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
     await expect(formOverlay).toBeVisible({ timeout: 10000 });
 
     // STEP 3: Fill out the trip form fields
-    // Select trip type: Recurrente
     const tripTypeSelect = page.locator('ev-trip-planner-panel >> #trip-type');
     await tripTypeSelect.selectOption('recurrente');
 
-    // Select day: Lunes (1)
     const tripDaySelect = page.locator('ev-trip-planner-panel >> #trip-day');
     await tripDaySelect.selectOption('1');
 
-    // Fill in the time: 08:00
     const timeInput = page.locator('ev-trip-planner-panel >> #trip-time');
     await timeInput.fill('08:00');
 
-    // Fill in distance: 25.5 km
     const kmInput = page.locator('ev-trip-planner-panel >> #trip-km');
     await kmInput.fill('25.5');
 
-    // Fill in energy: 5.2 kWh
     const kwhInput = page.locator('ev-trip-planner-panel >> #trip-kwh');
     await kwhInput.fill('5.2');
 
-    // Fill in description: "Viaje al trabajo"
     const descriptionTextarea = page.locator('ev-trip-planner-panel >> #trip-description');
     await descriptionTextarea.fill('Viaje al trabajo');
 
@@ -90,7 +86,6 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
     const firstTripCard = tripCards.first();
     await expect(firstTripCard).toBeVisible();
 
-    // Extract and verify trip card content
     const tripCardText = await firstTripCard.textContent();
     expect(tripCardText).toContain('Recurrente');
     expect(tripCardText).toContain('25.5 km');
@@ -102,10 +97,17 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
    * REAL USER FLOW TEST: Create a punctual trip
    */
   test('should create a punctual trip through real user interaction', async ({ page }) => {
-    // Setup: Login and navigate to panel using helper
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    // Navigate to panel
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // STEP 1: Click the "Agregar Viaje" button
     const addTripBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
@@ -162,10 +164,17 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
    * REAL USER FLOW TEST: Edit trip
    */
   test('should edit an existing trip', async ({ page }) => {
-    // Setup: Login and navigate to panel using helper
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    // Navigate to panel
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check if there are existing trips
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
@@ -220,10 +229,17 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
    * REAL USER FLOW TEST: Cancel trip creation
    */
   test('should cancel trip creation and close form', async ({ page }) => {
-    // Setup: Login and navigate to panel using helper
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    // Navigate to panel
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // STEP 1: Click the "Agregar Viaje" button
     const addTripBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
@@ -251,10 +267,17 @@ test.describe('Create Trip Flow - REAL E2E TEST', () => {
    * REAL USER FLOW TEST: Complete end-to-end trip creation
    */
   test('should complete full trip creation workflow', async ({ page }) => {
-    // Setup: Login and navigate to panel using helper
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    // Navigate to panel
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Step 1: Verify initial state - trips section is visible
     const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');

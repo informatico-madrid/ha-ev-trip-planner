@@ -8,6 +8,7 @@
  * @author EV Trip Planner Team
  */
 
+// Import Lit from CDN (HA loads this as a module)
 import { LitElement, html, css } from 'https://cdnjs.cloudflare.com/ajax/libs/lit/2.8.0/lit.min.js';
 
 class EVTripPlannerPanel extends LitElement {
@@ -479,7 +480,7 @@ class EVTripPlannerPanel extends LitElement {
           clearTimeout(this._pollTimeout);
           this._pollTimeout = null;
         }
-        this._render();
+        this._loadTrips();
         return;
       }
 
