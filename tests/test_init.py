@@ -15,6 +15,7 @@ from custom_components.ev_trip_planner import (
     TripPlannerCoordinator,
     create_dashboard_input_helpers,
 )
+from custom_components.ev_trip_planner.panel import async_unregister_panel
 
 
 @pytest.fixture
@@ -25,6 +26,7 @@ def mock_hass():
     hass.config.components = []
     hass.services = Mock()
     hass.services.has_service = Mock(return_value=False)
+    hass.data = {}  # Add data attribute for runtime storage
 
     # Mock async_add_executor_job for non-blocking I/O
     async def mock_executor_job(func, *args):
@@ -503,3 +505,97 @@ class TestCreateDashboardInputHelpers:
 
         # Should return False when no storage
         assert result is False
+
+
+class TestAsyncUnloadEntry:
+    """Tests for async_unload_entry function."""
+
+    @pytest.mark.asyncio
+    async def test_unload_entry_calls_unregister_panel(self, mock_hass):
+        """Test that async_unload_entry calls async_unregister_panel."""
+        # Create a mock config entry with vehicle_id
+        entry = Mock()
+        entry.data = {
+            "vehicle_id": "test_vehicle",
+            "vehicle_name": "Test Vehicle",
+        }
+        entry.entry_id = "test_entry_id"
+
+        # Mock the platforms unload to return True
+        async def mock_unload_platforms(entry, platforms):
+            return True
+
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Mock async_unregister_panel to track if it was called
+        with patch("custom_components.ev_trip_planner.async_unregister_panel") as mock_unregister:
+            mock_unregister.return_value = True
+
+            # Import and call async_unload_entry
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            result = await async_unload_entry(mock_hass, entry)
+
+            # Verify async_unregister_panel was called with correct arguments
+            mock_unregister.assert_called_once_with(mock_hass, "test_vehicle")
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_unload_entry_no_vehicle_id(self, mock_hass):
+        """Test that async_unload_entry handles missing vehicle_id gracefully."""
+        # Create a mock config entry without vehicle_id
+        entry = Mock()
+        entry.data = {
+            "vehicle_name": "Test Vehicle",
+        }
+        entry.entry_id = "test_entry_id"
+
+        # Mock the platforms unload to return True
+        async def mock_unload_platforms(entry, platforms):
+            return True
+
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Mock async_unregister_panel to track if it was called
+        with patch("custom_components.ev_trip_planner.async_unregister_panel") as mock_unregister:
+            mock_unregister.return_value = True
+
+            # Import and call async_unload_entry
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            result = await async_unload_entry(mock_hass, entry)
+
+            # Verify async_unregister_panel was NOT called (no vehicle_id)
+            mock_unregister.assert_not_called()
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_unload_entry_handles_unregister_error(self, mock_hass):
+        """Test that async_unload_entry handles unregister panel errors gracefully."""
+        # Create a mock config entry with vehicle_id
+        entry = Mock()
+        entry.data = {
+            "vehicle_id": "test_vehicle",
+            "vehicle_name": "Test Vehicle",
+        }
+        entry.entry_id = "test_entry_id"
+
+        # Mock the platforms unload to return True
+        async def mock_unload_platforms(entry, platforms):
+            return True
+
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Mock async_unregister_panel to raise an exception
+        with patch("custom_components.ev_trip_planner.async_unregister_panel") as mock_unregister:
+            mock_unregister.side_effect = Exception("Registration error")
+
+            # Import and call async_unload_entry
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            # Should handle the error and return True (platforms unloaded successfully)
+            result = await async_unload_entry(mock_hass, entry)
+            assert result is True

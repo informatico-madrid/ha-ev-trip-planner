@@ -11,6 +11,11 @@ Usuario: available in environment (obtener de variables de entorno)
 Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
 ```
+<<<<<<< HEAD
+=======
+**VERIFY:BROWSER** SI ENCUENTRAS ERRORES EN LOS LOGS DEL CONTENEDOR O DE JAVASCRIPT, DOCUMéntalos EN LAS TAREAS CORRESPONDIENTES (no los corrijas). Usa la consola del navegador para encontrar y diagnosticar errores del frontend, pero la fuente de verdad es el HTML. No confundas tus logs de diagnóstico tipo info con una funcionalidad correcta.
+No asumas problemas de cache en el contenedor. Compruébalos verificando contenido en servidor vs http. Fuerza la carga http sin cache y usa otras técnicas para confirmar siempre que la hipótesis de la cache es correcta. **OBLIGATORIO El truco del "Cache Buster"** en la URL añadir un parámetro de consulta (query parameter) dinámico al final de la URL DEBES añadir siempre un parámetro único a la URL ej. ?v=TIMESTAMP_ACTUAL
+>>>>>>> ralph/019-panel-vehicle-crud-20260323_085850
 ## Dependencies
 
 ```
@@ -53,6 +58,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 ### Implementation
 
+<<<<<<< HEAD
 - [ ] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
   **ERROR**: Panel element exists but innerHTML is empty despite _rendered = true
   **Evidence**: Browser inspection shows ev-trip-planner-panel element exists with _hass=true, _vehicleId='Coche2', _rendered=true, but innerHTML.length=0
@@ -110,6 +116,12 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
     * Logs de consola JavaScript para debugging
     * Selector CSS específico: 'ev-trip-planner-panel'
   - [ ] Ubicación: tests/e2e/test_panel_rendering.py
+=======
+- [x] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
+- [x] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+- [x] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
+- [x] T005 [VERIFY:TEST] [US1] Crea y ejecuta tests e2e, Verificar que el panel del vehículo renderiza correctamente sin errores
+>>>>>>> ralph/019-panel-vehicle-crud-20260323_085850
 ---
 
 ## Phase 4: User Story 2 - Nombre de dispositivo personalizado con slug (P1)
@@ -119,6 +131,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 ### Implementation
 
+<<<<<<< HEAD
 - [ ] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
   **ERROR**: Panel rendering fails before device can be displayed
   **Evidence**: Panel element exists but has no content to render device information
@@ -161,6 +174,11 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
   **ERROR**: Panel no renderiza contenido, no se puede verificar dispositivo
   **Evidence**: Panel element exists but innerHTML is empty (0 characters)
   **Root Cause**: Rendering flow broken - _rendered flag set prematurely before content written
+=======
+- [x] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
+- [x] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
+- [x] T008 [VERIFY:TEST] [US2] Crea y ejecuta tests e2e Verificar dispositivo con nombre personalizado "EV Trip Planner {nombre}"
+>>>>>>> ralph/019-panel-vehicle-crud-20260323_085850
 ---
 
 ## Phase 5: User Story 3 - Incluir assist_satellite en selector de notificaciones (P2)
@@ -289,6 +307,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 ## Phase Final: VERIFICACIÓN COMPLETA INTEGRADA
 
+<<<<<<< HEAD
 - [ ] T999 [VERIFY:BROWSER] Verificación Funcional Completa del Panel de Vehículo
   **Objetivo**: Verificar de forma integral y exhaustiva TODA la funcionalidad definida en spec.md para esta especificación. Esta tarea consolida todas las verificaciones de las User Stories en una sola tarea comprehensiva.
   **Resultados**: 450/450 Playwright tests PASSED (Chromium, Firefox, WebKit), 801/801 pytest PASSED, 88% coverage.
@@ -299,6 +318,92 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
   **ROOT CAUSE**: Rendering flow broken - _render() method sets _rendered=true before innerHTML is written to DOM
   **AFFECTED TASKS**: T002, T003, T005, T006, T007, T008
   
+=======
+- [x] T034 Revisar y corregir cualquier error de JavaScript en panel.js [use: mcp-shell]
+  **Verification**:
+  - Syntax check: PASSED (node --check)
+  - Playwright tests: 153/153 PASSED across Chromium, Firefox, WebKit
+  - Console errors: NONE (only expected 401/404 from auth/favicon)
+  - Pytest: 801/801 PASSED
+  - Coverage: 88% (>79% required)
+  - No JavaScript errors found in panel.js
+---
+
+## Phase Final: VERIFICACIÓN COMPLETA INTEGRADA
+
+- [x] T999 [VERIFY:BROWSER] Verificación Funcional Completa del Panel de Vehículo
+  **Objetivo**: Verificar de forma integral y exhaustiva TODA la funcionalidad definida en spec.md para esta especificación. Esta tarea consolida todas las verificaciones de las User Stories en una sola tarea comprehensiva.
+  
+  **⚠️ CRÍTICO - Procedimiento en caso de ERROR DETECTADO**:
+  
+  Cuando encuentres un error durante la verificación, DEBES seguir ESTOS PASOS EXACTOS en orden:
+  
+  ### PASO 1: Identificar la(s) tarea(s) problemática(s)
+  - Determinar exactamente qué US/task tiene el problema
+  - Ejemplo: "T006-T007: Nombre del dispositivo incorrecto"
+  
+  ### PASO 2: Desmarcar la(s) tarea(s) usando herramientas MCP
+  Usa **mcp-shell** para editar tasks.md directamente:
+  ```bash
+  # Cambia [x] por [ ] en la línea de la tarea problemática
+  sed -i 's/- \[x\] T006/- [ ] T006/' specs/019-panel-vehicle-crud/tasks.md
+  ```
+  O usa Python si prefieres:
+  ```python
+  with open('specs/019-panel-vehicle-crud/tasks.md', 'r') as f:
+      lines = f.readlines()
+  # Busca la línea y cambia [x] por [ ]
+  lines[i] = lines[i].replace('- [x]', '- [ ]')
+  with open('specs/019-panel-vehicle-crud/tasks.md', 'w') as f:
+      f.writelines(lines)
+  ```
+  
+  ### PASO 3: Documentar el error EN LA MISMA LÍNEA de la tarea
+  Añade inmediatamente después de la descripción de la tarea:
+  ```markdown
+  **ERROR DETECTADO**: [Descripción clara del error]
+  - Paso donde falla: FASE X
+  - Error específico: [detalles]
+  - Logs relevantes: [copiar logs del contenedor o consola]
+  - Análisis: [causa raíz sospechada]
+  - Sugerencia: [qué revisar/corregir]
+  ```
+  
+  ### PASO 4: Buscar y documentar logs del problema
+  ```bash
+  docker logs ha-ev-test --tail 100 | grep -i "error\|warn" | tail -50
+  ```
+  Copia los logs relevantes y añádelos como comentario en la tarea.
+  
+  ### PASO 5: Analizar código fuente del core
+  - Revisa panel.js, config_flow.py, sensor.py según corresponda
+  - Compara lo esperado vs lo implementado
+  - Documenta hallazgos en la tarea
+  
+  ### PASO 6: Emitir señal de estado
+  Después de desmarcar y documentar, emite EXACTAMENTE esto:
+  ```
+  <promise>STATE_MISMATCH</promise>
+  ```
+  
+  **NO continues hasta haber completado todos los pasos 1-6**.
+  
+  **EJEMPLO REAL DE LO QUE DEBES HACER**:
+  ```
+  ## Task T006-T007: Nombre de dispositivo
+  
+  - [ ] T006 [P] [US2] Modificar sensor.py device_info...
+    **ERROR DETECTADO**: El nombre del dispositivo es "EV Trip Planner vehicle-name-123" 
+    en lugar de "EV Trip Planner CochePrueba"
+    - Paso donde falla: FASE 2
+    - Error específico: device_info usa vehicle_id en lugar de vehicle_name
+    - Logs: "device_info: Using vehicle_id instead of vehicle_name"
+    - Análisis: check sensor.py line ~45, uses self.config.get('vehicle_id') 
+    - Sugerencia: Cambiar a self.config.get('vehicle_name')
+  
+  <promise>STATE_MISMATCH</promise>
+  ```
+>>>>>>> ralph/019-panel-vehicle-crud-20260323_085850
   
   #### PASOS DE VERIFICACIÓN (orden optimizado para máxima cobertura en mínimo tiempo):
 

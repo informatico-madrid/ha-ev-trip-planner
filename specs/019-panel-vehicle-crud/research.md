@@ -1,149 +1,227 @@
-# Research: Panel de Control de Vehículo con CRUD de Viajes
+# Research Findings: Home Assistant Core Implementation Methods
 
-## Investigación Realizada
+**Feature**: 019-panel-vehicle-crud
+**Date**: 2026-03-23
+**Task**: T001 - Investigar métodos de implementación en Home Assistant Core para panel_custom y EntitySelector
 
-### 1. Error "Cannot render - no vehicle_id" en panel.js
+## Executive Summary
 
-**Ubicación**: `custom_components/ev_trip_planner/frontend/panel.js`
+This research documents the implementation methods for Home Assistant Core's `panel_custom` component and `EntitySelector` for implementing the EV Trip Planner panel with CRUD operations.
 
-**Análisis del código existente**:
+## 1. panel_custom Component API
 
-```javascript
-// Línea 38-52: Intento de obtener vehicle_id en connectedCallback
-const match = path.match(/\/ev-trip-planner-(.+)/);
-if (match && match[1]) {
-  this._vehicleId = match[1];
-}
+### Function Signature
 
-// Línea 70-116: hass setter
-set hass(hass) {
-  // Intenta obtener vehicle_id de la URL aquí también
-  // Intenta de múltiples formas: split, regex, hash
-}
-
-// Línea 128-160: setConfig
-setConfig(config) {
-  if (config && config.vehicle_id) {
-    this._vehicleId = config.vehicle_id;
-  }
-}
+```python
+async def async_register_panel(
+    hass: HomeAssistant,
+    frontend_url_path: str,                    # URL path for the panel
+    webcomponent_name: str,                    # Web component name (e.g., "ev-trip-planner-panel")
+    sidebar_title: str | None = None,          # Title shown in sidebar
+    sidebar_icon: str | None = None,           # Icon for sidebar
+    js_url: str | None = None,                 # URL to the JS file
+    module_url: str | None = None,             # URL to ES module (alternative to js_url)
+    embed_iframe: bool = False,                # Whether to use iframe
+    trust_external: bool = False,              # Trust external scripts
+    config: ConfigType | None = None,          # Configuration passed to panel
+    require_admin: bool = False,               # Admin-only access
+    config_panel_domain: str | None = None,    # Integration domain for config panel
+) -> None:
 ```
 
-**Problema identificado**: El panel intenta obtener vehicle_id de varias fuentes pero hay un timing issue. El config puede llegar después del primer intento de render.
+### Key Implementation Details
 
-**Solución propuesta**: Modificar el flujo para:
-1. Intentar obtener vehicle_id de la URL lo antes posible (ya hace esto)
-2. En el método `_render()`, hacer un último intento de obtener vehicle_id de la URL ANTES de verificar si _vehicleId está definido
-3. Si aún no hay vehicle_id, mostrar un error claro con la URL actual para debugging
+1. **Registration**: Uses `frontend.async_register_built_in_panel()` internally
+2. **Configuration**: The `config` dict is passed to the panel and contains `_panel_custom` metadata
+3. **Error Handling**: Raises `ValueError` if neither `js_url` nor `module_url` is provided
+4. **Panel Removal**: Use `frontend.async_remove_panel(hass, url_path)` to unregister
 
-### 2. Nombre de dispositivo incorrecto
+### Current Usage in Code
 
-**Ubicación**: `custom_components/ev_trip_planner/sensor.py`, método `device_info`
+The code in `custom_components/ev_trip_planner/panel.py` already uses this API correctly:
 
-**Código actual**:
 ```python
-@property
-def device_info(self) -> Dict[str, Any]:
-    return {
-        "identifiers": {(DOMAIN, self.trip_manager.vehicle_id)},
-        "name": f"EV Trip Planner {self.trip_manager.vehicle_id}",
-        ...
-    }
-```
-
-**Problema**: Usa `self.trip_manager.vehicle_id` que es el slug interno, no el nombre proporcionado por el usuario.
-
-**Solución**: 
-- El vehicle_name está disponible en `entry.data.get("vehicle_name")`
-- Necesitamos pasar esta información al sensor o al TripManager
-- Modificar device_info para usar el nombre personalizado
-
-### 3. assist_satellite no aparece en selector
-
-**Ubicación**: `custom_components/ev_trip_planner/config_flow.py`
-
-**Código actual**:
-```python
-STEP_NOTIFICATIONS_SCHEMA = vol.Schema({
-    vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
-        selector.EntitySelectorConfig(domain="notify", ...)
-    ),
-})
-```
-
-**Hallazgo**: El usuario tiene un dispositivo `assist_satellite.home_assistant_voice_09e3f5_satelite_assist`
-
-**Problema**: EntitySelector solo busca en domain="notify", pero los dispositivos assist_satellite usan el dominio "assist_satellite".
-
-**Solución**: Modificar EntitySelector para incluir múltiples dominios:
-```python
-selector.EntitySelectorConfig(
-    domain=["notify", "assist_satellite"],
-    ...
+await panel_custom.async_register_panel(
+    hass=hass,
+    frontend_url_path=frontend_url_path,
+    webcomponent_name=PANEL_COMPONENT_NAME,
+    js_url="/local/ev_trip_planner/panel.js",
+    sidebar_title=vehicle_name,
+    sidebar_icon=DEFAULT_SIDEBAR_ICON,
+    config={"vehicle_id": vehicle_id},
+    require_admin=False,
+    embed_iframe=False,
 )
 ```
 
-### 4. Eliminación automática del panel
+## 2. EntitySelector with Multiple Domains
 
-**Ubicación**: `custom_components/ev_trip_planner/__init__.py`, función `async_unload_entry`
+### EntitySelectorConfig Schema
 
-**Código actual**:
 ```python
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    vehicle_id = entry.data.get("vehicle_id", "")
-    ...
-    if vehicle_id:
-        try:
-            await async_unregister_panel(hass, vehicle_id)
-        except Exception as ex:
-            _LOGGER.warning(...)
+class EntitySelectorConfig(EntityFilterSelectorConfig, total=False):
+    """Class to represent an entity selector config."""
+
+    exclude_entities: list[str]
+    include_entities: list[str]
+    multiple: bool
+    filter: EntityFilterSelectorConfig | list[EntityFilterSelectorConfig]
 ```
 
-**Problema potencial**: El vehicle_id puede no estar en entry.data correctamente (veo que usa entry.data.get("vehicle_id", "") pero en la creación usa vehicle_name).
+### Domain Filtering
 
-**Solución**: Verificar que se usa el vehicle_id correcto para eliminar el panel.
+The `domain` field in `EntityFilterSelectorConfig` can be:
+- **Single domain**: `domain="notify"`
+- **Multiple domains**: `domain=["notify", "assist_satellite"]`
 
-### 5. Panel con viajes y CRUD
+### Implementation Examples
 
-**Estado actual**: El panel solo muestra sensores básicos.
+#### Single Domain (Current Code)
 
-**Servicios disponibles** (ya existen en __init__.py):
-- `trip_create` - Crear viaje
-- `trip_update` - Actualizar viaje  
-- `delete_trip` - Eliminar viaje
-- `pause_recurring_trip` / `resume_recurring_trip` - Pausar/Reanudar
-- `complete_punctual_trip` / `cancel_punctual_trip` - Completar/Cancelar
+```python
+selector.EntitySelector(
+    selector.EntitySelectorConfig(
+        domain="notify",
+        multiple=False,
+    )
+)
+```
 
-**Solución**: Expandir panel.js para:
-1. Obtener lista de viajes via API de HA o servicios
-2. Mostrar viajes en formato legible
-3. Crear formulario para agregar viajes
-4. Crear botones de editar/eliminar para cada viaje
+#### Multiple Domains (Required for assist_satellite)
 
-## Deployment Methods
+```python
+selector.EntitySelector(
+    selector.EntitySelectorConfig(
+        domain=["notify", "assist_satellite"],
+        multiple=False,
+    )
+)
+```
 
-| Feature | Method | Preference |
-|---------|--------|------------|
-| Error vehicle_id | Modificar panel.js flujo de inicialización | Primary |
-| Nombre dispositivo | Modificar sensor.py device_info | Primary |
-| assist_satellite | Modificar config_flow.py EntitySelector | Primary |
-| Eliminación panel | Verificar async_unload_entry | Primary |
-| Panel viajes+CRUD | Expandir panel.js | Primary |
+### How EntitySelector Works
 
-## Alternativas Consideradas
+1. **Entity Registry Query**: HA queries the entity registry for entities matching the specified domain(s)
+2. **Filtering**: Additional filters can be applied via:
+   - `domain`: Filter by entity domain
+   - `device_class`: Filter by device class
+   - `integration`: Filter by integration
+   - `filter`: Additional entity filter configurations
+3. **Validation**: The selector validates that selected entities exist and match the criteria
 
-1. **Para error vehicle_id**: 
-   - Usar WebComponent lifecycle más cuidadosamente ✓ (elegido)
-   - Pass vehicle_id via panel config (ya se hace)
+### Source Code Location
 
-2. **Para nombre dispositivo**:
-   - Crear dispositivo manualmente via device_registry (más complejo)
-   - Modificar device_info en sensores (más simple) ✓ (elegido)
+- **panel_custom**: `/home/malka/.local/lib/python3.11/site-packages/homeassistant/components/panel_custom/__init__.py`
+- **EntitySelector**: `/home/malka/.local/lib/python3.11/site-packages/homeassistant/helpers/selector.py`
 
-3. **Para assist_satellite**:
-   - Agregar múltiples dominios a EntitySelector ✓ (elegido)
-   - Crear selector personalizado (más complejo)
+## 3. Implementation Findings for This Feature
 
-4. **Para panel CRUD**:
-   - Usar WebSockets para datos en tiempo real
-   - Consultar servicios de HA directamente ✓ (elegido)
+### Finding 1: Panel Custom API Compatibility
+
+**Status**: ✅ Already correct
+
+The current implementation correctly uses `panel_custom.async_register_panel()` with all required parameters. No changes needed.
+
+### Finding 2: EntitySelector Domain Limitation
+
+**Status**: ❌ Requires fix
+
+**Current code** (`config_flow.py` line 139-141):
+```python
+selector.EntitySelectorConfig(
+    domain="notify",  # Only shows notify entities
+    multiple=False,
+)
+```
+
+**Required fix**:
+```python
+selector.EntitySelectorConfig(
+    domain=["notify", "assist_satellite"],  # Shows both notify and assist_satellite
+    multiple=False,
+)
+```
+
+**Impact**: This will make `assist_satellite` devices (like Home Assistant Voice Satellites) visible in the notification configuration step.
+
+### Finding 3: Panel Configuration Passing
+
+**Status**: ✅ Already correct
+
+The `config={"vehicle_id": vehicle_id}` is correctly passed to the panel, and the panel reads this from the `config` property.
+
+### Finding 4: Panel Removal on Vehicle Delete
+
+**Status**: ✅ Already implemented
+
+The `async_unregister_panel()` function correctly calls `frontend.async_remove_panel()` when a vehicle is deleted.
+
+## 4. Recommended Changes
+
+### T009: Modify config_flow.py for assist_satellite Support
+
+**File**: `custom_components/ev_trip_planner/config_flow.py`
+
+**Lines to change**: 137-148
+
+**Current**:
+```python
+STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="notify",
+                multiple=False,
+            )
+        ),
+        vol.Optional(CONF_NOTIFICATION_DEVICES): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="notify",
+                multiple=True,
+            )
+        ),
+    }
+)
+```
+
+**Proposed**:
+```python
+STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain=["notify", "assist_satellite"],
+                multiple=False,
+            )
+        ),
+        vol.Optional(CONF_NOTIFICATION_DEVICES): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain=["notify", "assist_satellite"],
+                multiple=True,
+            )
+        ),
+    }
+)
+```
+
+## 5. Verification Approach
+
+### For EntitySelector Fix
+
+1. **Browser Verification**: Start test-ha, navigate to config flow, reach notifications step, verify assist_satellite entities appear in dropdown
+2. **API Verification**: Query entity registry to confirm assist_satellite entities exist:
+   ```bash
+   curl -H "Authorization: Bearer <TOKEN>" http://localhost:8123/api/states | grep assist_satellite
+   ```
+
+## 6. References
+
+- Home Assistant Core 2024.3.3
+- panel_custom documentation: `homeassistant.components.panel_custom`
+- EntitySelector documentation: `homeassistant.helpers.selector.EntitySelector`
+- Entity registry API: `homeassistant.helpers.entity_registry`
+
+---
+
+**Researcher**: SpecKit Implementation Agent
+**Date**: 2026-03-23
+**Status**: Complete - Ready for implementation

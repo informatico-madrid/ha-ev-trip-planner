@@ -368,39 +368,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the EV Trip Planner component."""
-    # Register static paths for the native panel
-    # This makes the panel.js and panel.css files available at /local/ev_trip_planner/
-    from pathlib import Path
-
-    # Check if http is available and has register_static_path
-    if not hasattr(hass.http, "register_static_path"):
-        _LOGGER.debug(
-            "HTTP component not available or register_static_path not supported, skipping static path registration"
-        )
-    else:
-        # Get the component's directory
-        component_dir = Path(__file__).parent
-        panel_js_path = component_dir / "frontend" / "panel.js"
-        panel_css_path = component_dir / "frontend" / "panel.css"
-
-        # Register the JavaScript file
-        if panel_js_path.exists():
-            hass.http.register_static_path(
-                "/local/ev_trip_planner/panel.js",
-                str(panel_js_path),
-                cache_headers=True,
-            )
-            _LOGGER.info("Registered panel.js at /local/ev_trip_planner/panel.js")
-
-        # Register the CSS file
-        if panel_css_path.exists():
-            hass.http.register_static_path(
-                "/local/ev_trip_planner/panel.css",
-                str(panel_css_path),
-                cache_headers=True,
-            )
-            _LOGGER.info("Registered panel.css at /local/ev_trip_planner/panel.css")
-
     return True
 
 
@@ -490,6 +457,62 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator for this vehicle
     coordinator = TripPlannerCoordinator(hass, trip_manager)
     await coordinator.async_config_entry_first_refresh()
+
+    # Register static paths for the native panel (must be done in async_setup_entry)
+    from pathlib import Path
+
+    # Try to import StaticPathConfig for HA 2024.7+
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        HAS_STATIC_PATH_CONFIG = True
+    except ImportError:
+        HAS_STATIC_PATH_CONFIG = False
+
+    component_dir = Path(__file__).parent
+    # Use frontend folder for panel files
+    panel_js_path = component_dir / "frontend" / "panel.js"
+    panel_css_path = component_dir / "frontend" / "panel.css"
+
+    # Build list of static paths to register
+    static_paths = []
+
+    # Register the JavaScript file
+    if panel_js_path.exists():
+        static_paths.append(
+            StaticPathConfig("/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=True)
+            if HAS_STATIC_PATH_CONFIG
+            else ("ev-trip-planner/panel.js", str(panel_js_path), True)
+        )
+        _LOGGER.info("Registering panel.js at /ev-trip-planner/panel.js from %s", panel_js_path)
+
+    # Register the CSS file
+    if panel_css_path.exists():
+        static_paths.append(
+            StaticPathConfig("/ev_trip_planner/panel.css", str(panel_css_path), cache_headers=True)
+            if HAS_STATIC_PATH_CONFIG
+            else ("ev_trip_planner/panel.css", str(panel_css_path), True)
+        )
+        _LOGGER.info("Registering panel.css at ev_trip_planner/panel.css from %s", panel_css_path)
+
+    # Register all static paths
+    if static_paths:
+        try:
+            await hass.http.async_register_static_paths(static_paths)
+            _LOGGER.info("Registered %d static path(s) for EV Trip Planner panel", len(static_paths))
+        except (TypeError, AttributeError) as err:
+            # Fallback for different HA versions - use legacy register_static_path
+            _LOGGER.warning(
+                "async_register_static_paths not available or error: %s, trying legacy method",
+                err,
+            )
+            for path_spec in static_paths:
+                if isinstance(path_spec, tuple):
+                    url_path, file_path, _ = path_spec
+                    hass.http.register_static_path(url_path, file_path)
+                else:
+                    # StaticPathConfig - try to extract values
+                    hass.http.register_static_path(path_spec.path, path_spec.url_path)
 
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace
@@ -1028,10 +1051,12 @@ def register_services(hass: HomeAssistant) -> None:
                     descripcion=str(item.get("descripcion", "")),
                 )
 
-    async def handle_trip_list(call: ServiceCall) -> None:
+    async def handle_trip_list(call: ServiceCall) -> dict:
         """Handle listing all trips for a vehicle.
 
         Returns both recurring and punctual trips in a single list.
+
+        Returns a dict with vehicle_id, trips, and total count.
         """
         data = call.data
         vehicle_id = data["vehicle_id"]
@@ -1050,7 +1075,7 @@ def register_services(hass: HomeAssistant) -> None:
             )
 
             # Combine trips for dashboard display
-            call.return_data = {
+            return {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": recurring_trips,
                 "punctual_trips": punctual_trips,
@@ -1058,7 +1083,7 @@ def register_services(hass: HomeAssistant) -> None:
             }
         except Exception as err:  # pragma: no cover
             _LOGGER.error("Error listing trips for vehicle %s: %s", vehicle_id, err)
-            call.return_data = {
+            return {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": [],
                 "punctual_trips": [],

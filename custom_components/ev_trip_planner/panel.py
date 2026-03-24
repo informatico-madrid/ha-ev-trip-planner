@@ -11,14 +11,16 @@ without requiring Lovelace UI.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+import os
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
+
+# Get the module path for static file serving
+_MODULE_PATH = os.path.dirname(__file__)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,17 +61,34 @@ async def async_register_panel(
             pass
 
         # Use panel_custom.async_register_panel - this is the correct API
+        # Note: js_url uses absolute path from root - all vehicles share the same panel.js
+        # Using absolute path to avoid URL resolution issues in HA
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=frontend_url_path,
             webcomponent_name=PANEL_COMPONENT_NAME,
-            js_url="/local/ev_trip_planner/panel.js",
+            js_url=f"/{DOMAIN.replace('_', '-')}/panel.js",
             sidebar_title=vehicle_name,
             sidebar_icon=DEFAULT_SIDEBAR_ICON,
             config={"vehicle_id": vehicle_id},
             require_admin=False,
             embed_iframe=False,
         )
+
+        # Register additional static resource for panel.css
+        # This ensures the CSS file is served correctly
+        try:
+            hass.http.register_static_paths(
+                [
+                    (
+                        f"/{DOMAIN.replace('_', '-')}/panel.css",
+                        f"{_MODULE_PATH}/frontend/panel.css",
+                    ),
+                ]
+            )
+            _LOGGER.debug("Registered static path for panel.css")
+        except Exception as ex:
+            _LOGGER.warning("Failed to register static path for panel.css: %s", ex)
 
         # Store vehicle-to-panel mapping
         _store_vehicle_panel_mapping(hass, vehicle_id, frontend_url_path)

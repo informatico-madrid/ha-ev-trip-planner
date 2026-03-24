@@ -1,0 +1,88 @@
+- generic [ref=e15]:
+  - generic [ref=e18]:
+    - generic "Alternar panel lateral" [ref=e21]:
+      - button "Alternar panel lateral" [ref=e22] [cursor=pointer]:
+        - generic [ref=e24]:
+          - img
+    - generic [ref=e25]: Resumen
+    - generic [ref=e27]:
+      - generic:
+        - generic "Abrir el menú del panel de control" [ref=e29]:
+          - button [ref=e30] [cursor=pointer]:
+            - generic [ref=e32]:
+              - img
+        - generic:
+          - generic: Añadir a Home Assistant
+          - generic: Buscar en Home Assistant
+          - generic: Editar resumen
+  - generic [ref=e37]:
+    - heading "Bienvenido tests" [level=2] [ref=e47]
+    - generic [ref=e50]:
+      - paragraph [ref=e62]: Resúmenes
+      - generic [ref=e67]:
+        - paragraph [ref=e74]: Áreas
+        - generic [ref=e79]:
+          - button "Salón" [ref=e80] [cursor=pointer]
+          - generic [ref=e81]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Salón
+        - generic [ref=e86]:
+          - button "Cocina" [ref=e87] [cursor=pointer]
+          - generic [ref=e88]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Cocina
+        - generic [ref=e93]:
+          - button "Dormitorio" [ref=e94] [cursor=pointer]
+          - generic [ref=e95]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Dormitorio
+        - generic [ref=e100]:
+          - button "Dispositivos" [ref=e101] [cursor=pointer]
+          - generic [ref=e102]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Dispositivos

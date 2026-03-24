@@ -1,0 +1,17 @@
+# Template binary sensors for test environment
+template:
+  - binary_sensor:
+      - name: "Coche1 Charging"
+        unique_id: "coche1_charging"
+        device_class: "plugging"
+        state: "{{ states('input_boolean.coche1_cargando') == 'on' }}"
+      
+      - name: "Coche1 Home"
+        unique_id: "coche1_home"
+        device_class: "connectivity"
+        state: "{{ states('input_boolean.coche1_en_casa') == 'on' }}"
+      
+      - name: "Coche1 Plugged"
+        unique_id: "coche1_plugged"
+        device_class: "plug"
+        state: "{{ states('input_boolean.coche1_enchufado') == 'on' }}"
