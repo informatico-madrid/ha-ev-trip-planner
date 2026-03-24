@@ -1,2 +1,284 @@
-<testsuites id="" name="" tests="0" failures="0" skipped="0" errors="0" time="0.03990000000000009">
+<testsuites id="" name="" tests="68" failures="3" skipped="4" errors="0" time="94.243895">
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="30" failures="0" skipped="4" time="76.172" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="2.928">
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="2.698">
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="2.784">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="2.563">
+</testcase>
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="2.611">
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="2.583">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="2.672">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="2.416">
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="2.897">
+</testcase>
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="2.692">
+</testcase>
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="3.032">
+<system-out>
+<![CDATA[Found 0 potential trip cards
+]]>
+</system-out>
+</testcase>
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="3.138">
+</testcase>
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="2.469">
+</testcase>
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="2.742">
+</testcase>
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="2.369">
+<system-out>
+<![CDATA[Found 3 editable fields
+]]>
+</system-out>
+</testcase>
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="2.636">
+</testcase>
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="2.079">
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="2.353">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="2.218">
+<system-out>
+<![CDATA[Found 0 trips in the list
+]]>
+</system-out>
+</testcase>
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="2.37">
+</testcase>
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="2.036">
+</testcase>
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="2.274">
+</testcase>
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="2.578">
+</testcase>
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="2.043">
+</testcase>
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="2.561">
+</testcase>
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="2.489">
+<system-out>
+<![CDATA[Focused element after Tab: INPUT
+]]>
+</system-out>
+</testcase>
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="2.391">
+<system-out>
+<![CDATA[Found 6 ARIA elements
+]]>
+</system-out>
+</testcase>
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="2.632">
+<system-out>
+<![CDATA[Screenshot captured for visual verification
+]]>
+</system-out>
+</testcase>
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="2.564">
+</testcase>
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="2.354">
+</testcase>
+</testsuite>
+<testsuite name="example.spec.js" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="2" failures="0" skipped="0" time="2.581" errors="0">
+<testcase name="has title" classname="example.spec.js" time="1.136">
+</testcase>
+<testcase name="get started link" classname="example.spec.js" time="1.445">
+</testcase>
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="36" failures="3" skipped="0" time="85.929" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0.884">
+</testcase>
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="1.201">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="1.822">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="3.223">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="3.042">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="2.801">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="2.869">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="1.914">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="2.741">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="2.45">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="2.273">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="2.43">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="1.77">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="2.103">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="2.125">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="2.167">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="2.271">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="1.903">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="2.469">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="2.231">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="2.317">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="2.453">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="2.234">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="2.316">
+<system-out>
+<![CDATA[Found 0 trips in the list
+]]>
+</system-out>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="2.399">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="2.238">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="2.2">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="2.819">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="2.527">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="2.898">
+<system-out>
+<![CDATA[Focused element after Tab: INPUT
+]]>
+</system-out>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="2.668">
+<system-out>
+<![CDATA[Found 6 ARIA elements
+]]>
+</system-out>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="2.248">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0.065">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      544 |     });
+      545 |
+    > 546 |     expect(response.ok()).toBe(true);
+          |                           ^
+      547 |
+      548 |     const states = await response.json();
+      549 |     const evTripEntities = states.filter((state: any) =>
+        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:546:27
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0.462">
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0.052">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      587 |     });
+      588 |     
+    > 589 |     expect(response.ok()).toBe(true);
+          |                           ^
+      590 |     
+      591 |     const states = await response.json();
+      592 |     const evTripEntities = states.filter((state: any) => 
+        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:589:27
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="11.344">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: /ev trip planner|planificador de viajes/i })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('heading', { name: /ev trip planner|planificador de viajes/i })
+
+
+      615 |     
+      616 |     // For now, just verify the page loads
+    > 617 |     await expect(dashboardPage.dashboardTitle).toBeVisible();
+          |                                                ^
+      618 |   });
+      619 | });
+      620 |
+        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:617:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/video.webm]]
+
+[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
 </testsuites>

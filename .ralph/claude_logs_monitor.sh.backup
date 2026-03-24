@@ -1,0 +1,69 @@
+#!/bin/bash
+# Claude logs monitor - captures ALL new logs from ALL sessions
+# Fixed version that correctly finds JSONL files
+
+set -euo pipefail
+
+# Get the home directory correctly
+HOME_DIR="$HOME"
+CLAUDE_LOGS_DIR="${1:-$HOME_DIR/.claude/projects}"
+OUTPUT_FILE="${2:-/home/malka/ha-ev-trip-planner/logs/claude_tool_logs.log}"
+
+# Ensure directories exist
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+# Find all JSONL files in the Claude logs directory
+shopt -s nullglob
+shopt -s globstar
+
+# Use find to get all .jsonl files recursively
+ALL_JSONL_FILES=()
+while IFS= read -r -d '' file; do
+    ALL_JSONL_FILES+=("$file")
+done < <(find "$CLAUDE_LOGS_DIR" -name "*.jsonl" -type f -print0 2>/dev/null || true)
+
+shopt -u globstar
+shopt -u nullglob
+
+if [[ ${#ALL_JSONL_FILES[@]} -gt 0 ]]; then
+    echo "Found ${#ALL_JSONL_FILES[@]} Claude log files - monitoring for NEW logs only"
+    
+    (
+        for jsonl_file in "${ALL_JSONL_FILES[@]}"; do
+            if [[ -f "$jsonl_file" ]]; then
+                line_count=$(wc -l < "$jsonl_file" 2>/dev/null || echo "0")
+                
+                if [[ "$line_count" -gt 0 ]]; then
+                    (
+                        tail -n +"$((line_count + 1))" "$jsonl_file" 2>/dev/null
+                        tail -f "$jsonl_file" 2>/dev/null
+                    ) | while read -r line; do
+                        timestamp=$(echo "$line" | jq -r '.timestamp // .message.timestamp // "unknown"' 2>/dev/null || echo "unknown")
+                        sessionId=$(echo "$line" | jq -r '.sessionId // .message.sessionId // "none"' 2>/dev/null || echo "none")
+                        toolName=$(echo "$line" | jq -r '.message.content[0].tool_use.name // "none"' 2>/dev/null || echo "none")
+                        toolType=$(echo "$line" | jq -r '.message.content[0].type // "none"' 2>/dev/null || echo "none")
+                        toolId=$(echo "$line" | jq -r '.message.content[0].id // "none"' 2>/dev/null || echo "none")
+                        toolInput=$(echo "$line" | jq -r '.message.content[0].input // "none"' 2>/dev/null || echo "none")
+                        toolUseResult=$(echo "$line" | jq -r '.toolUseResult.stdout // ""' 2>/dev/null || echo "")
+                        thinking=$(echo "$line" | jq -r '.message.content[0].thinking // ""' 2>/dev/null || echo "")
+                        stopReason=$(echo "$line" | jq -r '.message.stop_reason // "none"' 2>/dev/null || echo "none")
+                        
+                        [[ "$toolType" != "none" && "$toolType" != "" ]] && echo "[${timestamp}] [${sessionId}] MSG_TYPE: ${toolType}"
+                        [[ "$toolName" != "none" && "$toolName" != "" ]] && echo "[${timestamp}] [${sessionId}] TOOL: ${toolName} (id: ${toolId:0:10})"
+                        [[ "$toolInput" != "none" && "$toolInput" != "" && "$toolInput" != "{}" ]] && echo "[${timestamp}] [${sessionId}] INPUT: ${toolInput:0:150}"
+                        [[ -n "$toolUseResult" ]] && echo "[${timestamp}] [${sessionId}] STDOUT: ${toolUseResult:0:200}"
+                        [[ -n "$thinking" ]] && echo "[${timestamp}] [${sessionId}] THINKING: ${thinking:0:200}"
+                        [[ "$stopReason" != "none" && "$stopReason" != "" ]] && echo "[${timestamp}] [${sessionId}] STOP_REASON: ${stopReason}"
+                    done >> "$OUTPUT_FILE" 2>&1 &
+                fi
+            fi
+        done
+        wait
+    ) &
+    echo "Started Claude logs tailer (PID: $!) - capturing ALL new logs after loop start"
+    echo "Logs written to: $OUTPUT_FILE"
+else
+    echo "No Claude log files found in: $CLAUDE_LOGS_DIR"
+    echo "Available directories:"
+    ls -la "$CLAUDE_LOGS_DIR" 2>/dev/null | head -20 || echo "Directory does not exist"
+fi

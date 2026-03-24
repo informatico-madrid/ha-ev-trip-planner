@@ -151,7 +151,7 @@ Get it from plan.md's tech stack and libraries sections. For example:
 4. If no matching tool is found, omit the reference but keep the task
 
 **Example**:
-- Template: `- [ ] T001 [VERIFY:TEST] Create unit tests (use: [MCP_TESTING])`
+- Template: `- [ ] T001 [VERIFY:TEST] Create unit tests (use: [npx playwright] or [pytest])`
 - Generated: `- [ ] T001 [VERIFY:TEST] Create unit tests (use: python-testing-patterns)`
 
 ### API Endpoint Placeholder Substitution

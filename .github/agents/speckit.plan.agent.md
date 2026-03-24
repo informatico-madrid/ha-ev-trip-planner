@@ -39,13 +39,15 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 | Verification Type | When to Use | Example Command (not a new type!) |
 |------------------|-------------|-----------------------------------|
-| `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
+| `[VERIFY:TEST]` | tests | `pytest tests/ -v --cov` OR e2e tets `tests/e2e/test-{us}.spec.ts` |
 | `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
-| `[VERIFY:BROWSER]` | Playwright UI automation | `npx playwright test` |
+| `[VERIFY:BROWSER]` | Playwright UI automation - final verification | use mcp playwright` |
 
 **RULES:**
 - ✅ ONLY these 3 types are valid in tasks
 - ✅ Details of HOW to verify (services, logs, dashboard, etc.) are decided per-task in the task description
+- ✅ `[VERIFY:TEST]` can be used to CREATE E2E test files OR run pytest tests
+- ✅ `[VERIFY:BROWSER]` is used for FINAL consolidated verification (runs all E2E tests)
 - ❌ DO NOT add more verification types like `[VERIFY:SERVICES]`, `[VERIFY:LOGS]`, `[VERIFY:LOVELACE]`
 - ❌ The "Example Command" column shows HOW to use each type - it's NOT a new verification type
 

@@ -52,9 +52,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 | Tag | Tool | Usage |
 |-----|------|-------|
-| `[VERIFY:TEST]` | pytest | Run unit tests with pytest |
+| `[VERIFY:TEST]` | pytest / Playwright | Run tests |
 | `[VERIFY:API]` | homeassistant-ops skill | Use skill to query HA REST API (NOT curl command) |
-| `[VERIFY:BROWSER]` | Playwright | Run E2E tests with Playwright |
+| `[VERIFY:BROWSER]` | Playwright | Run E2E tests with Playwright (final verification) |
 
 **You can combine multiple tags**: `[VERIFY:TEST] [VERIFY:API]`
 
@@ -64,6 +64,28 @@ You **MUST** consider the user input before proceeding (if not empty).
 2. **Use the available MCP tools and SKILLS**
 3. **Execute verification based on tags**
 4. **Emit SIGNAL: STATE_MATCH** if everything passes
+
+### ⚠️ IMPORTANT - [VERIFY:TEST] Special Role:
+
+When you encounter a task with `[VERIFY:TEST]` in a spec with E2E testing:
+1. **CREATE** an E2E test file in `tests/e2e/test-{us}.spec.ts` for the User Story
+2. The test file should verify the specific functionality of the User Story
+
+### ⚠️ IMPORTANT - [VERIFY:BROWSER] Role:
+
+When you encounter a task with `[VERIFY:BROWSER]` (usually T999):
+1. **RUN** all E2E tests with `npx playwright test` to verify the complete functionality
+2. This is the final consolidated verification
+
+**Example test file structure:**
+```
+tests/e2e/
+├── test-us1.spec.ts    # Tests for User Story 1
+├── test-us2.spec.ts    # Tests for User Story 2
+└── ...
+```
+
+Each `test-us{N}.spec.ts` must contain tests specific to that User Story.
 
 ### Example:
 

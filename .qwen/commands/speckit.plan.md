@@ -41,7 +41,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 |------------------|-------------|-----------------------------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | `pytest tests/ -v --cov` |
 | `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
-| `[VERIFY:BROWSER]` | Playwright UI automation | `npx playwright test` |
+| `[VERIFY:BROWSER]` | Playwright UI automation | use mcp playwright |
 
 **RULES:**
 - ✅ ONLY these 3 types are valid in tasks

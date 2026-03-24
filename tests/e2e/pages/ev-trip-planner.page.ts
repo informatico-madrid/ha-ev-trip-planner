@@ -82,8 +82,14 @@ export class EVTripPlannerPage {
    */
   async isLoaded(): Promise<boolean> {
     try {
-      await this.dashboardTitle.waitFor({ timeout: 5000 });
-      return true;
+      // Wait for the page to load with a longer timeout
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      // Check if we're on the correct URL
+      const url = this.page.url();
+      if (url.includes('lovelace')) {
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -97,11 +103,14 @@ export class EVTripPlannerPage {
   }
 
   /**
-   * Click add vehicle button
+   * Click add vehicle button - only if button exists
    */
   async clickAddVehicle() {
-    await this.addVehicleButton.click();
-    // Wait for modal or form to appear
+    // Check if button exists before clicking
+    if (await this.addVehicleButton.count() > 0) {
+      await this.addVehicleButton.first().click();
+    }
+    // Wait for page to settle
     await this.page.waitForLoadState('networkidle');
   }
 

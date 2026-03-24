@@ -13,8 +13,9 @@ services:
     volumes:
       - ./config:/config
       - /etc/localtime:/etc/localtime:ro
-      # Montar integración desde workspace - permite escritura para pycache
-      - ${INTEGRATION_SOURCE:-../custom_components/ev_trip_planner}:/config/custom_components/ev_trip_planner
+      # Montar integración desde worktree activo - OBLIGATORIO
+      # INTEGRATION_SOURCE must be set - no default allowed
+      - ${INTEGRATION_SOURCE:?INTEGRATION_SOURCE environment variable must be set to the worktree path}:/config/custom_components/ev_trip_planner
       # Montar configuración de EMHASS (necesario para config flow)
       - ${EMHASS_CONFIG_PATH:-/home/malka/emhass}:/home/malka/emhass
     healthcheck:

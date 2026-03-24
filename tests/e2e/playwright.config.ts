@@ -11,6 +11,11 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Get HA URL from environment or use default
 const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
