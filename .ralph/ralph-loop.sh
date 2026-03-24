@@ -728,6 +728,32 @@ You are 100% autonomous. Your work persists through FILES ONLY.
 
 **Your task includes the necessary tools (MCPs, skills) already configured.**
 
+** VERIFY:BROWSER TASKS - Procedimiento en caso de ERROR DETECTADO**:
+
+Cuando encuentres un error EN UNA TAREA VERIFY:BROWSER durante la verificacion:
+
+PASO 1: Identificar la(s) tarea(s) problematica(s)
+- Determinar exactamente que US/task tiene el problema
+
+PASO 2: Desmarcar la(s) tarea(s) usando mcp-shell
+Usa mcp-shell para editar tasks.md directamente:
+sed -i 's/- \[x\] T006/- [ ] T006/' specs/019-panel-vehicle-crud/tasks.md
+
+PASO 3: Documentar el error EN LA MISMA LINEA de la tarea
+Añade inmediatamente despues de la descripcion de la tarea:
+**ERROR DETECTADO**: [Descripcion clara del error]
+- Paso donde falla: FASE X
+- Error especifico: [detalles]
+
+PASO 4: Buscar y documentar logs del problema
+docker logs ha-ev-test --tail 100 | grep -i "error|warn" | tail -50
+
+PASO 5: Emitir senal de estado
+Despues de desmarcar y documentar, emite EXACTAMENTE esto:
+<promise>STATE_MISMATCH</promise>
+
+NO continues hasta haber completado todos los pasos.
+
 **BEFORE marking [x], execute verifications according to your task's tags:**
 1. Read the [[VERIFY:TEST/API/BROWSER]] tags from your task
 2. Use the available MCP tools (already configured)
@@ -1000,7 +1026,7 @@ count_test_processes() {
     # Count processes that look like test runs (pytest, playwright, node tests).
     # Use a forgiving matcher to catch various test runners.
     local cnt
-    cnt=$(pgrep -fcE 'pytest|playwright|node.*test|jest|mocha' || true)
+    cnt=$(pgrep -cf 'pytest|playwright|node.*test|jest|mocha' || true)
     echo "${cnt:-0}"
 }
 
@@ -1113,8 +1139,12 @@ init_worktree() {
     # Create active_worktree file for container volume validation
     echo "$WORKTREE_PATH" > "$PROJECT_DIR/.worktrees/active_worktree"
 
+    # Also save as last_worktree for start_test_ha.sh to find
+    echo "$WORKTREE_PATH" > "$PROJECT_DIR/.worktrees/last_worktree"
+
     log_ok "Worktree created: $WORKTREE_PATH (branch: $WORKTREE_BRANCH)"
     log_ok "Active worktree saved to: $PROJECT_DIR/.worktrees/active_worktree"
+    log_ok "Last worktree saved to: $PROJECT_DIR/.worktrees/last_worktree"
 }
 
 # ============================================================================
@@ -1360,6 +1390,12 @@ main() {
             WORKTREE_PATH=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('worktreePath',''))" "$STATE_FILE")
             WORKTREE_BRANCH=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('worktreeBranch',''))" "$STATE_FILE")
             BASE_BRANCH=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('baseBranch',''))" "$STATE_FILE")
+            
+            # Update last_worktree file so start_test_ha.sh can find it
+            if [[ -n "$WORKTREE_PATH" && -d "$WORKTREE_PATH" ]]; then
+                echo "$WORKTREE_PATH" > "$PROJECT_DIR/.worktrees/last_worktree"
+                log_info "Updated last_worktree to: $WORKTREE_PATH"
+            fi
         fi
     else
         if [[ -z "$SPEC_DIR" ]]; then
@@ -1575,7 +1611,7 @@ main() {
         # background (isBackground=true) without waiting; those become orphans
         # consuming RAM.
         local orphans_before
-        orphans_before=$(pgrep -fcE 'pytest|playwright|node.*test' 2>/dev/null || true)
+        orphans_before=$(pgrep -cf 'pytest|playwright|node.*test' 2>/dev/null || true)
         if (( ${orphans_before:-0} > 0 )); then
             log_warn "Purging $orphans_before orphaned pytest process(es) before agent start"
             python3 "$RALPH_DIR/kill_pytest_orphans.py" --timeout 5 || true
@@ -1604,7 +1640,7 @@ main() {
         # background. Without this, isBackground=true pytest/playwright calls
         # accumulate.
         local orphans_after
-        orphans_after=$(pgrep -fcE 'pytest|playwright|node.*test' 2>/dev/null || true)
+        orphans_after=$(pgrep -cf 'pytest|playwright|node.*test' 2>/dev/null || true)
         if (( ${orphans_after:-0} > 0 )); then
             log_warn "Purging $orphans_after orphaned pytest process(es) after agent exit"
             python3 "$RALPH_DIR/kill_pytest_orphans.py" --timeout 5 || true

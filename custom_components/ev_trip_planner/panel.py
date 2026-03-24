@@ -11,6 +11,7 @@ without requiring Lovelace UI.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom

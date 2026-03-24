@@ -79,12 +79,18 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
+   - Tests MUST follow TDD: write tests FIRST that fail, then implement
+   - At the END of each user story/fase, add E2E tests to validate the complete story
    - Final Phase: Polish & cross-cutting concerns
+   - FINAL TASK: Update documentation after everything is verified working
+   - `[VERIFY:BROWSER]` is used ONCE at the end (T999) for integrated verification of ALL features
+   - Do NOT distribute `[VERIFY:BROWSER]` across individual user stories
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
    - Dependencies section showing story completion order
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
+   - Do NOT pre-fill Implementation Notes with specific code references - leave investigation for when agent implements
 
 5. **Report**: Output path to generated tasks.md and summary:
    - Total task count
