@@ -8,8 +8,8 @@
  * @author EV Trip Planner Team
  */
 
-// Import Lit from CDN (HA loads this as a module)
-import { LitElement, html, css } from 'https://cdnjs.cloudflare.com/ajax/libs/lit/2.8.0/lit.min.js';
+// Import map for Lit dependencies (required for ES module loading)
+import { LitElement, html, css } from 'https://cdn.jsdelivr.net/npm/lit@2.8.0/index.min.js';
 
 class EVTripPlannerPanel extends LitElement {
   // Lit handles Shadow DOM automatically - no need for attachShadow
