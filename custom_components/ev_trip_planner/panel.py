@@ -11,12 +11,16 @@ without requiring Lovelace UI.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+
+# Get the module path for static file serving
+_MODULE_PATH = os.path.dirname(__file__)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +82,7 @@ async def async_register_panel(
                 [
                     (
                         f"/{DOMAIN.replace('_', '-')}/panel.css",
-                        f"{__path__[0]}/frontend/panel.css",
+                        f"{_MODULE_PATH}/frontend/panel.css",
                     ),
                 ]
             )
