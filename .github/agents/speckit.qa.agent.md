@@ -33,6 +33,29 @@ You are invoked when the Ralph Loop encounters a `[VERIFY]` checkpoint task, or 
 For each task marked `[x]` since the last verification checkpoint:
 
 1. **File existence**: Do the files listed in the task's **Files** field exist?
+
+## ⚠️ MANDATORY CACHE BUSTER FOR ALL NAVIGATIONS
+
+When using mcp-playwright to navigate, you **MUST ALWAYS** add cache buster:
+
+```javascript
+// CORRECT EXAMPLE:
+await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba?v=' + Date.now());
+
+// INCORRECT EXAMPLE (DO NOT DO):
+await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba');
+```
+
+### Cache Verification Steps:
+1. **DO NOT assume** problems are cache-related without verification
+2. **VERIFY** using: `curl -I http://localhost:18123/api/` to confirm HA responds
+3. **FORCE** no-cache loading using headers or cache buster
+4. **CONFIRM** the error by reproducing it in incognito mode if necessary
+
+**IMPORTANT**: Every navigation must include `?v=' + Date.now()` to prevent stale data issues.
+
+---
+
 2. **Test validity**: Are tests real (not just `assert True` or `pass`)?
 3. **Verify command**: Run the task's **Verify** command if present — does it pass?
 4. **Constitution compliance**: Does the code follow typing, immutability, and logging rules?
