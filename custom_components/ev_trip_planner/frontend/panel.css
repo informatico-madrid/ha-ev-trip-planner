@@ -1,40 +1,617 @@
 /**
  * EV Trip Planner Native Panel Styles
  *
- * Additional styles for the native panel component.
- * The main styles are embedded in the JavaScript component.
+ * Complete stylesheet for the EV Trip Planner panel component.
+ * All styles are centralized here for consistency and maintainability.
  */
 
-/* Additional panel-specific styles */
-:host {
+/* =============================================================================
+   CSS Variables and Root Styles
+   ============================================================================= */
+
+:root {
   --panel-primary-color: #2196f3;
   --panel-primary-dark: #1976d2;
   --panel-primary-light: #bbdefb;
+  --panel-primary-color-hass: #03a9f4;
+  --panel-primary-color-hass-dark: #0288d1;
   --panel-background: #fafafa;
   --panel-card-background: #ffffff;
   --panel-text-primary: #212121;
   --panel-text-secondary: #757575;
+  --panel-text-disabled: #9e9e9e;
   --panel-divider: #e0e0e0;
   --panel-success: #4caf50;
+  --panel-success-light: rgba(76, 175, 80, 0.1);
+  --panel-success-dark: #2e7d32;
   --panel-warning: #ff9800;
+  --panel-warning-light: rgba(255, 152, 0, 0.1);
+  --panel-warning-dark: #ef6c00;
   --panel-error: #f44336;
+  --panel-error-light: rgba(211, 47, 47, 0.1);
+  --panel-error-dark: #d32f2f;
+  --panel-error-lighter: rgba(211, 47, 47, 0.2);
+}
+
+:host {
+  display: block;
+  height: 100%;
+  background-color: var(--primary-background-color, #fafafa);
+  color: var(--primary-text-color, #212121);
+  font-family: var(--primary-font-family, Roboto, sans-serif);
 }
 
 .panel-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Status card enhancements */
+/* =============================================================================
+   Panel Header and Layout
+   ============================================================================= */
+
+.panel-header {
+  background-color: var(--primary-color, #03a9f4);
+  color: white;
+  padding: 16px;
+}
+
+.panel-header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.status-section,
+.sensors-section,
+.trips-section {
+  margin-bottom: 24px;
+}
+
+.status-section h2,
+.sensors-section h2,
+.trips-section h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--secondary-text-color, #757575);
+}
+
+/* =============================================================================
+   Status Cards Section
+   ============================================================================= */
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
 .status-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--card-background-color, white);
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
 }
 
 .status-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--panel-primary-color, #2196f3);
 }
 
-/* Charging status indicator */
+.status-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.status-label {
+  display: block;
+  font-size: 13px;
+  color: var(--panel-text-secondary, #757575);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.status-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--panel-primary-color, #1976d2);
+  letter-spacing: 0.5px;
+}
+
+/* =============================================================================
+   Sensor List Section
+   ============================================================================= */
+
+.sensor-list-grouped {
+  background: var(--card-background-color, white);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.sensor-group {
+  margin-bottom: 16px;
+}
+
+.sensor-group:last-child {
+  margin-bottom: 0;
+}
+
+.sensor-group-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--panel-primary-color, #1976d2);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 3px solid var(--panel-primary-color, #1976d2);
+  letter-spacing: 0.3px;
+}
+
+/* Sensor items list styling */
+.sensor-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sensor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background-color: var(--panel-background, #fafafa);
+  border-radius: 8px;
+  border-left: 4px solid var(--panel-primary-color, #2196f3);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sensor-item:hover {
+  background-color: var(--panel-primary-light, #e3f2fd);
+  transform: translateX(4px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sensor-item:active {
+  transform: translateX(0);
+}
+
+.sensor-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sensor-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sensor-name-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.sensor-name {
+  display: block;
+  font-size: 15px;
+  color: var(--panel-text-primary, #212121);
+  font-weight: 600;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sensor-entity {
+  display: block;
+  font-size: 11px;
+  color: var(--panel-text-secondary, #757575);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sensor-right {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.sensor-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--panel-primary-color, #1976d2);
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: right;
+  padding: 6px 10px;
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+/* Handle unavailable/unknown states */
+.sensor-item[data-state="unavailable"] .sensor-value,
+.sensor-item[data-state="unknown"] .sensor-value,
+.sensor-item .sensor-value:contains("N/A") {
+  color: var(--panel-text-disabled, #9e9e9e);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.no-sensors {
+  text-align: center;
+  color: var(--panel-text-secondary, #757575);
+  padding: 32px 20px;
+  font-size: 14px;
+  background-color: var(--panel-background, #fafafa);
+  border-radius: 8px;
+  border: 2px dashed var(--panel-divider, #e0e0e0);
+}
+
+/* =============================================================================
+   Trips Section Styles
+   ============================================================================= */
+
+.trips-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.add-trip-btn {
+  background-color: var(--primary-color, #03a9f4);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.add-trip-btn:hover {
+  background-color: var(--panel-primary-color-hass-dark, #0288d1);
+  transform: translateY(-1px);
+}
+
+.add-trip-btn:active {
+  transform: translateY(0);
+}
+
+.trips-list {
+  background: var(--card-background-color, white);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.trip-card {
+  background: var(--card-background-color, white);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.trip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.trip-card-inactive {
+  opacity: 0.7;
+}
+
+.trip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.trip-type {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color, #03a9f4);
+  text-transform: uppercase;
+}
+
+.trip-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.trip-status.status-active {
+  background-color: var(--panel-success-light);
+  color: var(--panel-success-dark);
+}
+
+.trip-status.status-inactive {
+  background-color: var(--panel-warning-light);
+  color: var(--panel-warning-dark);
+}
+
+.trip-info {
+  margin-bottom: 8px;
+}
+
+.trip-time {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-text-color, #212121);
+  margin-bottom: 4px;
+}
+
+.trip-details {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--secondary-text-color, #757575);
+}
+
+.trip-detail {
+  font-weight: 500;
+}
+
+.trip-separator {
+  margin: 0 8px;
+  color: var(--divider-color, #e0e0e0);
+}
+
+.trip-description {
+  font-size: 13px;
+  color: var(--secondary-text-color, #757575);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider-color, #e0e0e0);
+}
+
+.trip-id {
+  font-size: 11px;
+  color: var(--secondary-text-color, #757575);
+  text-align: right;
+}
+
+.trip-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider-color, #e0e0e0);
+}
+
+.trip-action-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.trip-action-btn:active {
+  transform: scale(0.95);
+}
+
+.edit-btn {
+  background-color: var(--primary-color, #03a9f4);
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: var(--panel-primary-color-hass-dark, #0288d1);
+}
+
+.delete-btn {
+  background-color: var(--panel-error-light);
+  color: var(--panel-error-dark);
+}
+
+.delete-btn:hover {
+  background-color: var(--panel-error-lighter);
+}
+
+.no-trips {
+  text-align: center;
+  color: var(--secondary-text-color, #757575);
+  padding: 20px;
+  font-style: italic;
+}
+
+.error-trips {
+  text-align: center;
+  color: var(--panel-error-dark);
+  padding: 20px;
+  background-color: var(--panel-error-light);
+  border-radius: 8px;
+}
+
+/* =============================================================================
+   Trip Creation Form Styles
+   ============================================================================= */
+
+.trip-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.trip-form-container {
+  background: var(--card-background-color, white);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.trip-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--divider-color, #e0e0e0);
+}
+
+.trip-form-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--primary-color, #03a9f4);
+}
+
+.close-form-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--secondary-text-color, #757575);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-form-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--panel-error-dark);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-text-color, #212121);
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--divider-color, #e0e0e0);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #03a9f4);
+  box-shadow: 0 0 0 2px rgba(3, 169, 244, 0.2);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider-color, #e0e0e0);
+}
+
+.form-actions .btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.form-actions .btn-primary {
+  background-color: var(--primary-color, #03a9f4);
+  color: white;
+}
+
+.form-actions .btn-primary:hover {
+  background-color: var(--panel-primary-color-hass-dark, #0288d1);
+  transform: translateY(-1px);
+}
+
+.form-actions .btn-secondary {
+  background-color: var(--divider-color, #e0e0e0);
+  color: var(--primary-text-color, #212121);
+}
+
+.form-actions .btn-secondary:hover {
+  background-color: #bdbdbd;
+  transform: translateY(-1px);
+}
+
+.form-actions .btn:active {
+  transform: translateY(0);
+}
+
+.form-error {
+  background-color: var(--panel-error-light);
+  border: 1px solid var(--panel-error-dark);
+  color: var(--panel-error-dark);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* =============================================================================
+   Charging Status Indicator
+   ============================================================================= */
+
 .charging-indicator {
   display: inline-block;
   width: 10px;
@@ -53,7 +630,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -61,24 +639,29 @@
   }
 }
 
-/* Trip list enhancements */
-.trip-card {
-  transition: background-color 0.2s ease;
+/* =============================================================================
+   Power Profile Chart
+   ============================================================================= */
+
+.power-profile {
+  min-height: 120px;
 }
 
-.trip-card:hover {
-  background-color: var(--panel-primary-light);
+.profile-chart {
+  padding: 8px;
 }
 
-.trip-card.pending {
-  border-left: 3px solid var(--panel-warning);
+.profile-chart pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
-.trip-card.completed {
-  border-left: 3px solid var(--panel-success);
-}
+/* =============================================================================
+   Button Styles
+   ============================================================================= */
 
-/* Button enhancements */
 .btn {
   transition: all 0.2s ease;
 }
@@ -88,12 +671,12 @@
 }
 
 .btn-edit {
-  background-color: var(--panel-primary-color);
+  background-color: var(--panel-primary-color, #2196f3);
   color: white;
 }
 
 .btn-edit:hover {
-  background-color: var(--panel-primary-dark);
+  background-color: var(--panel-primary-dark, #1976d2);
 }
 
 .btn-delete {
@@ -126,101 +709,34 @@
   background-color: #388e3c;
 }
 
-/* Power profile chart area */
-.power-profile {
-  min-height: 120px;
+/* Trip card hover effects */
+.trip-card {
+  transition: background-color 0.2s ease;
 }
 
-.profile-chart {
-  padding: 8px;
+.trip-card:hover {
+  background-color: var(--panel-primary-light);
 }
 
-.profile-chart pre {
-  margin: 0;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+.trip-card.pending {
+  border-left: 3px solid var(--panel-warning);
 }
 
-/* Sensor list enhancements - improved UI for readability */
-.sensor-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.trip-card.completed {
+  border-left: 3px solid var(--panel-success);
 }
 
-.sensor-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: var(--panel-background, #fafafa);
-  border-radius: 6px;
-  border-left: 3px solid var(--panel-primary-color, #2196f3);
-  transition: background-color 0.2s, transform 0.2s;
-}
+/* =============================================================================
+   Responsive Adjustments
+   ============================================================================= */
 
-.sensor-item:hover {
-  background-color: var(--panel-primary-light, #e3f2fd);
-  transform: translateX(4px);
-}
-
-.sensor-item:active {
-  transform: translateX(0);
-}
-
-.sensor-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-
-.sensor-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--panel-text-primary, #212121);
-}
-
-.sensor-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--panel-primary-color, #1976d2);
-  white-space: nowrap;
-  min-width: 80px;
-  text-align: right;
-  padding: 4px 8px;
-  background-color: rgba(33, 150, 243, 0.08);
-  border-radius: 4px;
-}
-
-.sensor-item[data-state="unavailable"] .sensor-value,
-.sensor-item[data-state="unknown"] .sensor-value,
-.sensor-item[data-state="no disponible"] .sensor-value {
-  color: var(--panel-text-secondary, #757575);
-  font-style: italic;
-}
-
-/* No sensors message styling */
-.no-sensors {
-  text-align: center;
-  color: var(--panel-text-secondary, #757575);
-  padding: 32px 20px;
-  font-size: 14px;
-  background-color: var(--panel-background, #fafafa);
-  border-radius: 8px;
-  border: 2px dashed var(--panel-divider, #e0e0e0);
-}
-
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .status-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .status-value {
+    font-size: 16px;
   }
 
   .trips-header {
@@ -235,6 +751,11 @@
 
   .trip-actions {
     margin-top: 12px;
+    width: 100%;
+  }
+
+  .trip-action-btn {
+    flex: 1;
   }
 
   .sensor-item {
@@ -247,5 +768,31 @@
 
   .sensor-value {
     font-size: 14px;
+  }
+
+  .trip-details {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trip-separator {
+    display: none;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .trip-form-container {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .trip-form-header h3 {
+    font-size: 16px;
   }
 }
