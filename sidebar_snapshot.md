@@ -1,29 +1,29 @@
-- generic [ref=e23]:
-  - generic [ref=e26]:
-    - generic "Alternar panel lateral" [ref=e29]:
-      - button "Alternar panel lateral" [ref=e30] [cursor=pointer]:
-        - generic [ref=e32]:
+- generic [ref=e15]:
+  - generic [ref=e18]:
+    - generic "Alternar panel lateral" [ref=e21]:
+      - button "Alternar panel lateral" [ref=e22] [cursor=pointer]:
+        - generic [ref=e24]:
           - img
-    - generic [ref=e33]: Resumen
-    - generic [ref=e35]:
+    - generic [ref=e25]: Resumen
+    - generic [ref=e27]:
       - generic:
-        - generic "Abrir el menú del panel de control" [ref=e37]:
-          - button [ref=e38] [cursor=pointer]:
-            - generic [ref=e40]:
+        - generic "Abrir el menú del panel de control" [ref=e29]:
+          - button [ref=e30] [cursor=pointer]:
+            - generic [ref=e32]:
               - img
         - generic:
           - generic: Añadir a Home Assistant
           - generic: Buscar en Home Assistant
           - generic: Editar resumen
-  - generic [ref=e45]:
-    - heading "Bienvenido tests" [level=2] [ref=e55]
-    - generic [ref=e58]:
-      - paragraph [ref=e70]: Resúmenes
-      - generic [ref=e75]:
-        - paragraph [ref=e82]: Áreas
-        - generic [ref=e87]:
-          - button "Salón" [ref=e88] [cursor=pointer]
-          - generic [ref=e89]:
+  - generic [ref=e37]:
+    - heading "Bienvenido tests" [level=2] [ref=e47]
+    - generic [ref=e50]:
+      - paragraph [ref=e62]: Resúmenes
+      - generic [ref=e67]:
+        - paragraph [ref=e74]: Áreas
+        - generic [ref=e79]:
+          - button "Salón" [ref=e80] [cursor=pointer]
+          - generic [ref=e81]:
             - generic:
               - generic:
                 - generic:
@@ -37,9 +37,9 @@
                   - generic:
                     - generic:
                       - generic: Salón
-        - generic [ref=e94]:
-          - button "Cocina" [ref=e95] [cursor=pointer]
-          - generic [ref=e96]:
+        - generic [ref=e86]:
+          - button "Cocina" [ref=e87] [cursor=pointer]
+          - generic [ref=e88]:
             - generic:
               - generic:
                 - generic:
@@ -53,9 +53,9 @@
                   - generic:
                     - generic:
                       - generic: Cocina
-        - generic [ref=e101]:
-          - button "Dormitorio" [ref=e102] [cursor=pointer]
-          - generic [ref=e103]:
+        - generic [ref=e93]:
+          - button "Dormitorio" [ref=e94] [cursor=pointer]
+          - generic [ref=e95]:
             - generic:
               - generic:
                 - generic:
@@ -69,9 +69,9 @@
                   - generic:
                     - generic:
                       - generic: Dormitorio
-        - generic [ref=e108]:
-          - button "Dispositivos" [ref=e109] [cursor=pointer]
-          - generic [ref=e110]:
+        - generic [ref=e100]:
+          - button "Dispositivos" [ref=e101] [cursor=pointer]
+          - generic [ref=e102]:
             - generic:
               - generic:
                 - generic:

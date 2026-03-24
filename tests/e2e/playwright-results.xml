@@ -1,2 +1,132 @@
-<testsuites id="" name="" tests="0" failures="0" skipped="0" errors="0" time="0.03990000000000009">
+<testsuites id="" name="" tests="15" failures="0" skipped="15" errors="0" time="16.508482">
+<testsuite name="test-panel-rendering.spec.ts" timestamp="2026-03-24T14:39:52.177Z" hostname="chromium" tests="3" failures="0" skipped="3" time="1.119" errors="0">
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture T002 error: panel element exists but innerHTML is empty" classname="test-panel-rendering.spec.ts" time="0.434">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should verify panel rendering flow completes correctly" classname="test-panel-rendering.spec.ts" time="0.437">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture console JavaScript logs for debugging" classname="test-panel-rendering.spec.ts" time="0.248">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="test-panel-rendering.spec.ts" timestamp="2026-03-24T14:39:52.177Z" hostname="firefox" tests="3" failures="0" skipped="3" time="4.306" errors="0">
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture T002 error: panel element exists but innerHTML is empty" classname="test-panel-rendering.spec.ts" time="1.737">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should verify panel rendering flow completes correctly" classname="test-panel-rendering.spec.ts" time="1.81">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture console JavaScript logs for debugging" classname="test-panel-rendering.spec.ts" time="0.759">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="test-panel-rendering.spec.ts" timestamp="2026-03-24T14:39:52.177Z" hostname="webkit" tests="3" failures="0" skipped="3" time="3.684" errors="0">
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture T002 error: panel element exists but innerHTML is empty" classname="test-panel-rendering.spec.ts" time="1.32">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should verify panel rendering flow completes correctly" classname="test-panel-rendering.spec.ts" time="1.334">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture console JavaScript logs for debugging" classname="test-panel-rendering.spec.ts" time="1.03">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="test-panel-rendering.spec.ts" timestamp="2026-03-24T14:39:52.177Z" hostname="mobile-chrome" tests="3" failures="0" skipped="3" time="0.983" errors="0">
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture T002 error: panel element exists but innerHTML is empty" classname="test-panel-rendering.spec.ts" time="0.369">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should verify panel rendering flow completes correctly" classname="test-panel-rendering.spec.ts" time="0.343">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture console JavaScript logs for debugging" classname="test-panel-rendering.spec.ts" time="0.271">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="test-panel-rendering.spec.ts" timestamp="2026-03-24T14:39:52.177Z" hostname="mobile-safari" tests="3" failures="0" skipped="3" time="2.98" errors="0">
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture T002 error: panel element exists but innerHTML is empty" classname="test-panel-rendering.spec.ts" time="0.972">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should verify panel rendering flow completes correctly" classname="test-panel-rendering.spec.ts" time="0.984">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Panel Rendering - T002/T003 Specific Error Capture › should capture console JavaScript logs for debugging" classname="test-panel-rendering.spec.ts" time="1.024">
+<properties>
+<property name="skip" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
 </testsuites>

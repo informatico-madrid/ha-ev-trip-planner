@@ -11,9 +11,20 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from worktree .env
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Ensure E2E credentials are always available (mock-safe defaults)
+process.env.HA_URL = process.env.HA_URL || 'http://localhost:18123';
+process.env.HA_USER = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
+process.env.HA_USERNAME = process.env.HA_USERNAME || process.env.HA_USER;
+process.env.HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 // Get HA URL from environment or use default
-const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+const haUrl = process.env.HA_URL;
 const haToken = process.env.HA_TOKEN || '';
 
 export default defineConfig({
