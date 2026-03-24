@@ -1,0 +1,70 @@
+- generic [ref=e20]:
+  - generic [ref=e21]:
+    - generic [ref=e23]:
+      - generic "Volver" [ref=e26]:
+        - link "Volver" [ref=e27] [cursor=pointer]:
+          - /url: /config
+          - generic [ref=e29]:
+            - img
+      - generic [ref=e38]:
+        - generic [ref=e42]:
+          - img
+        - textbox "Buscar" [ref=e46]
+      - generic [ref=e48]:
+        - generic [ref=e50]:
+          - generic:
+            - generic "Menú" [ref=e52]:
+              - button "Menú" [ref=e53] [cursor=pointer]:
+                - generic [ref=e55]:
+                  - img
+            - generic:
+              - generic: Mostrar integraciones ignoradas
+              - generic: Mostrar integraciones deshabilitadas
+        - generic [ref=e57]:
+          - generic:
+            - generic "Menú" [ref=e59]:
+              - button "Menú" [ref=e60] [cursor=pointer]:
+                - generic [ref=e62]:
+                  - img
+            - generic:
+              - generic: Credenciales de la aplicación
+    - generic [ref=e63]:
+      - link "Integraciones" [ref=e64] [cursor=pointer]:
+        - /url: /config/integrations
+        - tab "Integraciones" [selected] [ref=e66]:
+          - generic [ref=e67]:
+            - img
+          - generic [ref=e68]: Integraciones
+      - link "Dispositivos" [ref=e69] [cursor=pointer]:
+        - /url: /config/devices
+        - tab "Dispositivos" [ref=e71]:
+          - generic [ref=e72]:
+            - img
+          - generic [ref=e73]: Dispositivos
+      - link "Entidades" [ref=e74] [cursor=pointer]:
+        - /url: /config/entities
+        - tab "Entidades" [ref=e76]:
+          - generic [ref=e77]:
+            - img
+          - generic [ref=e78]: Entidades
+      - link "Ayudantes" [ref=e79] [cursor=pointer]:
+        - /url: /config/helpers
+        - tab "Ayudantes" [ref=e81]:
+          - generic [ref=e82]:
+            - img
+          - generic [ref=e83]: Ayudantes
+  - generic [ref=e88]:
+    - generic:
+      - link "Backup" [ref=e89] [cursor=pointer]:
+        - /url: /config/integrations/integration/backup
+        - generic [ref=e90]:
+          - heading "Backup" [level=1] [ref=e92]
+          - generic [ref=e93]:
+            - img
+      - link "1 servicio" [ref=e96] [cursor=pointer]:
+        - /url: /config/devices/device/8cbd1912f8e01d31fc919564f043111d
+        - generic [ref=e97]: 1 servicio
+  - button "Añadir integración" [ref=e101] [cursor=pointer]:
+    - generic [ref=e103]:
+      - img
+    - generic [ref=e104]: Añadir integración

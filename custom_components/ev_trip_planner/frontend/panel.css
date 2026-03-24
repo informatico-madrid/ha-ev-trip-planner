@@ -107,6 +107,25 @@
   color: white;
 }
 
+/* Pause/Resume button styles */
+.btn-pause {
+  background-color: var(--panel-warning);
+  color: white;
+}
+
+.btn-pause:hover {
+  background-color: #f57c00;
+}
+
+.btn-resume {
+  background-color: var(--panel-success);
+  color: white;
+}
+
+.btn-resume:hover {
+  background-color: #388e3c;
+}
+
 /* Power profile chart area */
 .power-profile {
   min-height: 120px;
@@ -121,6 +140,81 @@
   font-size: 12px;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+/* Sensor list enhancements - improved UI for readability */
+.sensor-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sensor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--panel-background, #fafafa);
+  border-radius: 6px;
+  border-left: 3px solid var(--panel-primary-color, #2196f3);
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.sensor-item:hover {
+  background-color: var(--panel-primary-light, #e3f2fd);
+  transform: translateX(4px);
+}
+
+.sensor-item:active {
+  transform: translateX(0);
+}
+
+.sensor-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sensor-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--panel-text-primary, #212121);
+}
+
+.sensor-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--panel-primary-color, #1976d2);
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+  padding: 4px 8px;
+  background-color: rgba(33, 150, 243, 0.08);
+  border-radius: 4px;
+}
+
+.sensor-item[data-state="unavailable"] .sensor-value,
+.sensor-item[data-state="unknown"] .sensor-value,
+.sensor-item[data-state="no disponible"] .sensor-value {
+  color: var(--panel-text-secondary, #757575);
+  font-style: italic;
+}
+
+/* No sensors message styling */
+.no-sensors {
+  text-align: center;
+  color: var(--panel-text-secondary, #757575);
+  padding: 32px 20px;
+  font-size: 14px;
+  background-color: var(--panel-background, #fafafa);
+  border-radius: 8px;
+  border: 2px dashed var(--panel-divider, #e0e0e0);
 }
 
 /* Responsive adjustments */
@@ -141,5 +235,17 @@
 
   .trip-actions {
     margin-top: 12px;
+  }
+
+  .sensor-item {
+    padding: 10px 12px;
+  }
+
+  .sensor-name {
+    font-size: 13px;
+  }
+
+  .sensor-value {
+    font-size: 14px;
   }
 }

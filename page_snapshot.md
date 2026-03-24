@@ -1,0 +1,35 @@
+- generic [ref=e9]:
+  - generic [ref=e12]:
+    - generic "Volver" [ref=e99]:
+      - button "Volver" [ref=e100] [cursor=pointer]:
+        - generic [ref=e102]:
+          - img
+    - generic [ref=e103]: Salón
+    - generic [ref=e21]:
+      - generic:
+        - generic "Abrir el menú del panel de control" [ref=e23]:
+          - button [ref=e24] [cursor=pointer]:
+            - generic [ref=e26]:
+              - img
+        - generic:
+          - generic: Añadir a Home Assistant
+          - generic: Buscar en Home Assistant
+          - generic: Editar área
+  - generic [ref=e109]:
+    - generic [ref=e111]:
+      - img
+    - heading "Esto es un lienzo en blanco" [level=1] [ref=e112]
+    - paragraph [ref=e113]: Añade tus luces, interruptores o sensores inteligentes a esta zona para empezar.
+    - generic [ref=e114]:
+      - button "Añadir nuevo dispositivo" [ref=e116] [cursor=pointer]:
+        - generic:
+          - generic:
+            - generic:
+              - img
+        - generic [ref=e117]: Añadir nuevo dispositivo
+      - button "Asignar dispositivo existente" [ref=e119] [cursor=pointer]:
+        - generic:
+          - generic:
+            - generic:
+              - img
+        - generic [ref=e120]: Asignar dispositivo existente

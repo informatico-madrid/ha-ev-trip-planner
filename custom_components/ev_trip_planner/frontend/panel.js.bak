@@ -334,10 +334,15 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Clean up subscriptions
+   * The unsubscribe function returned by subscribeMessage should be called to unsubscribe
    */
   _cleanup() {
-    if (this._unsubscribe) {
-      this._unsubscribe();
+    if (this._unsubscribe && typeof this._unsubscribe === 'function') {
+      try {
+        this._unsubscribe();
+      } catch (e) {
+        console.warn('EV Trip Planner Panel: Error calling unsubscribe:', e);
+      }
       this._unsubscribe = null;
     }
   }
@@ -364,13 +369,16 @@ class EVTripPlannerPanel extends HTMLElement {
     const states = this._hass.states;
     // Use the correct prefix for EV Trip Planner sensors: sensor.ev_trip_planner_{vehicle_id}_{sensor_name}
     const prefix = `sensor.ev_trip_planner_${this._vehicleId}`;
+    // Also support legacy naming: sensor.{vehicle_id}_{sensor_name}
+    const legacyPrefix = `sensor.${this._vehicleId}_`;
     const result = {};
 
     console.log('EV Trip Planner Panel: Searching for sensors with prefix:', prefix);
+    console.log('EV Trip Planner Panel: Searching for legacy sensors with prefix:', legacyPrefix);
     console.log('EV Trip Planner Panel: Total entities in hass.states:', Object.keys(states).length);
 
     for (const [entityId, state] of Object.entries(states)) {
-      if (entityId.startsWith(prefix)) {
+      if (entityId.startsWith(prefix) || entityId.startsWith(legacyPrefix)) {
         result[entityId] = state;
         console.log('EV Trip Planner Panel: Found sensor:', entityId, 'state:', state.state);
       }
@@ -402,11 +410,19 @@ class EVTripPlannerPanel extends HTMLElement {
     console.log('EV Trip Planner Panel: Trying entity:', fullEntityId);
 
     if (!state) {
-      // Try alternative: sensor.{vehicle_id}_{entityId}
-      console.log('EV Trip Planner Panel: First attempt failed, trying alternative...');
+      // Try legacy alternative: sensor.{vehicle_id}_{entityId}
+      console.log('EV Trip Planner Panel: First attempt failed, trying legacy alternative...');
       fullEntityId = `sensor.${this._vehicleId}_${entityId}`;
       state = hassStates[fullEntityId];
-      console.log('EV Trip Planner Panel: Trying alternative entity:', fullEntityId);
+      console.log('EV Trip Planner Panel: Trying legacy entity:', fullEntityId);
+    }
+
+    if (!state) {
+      // Try one more alternative: {vehicle_id}_{entityId} (without sensor. prefix)
+      console.log('EV Trip Planner Panel: Legacy alternative failed, trying without prefix...');
+      fullEntityId = `${this._vehicleId}_${entityId}`;
+      state = hassStates[fullEntityId];
+      console.log('EV Trip Planner Panel: Trying final entity:', fullEntityId);
     }
 
     if (!state) {
