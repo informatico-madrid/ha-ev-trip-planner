@@ -53,10 +53,63 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 ### Implementation
 
-- [x] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
-- [x] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+- [ ] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
+  **ERROR**: Panel element exists but innerHTML is empty despite _rendered = true
+  **Evidence**: Browser inspection shows ev-trip-planner-panel element exists with _hass=true, _vehicleId='Coche2', _rendered=true, but innerHTML.length=0
+  **Root Cause**: Race condition in rendering flow - connectedCallback sets _rendered=true before innerHTML is written
+
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Verificar que innerHTML.length > 0 después de cargar el panel
+    * Verificar que innerHTML.includes('EV Trip Planner') !== false
+    * Verificar que innerHTML.includes(_vehicleId) !== false
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos: panel.innerHTML.length > 0
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico: 'ev-trip-planner-panel'
+  - [ ] Ubicación: tests/e2e/test_panel_rendering.py
+- [ ] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+  **ERROR**: _render() method sets _rendered=true before innerHTML is written, causing premature exit from subsequent render attempts
+  **Evidence**: _rendered=true but innerHTML.length=0, panel content never rendered
+  **Root Cause**: Line 2155 sets _rendered=true before _renderTripsLater() completes, causing early exit from render flow
+
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Verificar que innerHTML.length > 0 después de llamar a _render()
+    * Verificar que innerHTML.includes('EV Trip Planner') !== false
+    * Verificar que innerHTML.includes(_vehicleId) !== false
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos: panel._rendered === true && panel.innerHTML.length > 0
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico: 'ev-trip-planner-panel'
+  - [ ] Ubicación: tests/e2e/test_panel_rendering.py
 - [x] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
-- [x] T005 [VERIFY:TEST] [US1] Crea y ejecuta tests e2e, Verificar que el panel del vehículo renderiza correctamente sin errores
+- [ ] T005 [VERIFY:TEST] [US1] Crea y ejecuta tests e2e, Verificar que el panel del vehículo renderiza correctamente sin errores
+  **ERROR**: Panel no renderiza contenido visible
+  **Evidence**: DOM inspection shows ev-trip-planner-panel exists but innerHTML is empty (0 characters)
+  **Root Cause**: Rendering flow broken - _rendered flag set prematurely before content written
+
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Navegar al panel: `page.goto('/ev-trip-planner-{vehicleId}?v=' + Date.now())`
+    * Esperar que el panel renderice: `page.waitForSelector('ev-trip-planner-panel')`
+    * Verificar que innerHTML.length > 0 usando: `await page.evaluate(() => document.querySelector('ev-trip-planner-panel').innerHTML.length)`
+    * Verificar que innerHTML.includes('EV Trip Planner') !== false
+    * Verificar que innerHTML.includes(vehicleId) !== false
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos: panel.innerHTML.length > 0
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico: 'ev-trip-planner-panel'
+  - [ ] Ubicación: tests/e2e/test_panel_rendering.py
 ---
 
 ## Phase 4: User Story 2 - Nombre de dispositivo personalizado con slug (P1)
@@ -66,9 +119,48 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 ### Implementation
 
-- [x] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
-- [x] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
-- [x] T008 [VERIFY:TEST] [US2] Crea y ejecuta tests e2e Verificar dispositivo con nombre personalizado "EV Trip Planner {nombre}"
+- [ ] T006 [P] [US2] Modificar sensor.py device_info para usar vehicle_name de config en lugar de vehicle_id [use: homeassistant-config]
+  **ERROR**: Panel rendering fails before device can be displayed
+  **Evidence**: Panel element exists but has no content to render device information
+  **Root Cause**: _render() sets _rendered=true prematurely, preventing actual content rendering
+
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Navegar al panel: `page.goto('/ev-trip-planner-{vehicleId}?v=' + Date.now())`
+    * Verificar que el panel renderiza: `await page.waitForSelector('ev-trip-planner-panel')`
+    * Verificar que innerHTML.includes('EV Trip Planner') !== false
+    * Verificar que innerHTML.includes(vehicleName) !== false
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos: innerHTML.includes('EV Trip Planner {vehicleName}')
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico: 'ev-trip-planner-panel'
+  - [ ] Ubicación: tests/e2e/test_panel_rendering.py
+- [ ] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
+  **ERROR**: Panel rendering fails before slug can be verified
+  **Evidence**: Panel element exists but innerHTML is empty
+  **Root Cause**: Rendering flow broken - _rendered flag set prematurely
+
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Navegar al panel: `page.goto('/ev-trip-planner-{vehicleId}?v=' + Date.now())`
+    * Verificar que el panel renderiza: `await page.waitForSelector('ev-trip-planner-panel')`
+    * Verificar que innerHTML.includes('EV Trip Planner') !== false
+    * Verificar que innerHTML.includes(vehicleSlug) !== false
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos: innerHTML.includes(vehicleSlug)
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico: 'ev-trip-planner-panel'
+  - [ ] Ubicación: tests/e2e/test_panel_rendering.py
+- [ ] T008 [VERIFY:TEST] [US2] Crea y ejecuta tests e2e Verificar dispositivo con nombre personalizado "EV Trip Planner {nombre}"
+  **ERROR**: Panel no renderiza contenido, no se puede verificar dispositivo
+  **Evidence**: Panel element exists but innerHTML is empty (0 characters)
+  **Root Cause**: Rendering flow broken - _rendered flag set prematurely before content written
 ---
 
 ## Phase 5: User Story 3 - Incluir assist_satellite en selector de notificaciones (P2)
@@ -200,6 +292,12 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 - [ ] T999 [VERIFY:BROWSER] Verificación Funcional Completa del Panel de Vehículo
   **Objetivo**: Verificar de forma integral y exhaustiva TODA la funcionalidad definida en spec.md para esta especificación. Esta tarea consolida todas las verificaciones de las User Stories en una sola tarea comprehensiva.
   **Resultados**: 450/450 Playwright tests PASSED (Chromium, Firefox, WebKit), 801/801 pytest PASSED, 88% coverage.
+
+  **SUMMARY**: Panel rendering failure detected. See T002, T003, T005, T006, T007, T008 for detailed errors.
+  **ERROR**: Panel element exists but innerHTML is empty (0 characters) despite _rendered = true
+  **EVIDENCE**: Browser inspection shows ev-trip-planner-panel element exists with _hass=true, _vehicleId='Coche2', _rendered=true, but innerHTML.length=0
+  **ROOT CAUSE**: Rendering flow broken - _render() method sets _rendered=true before innerHTML is written to DOM
+  **AFFECTED TASKS**: T002, T003, T005, T006, T007, T008
   
   
   #### PASOS DE VERIFICACIÓN (orden optimizado para máxima cobertura en mínimo tiempo):
