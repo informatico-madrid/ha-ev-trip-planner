@@ -16,9 +16,9 @@
 
 import { test, expect } from '@playwright/test';
 
-const HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
+const HA_URL = process.env.HA_URL || 'http://localhost:18123';
 const HA_USERNAME = process.env.HA_USER || 'admin';
-const HA_PASSWORD = process.env.HA_PASSWORD || '';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 test.describe('Panel Rendering - T002/T003 Specific Error Capture', () => {
   test('should capture T002 error: panel element exists but innerHTML is empty', async ({ page }) => {
@@ -27,11 +27,11 @@ test.describe('Panel Rendering - T002/T003 Specific Error Capture', () => {
       test.skip('No HA_PASSWORD provided');
     }
 
-    // Login to Home Assistant
+    // Login to Home Assistant using ID selectors (HA 2024.1+ format)
     await page.goto(`${HA_URL}/auth/login`);
-    await page.locator('input[type="text"]').fill(HA_USERNAME);
-    await page.locator('input[type="password"]').fill(HA_PASSWORD);
-    await page.locator('paper-button:not([disabled])').click();
+    await page.fill('#username', HA_USERNAME);
+    await page.fill('#password', HA_PASSWORD);
+    await page.click('button[type="submit"]');
     await page.waitForURL(`${HA_URL}/dashboard`);
 
     // Navigate to vehicle panel with cache buster
@@ -107,11 +107,11 @@ test.describe('Panel Rendering - T002/T003 Specific Error Capture', () => {
       test.skip('No HA_PASSWORD provided');
     }
 
-    // Login
+    // Login using ID selectors (HA 2024.1+ format)
     await page.goto(`${HA_URL}/auth/login`);
-    await page.locator('input[type="text"]').fill(HA_USERNAME);
-    await page.locator('input[type="password"]').fill(HA_PASSWORD);
-    await page.locator('paper-button:not([disabled])').click();
+    await page.fill('#username', HA_USERNAME);
+    await page.fill('#password', HA_PASSWORD);
+    await page.click('button[type="submit"]');
     await page.waitForURL(`${HA_URL}/dashboard`);
 
     // Navigate with cache buster
@@ -182,11 +182,11 @@ test.describe('Panel Rendering - T002/T003 Specific Error Capture', () => {
       });
     });
 
-    // Login
+    // Login using ID selectors (HA 2024.1+ format)
     await page.goto(`${HA_URL}/auth/login`);
-    await page.locator('input[type="text"]').fill(HA_USERNAME);
-    await page.locator('input[type="password"]').fill(HA_PASSWORD);
-    await page.locator('paper-button:not([disabled])').click();
+    await page.fill('#username', HA_USERNAME);
+    await page.fill('#password', HA_PASSWORD);
+    await page.click('button[type="submit"]');
     await page.waitForURL(`${HA_URL}/dashboard`);
 
     // Navigate to panel

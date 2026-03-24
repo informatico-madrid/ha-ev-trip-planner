@@ -16,8 +16,8 @@
 import { test, expect } from '@playwright/test';
 
 const HA_URL = process.env.HA_URL || 'http://localhost:18123';
-const HA_USERNAME = process.env.HA_USERNAME || 'admin';
-const HA_PASSWORD = process.env.HA_PASSWORD || '';
+const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 test.describe('US2: Device with Custom Name', () => {
   test('should verify device name follows "EV Trip Planner {nombre}" pattern', async ({
