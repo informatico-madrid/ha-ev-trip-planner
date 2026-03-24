@@ -682,23 +682,10 @@ $(cat "$github_context_path")
         worktree_section="
 ## ⚠ WORKTREE MODE — MANDATORY CONSTRAINTS
 
-**FIRST ACTION REQUIRED**: Before doing ANYTHING, switch to the correct branch:
-```bash
-git checkout $WORKTREE_BRANCH
+**FIRST ACTION**: Run this command IMMEDIATELY at the start of your session:
 ```
-
-This is CRITICAL - you MUST be on branch `$WORKTREE_BRANCH` not `main`!
-
-After switching branches, verify with:
-```bash
-git branch --show-current
+cd $WORKTREE_PATH
 ```
-This should output: `$WORKTREE_BRANCH`
-
-**CRITICAL FIX**: The ralph-loop.sh script now forces cd to worktree before executing Claude.
-All file operations will happen in: $WORKTREE_PATH
-
-**Verify you are in worktree**: Run `pwd` - should show: $WORKTREE_PATH
 
 - Your working directory is: $WORKTREE_PATH
 - **ALL file reads and writes MUST use $WORKTREE_PATH as base**
@@ -944,121 +931,53 @@ FEEDBACK: $(cat "$feedback_file")
 "
     fi
 
-    cat <<PROMPT_EOF
-# RALPH LOOP — VERIFY:BROWSER TASK (Iteration $iteration)
+    # Read base prompt from file to avoid bash interpretation issues
+    local base_prompt="$PROJECT_DIR/.ralph/prompts/verify-browser-task.md"
+    
+    if [[ ! -f "$base_prompt" ]]; then
+        log_error "Base prompt file not found: $base_prompt"
+        return 1
+    fi
+    
+    # Replace placeholders in the base prompt
+    local prompt_content
+    prompt_content=$(sed \
+        -e "s/\$SPEC_DIR/$spec_dir/g" \
+        -e "s/\$TASK_INDEX/$task_index/g" \
+        -e "s/\$ITERATION/$iteration/g" \
+        -e "s/\$SLUG/$slug/g" \
+        -e "s/\$PROJECT_DIR/$PROJECT_DIR/g" \
+        -e "s/\$WORKTREE_PATH/$WORKTREE_PATH/g" \
+        "$base_prompt")
 
-⚠⚠⚠ CRITICAL ROLE DEFINITION ⚠⚠⚠
-YOU ARE THE QA VERIFIER — NOT THE IMPLEMENTER
+    # Insert worktree section if enabled
+    if [[ -n "$worktree_section" ]]; then
+        prompt_content="${prompt_content//\$WORKTREE_SECTION/$worktree_section}"
+    else
+        # Remove WORKTREE_SECTION placeholder if not enabled
+        prompt_content=$(echo "$prompt_content" | sed '/^WORKTREE:/d')
+    fi
 
-YOUR MISSION: ONLY VERIFY. NEVER IMPLEMENT.
+    # Insert feedback section if available
+    if [[ -n "$feedback_section" ]]; then
+        prompt_content="${prompt_content//\$FEEDBACK_SECTION/$feedback_section}"
+    else
+        # Remove FEEDBACK_SECTION placeholder if not available
+        prompt_content=$(echo "$prompt_content" | sed '/^FEEDBACK:/d')
+    fi
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠ CRITICAL: NO SCREENSHOTS ALLOWED ⚠
-vLLM local backend does NOT support image inputs.
-DO NOT attempt to take screenshots under any circumstances.
-If you need visual evidence, describe it in text instead.
-
-WHAT YOU CAN DO:
-• Navigate using browser_click, browser_hover (ALLOWED)
-• Describe what you see in text
-• Document errors descriptively
-
-WHAT YOU CANNOT DO:
-✗ NEVER take screenshots (browser_take_screenshot BLOCKED)
-✗ NEVER send images to vLLM
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHAT YOU DO:
-• Use browser (mcp-playwright) to test functionality
-• Document what works and what doesn't (TEXT DESCRIPTIONS ONLY)
-• Report results accurately
-• Emit correct signals (STATE_MATCH or STATE_MISMATCH)
-
-WHAT YOU DO NOT DO:
-✗ NEVER fix bugs
-✗ NEVER improve code
-✗ NEVER modify files (except tasks.md for error docs)
-✗ NEVER implement new features
-✗ NEVER "help" by correcting errors
-✗ NEVER attempt screenshots
-
-ROLE CHECKPOINT BEFORE ANY ACTION:
-[ ] Is this a VERIFY task? YES → Continue as verifier only
-[ ] Am I about to implement/fix something? STOP → Re-read role
-[ ] My job is to CONSTATE, not to CORRECT
-[ ] Am I about to take a screenshot? STOP → Use text description
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-TASK: T999 - VERIFY:BROWSER - $PROJECT_DIR/specs/$slug/tasks.md
-$worktree_section
-$feedback_section
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRITICAL: TASKS.MD LOCATION — READ CAREFULLY
-
-📍 YOUR TASKS FILE IS IN THE MAIN REPOSITORY (NOT WORKTREE):
-   $PROJECT_DIR/specs/$slug/tasks.md
-
-❌ DO NOT use worktree path (.worktrees/*)
-❌ DO NOT use custom_components paths  
-✅ ALWAYS use: $PROJECT_DIR/specs/$slug/tasks.md
-
-WHEN MARKING TASKS:
-• PASS → Edit: $PROJECT_DIR/specs/$slug/tasks.md → mark [x]
-• FAIL → Edit: $PROJECT_DIR/specs/$slug/tasks.md → unmark [ ]
-• DOCUMENT → Append error description to same line in tasks.md
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-VERIFICATION FLOW (STRICT ORDER):
-
-STEP 1: Launch browser → Navigate to HA dashboard
-STEP 2: Test the feature described in your task
-STEP 3: Document results using TEXT DESCRIPTIONS (NO SCREENSHOTS)
-
-IF complete steps of verification can be complete:
-  → Emit: ALL_TASKS_COMPLETE
-
-IF YOU FIND ANY ISSUE AND CON NOT COMPLETE:
-  → dO NOT TRY TO CONTINUE OR FIX IT YOURSELF
-  → Find related tasks with the issue in $PROJECT_DIR/specs/$slug/tasks.md
-  → Mark those tasks as incomplete (unmark [x]) in $PROJECT_DIR/specs/$slug/tasks.md
-  → Document exact error in all the affected tasks in tasks.md
-  → Log relevant docker logs en this tasks.md as well for context
-  → Emit: STATE_MISMATCH
-  → DO NOT emit TASK_COMPLETE
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-OUTPUT RULES:
-✓ Success = STATE_MATCH + TASK_COMPLETE
-✓ Failure = STATE_MISMATCH (NO TASK_COMPLETE)
-
-FORBIDDEN ACTIONS:
-✗ Implementing code fixes
-✗ Improving existing code
-✗ Modifying anything except $PROJECT_DIR/specs/$slug/tasks.md
-✗ Skipping verification steps
-✗ Taking screenshots (browser_take_screenshot)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REMINDER: Your value is in ACCURATE VERIFICATION, not in fixing bugs.
-Follow the flow. Report truthfully. Emit correct signals.
-NO SCREENSHOTS - USE TEXT DESCRIPTIONS ONLY.
-PROMPT_EOF
+    echo "$prompt_content"
 }
 
 run_work_agent() {
     local prompt="$1"
     local log_file="$2"
-    local agent_type="${3:-default}"  # new parameter: "qa" for speckit.qa, "default" or empty for speckit.implement
     local output=""
     local exit_code=0
 
     set +e
     case "$RALPH_AGENT" in
         claude)
-            # CRITICAL: Only disable screenshots for vLLM compatibility
-            # vLLM does not support image inputs, but we NEED click/hover for navigation
             local flags="-p --disallowed-tools browser_take_screenshot"
             [[ "$RALPH_YOLO" == "true" ]] && flags="$flags --dangerously-skip-permissions"
             
@@ -1074,36 +993,9 @@ run_work_agent() {
                 log_info "Using custom Claude flags: $RALPH_CLAUDE_FLAGS"
             fi
             
-            # Select agent instructions based on agent_type
-            local agent_context=""
-            if [[ "$agent_type" == "qa" ]]; then
-                local speckit_qa_agent="$PROJECT_DIR/.github/agents/speckit.qa.agent.md"
-                if [[ -f "$speckit_qa_agent" ]]; then
-                    agent_context="
-## SPECKIT.QA AGENT INSTRUCTIONS (CRITICAL FOR VERIFY:BROWSER TASKS)
-$(cat "$speckit_qa_agent")
----
-"
-                fi
-                log_info "Using speckit.qa agent context for [VERIFY:BROWSER] verification"
-            else
-                local speckit_implement_agent="$PROJECT_DIR/.github/agents/speckit.implement.agent.md"
-                if [[ -f "$speckit_implement_agent" ]]; then
-                    agent_context="
-## SPECKIT.IMPLEMENT AGENT INSTRUCTIONS
-$(cat "$speckit_implement_agent")
----
-"
-                fi
-                log_info "Using speckit.implement agent context for implementation tasks"
-            fi
-            
-            # Prepend agent context to prompt
-            local enhanced_prompt="${agent_context}${prompt}"
-            
             # Debug: show agent output in real-time
-            log_info "Running Claude agent ($RALPH_AGENT) with screenshots DISABLED..."
-            output=$(echo "$enhanced_prompt" | "$CLAUDE_CMD" $flags 2>&1)
+            log_info "Running Claude agent..."
+            output=$(echo "$prompt" | "$CLAUDE_CMD" $flags 2>&1)
             exit_code=$?
             
             # Save to log file AND show on screen
@@ -1113,15 +1005,6 @@ $(cat "$speckit_implement_agent")
             # Write prompt to task.md for goose recipe
             echo "$prompt" > "$PROJECT_DIR/.goose/ralph/task.md"
             
-            # Select recipe based on agent_type
-            local recipe_file="$RALPH_DIR/recipes/ralph-work.yaml"
-            if [[ "$agent_type" == "qa" ]]; then
-                recipe_file="$RALPH_DIR/recipes/ralph-qa.yaml"
-                log_info "Using speckit.qa recipe for [VERIFY:BROWSER] verification"
-            else
-                log_info "Using speckit.implement recipe for implementation tasks"
-            fi
-            
             # If vLLM is configured, set OpenAI environment variables for goose
             if [[ -n "${RALPH_VLLM_URL:-}" ]]; then
                 log_info "Using vLLM backend: $RALPH_VLLM_URL with model: $RALPH_VLLM_MODEL"
@@ -1130,11 +1013,11 @@ $(cat "$speckit_implement_agent")
                     OPENAI_HOST="$RALPH_VLLM_URL" \
                     OPENAI_API_KEY="$RALPH_VLLM_API_KEY" \
                     GOOSE_MODEL="$RALPH_VLLM_MODEL" \
-                    goose run --recipe "$recipe_file" 2>&1 | tee "$log_file"
+                    goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file"
                 )
                 exit_code=$?
             else
-                output=$(goose run --recipe "$recipe_file" 2>&1 | tee "$log_file")
+                output=$(goose run --recipe "$RALPH_DIR/recipes/ralph-work.yaml" 2>&1 | tee "$log_file")
                 exit_code=$?
             fi
             ;;
@@ -1766,19 +1649,17 @@ main() {
 
         # Build prompt - use specialized prompt for VERIFY:BROWSER tasks or T999
         local work_prompt
-        local current_agent="$RALPH_AGENT"
         
         if is_verify_browser_task "$task_body" "$task_id"; then
             log_info "Detected [VERIFY:BROWSER] or T999 task - using speckit.qa agent"
             work_prompt=$(build_verify_browser_prompt "$spec_dir" "$next_idx" "$task_body" "$global_iter" "$SLUG")
-            current_agent="qa"
         else
             work_prompt=$(build_work_prompt "$spec_dir" "$next_idx" "$task_body" "$global_iter" "$SLUG")
         fi
 
         # Run work agent
         local iter_log="$log_dir/ralph_iter_${global_iter}_$(date '+%Y%m%d_%H%M%S').log"
-        echo -e "${YELLOW}▶ WORK PHASE${NC}"
+        echo -e "${YELLOW}WORK PHASE${NC}"
 
         local agent_output=""
         local agent_exit=0
@@ -1829,25 +1710,12 @@ main() {
         if (( RALPH_TEST_CONCURRENCY > 0 )); then
             exec 9>"$LOCK_FILE"
             flock -x 9
-            
-            # Use speckit.qa agent for VERIFY:BROWSER tasks, otherwise use default agent
-            if [[ "$current_agent" == "qa" ]]; then
-                log_info "Executing with speckit.qa agent for [VERIFY:BROWSER] task"
-                agent_output=$(run_work_agent "$work_prompt" "$iter_log" "qa")
-            else
-                agent_output=$(run_work_agent "$work_prompt" "$iter_log")
-            fi
+            agent_output=$(run_work_agent "$work_prompt" "$iter_log")
             agent_exit=$?
             flock -u 9
             exec 9>&-
         else
-            # Use speckit.qa agent for VERIFY:BROWSER tasks, otherwise use default agent
-            if [[ "$current_agent" == "qa" ]]; then
-                log_info "Executing with speckit.qa agent for [VERIFY:BROWSER] task"
-                agent_output=$(run_work_agent "$work_prompt" "$iter_log" "qa")
-            else
-                agent_output=$(run_work_agent "$work_prompt" "$iter_log")
-            fi
+            agent_output=$(run_work_agent "$work_prompt" "$iter_log")
             agent_exit=$?
         fi
 
