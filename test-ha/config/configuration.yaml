@@ -8,9 +8,6 @@ homeassistant:
   time_zone: Europe/Madrid
   external_url: http://localhost:18123
   internal_url: http://localhost:8123
-  # Disable onboarding for automated tests
-  auth_providers:
-    - type: homeassistant
 
 http:
   server_port: 8123
@@ -19,6 +16,12 @@ http:
     - http://127.0.0.1:18123
     - http://localhost:8123
     - http://127.0.0.1:8123
+
+# Disable authentication for testing
+api_password: tests
+trusted_proxies:
+  - 127.0.0.1
+  - 192.168.1.0/24
 
 # Enable logging for debugging
 logger:
@@ -35,11 +38,17 @@ input_number: !include input_number.yaml
 input_boolean: !include input_boolean.yaml
 template: !include template_sensors.yaml
 
-# Panel Custom para EV Trip Planner
+# Panel Custom para EV Trip Planner - ambos vehículos que funcionan
 panel_custom:
   - name: "ev-trip-planner-Coche2"
     sidebar_title: "Coche2"
     sidebar_icon: "mdi:car"
-    js_url: "/ev-trip-planner/panel.js"
+    js_url: "/ev_trip_planner/panel.js"
     config:
       vehicle_id: "Coche2"
+  - name: "ev-trip-planner-CochePrueba"
+    sidebar_title: "CochePrueba"
+    sidebar_icon: "mdi:car"
+    js_url: "/ev_trip_planner/panel.js"
+    config:
+      vehicle_id: "CochePrueba"
