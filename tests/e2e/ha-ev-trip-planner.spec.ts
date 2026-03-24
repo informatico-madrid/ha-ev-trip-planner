@@ -24,8 +24,8 @@ import { test, expect } from '@playwright/test';
 import { HALoginPage, EVTripPlannerPage } from './pages';
 
 // Get credentials from environment
-const HA_USERNAME = process.env.HA_USERNAME || 'admin';
-const HA_PASSWORD = process.env.HA_PASSWORD || '';
+const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 test.describe('Home Assistant Authentication', () => {
   let loginPage: HALoginPage;
@@ -516,7 +516,7 @@ test.describe('EV Trip Planner Dashboard - Performance & Accessibility', () => {
 
 test.describe('EV Trip Planner Dashboard - Integration Tests', () => {
   test('should display sensor entities via API', async ({ request }) => {
-    const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+    const haUrl = process.env.HA_URL || 'http://localhost:18123';
     const haToken = process.env.HA_TOKEN;
 
     if (!haToken) {
@@ -559,7 +559,7 @@ test.describe('EV Trip Planner Dashboard - Integration Tests', () => {
 
 test.describe('EV Trip Planner Sensors', () => {
   test('should display sensor entities via API', async ({ request }) => {
-    const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+    const haUrl = process.env.HA_URL || 'http://localhost:18123';
     const haToken = process.env.HA_TOKEN;
     
     if (!haToken) {

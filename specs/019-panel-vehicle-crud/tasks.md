@@ -57,6 +57,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
 - [x] T002 [P] [US1] Modificar panel.js connectedCallback para obtener vehicle_id de window.location ANTES de esperar hass [use: homeassistant-config]
 - [x] T003 [P] [US1] Modificar panel.js método _render() para intentar obtener vehicle_id de URL como último recurso [use: homeassistant-config]
+  **FIXED**: Reset _rendered flag when innerHTML is empty or missing panel content, preventing premature exit from render flow
 - [x] T004 [US1] Agregar logging mejorado para debugging de vehicle_id [use: homeassistant-config]
 - [x] T005 [VERIFY:TEST] [US1] Crea y ejecuta tests e2e, Verificar que el panel del vehículo renderiza correctamente sin errores
 ---

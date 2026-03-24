@@ -28,7 +28,7 @@ import * as path from 'path';
 
 const HA_URL = process.env.HA_URL || 'http://localhost:18123';
 const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
-const HA_PASSWORD = process.env.HA_PASSWORD || '';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 // Path to panel.css in the worktree
 const PANEL_CSS_PATH = path.join(

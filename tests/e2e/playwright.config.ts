@@ -11,11 +11,33 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
-import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 import * as path from 'path';
 
-// Load environment variables from worktree .env
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Load environment variables from worktree .env (without external deps)
+const envPath = path.resolve(__dirname, '../../.env');
+if (fs.existsSync(envPath)) {
+  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const separator = line.indexOf('=');
+    if (separator < 1) {
+      continue;
+    }
+
+    const key = line.slice(0, separator).trim();
+    let value = line.slice(separator + 1).trim();
+    value = value.replace(/^['\"]|['\"]$/g, '');
+
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
 
 // Ensure E2E credentials are always available (mock-safe defaults)
 process.env.HA_URL = process.env.HA_URL || 'http://localhost:18123';

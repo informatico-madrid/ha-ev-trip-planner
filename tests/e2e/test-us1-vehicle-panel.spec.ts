@@ -16,8 +16,8 @@
 import { test, expect } from '@playwright/test';
 
 const HA_URL = process.env.HA_URL || 'http://localhost:18123';
-const HA_USERNAME = process.env.HA_USERNAME || 'admin';
-const HA_PASSWORD = process.env.HA_PASSWORD || '';
+const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
   test('should navigate to vehicle panel and verify no vehicle_id error', async ({ page }) => {

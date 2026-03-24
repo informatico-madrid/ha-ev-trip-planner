@@ -2004,17 +2004,23 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // CRITICAL: Prevent re-rendering only if content was actually written
     // Check if innerHTML contains expected panel content
-    if (this._rendered && this.innerHTML.length > 0 && this.innerHTML.includes('EV Trip Planner')) {
-      // Check if trips section is already rendered (not just initial render)
-      const hasTripsSection = this.innerHTML.includes('trips-section') || this.innerHTML.includes('trips-list');
-      if (hasTripsSection) {
-        console.log("EV Trip Planner Panel: Already fully rendered with trips section, skipping");
-        return;
+    if (this._rendered) {
+      // If innerHTML is empty or doesn't contain panel content, reset _rendered to allow re-render
+      if (this.innerHTML.length === 0 || !this.innerHTML.includes('EV Trip Planner')) {
+        console.log("EV Trip Planner Panel: _rendered=true but innerHTML is empty or missing panel content, resetting to allow re-render");
+        this._rendered = false;
+      } else {
+        // Check if trips section is already rendered (not just initial render)
+        const hasTripsSection = this.innerHTML.includes('trips-section') || this.innerHTML.includes('trips-list');
+        if (hasTripsSection) {
+          console.log("EV Trip Planner Panel: Already fully rendered with trips section, skipping");
+          return;
+        }
+        // If trips section is missing but _rendered is true, this means trips haven't been rendered yet
+        // In this case, we should NOT return early - let the render flow complete
+        console.log("EV Trip Planner Panel: _rendered=true but trips section missing, continuing to render");
+        this._rendered = false; // Reset to allow re-render
       }
-      // If trips section is missing but _rendered is true, this means trips haven't been rendered yet
-      // In this case, we should NOT return early - let the render flow complete
-      console.log("EV Trip Planner Panel: _rendered=true but trips section missing, continuing to render");
-      this._rendered = false; // Reset to allow re-render
     }
 
     if (!this._hass) {
