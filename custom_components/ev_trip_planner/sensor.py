@@ -138,17 +138,20 @@ class TripPlannerSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Devuelve información del dispositivo."""
-        # Get vehicle_name from config entry for display name
-        # The config entry stores the actual vehicle name in data["vehicle_name"]
+        """Devuelve información del dispositivo.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
         vehicle_id = self.trip_manager.vehicle_id
         vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
 
         try:
-            # Try to get the config entry to extract the actual vehicle_name
+            # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and "vehicle_name" in config_entry.data:
-                    vehicle_name = config_entry.data["vehicle_name"]
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
             pass
@@ -484,16 +487,20 @@ class EmhassDeferrableLoadSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Return device info."""
-        # Get vehicle_name from config entry for display name
+        """Return device info.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
         vehicle_id = self.trip_manager.vehicle_id
         vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
 
         try:
-            # Try to get the config entry to extract the actual vehicle_name
+            # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and "vehicle_name" in config_entry.data:
-                    vehicle_name = config_entry.data["vehicle_name"]
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
             pass
@@ -641,16 +648,20 @@ class TripSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Return device info for the trip sensor."""
-        # Get vehicle_name from config entry for display name
+        """Return device info for the trip sensor.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
         vehicle_id = self.trip_manager.vehicle_id
         vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
 
         try:
-            # Try to get the config entry to extract the actual vehicle_name
+            # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and "vehicle_name" in config_entry.data:
-                    vehicle_name = config_entry.data["vehicle_name"]
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
             pass
