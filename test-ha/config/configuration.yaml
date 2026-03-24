@@ -43,12 +43,12 @@ panel_custom:
   - name: "ev-trip-planner-Coche2"
     sidebar_title: "Coche2"
     sidebar_icon: "mdi:car"
-    js_url: "/ev_trip_planner/panel.js"
+    module_url: "/ev-trip-planner/panel.js?v=3.0.0"
     config:
       vehicle_id: "Coche2"
   - name: "ev-trip-planner-CochePrueba"
     sidebar_title: "CochePrueba"
     sidebar_icon: "mdi:car"
-    js_url: "/ev_trip_planner/panel.js"
+    module_url: "/ev-trip-planner/panel.js?v=3.0.0"
     config:
       vehicle_id: "CochePrueba"
