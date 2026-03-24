@@ -127,22 +127,24 @@ STEP_PRESENCE_SCHEMA = vol.Schema(
 )
 
 # Step 5: Notifications configuration
-# Using EntitySelector with domain="notify" to show all notify services/entities
+# Using EntitySelector with domain=["notify", "assist_satellite"] to show all notify
+# services/entities AND assist_satellite devices (e.g., Home Assistant Voice Satellite)
 # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
-# The selector queries the entity registry for entities in the notify domain
+# The selector queries the entity registry for entities in the notify and assist_satellite domains
 # Note: EntitySelector works with notify services in HA because they are registered
 # as entities in the entity registry (notify.<service_name>)
+# assist_satellite devices are also registered in the entity registry and need explicit inclusion
 STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
             selector.EntitySelectorConfig(
-                domain="notify",
+                domain=["notify", "assist_satellite"],
                 multiple=False,
             )
         ),
         vol.Optional(CONF_NOTIFICATION_DEVICES): selector.EntitySelector(
             selector.EntitySelectorConfig(
-                domain="notify",
+                domain=["notify", "assist_satellite"],
                 multiple=True,
             )
         ),
@@ -781,9 +783,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         return result
 
+    @staticmethod
     @callback
     def async_get_options_flow(
-        self, config_entry: config_entries.ConfigEntry
+        config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Devuelve el flujo de opciones para la entrada de configuración."""
         return EVTripPlannerOptionsFlowHandler(config_entry)
@@ -793,7 +796,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Inicializa el flujo de opciones."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -826,7 +829,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Get current values from config entry with safe defaults
         # Use .get() with safe handling for None data
-        config_data = self.config_entry.data or {}
+        config_data = self._config_entry.data or {}
         current_battery = config_data.get(
             CONF_BATTERY_CAPACITY, 60.0
         )

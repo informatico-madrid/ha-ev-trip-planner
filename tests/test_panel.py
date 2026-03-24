@@ -8,6 +8,13 @@ from custom_components.ev_trip_planner import panel
 
 
 @pytest.fixture
+def mock_panel_module():
+    """Create a mock panel_custom module."""
+    with patch("custom_components.ev_trip_planner.panel.panel_custom") as mock:
+        mock.async_register_panel = AsyncMock()
+        yield mock
+
+@pytest.fixture
 def mock_frontend_module():
     """Create a mock frontend module."""
     with patch("custom_components.ev_trip_planner.panel.frontend") as mock:
@@ -17,7 +24,7 @@ def mock_frontend_module():
 
 
 @pytest.fixture
-def mock_hass(mock_frontend_module):
+def mock_hass(mock_panel_module):
     """Create a mock Home Assistant instance."""
     hass = MagicMock()
     hass.data = {}
@@ -29,10 +36,13 @@ class TestAsyncRegisterPanel:
     """Tests for async_register_panel function."""
 
     @pytest.mark.asyncio
-    async def test_register_panel_success(self, mock_hass, mock_frontend_module):
+    async def test_register_panel_success(self, mock_hass, mock_panel_module, mock_frontend_module):
         """Test successful panel registration."""
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
+
+        # Ensure hass.config.components is properly mocked
+        mock_hass.config.components = {"panel_custom"}
 
         # Call the function
         result = await panel.async_register_panel(
@@ -43,7 +53,7 @@ class TestAsyncRegisterPanel:
 
         # Verify success
         assert result is True
-        mock_frontend_module.async_register_built_in_panel.assert_called_once()
+        mock_panel_module.async_register_panel.assert_called_once()
 
         # Verify mapping stored
         assert panel.VEHICLE_PANEL_MAPPING_KEY in mock_hass.data
@@ -51,7 +61,7 @@ class TestAsyncRegisterPanel:
         assert vehicle_id in mapping
 
     @pytest.mark.asyncio
-    async def test_register_panel_multiple_vehicles(self, mock_hass, mock_frontend_module):
+    async def test_register_panel_multiple_vehicles(self, mock_hass, mock_panel_module, mock_frontend_module):
         """Test registering panels for multiple vehicles."""
         # Register first vehicle
         result1 = await panel.async_register_panel(
@@ -76,13 +86,16 @@ class TestAsyncRegisterPanel:
         assert "vehicle_2" in mapping
 
     @pytest.mark.asyncio
-    async def test_register_panel_exception(self, mock_hass, mock_frontend_module):
+    async def test_register_panel_exception(self, mock_hass, mock_panel_module, mock_frontend_module):
         """Test handling of exceptions during registration."""
+        # Ensure hass.config.components is properly mocked
+        mock_hass.config.components = {"panel_custom"}
+
         # Mock exception - make it async
         async def raise_error(*args, **kwargs):
             raise Exception("Test error")
 
-        mock_frontend_module.async_register_built_in_panel.side_effect = raise_error
+        mock_panel_module.async_register_panel.side_effect = raise_error
 
         result = await panel.async_register_panel(
             mock_hass,
@@ -98,7 +111,7 @@ class TestAsyncUnregisterPanel:
     """Tests for async_unregister_panel function."""
 
     @pytest.fixture
-    def mock_hass_with_mapping(self):
+    def mock_hass_with_mapping(self, mock_frontend_module):
         """Create a mock HA with existing panel mapping."""
         hass = MagicMock()
         hass.data = {
@@ -208,7 +221,7 @@ class TestAsyncRegisterAllPanels:
     """Tests for async_register_all_panels function."""
 
     @pytest.mark.asyncio
-    async def test_register_all_panels(self, mock_frontend_module):
+    async def test_register_all_panels(self, mock_panel_module, mock_frontend_module):
         """Test registering panels for all vehicles."""
         hass = MagicMock()
         hass.config.components = {"panel_custom"}
@@ -220,11 +233,12 @@ class TestAsyncRegisterAllPanels:
 
         await panel.async_register_all_panels(hass, vehicles)
 
-        # Verify both panels registered
-        assert mock_frontend_module.async_register_built_in_panel.call_count == 2
+        # Verify both panels registered - check that the function was called for each vehicle
+        # The panel module internally iterates through vehicles and calls async_register_panel
+        assert mock_panel_module.async_register_panel.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_register_all_panels_empty_list(self, mock_frontend_module):
+    async def test_register_all_panels_empty_list(self, mock_panel_module, mock_frontend_module):
         """Test registering panels with empty vehicle list."""
         hass = MagicMock()
         hass.config.components = {"panel_custom"}
@@ -232,4 +246,4 @@ class TestAsyncRegisterAllPanels:
         await panel.async_register_all_panels(hass, [])
 
         # Verify no panels registered
-        mock_frontend_module.async_register_built_in_panel.assert_not_called()
+        mock_panel_module.async_register_panel.assert_not_called()

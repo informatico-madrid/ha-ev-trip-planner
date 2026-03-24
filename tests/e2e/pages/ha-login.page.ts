@@ -17,20 +17,23 @@ export class HALoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    
-    // Use data-testid or reliable selectors for HA
-    this.usernameInput = page.getByLabel(/username|user|email/i);
-    this.passwordInput = page.getByLabel(/password/i);
-    this.loginButton = page.getByRole('button', { name: /login|sign in|entrar/i });
-    this.errorMessage = page.getByRole('alert');
-    this.rememberMeCheckbox = page.getByLabel(/remember me|recordar/i);
+
+    // Use reliable selectors for HA login page
+    // HA uses inputs with type="text" and type="password" in the form
+    this.usernameInput = page.locator('input[type="text"]');
+    this.passwordInput = page.locator('input[type="password"]');
+    this.loginButton = page.locator('paper-button:not([disabled])');
+    this.errorMessage = page.locator('ha-alert');
+    this.rememberMeCheckbox = page.locator('paper-checkbox');
   }
 
   /**
    * Navigate to the login page
+   * @param baseUrl - Optional base URL to use for navigation
    */
-  async goto() {
-    await this.page.goto('/auth/login');
+  async goto(baseUrl?: string) {
+    const url = baseUrl || this.page.url().substring(0, this.page.url().lastIndexOf('/'));
+    await this.page.goto(`${url}/auth/login`);
     await this.page.waitForLoadState('networkidle');
   }
 

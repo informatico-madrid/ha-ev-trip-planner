@@ -14,7 +14,7 @@ import { defineConfig, devices } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Load environment variables from project .env (without external deps)
+// Load environment variables from worktree .env (without external deps)
 const envPath = path.resolve(__dirname, '../../.env');
 if (fs.existsSync(envPath)) {
   const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
