@@ -44,7 +44,7 @@ class TestEmhassDeferrableLoadSensor:
         )
         device_info = sensor.device_info
         assert device_info["identifiers"] == {("ev_trip_planner", "test_entry_id")}
-        assert device_info["name"] == "EV Trip Planner test_entry_id"
+        assert device_info["name"] == "EV Trip Planner test_vehicle"
 
     async def test_emhass_sensor_extra_state_attributes(
         self, hass: HomeAssistant, mock_trip_manager_for_sensor

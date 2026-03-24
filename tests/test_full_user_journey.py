@@ -77,13 +77,17 @@ def mock_hass():
                 handler = services_registry[service]
                 call = MagicMock()
                 call.data = data or {}
-                call.return_data = None
                 # Execute handler - it's an async function, so it returns a coroutine
                 import asyncio
                 loop = asyncio.get_running_loop()
                 coro = handler(call)
                 if asyncio.iscoroutine(coro):
-                    await coro
+                    result = await coro
+                    # Return the result if return_response=True
+                    if return_response:
+                        return result
+                    # Otherwise, store it in call.return_data for backward compatibility
+                    call.return_data = result
                 return call.return_data
             return None
 
