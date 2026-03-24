@@ -148,31 +148,6 @@ class TripPlannerSensor(SensorEntity):
             "sw_version": "2026.3.0",
         }
 
-
-class TripSensor(SensorEntity):
-    """Sensor para un viaje individual."""
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        trip_manager: TripManager,
-        trip_id: str,
-        trip_type: str,
-        trip_data: Dict[str, Any],
-    ) -> None:
-        """Inicializa el sensor del viaje."""
-        self.hass = hass
-        self.trip_manager = trip_manager
-        self.trip_id = trip_id
-        self.trip_type = trip_type
-        self._trip_data = trip_data
-        self._attr_unique_id = f"{DOMAIN}_trip_{trip_id}"
-        self._attr_has_entity_name = True
-        self._attr_name = f"Trip {trip_data.get('descripcion', trip_id)}"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
-        self._cached_attrs: Dict[str, Any] = {}
-        self._update_from_trip_data()
-
     def _update_from_trip_data(self) -> None:
         """Update sensor attributes from trip data."""
         trip = self._trip_data
@@ -208,37 +183,6 @@ class TripSensor(SensorEntity):
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Devuelve atributos adicionales para el sensor."""
         return self._cached_attrs.copy()
-
-    @property
-    def device_info(self) -> Dict[str, Any]:
-        """Devuelve información del dispositivo."""
-        return {
-            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self.trip_id}")},
-            "name": f"Trip {self.trip_id} - {self.trip_manager.vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
-        }
-
-    async def async_update(self) -> None:
-        """Actualiza el estado del sensor desde el trip_manager."""
-        try:
-            if self.trip_type == TRIP_TYPE_RECURRING:
-                trips = await self.trip_manager.async_get_recurring_trips()
-                for trip in trips:
-                    if str(trip.get("id")) == self.trip_id:
-                        self._update_from_trip_data()
-                        return
-            elif self.trip_type == TRIP_TYPE_PUNCTUAL:
-                trips = await self.trip_manager.async_get_punctual_trips()
-                for trip in trips:
-                    if str(trip.get("id")) == self.trip_id:
-                        self._update_from_trip_data()
-                        return
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error("Error updating trip sensor %s: %s", self.trip_id, err)
-            self._attr_native_value = "error"
 
 
 # Backward compatibility aliases for tests
@@ -915,16 +859,13 @@ async def _async_create_trip_sensors(
             exc_info=True,
         )
 
-    return entities
-
     _LOGGER.debug(
         "Created sensors for %s: %s",
         vehicle_id,
         [type(e).__name__ for e in entities],
     )
 
-    async_add_entities(entities)
-    return True
+    return entities
 
 
 async def async_create_trip_sensor(

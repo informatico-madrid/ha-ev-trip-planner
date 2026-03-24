@@ -26,11 +26,16 @@ description: "Task list template for feature implementation"
 | Tag | When to Use | Verification Method | Available MCP/SKILL |
 |-----|-------------|---------------------|---------------------|
 | `[VERIFY:TEST]` | pytest unit/integration tests | Run `pytest tests/ -v` | `[MCP_TESTING]` or `[SKILL_TESTING]` |
-| `[VERIFY:BROWSER]` | Playwright browser navigation (autonomous) | Agent navigates autonomously to complete task | `[MCP_BROWSER]` or `[SKILL_BROWSER]` |
+| `[VERIFY:E2E]` | End-to-end validation of user story | Agent executes E2E test sequence | `[MCP_E2E]` or `[SKILL_E2E]` |
+| `[VERIFY:BROWSER]` | Integrated verification of ALL features | Agent navigates autonomously with MCP at END only | `[MCP_BROWSER]` or `[SKILL_BROWSER]` |
 | `[VERIFY:API]` | HA REST API verification | Use HA API tools | `[MCP_API]` or `[SKILL_API]` |
 | `[VERIFY:CONFIG]` | HA YAML configuration | Use HA config tools | `[MCP_CONFIG]` or `[SKILL_CONFIG]` |
 
-**Task Assignment Rule**: For each task, determine which verification type applies. Only add a skill/MCP reference if you find relevant tools for that specific verification type in plan.md - otherwise omit the reference.
+**Task Assignment Rules**:
+- **TDD**: Write tests FIRST that fail, then implement
+- **E2E Tests**: Add at the END of each user story/fase to validate complete story
+- **VERIFY:BROWSER**: Use ONCE at the end (task T999) for integrated verification - DO NOT distribute across individual user stories
+- Only add skill/MCP reference if you find relevant tools for that specific verification type in plan.md - otherwise omit the reference
 
 ### VERIFY:API - Home Assistant API Verification Steps
 
@@ -49,16 +54,24 @@ When a task has `[VERIFY:API]`, use the homeassistant-ops skill to verify:
 
 **Note**: The agent must verify which endpoints are actually working in the HA instance before substituting these placeholders.
 
-### VERIFY:BROWSER - Playwright Autonomous Navigation Steps
+### VERIFY:BROWSER - Integrated Verification (T999 Only)
 
-When a task has `[VERIFY:BROWSER]`, the agent must navigate autonomously with Playwright:
+**IMPORTANT**: This verification type is used ONLY ONCE at the end of ALL tasks (task T999) for integrated verification of the COMPLETE feature. Do NOT distribute across individual user stories.
 
-1. **Install dependencies**: `npm install && npx playwright install chromium`
-2. **Environment setup**: Ensure `.env` has `HA_URL`, `HA_USERNAME`, `HA_PASSWORD`
-3. **Launch browser**: Use Playwright to navigate to HA URL
-4. **Login flow**: Navigate login page, fill credentials, submit
-5. **Find path to goal**: Navigate through UI elements to reach target
-6. **Verify result**: Check expected elements appear or actions complete
+When task T999 has `[VERIFY:BROWSER]`, the agent must:
+
+1. **Preparation**: Review all implemented features from spec.md
+2. **Optimize test sequence**: Create optimal order of verification steps (e.g., create multiple test objects upfront to reuse for testing multiple features)
+3. **Execute integrated verification**: Navigate through ALL user stories in logical order
+4. **Edge cases**: Test boundary conditions and error scenarios
+5. **Document issues**: If any feature fails, document which task needs fixing
+
+**Example optimized verification flow**:
+```
+FASE 0: Preparación → FASE 1: Crear integración → FASE 2-15: Verificar cada US → FASE FINAL: CRUD completo
+```
+
+**Key principle**: Create several test objects/entities upfront, then use them to test MULTIPLE features efficiently. Don't test one-by-one; maximize coverage with minimum steps.
 
 **Debug Commands** (use when tests fail):
 
@@ -72,7 +85,7 @@ When a task has `[VERIFY:BROWSER]`, the agent must navigate autonomously with Pl
 | `npx playwright test --ui` | Interactive UI mode |
 | `npx playwright test --shard 1/3` | Run specific shard of tests |
 
-**Key difference from [VERIFY:TEST]**: `[VERIFY:BROWSER]` is a navigable user story where the agent must FIND THE PATH autonomously, not a predefined test script.
+**Key difference from [VERIFY:TEST]**: `[VERIFY:BROWSER]` at T999 validates ALL user stories together as an integrated system, not individual stories in isolation.
 
 ## Path Conventions
 
@@ -135,9 +148,9 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1 (TDD + E2E) ⚠️
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Write tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T010 [P] [US1] [VERIFY:TEST] Contract test for [endpoint] in tests/contract/test_[name].py (use: python-testing-patterns)
 - [ ] T011 [P] [US1] [VERIFY:TEST] Integration test for [user journey] in tests/integration/test_[name].py (use: python-testing-patterns)
@@ -151,6 +164,10 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T016 [US1] Add validation and error handling
 - [ ] T017 [US1] [VERIFY:API] Add logging for user story 1 operations
 
+### E2E Validation for User Story 1 (at end of US)
+
+- [ ] T018 [US1] [VERIFY:E2E] Execute E2E test sequence to validate complete user story 1 (use: e2e-testing-patterns)
+
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
 ---
@@ -161,7 +178,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2 (TDD + E2E) ⚠️
 
 - [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
@@ -173,6 +190,10 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
 - [ ] T023 [US2] Integrate with User Story 1 components (if needed)
 
+### E2E Validation for User Story 2 (at end of US)
+
+- [ ] T024 [US2] [VERIFY:E2E] Execute E2E test sequence to validate complete user story 2
+
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
 ---
@@ -183,35 +204,65 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3 (TDD + E2E) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T025 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T026 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T027 [P] [US3] Create [Entity] model in src/models/[entity].py
+- [ ] T028 [US3] Implement [Service] in src/services/[service].py
+- [ ] T029 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+
+### E2E Validation for User Story 3 (at end of US)
+
+- [ ] T030 [US3] [VERIFY:E2E] Execute E2E test sequence to validate complete user story 3
 
 **Checkpoint**: All user stories should now be independently functional
 
 ---
 
-[Add more user story phases as needed, following the same pattern]
+[Add more user story phases as needed, following the same pattern: Tests → Implementation → E2E Validation]
 
 ---
 
-## Phase N: Polish & Cross-Cutting Concerns
+## Phase Final: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
-- [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX Optimize performance across all features
+- [ ] TXXX Add comprehensive error handling
+- [ ] TXXX Implement logging and monitoring
+- [ ] TXXX Code review and refactoring
 - [ ] TXXX Security hardening
-- [ ] TXXX Run quickstart.md validation
+
+---
+
+## Phase Final: Update Documentation
+
+**Purpose**: After everything is verified working, update documentation
+
+- [ ] TXXX Update README.md with new features
+- [ ] TXXX Document API changes in API docs
+- [ ] TXXX Update configuration examples
+- [ ] TXXX Add usage examples and tutorials
+
+---
+
+## Phase Final: Integrated Verification (T999)
+
+- [ ] T999 [VERIFY:BROWSER] Comprehensive integrated verification of ALL features
+
+**Objective**: Validate the COMPLETE feature as an integrated system, not individual components.
+
+**Verification Strategy**:
+1. Create optimal test data upfront (multiple entities/objects to reuse)
+2. Verify all user stories in logical order
+3. Test edge cases and boundary conditions
+4. Document any issues found and which tasks need fixing
+
+**Expected Outcome**: All features working together seamlessly.
 
 ---
 
@@ -225,6 +276,8 @@ Examples of foundational tasks (adjust based on your project):
   - User stories can then proceed in parallel (if staffed)
   - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Final Phase)**: Depends on all desired user stories being complete
+- **Documentation (Final Phase)**: Depends on all features verified working
+- **Integrated Verification (T999)**: Final checkpoint before completion
 
 ### User Story Dependencies
 
