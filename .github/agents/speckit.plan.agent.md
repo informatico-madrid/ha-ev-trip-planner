@@ -39,9 +39,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 | Verification Type | When to Use | Example Command (not a new type!) |
 |------------------|-------------|-----------------------------------|
-| `[VERIFY:TEST]` | tests | `pytest tests/ -v --cov` OR e2e tets `tests/e2e/test-{us}.spec.ts` |
+| `[VERIFY:TEST]` | Unit/integration tests (pytest) OR E2E test creation | `pytest tests/ -v --cov` OR `npx playwright` |
 | `[VERIFY:API]` | REST API verification (curl/MCP to HA) | `curl http://HA/api/states/sensor.xxx` |
-| `[VERIFY:BROWSER]` | Playwright UI automation - final verification | use mcp playwright` |
+| `[VERIFY:BROWSER]` | Playwright UI automation - final verification | use mcp playwright |
 
 **RULES:**
 - ✅ ONLY these 3 types are valid in tasks

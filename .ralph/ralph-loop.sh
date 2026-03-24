@@ -187,6 +187,11 @@ AGENTS:
     goose    - Goose CLI with recipes
     custom   - Set RALPH_CUSTOM_CMD environment variable
 
+TESTING TOOLS:
+    [VERIFY:TEST]  → pytest (unit/integration tests) OR npx playwright (E2E tests)
+    [VERIFY:API]   → homeassistant-ops skill (REST API verification)
+    [VERIFY:BROWSER] → mcp-playwright (browser automation for E2E verification)
+
 VLLM BACKEND (for goose agent):
     When RALPH_VLLM_URL is set, goose will use the OpenAI-compatible
     API at that URL instead of external providers.

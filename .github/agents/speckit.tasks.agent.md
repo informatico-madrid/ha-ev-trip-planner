@@ -189,7 +189,7 @@ Every task MUST strictly follow this format:
    - User Story phases: MUST have story label
    - Polish phase: NO story label
 5. **Verification Type** *(recommended)*: Specify the verification method for this task:
-   - `[VERIFY:TEST]` - Unit/integration tests (pytest, unittest)
+   - `[VERIFY:TEST]` - Unit/integration tests (pytest) OR E2E test creation
    - `[VERIFY:API]` - REST API verification (curl commands to Home Assistant API)
    - `[VERIFY:BROWSER]` - Browser automation (Playwright for HA UI testing)
    - Omit if task doesn't require verification or is not HA-related

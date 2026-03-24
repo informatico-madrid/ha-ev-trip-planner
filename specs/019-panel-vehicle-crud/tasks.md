@@ -114,8 +114,8 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 ### Implementation
 
 - [x] T015 [P] [US6] Expandir panel.js _getVehicleStates() para incluir TODOS los sensores del vehículo [use: homeassistant-config] Nota: Valores N/A no son permitidos. si faltan entidades de sensor crear entidades para que si existan
-- [ ] T016 [US6] Mejorar la UI de sensores en panel.js para mostrar todos los valores legibles [use: homeassistant-dashboard-designer]
-- [ ] T017 [VERIFY:TEST] [US6] Crea y ejecuta tests e2e Verificar que el panel muestra todos los sensores del vehículo
+- [x] T016 [US6] Mejorar la UI de sensores en panel.js para mostrar todos los valores legibles [use: homeassistant-dashboard-designer]
+- [x] T017 [VERIFY:TEST] [US6] Crea y ejecuta tests e2e Verificar que el panel muestra todos los sensores del vehículo
 ---
 
 ## Phase 9: User Story 7 - Panel muestra viajes con UI legible (P1)
