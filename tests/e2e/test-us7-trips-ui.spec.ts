@@ -36,6 +36,14 @@ const PANEL_JS_PATH = path.join(
   'frontend',
   'panel.js'
 );
+// Path to panel.css in the worktree
+const CSS_FILE_PATH = path.join(
+  process.cwd(),
+  'custom_components',
+  'ev_trip_planner',
+  'frontend',
+  'panel.css'
+);
 
 test.describe('US7: Panel muestra los viajes con UI legible', () => {
 
@@ -277,10 +285,7 @@ test.describe('US7: Panel muestra los viajes con UI legible', () => {
 
   // Test 19: Verify CSS styling for trips
   test('should have CSS styles for trip UI', async () => {
-    const panelContent = fs.readFileSync(PANEL_JS_PATH, 'utf-8');
-
-    // Verify CSS includes trip styles (check for style method or inline styles)
-    expect(panelContent).toContain('getStyles(') || expect(panelContent).toContain('Styles()');
+    const cssContent = fs.readFileSync(CSS_FILE_PATH, 'utf-8');
 
     // Verify CSS classes are defined
     const cssClassPatterns = [
@@ -299,7 +304,7 @@ test.describe('US7: Panel muestra los viajes con UI legible', () => {
     ];
 
     for (const pattern of cssClassPatterns) {
-      expect(panelContent).toContain(pattern);
+      expect(cssContent).toContain(pattern);
     }
   });
 
