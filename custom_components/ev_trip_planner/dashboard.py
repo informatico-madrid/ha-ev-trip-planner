@@ -1024,8 +1024,6 @@ async def _save_dashboard_yaml_fallback(
         DashboardImportResult object with success status.
     """
     try:
-        import asyncio
-
         # Validate dashboard config before writing
         if not dashboard_config:
             _LOGGER.error("Dashboard config is empty or None")

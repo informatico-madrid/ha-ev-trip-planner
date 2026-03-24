@@ -1058,7 +1058,6 @@ def register_services(hass: HomeAssistant) -> None:
 
         Returns a dict with vehicle_id, trips, and total count.
         """
-        from homeassistant.core import HomeAssistant
         data = call.data
         vehicle_id = data["vehicle_id"]
         mgr = _get_manager(hass, vehicle_id)

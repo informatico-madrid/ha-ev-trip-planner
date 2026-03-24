@@ -15,7 +15,6 @@ from typing import Any
 
 from homeassistant.components import frontend, panel_custom
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 
