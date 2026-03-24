@@ -352,7 +352,7 @@ class EVTripPlannerPanel extends HTMLElement {
   }
 
   /**
-   * Get list of trips for the vehicle via Home Assistant service call.
+   * Get list of trips for the vehicle via hass.connection.call_service.
    *
    * Calls the ev_trip_planner.trip_list service to retrieve both
    * recurring and punctual trips for the current vehicle.
@@ -373,9 +373,8 @@ class EVTripPlannerPanel extends HTMLElement {
     try {
       console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
 
-      // Use the correct HA API for calling services
-      // Use the correct HA API for calling services
-      const response = await this._hass.services.call('ev_trip_planner', 'trip_list', {
+      // Use hass.connection.call_service for direct service call
+      const response = await this._hass.connection.callService('ev_trip_planner', 'trip_list', {
         vehicle_id: this._vehicleId,
       });
       // Response format: either direct result or wrapped in array/object
@@ -1572,14 +1571,54 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Convert entity ID to human-readable name
+   * Handles multiple naming patterns for better readability
    */
   _entityIdToName(entityId) {
-    // Remove prefix (sensor., binary_sensor., input_number., etc.) and underscores
-    const name = entityId.replace(/^[\w_]+\./, '').replace(/_/g, ' ');
-    return name
+    // Remove prefix (sensor., binary_sensor., input_number., etc.)
+    let name = entityId.replace(/^[\w_]+\./, '');
+
+    // Handle vehicle-specific naming patterns
+    // Remove vehicle_id prefix if present (e.g., "_chispitas_" or "_coche_")
+    const vehiclePatterns = [
+      '_soc_actual', '_battery_level', '_range', '_charging_status',
+      '_charging', '_connection', '_presence', '_state',
+      '_kwh_today', '_hours_today', '_next_trip', '_trips_list',
+      '_recurring_trips_count', '_punctual_trips_count'
+    ];
+
+    for (const pattern of vehiclePatterns) {
+      if (name.toLowerCase().includes(pattern)) {
+        name = name.replace(/_chispitas_/gi, '_').replace(/_coche_/gi, '_');
+        break;
+      }
+    }
+
+    // Convert camelCase to spaces
+    name = name.replace(/([A-Z])/g, ' $1');
+
+    // Replace underscores with spaces
+    name = name.replace(/_/g, ' ');
+
+    // Clean up multiple spaces
+    name = name.replace(/\s+/g, ' ');
+
+    // Title case each word
+    name = name
+      .trim()
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map(word => {
+        // Handle abbreviations and special cases
+        const abbreviations = ['soc', 'kwh', 'ev', 'ha', 'id', 'km', 'dc', 'ac'];
+        const lowerWord = word.toLowerCase();
+        if (abbreviations.includes(lowerWord)) {
+          return lowerWord.toUpperCase();
+        }
+        // Title case normal words
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
       .join(' ');
+
+    return name;
   }
 
   /**
@@ -1679,7 +1718,7 @@ class EVTripPlannerPanel extends HTMLElement {
     const numericValue = parseFloat(value);
     if (!isNaN(numericValue)) {
       value = this._formatNumericValue(numericValue, unit);
-      return unit && !unit.includes('%') ? `${value} ${unit}` : value;
+      return unit ? `${value} ${unit}` : value;
     }
 
     // For text values, return as-is with unit if available
@@ -1700,55 +1739,153 @@ class EVTripPlannerPanel extends HTMLElement {
   }
 
   /**
-   * Format numeric values with appropriate decimal places
+   * Format numeric values with appropriate decimal places based on context
+   * Uses smart formatting rules for better readability
    */
   _formatNumericValue(value, unit) {
-    // Handle percentages
-    if (unit === '%' || (value >= 0 && value <= 100)) {
+    // Handle percentages - always show 1 decimal
+    if (unit === '%' || unit === 'percentage' || (value >= 0 && value <= 100)) {
       return value.toFixed(1) + '%';
     }
 
-    // Handle small values (less than 1) - 2 decimal places
+    // Handle energy-related values (kWh, MWh)
+    if (unit && (unit.includes('kWh') || unit.includes('MWh') || unit.includes('Wh'))) {
+      return value.toFixed(2) + ' ' + unit;
+    }
+
+    // Handle distance values (km, m, mi)
+    if (unit && (unit.includes('km') || unit.includes('mi') || unit.includes('m'))) {
+      if (value < 1) {
+        return value.toFixed(2) + ' ' + unit;
+      }
+      return value.toFixed(1) + ' ' + unit;
+    }
+
+    // Handle power values (kW, W)
+    if (unit && (unit.includes('kW') || unit.includes('W'))) {
+      return value.toFixed(2) + ' ' + unit;
+    }
+
+    // Handle temperature values
+    if (unit && (unit.includes('°C') || unit.includes('°F') || unit === '°')) {
+      return value.toFixed(1) + (unit.includes('°C') ? '°C' : unit.includes('°F') ? '°F' : '°');
+    }
+
+    // Handle small values (< 1) - 3 decimal places for precision
     if (value > 0 && value < 1) {
+      return value.toFixed(3);
+    }
+
+    // Handle values between 1 and 10 - 2 decimal places
+    if (value >= 1 && value < 10) {
       return value.toFixed(2);
     }
 
-    // Handle values between 1 and 1000 - 1 decimal place
-    if (value >= 1 && value < 1000) {
+    // Handle values between 10 and 100 - 1 decimal place
+    if (value >= 10 && value < 100) {
       return value.toFixed(1);
     }
 
-    // Handle large values - 0 decimal places
-    return value.toFixed(0);
+    // Handle values between 100 and 10000 - 1 decimal place
+    if (value >= 100 && value < 10000) {
+      return value.toFixed(1);
+    }
+
+    // Handle large values (>= 10000) - 0 decimal places
+    if (value >= 10000) {
+      return value.toFixed(0);
+    }
+
+    // Default: 1 decimal place for values between 1 and 100
+    return value.toFixed(1);
   }
 
   /**
    * Get sensor icon based on entity type
+   * Returns appropriate emoji icon based on sensor characteristics
    */
   _getSensorIcon(entityId) {
     const name = this._entityIdToName(entityId);
     const lowerName = name.toLowerCase();
 
-    if (lowerName.includes('soc') || lowerName.includes('batería') || lowerName.includes('battery')) {
+    // Energy and power sensors
+    if (lowerName.includes('soc') || lowerName.includes('batería') || lowerName.includes('battery') || lowerName.includes('soc')) {
       return '🔋';
     }
-    if (lowerName.includes('range') || lowerName.includes('rango') || lowerName.includes('distance')) {
+    if (lowerName.includes('range') || lowerName.includes('rango') || lowerName.includes('distance') || lowerName.includes('distancia')) {
       return '📍';
     }
-    if (lowerName.includes('charging') || lowerName.includes('carga')) {
+    if (lowerName.includes('charging') || lowerName.includes('carga') || lowerName.includes('charge')) {
       return '⚡';
     }
-    if (lowerName.includes('kwh') || lowerName.includes('energy')) {
+    if (lowerName.includes('kwh') || lowerName.includes('energy') || lowerName.includes('consumo') || lowerName.includes('consumption')) {
       return '💡';
     }
-    if (lowerName.includes('hour') || lowerName.includes('hora')) {
+    if (lowerName.includes('power') || lowerName.includes('potencia') || lowerName.includes('watt')) {
+      return '💪';
+    }
+    if (lowerName.includes('hour') || lowerName.includes('hora') || lowerName.includes('duration') || lowerName.includes('duración')) {
       return '⏰';
     }
-    if (lowerName.includes('trip') || lowerName.includes('viaje')) {
+    if (lowerName.includes('trip') || lowerName.includes('viaje') || lowerName.includes('trip')) {
       return '🚗';
     }
-    if (lowerName.includes('next')) {
+    if (lowerName.includes('next') || lowerName.includes('siguiente') || lowerName.includes('proximo')) {
       return '🎯';
+    }
+    if (lowerName.includes('temperature') || lowerName.includes('temp') || lowerName.includes('temperatura')) {
+      return '🌡️';
+    }
+    if (lowerName.includes('pressure') || lowerName.includes('presión') || lowerName.includes('pressure')) {
+      return '🌡️';
+    }
+    if (lowerName.includes('speed') || lowerName.includes('velocidad') || lowerName.includes('speed')) {
+      return '🚀';
+    }
+    if (lowerName.includes('light') || lowerName.includes('luz') || lowerName.includes('brightness')) {
+      return '💡';
+    }
+    if (lowerName.includes('lock') || lowerName.includes('cerrado') || lowerName.includes('locked')) {
+      return '🔒';
+    }
+    if (lowerName.includes('cover') || lowerName.includes('persiana') || lowerName.includes('shade')) {
+      return '🪟';
+    }
+    if (lowerName.includes('fan') || lowerName.includes('ventilador') || lowerName.includes('fan')) {
+      return '💨';
+    }
+    if (lowerName.includes('vacuum') || lowerName.includes('aspiradora') || lowerName.includes('robot')) {
+      return '🤖';
+    }
+    if (lowerName.includes('plug') || lowerName.includes('enchufe') || lowerName.includes('connection')) {
+      return '🔌';
+    }
+    if (lowerName.includes('presence') || lowerName.includes('presencia') || lowerName.includes('plug')) {
+      return '👤';
+    }
+    if (lowerName.includes('status') || lowerName.includes('estado') || lowerName.includes('state')) {
+      return '📊';
+    }
+    if (lowerName.includes('count') || lowerName.includes('conteo') || lowerName.includes('total')) {
+      return '🔢';
+    }
+    if (lowerName.includes('switch') || lowerName.includes('interruptor') || lowerName.includes('switch')) {
+      return '🔘';
+    }
+    if (lowerName.includes('door') || lowerName.includes('puerta') || lowerName.includes('door')) {
+      return '🚪';
+    }
+    if (lowerName.includes('window') || lowerName.includes('ventana') || lowerName.includes('window')) {
+      return '🪟';
+    }
+    if (lowerName.includes('motion') || lowerName.includes('movimiento') || lowerName.includes('motion')) {
+      return '🏃';
+    }
+    if (lowerName.includes('water') || lowerName.includes('agua') || lowerName.includes('water')) {
+      return '💧';
+    }
+    if (lowerName.includes('gas') || lowerName.includes('gas') || lowerName.includes('gas')) {
+      return '🔥';
     }
 
     return '📊';
@@ -1934,14 +2071,19 @@ class EVTripPlannerPanel extends HTMLElement {
             ${sensors.map(s => {
               const formattedValue = this._formatSensorValue(s.entityId);
               const entityIdDisplay = s.entityId.split('.').slice(1).join('.');
+              // Use formatted value or show N/A for unavailable
+              const valueDisplay = formattedValue || 'N/A';
               return `
-            <div class="sensor-item" data-entity-id="${s.entityId}">
+            <div class="sensor-item" data-entity-id="${s.entityId}" data-value="${this._escapeHtml(valueDisplay)}">
               <div class="sensor-left">
-                <span class="sensor-icon">${s.icon}</span>
-                <span class="sensor-name" title="${entityIdDisplay}">${s.name}</span>
+                <span class="sensor-icon" title="${this._escapeHtml(entityIdDisplay)}">${s.icon}</span>
+                <div class="sensor-name-container">
+                  <span class="sensor-name">${s.name}</span>
+                  <span class="sensor-entity" title="${this._escapeHtml(entityIdDisplay)}">${this._escapeHtml(entityIdDisplay)}</span>
+                </div>
               </div>
               <div class="sensor-right">
-                <span class="sensor-value">${formattedValue}</span>
+                <span class="sensor-value">${this._escapeHtml(valueDisplay)}</span>
               </div>
             </div>
               `;
@@ -2142,38 +2284,42 @@ class EVTripPlannerPanel extends HTMLElement {
       .status-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+        gap: 16px;
       }
       .status-card {
         background: var(--card-background-color, white);
-        border-radius: 8px;
-        padding: 16px;
+        border-radius: 12px;
+        padding: 20px 16px;
         text-align: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
       }
       .status-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-color: var(--panel-primary-color, #2196f3);
       }
       .status-icon {
-        font-size: 24px;
+        font-size: 32px;
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
       }
       .status-label {
         display: block;
-        font-size: 12px;
-        color: var(--secondary-text-color, #757575);
-        margin-bottom: 4px;
-        text-transform: capitalize;
+        font-size: 13px;
+        color: var(--panel-text-secondary, #757575);
+        margin-bottom: 8px;
+        font-weight: 500;
+        text-transform: none;
       }
       .status-value {
         display: block;
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--primary-color, #03a9f4);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--panel-primary-color, #1976d2);
+        letter-spacing: 0.5px;
       }
       .sensor-list-grouped {
         background: var(--card-background-color, white);
@@ -2188,32 +2334,35 @@ class EVTripPlannerPanel extends HTMLElement {
         margin-bottom: 0;
       }
       .sensor-group-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--primary-color, #03a9f4);
-        margin-bottom: 8px;
-        padding-bottom: 4px;
-        border-bottom: 2px solid var(--primary-color, #03a9f4);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--panel-primary-color, #1976d2);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 3px solid var(--panel-primary-color, #1976d2);
+        letter-spacing: 0.3px;
       }
-      /* Sensor items list styling */
+      /* Sensor items list styling - enhanced for better readability */
       .sensor-items-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
       }
       .sensor-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px;
+        padding: 14px 16px;
         background-color: var(--panel-background, #fafafa);
-        border-radius: 6px;
-        border-left: 3px solid var(--panel-primary-color, #2196f3);
-        transition: background-color 0.2s, transform 0.2s;
+        border-radius: 8px;
+        border-left: 4px solid var(--panel-primary-color, #2196f3);
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       .sensor-item:hover {
         background-color: var(--panel-primary-light, #e3f2fd);
         transform: translateX(4px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       .sensor-item:active {
         transform: translateX(0);
@@ -2226,38 +2375,55 @@ class EVTripPlannerPanel extends HTMLElement {
         min-width: 0;
       }
       .sensor-icon {
-        font-size: 18px;
-        width: 24px;
+        font-size: 20px;
+        width: 28px;
         text-align: center;
+        flex-shrink: 0;
+      }
+      .sensor-name-container {
+        flex: 1;
+        min-width: 0;
       }
       .sensor-name {
-        flex: 1;
-        font-size: 14px;
+        display: block;
+        font-size: 15px;
         color: var(--panel-text-primary, #212121);
-        font-weight: 500;
+        font-weight: 600;
+        margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sensor-entity {
+        display: block;
+        font-size: 11px;
+        color: var(--panel-text-secondary, #757575);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .sensor-right {
         flex-shrink: 0;
+        margin-left: 16px;
       }
       .sensor-value {
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 16px;
+        font-weight: 700;
         color: var(--panel-primary-color, #1976d2);
         white-space: nowrap;
-        min-width: 80px;
+        min-width: 100px;
         text-align: right;
-        padding: 4px 8px;
-        background-color: rgba(33, 150, 243, 0.08);
-        border-radius: 4px;
+        padding: 6px 10px;
+        background-color: rgba(33, 150, 243, 0.1);
+        border-radius: 6px;
+        letter-spacing: 0.3px;
       }
       .sensor-item[data-state="unavailable"] .sensor-value,
       .sensor-item[data-state="unknown"] .sensor-value,
-      .sensor-item[data-state="no disponible"] .sensor-value {
-        color: var(--panel-text-secondary, #757575);
+      .sensor-item .sensor-value:contains("N/A") {
+        color: var(--panel-text-secondary, #9e9e9e);
         font-style: italic;
+        font-weight: 500;
       }
       .no-sensors {
         text-align: center;
