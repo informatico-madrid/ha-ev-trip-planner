@@ -65,12 +65,20 @@ class EVTripPlannerPanel extends HTMLElement {
     console.log('EV Trip Planner Panel: Marked _pollStarted=true');
 
     // CRITICAL: Get vehicle_id from URL as early as possible - ALWAYS do this FIRST
-    // URL format: /ev-trip-planner-{vehicle_id}
-    const path = window.location.pathname;
+    // URL format: /ev-trip-planner-{vehicle_id} or /panel/ev-trip-planner-{vehicle_id}
+    let path = window.location.pathname;
     console.log('EV Trip Planner Panel: === URL EXTRACTION ===');
     console.log('EV Trip Planner Panel: full URL:', window.location.href);
     console.log('EV Trip Planner Panel: pathname:', path);
     console.log('EV Trip Planner Panel: hash:', window.location.hash);
+
+    // Normalize path - remove /panel prefix if present (HA panel_custom adds this)
+    let normalizationMethod = 'none';
+    if (path.startsWith('/panel/')) {
+      path = path.substring(7);
+      normalizationMethod = 'removed /panel/ prefix';
+      console.log('EV Trip Planner Panel: Normalized path:', path, '(', normalizationMethod, ')');
+    }
 
     // Method 1: Simple split approach (most reliable)
     if (path.includes('ev-trip-planner-')) {
@@ -81,7 +89,7 @@ class EVTripPlannerPanel extends HTMLElement {
         console.log('EV Trip Planner Panel: potentialId from split:', potentialId);
         if (potentialId) {
           this._vehicleId = potentialId;
-          console.log('EV Trip Planner Panel: ✓ vehicle_id from split:', this._vehicleId);
+          console.log('EV Trip Planner Panel: ✓ vehicle_id from split:', this._vehicleId, '(', normalizationMethod || 'direct', ')');
         }
       }
     }
@@ -92,7 +100,7 @@ class EVTripPlannerPanel extends HTMLElement {
       console.log('EV Trip Planner Panel: regex match:', match);
       if (match && match[1]) {
         this._vehicleId = match[1];
-        console.log('EV Trip Planner Panel: ✓ vehicle_id from regex:', this._vehicleId);
+        console.log('EV Trip Planner Panel: ✓ vehicle_id from regex:', this._vehicleId, '(', normalizationMethod || 'direct', ')');
       }
     }
 
@@ -1749,9 +1757,8 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Format sensor value with unit - improved for readability
-   * Returns undefined for unavailable/unknown states to filter them out
+   * Returns "N/A" for unavailable/unknown states instead of filtering
    * Formats numbers with appropriate decimal places based on value type
-   * Only returns valid, non-N/A values - N/A values are filtered out
    */
   _formatSensorValue(entityId) {
     const states = this._hass?.states || {};
@@ -1763,10 +1770,10 @@ class EVTripPlannerPanel extends HTMLElement {
     const unit = this._getUnit(entityId);
     let value = state.state;
 
-    // Handle unavailable/unknown states - return null to filter them out
+    // Handle unavailable/unknown states - return "N/A" instead of filtering
     if (value === 'unavailable' || value === 'unknown' || value === 'N/A' || value === 'none' || value === '' || value === null) {
-      console.log(`EV Trip Planner Panel: Filtering sensor ${entityId} with value: ${value}`);
-      return null; // Filter out unavailable/unknown sensors
+      console.log(`EV Trip Planner Panel: Sensor ${entityId} has value: ${value} -> showing "N/A"`);
+      return 'N/A'; // Show "N/A" for unavailable/unknown sensors
     }
 
     // Check if it's a boolean value (binary sensor)

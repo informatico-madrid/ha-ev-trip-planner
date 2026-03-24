@@ -11,7 +11,9 @@
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": false,
-  "awaitingApproval": true,
+  "awaitingApproval": false,
+  "implementationComplete": true,
+  "readyForDeployment": true,
   "discoveredSkills": [
     {
       "name": "ralph-specum:research",
