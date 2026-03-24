@@ -689,45 +689,50 @@ class EVTripPlannerPanel extends HTMLElement {
     // Trip ID for form handling
     const tripIdForForm = trip.id || trip.trip_id || trip.tripId || trip.trip_id || trip.id || trip.id || 'unknown';
 
-    // Build action buttons based on trip type and status
+    // Build action buttons grouped by category
     let actionButtons = `
-          <button class="trip-action-btn edit-btn" onclick="window._tripPanel._handleEditClick(event)" title="Editar viaje">
-            ✏️ Editar
-          </button>
-          <button class="trip-action-btn delete-btn" onclick="window._tripPanel._handleDeleteClick(event)" title="Eliminar viaje">
-            🗑️ Eliminar
-          </button>
+          <!-- Universal Actions -->
+          <div class="trip-action-group universal-actions">
+            <button class="trip-action-btn edit-btn" onclick="window._tripPanel._handleEditClick(event)" title="Editar viaje">
+              ✏️ Editar
+            </button>
+            <button class="trip-action-btn delete-btn" onclick="window._tripPanel._handleDeleteClick(event)" title="Eliminar viaje">
+              🗑️ Eliminar
+            </button>
+          </div>
     `;
 
-    // Add pause/resume buttons for recurring trips
+    // Add status action buttons based on trip type and status
     if (isRecurring) {
-      if (isActive) {
-        actionButtons += `
-          <button class="trip-action-btn pause-btn" onclick="window._tripPanel._handlePauseTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Pausar viaje">
-            ⏸️ Pausar
-          </button>
-        `;
-      } else {
-        actionButtons += `
-          <button class="trip-action-btn resume-btn" onclick="window._tripPanel._handleResumeTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Reanudar viaje">
-            ▶️ Reanudar
-          </button>
-        `;
-      }
+      actionButtons += `
+          <!-- Recurring Trip Status Actions -->
+          <div class="trip-action-group status-actions">
+            ${isActive ? `
+              <button class="trip-action-btn pause-btn" onclick="window._tripPanel._handlePauseTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Pausar viaje">
+                ⏸️ Pausar
+              </button>
+            ` : `
+              <button class="trip-action-btn resume-btn" onclick="window._tripPanel._handleResumeTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Reanudar viaje">
+                ▶️ Reanudar
+              </button>
+            `}
+          </div>
+      `;
     }
 
     // Add complete/cancel buttons for punctual trips
-    if (isPunctual) {
-      if (isActive) {
-        actionButtons += `
-          <button class="trip-action-btn complete-btn" onclick="window._tripPanel._handleCompletePunctualTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Completar viaje">
-            ✅ Completar
-          </button>
-          <button class="trip-action-btn cancel-btn" onclick="window._tripPanel._handleCancelPunctualTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Cancelar viaje">
-            ❌ Cancelar
-          </button>
-        `;
-      }
+    if (isPunctual && isActive) {
+      actionButtons += `
+          <!-- Punctual Trip Status Actions -->
+          <div class="trip-action-group status-actions">
+            <button class="trip-action-btn complete-btn" onclick="window._tripPanel._handleCompletePunctualTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Completar viaje">
+              ✅ Completar
+            </button>
+            <button class="trip-action-btn cancel-btn" onclick="window._tripPanel._handleCancelPunctualTrip(event, '${this._escapeHtml(tripIdForForm)}')" title="Cancelar viaje">
+              ❌ Cancelar
+            </button>
+          </div>
+      `;
     }
 
     return `
@@ -747,7 +752,12 @@ class EVTripPlannerPanel extends HTMLElement {
         </div>
         <div class="trip-id">ID: ${this._escapeHtml(tripId)}</div>
         <div class="trip-actions">
-          ${actionButtons}
+          <div class="action-group-header">
+            <span class="trip-action-group-label">Acciones</span>
+            <div class="action-buttons-container">
+              ${actionButtons}
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -2103,7 +2113,10 @@ class EVTripPlannerPanel extends HTMLElement {
         <main class="panel-content">
           ${statusCards ? `
           <div class="status-section">
-            <h2>Vehicle Status</h2>
+            <h2 class="section-title">
+              <span class="section-icon">📊</span>
+              <span class="section-title-text">Vehicle Status</span>
+            </h2>
             <div class="status-grid">
               ${statusCards}
             </div>
@@ -2111,7 +2124,10 @@ class EVTripPlannerPanel extends HTMLElement {
           ` : ''}
           <div class="sensors-section">
             ${Object.values(filteredGroupedSensors).some(s => s.length > 0) ? `
-              <h2>Available Sensors (${Object.values(filteredGroupedSensors).reduce((sum, s) => sum + s.length, 0)})</h2>
+              <h2 class="section-title">
+                <span class="section-icon">📡</span>
+                <span class="section-title-text">Available Sensors (${Object.values(filteredGroupedSensors).reduce((sum, s) => sum + s.length, 0)})</span>
+              </h2>
               <div class="sensor-list-grouped">
                 ${sensorListHtml || '<p class="no-sensors">No valid sensors found</p>'}
               </div>
@@ -2119,7 +2135,10 @@ class EVTripPlannerPanel extends HTMLElement {
           </div>
           <div class="trips-section">
             <div class="trips-header">
-              <h2>Viajes Programados</h2>
+              <h2 class="section-title">
+                <span class="section-icon">📅</span>
+                <span class="section-title-text">Viajes Programados</span>
+              </h2>
               <button class="add-trip-btn" onclick="window._tripPanel._showTripForm()">
                 + Agregar Viaje
               </button>
