@@ -9,7 +9,9 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { TripPanel } from './test-base.spec';
+
+const HA_URL = 'http://192.168.1.100:18123';
+const VEHICLE_ID = 'Coche2';
 
 test.describe('EV Trip Planner Trip List Loading', () => {
 
@@ -17,10 +19,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify trips section is displayed
    */
   test('should display trips section', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Verify trips section exists
     const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
@@ -31,10 +39,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify trips section header
    */
   test('should show trips header with correct text', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for trips header
     const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
@@ -49,10 +63,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify add trip button is visible
    */
   test('should show add trip button', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for add trip button
     const addTripButton = page.locator('ev-trip-planner-panel >> .add-trip-btn');
@@ -63,10 +83,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify trips list structure when trips exist
    */
   test('should display trips list structure', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for trips list container
     const tripsList = page.locator('ev-trip-planner-panel >> .trips-list');
@@ -79,10 +105,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify trip cards have correct structure
    */
   test('should display trip cards with correct structure', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for trip cards
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
@@ -113,10 +145,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify trip card content format
    */
   test('should display trip card with correct content format', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for trip cards
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
@@ -137,10 +175,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify no trips message when empty
    */
   test('should show no trips message when no trips exist', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for trips section
     const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
@@ -158,10 +202,16 @@ test.describe('EV Trip Planner Trip List Loading', () => {
    * Test: Verify dynamic trip card rendering
    */
   test('should render dynamic trip card content', async ({ page }) => {
-    // Setup: Login and navigate to panel
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Get trip cards
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');

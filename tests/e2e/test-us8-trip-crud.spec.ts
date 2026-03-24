@@ -15,15 +15,24 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { TripPanel } from './test-base.spec';
+
+const HA_URL = 'http://192.168.1.100:18123';
+const VEHICLE_ID = 'Coche2';
 
 test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () => {
   // ============================================
   // REAL TESTS - Create trip through actual browser interaction
   test('should click "Agregar Viaje" button and open form', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // REAL INTERACTION: Click the add trip button
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -34,9 +43,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should create a recurring trip through the form', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Click add trip button
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -65,9 +81,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should create a punctual trip through the form', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Click add trip button
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -97,9 +120,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // REAL TESTS - Verify trips are displayed
   test('should display trips header with count', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Verify trips header is visible
     const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
@@ -111,9 +141,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should display "No hay viajes programados" when no trips exist', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Check for no trips message
     const noTripsElement = page.locator('ev-trip-planner-panel >> .no-trips');
@@ -126,9 +163,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // REAL TESTS - Edit trip
   test('should show edit button on trip cards', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Click add trip to create one first
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -152,9 +196,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // REAL TESTS - Delete trip
   test('should delete a trip', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // First create a trip
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -180,9 +231,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // REAL TESTS - Pause/Resume and Complete/Cancel buttons
   test('should show pause button on recurring trips', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const pauseBtns = page.locator('ev-trip-planner-panel >> .pause-btn');
     const count = await pauseBtns.count();
@@ -190,9 +248,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should show resume button on paused trips', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const resumeBtns = page.locator('ev-trip-planner-panel >> .resume-btn');
     const count = await resumeBtns.count();
@@ -200,9 +265,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should show complete button on punctual trips', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const completeBtns = page.locator('ev-trip-planner-panel >> .complete-btn');
     const count = await completeBtns.count();
@@ -210,9 +282,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should show cancel button on punctual trips', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const cancelBtns = page.locator('ev-trip-planner-panel >> .cancel-btn');
     const count = await cancelBtns.count();
@@ -222,9 +301,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // INTEGRATION TESTS
   test('should have complete CRUD integration flow', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Verify all CRUD buttons are present
     const addBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
@@ -238,9 +324,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // VISUAL FEEDBACK TESTS
   test('should show success feedback after trip creation', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Create a trip
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -262,9 +355,16 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   });
 
   test('should handle form cleanup after submission', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     // Open form
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
@@ -292,18 +392,32 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
   // ============================================
   // VISUAL ELEMENTS TESTS
   test('should display trip type badges with emoji icons', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const tripTypeBadges = page.locator('ev-trip-planner-panel >> .trip-type');
     expect(tripTypeBadges.count() >= 0).toBe(true);
   });
 
   test('should display status badges', async ({ page }) => {
-    const tripPanel = new TripPanel(page, 'Coche2');
-    await tripPanel.login();
-    await tripPanel.navigateToPanel();
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+
+    // Wait for panel to be ready
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
 
     const statusActive = page.locator('ev-trip-planner-panel >> .status-active');
     const statusInactive = page.locator('ev-trip-planner-panel >> .status-inactive');
