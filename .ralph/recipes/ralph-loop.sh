@@ -31,18 +31,27 @@
 set -euo pipefail
 
 # ============================================================================
-# Load Environment Variables (for MCP tools like homeassistant-ops)
-# ============================================================================
-if [[ -f "$HOME/.env" ]]; then
-    source "$HOME/.env"
-fi
-
-# ============================================================================
-# Configuration
+# Load Environment Variables (project scope only)
 # ============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RALPH_DIR="$SCRIPT_DIR"
+
+if [[ -f "$PROJECT_DIR/.env" ]]; then
+    source "$PROJECT_DIR/.env"
+fi
+
+# Ensure E2E mock credentials are always available
+HA_URL="${HA_URL:-http://localhost:18123}"
+HA_USER="${HA_USER:-${HA_USERNAME:-tests}}"
+HA_USERNAME="${HA_USERNAME:-$HA_USER}"
+HA_PASSWORD="${HA_PASSWORD:-tests}"
+
+export HA_URL HA_USER HA_USERNAME HA_PASSWORD
+
+# ============================================================================
+# Configuration
+# ============================================================================
 
 RALPH_AGENT="${RALPH_AGENT:-claude}"
 CLAUDE_CMD="${CLAUDE_CMD:-$PROJECT_DIR/run-claude-minimax.sh}"
