@@ -682,10 +682,23 @@ $(cat "$github_context_path")
         worktree_section="
 ## ⚠ WORKTREE MODE — MANDATORY CONSTRAINTS
 
-**FIRST ACTION**: Run this command IMMEDIATELY at the start of your session:
+**FIRST ACTION REQUIRED**: Before doing ANYTHING, switch to the correct branch:
+```bash
+git checkout $WORKTREE_BRANCH
 ```
-cd $WORKTREE_PATH
+
+This is CRITICAL - you MUST be on branch `$WORKTREE_BRANCH` not `main`!
+
+After switching branches, verify with:
+```bash
+git branch --show-current
 ```
+This should output: `$WORKTREE_BRANCH`
+
+**CRITICAL FIX**: The ralph-loop.sh script now forces cd to worktree before executing Claude.
+All file operations will happen in: $WORKTREE_PATH
+
+**Verify you are in worktree**: Run `pwd` - should show: $WORKTREE_PATH
 
 - Your working directory is: $WORKTREE_PATH
 - **ALL file reads and writes MUST use $WORKTREE_PATH as base**
