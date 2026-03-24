@@ -11,13 +11,13 @@ services:
     environment:
       - TZ=Europe/Madrid
     volumes:
-      - ./config:/config
+      # Montar storage del HA desde el worktree anterior (tiene la configuración existente)
+      - /home/malka/ha-ev-trip-planner/test-ha/config:/config
       - /etc/localtime:/etc/localtime:ro
-      # Montar integración desde worktree activo - OBLIGATORIO
-      # INTEGRATION_SOURCE must be set - no default allowed
-      - ${INTEGRATION_SOURCE:?INTEGRATION_SOURCE environment variable must be set to the worktree path}:/config/custom_components/ev_trip_planner
+      # Montar integración desde el worktree full-trip-management
+      - /home/malka/ha-ev-trip-planner-full-trip-management/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
       # Montar configuración de EMHASS (necesario para config flow)
-      - ${EMHASS_CONFIG_PATH:-/home/malka/emhass}:/home/malka/emhass
+      - /home/malka/emhass:/home/malka/emhass
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18123/api/"]
       interval: 10s

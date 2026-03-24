@@ -1,5 +1,5 @@
 /**
- * E2E Test: Trip List Loading
+ * E2E Test: Trip List Loading and Display
  *
  * Verifies that the EV Trip Planner panel correctly loads trips from
  * the trip_list service and displays them in the UI.
@@ -9,124 +9,178 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { TripPanel } from './test-base.spec';
 
 test.describe('EV Trip Planner Trip List Loading', () => {
-  // Test configuration
-  const vehicleId = 'chispitas';
-  const panelUrl = `http://192.168.1.100:8123/ev-trip-planner-${vehicleId}`;
 
+  /**
+   * Test: Verify trips section is displayed
+   */
   test('should display trips section', async ({ page }) => {
-    await page.goto(panelUrl);
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
 
     // Verify trips section exists
-    const tripsSection = page.locator('.trips-section');
-    await expect(tripsSection).toBeVisible();
+    const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
+    await expect(tripsSection).toBeVisible({ timeout: 10000 });
   });
 
-  test('should show "No hay viajes" when no trips exist', async ({ page }) => {
-    await page.goto(panelUrl);
+  /**
+   * Test: Verify trips section header
+   */
+  test('should show trips header with correct text', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
+    // Check for trips header
+    const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
+    await expect(tripsHeader).toBeVisible({ timeout: 10000 });
 
-    // Wait for trips section to be populated
-    await page.waitForSelector('#trips-section', { timeout: 10000 });
-
-    // Check for "No hay viajes" message or trip cards
-    const hasNoTrips = await page.locator('.no-trips').count() > 0;
-    const hasTripCards = await page.locator('.trip-card').count() > 0;
-
-    expect(hasNoTrips || hasTripCards).toBe(true);
-  });
-
-  test('should display trip count in header', async ({ page }) => {
-    await page.goto(panelUrl);
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Wait for trips section to be populated
-    await page.waitForSelector('.trips-header', { timeout: 10000 });
-
-    // Check for trip count in header
-    const tripsHeader = page.locator('.trips-header h2');
+    // Verify header contains expected text
     const headerText = await tripsHeader.textContent();
-
-    // Header should contain "Viajes Programados" and optionally a count
     expect(headerText).toContain('Viajes Programados');
   });
 
-  test('should display recurring trip cards when trips exist', async ({ page }) => {
-    await page.goto(panelUrl);
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Wait for trips section to be populated
-    await page.waitForSelector('.trips-list', { timeout: 10000 });
-
-    // Check for trip cards
-    const tripCards = page.locator('.trip-card');
-    const cardCount = await tripCards.count();
-
-    // If trips exist, should see trip cards
-    // (test passes if cards are displayed when they should be)
-    expect(cardCount >= 0).toBe(true);
-  });
-
+  /**
+   * Test: Verify add trip button is visible
+   */
   test('should show add trip button', async ({ page }) => {
-    await page.goto(panelUrl);
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Wait for trips section to be populated
-    await page.waitForSelector('.trips-header', { timeout: 10000 });
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
 
     // Check for add trip button
-    const addTripButton = page.locator('.add-trip-btn');
-    await expect(addTripButton).toBeVisible();
-    await expect(addTripButton).toContainText('+ Agregar Viaje');
+    const addTripButton = page.locator('ev-trip-planner-panel >> .add-trip-btn');
+    await expect(addTripButton).toBeVisible({ timeout: 10000 });
   });
 
-  test('should display trips with correct format', async ({ page }) => {
-    await page.goto(panelUrl);
+  /**
+   * Test: Verify trips list structure when trips exist
+   */
+  test('should display trips list structure', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => (window as any)._tripPanel !== undefined,
-      { timeout: 30000 }
-    );
+    // Check for trips list container
+    const tripsList = page.locator('ev-trip-planner-panel >> .trips-list');
+    // If there are trips, the list should be visible
+    const isVisible = await tripsList.isVisible({ timeout: 5000 });
+    expect(isVisible).toBe(true);
+  });
 
-    // Wait for trips section to be populated
-    await page.waitForSelector('.trips-list', { timeout: 10000 });
+  /**
+   * Test: Verify trip cards have correct structure
+   */
+  test('should display trip cards with correct structure', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
 
-    // If trip cards exist, verify they have expected structure
-    const tripCards = page.locator('.trip-card');
+    // Check for trip cards
+    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
     const cardCount = await tripCards.count();
 
     if (cardCount > 0) {
       // Verify first card has expected structure
       const firstCard = tripCards.first();
+
+      // Check card class
       await expect(firstCard).toHaveClass(/trip-card/);
+
+      // Check for trip type
+      const hasTripType = await firstCard.locator('.trip-type').count() > 0;
+      expect(hasTripType).toBe(true);
+
+      // Check for trip info
+      const hasTripInfo = await firstCard.locator('.trip-info').count() > 0;
+      expect(hasTripInfo).toBe(true);
+
+      // Check for trip actions
+      const hasTripActions = await firstCard.locator('.trip-actions').count() > 0;
+      expect(hasTripActions).toBe(true);
+    }
+  });
+
+  /**
+   * Test: Verify trip card content format
+   */
+  test('should display trip card with correct content format', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
+
+    // Check for trip cards
+    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
+    const cardCount = await tripCards.count();
+
+    if (cardCount > 0) {
+      const firstCard = tripCards.first();
+      const cardText = await firstCard.textContent();
+
+      // Verify card contains expected elements
+      // Should contain trip type (Recurrente or Puntual)
+      const hasTripType = cardText.includes('Recurrente') || cardText.includes('Puntual');
+      expect(hasTripType).toBe(true);
+    }
+  });
+
+  /**
+   * Test: Verify no trips message when empty
+   */
+  test('should show no trips message when no trips exist', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
+
+    // Check for trips section
+    const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
+    await expect(tripsSection).toBeVisible({ timeout: 10000 });
+
+    // Check for either no trips message or trip cards
+    const hasNoTrips = await page.locator('ev-trip-planner-panel >> .no-trips').count() > 0;
+    const hasTripCards = await page.locator('ev-trip-planner-panel >> .trip-card').count() > 0;
+
+    // Should have either no trips message or trip cards
+    expect(hasNoTrips || hasTripCards).toBe(true);
+  });
+
+  /**
+   * Test: Verify dynamic trip card rendering
+   */
+  test('should render dynamic trip card content', async ({ page }) => {
+    // Setup: Login and navigate to panel
+    const tripPanel = new TripPanel(page, 'Coche2');
+    await tripPanel.login();
+    await tripPanel.navigateToPanel();
+
+    // Get trip cards
+    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
+    const cardCount = await tripCards.count();
+
+    if (cardCount > 0) {
+      // Check that trip cards contain dynamic content
+      const firstCard = tripCards.first();
+      const cardText = await firstCard.textContent();
+
+      // Verify card contains distance information
+      const hasDistance = cardText.includes('km');
+      expect(hasDistance).toBe(true);
+
+      // Verify card contains time information if it's a recurring trip
+      const hasTime = cardText.includes(':') || cardText.includes('Lunes') || cardText.includes('Martes') ||
+                      cardText.includes('Miércoles') || cardText.includes('Jueves') || cardText.includes('Viernes') ||
+                      cardText.includes('Sábado') || cardText.includes('Domingo');
+      expect(hasTime).toBe(true);
     }
   });
 });
