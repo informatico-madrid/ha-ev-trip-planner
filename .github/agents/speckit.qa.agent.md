@@ -147,29 +147,34 @@ If panel rendering fails for all vehicle creation tasks:
 
 When you document an ERROR in a task, you MUST automatically add this section at the end of that task:
 
+**FORMATTING RULE FOR tasks.md (CRITICAL)**:
+- Use checkbox markers (`- [ ]` or `- [x]`) ONLY for real task rows that start with a task ID (`T001`, `T002`, etc.).
+- In subsections (ERROR details, evidence, test requirements, notes), use plain bullets (`-` or `*`) without checkbox markers.
+- NEVER add nested checkbox bullets under "Tests E2E Requeridos".
+
 ### Tests E2E Requeridos para Capturar ESTE Error Específico
-- [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
-- [ ] El test DEBE verificar exactamente lo que falló:
+- Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+- El test DEBE verificar exactamente lo que falló:
   * Si el error es "Panel no renderiza": Test debe verificar innerHTML.includes('vehicleId') !== ''
   * Si el error es "vehicle_id incorrecto": Test debe verificar vehicleId === 'correct-id'
   * Si el error es "Sensores faltantes": Test debe verificar todos los sensores esperados presentes
   * Si el error es "UI vacía": Test debe verificar elementos visibles en DOM (innerHTML.length > 0)
   * Si el error es "Botón no funciona": Test debe verificar click() y estado resultante
-- [ ] Test debe incluir obligatoriamente:
+- Test debe incluir obligatoriamente:
   * Navegación con cache buster: `?v=' + Date.now()`
   * Verificación del estado esperado usando assertions específicos
   * Captura de screenshot si hay UI problemática
   * Logs de consola JavaScript para debugging
   * Selector CSS específico del elemento que falla
-- [ ] Ubicación: tests/e2e/test_[feature].py
+- Ubicación: tests/e2e/test_[feature].py
 
 **IMPORTANT**: Cada error documentado DEBE tener un test E2E asociado que capture específicamente ese error.
 Si NO agregas esta sección, la tarea NO puede marcarse como completa.
 
 ### MANDATORY CHECKLIST BEFORE MARKING COMPLETE:
-[ ] ¿Documenté errores en todas las tareas afectadas?
-[ ] ¿Agregué la sección "Tests E2E Requeridos" en CADA tarea con error?
-[ ] ¿Los tests E2E son específicos para capturar ESTE error exacto?
-[ ] ¿Si NO completé estos puntos → NO emitir TASK_COMPLETE?
+- ¿Documenté errores en todas las tareas afectadas?
+- ¿Agregué la sección "Tests E2E Requeridos" en CADA tarea con error?
+- ¿Los tests E2E son específicos para capturar ESTE error exacto?
+- ¿Si NO completé estos puntos → NO emitir TASK_COMPLETE?
 
 System Directive: Regardless of your specific role, you MUST strictly adhere to the global AI operational rules, MCP tool usage (Qdrant), and memory management policies defined in .specify/memory/workflow-stack.md.
