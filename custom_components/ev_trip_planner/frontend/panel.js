@@ -1351,6 +1351,7 @@ class EVTripPlannerPanel extends HTMLElement {
   /**
    * Subscribe to Home Assistant state changes for ALL vehicle sensors
    * Listens to state changes for all sensor patterns associated with this vehicle
+   * Ensures real-time updates for all vehicle-related entities
    */
   _subscribeToStates() {
     if (!this._hass) {
@@ -1361,10 +1362,37 @@ class EVTripPlannerPanel extends HTMLElement {
     // Normalize vehicle_id to lowercase for matching (sensors are lowercase)
     const lowerVehicleId = this._vehicleId.toLowerCase();
 
-    // Define all patterns to match vehicle sensors
+    // Define ALL patterns to match vehicle sensors and entities
+    // This ensures we capture state changes for all entity types associated with the vehicle
     const patterns = [
+      // Standard entity types
       `sensor.${lowerVehicleId}_`,
-      `sensor.ev_trip_planner_${lowerVehicleId}_`
+      `binary_sensor.${lowerVehicleId}_`,
+      `input_number.${lowerVehicleId}_`,
+      `input_boolean.${lowerVehicleId}_`,
+      `climate.${lowerVehicleId}_`,
+      `cover.${lowerVehicleId}_`,
+      `number.${lowerVehicleId}_`,
+      `switch.${lowerVehicleId}_`,
+      `light.${lowerVehicleId}_`,
+      `fan.${lowerVehicleId}_`,
+      `vacuum.${lowerVehicleId}_`,
+      `lock.${lowerVehicleId}_`,
+      `media_player.${lowerVehicleId}_`,
+      `device_tracker.${lowerVehicleId}_`,
+      `weather.${lowerVehicleId}_`,
+      `alarm_control_panel.${lowerVehicleId}_`,
+      // EV Trip Planner specific entity types
+      `sensor.ev_trip_planner_${lowerVehicleId}_`,
+      `binary_sensor.ev_trip_planner_${lowerVehicleId}_`,
+      `input_number.ev_trip_planner_${lowerVehicleId}_`,
+      `input_boolean.ev_trip_planner_${lowerVehicleId}_`,
+      `climate.ev_trip_planner_${lowerVehicleId}_`,
+      `cover.ev_trip_planner_${lowerVehicleId}_`,
+      `number.ev_trip_planner_${lowerVehicleId}_`,
+      `switch.ev_trip_planner_${lowerVehicleId}_`,
+      `light.ev_trip_planner_${lowerVehicleId}_`,
+      `fan.ev_trip_planner_${lowerVehicleId}_`,
     ];
 
     // Subscribe to all state changes for vehicle sensors
@@ -1376,6 +1404,8 @@ class EVTripPlannerPanel extends HTMLElement {
           const matchesPattern = patterns.some(pattern => entityId.startsWith(pattern));
           if (matchesPattern) {
             console.log('EV Trip Planner Panel: State changed for', entityId);
+            // Trigger update to refresh the sensor display
+            this._update();
           }
         }
       },
@@ -1396,38 +1426,89 @@ class EVTripPlannerPanel extends HTMLElement {
   /**
    * Get ALL vehicle sensor states - includes all vehicle-related sensors
    * Captures sensors from multiple patterns to ensure all vehicle data is shown
-   * Includes: sensor.*, binary_sensor.*, and all vehicle-specific sensors
+   * Includes: sensor.*, binary_sensor.*, input_number.*, input_boolean.*, climate.*, cover.*, number.*, switch.*
+   * and all vehicle-specific sensor patterns for EV Trip Planner
+   *
+   * @returns {Object} Object with entity IDs as keys and state objects as values
    */
   _getVehicleStates() {
     if (!this._hass || !this._hass.states) {
       console.log('EV Trip Planner Panel: No hass.states available');
       return {};
     }
+
     const states = this._hass.states;
     const result = {};
 
     // Normalize vehicle_id to lowercase for matching (sensors are lowercase)
     const lowerVehicleId = this._vehicleId.toLowerCase();
 
-    // Define all patterns to capture vehicle sensors
-    // Include all entity types: sensor, binary_sensor, input_number, input_boolean
-    // Pattern 1: sensor.{vehicle_id}_{sensor_name} - direct vehicle sensors
-    // Pattern 2: binary_sensor.{vehicle_id}_{sensor_name} - binary sensors (charging, etc.)
-    // Pattern 3: input_number.{vehicle_id}_{sensor_name} - numeric inputs
-    // Pattern 4: input_boolean.{vehicle_id}_{sensor_name} - boolean inputs
-    // Pattern 5: sensor.ev_trip_planner_{vehicle_id}_{sensor_name} - EV Trip Planner sensors
-    // Pattern 6: binary_sensor.ev_trip_planner_{vehicle_id}_{sensor_name} - EV Trip Planner binary sensors
+    // Define all patterns to capture ALL vehicle sensors and entities
+    // This ensures comprehensive coverage of all entity types associated with the vehicle
     const patterns = [
+      // Standard Home Assistant entity types for vehicle sensors
+      `sensor.${lowerVehicleId}`,
       `sensor.${lowerVehicleId}_`,
+      `binary_sensor.${lowerVehicleId}`,
       `binary_sensor.${lowerVehicleId}_`,
+      `input_number.${lowerVehicleId}`,
       `input_number.${lowerVehicleId}_`,
+      `input_boolean.${lowerVehicleId}`,
       `input_boolean.${lowerVehicleId}_`,
+      `climate.${lowerVehicleId}`,
+      `climate.${lowerVehicleId}_`,
+      `cover.${lowerVehicleId}`,
+      `cover.${lowerVehicleId}_`,
+      `number.${lowerVehicleId}`,
+      `number.${lowerVehicleId}_`,
+      `switch.${lowerVehicleId}`,
+      `switch.${lowerVehicleId}_`,
+      `light.${lowerVehicleId}`,
+      `light.${lowerVehicleId}_`,
+      `fan.${lowerVehicleId}`,
+      `fan.${lowerVehicleId}_`,
+      `vacuum.${lowerVehicleId}`,
+      `vacuum.${lowerVehicleId}_`,
+      `lock.${lowerVehicleId}`,
+      `lock.${lowerVehicleId}_`,
+      `media_player.${lowerVehicleId}`,
+      `media_player.${lowerVehicleId}_`,
+      `device_tracker.${lowerVehicleId}`,
+      `device_tracker.${lowerVehicleId}_`,
+      `weather.${lowerVehicleId}`,
+      `weather.${lowerVehicleId}_`,
+      `alarm_control_panel.${lowerVehicleId}`,
+      `alarm_control_panel.${lowerVehicleId}_`,
+      // EV Trip Planner specific entity types (with entry_id namespace)
+      `sensor.ev_trip_planner_${lowerVehicleId}`,
       `sensor.ev_trip_planner_${lowerVehicleId}_`,
+      `binary_sensor.ev_trip_planner_${lowerVehicleId}`,
       `binary_sensor.ev_trip_planner_${lowerVehicleId}_`,
+      `input_number.ev_trip_planner_${lowerVehicleId}`,
+      `input_number.ev_trip_planner_${lowerVehicleId}_`,
+      `input_boolean.ev_trip_planner_${lowerVehicleId}`,
+      `input_boolean.ev_trip_planner_${lowerVehicleId}_`,
+      `climate.ev_trip_planner_${lowerVehicleId}`,
+      `climate.ev_trip_planner_${lowerVehicleId}_`,
+      `cover.ev_trip_planner_${lowerVehicleId}`,
+      `cover.ev_trip_planner_${lowerVehicleId}_`,
+      `number.ev_trip_planner_${lowerVehicleId}`,
+      `number.ev_trip_planner_${lowerVehicleId}_`,
+      `switch.ev_trip_planner_${lowerVehicleId}`,
+      `switch.ev_trip_planner_${lowerVehicleId}_`,
+      `light.ev_trip_planner_${lowerVehicleId}`,
+      `light.ev_trip_planner_${lowerVehicleId}_`,
+      `fan.ev_trip_planner_${lowerVehicleId}`,
+      `fan.ev_trip_planner_${lowerVehicleId}_`,
+      // Trip-specific sensors (each trip has its own sensor)
+      `sensor.trip_`,
+      // Additional patterns for sensor entity naming conventions
+      `sensor.ev_trip_planner_`,
+      `sensor.ev_trip_planner`,
     ];
 
     console.log('EV Trip Planner Panel: Searching for ALL vehicle sensors');
-    console.log('EV Trip Planner Panel: Patterns:', patterns);
+    console.log('EV Trip Planner Panel: Patterns count:', patterns.length);
     console.log('EV Trip Planner Panel: Total entities in hass.states:', states instanceof Map ? states.size : Object.keys(states).length);
 
     // hass.states is a Map in Home Assistant, use forEach to iterate
@@ -1447,24 +1528,7 @@ class EVTripPlannerPanel extends HTMLElement {
       }
     }
 
-    console.log('EV Trip Planner Panel: Found', Object.keys(result).length, 'sensors');
-
-    // Log any missing sensor patterns for debugging
-    const expectedPatterns = [
-      `sensor.${lowerVehicleId}_soc`,
-      `sensor.${lowerVehicleId}_range`,
-      `sensor.${lowerVehicleId}_charging`,
-      `sensor.${lowerVehicleId}_consumption`,
-    ];
-
-    const missingPatterns = expectedPatterns.filter(pattern => {
-      const found = Object.keys(result).some(entityId => entityId.includes(pattern.split('.').pop().split('_')[0]));
-      return !found;
-    });
-
-    if (missingPatterns.length > 0) {
-      console.log('EV Trip Planner Panel: Some expected patterns may be missing:', missingPatterns);
-    }
+    console.log('EV Trip Planner Panel: Found', Object.keys(result).length, 'sensors for vehicle:', lowerVehicleId);
 
     return result;
   }
@@ -1587,22 +1651,23 @@ class EVTripPlannerPanel extends HTMLElement {
 
   /**
    * Format sensor value with unit - improved for readability
-   * Returns "No disponible" for unavailable/unknown states
+   * Returns undefined for unavailable/unknown states to filter them out
    * Formats numbers with appropriate decimal places based on value type
+   * Only returns valid, non-N/A values - N/A values are filtered out
    */
   _formatSensorValue(entityId) {
     const states = this._hass?.states || {};
     const state = states[entityId];
     if (!state) {
-      return 'No disponible';
+      return null; // Return null to indicate this sensor should be filtered out
     }
 
     const unit = this._getUnit(entityId);
     let value = state.state;
 
-    // Handle unavailable/unknown states
+    // Handle unavailable/unknown states - return null to filter them out
     if (value === 'unavailable' || value === 'unknown' || value === 'N/A' || value === 'none' || value === '' || value === null) {
-      return 'No disponible';
+      return null; // Filter out unavailable/unknown sensors
     }
 
     // Check if it's a boolean value (binary sensor)
@@ -1826,8 +1891,14 @@ class EVTripPlannerPanel extends HTMLElement {
     console.log('EV Trip Planner Panel: Found', stateKeys.length, 'sensors:', stateKeys);
     const groupedSensors = this._groupSensors(states);
 
+    // Filter out sensors with unavailable/unknown values (N/A not allowed)
+    const validStatusSensors = groupedSensors.status.filter(s => {
+      const formattedValue = this._formatSensorValue(s.entityId);
+      return formattedValue !== null;
+    });
+
     // Build sensor list HTML with data attributes for update
-    const statusCards = groupedSensors.status.map(s => `
+    const statusCards = validStatusSensors.map(s => `
       <div class="status-card" data-entity="${this._escapeHtml(s.entityId)}">
         <span class="status-icon">${s.icon}</span>
         <span class="status-label">${s.name}</span>
@@ -1835,7 +1906,17 @@ class EVTripPlannerPanel extends HTMLElement {
       </div>
     `).join('');
 
-    const sensorListHtml = Object.entries(groupedSensors)
+    // Filter out sensors with unavailable/unknown values (N/A not allowed)
+    const filteredGroupedSensors = {};
+    Object.entries(groupedSensors).forEach(([groupName, sensors]) => {
+      const validSensors = sensors.filter(s => {
+        const formattedValue = this._formatSensorValue(s.entityId);
+        return formattedValue !== null; // Filter out unavailable/unknown sensors
+      });
+      filteredGroupedSensors[groupName] = validSensors;
+    });
+
+    const sensorListHtml = Object.entries(filteredGroupedSensors)
       .filter(([_, sensors]) => sensors.length > 0)
       .map(([groupName, sensors]) => {
         const groupNameMapping = {
@@ -1853,10 +1934,8 @@ class EVTripPlannerPanel extends HTMLElement {
             ${sensors.map(s => {
               const formattedValue = this._formatSensorValue(s.entityId);
               const entityIdDisplay = s.entityId.split('.').slice(1).join('.');
-              const isUnavailable = formattedValue === 'No disponible';
-              const stateAttr = isUnavailable ? 'data-state="unavailable"' : '';
               return `
-            <div class="sensor-item" ${stateAttr} data-entity-id="${s.entityId}">
+            <div class="sensor-item" data-entity-id="${s.entityId}">
               <div class="sensor-left">
                 <span class="sensor-icon">${s.icon}</span>
                 <span class="sensor-name" title="${entityIdDisplay}">${s.name}</span>
@@ -1891,10 +1970,10 @@ class EVTripPlannerPanel extends HTMLElement {
           </div>
           ` : ''}
           <div class="sensors-section">
-            <h2>Available Sensors (${stateKeys.length})</h2>
-            ${stateKeys.length > 0 ? `
+            ${Object.values(filteredGroupedSensors).some(s => s.length > 0) ? `
+              <h2>Available Sensors (${Object.values(filteredGroupedSensors).reduce((sum, s) => sum + s.length, 0)})</h2>
               <div class="sensor-list-grouped">
-                ${sensorListHtml || '<p class="no-sensors">No sensors found</p>'}
+                ${sensorListHtml || '<p class="no-sensors">No valid sensors found</p>'}
               </div>
             ` : '<p class="no-sensors">No sensors found</p>'}
           </div>
