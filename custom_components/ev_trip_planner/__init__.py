@@ -496,7 +496,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Registering panel.css at ev_trip_planner/panel.css from %s", panel_css_path)
 
     # Register all static paths
-    if static_paths:
+    if static_paths and hass.http is not None:
         try:
             await hass.http.async_register_static_paths(static_paths)
             _LOGGER.info("Registered %d static path(s) for EV Trip Planner panel", len(static_paths))
@@ -506,13 +506,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "async_register_static_paths not available or error: %s, trying legacy method",
                 err,
             )
-            for path_spec in static_paths:
-                if isinstance(path_spec, tuple):
-                    url_path, file_path, _ = path_spec
-                    hass.http.register_static_path(url_path, file_path)
-                else:
-                    # StaticPathConfig - try to extract values
-                    hass.http.register_static_path(path_spec.path, path_spec.url_path)
+            try:
+                for path_spec in static_paths:
+                    if isinstance(path_spec, tuple):
+                        url_path, file_path, _ = path_spec
+                        hass.http.register_static_path(url_path, file_path)
+                    else:
+                        # StaticPathConfig - try to extract values
+                        hass.http.register_static_path(path_spec.path, path_spec.url_path)
+                _LOGGER.info("Registered static paths using legacy method")
+            except Exception as legacy_err:
+                _LOGGER.error(
+                    "Failed to register static paths with legacy method: %s",
+                    legacy_err,
+                )
+    elif static_paths:
+        _LOGGER.warning("hass.http is None - static paths will be served via panel_custom")
 
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace
