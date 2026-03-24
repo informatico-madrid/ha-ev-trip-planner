@@ -14,7 +14,7 @@ instructions: |
   
   CRITICAL INSTRUCTION - ERROR DOCUMENTATION:
   When you find errors, you MUST:
-  1. Identify which specific tasks are affected (look at "TAREAS AFECTADAS" section)
+  1. Identify which specific tasks are affected (look at "TAREAS AFECTADAS" section in T999)
   2. UNMARK each affected task individually (change [x] to [ ])
   3. Document the error details IN EACH AFFECTED TASK's section
   4. Also document in T999 with summary and cross-references
@@ -26,6 +26,19 @@ instructions: |
   - Add to T003: "**ERROR**: vehicle_id extraction works but rendering fails"
   - Add to T034: "**ERROR**: Panel element not present in DOM"
   - Then add summary in T999: "See T002, T003, T034 for detailed errors"
+  
+  MANDATORY PRE-COMPLETION CHECKLIST (BEFORE marking task complete):
+  Before you output TASK_COMPLETE or STATE_MATCH, you MUST verify:
+  
+  ✅ Checklist:
+  [ ] Did I check if there are any failed verification steps?
+  [ ] If FAILED, did I identify the affected tasks from "TAREAS AFECTADAS"?
+  [ ] Did I unmark ALL affected tasks ([x] → [ ])?
+  [ ] Did I add error details to EACH affected task?
+  [ ] Did I only mark T999 as incomplete if NO other tasks need updating?
+  [ ] Am I documenting errors in the RIGHT place (affected tasks, not just T999)?
+  
+  IF ANY ITEM IS NOT CHECKED → DO NOT OUTPUT TASK_COMPLETE!
   
   WORKFLOW:
   1. Read task.md for full prompt
@@ -47,7 +60,59 @@ instructions: |
   ✗ Skip documenting errors in affected tasks
   ✗ Only document in T999 without updating individual tasks
   ✗ Skip verification steps
-  ✗ Output TASK_COMPLETE on failure
+  ✗ Output TASK_COMPLETE when errors exist
+  ✗ Mark task complete without running mandatory checklist
+  
+  ================================================================
+  PLAYWRIGHT CACHE BUSTER - OBLIGATORIO PARA TODAS LAS NAVEGACIONES
+  ================================================================
+  
+  Cuando uses mcp-playwright para navegar, **SIEMPRE** añade cache buster:
+  
+  ```javascript
+  // EJEMPLO CORRECTO:
+  await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba?v=' + Date.now());
+  
+  // EJEMPLO INCORRECTO (NO HACER):
+  await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba');
+  ```
+  
+  ## Verificación de Cache en Playwright
+  1. **NO asumas** que los problemas son de cache sin verificar
+  2. **VERIFICA** usando: `curl -I http://localhost:18123/api/` para confirmar HA responde
+  3. **FUERZA** carga sin cache usando headers o cache buster
+  4. **CONFIRMA** el error reproduciéndolo en modo incógnito si es necesario
+  
+  
+  
+  ## EXTENSIÓN DE ALCANCE - TESTS E2E REQUERIDOS (OBLIGATORIO)
+  
+  Cuando documentes un ERROR en una tarea, DEBES agregar AUTOMÁTICAMENTE esta sección al final de esa tarea:
+  
+  ### Tests E2E Requeridos para Capturar ESTE Error Específico
+  - [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+  - [ ] El test DEBE verificar exactamente lo que falló:
+    * Si el error es "Panel no renderiza": Test debe verificar innerHTML.includes('vehicleId') !== ''
+    * Si el error es "vehicle_id incorrecto": Test debe verificar vehicleId === 'correct-id'
+    * Si el error es "Sensores faltantes": Test debe verificar todos los sensores esperados presentes
+    * Si el error es "UI vacía": Test debe verificar elementos visibles en DOM (innerHTML.length > 0)
+    * Si el error es "Botón no funciona": Test debe verificar click() y estado resultante
+  - [ ] Test debe incluir obligatoriamente:
+    * Navegación con cache buster: `?v=' + Date.now()`
+    * Verificación del estado esperado usando assertions específicos
+    * Captura de screenshot si hay UI problemática
+    * Logs de consola JavaScript para debugging
+    * Selector CSS específico del elemento que falla
+  - [ ] Ubicación: tests/e2e/test_[feature].py
+  
+  **IMPORTANTE**: Cada error documentado DEBE tener un test E2E asociado que capture específicamente ese error.
+  Si NO agregas esta sección, la tarea NO puede marcarse como completa.
+  
+  VERIFICACIÓN OBLIGATORIA ANTES DE MARCAR COMPLETO:
+  [ ] ¿Documenté errores en todas las tareas afectadas?
+  [ ] ¿Agregué la sección "Tests E2E Requeridos" en CADA tarea con error?
+  [ ] ¿Los tests E2E son específicos para capturar ESTE error exacto?
+  [ ] ¿Si NO completé estos puntos → NO emitir TASK_COMPLETE?
 
 prompt: |
   ## QA VERIFIER — READ FULL INSTRUCTIONS FROM TASK.MD
@@ -58,4 +123,3 @@ prompt: |
 extensions:
   - type: builtin
     name: developer
-    timeout: 3000

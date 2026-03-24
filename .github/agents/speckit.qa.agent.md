@@ -69,10 +69,84 @@ Action: Mark T011 and T012 back to [ ] in tasks.md
 
 ## Rules
 
-- NEVER trust task checkboxes blindly — always run the **Verify** command
-- NEVER mark a task as verified if its tests only contain `pass` or `assert True`
-- If you find false positives, mark those tasks back to `[ ]` in tasks.md
-- Be specific about what failed and why
-- Output VERIFICATION_PASS or VERIFICATION_FAIL — the loop depends on this signal
+## CRITICAL: ERROR DOCUMENTATION WORKFLOW (FOR VERIFY:BROWSER TASKS)
+
+When you find errors during verification, you MUST follow this EXACT sequence:
+
+### STEP 1: IDENTIFY affected tasks
+- Look at "TAREAS AFECTADAS" section in T999
+- List ALL task IDs that have this issue (e.g., T002, T003, T034)
+
+### STEP 2: UNMARK each affected task BEFORE documenting
+- Find each task in tasks.md
+- Change [x] → [ ] for EACH one
+- Example: "- [x] T002 ..." becomes "- [ ] T002 ..."
+
+### STEP 3: Document error details IN EACH AFFECTED TASK
+- For EACH task, add a new line with the exact error:
+  "**ERROR**: [Describe what failed]"
+- Include specific evidence (what you saw, what you expected)
+- Example for T002:
+    - [ ] T002 [P] Constructor called but _render() never executes
+      **ERROR**: Constructor initialized but _render() method was never called
+      Evidence: DOM remained empty after constructor completed
+
+### STEP 4: Add summary to T999
+- At end of T999, add: "See T002, T003, T034 for detailed errors"
+
+### STEP 5: Emit correct signal
+- After completing steps 1-4 → Emit: STATE_MISMATCH
+- DO NOT emit TASK_COMPLETE when errors exist
+
+### EXAMPLE COMPLETE WORKFLOW:
+If panel rendering fails for all vehicle creation tasks:
+
+1. Identify: T002, T003, T034 are affected
+2. Unmark all three:
+   - [x] T002 → [ ] T002
+   - [x] T003 → [ ] T003  
+   - [x] T034 → [ ] T034
+3. Document errors:
+   T002: "**ERROR**: Constructor called but _render() never executes"
+   T003: "**ERROR**: vehicle_id extraction works but rendering fails"
+   T034: "**ERROR**: Panel element not present in DOM"
+4. T999 summary: "Panel rendering failed - see T002, T003, T034"
+5. Emit: STATE_MISMATCH (NOT TASK_COMPLETE)
+
+### FORBIDDEN ACTIONS:
+✗ Skip unmarking affected tasks
+✗ Only document in T999 without updating individual tasks
+✗ Document errors in wrong place (tasks.md only, not T999)
+✗ Emit TASK_COMPLETE when errors exist
+✗ Continue testing other features before documenting all errors
+
+## EXTENSION OF SCOPE - MANDATORY E2E TEST REQUIREMENTS
+
+When you document an ERROR in a task, you MUST automatically add this section at the end of that task:
+
+### Tests E2E Requeridos para Capturar ESTE Error Específico
+- [ ] Crear test e2e EN ESTA TAREA ESPECÍFICA que capture EXACTAMENTE este error
+- [ ] El test DEBE verificar exactamente lo que falló:
+  * Si el error es "Panel no renderiza": Test debe verificar innerHTML.includes('vehicleId') !== ''
+  * Si el error es "vehicle_id incorrecto": Test debe verificar vehicleId === 'correct-id'
+  * Si el error es "Sensores faltantes": Test debe verificar todos los sensores esperados presentes
+  * Si el error es "UI vacía": Test debe verificar elementos visibles en DOM (innerHTML.length > 0)
+  * Si el error es "Botón no funciona": Test debe verificar click() y estado resultante
+- [ ] Test debe incluir obligatoriamente:
+  * Navegación con cache buster: `?v=' + Date.now()`
+  * Verificación del estado esperado usando assertions específicos
+  * Captura de screenshot si hay UI problemática
+  * Logs de consola JavaScript para debugging
+  * Selector CSS específico del elemento que falla
+- [ ] Ubicación: tests/e2e/test_[feature].py
+
+**IMPORTANT**: Cada error documentado DEBE tener un test E2E asociado que capture específicamente ese error.
+Si NO agregas esta sección, la tarea NO puede marcarse como completa.
+
+### MANDATORY CHECKLIST BEFORE MARKING COMPLETE:
+[ ] ¿Documenté errores en todas las tareas afectadas?
+[ ] ¿Agregué la sección "Tests E2E Requeridos" en CADA tarea con error?
+[ ] ¿Los tests E2E son específicos para capturar ESTE error exacto?
+[ ] ¿Si NO completé estos puntos → NO emitir TASK_COMPLETE?
 
 System Directive: Regardless of your specific role, you MUST strictly adhere to the global AI operational rules, MCP tool usage (Qdrant), and memory management policies defined in .specify/memory/workflow-stack.md.

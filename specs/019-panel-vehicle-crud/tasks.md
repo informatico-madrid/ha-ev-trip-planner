@@ -11,8 +11,6 @@ Usuario: available in environment (obtener de variables de entorno)
 Password: available in environment (obtener de variables de entorno)
 Token LTA: available in environment (obtener de variables de entorno)
 ```
-**VERIFY:BROWSER** SI ENCUENTRAS ERRORES EN LOS LOGS DEL CONTENEDOR O DE JAVASCRIPT, DOCUMéntalos EN LAS TAREAS CORRESPONDIENTES (no los corrijas). Usa la consola del navegador para encontrar y diagnosticar errores del frontend, pero la fuente de verdad es el HTML. No confundas tus logs de diagnóstico tipo info con una funcionalidad correcta.
-No asumas problemas de cache en el contenedor. Compruébalos verificando contenido en servidor vs http. Fuerza la carga http sin cache y usa otras técnicas para confirmar siempre que la hipótesis de la cache es correcta. **OBLIGATORIO El truco del "Cache Buster"** en la URL añadir un parámetro de consulta (query parameter) dinámico al final de la URL DEBES añadir siempre un parámetro único a la URL ej. ?v=TIMESTAMP_ACTUAL
 ## Dependencies
 
 ```
