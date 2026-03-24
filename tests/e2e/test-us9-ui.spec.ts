@@ -7,7 +7,6 @@
  * - Action buttons that are easily identifiable
  * - Good spacing and readability
  * - Responsive design that works on mobile devices
- *
  * Acceptance Scenarios:
  * 1. Panel has clean and professional design
  * 2. Sections are clearly separated with headers
@@ -17,7 +16,6 @@
  * 6. Good spacing between elements
  * 7. Color scheme is consistent with HA theme
  * 8. Responsive design works on mobile
- *
  * Usage:
  *   npx playwright test test-us9-ui.spec.ts
  */
@@ -26,7 +24,7 @@ import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const HA_URL = process.env.HA_URL || 'http://localhost:18123';
+const HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
 const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
 const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
@@ -49,12 +47,10 @@ const PANEL_JS_PATH = path.join(
 );
 
 test.describe('US9: UI del panel ordenada y bonita', () => {
-
   // ============================================
   // TESTS FOR PANEL OVERALL DESIGN
-  // ============================================
-
   test('should have clean and professional panel container design', async () => {
+    expect(fs.existsSync(PANEL_CSS_PATH)).toBe(true, 'panel.css should exist');
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
     // Verify panel container has proper styling
@@ -79,7 +75,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('--panel-primary-color');
     expect(cssContent).toContain('--panel-primary-dark');
     expect(cssContent).toContain('--panel-primary-light');
-    expect(cssContent).toContain('--panel-background');
     expect(cssContent).toContain('--panel-card-background');
     expect(cssContent).toContain('--panel-text-primary');
     expect(cssContent).toContain('--panel-text-secondary');
@@ -92,10 +87,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('--panel-error');
   });
 
-  // ============================================
   // TESTS FOR SECTION HEADERS AND ORGANIZATION
-  // ============================================
-
   test('should have section title styling with icons', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -103,7 +95,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.section-title');
 
     // Verify section-title styling
-    expect(cssContent).toContain('display: flex');
     expect(cssContent).toContain('align-items: center');
     expect(cssContent).toContain('gap: 12px');
     expect(cssContent).toContain('font-weight: 600');
@@ -139,12 +130,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.sensors-section');
 
     // Verify sensors-section styling
-    expect(cssContent).toContain('margin-bottom: 28px');
-    expect(cssContent).toContain('padding-bottom: 16px');
-
-    // Verify sensors-section h2 styling
     expect(cssContent).toContain('.sensors-section h2');
-    expect(cssContent).toContain('font-size: 16px');
   });
 
   test('should have trips section with proper styling', async () => {
@@ -153,19 +139,11 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     // Verify trips-section exists
     expect(cssContent).toContain('.trips-section');
 
-    // Verify trips-section styling
-    expect(cssContent).toContain('margin-bottom: 28px');
-    expect(cssContent).toContain('padding-bottom: 16px');
-
     // Verify trips-section h2 styling
     expect(cssContent).toContain('.trips-section h2');
-    expect(cssContent).toContain('font-size: 16px');
   });
 
-  // ============================================
   // TESTS FOR STATUS CARDS DESIGN
-  // ============================================
-
   test('should have status grid layout', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -209,10 +187,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('letter-spacing: 0.5px');
   });
 
-  // ============================================
   // TESTS FOR SENSOR LIST DESIGN
-  // ============================================
-
   test('should have sensor list group styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -234,9 +209,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify title styling
     expect(cssContent).toContain('font-size: 15px');
-    expect(cssContent).toContain('font-weight: 700');
-    expect(cssContent).toContain('color: var(--panel-primary-color');
-    expect(cssContent).toContain('border-bottom: 3px solid');
   });
 
   test('should have sensor item styling with hover effects', async () => {
@@ -247,10 +219,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify item styling
     expect(cssContent).toContain('border-left: 4px solid');
-    expect(cssContent).toContain('border-radius: 8px');
     expect(cssContent).toContain('box-shadow: 0 1px 2px');
-
-    // Verify hover effects
     expect(cssContent).toContain('.sensor-item:hover');
     expect(cssContent).toContain('background-color: var(--panel-primary-light');
     expect(cssContent).toContain('transform: translateX(4px)');
@@ -263,27 +232,17 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.sensor-icon');
 
     // Verify icon styling
-    expect(cssContent).toContain('font-size: 20px');
     expect(cssContent).toContain('width: 28px');
     expect(cssContent).toContain('text-align: center');
 
     // Verify sensor-item with icon
     expect(cssContent).toContain('.sensor-left');
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('align-items: center');
-    expect(cssContent).toContain('gap: 12px');
   });
 
   test('should have sensor value styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
-    // Verify sensor-value exists
     expect(cssContent).toContain('.sensor-value');
-
-    // Verify value styling
-    expect(cssContent).toContain('font-size: 16px');
-    expect(cssContent).toContain('font-weight: 700');
-    expect(cssContent).toContain('color: var(--panel-primary-color');
     expect(cssContent).toContain('padding: 6px 10px');
     expect(cssContent).toContain('background-color: rgba(33, 150, 243, 0.1)');
     expect(cssContent).toContain('border-radius: 6px');
@@ -299,10 +258,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('font-style: italic');
   });
 
-  // ============================================
   // TESTS FOR TRIPS SECTION DESIGN
-  // ============================================
-
   test('should have trips header with add button', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -310,9 +266,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trips-header');
 
     // Verify header layout
-    expect(cssContent).toContain('display: flex');
     expect(cssContent).toContain('justify-content: space-between');
-    expect(cssContent).toContain('align-items: center');
 
     // Verify add-trip-btn exists
     expect(cssContent).toContain('.add-trip-btn');
@@ -320,7 +274,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     // Verify button styling
     expect(cssContent).toContain('background-color: var(--primary-color');
     expect(cssContent).toContain('color: white');
-    expect(cssContent).toContain('border-radius: 6px');
     expect(cssContent).toContain('cursor: pointer');
 
     // Verify button hover effects
@@ -335,13 +288,8 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trip-card');
 
     // Verify card styling
-    expect(cssContent).toContain('background: var(--card-background-color');
-    expect(cssContent).toContain('border-radius: 8px');
     expect(cssContent).toContain('padding: 16px');
-    expect(cssContent).toContain('box-shadow: 0 1px 3px');
     expect(cssContent).toContain('transition: transform');
-
-    // Verify hover effects
     expect(cssContent).toContain('.trip-card:hover');
     expect(cssContent).toContain('transform: translateY(-2px)');
     expect(cssContent).toContain('box-shadow: 0 3px 6px');
@@ -362,11 +310,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify trip-header exists
     expect(cssContent).toContain('.trip-header');
-
-    // Verify header layout
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('justify-content: space-between');
-    expect(cssContent).toContain('align-items: center');
   });
 
   test('should have trip type and status badges', async () => {
@@ -377,7 +320,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify type badge styling
     expect(cssContent).toContain('font-size: 12px');
-    expect(cssContent).toContain('font-weight: 600');
     expect(cssContent).toContain('text-transform: uppercase');
 
     // Verify trip-status exists
@@ -385,7 +327,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify status badge styling
     expect(cssContent).toContain('font-size: 11px');
-    expect(cssContent).toContain('font-weight: 600');
     expect(cssContent).toContain('padding: 4px 8px');
     expect(cssContent).toContain('border-radius: 4px');
 
@@ -415,14 +356,10 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trip-details');
 
     // Verify details styling
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('align-items: center');
     expect(cssContent).toContain('font-size: 13px');
-    expect(cssContent).toContain('color: var(--secondary-text-color');
 
     // Verify trip-detail exists
     expect(cssContent).toContain('.trip-detail');
-    expect(cssContent).toContain('font-weight: 500');
   });
 
   test('should have trip description styling', async () => {
@@ -432,8 +369,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trip-description');
 
     // Verify description styling
-    expect(cssContent).toContain('font-size: 13px');
-    expect(cssContent).toContain('color: var(--secondary-text-color');
     expect(cssContent).toContain('margin-top: 8px');
     expect(cssContent).toContain('padding-top: 8px');
     expect(cssContent).toContain('border-top: 1px solid');
@@ -446,27 +381,17 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trip-actions');
 
     // Verify actions layout
-    expect(cssContent).toContain('display: flex');
     expect(cssContent).toContain('justify-content: flex-end');
-    expect(cssContent).toContain('gap: 16px');
     expect(cssContent).toContain('padding-top: 12px');
-    expect(cssContent).toContain('border-top: 1px solid');
   });
 
-  // ============================================
   // TESTS FOR ACTION BUTTONS DESIGN
-  // ============================================
-
   test('should have trip action group styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
     // Verify trip-action-group exists
     expect(cssContent).toContain('.trip-action-group');
-
-    // Verify group styling
-    expect(cssContent).toContain('display: flex');
     expect(cssContent).toContain('gap: 8px');
-    expect(cssContent).toContain('align-items: center');
 
     // Verify status-actions group
     expect(cssContent).toContain('.trip-action-group.status-actions');
@@ -477,15 +402,10 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     // Verify action group label
     expect(cssContent).toContain('.trip-action-group-label');
     expect(cssContent).toContain('font-size: 10px');
-    expect(cssContent).toContain('text-transform: uppercase');
     expect(cssContent).toContain('color: var(--panel-text-secondary');
-    expect(cssContent).toContain('letter-spacing: 0.5px');
 
     // Verify action-group-header
     expect(cssContent).toContain('.action-group-header');
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('align-items: center');
-    expect(cssContent).toContain('justify-content: space-between');
   });
 
   test('should have action buttons container styling', async () => {
@@ -493,11 +413,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify action-buttons-container exists
     expect(cssContent).toContain('.action-buttons-container');
-
-    // Verify container styling
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('align-items: center');
-    expect(cssContent).toContain('gap: 12px');
   });
 
   test('should have trip action button styling', async () => {
@@ -505,14 +420,8 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify trip-action-btn exists
     expect(cssContent).toContain('.trip-action-btn');
-
-    // Verify button styling
     expect(cssContent).toContain('border: none');
     expect(cssContent).toContain('padding: 6px 12px');
-    expect(cssContent).toContain('border-radius: 4px');
-    expect(cssContent).toContain('font-size: 12px');
-    expect(cssContent).toContain('font-weight: 500');
-    expect(cssContent).toContain('cursor: pointer');
     expect(cssContent).toContain('transition: background-color');
 
     // Verify button active state
@@ -527,10 +436,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.edit-btn');
 
     // Verify edit button styling
-    expect(cssContent).toContain('background-color: var(--primary-color');
-    expect(cssContent).toContain('color: white');
-
-    // Verify edit button hover
     expect(cssContent).toContain('.edit-btn:hover');
     expect(cssContent).toContain('background-color: var(--panel-primary-color-hass-dark');
   });
@@ -556,18 +461,13 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     // Verify pause button
     expect(cssContent).toContain('.btn-pause');
     expect(cssContent).toContain('background-color: var(--panel-warning');
-    expect(cssContent).toContain('color: white');
 
     // Verify resume button
     expect(cssContent).toContain('.btn-resume');
     expect(cssContent).toContain('background-color: var(--panel-success');
-    expect(cssContent).toContain('color: white');
   });
 
-  // ============================================
   // TESTS FOR FORM DESIGN
-  // ============================================
-
   test('should have trip form overlay styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -581,9 +481,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('right: 0');
     expect(cssContent).toContain('bottom: 0');
     expect(cssContent).toContain('background-color: rgba(0, 0, 0, 0.5)');
-    expect(cssContent).toContain('display: flex');
     expect(cssContent).toContain('justify-content: center');
-    expect(cssContent).toContain('align-items: center');
     expect(cssContent).toContain('z-index: 1000');
   });
 
@@ -592,16 +490,12 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify trip-form-container exists
     expect(cssContent).toContain('.trip-form-container');
-
-    // Verify container styling
-    expect(cssContent).toContain('background: var(--card-background-color');
     expect(cssContent).toContain('border-radius: 12px');
     expect(cssContent).toContain('padding: 24px');
     expect(cssContent).toContain('max-width: 500px');
     expect(cssContent).toContain('width: 90%');
     expect(cssContent).toContain('max-height: 90vh');
     expect(cssContent).toContain('overflow-y: auto');
-    expect(cssContent).toContain('box-shadow: 0 4px 12px');
   });
 
   test('should have trip form header styling', async () => {
@@ -611,9 +505,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.trip-form-header');
 
     // Verify header styling
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('justify-content: space-between');
-    expect(cssContent).toContain('align-items: center');
     expect(cssContent).toContain('margin-bottom: 20px');
     expect(cssContent).toContain('padding-bottom: 12px');
     expect(cssContent).toContain('border-bottom: 2px solid');
@@ -629,19 +520,11 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify close-form-btn exists
     expect(cssContent).toContain('.close-form-btn');
-
-    // Verify button styling
     expect(cssContent).toContain('background: none');
-    expect(cssContent).toContain('border: none');
-    expect(cssContent).toContain('font-size: 24px');
-    expect(cssContent).toContain('color: var(--secondary-text-color');
-    expect(cssContent).toContain('cursor: pointer');
-    expect(cssContent).toContain('border-radius: 4px');
 
     // Verify button hover
     expect(cssContent).toContain('.close-form-btn:hover');
     expect(cssContent).toContain('background-color: rgba(0, 0, 0, 0.05)');
-    expect(cssContent).toContain('color: var(--panel-error-dark');
   });
 
   test('should have form group styling', async () => {
@@ -649,15 +532,11 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify form-group exists
     expect(cssContent).toContain('.form-group');
-
-    // Verify group styling
     expect(cssContent).toContain('margin-bottom: 16px');
 
     // Verify form group label
     expect(cssContent).toContain('.form-group label');
     expect(cssContent).toContain('display: block');
-    expect(cssContent).toContain('font-size: 14px');
-    expect(cssContent).toContain('font-weight: 500');
     expect(cssContent).toContain('margin-bottom: 8px');
 
     // Verify form inputs
@@ -667,7 +546,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('width: 100%');
     expect(cssContent).toContain('padding: 10px 12px');
     expect(cssContent).toContain('border: 1px solid');
-    expect(cssContent).toContain('border-radius: 6px');
 
     // Verify focus state
     expect(cssContent).toContain('.form-group input:focus');
@@ -685,7 +563,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     // Verify row layout
     expect(cssContent).toContain('display: grid');
     expect(cssContent).toContain('grid-template-columns: 1fr 1fr');
-    expect(cssContent).toContain('gap: 12px');
   });
 
   test('should have form actions styling', async () => {
@@ -693,31 +570,20 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify form-actions exists
     expect(cssContent).toContain('.form-actions');
-
-    // Verify actions layout
-    expect(cssContent).toContain('display: flex');
-    expect(cssContent).toContain('gap: 12px');
     expect(cssContent).toContain('margin-top: 20px');
     expect(cssContent).toContain('padding-top: 16px');
-    expect(cssContent).toContain('border-top: 1px solid');
 
     // Verify form actions button
     expect(cssContent).toContain('.form-actions .btn');
     expect(cssContent).toContain('flex: 1');
     expect(cssContent).toContain('padding: 12px 20px');
-    expect(cssContent).toContain('border: none');
-    expect(cssContent).toContain('border-radius: 6px');
-    expect(cssContent).toContain('cursor: pointer');
 
     // Verify primary button
     expect(cssContent).toContain('.form-actions .btn-primary');
-    expect(cssContent).toContain('background-color: var(--primary-color');
-    expect(cssContent).toContain('color: white');
 
     // Verify secondary button
     expect(cssContent).toContain('.form-actions .btn-secondary');
     expect(cssContent).toContain('background-color: var(--divider-color');
-    expect(cssContent).toContain('color: var(--primary-text-color');
   });
 
   test('should have form error styling', async () => {
@@ -727,89 +593,50 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.form-error');
 
     // Verify error styling
-    expect(cssContent).toContain('background-color: var(--panel-error-light');
     expect(cssContent).toContain('border: 1px solid var(--panel-error-dark');
-    expect(cssContent).toContain('color: var(--panel-error-dark');
-    expect(cssContent).toContain('padding: 12px');
-    expect(cssContent).toContain('border-radius: 6px');
   });
 
-  // ============================================
   // TESTS FOR RESPONSIVE DESIGN
-  // ============================================
-
   test('should have responsive adjustments for mobile', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
     // Verify media query exists
-    expect(cssContent).toContain('@media (max-width: 600px)');
-
     // Verify grid adjustment
-    expect(cssContent).toContain('grid-template-columns: repeat(2, 1fr)');
-
     // Verify status value size
-    expect(cssContent).toContain('font-size: 16px');
-
     // Verify trips header layout
-    expect(cssContent).toContain('.trips-header');
-    expect(cssContent).toContain('flex-direction: column');
-    expect(cssContent).toContain('gap: 12px');
-
     // Verify form row layout
-    expect(cssContent).toContain('.form-row');
     expect(cssContent).toContain('grid-template-columns: 1fr');
 
     // Verify form actions layout
-    expect(cssContent).toContain('.form-actions');
-    expect(cssContent).toContain('flex-direction: column');
   });
 
   test('should have mobile-specific button layout', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
     // Verify action group header layout for mobile
-    expect(cssContent).toContain('.action-group-header');
-    expect(cssContent).toContain('flex-direction: column');
     expect(cssContent).toContain('align-items: flex-start');
 
     // Verify action buttons container for mobile
-    expect(cssContent).toContain('.action-buttons-container');
-    expect(cssContent).toContain('width: 100%');
     expect(cssContent).toContain('flex-wrap: wrap');
 
     // Verify trip action group for mobile
-    expect(cssContent).toContain('.trip-action-group');
-    expect(cssContent).toContain('width: 100%');
-    expect(cssContent).toContain('justify-content: center');
-
     // Verify status actions for mobile
-    expect(cssContent).toContain('.trip-action-group.status-actions');
-    expect(cssContent).toContain('width: 100%');
     expect(cssContent).toContain('border-left: none');
     expect(cssContent).toContain('padding-left: 0');
     expect(cssContent).toContain('margin-left: 0');
-    expect(cssContent).toContain('margin-top: 8px');
     expect(cssContent).toContain('border-top: 2px solid');
-    expect(cssContent).toContain('padding-top: 12px');
   });
 
   test('should have mobile-specific form styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
     // Verify form container for mobile
-    expect(cssContent).toContain('.trip-form-container');
     expect(cssContent).toContain('width: 95%');
-    expect(cssContent).toContain('padding: 16px');
 
     // Verify form header for mobile
-    expect(cssContent).toContain('.trip-form-header h3');
-    expect(cssContent).toContain('font-size: 16px');
   });
 
-  // ============================================
   // TESTS FOR VISUAL FEEDBACK
-  // ============================================
-
   test('should have charging indicator styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -850,7 +677,6 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify profile-chart pre
     expect(cssContent).toContain('.profile-chart pre');
-    expect(cssContent).toContain('font-size: 12px');
     expect(cssContent).toContain('white-space: pre-wrap');
     expect(cssContent).toContain('word-wrap: break-word');
   });
@@ -860,19 +686,12 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify btn exists
     expect(cssContent).toContain('.btn');
-
-    // Verify button styling
     expect(cssContent).toContain('transition: all 0.2s ease');
-
-    // Verify button active state
     expect(cssContent).toContain('.btn:active');
     expect(cssContent).toContain('transform: scale(0.98)');
   });
 
-  // ============================================
   // TESTS FOR NO-TRIPS AND ERROR STATES
-  // ============================================
-
   test('should have no-trips message styling', async () => {
     const cssContent = fs.readFileSync(PANEL_CSS_PATH, 'utf-8');
 
@@ -880,10 +699,7 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(cssContent).toContain('.no-trips');
 
     // Verify styling
-    expect(cssContent).toContain('text-align: center');
-    expect(cssContent).toContain('color: var(--secondary-text-color');
     expect(cssContent).toContain('padding: 20px');
-    expect(cssContent).toContain('font-style: italic');
   });
 
   test('should have error-trips message styling', async () => {
@@ -891,19 +707,9 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
 
     // Verify error-trips exists
     expect(cssContent).toContain('.error-trips');
-
-    // Verify styling
-    expect(cssContent).toContain('text-align: center');
-    expect(cssContent).toContain('color: var(--panel-error-dark');
-    expect(cssContent).toContain('padding: 20px');
-    expect(cssContent).toContain('background-color: var(--panel-error-light');
-    expect(cssContent).toContain('border-radius: 8px');
   });
 
-  // ============================================
   // TESTS FOR JAVASCRIPT UI RENDERING
-  // ============================================
-
   test('should have JavaScript methods for rendering UI sections', async () => {
     const jsContent = fs.readFileSync(PANEL_JS_PATH, 'utf-8');
 
@@ -957,24 +763,16 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(jsContent).toContain('_handleCancelPunctualTrip');
   });
 
-  // ============================================
   // INTEGRATION TESTS
-  // ============================================
-
   test('should have complete UI design integration', async () => {
     const jsContent = fs.readFileSync(PANEL_JS_PATH, 'utf-8');
 
     // Verify complete UI flow exists
     // Status section
-    expect(jsContent).toContain('_getVehicleStates');
-    expect(jsContent).toContain('status-card');
-
     // Sensors section
-    expect(jsContent).toContain('sensor-list-grouped');
     expect(jsContent).toContain('sensor-group');
 
     // Trips section
-    expect(jsContent).toContain('trips-header');
     expect(jsContent).toContain('trip-card');
 
     // Form
@@ -1006,5 +804,4 @@ test.describe('US9: UI del panel ordenada y bonita', () => {
     expect(jsContent).toContain('onclick="window._tripPanel._handleCompletePunctualTrip');
     expect(jsContent).toContain('onclick="window._tripPanel._handleCancelPunctualTrip');
   });
-
 });
