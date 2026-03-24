@@ -138,7 +138,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
     * Logs de consola JavaScript para debugging
     * Selector CSS específico: 'ev-trip-planner-panel'
   - Ubicación: tests/e2e/test_panel_rendering.py
-- T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
+- [ ] T007 [US2] Verificar que el slug se genera correctamente desde vehicle_name [use: homeassistant-config]
   **ERROR**: Panel rendering fails before slug can be verified
   **Evidence**: Panel element exists but innerHTML is empty
   **Root Cause**: Rendering flow broken - _rendered flag set prematurely
