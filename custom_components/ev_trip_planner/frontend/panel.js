@@ -394,7 +394,7 @@ class EVTripPlannerPanel extends HTMLElement {
       console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
 
       // Use hass.services.call for service calls
-      const response = await this._hass.services.call('ev_trip_planner', 'trip_list', {
+      const response = await this._hass.callService('ev_trip_planner', 'trip_list', {
         vehicle_id: this._vehicleId,
       });
       // Response format: either direct result or wrapped in array/object
@@ -629,7 +629,7 @@ class EVTripPlannerPanel extends HTMLElement {
 
     try {
       // Call the trip_create service
-      await this._hass.services.call('ev_trip_planner', 'trip_create', serviceData);
+      await this._hass.callService('ev_trip_planner', 'trip_create', serviceData);
 
       // Close form and refresh trips
       document.getElementById('trip-form-overlay').remove();
@@ -1034,7 +1034,7 @@ class EVTripPlannerPanel extends HTMLElement {
       throw new Error('No vehicle configured');
     }
 
-    await this._hass.services.call('ev_trip_planner', 'pause_recurring_trip', {
+    await this._hass.callService('ev_trip_planner', 'pause_recurring_trip', {
       vehicle_id: this._vehicleId,
       trip_id: tripId,
     });
@@ -1057,7 +1057,7 @@ class EVTripPlannerPanel extends HTMLElement {
       throw new Error('No vehicle configured');
     }
 
-    await this._hass.services.call('ev_trip_planner', 'resume_recurring_trip', {
+    await this._hass.callService('ev_trip_planner', 'resume_recurring_trip', {
       vehicle_id: this._vehicleId,
       trip_id: tripId,
     });
@@ -1080,7 +1080,7 @@ class EVTripPlannerPanel extends HTMLElement {
       throw new Error('No vehicle configured');
     }
 
-    await this._hass.services.call('ev_trip_planner', 'complete_punctual_trip', {
+    await this._hass.callService('ev_trip_planner', 'complete_punctual_trip', {
       vehicle_id: this._vehicleId,
       trip_id: tripId,
     });
@@ -1103,7 +1103,7 @@ class EVTripPlannerPanel extends HTMLElement {
       throw new Error('No vehicle configured');
     }
 
-    await this._hass.services.call('ev_trip_planner', 'cancel_punctual_trip', {
+    await this._hass.callService('ev_trip_planner', 'cancel_punctual_trip', {
       vehicle_id: this._vehicleId,
       trip_id: tripId,
     });
@@ -1132,7 +1132,7 @@ class EVTripPlannerPanel extends HTMLElement {
       console.log('EV Trip Planner Panel: Fetching trip by ID:', tripId);
 
       // Use hass.services.call for service calls
-      const response = await this._hass.services.call('ev_trip_planner', 'trip_list', {
+      const response = await this._hass.callService('ev_trip_planner', 'trip_list', {
         vehicle_id: this._vehicleId,
         trip_id: tripId,
       });
@@ -1181,7 +1181,7 @@ class EVTripPlannerPanel extends HTMLElement {
       throw new Error('No vehicle configured');
     }
 
-    await this._hass.services.call('ev_trip_planner', 'delete_trip', {
+    await this._hass.callService('ev_trip_planner', 'delete_trip', {
       vehicle_id: this._vehicleId,
       trip_id: tripId,
     });
@@ -1360,7 +1360,7 @@ class EVTripPlannerPanel extends HTMLElement {
 
     try {
       // Call the trip_update service
-      await this._hass.services.call('ev_trip_planner', 'trip_update', serviceData);
+      await this._hass.callService('ev_trip_planner', 'trip_update', serviceData);
 
       // Close form and refresh trips
       document.getElementById('trip-form-overlay').remove();
