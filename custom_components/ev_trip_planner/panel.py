@@ -71,6 +71,21 @@ async def async_register_panel(
             embed_iframe=False,
         )
 
+        # Register additional static resource for panel.css
+        # This ensures the CSS file is served correctly
+        try:
+            hass.http.register_static_paths(
+                [
+                    (
+                        f"/{DOMAIN.replace('_', '-')}/panel.css",
+                        f"{__path__[0]}/frontend/panel.css",
+                    ),
+                ]
+            )
+            _LOGGER.debug("Registered static path for panel.css")
+        except Exception as ex:
+            _LOGGER.warning("Failed to register static path for panel.css: %s", ex)
+
         # Store vehicle-to-panel mapping
         _store_vehicle_panel_mapping(hass, vehicle_id, frontend_url_path)
 
