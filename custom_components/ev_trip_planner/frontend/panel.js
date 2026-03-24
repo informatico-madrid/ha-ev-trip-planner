@@ -2201,13 +2201,11 @@ class EVTripPlannerPanel extends HTMLElement {
     this.innerHTML = panelHtml;
     console.log('EV Trip Planner Panel: innerHTML written, length:', this.innerHTML.length);
 
-    // CRITICAL: Set _rendered = true immediately after writing HTML
-    // This prevents connectedCallback from re-rendering while async trips are loading
-    this._rendered = true;
-    console.log('EV Trip Planner Panel: _rendered = true set after innerHTML written');
-
     // Subscribe to state changes after render
     this._subscribeToStates();
+
+    // CRITICAL: Do NOT set _rendered = true yet - wait for trips to be fully rendered
+    // This prevents early exit from _render() before trips are loaded
 
     // Schedule trips rendering after a delay to ensure panel is fully rendered
     setTimeout(() => {
@@ -2223,13 +2221,15 @@ class EVTripPlannerPanel extends HTMLElement {
   /**
    * Render trips section - must be called AFTER panel is fully rendered
    * to prevent infinite recursion.
-   * _rendered is already set to true in _render() before trips are rendered.
+   * Sets _rendered = true AFTER trips are fully rendered.
    */
   async _renderTripsLater() {
     await this._renderTripsSection().catch(error => {
       console.error('EV Trip Planner Panel: Error rendering trips section:', error);
     });
-    console.log('EV Trip Planner Panel: trips rendering complete');
+    // CRITICAL: Set _rendered = true ONLY AFTER trips are fully rendered
+    this._rendered = true;
+    console.log('EV Trip Planner Panel: _rendered = true set after trips rendering complete');
   }
 
   /**

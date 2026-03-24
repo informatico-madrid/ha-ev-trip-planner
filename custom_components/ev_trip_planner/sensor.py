@@ -26,7 +26,6 @@ from .const import (
     DEFAULT_CHARGING_POWER,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
-    TRIP_TYPE_RECURRING,
 )
 from .trip_manager import TripManager
 
@@ -139,50 +138,31 @@ class TripPlannerSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Devuelve información del dispositivo."""
+        """Devuelve información del dispositivo.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
+
+        try:
+            # Find the config entry for this specific vehicle_id
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
+                    break
+        except Exception:
+            pass
+
         return {
-            "identifiers": {(DOMAIN, self.trip_manager.vehicle_id)},
-            "name": f"EV Trip Planner {self.trip_manager.vehicle_id}",
+            "identifiers": {(DOMAIN, vehicle_id)},
+            "name": f"EV Trip Planner {vehicle_name}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
         }
-
-    def _update_from_trip_data(self) -> None:
-        """Update sensor attributes from trip data."""
-        trip = self._trip_data
-        if trip:
-            self._attr_native_value = trip.get("descripcion", "Unknown")
-            distance = trip.get("km", 0)
-            energy = trip.get("kwh", 0)
-            self._cached_attrs["distance_km"] = distance
-            self._cached_attrs["energy_kwh"] = energy
-            self._cached_attrs["trip_type"] = self.trip_type
-            self._cached_attrs["trip_id"] = self.trip_id
-
-            # Set device class based on attribute
-            if "kwh" in str(self._cached_attrs.get("energy_kwh", "")):
-                self._attr_device_class = SensorDeviceClass.ENERGY
-                self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-            else:
-                self._attr_device_class = None
-
-            # Update state class for energy sensors
-            if self._attr_device_class == SensorDeviceClass.ENERGY:
-                self._attr_state_class = SensorStateClass.MEASUREMENT
-
-            _LOGGER.debug(
-                "TripSensor %s: value=%s, distance=%s km, energy=%s kWh",
-                self.trip_id,
-                self._attr_native_value,
-                distance,
-                energy,
-            )
-
-    @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
-        """Devuelve atributos adicionales para el sensor."""
-        return self._cached_attrs.copy()
 
 
 # Backward compatibility aliases for tests
@@ -507,10 +487,27 @@ class EmhassDeferrableLoadSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Return device info."""
+        """Return device info.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
+
+        try:
+            # Find the config entry for this specific vehicle_id
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
+                    break
+        except Exception:
+            pass
+
         return {
             "identifiers": {(DOMAIN, self._entry_id)},
-            "name": f"EV Trip Planner {self._entry_id}",
+            "name": f"EV Trip Planner {vehicle_name}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
@@ -651,14 +648,31 @@ class TripSensor(SensorEntity):
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Return device info for the trip sensor."""
+        """Return device info for the trip sensor.
+
+        Returns device info with the vehicle_name from the config entry,
+        ensuring the device name uses the slug-based identifier and
+        displays the human-readable vehicle name.
+        """
+        vehicle_id = self.trip_manager.vehicle_id
+        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
+
+        try:
+            # Find the config entry for this specific vehicle_id
+            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
+                    break
+        except Exception:
+            pass
+
         return {
-            "identifiers": {(DOMAIN, f"{self.trip_manager.vehicle_id}_{self._trip_id}")},
-            "name": f"Trip {self._trip_id} - {self.trip_manager.vehicle_id}",
+            "identifiers": {(DOMAIN, f"{vehicle_id}_{self._trip_id}")},
+            "name": f"Trip {self._trip_id} - {vehicle_name}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, self.trip_manager.vehicle_id),
+            "via_device": (DOMAIN, vehicle_id),
         }
 
     def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
@@ -858,12 +872,6 @@ async def _async_create_trip_sensors(
             err,
             exc_info=True,
         )
-
-    _LOGGER.debug(
-        "Created sensors for %s: %s",
-        vehicle_id,
-        [type(e).__name__ for e in entities],
-    )
 
     return entities
 
