@@ -190,9 +190,12 @@ class EVTripPlannerPanel extends HTMLElement {
     this._pollStarted = false;
 
     // Only render if we haven't rendered yet - CRITICAL FIX
-    // NOTE: _rendered is set inside _render() AFTER content is rendered, not here
     if (!this._rendered) {
+      this._rendered = true;
       this._render();
+    } else if (this._hass) {
+      // Only update if hass is available and already rendered
+      this._update();
     }
   }
 
@@ -303,9 +306,9 @@ class EVTripPlannerPanel extends HTMLElement {
           clearTimeout(this._pollTimeout);
           this._pollTimeout = null;
         }
-        // Set rendered flag AFTER calling _render (not before)
-        this._render();
+        // Set rendered flag BEFORE calling _render
         this._rendered = true;
+        this._render();
         return;
       }
 
@@ -1376,6 +1379,7 @@ class EVTripPlannerPanel extends HTMLElement {
           const matchesPattern = patterns.some(pattern => entityId.startsWith(pattern));
           if (matchesPattern) {
             console.log('EV Trip Planner Panel: State changed for', entityId);
+            this._update();
           }
         }
       },
@@ -1763,7 +1767,8 @@ class EVTripPlannerPanel extends HTMLElement {
   _render() {
     // CRITICAL: Prevent re-rendering - if already rendered, just update
     if (this._rendered) {
-      console.log("EV Trip Planner Panel: Already rendered, skipping");
+      console.log('EV Trip Planner Panel: Already rendered, calling _update instead');
+      this._update();
       return;
     }
 
@@ -1809,6 +1814,7 @@ class EVTripPlannerPanel extends HTMLElement {
       this._pollTimeout = null;
     }
 
+    this._rendered = true;
     // Stop any pending polling immediately
     if (this._pollTimeout) {
       clearTimeout(this._pollTimeout);
@@ -1826,9 +1832,9 @@ class EVTripPlannerPanel extends HTMLElement {
     console.log('EV Trip Planner Panel: Found', stateKeys.length, 'sensors:', stateKeys);
     const groupedSensors = this._groupSensors(states);
 
-    // Build sensor list HTML with data attributes for update
+    // Build sensor list HTML
     const statusCards = groupedSensors.status.map(s => `
-      <div class="status-card" data-entity="${this._escapeHtml(s.entityId)}">
+      <div class="status-card">
         <span class="status-icon">${s.icon}</span>
         <span class="status-label">${s.name}</span>
         <span class="status-value">${this._formatSensorValue(s.entityId)}</span>
@@ -1913,98 +1919,27 @@ class EVTripPlannerPanel extends HTMLElement {
       </div>
     `;
 
-    // Set rendered AFTER innerHTML is set (not before)
-    this._rendered = true;
-
     // Subscribe to state changes after render
     this._subscribeToStates();
 
-    // CRITICAL: DO NOT render trips from _render() to prevent infinite loop
-    // Trip rendering must be done separately after render completes
-    // Call window._tripPanel._renderTripsLater() to render trips after render
-
-    // Schedule trips rendering after a delay to ensure panel is fully rendered
-    setTimeout(() => {
-      if (this._rendered) {
-        this._renderTripsLater().catch(error => {
-          console.error('EV Trip Planner Panel: Error rendering trips section:', error);
-        });
-      }
-    }, 100);
-  }
-
-  /**
-   * Render trips section - must be called AFTER panel is fully rendered
-   * to prevent infinite recursion.
-   */
-  async _renderTripsLater() {
-    await this._renderTripsSection().catch(error => {
+    // Fetch and render trips after panel is fully rendered
+    this._renderTripsSection().catch(error => {
       console.error('EV Trip Planner Panel: Error rendering trips section:', error);
     });
   }
 
   /**
-   * Update individual sensor values without triggering re-render.
-   * This method is called by the state subscription when sensors change.
+   * Update the panel (re-render specific parts)
    */
   _update() {
     if (!this._rendered || !this._hass) {
       return;
     }
 
-    // Update status section values only - do not replace innerHTML
-    const states = this._getVehicleStates();
-    const groupedSensors = this._groupSensors(states);
-
-    // Update each status card value individually
-    groupedSensors.status.forEach(s => {
-      const card = document.querySelector(`.status-card[data-entity="${this._escapeHtml(s.entityId)}"]`);
-      if (card) {
-        const valueEl = card.querySelector('.status-value');
-        if (valueEl) {
-          valueEl.textContent = this._formatSensorValue(s.entityId);
-        }
-      }
-    });
-
-    // Update each sensor item value individually - do not replace innerHTML
-    groupedSensors.status.forEach(s => {
-      this._updateSensorItem(s.entityId, s.name, s.icon, this._formatSensorValue(s.entityId));
-    });
-
-    // Update other sensor groups
-    Object.entries(groupedSensors)
-      .filter(([_, sensors]) => sensors.length > 0)
-      .forEach(([groupName, sensors]) => {
-        const groupTitle = document.querySelector(`.sensor-group-title:contains("${this._getGroupName(groupName)}")`);
-        if (groupTitle) {
-          sensors.forEach(s => {
-            this._updateSensorItem(s.entityId, s.name, s.icon, this._formatSensorValue(s.entityId));
-          });
-        }
-      });
+    // For now, just re-render the entire panel
+    // In production, you'd update specific DOM elements
+    this._render();
   }
-
-  /**
-   * Update a single sensor item by entity ID.
-   * @param {string} entityId - The entity ID
-   * @param {string} name - The sensor name
-   * @param {string} icon - The sensor icon
-   * @param {string} value - The sensor value
-   */
-  _updateSensorItem(entityId, name, icon, value) {
-    const sensorItem = document.querySelector(`.sensor-item[data-entity-id="${this._escapeHtml(entityId)}"]`);
-    if (sensorItem) {
-      const valueEl = sensorItem.querySelector('.sensor-value');
-      const nameEl = sensorItem.querySelector('.sensor-name');
-      const iconEl = sensorItem.querySelector('.sensor-icon');
-
-      if (valueEl) valueEl.textContent = value;
-      if (nameEl) nameEl.textContent = name;
-      if (iconEl) iconEl.textContent = icon;
-    }
-  }
-
 
   /**
    * Get group name for display

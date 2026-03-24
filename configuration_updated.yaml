@@ -1,0 +1,37 @@
+# Home Assistant Test Configuration
+# Puerto: 18124 (mapeado a 8123 internamente)
+# Configuración para tests E2E sin usuario/contraseña
+
+homeassistant:
+  name: EV Trip Planner Test
+  unit_system: metric
+  time_zone: Europe/Madrid
+  external_url: http://localhost:18123
+  internal_url: http://localhost:8123
+  # Disable onboarding for automated tests
+  auth_providers:
+    - type: homeassistant
+
+http:
+  server_port: 8123
+  cors_allowed_origins:
+    - http://localhost:18123
+    - http://127.0.0.1:18123
+    - http://localhost:8123
+    - http://127.0.0.1:8123
+
+# Enable logging for debugging
+logger:
+  default: info
+  logs:
+    custom_components.ev_trip_planner: debug
+
+# Configuración mínima para tests
+config:
+
+# Sensores mock para tests E2E - incluye por tipo
+# Cada archivo contiene inputs para 5 vehículos (coche1-coche5)
+input_number: !include input_number.yaml
+input_boolean: !include input_boolean.yaml
+template: !include template_sensors.yaml
+template: !include template_binary_sensors.yaml

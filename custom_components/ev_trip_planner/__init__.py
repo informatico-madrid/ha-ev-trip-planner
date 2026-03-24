@@ -470,9 +470,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         HAS_STATIC_PATH_CONFIG = False
 
     component_dir = Path(__file__).parent
-    # Use static folder for panel files
-    panel_js_path = component_dir / "static" / "ev_trip_planner" / "panel.js"
-    panel_css_path = component_dir / "static" / "ev_trip_planner" / "panel.css"
+    # Use frontend folder for panel files
+    panel_js_path = component_dir / "frontend" / "panel.js"
+    panel_css_path = component_dir / "frontend" / "panel.css"
 
     # Build list of static paths to register
     static_paths = []
@@ -480,11 +480,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register the JavaScript file
     if panel_js_path.exists():
         static_paths.append(
-            StaticPathConfig("/ev_trip_planner/panel.js", str(panel_js_path), cache_headers=True)
+            StaticPathConfig("/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=True)
             if HAS_STATIC_PATH_CONFIG
-            else ("ev_trip_planner/panel.js", str(panel_js_path), True)
+            else ("ev-trip-planner/panel.js", str(panel_js_path), True)
         )
-        _LOGGER.info("Registering panel.js at ev_trip_planner/panel.js from %s", panel_js_path)
+        _LOGGER.info("Registering panel.js at /ev-trip-planner/panel.js from %s", panel_js_path)
 
     # Register the CSS file
     if panel_css_path.exists():
@@ -1051,11 +1051,14 @@ def register_services(hass: HomeAssistant) -> None:
                     descripcion=str(item.get("descripcion", "")),
                 )
 
-    async def handle_trip_list(call: ServiceCall) -> None:
+    async def handle_trip_list(call: ServiceCall) -> dict:
         """Handle listing all trips for a vehicle.
 
         Returns both recurring and punctual trips in a single list.
+
+        Returns a dict with vehicle_id, trips, and total count.
         """
+        from homeassistant.core import HomeAssistant
         data = call.data
         vehicle_id = data["vehicle_id"]
         mgr = _get_manager(hass, vehicle_id)
@@ -1073,7 +1076,7 @@ def register_services(hass: HomeAssistant) -> None:
             )
 
             # Combine trips for dashboard display
-            call.return_data = {
+            return {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": recurring_trips,
                 "punctual_trips": punctual_trips,
@@ -1081,7 +1084,7 @@ def register_services(hass: HomeAssistant) -> None:
             }
         except Exception as err:  # pragma: no cover
             _LOGGER.error("Error listing trips for vehicle %s: %s", vehicle_id, err)
-            call.return_data = {
+            return {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": [],
                 "punctual_trips": [],

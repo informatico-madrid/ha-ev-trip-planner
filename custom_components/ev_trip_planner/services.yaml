@@ -111,3 +111,11 @@ cancel_punctual_trip:
     trip_id:
       description: ID del viaje puntual
       example: pun_20251119_abc12345
+
+trip_list:
+  name: Listar viajes del vehículo
+  description: Obtiene todos los viajes (recurrentes y puntuales) para un vehículo
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas

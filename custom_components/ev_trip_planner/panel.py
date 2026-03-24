@@ -58,11 +58,13 @@ async def async_register_panel(
             pass
 
         # Use panel_custom.async_register_panel - this is the correct API
+        # Note: js_url uses absolute path from root - all vehicles share the same panel.js
+        # Using absolute path to avoid URL resolution issues in HA
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=frontend_url_path,
             webcomponent_name=PANEL_COMPONENT_NAME,
-            js_url="ev_trip_planner/panel.js",
+            js_url=f"/{DOMAIN.replace('_', '-')}/panel.js",
             sidebar_title=vehicle_name,
             sidebar_icon=DEFAULT_SIDEBAR_ICON,
             config={"vehicle_id": vehicle_id},
