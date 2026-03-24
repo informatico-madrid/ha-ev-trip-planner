@@ -1,10 +1,10 @@
-<testsuites id="" name="" tests="68" failures="3" skipped="4" errors="0" time="94.243895">
-<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="30" failures="0" skipped="4" time="76.172" errors="0">
-<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="2.928">
+<testsuites id="" name="" tests="380" failures="345" skipped="4" errors="0" time="53.704484">
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="chromium" tests="30" failures="0" skipped="4" time="76.748" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="7.062">
 </testcase>
-<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="2.698">
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="6.509">
 </testcase>
-<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="2.784">
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="3.255">
 <properties>
 <property name="skip" value="">
 </property>
@@ -12,11 +12,11 @@
 <skipped>
 </skipped>
 </testcase>
-<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="2.563">
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="3.458">
 </testcase>
-<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="2.611">
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="3.868">
 </testcase>
-<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="2.583">
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="3.944">
 <properties>
 <property name="skip" value="">
 </property>
@@ -24,7 +24,7 @@
 <skipped>
 </skipped>
 </testcase>
-<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="2.672">
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="3.007">
 <properties>
 <property name="skip" value="">
 </property>
@@ -32,35 +32,35 @@
 <skipped>
 </skipped>
 </testcase>
-<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="2.416">
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="2.397">
 </testcase>
-<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="2.897">
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="1.951">
 </testcase>
-<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="2.692">
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="1.765">
 </testcase>
-<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="3.032">
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="1.801">
 <system-out>
 <![CDATA[Found 0 potential trip cards
 ]]>
 </system-out>
 </testcase>
-<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="3.138">
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="1.747">
 </testcase>
-<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="2.469">
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="1.837">
 </testcase>
-<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="2.742">
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="1.778">
 </testcase>
-<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="2.369">
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="1.856">
 <system-out>
 <![CDATA[Found 3 editable fields
 ]]>
 </system-out>
 </testcase>
-<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="2.636">
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="1.94">
 </testcase>
-<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="2.079">
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="1.82">
 </testcase>
-<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="2.353">
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="1.767">
 <properties>
 <property name="skip" value="">
 </property>
@@ -68,217 +68,2881 @@
 <skipped>
 </skipped>
 </testcase>
-<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="2.218">
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="1.55">
 <system-out>
 <![CDATA[Found 0 trips in the list
 ]]>
 </system-out>
 </testcase>
-<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="2.37">
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="1.909">
 </testcase>
-<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="2.036">
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="1.756">
 </testcase>
-<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="2.274">
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="1.641">
 </testcase>
-<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="2.578">
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="2.056">
 </testcase>
-<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="2.043">
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="1.78">
 </testcase>
-<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="2.561">
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="2.313">
 </testcase>
-<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="2.489">
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="2.412">
 <system-out>
 <![CDATA[Focused element after Tab: INPUT
 ]]>
 </system-out>
 </testcase>
-<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="2.391">
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="2.457">
 <system-out>
 <![CDATA[Found 6 ARIA elements
 ]]>
 </system-out>
 </testcase>
-<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="2.632">
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="2.538">
 <system-out>
 <![CDATA[Screenshot captured for visual verification
 ]]>
 </system-out>
 </testcase>
-<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="2.564">
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="2.409">
 </testcase>
-<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="2.354">
-</testcase>
-</testsuite>
-<testsuite name="example.spec.js" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="2" failures="0" skipped="0" time="2.581" errors="0">
-<testcase name="has title" classname="example.spec.js" time="1.136">
-</testcase>
-<testcase name="get started link" classname="example.spec.js" time="1.445">
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="2.165">
 </testcase>
 </testsuite>
-<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T07:46:26.534Z" hostname="chromium" tests="36" failures="3" skipped="0" time="85.929" errors="0">
-<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0.884">
+<testsuite name="example.spec.js" timestamp="2026-03-24T15:12:33.995Z" hostname="chromium" tests="2" failures="0" skipped="0" time="4.116" errors="0">
+<testcase name="has title" classname="example.spec.js" time="1.598">
 </testcase>
-<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="1.201">
+<testcase name="get started link" classname="example.spec.js" time="2.518">
 </testcase>
-<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="1.822">
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="chromium" tests="36" failures="33" skipped="0" time="6.827" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="1.142">
 </testcase>
-<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="3.223">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="3.042">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="2.801">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="2.869">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="1.914">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="2.741">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="2.45">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="2.273">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="2.43">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="1.77">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="2.103">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="2.125">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="2.167">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="2.271">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="1.903">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="2.469">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="2.231">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="2.317">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="2.453">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="2.234">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="2.316">
-<system-out>
-<![CDATA[Found 0 trips in the list
-]]>
-</system-out>
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="2.399">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="2.238">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="2.2">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="2.819">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="2.527">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="2.898">
-<system-out>
-<![CDATA[Focused element after Tab: INPUT
-]]>
-</system-out>
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="2.668">
-<system-out>
-<![CDATA[Found 6 ARIA elements
-]]>
-</system-out>
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="2.248">
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0.065">
-<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
-<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="1.185">
+<failure message="ha-ev-trip-planner.spec.ts:48:7 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:48:7 › Home Assistant Authentication › should show error with invalid credentials 
 
-    Error: expect(received).toBe(expected) // Object.is equality
+    TypeError: loginPage.hasError is not a function
 
-    Expected: true
-    Received: false
-
-      544 |     });
-      545 |
-    > 546 |     expect(response.ok()).toBe(true);
-          |                           ^
-      547 |
-      548 |     const states = await response.json();
-      549 |     const evTripEntities = states.filter((state: any) =>
-        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:546:27
-]]>
-</failure>
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0.462">
-</testcase>
-<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0.052">
-<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
-<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: true
-    Received: false
-
-      587 |     });
-      588 |     
-    > 589 |     expect(response.ok()).toBe(true);
-          |                           ^
-      590 |     
-      591 |     const states = await response.json();
-      592 |     const evTripEntities = states.filter((state: any) => 
-        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:589:27
-]]>
-</failure>
-</testcase>
-<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="11.344">
-<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
-<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
-
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: getByRole('heading', { name: /ev trip planner|planificador de viajes/i })
-    Expected: visible
-    Timeout: 10000ms
-    Error: element(s) not found
-
-    Call log:
-      - Expect "toBeVisible" with timeout 10000ms
-      - waiting for getByRole('heading', { name: /ev trip planner|planificador de viajes/i })
-
-
-      615 |     
-      616 |     // For now, just verify the page loads
-    > 617 |     await expect(dashboardPage.dashboardTitle).toBeVisible();
-          |                                                ^
-      618 |   });
-      619 | });
-      620 |
-        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:617:48
+      72 |     // Should show an error message or remain on login page
+      73 |     const currentUrl = page.url();
+    > 74 |     const hasError = await loginPage.hasError();
+         |                                      ^
+      75 |     
+      76 |     expect(currentUrl.includes('/auth/login') || hasError).toBeTruthy();
+      77 |   });
+        at /home/malka/ha-ev-trip-planner/tests/e2e/ha-ev-trip-planner.spec.ts:74:38
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/test-failed-1.png
+    test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/video.webm
+    test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/error-context.md
+    Error Context: test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/error-context.md
 ]]>
 </failure>
 <system-out>
 <![CDATA[
-[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/test-failed-1.png]]
+[[ATTACHMENT|test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/test-failed-1.png]]
 
-[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/video.webm]]
+[[ATTACHMENT|test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/video.webm]]
 
-[[ATTACHMENT|test-results/ha-ev-trip-planner-EV-Trip-1fb48--match-dashboard-screenshot-chromium/error-context.md]]
+[[ATTACHMENT|test-results/ha-ev-trip-planner-Home-As-93d30-or-with-invalid-credentials-chromium/error-context.md]]
 ]]>
 </system-out>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="2.228">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:96:7 should display vehicle cards" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:96:7 › EV Trip Planner Dashboard - UI Flows › should display vehicle cards 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:104:7 should navigate to add vehicle flow" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:104:7 › EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:112:7 should navigate to trips management view" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:112:7 › EV Trip Planner Dashboard - UI Flows › should navigate to trips management view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:136:7 should display create trip button" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:136:7 › EV Trip Planner Dashboard - Create Trip UI › should display create trip button 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:145:7 should show create trip form when button clicked" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:145:7 › EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:159:7 should fill trip creation form fields" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:159:7 › EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:180:7 should submit trip creation form" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:180:7 › EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:199:7 should display trip list when trips exist" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:199:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:208:7 should display trip items in list format" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:208:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:217:7 should display trip details including distance and time" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:217:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:228:7 should display trip status indicators" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:228:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:257:7 should display edit button for trips" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:257:7 › EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:266:7 should allow trip field editing" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:266:7 › EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="2.272">
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:286:7 should save trip updates" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:286:7 › EV Trip Planner Dashboard - Update Trip UI › should save trip updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:304:7 should display delete button for trips" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:304:7 › EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:313:7 should show delete confirmation dialog" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:313:7 › EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:322:7 should confirm or cancel trip deletion" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:322:7 › EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:331:7 should remove trip from list after deletion" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:331:7 › EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:350:7 should complete full trip lifecycle through UI" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:350:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:397:7 should handle multiple trips in the list" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:397:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:420:7 should maintain dashboard functionality after CRUD operations" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:420:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:440:7 should display validation messages for invalid input" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:440:7 › EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:449:7 should handle network errors gracefully" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:449:7 › EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:464:7 should show connection status indicator" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:464:7 › EV Trip Planner Dashboard - Error Handling › should show connection status indicator 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:482:7 should load within acceptable time" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:482:7 › EV Trip Planner Dashboard - Performance & Accessibility › should load within acceptable time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:488:7 should support keyboard navigation" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:488:7 › EV Trip Planner Dashboard - Performance & Accessibility › should support keyboard navigation 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:500:7 should have proper ARIA labels" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:500:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have proper ARIA labels 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:511:7 should have responsive design support" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:511:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have responsive design support 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:560:7 should verify dashboard Lovelace integration" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:560:7 › EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [chromium] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="test-us5-sensor-updates.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="chromium" tests="8" failures="8" skipped="0" time="0" errors="0">
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:35:7 should verify panel.js has _subscribeToStates method" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:35:7 › US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:50:7 should verify panel.js has _getVehicleStates method that captures all sensors" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:50:7 › US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:68:7 should verify panel.js has _update method for live updates" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:68:7 › US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:81:7 should verify panel.js has _updateSensorItem method" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:81:7 › US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:91:7 should verify panel.js subscribes to state changes after render" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:91:7 › US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:109:7 should verify panel.js handles state changes correctly" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:109:7 › US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _cleanup method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:124:7 should verify panel.js has _cleanup method" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:124:7 › US5: Automatic Sensor Updates › should verify panel.js has _cleanup method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:138:7 should verify panel.js groups sensors for efficient updates" type="FAILURE">
+<![CDATA[  [chromium] › test-us5-sensor-updates.spec.ts:138:7 › US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="firefox" tests="30" failures="30" skipped="0" time="0" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:26:9 dashboard loads successfully" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:26:9 › Dashboard Loading Tests › dashboard loads successfully ─
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:67:9 dashboard has title element" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:67:9 › Dashboard Loading Tests › dashboard has title element ──
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:102:9 dashboard has navigation elements" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:102:9 › Dashboard Loading Tests › dashboard has navigation elements 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:139:9 can navigate to trips view" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:139:9 › Dashboard Navigation Tests › can navigate to trips view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:170:9 dashboard view tabs are accessible" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:170:9 › Dashboard Navigation Tests › dashboard view tabs are accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:202:9 create recurring trip form is accessible" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:202:9 › Create Trip Tests › create recurring trip form is accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:242:9 can fill trip details" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:242:9 › Create Trip Tests › can fill trip details ─────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:294:9 create trip button exists" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:294:9 › Create Trip Tests › create trip button exists ─────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:317:9 create recurring trip workflow" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:317:9 › Create Trip Tests › create recurring trip workflow ────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:408:9 trip list display" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:408:9 › Trip List Tests › trip list display ───────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:453:9 trip display shows details" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:453:9 › Trip List Tests › trip display shows details ──────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:473:9 trip status display" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:473:9 › Trip List Tests › trip status display ─────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:518:9 edit trip button exists" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:518:9 › Update Trip Tests › edit trip button exists ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:541:9 update trip form" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:541:9 › Update Trip Tests › update trip form ──────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:567:9 update trip fields" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:567:9 › Update Trip Tests › update trip fields ────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:596:9 delete button exists" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:596:9 › Delete Trip Tests › delete button exists ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:619:9 delete trip workflow" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:619:9 › Delete Trip Tests › delete trip workflow ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:680:9 full trip lifecycle" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:680:9 › Complete CRUD Workflow Tests › full trip lifecycle ────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:713:9 concurrent trip operations" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:713:9 › Complete CRUD Workflow Tests › concurrent trip operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:756:9 invalid trip data rejection" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:756:9 › Error Handling Tests › invalid trip data rejection ────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:780:9 network error handling" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:780:9 › Error Handling Tests › network error handling ─────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:811:9 dashboard load time" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:811:9 › Performance Tests › dashboard load time ───────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:824:9 responsive design" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:824:9 › Performance Tests › responsive design ─────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:855:9 lovelace integration" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:855:9 › Integration Tests › lovelace integration ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:878:9 entity display" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:878:9 › Integration Tests › entity display ────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:907:9 keyboard navigation" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:907:9 › Accessibility Tests › keyboard navigation ─────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:927:9 screen reader support" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:927:9 › Accessibility Tests › screen reader support ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:953:9 dashboard screenshot" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:953:9 › Visual Regression Tests › dashboard screenshot ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:983:9 refresh button" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:983:9 › Utility Tests › refresh button ────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:1016:9 settings access" type="FAILURE">
+<![CDATA[  [firefox] › dashboard-crud.spec.ts:1016:9 › Utility Tests › settings access ──────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="example.spec.js" timestamp="2026-03-24T15:12:33.995Z" hostname="firefox" tests="2" failures="2" skipped="0" time="0" errors="0">
+<testcase name="has title" classname="example.spec.js" time="0">
+<failure message="example.spec.js:4:5 has title" type="FAILURE">
+<![CDATA[  [firefox] › example.spec.js:4:5 › has title ──────────────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="get started link" classname="example.spec.js" time="0">
+<failure message="example.spec.js:11:5 get started link" type="FAILURE">
+<![CDATA[  [firefox] › example.spec.js:11:5 › get started link ──────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="firefox" tests="36" failures="36" skipped="0" time="0" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:37:7 should display login page" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:37:7 › Home Assistant Authentication › should display login page 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:48:7 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:48:7 › Home Assistant Authentication › should show error with invalid credentials 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:90:7 should load dashboard successfully" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:90:7 › EV Trip Planner Dashboard - UI Flows › should load dashboard successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:96:7 should display vehicle cards" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:96:7 › EV Trip Planner Dashboard - UI Flows › should display vehicle cards 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:104:7 should navigate to add vehicle flow" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:104:7 › EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:112:7 should navigate to trips management view" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:112:7 › EV Trip Planner Dashboard - UI Flows › should navigate to trips management view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:136:7 should display create trip button" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:136:7 › EV Trip Planner Dashboard - Create Trip UI › should display create trip button 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:145:7 should show create trip form when button clicked" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:145:7 › EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:159:7 should fill trip creation form fields" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:159:7 › EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:180:7 should submit trip creation form" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:180:7 › EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:199:7 should display trip list when trips exist" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:199:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:208:7 should display trip items in list format" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:208:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:217:7 should display trip details including distance and time" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:217:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:228:7 should display trip status indicators" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:228:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:257:7 should display edit button for trips" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:257:7 › EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:266:7 should allow trip field editing" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:266:7 › EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:276:7 should display trip edit form when edit clicked" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:276:7 › EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:286:7 should save trip updates" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:286:7 › EV Trip Planner Dashboard - Update Trip UI › should save trip updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:304:7 should display delete button for trips" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:304:7 › EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:313:7 should show delete confirmation dialog" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:313:7 › EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:322:7 should confirm or cancel trip deletion" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:322:7 › EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:331:7 should remove trip from list after deletion" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:331:7 › EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:350:7 should complete full trip lifecycle through UI" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:350:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:397:7 should handle multiple trips in the list" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:397:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:420:7 should maintain dashboard functionality after CRUD operations" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:420:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:440:7 should display validation messages for invalid input" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:440:7 › EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:449:7 should handle network errors gracefully" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:449:7 › EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:464:7 should show connection status indicator" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:464:7 › EV Trip Planner Dashboard - Error Handling › should show connection status indicator 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:482:7 should load within acceptable time" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:482:7 › EV Trip Planner Dashboard - Performance & Accessibility › should load within acceptable time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:488:7 should support keyboard navigation" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:488:7 › EV Trip Planner Dashboard - Performance & Accessibility › should support keyboard navigation 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:500:7 should have proper ARIA labels" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:500:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have proper ARIA labels 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:511:7 should have responsive design support" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:511:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have responsive design support 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:560:7 should verify dashboard Lovelace integration" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:560:7 › EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [firefox] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="test-us5-sensor-updates.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="firefox" tests="8" failures="8" skipped="0" time="0" errors="0">
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:35:7 should verify panel.js has _subscribeToStates method" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:35:7 › US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:50:7 should verify panel.js has _getVehicleStates method that captures all sensors" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:50:7 › US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:68:7 should verify panel.js has _update method for live updates" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:68:7 › US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:81:7 should verify panel.js has _updateSensorItem method" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:81:7 › US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:91:7 should verify panel.js subscribes to state changes after render" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:91:7 › US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:109:7 should verify panel.js handles state changes correctly" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:109:7 › US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _cleanup method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:124:7 should verify panel.js has _cleanup method" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:124:7 › US5: Automatic Sensor Updates › should verify panel.js has _cleanup method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:138:7 should verify panel.js groups sensors for efficient updates" type="FAILURE">
+<![CDATA[  [firefox] › test-us5-sensor-updates.spec.ts:138:7 › US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="webkit" tests="30" failures="30" skipped="0" time="0" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:26:9 dashboard loads successfully" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:26:9 › Dashboard Loading Tests › dashboard loads successfully ──
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:67:9 dashboard has title element" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:67:9 › Dashboard Loading Tests › dashboard has title element ───
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:102:9 dashboard has navigation elements" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:102:9 › Dashboard Loading Tests › dashboard has navigation elements 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:139:9 can navigate to trips view" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:139:9 › Dashboard Navigation Tests › can navigate to trips view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:170:9 dashboard view tabs are accessible" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:170:9 › Dashboard Navigation Tests › dashboard view tabs are accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:202:9 create recurring trip form is accessible" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:202:9 › Create Trip Tests › create recurring trip form is accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:242:9 can fill trip details" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:242:9 › Create Trip Tests › can fill trip details ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:294:9 create trip button exists" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:294:9 › Create Trip Tests › create trip button exists ──────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:317:9 create recurring trip workflow" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:317:9 › Create Trip Tests › create recurring trip workflow ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:408:9 trip list display" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:408:9 › Trip List Tests › trip list display ────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:453:9 trip display shows details" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:453:9 › Trip List Tests › trip display shows details ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:473:9 trip status display" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:473:9 › Trip List Tests › trip status display ──────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:518:9 edit trip button exists" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:518:9 › Update Trip Tests › edit trip button exists ────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:541:9 update trip form" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:541:9 › Update Trip Tests › update trip form ───────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:567:9 update trip fields" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:567:9 › Update Trip Tests › update trip fields ─────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:596:9 delete button exists" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:596:9 › Delete Trip Tests › delete button exists ───────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:619:9 delete trip workflow" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:619:9 › Delete Trip Tests › delete trip workflow ───────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:680:9 full trip lifecycle" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:680:9 › Complete CRUD Workflow Tests › full trip lifecycle ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:713:9 concurrent trip operations" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:713:9 › Complete CRUD Workflow Tests › concurrent trip operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:756:9 invalid trip data rejection" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:756:9 › Error Handling Tests › invalid trip data rejection ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:780:9 network error handling" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:780:9 › Error Handling Tests › network error handling ──────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:811:9 dashboard load time" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:811:9 › Performance Tests › dashboard load time ────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:824:9 responsive design" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:824:9 › Performance Tests › responsive design ──────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:855:9 lovelace integration" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:855:9 › Integration Tests › lovelace integration ───────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:878:9 entity display" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:878:9 › Integration Tests › entity display ─────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:907:9 keyboard navigation" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:907:9 › Accessibility Tests › keyboard navigation ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:927:9 screen reader support" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:927:9 › Accessibility Tests › screen reader support ────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:953:9 dashboard screenshot" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:953:9 › Visual Regression Tests › dashboard screenshot ─────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:983:9 refresh button" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:983:9 › Utility Tests › refresh button ─────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:1016:9 settings access" type="FAILURE">
+<![CDATA[  [webkit] › dashboard-crud.spec.ts:1016:9 › Utility Tests › settings access ───────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="example.spec.js" timestamp="2026-03-24T15:12:33.995Z" hostname="webkit" tests="2" failures="2" skipped="0" time="0" errors="0">
+<testcase name="has title" classname="example.spec.js" time="0">
+<failure message="example.spec.js:4:5 has title" type="FAILURE">
+<![CDATA[  [webkit] › example.spec.js:4:5 › has title ───────────────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="get started link" classname="example.spec.js" time="0">
+<failure message="example.spec.js:11:5 get started link" type="FAILURE">
+<![CDATA[  [webkit] › example.spec.js:11:5 › get started link ───────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="webkit" tests="36" failures="36" skipped="0" time="0" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:37:7 should display login page" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:37:7 › Home Assistant Authentication › should display login page 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:48:7 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:48:7 › Home Assistant Authentication › should show error with invalid credentials 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:90:7 should load dashboard successfully" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:90:7 › EV Trip Planner Dashboard - UI Flows › should load dashboard successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:96:7 should display vehicle cards" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:96:7 › EV Trip Planner Dashboard - UI Flows › should display vehicle cards 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:104:7 should navigate to add vehicle flow" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:104:7 › EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:112:7 should navigate to trips management view" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:112:7 › EV Trip Planner Dashboard - UI Flows › should navigate to trips management view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:136:7 should display create trip button" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:136:7 › EV Trip Planner Dashboard - Create Trip UI › should display create trip button 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:145:7 should show create trip form when button clicked" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:145:7 › EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:159:7 should fill trip creation form fields" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:159:7 › EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:180:7 should submit trip creation form" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:180:7 › EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:199:7 should display trip list when trips exist" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:199:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:208:7 should display trip items in list format" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:208:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:217:7 should display trip details including distance and time" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:217:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:228:7 should display trip status indicators" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:228:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:257:7 should display edit button for trips" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:257:7 › EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:266:7 should allow trip field editing" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:266:7 › EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:276:7 should display trip edit form when edit clicked" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:276:7 › EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:286:7 should save trip updates" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:286:7 › EV Trip Planner Dashboard - Update Trip UI › should save trip updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:304:7 should display delete button for trips" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:304:7 › EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:313:7 should show delete confirmation dialog" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:313:7 › EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:322:7 should confirm or cancel trip deletion" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:322:7 › EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:331:7 should remove trip from list after deletion" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:331:7 › EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:350:7 should complete full trip lifecycle through UI" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:350:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:397:7 should handle multiple trips in the list" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:397:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:420:7 should maintain dashboard functionality after CRUD operations" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:420:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:440:7 should display validation messages for invalid input" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:440:7 › EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:449:7 should handle network errors gracefully" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:449:7 › EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:464:7 should show connection status indicator" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:464:7 › EV Trip Planner Dashboard - Error Handling › should show connection status indicator 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:482:7 should load within acceptable time" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:482:7 › EV Trip Planner Dashboard - Performance & Accessibility › should load within acceptable time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:488:7 should support keyboard navigation" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:488:7 › EV Trip Planner Dashboard - Performance & Accessibility › should support keyboard navigation 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:500:7 should have proper ARIA labels" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:500:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have proper ARIA labels 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:511:7 should have responsive design support" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:511:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have responsive design support 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:560:7 should verify dashboard Lovelace integration" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:560:7 › EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [webkit] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="test-us5-sensor-updates.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="webkit" tests="8" failures="8" skipped="0" time="0" errors="0">
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:35:7 should verify panel.js has _subscribeToStates method" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:35:7 › US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:50:7 should verify panel.js has _getVehicleStates method that captures all sensors" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:50:7 › US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:68:7 should verify panel.js has _update method for live updates" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:68:7 › US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:81:7 should verify panel.js has _updateSensorItem method" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:81:7 › US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:91:7 should verify panel.js subscribes to state changes after render" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:91:7 › US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:109:7 should verify panel.js handles state changes correctly" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:109:7 › US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _cleanup method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:124:7 should verify panel.js has _cleanup method" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:124:7 › US5: Automatic Sensor Updates › should verify panel.js has _cleanup method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:138:7 should verify panel.js groups sensors for efficient updates" type="FAILURE">
+<![CDATA[  [webkit] › test-us5-sensor-updates.spec.ts:138:7 › US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-chrome" tests="30" failures="30" skipped="0" time="0" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:26:9 dashboard loads successfully" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:26:9 › Dashboard Loading Tests › dashboard loads successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:67:9 dashboard has title element" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:67:9 › Dashboard Loading Tests › dashboard has title element 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:102:9 dashboard has navigation elements" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:102:9 › Dashboard Loading Tests › dashboard has navigation elements 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:139:9 can navigate to trips view" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:139:9 › Dashboard Navigation Tests › can navigate to trips view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:170:9 dashboard view tabs are accessible" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:170:9 › Dashboard Navigation Tests › dashboard view tabs are accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:202:9 create recurring trip form is accessible" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:202:9 › Create Trip Tests › create recurring trip form is accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:242:9 can fill trip details" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:242:9 › Create Trip Tests › can fill trip details ───────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:294:9 create trip button exists" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:294:9 › Create Trip Tests › create trip button exists ───
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:317:9 create recurring trip workflow" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:317:9 › Create Trip Tests › create recurring trip workflow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:408:9 trip list display" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:408:9 › Trip List Tests › trip list display ─────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:453:9 trip display shows details" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:453:9 › Trip List Tests › trip display shows details ────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:473:9 trip status display" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:473:9 › Trip List Tests › trip status display ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:518:9 edit trip button exists" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:518:9 › Update Trip Tests › edit trip button exists ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:541:9 update trip form" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:541:9 › Update Trip Tests › update trip form ────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:567:9 update trip fields" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:567:9 › Update Trip Tests › update trip fields ──────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:596:9 delete button exists" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:596:9 › Delete Trip Tests › delete button exists ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:619:9 delete trip workflow" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:619:9 › Delete Trip Tests › delete trip workflow ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:680:9 full trip lifecycle" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:680:9 › Complete CRUD Workflow Tests › full trip lifecycle 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:713:9 concurrent trip operations" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:713:9 › Complete CRUD Workflow Tests › concurrent trip operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:756:9 invalid trip data rejection" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:756:9 › Error Handling Tests › invalid trip data rejection 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:780:9 network error handling" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:780:9 › Error Handling Tests › network error handling ───
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:811:9 dashboard load time" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:811:9 › Performance Tests › dashboard load time ─────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:824:9 responsive design" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:824:9 › Performance Tests › responsive design ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:855:9 lovelace integration" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:855:9 › Integration Tests › lovelace integration ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:878:9 entity display" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:878:9 › Integration Tests › entity display ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:907:9 keyboard navigation" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:907:9 › Accessibility Tests › keyboard navigation ───────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:927:9 screen reader support" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:927:9 › Accessibility Tests › screen reader support ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:953:9 dashboard screenshot" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:953:9 › Visual Regression Tests › dashboard screenshot ──
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:983:9 refresh button" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:983:9 › Utility Tests › refresh button ──────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:1016:9 settings access" type="FAILURE">
+<![CDATA[  [mobile-chrome] › dashboard-crud.spec.ts:1016:9 › Utility Tests › settings access ────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="example.spec.js" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-chrome" tests="2" failures="2" skipped="0" time="0" errors="0">
+<testcase name="has title" classname="example.spec.js" time="0">
+<failure message="example.spec.js:4:5 has title" type="FAILURE">
+<![CDATA[  [mobile-chrome] › example.spec.js:4:5 › has title ────────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="get started link" classname="example.spec.js" time="0">
+<failure message="example.spec.js:11:5 get started link" type="FAILURE">
+<![CDATA[  [mobile-chrome] › example.spec.js:11:5 › get started link ────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-chrome" tests="36" failures="36" skipped="0" time="0" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:37:7 should display login page" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:37:7 › Home Assistant Authentication › should display login page 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:48:7 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:48:7 › Home Assistant Authentication › should show error with invalid credentials 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:90:7 should load dashboard successfully" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:90:7 › EV Trip Planner Dashboard - UI Flows › should load dashboard successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:96:7 should display vehicle cards" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:96:7 › EV Trip Planner Dashboard - UI Flows › should display vehicle cards 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:104:7 should navigate to add vehicle flow" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:104:7 › EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:112:7 should navigate to trips management view" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:112:7 › EV Trip Planner Dashboard - UI Flows › should navigate to trips management view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:136:7 should display create trip button" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:136:7 › EV Trip Planner Dashboard - Create Trip UI › should display create trip button 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:145:7 should show create trip form when button clicked" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:145:7 › EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:159:7 should fill trip creation form fields" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:159:7 › EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:180:7 should submit trip creation form" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:180:7 › EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:199:7 should display trip list when trips exist" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:199:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:208:7 should display trip items in list format" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:208:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:217:7 should display trip details including distance and time" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:217:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:228:7 should display trip status indicators" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:228:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:257:7 should display edit button for trips" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:257:7 › EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:266:7 should allow trip field editing" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:266:7 › EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:276:7 should display trip edit form when edit clicked" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:276:7 › EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:286:7 should save trip updates" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:286:7 › EV Trip Planner Dashboard - Update Trip UI › should save trip updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:304:7 should display delete button for trips" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:304:7 › EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:313:7 should show delete confirmation dialog" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:313:7 › EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:322:7 should confirm or cancel trip deletion" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:322:7 › EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:331:7 should remove trip from list after deletion" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:331:7 › EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:350:7 should complete full trip lifecycle through UI" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:350:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:397:7 should handle multiple trips in the list" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:397:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:420:7 should maintain dashboard functionality after CRUD operations" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:420:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:440:7 should display validation messages for invalid input" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:440:7 › EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:449:7 should handle network errors gracefully" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:449:7 › EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:464:7 should show connection status indicator" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:464:7 › EV Trip Planner Dashboard - Error Handling › should show connection status indicator 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:482:7 should load within acceptable time" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:482:7 › EV Trip Planner Dashboard - Performance & Accessibility › should load within acceptable time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:488:7 should support keyboard navigation" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:488:7 › EV Trip Planner Dashboard - Performance & Accessibility › should support keyboard navigation 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:500:7 should have proper ARIA labels" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:500:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have proper ARIA labels 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:511:7 should have responsive design support" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:511:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have responsive design support 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:560:7 should verify dashboard Lovelace integration" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:560:7 › EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [mobile-chrome] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="test-us5-sensor-updates.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-chrome" tests="8" failures="8" skipped="0" time="0" errors="0">
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:35:7 should verify panel.js has _subscribeToStates method" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:35:7 › US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:50:7 should verify panel.js has _getVehicleStates method that captures all sensors" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:50:7 › US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:68:7 should verify panel.js has _update method for live updates" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:68:7 › US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:81:7 should verify panel.js has _updateSensorItem method" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:81:7 › US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:91:7 should verify panel.js subscribes to state changes after render" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:91:7 › US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:109:7 should verify panel.js handles state changes correctly" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:109:7 › US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _cleanup method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:124:7 should verify panel.js has _cleanup method" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:124:7 › US5: Automatic Sensor Updates › should verify panel.js has _cleanup method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:138:7 should verify panel.js groups sensors for efficient updates" type="FAILURE">
+<![CDATA[  [mobile-chrome] › test-us5-sensor-updates.spec.ts:138:7 › US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="dashboard-crud.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-safari" tests="30" failures="30" skipped="0" time="0" errors="0">
+<testcase name="Dashboard Loading Tests › dashboard loads successfully" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:26:9 dashboard loads successfully" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:26:9 › Dashboard Loading Tests › dashboard loads successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has title element" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:67:9 dashboard has title element" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:67:9 › Dashboard Loading Tests › dashboard has title element 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Loading Tests › dashboard has navigation elements" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:102:9 dashboard has navigation elements" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:102:9 › Dashboard Loading Tests › dashboard has navigation elements 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › can navigate to trips view" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:139:9 can navigate to trips view" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:139:9 › Dashboard Navigation Tests › can navigate to trips view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Dashboard Navigation Tests › dashboard view tabs are accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:170:9 dashboard view tabs are accessible" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:170:9 › Dashboard Navigation Tests › dashboard view tabs are accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip form is accessible" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:202:9 create recurring trip form is accessible" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:202:9 › Create Trip Tests › create recurring trip form is accessible 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › can fill trip details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:242:9 can fill trip details" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:242:9 › Create Trip Tests › can fill trip details ───────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:294:9 create trip button exists" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:294:9 › Create Trip Tests › create trip button exists ───
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Create Trip Tests › create recurring trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:317:9 create recurring trip workflow" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:317:9 › Create Trip Tests › create recurring trip workflow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip list display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:408:9 trip list display" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:408:9 › Trip List Tests › trip list display ─────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip display shows details" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:453:9 trip display shows details" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:453:9 › Trip List Tests › trip display shows details ────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Trip List Tests › trip status display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:473:9 trip status display" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:473:9 › Trip List Tests › trip status display ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › edit trip button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:518:9 edit trip button exists" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:518:9 › Update Trip Tests › edit trip button exists ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip form" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:541:9 update trip form" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:541:9 › Update Trip Tests › update trip form ────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Update Trip Tests › update trip fields" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:567:9 update trip fields" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:567:9 › Update Trip Tests › update trip fields ──────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete button exists" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:596:9 delete button exists" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:596:9 › Delete Trip Tests › delete button exists ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Delete Trip Tests › delete trip workflow" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:619:9 delete trip workflow" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:619:9 › Delete Trip Tests › delete trip workflow ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › full trip lifecycle" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:680:9 full trip lifecycle" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:680:9 › Complete CRUD Workflow Tests › full trip lifecycle 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Complete CRUD Workflow Tests › concurrent trip operations" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:713:9 concurrent trip operations" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:713:9 › Complete CRUD Workflow Tests › concurrent trip operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › invalid trip data rejection" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:756:9 invalid trip data rejection" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:756:9 › Error Handling Tests › invalid trip data rejection 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Error Handling Tests › network error handling" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:780:9 network error handling" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:780:9 › Error Handling Tests › network error handling ───
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › dashboard load time" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:811:9 dashboard load time" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:811:9 › Performance Tests › dashboard load time ─────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Performance Tests › responsive design" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:824:9 responsive design" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:824:9 › Performance Tests › responsive design ───────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › lovelace integration" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:855:9 lovelace integration" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:855:9 › Integration Tests › lovelace integration ────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Integration Tests › entity display" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:878:9 entity display" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:878:9 › Integration Tests › entity display ──────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › keyboard navigation" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:907:9 keyboard navigation" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:907:9 › Accessibility Tests › keyboard navigation ───────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Accessibility Tests › screen reader support" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:927:9 screen reader support" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:927:9 › Accessibility Tests › screen reader support ─────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Visual Regression Tests › dashboard screenshot" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:953:9 dashboard screenshot" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:953:9 › Visual Regression Tests › dashboard screenshot ──
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › refresh button" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:983:9 refresh button" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:983:9 › Utility Tests › refresh button ──────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Utility Tests › settings access" classname="dashboard-crud.spec.ts" time="0">
+<failure message="dashboard-crud.spec.ts:1016:9 settings access" type="FAILURE">
+<![CDATA[  [mobile-safari] › dashboard-crud.spec.ts:1016:9 › Utility Tests › settings access ────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="example.spec.js" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-safari" tests="2" failures="2" skipped="0" time="0" errors="0">
+<testcase name="has title" classname="example.spec.js" time="0">
+<failure message="example.spec.js:4:5 has title" type="FAILURE">
+<![CDATA[  [mobile-safari] › example.spec.js:4:5 › has title ────────────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="get started link" classname="example.spec.js" time="0">
+<failure message="example.spec.js:11:5 get started link" type="FAILURE">
+<![CDATA[  [mobile-safari] › example.spec.js:11:5 › get started link ────────────────────────────────────────
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="ha-ev-trip-planner.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-safari" tests="36" failures="36" skipped="0" time="0" errors="0">
+<testcase name="Home Assistant Authentication › should display login page" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:37:7 should display login page" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:37:7 › Home Assistant Authentication › should display login page 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="Home Assistant Authentication › should show error with invalid credentials" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:48:7 should show error with invalid credentials" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:48:7 › Home Assistant Authentication › should show error with invalid credentials 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should load dashboard successfully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:90:7 should load dashboard successfully" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:90:7 › EV Trip Planner Dashboard - UI Flows › should load dashboard successfully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should display vehicle cards" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:96:7 should display vehicle cards" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:96:7 › EV Trip Planner Dashboard - UI Flows › should display vehicle cards 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:104:7 should navigate to add vehicle flow" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:104:7 › EV Trip Planner Dashboard - UI Flows › should navigate to add vehicle flow 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - UI Flows › should navigate to trips management view" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:112:7 should navigate to trips management view" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:112:7 › EV Trip Planner Dashboard - UI Flows › should navigate to trips management view 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should display create trip button" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:136:7 should display create trip button" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:136:7 › EV Trip Planner Dashboard - Create Trip UI › should display create trip button 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:145:7 should show create trip form when button clicked" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:145:7 › EV Trip Planner Dashboard - Create Trip UI › should show create trip form when button clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:159:7 should fill trip creation form fields" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:159:7 › EV Trip Planner Dashboard - Create Trip UI › should fill trip creation form fields 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:180:7 should submit trip creation form" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:180:7 › EV Trip Planner Dashboard - Create Trip UI › should submit trip creation form 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:199:7 should display trip list when trips exist" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:199:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip list when trips exist 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:208:7 should display trip items in list format" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:208:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip items in list format 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:217:7 should display trip details including distance and time" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:217:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip details including distance and time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:228:7 should display trip status indicators" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:228:7 › EV Trip Planner Dashboard - Read/Trip List UI › should display trip status indicators 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:257:7 should display edit button for trips" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:257:7 › EV Trip Planner Dashboard - Update Trip UI › should display edit button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:266:7 should allow trip field editing" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:266:7 › EV Trip Planner Dashboard - Update Trip UI › should allow trip field editing 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:276:7 should display trip edit form when edit clicked" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:276:7 › EV Trip Planner Dashboard - Update Trip UI › should display trip edit form when edit clicked 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Update Trip UI › should save trip updates" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:286:7 should save trip updates" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:286:7 › EV Trip Planner Dashboard - Update Trip UI › should save trip updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:304:7 should display delete button for trips" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:304:7 › EV Trip Planner Dashboard - Delete Trip UI › should display delete button for trips 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:313:7 should show delete confirmation dialog" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:313:7 › EV Trip Planner Dashboard - Delete Trip UI › should show delete confirmation dialog 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:322:7 should confirm or cancel trip deletion" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:322:7 › EV Trip Planner Dashboard - Delete Trip UI › should confirm or cancel trip deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:331:7 should remove trip from list after deletion" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:331:7 › EV Trip Planner Dashboard - Delete Trip UI › should remove trip from list after deletion 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:350:7 should complete full trip lifecycle through UI" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:350:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should complete full trip lifecycle through UI 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:397:7 should handle multiple trips in the list" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:397:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should handle multiple trips in the list 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:420:7 should maintain dashboard functionality after CRUD operations" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:420:7 › EV Trip Planner Dashboard - Complete CRUD Workflow › should maintain dashboard functionality after CRUD operations 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:440:7 should display validation messages for invalid input" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:440:7 › EV Trip Planner Dashboard - Error Handling › should display validation messages for invalid input 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:449:7 should handle network errors gracefully" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:449:7 › EV Trip Planner Dashboard - Error Handling › should handle network errors gracefully 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Error Handling › should show connection status indicator" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:464:7 should show connection status indicator" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:464:7 › EV Trip Planner Dashboard - Error Handling › should show connection status indicator 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should load within acceptable time" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:482:7 should load within acceptable time" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:482:7 › EV Trip Planner Dashboard - Performance & Accessibility › should load within acceptable time 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should support keyboard navigation" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:488:7 should support keyboard navigation" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:488:7 › EV Trip Planner Dashboard - Performance & Accessibility › should support keyboard navigation 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have proper ARIA labels" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:500:7 should have proper ARIA labels" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:500:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have proper ARIA labels 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Performance &amp; Accessibility › should have responsive design support" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:511:7 should have responsive design support" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:511:7 › EV Trip Planner Dashboard - Performance & Accessibility › should have responsive design support 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:531:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:531:7 › EV Trip Planner Dashboard - Integration Tests › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:560:7 should verify dashboard Lovelace integration" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:560:7 › EV Trip Planner Dashboard - Integration Tests › should verify dashboard Lovelace integration 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Sensors › should display sensor entities via API" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:574:7 should display sensor entities via API" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:574:7 › EV Trip Planner Sensors › should display sensor entities via API 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot" classname="ha-ev-trip-planner.spec.ts" time="0">
+<failure message="ha-ev-trip-planner.spec.ts:612:7 should match dashboard screenshot" type="FAILURE">
+<![CDATA[  [mobile-safari] › ha-ev-trip-planner.spec.ts:612:7 › EV Trip Planner Dashboard - Visual Regression › should match dashboard screenshot 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="test-us5-sensor-updates.spec.ts" timestamp="2026-03-24T15:12:33.995Z" hostname="mobile-safari" tests="8" failures="8" skipped="0" time="0" errors="0">
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:35:7 should verify panel.js has _subscribeToStates method" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:35:7 › US5: Automatic Sensor Updates › should verify panel.js has _subscribeToStates method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:50:7 should verify panel.js has _getVehicleStates method that captures all sensors" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:50:7 › US5: Automatic Sensor Updates › should verify panel.js has _getVehicleStates method that captures all sensors 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:68:7 should verify panel.js has _update method for live updates" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:68:7 › US5: Automatic Sensor Updates › should verify panel.js has _update method for live updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:81:7 should verify panel.js has _updateSensorItem method" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:81:7 › US5: Automatic Sensor Updates › should verify panel.js has _updateSensorItem method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:91:7 should verify panel.js subscribes to state changes after render" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:91:7 › US5: Automatic Sensor Updates › should verify panel.js subscribes to state changes after render 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:109:7 should verify panel.js handles state changes correctly" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:109:7 › US5: Automatic Sensor Updates › should verify panel.js handles state changes correctly 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js has _cleanup method" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:124:7 should verify panel.js has _cleanup method" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:124:7 › US5: Automatic Sensor Updates › should verify panel.js has _cleanup method 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
+</testcase>
+<testcase name="US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates" classname="test-us5-sensor-updates.spec.ts" time="0">
+<failure message="test-us5-sensor-updates.spec.ts:138:7 should verify panel.js groups sensors for efficient updates" type="FAILURE">
+<![CDATA[  [mobile-safari] › test-us5-sensor-updates.spec.ts:138:7 › US5: Automatic Sensor Updates › should verify panel.js groups sensors for efficient updates 
+
+    Error: worker process exited unexpectedly (code=1, signal=null)
+]]>
+</failure>
 </testcase>
 </testsuite>
 </testsuites>
