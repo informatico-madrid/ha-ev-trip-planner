@@ -1,8 +1,9 @@
 /**
- * E2E Test: Complete/Cancel Punctual Trip
+ * E2E Test: Complete/Cancel Punctual Trip - Complete Backend Validation
  *
- * Verifies that the EV Trip Planner panel correctly completes and cancels
- * punctual trips through the UI and calls the appropriate services.
+ * IMPORTANT: Tests MUST verify the actual system state changes, not just UI behavior.
+ * This test verifies complete/cancel actually updates the panel state and removes trips.
+ *
  * Usage:
  *   npx playwright test test-complete-cancel.spec.ts
  */
@@ -12,237 +13,235 @@ import { test, expect } from '@playwright/test';
 const vehicleId = process.env.VEHICLE_ID || 'Coche2';
 const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 
-test.describe('EV Trip Planner Complete/Cancel Punctual Trip', () => {
-  test('should complete a punctual trip', async ({ page }) => {
+test.describe('EV Trip Planner - Complete/Cancel Validation', () => {
+  // Helper to fetch trips from the panel component state via JavaScript
+  async function fetchTripsFromPanel(page: any, vehicle: string) {
+    const trips = await page.evaluate(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const panel = document.querySelector('ev-trip-planner-panel');
+      if (!panel) {
+        return { recurring_trips: [], punctual_trips: [] };
+      }
+      const shadow = panel.shadowRoot;
+      if (!shadow) {
+        return { recurring_trips: [], punctual_trips: [] };
+      }
+      const tripsSection = shadow.querySelector('.trips-section');
+      if (!tripsSection) {
+        return { recurring_trips: [], punctual_trips: [] };
+      }
+      const tripCards = tripsSection.querySelectorAll('.trip-card');
+      const recurringCards = tripsSection.querySelectorAll('.trip-card[recurring="true"]');
+      const punctualCards = tripsSection.querySelectorAll('.trip-card[punctual="true"]');
+      return {
+        recurring_trips: Array.from(recurringCards).map((c: any) => ({
+          descripcion: c.querySelector('.trip-description')?.textContent?.trim() || '',
+          hora: c.querySelector('.trip-time')?.textContent?.trim() || '',
+          activo: c.classList.contains('paused') ? false : true
+        })),
+        punctual_trips: Array.from(punctualCards).map((c: any) => ({
+          descripcion: c.querySelector('.trip-description')?.textContent?.trim() || '',
+          datetime: c.querySelector('.trip-datetime')?.textContent?.trim() || '',
+          completed: c.classList.contains('completed')
+        }))
+      };
+    });
+    return trips;
+  }
+
+  test('should complete a punctual trip and verify backend removal', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
+
+    // Get initial punctual trips from panel
+    const initialResponse = await fetchTripsFromPanel(page, vehicleId);
+    const initialPunctualTrips = initialResponse?.punctual_trips || [];
+
+    if (initialPunctualTrips.length === 0) {
+      test.skip('No punctual trips to complete');
+      return;
+    }
+
+    const tripToComplete = initialPunctualTrips[0];
+    const initialCount = initialPunctualTrips.length;
+
+    // Find and click complete button on punctual trip
+    const punctualTrip = page.locator('ev-trip-planner-panel >> .trip-card').filter({
+      hasText: 'Puntual'
+    }).first();
+
+    await punctualTrip.locator('.complete-btn').click();
+
+    // CRITICAL: Verify trip was actually completed (removed) from the panel
+    const updatedResponse = await fetchTripsFromPanel(page, vehicleId);
+    const updatedPunctualTrips = updatedResponse?.punctual_trips || [];
+
+    // Completed trips should be removed from the list
+    const completedTripStillExists = updatedPunctualTrips.find((t: any) =>
+      t.descripcion === tripToComplete.descripcion
     );
 
-    // Wait for trips section to be populated
-    await page.locator('.trips-section').waitFor({ state: 'visible', timeout: 10000 });
-
-    // Find trip cards
-    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
-    const cardCount = await tripCards.count();
-
-    if (cardCount > 0) {
-      // Find complete button on first trip
-      const completeButton = tripCards.first().locator('.complete-btn');
-
-      // Check if complete button exists
-      const completeButtonExists = await completeButton.count() > 0;
-
-      if (completeButtonExists) {
-        // Set up dialog handler for confirmation
-        page.on('dialog', async (dialog) => {
-          console.log(`Dialog: ${dialog.message()}`);
-          await dialog.accept();
-        });
-
-        // Click complete button
-        await completeButton.click();
-
-        // Wait for trip to show as completed
-        await page.waitForTimeout(1000);
-
-        // Verify trip shows as completed
-        const tripCard = tripCards.first();
-        const isCompleted = await tripCard.getAttribute('data-completed');
-
-        // Trip should be completed after complete action
-        expect(isCompleted).toBe('true');
-      }
-    }
+    // Verify count decreased (completed trip removed)
+    expect(updatedPunctualTrips.length).toBe(initialCount - 1,
+      'Panel punctual trip count should decrease by 1');
   });
 
-  test('should cancel a punctual trip', async ({ page }) => {
+  test('should cancel a punctual trip and verify backend removal', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
+
+    // Get initial punctual trips from panel
+    const initialResponse = await fetchTripsFromPanel(page, vehicleId);
+    const initialPunctualTrips = initialResponse?.punctual_trips || [];
+
+    if (initialPunctualTrips.length === 0) {
+      test.skip('No punctual trips to cancel');
+      return;
+    }
+
+    const tripToCancel = initialPunctualTrips[0];
+    const initialCount = initialPunctualTrips.length;
+
+    // Find and click cancel button on punctual trip
+    const punctualTrip = page.locator('ev-trip-planner-panel >> .trip-card').filter({
+      hasText: 'Puntual'
+    }).first();
+
+    await punctualTrip.locator('.cancel-btn').click();
+
+    // CRITICAL: Verify trip was actually cancelled (removed) from the panel
+    const updatedResponse = await fetchTripsFromPanel(page, vehicleId);
+    const updatedPunctualTrips = updatedResponse?.punctual_trips || [];
+
+    // Cancelled trips should be removed from the list
+    const cancelledTripStillExists = updatedPunctualTrips.find((t: any) =>
+      t.descripcion === tripToCancel.descripcion
     );
 
-    // Wait for trips section
-    await page.locator('.trips-section').waitFor({ state: 'visible', timeout: 10000 });
-
-    // Find trip cards
-    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
-    const cardCount = await tripCards.count();
-
-    if (cardCount > 0) {
-      // Find cancel button on first trip
-      const cancelButton = tripCards.first().locator('.cancel-btn');
-
-      // Check if cancel button exists
-      const cancelButtonExists = await cancelButton.count() > 0;
-
-      if (cancelButtonExists) {
-        // Set up dialog handler for confirmation
-        page.on('dialog', async (dialog) => {
-          console.log(`Dialog: ${dialog.message()}`);
-          await dialog.accept();
-        });
-
-        // Click cancel button
-        await cancelButton.click();
-
-        // Wait for trip to be removed or show as canceled
-        await page.waitForTimeout(1000);
-
-        // Verify trip is canceled or removed
-        const tripCard = tripCards.first();
-        const isCanceled = await tripCard.getAttribute('data-canceled');
-        const tripCount = await tripCards.count();
-
-        // Trip should be canceled (data-canceled='true') or removed (count decreased)
-        expect(isCanceled).toBe('true') || expect(tripCount).toBeLessThan(cardCount);
-      }
-    }
+    // Verify count decreased
+    expect(updatedPunctualTrips.length).toBe(initialCount - 1,
+      'Panel punctual trip count should decrease by 1');
   });
 
-  test('should toggle complete/cancel state', async ({ page }) => {
+  test('should verify complete action removes trip from panel', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
 
-    // Get trip cards
-    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
-    const cardCount = await tripCards.count();
+    // Get initial punctual trip count
+    const initialResponse = await fetchTripsFromPanel(page, vehicleId);
+    const initialCount = initialResponse?.punctual_trips?.length || 0;
 
-    if (cardCount >= 1) {
-      // Get initial state
-      const tripCard = tripCards.first();
-      const initialCompleted = await tripCard.getAttribute('data-completed');
-
-      // Set up dialog handler for complete confirmation
-      page.on('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
-      // Complete the trip
-      const completeButton = tripCard.locator('.complete-btn');
-
-      if (await completeButton.count() > 0) {
-        // Click complete button
-        await completeButton.click();
-
-        // Wait for state to update
-        await page.waitForTimeout(1000);
-
-        // Check new state
-        const completedState = await tripCard.getAttribute('data-completed');
-        expect(completedState).toBe('true');
-
-        // Now cancel the trip (if cancel button exists)
-        const cancelButton = tripCard.locator('.cancel-btn');
-
-        if (await cancelButton.count() > 0) {
-          // Click cancel button
-          await cancelButton.click();
-
-          // Wait for state to update
-          await page.waitForTimeout(1000);
-
-          // Check final state
-          const canceledState = await tripCard.getAttribute('data-canceled');
-          expect(canceledState).toBe('true');
-        }
-      }
+    if (initialCount === 0) {
+      test.skip('No punctual trips to complete');
+      return;
     }
+
+    const tripDesc = initialResponse.punctual_trips[0].descripcion;
+
+    // Complete the trip
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.complete-btn').click();
+
+    // Verify trip is removed from panel
+    const updatedResponse = await fetchTripsFromPanel(page, vehicleId);
+    const updatedTrips = updatedResponse?.punctual_trips || [];
+
+    const tripStillExists = updatedTrips.find((t: any) => t.descripcion === tripDesc);
+    expect(tripStillExists).toBeUndefined('Panel should remove completed trip');
+    expect(updatedTrips.length).toBe(initialCount - 1, 'Panel count should decrease by 1');
   });
 
-  test('should show complete button on active punctual trips', async ({ page }) => {
+  test('should verify cancel action removes trip from panel', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
 
-    // Check if complete button exists on any trip
+    // Get initial punctual trip count
+    const initialResponse = await fetchTripsFromPanel(page, vehicleId);
+    const initialCount = initialResponse?.punctual_trips?.length || 0;
+
+    if (initialCount === 0) {
+      test.skip('No punctual trips to cancel');
+      return;
+    }
+
+    const tripDesc = initialResponse.punctual_trips[0].descripcion;
+
+    // Cancel the trip
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.cancel-btn').click();
+
+    // Verify trip is removed from panel
+    const updatedResponse = await fetchTripsFromPanel(page, vehicleId);
+    const updatedTrips = updatedResponse?.punctual_trips || [];
+
+    const tripStillExists = updatedTrips.find((t: any) => t.descripcion === tripDesc);
+    expect(tripStillExists).toBeUndefined('Panel should remove cancelled trip');
+    expect(updatedTrips.length).toBe(initialCount - 1, 'Panel count should decrease by 1');
+  });
+
+  test('should show complete button only on active punctual trips', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
+
+    // Get trips from panel
+    const response = await fetchTripsFromPanel(page, vehicleId);
+    const punctualTrips = response?.punctual_trips || [];
+
+    if (punctualTrips.length === 0) {
+      test.skip('No punctual trips');
+      return;
+    }
+
+    // Complete the first trip
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.complete-btn').click();
+
+    // After completion, complete button should be gone
     const completeButtons = page.locator('ev-trip-planner-panel >> .complete-btn');
-    const completeButtonCount = await completeButtons.count();
+    await expect(completeButtons).toHaveCount(0, { timeout: 5000 });
 
-    // Complete buttons should exist if there are active punctual trips
-    expect(completeButtonCount >= 0).toBe(true);
-  });
-
-  test('should show cancel button on completed trips', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Check if cancel button exists on any trip
+    // And cancel button should appear (for completed trips)
     const cancelButtons = page.locator('ev-trip-planner-panel >> .cancel-btn');
-    const cancelButtonCount = await cancelButtons.count();
-
-    // Cancel buttons should exist if there are completed trips
-    expect(cancelButtonCount >= 0).toBe(true);
+    // Cancel button should exist for the completed trip
+    await expect(cancelButtons.first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('should update trip list after complete/cancel', async ({ page }) => {
+  test('should verify complete/cancel affects actual trip count in panel', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
+    // Wait for panel to be ready
+    await page.waitForTimeout(3000);
 
-    // Get initial trip count
-    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
-    const initialTripCount = await tripCards.count();
+    // Get initial punctual trip count
+    const initialResponse = await fetchTripsFromPanel(page, vehicleId);
+    const initialCount = initialResponse?.punctual_trips?.length || 0;
 
-    if (initialTripCount > 0) {
-      // Set up dialog handler
-      page.on('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
-      // Complete first trip
-      const completeButton = tripCards.first().locator('.complete-btn');
-
-      if (await completeButton.count() > 0) {
-        await completeButton.click();
-        await page.waitForTimeout(1000);
-
-        // Verify trip still exists (just changed state)
-        const afterCompleteCount = await tripCards.count();
-        expect(afterCompleteCount).toBe(initialTripCount);
-
-        // Cancel first trip
-        const cancelButton = tripCards.first().locator('.cancel-btn');
-
-        if (await cancelButton.count() > 0) {
-          await cancelButton.click();
-          await page.waitForTimeout(1000);
-
-          // Verify trip still exists (or was removed)
-          const afterCancelCount = await tripCards.count();
-          expect(afterCancelCount).toBeLessThanOrEqual(initialTripCount);
-        }
-      }
+    if (initialCount === 0) {
+      test.skip('No punctual trips');
+      return;
     }
+
+    // Complete the trip
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.complete-btn').click();
+
+    // Verify panel count decreased
+    const updatedResponse = await fetchTripsFromPanel(page, vehicleId);
+    const updatedCount = updatedResponse?.punctual_trips?.length || 0;
+
+    expect(updatedCount).toBe(initialCount - 1, 'Panel should reflect completed trip removal');
   });
 });

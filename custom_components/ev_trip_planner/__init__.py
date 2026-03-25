@@ -690,32 +690,38 @@ def register_services(hass: HomeAssistant) -> None:
 
         if trip_type == "recurrente":
             # Create recurring trip
+            # Support both Spanish and English field names
+            dia_semana = data.get("dia_semana") or data.get("day_of_week")
+            hora = data.get("hora") or data.get("time")
+            descripcion = data.get("descripcion") or data.get("description", "")
             await mgr.async_add_recurring_trip(
-                dia_semana=data["dia_semana"],
-                hora=data["hora"],
+                dia_semana=dia_semana,
+                hora=hora,
                 km=float(data["km"]),
                 kwh=float(data["kwh"]),
-                descripcion=str(data.get("descripcion", "")),
+                descripcion=descripcion,
             )
             _LOGGER.info(
                 "Created recurring trip for vehicle %s: %s at %s, %s km",
                 vehicle_id,
-                data["dia_semana"],
-                data["hora"],
+                dia_semana,
+                hora,
                 data["km"],
             )
         elif trip_type == "puntual":
             # Create punctual trip
+            datetime_str = data.get("datetime")
+            descripcion = data.get("descripcion") or data.get("description", "")
             await mgr.async_add_punctual_trip(
-                datetime_str=data["datetime"],
+                datetime_str=datetime_str,
                 km=float(data["km"]),
                 kwh=float(data["kwh"]),
-                descripcion=str(data.get("descripcion", "")),
+                descripcion=descripcion,
             )
             _LOGGER.info(
                 "Created punctual trip for vehicle %s: %s, %s km",
                 vehicle_id,
-                data["datetime"],
+                datetime_str,
                 data["km"],
             )
         else:
@@ -768,12 +774,41 @@ def register_services(hass: HomeAssistant) -> None:
         This unified service accepts:
         - vehicle_id: The vehicle to update the trip for
         - trip_id: The ID of the trip to update
-        - updates: Dictionary of fields to update (e.g., {"km": 100.0, "descripcion": "New description"})
+        - type: 'recurrente' or 'puntual'
+        - Recurring fields: dia_semana, hora
+        - Punctual fields: datetime
+        - Common fields: km, kwh, descripcion/description
         """
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_id = str(data["trip_id"])
-        updates = dict(data["updates"])
+        trip_type = data.get("type", "recurrente")
+
+        # Support both direct fields and updates object for backward compatibility
+        if "updates" in data:
+            # Old format: {vehicle_id, trip_id, updates: {...}}
+            updates = dict(data["updates"])
+        else:
+            # New unified format: fields directly in request
+            updates = {}
+            if "dia_semana" in data:
+                updates["dia_semana"] = data["dia_semana"]
+            if "day_of_week" in data:
+                updates["dia_semana"] = data["day_of_week"]
+            if "hora" in data:
+                updates["hora"] = data["hora"]
+            if "time" in data:
+                updates["hora"] = data["time"]
+            if "datetime" in data:
+                updates["datetime"] = data["datetime"]
+            if "km" in data:
+                updates["km"] = float(data["km"])
+            if "kwh" in data:
+                updates["kwh"] = float(data["kwh"])
+            if "descripcion" in data:
+                updates["descripcion"] = str(data["descripcion"])
+            if "description" in data:
+                updates["descripcion"] = str(data["description"])
 
         _LOGGER.info(
             "Updating trip %s for vehicle %s with updates: %s",
@@ -982,13 +1017,16 @@ def register_services(hass: HomeAssistant) -> None:
         vol.Required("type"): vol.In(["recurrente", "puntual"]),
         # Recurring trip fields (required if type == 'recurrente')
         vol.Optional("dia_semana"): str,
+        vol.Optional("day_of_week"): str,  # Alternative name for compatibility
         vol.Optional("hora"): str,
+        vol.Optional("time"): str,  # Alternative name for compatibility
         # Punctual trip fields (required if type == 'puntual')
         vol.Optional("datetime"): str,
         # Common fields (required for both types)
         vol.Required("km"): vol.Coerce(float),
         vol.Required("kwh"): vol.Coerce(float),
         vol.Optional("descripcion", default=""): str,
+        vol.Optional("description", default=""): str,  # Alternative name for compatibility
     })
 
     # Register trip_create service
@@ -1068,13 +1106,20 @@ def register_services(hass: HomeAssistant) -> None:
         Returns a dict with vehicle_id, trips, and total count.
         """
         data = call.data
-        vehicle_id = data["vehicle_id"]
+        vehicle_id = data.get("vehicle_id", "unknown")
+        _LOGGER.info("trip_list service called for vehicle: %s", vehicle_id)
+
         mgr = _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
 
         try:
+            _LOGGER.info("Getting recurring trips for %s", vehicle_id)
             recurring_trips = await mgr.async_get_recurring_trips()
+            _LOGGER.info("Got %d recurring trips", len(recurring_trips))
+
+            _LOGGER.info("Getting punctual trips for %s", vehicle_id)
             punctual_trips = await mgr.async_get_punctual_trips()
+            _LOGGER.info("Got %d punctual trips", len(punctual_trips))
 
             _LOGGER.info(
                 "Retrieved %d recurring trips and %d punctual trips for vehicle %s",
