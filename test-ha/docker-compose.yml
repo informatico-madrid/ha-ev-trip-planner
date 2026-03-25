@@ -11,7 +11,7 @@ services:
     volumes:
       - ${PROJECT_ROOT}/test-ha/config:/config
       - /etc/localtime:/etc/localtime:ro
-      - ${PROJECT_ROOT}/test-ha/config/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+      - ${PROJECT_ROOT}/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8123/api/health"]
       interval: 10s
