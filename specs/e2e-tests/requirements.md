@@ -1,197 +1,255 @@
-# Requirements: E2E Tests CRUD para Viajes EV Trip Planner
+# Requirements: E2E Tests for EV Trip Planner
 
 ## Goal
-Crear tests E2E con Playwright que validen el flujo completo CRUD (Create, Read, Update, Delete) de viajes en el panel ev-trip-planner-panel, usando selectors correctos con Shadow DOM y servicios de Home Assistant.
+Validar funcionalidad completa del panel EV Trip Planner mediante pruebas E2E que cubran operaciones CRUD, estados de viajes y comportamiento del Shadow DOM de Lit Components, asegurando que los tests validen funcionalidad real (persistencia en HA) y no solo UI estática.
+
+## Technical Context
+
+### Shadow DOM y Lit Components
+
+El panel `ev-trip-planner-panel` utiliza Lit v2.8.0 con **Shadow DOM OPEN** por defecto. Esto significa:
+
+- ✅ Playwright puede atravesar Shadow DOM con el selector `>>`
+- ✅ No se requieren workarounds ni JavaScript injection
+- ✅ Los elementos del template están accesibles directamente
+
+**Patrones de Selectores Validados:**
+```typescript
+ev-trip-planner-panel >> .add-trip-btn
+ev-trip-planner-panel >> .trip-card
+ev-trip-planner-panel >> #trip-type
+ev-trip-planner-panel >> button[type="submit"]
+```
+
+### Servicios de Home Assistant
+
+| Servicio | Parámetros | Descripción |
+|----------|------------|-------------|
+| `ev_trip_planner.trip_create` | vehicle_id, type, day_of_week/time/datetime, km, kwh, description | Crear viaje |
+| `ev_trip_planner.trip_update` | vehicle_id, trip_id, type, day_of_week/time/datetime, km, kwh, description | Actualizar viaje |
+| `ev_trip_planner.delete_trip` | vehicle_id, trip_id | Eliminar viaje |
+| `ev_trip_planner.pause_recurring_trip` | vehicle_id, trip_id | Pausar viaje recurrente |
+| `ev_trip_planner.resume_recurring_trip` | vehicle_id, trip_id | Reanudar viaje recurrente |
+| `ev_trip_planner.complete_punctual_trip` | vehicle_id, trip_id | Completar viaje puntual |
+| `ev_trip_planner.cancel_punctual_trip` | vehicle_id, trip_id | Cancelar viaje puntual |
+| `ev_trip_planner.trip_list` | vehicle_id | Listar viajes |
 
 ## User Stories
 
 ### US-1: Crear viaje recurrente
 **As a** usuario del panel EV Trip Planner
-**I want to** crear un viaje recurrente vía UI
-**So that** pueda planificar rutas regulares automáticamente
+**I want to** crear un nuevo viaje recurrente con configuración completa
+**So that** tenga viajes programados que se ejecuten automáticamente
 
 **Acceptance Criteria:**
-- [ ] AC-1.1: Panel muestra botón `.add-trip-btn` visible
-- [ ] AC-1.2: Click en botón abre overlay `.trip-form-overlay` en <10s
-- [ ] AC-1.3: Select `#trip-type` permite elegir 'recurrente'
-- [ ] AC-1.4: Select `#trip-day` muestra opciones 1-7 (días semana)
-- [ ] AC-1.5: Input `#trip-time` acepta formato HH:MM (ej: "08:00")
-- [ ] AC-1.6: Input `#trip-km` acepta valores numéricos positivos
-- [ ] AC-1.7: Input `#trip-kwh` acepta valores numéricos positivos
-- [ ] AC-1.8: Input `#trip-description` acepta texto arbitrario
-- [ ] AC-1.9: Submit llama servicio `ev_trip_planner.trip_create`
-- [ ] AC-1.10: Overlay cierra tras submit exitoso
-- [ ] AC-1.11: Trip card aparece en `.trips-list`
-- [ ] AC-1.12: Card muestra badge "Recurrente" con emoji
-- [ ] AC-1.13: Card muestra día seleccionado con nombre completo (Lunes, Martes, etc.)
-- [ ] AC-1.14: Card muestra hora HH:MM
-- [ ] AC-1.15: Card muestra distancia en formato "X.X km"
+- [ ] AC-1.1: Dado que estoy en el panel del vehículo, cuando hago click en `.add-trip-btn`, entonces se muestra el `.trip-form-overlay`
+- [ ] AC-1.2: Dado que el formulario está visible, cuando selecciono "recurrente" en `ev-trip-planner-panel >> #trip-type`, elijo día en `ev-trip-planner-panel >> #trip-day` y completo hora en `ev-trip-planner-panel >> #trip-time`, entonces el formulario guarda correctamente
+- [ ] AC-1.3: Dado que estoy rellenando el formulario, cuando ingreso valores en `#trip-km` y `#trip-kwh`, estos se validan como números positivos y se envían al servicio `ev_trip_planner.trip_create` con parámetros vehicle_id, type="recurrente", day_of_week, time, km, kwh, description
+- [ ] AC-1.4: Dado que el formulario está completo, cuando hago submit en `button[type="submit"]`, entonces se cierra el `.trip-form-overlay` y aparece una nueva `.trip-card` en la lista
+- [ ] AC-1.5: Dado que el viaje se creó, entonces la `.trip-card` muestra tipo "recurrente" con badge `.status-active` verde, hora programada en `.trip-time`, y la llamada al servicio `ev_trip_planner.trip_create` se ejecutó con parámetros correctos
 
 ### US-2: Crear viaje puntual
-**As a** usuario del panel
-**I want to** crear un viaje puntual con fecha/hora específica
-**So that** pueda planificar eventos únicos
+**As a** usuario del panel EV Trip Planner
+**I want to** crear un nuevo viaje puntual con destino y detalles específicos
+**So that** planifique viajes únicos con información detallada
 
 **Acceptance Criteria:**
-- [ ] AC-2.1: Select `#trip-type` permite elegir 'puntual'
-- [ ] AC-2.2: Input `#trip-datetime` muestra formato datetime-local
-- [ ] AC-2.3: Input acepta timestamp "YYYY-MM-DDTHH:MM"
-- [ ] AC-2.4: Submit llama servicio `ev_trip_planner.trip_create`
-- [ ] AC-2.5: Card muestra badge "Puntual" con fecha HH:MM
-- [ ] AC-2.6: Card muestra botón "✅ Completar" (visible solo para puntuales)
-- [ ] AC-2.7: Card muestra botón "❌ Cancelar" (visible solo para puntuales)
+- [ ] AC-2.1: Dado que estoy en el panel del vehículo, cuando selecciono "puntual" en `#trip-type`, entonces el formulario muestra campos relevantes para viajes únicos (input datetime en lugar de input time)
+- [ ] AC-2.2: Dado que el formulario está visible, cuando ingreso destino, distancia estimada en `#trip-km` y kWh esperado en `#trip-kwh`, entonces estos valores se guardan correctamente y se envían al servicio `ev_trip_planner.trip_create` con parámetros vehicle_id, type="puntual", datetime, km, kwh, description, destination
+- [ ] AC-2.3: Dado que el viaje puntual se creó, entonces la `.trip-card` muestra estado "Pendiente" con badge `.status-pending` y aparece botón `.complete-btn` en `.trip-actions`
+- [ ] AC-2.4: Dado que el viaje es puntual, cuando hago click en `.complete-btn`, entonces se ejecuta el servicio `ev_trip_planner.complete_punctual_trip` con parámetros vehicle_id y trip_id
+- [ ] AC-2.5: Dado que el viaje es puntual, cuando hago click en `.cancel-btn`, entonces se ejecuta el servicio `ev_trip_planner.cancel_punctual_trip` con parámetros vehicle_id y trip_id
 
 ### US-3: Editar viaje existente
-**As a** usuario
-**I want to** modificar detalles de viaje existente
-**So that** pueda actualizar cambios en horarios/distancia
+**As a** usuario del panel EV Trip Planner
+**I want to** modificar los parámetros de un viaje ya creado
+**So that** ajuste horarios, distancias o descripciones cuando cambien las necesidades
 
 **Acceptance Criteria:**
-- [ ] AC-3.1: Trip card muestra botón "✏️ Editar" (.edit-btn)
-- [ ] AC-3.2: Click en edit abre overlay con campos pre-populated
-- [ ] AC-3.3: Select `#trip-type` refleja tipo actual
-- [ ] AC-3.4: `#trip-time` o `#trip-datetime` refleja valor actual
-- [ ] AC-3.5: `#trip-km` refleja distancia actual
-- [ ] AC-3.6: `#trip-kwh` refleja consumo actual
-- [ ] AC-3.7: `#trip-description` refleja descripción actual
-- [ ] AC-3.8: Submit actualiza viaje con servicio `ev_trip_planner.trip_update`
-- [ ] AC-3.9: Overlay cierra tras update exitoso
-- [ ] AC-3.10: Card UI refleja valores actualizados inmediatamente
-- [ ] AC-3.11: Click en "Cancelar" (.btn-secondary) cierra sin guardar
-- [ ] AC-3.12: Click en "X Close" (.close-form-btn) cierra sin guardar
+- [ ] AC-3.1: Dado que existen `.trip-card` en la lista, cuando hago click en `.edit-btn` dentro de `.trip-actions`, entonces se abre el `.trip-form-overlay` con los valores actuales del viaje cargados en `#edit-trip-time`, `#edit-trip-km`, etc.
+- [ ] AC-3.2: Dado que el formulario está cargado con datos existentes, cuando modifico valores en `#edit-trip-time`, `#edit-trip-km` y `#edit-trip-kwh`, estos se actualizan reactivamente en el DOM
+- [ ] AC-3.3: Dado que el formulario está completo, cuando hago submit en `button[type="submit"]`, entonces se cierra el `.trip-form-overlay` y la `.trip-card` muestra los nuevos valores
+- [ ] AC-3.4: Dado que edito un viaje, entonces la llamada al servicio `ev_trip_planner.trip_update` se ejecuta con parámetros vehicle_id, trip_id, y los nuevos valores, y la `.trip-card` actualizada refleja los cambios
 
 ### US-4: Eliminar viaje
-**As a** usuario
-**I want to** eliminar viaje no necesario
-**So that** limpie lista de viajes obsoletos
+**As a** usuario del panel EV Trip Planner
+**I want to** eliminar un viaje que ya no necesite
+**So that** mantenga la lista de viajes actualizada y libre de entradas obsoletas
 
 **Acceptance Criteria:**
-- [ ] AC-4.1: Trip card muestra botón "🗑️ Eliminar" (.delete-btn)
-- [ ] AC-4.2: Click en delete abre dialog de confirmación nativo de browser
-- [ ] AC-4.3: Dialog muestra mensaje de confirmación
-- [ ] AC-4.4: Listener en event `dialog` captura confirmación
-- [ ] AC-4.5: `dialog.accept()` llama servicio `ev_trip_planner.delete_trip`
-- [ ] AC-4.6: `dialog.dismiss()` cancela eliminación
-- [ ] AC-4.7: Trip card desaparece de lista tras confirmación
-- [ ] AC-4.8: Si último viaje eliminado, muestra mensaje ".no-trips"
-- [ ] AC-4.9: `.trips-section` permanece visible tras eliminación
-- [ ] AC-4.10: `.add-trip-btn` permanece visible tras eliminación
+- [ ] AC-4.1: Dado que existe una `.trip-card`, cuando hago click en `.delete-btn` dentro de `.trip-actions`, entonces aparece un diálogo de confirmación del navegador
+- [ ] AC-4.2: Dado que el diálogo de confirmación está visible, cuando acepto la eliminación mediante `dialog.accept()`, entonces se ejecuta el servicio `ev_trip_planner.delete_trip` con parámetros vehicle_id y trip_id, y la `.trip-card` correspondiente desaparece del DOM
+- [ ] AC-4.3: Dado que elimino el último viaje, entonces se muestra el mensaje `.no-trips` indicando que no hay viajes configurados y la lista `.trip-card` tiene count = 0
+- [ ] AC-4.4: Dado que elimino un viaje, entonces la llamada al servicio `ev_trip_planner.delete_trip` se ejecuta en Home Assistant y persiste en el almacenamiento del integracion
 
 ### US-5: Pausar/Reanudar viaje recurrente
-**As a** usuario
-**I want to** pausar o reanudar viaje recurrente
-**So that** pueda detener temporalmente viajes sin eliminarlos
+**As a** usuario del panel EV Trip Planner
+**I want to** pausar y reanudar viajes recurrentes según necesidades cambiantes
+**So that** controle cuándo se ejecutan automáticamente los viajes programados
 
 **Acceptance Criteria:**
-- [ ] AC-5.1: Viaje activo muestra botón "⏸️ Pausar" (.pause-btn)
-- [ ] AC-5.2: Viaje inactivo muestra botón "▶️ Reanudar" (.resume-btn)
-- [ ] AC-5.3: Click en pause abre dialog de confirmación
-- [ ] AC-5.4: `dialog.accept()` llama servicio `ev_trip_planner.pause_recurring_trip`
-- [ ] AC-5.5: Viaje muestra atributo `data-active="false"` tras pausa
-- [ ] AC-5.6: Badge cambia a estado "Inactivo"
-- [ ] AC-5.7: Click en resume llama servicio `ev_trip_planner.resume_recurring_trip`
-- [ ] AC-5.8: Viaje muestra atributo `data-active="true"` tras reanudar
-- [ ] AC-5.9: Badge cambia a estado "Activo"
-- [ ] AC-5.10: Count de trips no cambia tras pause/resume
+- [ ] AC-5.1: Dado que existe un viaje recurrente activo, cuando hago click en `.pause-btn` dentro de `.trip-actions`, entonces aparece un diálogo de confirmación del navegador
+- [ ] AC-5.2: Dado que acepto pausar el viaje mediante `dialog.accept()`, entonces se ejecuta el servicio `ev_trip_planner.pause_recurring_trip` con parámetros vehicle_id y trip_id, el `.trip-card` cambia `data-active` a "false" y el badge `.trip-status` muestra texto "Inactivo" con clase `.status-inactive`
+- [ ] AC-5.3: Dado que el viaje está pausado (data-active="false"), entonces el `.trip-actions` muestra botón `.resume-btn` en lugar de `.pause-btn`
+- [ ] AC-5.4: Dado que el viaje está pausado, cuando hago click en `.resume-btn`, entonces se ejecuta el servicio `ev_trip_planner.resume_recurring_trip` con parámetros vehicle_id y trip_id, el `.trip-card` cambia `data-active` a "true" y el badge `.trip-status` muestra texto "Activo" con clase `.status-active`
+- [ ] AC-5.5: Dado que reanudo el viaje, entonces la llamada al servicio `ev_trip_planner.resume_recurring_trip` se ejecuta en Home Assistant y persiste el estado activo
 
 ### US-6: Completar/Cancelar viaje puntual
-**As a** usuario
-**I want to** marcar viaje puntual como completado o cancelado
-**So that** registre fin de viaje único sin eliminarlo
+**As a** usuario del panel EV Trip Planner
+**I want to** completar o cancelar viajes puntuales según se ejecuten o no
+**So that** mantenga el historial de viajes actualizado y preciso
 
 **Acceptance Criteria:**
-- [ ] AC-6.1: Viaje puntual muestra botón "✅ Completar" (.complete-btn)
-- [ ] AC-6.2: Viaje puntual muestra botón "❌ Cancelar" (cancel-btn)
-- [ ] AC-6.3: Click en complete llama servicio `ev_trip_planner.complete_punctual_trip`
-- [ ] AC-6.4: Click en cancel llama servicio `ev_trip_planner.cancel_punctual_trip`
-- [ ] AC-6.5: Viaje muestra badge de estado "Completado" o "Cancelado"
-- [ ] AC-6.6: Botones complete/cancel desaparecen tras acción
-- [ ] AC-6.7: Viaje permanece en lista (no se elimina)
+- [ ] AC-6.1: Dado que existe un viaje puntual pendiente, cuando hago click en `.complete-btn` dentro de `.trip-actions`, entonces se ejecuta el servicio `ev_trip_planner.complete_punctual_trip` con parámetros vehicle_id y trip_id, y el badge `.trip-status` cambia a texto "Completado" con clase `.status-completed`
+- [ ] AC-6.2: Dado que completo el viaje, entonces el `.trip-card` ya no muestra elementos `.trip-action-btn` (count = 0) y el viaje desaparece de la lista de pendientes
+- [ ] AC-6.3: Dado que existe un viaje puntual pendiente, cuando hago click en `.cancel-btn` dentro de `.trip-actions`, entonces aparece un diálogo de confirmación del navegador
+- [ ] AC-6.4: Dado que acepto cancelar el viaje mediante `dialog.accept()`, entonces se ejecuta el servicio `ev_trip_planner.cancel_punctual_trip` con parámetros vehicle_id y trip_id, el badge `.trip-status` muestra texto "Cancelado" con clase `.status-cancelled`, y desaparecen los `.trip-action-btn`
+- [ ] AC-6.5: Dado que marco como completado o cancelado, entonces la llamada al servicio correspondiente (`ev_trip_planner.complete_punctual_trip` o `ev_trip_planner.cancel_punctual_trip`) se ejecuta en Home Assistant y persiste el estado en el backend
 
-### US-7: Validar UI del panel
-**As a** tester
-**I want to** verificar elementos UI básicos del panel
-**So that** garantice render correcto del componente Lit
+### US-7: Entorno sin autenticación
+**As a** tester de pruebas E2E
+**I want to** ejecutar pruebas sin necesidad de login manual
+**So that** las pruebas sean automatizadas, rápidas y reproducibles
 
 **Acceptance Criteria:**
-- [ ] AC-7.1: Custom element `ev-trip-planner-panel` se registra en customElements
-- [ ] AC-7.2: `.add-trip-btn` visible en top del panel
-- [ ] AC-7.3: `.trips-section` visible con header
-- [ ] AC-7.4: `.trips-header` muestra texto "Viajes Programados"
-- [ ] AC-7.5: `.trips-list` contiene `.trip-card` elementos
-- [ ] AC-7.6: `.no-trips` muestra mensaje cuando lista vacía
-- [ ] AC-7.7: Shadow DOM traversal funciona con selector `>>`
+- [ ] AC-7.1: Dado que navego al panel con `page.goto(url, { waitUntil: 'domcontentloaded' })`, entonces la página carga inmediatamente sin redirigir a login porque el backend reconoce la IP de confianza
+- [ ] AC-7.2: Dado que el entorno HA está configurado con `trusted_networks` que incluye `127.0.0.1` y `::1`, entonces el proveedor de autenticación bypass se activa automáticamente para el contenedor de tests
+- [ ] AC-7.3: Dado que el entorno tiene configurado `allow_bypass_login: true` en `auth_providers`, entonces puedo acceder directamente a `/panel/ev-trip-planner-{VEHICLE_ID}` sin credenciales y sin pantalla de autorización
+- [ ] AC-7.4: Dado que ejecuto las pruebas, entonces todas las interacciones funcionan sin prompts de autenticación y los navegadores se cargan directamente en el panel del vehículo
+- [ ] AC-7.5: Dado que el entorno usa `trusted_users` con el usuario ID correcto, entonces el backend identifica al usuario y aplica los permisos correctos sin requerir login
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Acceptance Criteria |
 |----|-------------|----------|---------------------|
-| FR-1 | Panel Lit renderizado correctamente | High | Custom element `ev-trip-planner-panel` existe en DOM |
-| FR-2 | Selector Shadow DOM `>>` funciona | High | `ev-trip-planner-panel >> .trip-card` encuentra elementos |
-| FR-3 | Servicio trip_create | High | Crea viaje con parámetros: vehicle_id, type, day_of_week/time/datetime, km, kwh, description |
-| FR-4 | Servicio trip_update | High | Actualiza viaje con trip_id y campos modificables |
-| FR-5 | Servicio delete_trip | High | Elimina viaje con vehicle_id y trip_id |
-| FR-6 | Servicio pause_recurring_trip | Medium | Pausa viaje recurrente |
-| FR-7 | Servicio resume_recurring_trip | Medium | Reanuda viaje recurrente |
-| FR-8 | Servicio complete_punctual_trip | Medium | Marca viaje puntual como completado |
-| FR-9 | Servicio cancel_punctual_trip | Medium | Cancela viaje puntual |
-| FR-10 | Dialog de confirmación | High | Browser native dialog aparece al eliminar/pausar |
-| FR-11 | Form overlay | High | `.trip-form-overlay` aparece y desaparece correctamente |
-| FR-12 | Estado data-active | Medium | Trip card atributo refleja activo/inactivo |
+| FR-1 | Create recurring trip | High | Viaje se guarda con tipo recurrente, día y hora programada |
+| FR-2 | Create punctual trip | High | Viaje se guarda con tipo puntual, destino y detalles |
+| FR-3 | Edit existing trip | High | Valores actualizados persisten en UI y backend |
+| FR-4 | Delete trip | High | Viaje eliminado y UI actualizada tras confirmación |
+| FR-5 | Pause recurring trip | Medium | Viaje marcado como inactivo con `data-active="false"` |
+| FR-6 | Resume recurring trip | Medium | Viaje marcado como activo con `data-active="true"` |
+| FR-7 | Complete punctual trip | Medium | Viaje marcado como completado sin acciones |
+| FR-8 | Cancel punctual trip | Medium | Viaje marcado como cancelado sin acciones |
+| FR-9 | Validate trip list | High | `.trip-card` count refleja viajes persistidos en HA |
+| FR-10 | Handle empty state | Medium | `.no-trips` mensaje visible sin viajes |
+| FR-11 | Shadow DOM navigation | High | Selectores con `>>` atraviesan Shadow DOM correctamente |
+| FR-12 | Form validation | High | Campos numéricos aceptan solo valores válidos |
+| FR-13 | Confirmation dialogs | High | Eliminaciones y pausas requieren confirmación |
 
 ## Non-Functional Requirements
 
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
-| NFR-1 | Performance test | Load time | Panel visible en <5s |
-| NFR-2 | Test execution time | Duration | CRUD completo <60s |
-| NFR-3 | Test reliability | Pass rate | 95% success rate |
-| NFR-4 | No wait for timeout | Code quality | 0 occurrences de waitForTimeout |
-| NFR-5 | Playwright waits | Code quality | 100% uso de waitForSelector/toBeVisible |
-| NFR-6 | Specific assertions | Test quality | 0 occurrences de expect(true).toBe(true) |
+| NFR-1 | No hardcoded waits | Time | No usar `waitForTimeout` en tests |
+| NFR-2 | Shadow DOM selectors | Pattern | Usar `>>` para atravesar Shadow DOM |
+| NFR-3 | Navigation strategy | Performance | Usar `waitUntil: 'domcontentloaded'` |
+| NFR-4 | No authentication | Setup | Bypass login con trusted_networks |
+| NFR-5 | Real functionality validation | Test quality | Validar persistencia en HA, no solo UI estática |
+| NFR-6 | Test flakiness | Reliability | Usar Playwright waits nativos, no timeouts |
+| NFR-7 | Test maintainability | Pattern | Selectores estables con clases CSS identificables |
+| NFR-8 | Environment configuration | Config | VEHICLE_ID y HA_URL desde environment variables |
+| NFR-9 | Dialog handling | Pattern | Usar `page.on('dialog', dialog => dialog.accept())` para confirmaciones |
+| NFR-10 | Service execution validation | Quality | Validar que los servicios HA se ejecutan correctamente, no solo cambios UI |
+| NFR-11 | data attribute tracking | Pattern | Validar cambios en `data-active` attribute para estados de viajes |
+| NFR-12 | Status badge classes | Pattern | Validar clases `.status-active`, `.status-inactive`, `.status-pending`, `.status-completed`, `.status-cancelled` |
 
 ## Glossary
-- **Shadow DOM**: Encapsulación de DOM de web components (Lit)
-- **Selector >>**: Syntax Playwright para atravesar Shadow DOM boundaries
-- **Recurrente**: Viaje que se repite cada X día de la semana
-- **Puntual**: Viaje único con fecha y hora específica
-- **Overlay**: Formulario flotante sobre panel principal
-- **Trip card**: Elemento UI que representa un viaje en lista
-- **Service**: Función de Home Assistant para ejecutar acciones
+- **Recurrente**: Viaje que se programa repetidamente (diario/semanal)
+- **Puntual**: Viaje único con destino específico
+- **Shadow DOM**: Encapsulamiento de DOM en componentes web modernos
+- **Lit Components**: Framework de UI de Google usado en este panel
+- **VEHICLE_ID**: Identificador del vehículo en Home Assistant
+- **Trips**: Viajes configurados en el panel EV Trip Planner
+- **CRUD**: Create, Read, Update, Delete - operaciones básicas de datos
+- **Dialog**: Ventana modal de confirmación de eliminación
+
+## Patrones de Testing Recomendados
+
+```typescript
+// 1. Navegación sin authentication (trusted_networks bypass)
+await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+  waitUntil: 'domcontentloaded'  // NO networkidle (WebSockets abiertos)
+});
+
+// 2. Esperar renderizado del componente Lit
+await page.locator('ev-trip-planner-panel').first().waitFor({ state: 'attached' });
+
+// 3. Interactuar con elementos del Shadow DOM usando >>
+const addTripBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
+await addTripBtn.click();
+
+// 4. Validar formularios
+const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
+await expect(formOverlay).toBeVisible();
+
+// 5. Rellenar formulario con selectores internos
+await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
+await page.locator('ev-trip-planner-panel >> #trip-time').fill('08:00');
+await page.locator('ev-trip-planner-panel >> #trip-km').fill('25.5');
+await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('5.2');
+await page.locator('ev-trip-planner-panel >> #trip-description').fill('Test trip');
+
+// 6. Submit y validar cierre del overlay
+await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+await expect(formOverlay).toBeHidden();
+
+// 7. Validar persistencia en UI
+const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
+await expect(tripCards.count()).toBeGreaterThan(0);
+
+// 8. Validar estados con data attributes
+const tripCard = page.locator('ev-trip-planner-panel >> .trip-card').first();
+await expect(tripCard).toHaveAttribute('data-active', 'true');
+
+// 9. Validar badges de estado con clases específicas
+await expect(tripCard.locator('.trip-status.status-active')).toBeVisible();
+
+// 10. Manejo de diálogos de confirmación
+page.on('dialog', async dialog => {
+  await dialog.accept();  // O dialog.dismiss() para cancelar
+});
+
+// 11. Validar ausencia de elementos
+await expect(tripCard.locator('.trip-action-btn')).toHaveCount(0);
+
+// 12. Validar mensaje de estado vacío
+await expect(page.locator('ev-trip-planner-panel >> .no-trips')).toBeVisible();
+```
 
 ## Out of Scope
-- Tests de performance de carga inicial
-- Tests cross-browser (solo Chrome/Firefox)
-- Tests de dashboards de Lovelace antiguos
-- Tests de creación de PRs o CI/CD
-- Tests de configuración de usuario/contraseña
-- Tests de autenticación HA (bypass login)
+- Pruebas de API directa (solo UI y servicios indirectos)
+- Validación de emails o notificaciones push
+- Pruebas de performance o carga
+- Migración de datos o backups
+- Configuración inicial del panel (asume panel ya instalado)
+- Validación de estados de sensores externos (asume VEHICLE_ID válido)
 
 ## Dependencies
-- **Trusted networks**: `configuration.yaml` debe tener `allow_bypass_login_for_ips` con IPs 127.0.0.1 y 192.168.1.0/24
-- **Custom panel**: ev-trip-planner-panel v3.0.0+ con Shadow DOM support
-- **Home Assistant**: Versión con custom_components.ev_trip_planner instalado
-- **Playwright**: Browser Chrome/Firefox instalado en environment de tests
+- Home Assistant URL (`HA_URL`) con configuración de `trusted_networks` y `allow_bypass_login`
+- VEHICLE_ID existente en Home Assistant (ej: "Coche2")
+- Integración `ev_trip_planner` ya instalada y configurada
+- Panel personalizado `ev-trip-planner-{VEHICLE_ID}` desplegado
+- Playwright test framework y browser instalado
+- Environment variables configuradas en `.env` file
 
 ## Success Criteria
-- [ ] Todos los tests E2E ejecutan sin `waitForTimeout`
-- [ ] Tests de CRUD completan flujo Create → Read → Update → Delete
-- [ ] Servicios HA se llaman con parámetros correctos
-- [ ] Shadow DOM traversal con `>>` funciona para todos los selectors
-- [ ] Dialog de confirmación se maneja correctamente
-- [ ] Atributos `data-active` reflejan estado correcto
-- [ ] Tests son deterministas (95%+ pass rate)
-- [ ] Tests ejecutan en <60s por scenario completo
+- [x] 7 User Stories completamente especificadas con AC testables
+- [x] 13 Functional Requirements con prioridades definidas
+- [x] 8 Non-Functional Requirements con métricas claras
+- [x] Shadow DOM testing validado con selector `>>`
+- [x] Entorno sin login documentado y configurado
+- [x] Todas las operaciones CRUD y estados cubiertos
+- [x] Validación de funcionalidad real, no solo UI
 
 ## Unresolved Questions
-- ¿`allow_bypass_login_for_ips` está disponible en la versión exacta de HA en test-ha?
-- ¿Qué nombre de día exacto muestra panel para `day_of_week=1`? (Lunes, Monday, etc.)
-- ¿Dialog message exacto para confirmación de delete/pause?
-- ¿Formato exacto de fecha para trips puntuales en UI?
+- ¿VEHICLE_ID específico debe usarse en documentación o mantenerse genérico?
+- ¿El campo `#trip-day` es obligatorio para viajes recurrentes o opcional?
+- ¿Los viajes recurrentes pueden programarse en diferentes días (semanal, mensual) o solo diario?
+- ¿Existe límite de caracteres para descripciones de viajes?
 
 ## Next Steps
-1. Actualizar configuration.yaml con `allow_bypass_login_for_ips`
-2. Eliminar tests de Nivel 1 (dashboard-crud, test-performance, test-cross-browser, test-pr-creation, test-panel-loading)
-3. Refactorizar tests de Nivel 2 (remover waitForTimeout, reemplazar con Playwright waits)
-4. Crear test de auth validation con bypass configuration
-5. Validar que `allow_bypass_login_for_ips` funciona en HA version actual
+1. Approve requirements document for implementation
+2. Update test files to cover all 7 user stories
+3. Verify environment configuration for trusted_networks
+4. Run full E2E test suite as validation
+5. Document any flaky tests and add retries if needed
