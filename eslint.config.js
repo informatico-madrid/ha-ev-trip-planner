@@ -8,6 +8,7 @@ module.exports = [
       sourceType: 'module',
       globals: {
         customElements: 'readonly',
+        process: 'readonly',
       },
     },
     rules: {
@@ -19,6 +20,7 @@ module.exports = [
     languageOptions: {
       globals: {
         customElements: 'readonly',
+        process: 'readonly',
       },
     },
     rules: {

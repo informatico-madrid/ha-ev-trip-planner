@@ -1,7 +1,7 @@
 {
   "phase": "execution",
-  "taskIndex": 4,
-  "totalTasks": 13,
+  "taskIndex": 11,
+  "totalTasks": 14,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "recoveryMode": false,

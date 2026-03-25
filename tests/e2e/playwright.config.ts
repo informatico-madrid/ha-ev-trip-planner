@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Load environment variables from worktree .env (without external deps)
-const envPath = path.resolve(__dirname, '../../.env');
+const envPath = path.resolve(process.cwd(), '../../.env');
 if (fs.existsSync(envPath)) {
   const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
   for (const rawLine of lines) {
@@ -31,7 +31,7 @@ if (fs.existsSync(envPath)) {
 
     const key = line.slice(0, separator).trim();
     let value = line.slice(separator + 1).trim();
-    value = value.replace(/^['\"]|['\"]$/g, '');
+    value = value.replace(/^['"]|['"]$/g, '');
 
     if (key && process.env[key] === undefined) {
       process.env[key] = value;
@@ -44,10 +44,6 @@ process.env.HA_URL = process.env.HA_URL || 'http://localhost:18123';
 process.env.HA_USER = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
 process.env.HA_USERNAME = process.env.HA_USERNAME || process.env.HA_USER;
 process.env.HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
-
-// Get HA URL from environment or use default
-const haUrl = process.env.HA_URL;
-const haToken = process.env.HA_TOKEN || '';
 
 export default defineConfig({
   testDir: './',
@@ -65,7 +61,7 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: haUrl,
+    baseURL: process.env.HA_URL || 'http://localhost:18123',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -77,9 +73,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    url: haUrl,
-    timeout: 120 * 1000,
-    reuseExistingServer: true,
-  },
 });
