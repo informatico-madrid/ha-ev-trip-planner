@@ -156,7 +156,7 @@ STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
 
 
 def _read_emhass_config(
-    config_path: str = "/home/malka/emhass/config/config.json",
+    config_path: str | None = None,
 ) -> Optional[Dict[str, Any]]:
     """Lee la configuración de EMHASS desde el archivo de configuración.
 
@@ -386,7 +386,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         _LOGGER.debug("Config flow step 3 (emhass): showing form")
 
         # Try to read EMHASS config for validation defaults
-        emhass_config = _read_emhass_config()
+        emhass_config_path = os.environ.get(
+            "EMHASS_CONFIG_PATH", "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/test-ha/config"
+        )
+        emhass_config = _read_emhass_config(emhass_config_path)
         emhass_horizon = _get_emhass_planning_horizon(emhass_config)
         emhass_max_loads = _get_emhass_max_deferrable_loads(emhass_config)
 

@@ -24,7 +24,7 @@ import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
+const HA_URL = process.env.HA_URL || process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 const HA_USERNAME = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
 const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 

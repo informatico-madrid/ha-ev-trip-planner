@@ -27,7 +27,7 @@ jobs:
         
         # Wait for HA to be ready (allow 401 as it means HA is running)
         for i in $(seq 1 30); do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18123/api/")
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8123/api/")
           if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "401" ]]; then
             echo "Home Assistant is ready! (HTTP $HTTP_CODE)"
             break
@@ -49,7 +49,7 @@ jobs:
         
         # Wait again for HA
         for i in $(seq 1 20); do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:18123/api/")
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8123/api/")
           if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "401" ]]; then
             echo "Home Assistant restarted! (HTTP $HTTP_CODE)"
             break
@@ -67,7 +67,7 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test
       env:
-        HA_URL: http://localhost:18123
+        HA_URL: http://localhost:8123
         HA_USER: ${{ secrets.HA_USER }}
         HA_PASSWORD: ${{ secrets.HA_PASSWORD }}
         HA_TOKEN: ${{ secrets.HA_TOKEN }}

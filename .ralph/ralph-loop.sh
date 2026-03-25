@@ -42,7 +42,7 @@ if [[ -f "$PROJECT_DIR/.env" ]]; then
 fi
 
 # Ensure E2E mock credentials are always available
-HA_URL="${HA_URL:-http://localhost:18123}"
+HA_URL="${HA_URL:-http://localhost:8123}"
 HA_USER="${HA_USER:-${HA_USERNAME:-tests}}"
 HA_USERNAME="${HA_USERNAME:-$HA_USER}"
 HA_PASSWORD="${HA_PASSWORD:-tests}"
@@ -813,14 +813,14 @@ $github_context
 
 **RULE 2: NEVER use docker-compose up -d without ACTIVE_WORKTREE**
 - If you must restart the container, example use:
-  cd /home/malka/ha-ev-trip-planner/test-ha && \
-  ACTIVE_WORKTREE=/home/malka/ha-ev-trip-planner/.worktrees/019-panel-vehicle-crud-20260323_085850 \
+  cd $PROJECT_ROOT/test-ha && \
+  ACTIVE_WORKTREE=$PROJECT_ROOT/.worktrees/019-panel-vehicle-crud-20260323_085850 \
   docker-compose up -d
 
 **RULE 3: ALWAYS validate the volume after any container operation**
 - After stopping, starting, or restarting the container example use :
   docker inspect ha-ev-test | grep -A10 "Mounts" | grep "Source.*worktrees"
-- Verify the Source contains: /home/malka/ha-ev-trip-planner/.worktrees/019-panel-vehicle-crud-20260323_085850
+- Verify the Source contains: $PROJECT_ROOT/.worktrees/019-panel-vehicle-crud-20260323_085850
 
 **RULE 4: If the volume is incorrect, the agent's changes will not be visible**
 - Your changes in the worktree will NOT appear in the HA container
@@ -1922,12 +1922,12 @@ main() {
                     verify_type="BROWSER"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:BROWSER]${NC}"
                     echo -e "${BLUE}  Tool: mcp-playwright (Playwright browser automation)${NC}"
-                    echo -e "${BLUE}  Target: test-ha (http://localhost:18123)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:8123)${NC}"
                 elif echo "$task_desc" | grep -qiE '\[VERIFY:API\]'; then
                     verify_type="API"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:API]${NC}"
                     echo -e "${BLUE}  Tool: homeassistant-ops skill (REST API)${NC}"
-                    echo -e "${BLUE}  Target: test-ha (http://localhost:18123)${NC}"
+                    echo -e "${BLUE}  Target: test-ha (http://localhost:8123)${NC}"
                 elif echo "$task_desc" | grep -qiE '\[VERIFY:TEST\]'; then
                     verify_type="TEST"
                     echo -e "${CYAN}▶ VERIFICATION [VERIFY:TEST]${NC}"

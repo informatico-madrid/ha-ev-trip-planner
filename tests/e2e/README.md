@@ -19,8 +19,8 @@ cp .env.example .env
 Update the `.env` file:
 
 ```env
-HA_URL=http://192.168.1.100:18123
-VEHICLE_ID=chispitas
+HA_TEST_URL=http://192.168.1.201:8123
+VEHICLE_ID=Coche2
 TIMEOUT=30000
 ```
 
@@ -72,7 +72,7 @@ npx playwright show-report
 
 ## Environment Variables
 
-- `HA_URL` - Home Assistant URL (default: `http://192.168.1.100:18123`)
+- `HA_TEST_URL` - Home Assistant test URL (default: `http://192.168.1.201:8123`)
 - `VEHICLE_ID` - Vehicle ID for testing (default: `chispitas`)
 - `TIMEOUT` - Test timeout in ms (default: `30000`)
 

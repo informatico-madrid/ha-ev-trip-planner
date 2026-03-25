@@ -122,12 +122,12 @@
 2. **Copia al directorio de Home Assistant**:
    ```bash
    cp -r ha-ev-trip-planner-1.0.0/custom_components/ev_trip_planner \
-     /home/malka/homeassistant/custom_components/
+     $HOME/homeassistant/custom_components/
    ```
 
 3. **Corrige permisos**:
    ```bash
-   chown -R 1000:1000 /home/malka/homeassistant/custom_components/ev_trip_planner
+   chown -R 1000:1000 $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
 4. **Reinicia Home Assistant**:
@@ -145,15 +145,15 @@
 
 1. **Clona el repositorio**:
    ```bash
-   cd /home/malka
+   cd $PROJECT_ROOT
    git clone https://github.com/tu-usuario/ha-ev-trip-planner.git
    cd ha-ev-trip-planner
    ```
 
 2. **Crea enlace simbólico** (para desarrollo en caliente):
    ```bash
-   ln -sf /home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner \
-     /home/malka/homeassistant/custom_components/ev_trip_planner
+   ln -sf $PROJECT_ROOT/custom_components/ev_trip_planner \
+     $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
 3. **Instala dependencias de desarrollo**:
@@ -283,14 +283,13 @@ shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
       "P_deferrable": {{ (state_attr(
-        'sensor.emhass_perfil_diferible_chispitas',
+        'sensor.emhass_perfil_diferible_{vehicle_id}',
         'power_profile_watts'
       ) | default([0]*168)) | tojson }}
-    }' http://192.168.1.100:5000/action/dayahead-optim
+    }' http://$EMHASS_IP:5000/action/dayahead-optim
 ```
 
-**Nota**: Ajusta la URL (`http://192.168.1.100:5000`) a la IP de tu
-servicio EMHASS.
+**Nota**: Reemplaza `$EMHASS_IP` con la IP de tu servicio EMHASS (ej: `192.168.1.201`).
 
 ### Sensores de carga diferible
 
@@ -411,7 +410,7 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 
 2. **Elimina los archivos**:
    ```bash
-   rm -rf /home/malka/homeassistant/custom_components/ev_trip_planner
+   rm -rf $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
 3. **Elimina la configuración** de `configuration.yaml` (si la tienes)
@@ -447,7 +446,7 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 - **Los viajes ahora persisten entre reinicios**: El sistema usa Storage API de Home Assistant para guardar los viajes de forma persistente.
 - **Verifica permisos**:
   ```bash
-  ls -la /home/malka/homeassistant/.storage/ | grep ev_trip_planner
+  ls -la $HOME/homeassistant/.storage/ | grep ev_trip_planner
   ```
 - Debe tener permisos `1000:1000` (usuario homeassistant)
 - Los archivos se guardan en `.storage/ev_trip_planner_{vehicle_id}.json`
@@ -491,7 +490,7 @@ ha-ev-trip-planner/
 ### Ejecutar tests
 
 ```bash
-cd /home/malka/ha-ev-trip-planner
+cd $PROJECT_ROOT
 source venv/bin/activate
 pytest tests/ -v --cov=custom_components/ev_trip_planner
 ```

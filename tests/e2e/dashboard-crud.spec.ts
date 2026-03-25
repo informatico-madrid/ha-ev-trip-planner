@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+const haUrl = process.env.HA_URL || 'http://192.168.1.201:8123';
 
 test.describe('Dashboard Loading Tests', () => {
     test('dashboard loads successfully', async ({ page }) => {

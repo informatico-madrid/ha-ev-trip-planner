@@ -6,37 +6,20 @@ homeassistant:
   name: EV Trip Planner Test
   unit_system: metric
   time_zone: Europe/Madrid
-  external_url: http://192.168.1.100:18123
-  internal_url: http://192.168.1.100:18123
+  external_url: http://192.168.1.201:8123
+  internal_url: http://192.168.1.201:8123
 
 # Disable authentication for testing - allow access from trusted networks
 http:
   server_port: 8123
-  cors_allowed_origins:
-    - http://localhost:18123
-    - http://127.0.0.1:18123
-    - http://localhost:8123
-    - http://127.0.0.1:8123
   api_password: tests
-  trusted_proxies:
+  trusted_networks:
     - 127.0.0.1
     - 192.168.1.0/24
-  force_secure_login: false
-  trusted_networks:
+  allowlist:
+    - 127.0.0.1
     - 192.168.1.0/24
 
-# Create test user
-auth_providers:
-  - type: homeassistant
-    users:
-      - email: tests@test.com
-        name: Tests
-        username: tests
-        password: tests
-
-# Allow API access from trusted networks without authentication
-api:
-  api_password: tests
 
 # Enable logging for debugging
 logger:

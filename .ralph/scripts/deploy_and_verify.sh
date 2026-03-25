@@ -6,10 +6,10 @@
 set -euo pipefail
 
 WORKTREE_PATH="${1:-.}"
-HA_CONFIG="/home/malka/homeassistant"
-HA_CONTAINER="homeassistant"
+HA_CONFIG="${HA_CONFIG:-$HOME/homeassistant}"
+HA_CONTAINER="${HA_CONTAINER:-homeassistant}"
 WAIT_SECONDS="${2:-60}"
-HA_URL="${HA_URL:-http://192.168.1.100:8123}"
+HA_URL="${HA_URL:-http://192.168.1.201:8123}"
 
 echo "[DEPLOY] Copying custom_components from worktree to HA config..."
 rsync -a --delete "${WORKTREE_PATH}/custom_components/ev_trip_planner/" "${HA_CONFIG}/custom_components/ev_trip_planner/"

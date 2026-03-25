@@ -1,29 +1,21 @@
-version: '3.8'
-
 services:
   homeassistant-test:
     container_name: ha-ev-test
     image: ghcr.io/home-assistant/home-assistant:stable
     restart: unless-stopped
-    user: "1000:1000"  # UID:GID del usuario host (malka en local)
+    user: "1000:1000"
     ports:
-      - "18123:8123"
+      - "18124:8123"
     environment:
       - TZ=Europe/Madrid
     volumes:
-      # Montar storage del HA desde el worktree anterior (tiene la configuración existente)
-      - /home/malka/ha-ev-trip-planner/test-ha/config:/config
+      - ${PROJECT_ROOT}/test-ha/config:/config
       - /etc/localtime:/etc/localtime:ro
-      # Montar integración desde el worktree full-trip-management
-      - /home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
-      # Montar configuración de EMHASS (necesario para config flow)
-      - /home/malka/emhass:/home/malka/emhass
+      - ${PROJECT_ROOT}/test-ha/config/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+      - ${TEST_HA_CONFIG}:/config
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8123/api/health"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 60s
-
-volumes:
-  test_config:

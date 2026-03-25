@@ -48,7 +48,7 @@ All 15 success criteria verified:
 
 ## Worktree Location
 Implementation exists in:
-`/home/malka/ha-ev-trip-planner/.worktrees/001-milestone-3-2-complete-20260317_193133`
+`$PROJECT_ROOT/.worktrees/001-milestone-3-2-complete-20260317_193133`
 
 ## Ralph Loop State
 - **Current Iteration**: 73

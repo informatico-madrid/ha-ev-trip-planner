@@ -357,8 +357,8 @@ async def async_cleanup_past_trips(self):
 - **Target for v1.0**: ~1 week (production validation only)
 
 **Remaining Work**:
-- ❌ Production environment testing (HA local at http://192.168.1.100:18123)
-- ❌ EMHASS integration validation (http://192.168.1.100:5000)
+- ❌ Production environment testing (HA local at http://$HA_URL:8123)
+- ❌ EMHASS integration validation (http://$EMHASS_IP:5000)
 - ❌ End-to-end trip workflow testing
 - ❌ Presence detection validation with real sensors
 - ❌ Index persistence across HA restarts

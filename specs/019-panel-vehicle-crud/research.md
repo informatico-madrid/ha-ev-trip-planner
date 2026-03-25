@@ -74,7 +74,7 @@ export default defineConfig({
   testDir: './',
   timeout: 60000,
   use: {
-    baseURL: haUrl,  // http://localhost:18123
+    baseURL: haUrl,  // http://localhost:8123
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -94,7 +94,7 @@ export default defineConfig({
 ```
 
 **Environment Variables**:
-- `HA_URL`: `http://localhost:18123`
+- `HA_URL`: `http://localhost:8123`
 - `HA_USER`: `tests`
 - `HA_PASSWORD`: `tests`
 
@@ -170,7 +170,7 @@ From `_showTripForm()` (lines 560-625):
 
 ```typescript
 test('should load panel and extract vehicle_id from URL', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Verify panel header exists
   await expect(page).toHaveText(/EV Trip Planner - chispitas/i);
@@ -184,7 +184,7 @@ test('should load panel and extract vehicle_id from URL', async ({ page }) => {
 
 ```typescript
 test('should load trips from HA service', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Wait for trips section to load
   await expect(page.locator('#trips-section')).toBeVisible();
@@ -198,7 +198,7 @@ test('should load trips from HA service', async ({ page }) => {
 
 ```typescript
 test('should create a new recurring trip', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Click "Agregar Viaje"
   await page.click('.add-trip-btn');
@@ -226,7 +226,7 @@ test('should create a new recurring trip', async ({ page }) => {
 
 ```typescript
 test('should edit an existing trip', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Click edit button on first trip
   await page.click('.edit-btn');
@@ -247,7 +247,7 @@ test('should edit an existing trip', async ({ page }) => {
 
 ```typescript
 test('should delete a trip', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Click delete button
   await page.click('.delete-btn');
@@ -264,7 +264,7 @@ test('should delete a trip', async ({ page }) => {
 
 ```typescript
 test('should pause and resume a recurring trip', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Pause trip
   await page.click('.pause-btn');
@@ -281,7 +281,7 @@ test('should pause and resume a recurring trip', async ({ page }) => {
 
 ```typescript
 test('should complete or cancel a punctual trip', async ({ page }) => {
-  await page.goto('http://localhost:18123/ev-trip-planner-chispitas');
+  await page.goto('http://localhost:8123/ev-trip-planner-chispitas');
 
   // Complete trip
   await page.click('.complete-btn');
@@ -315,7 +315,7 @@ import axios from 'axios';
 
 test('should create trip and verify via HA API', async ({ page }) => {
   const haToken = process.env.HA_TOKEN || '';
-  const haUrl = 'http://localhost:18123';
+  const haUrl = 'http://localhost:8123';
 
   // Make trip creation request in panel
   await page.click('.add-trip-btn');
@@ -371,7 +371,7 @@ test('should handle delete confirmation', async ({ page }) => {
 
 | Tool | Command | Status |
 |------|---------|--------|
-| Dev Server | `HA_URL=http://localhost:18123 npx playwright test` | ✅ Configured |
+| Dev Server | `HA_URL=http://localhost:8123 npx playwright test` | ✅ Configured |
 | Test Framework | `@playwright/test@1.58.2` | ✅ Installed |
 | Test Runner | `npx playwright test` | ✅ Working |
 | Report | `playwright-report/` | ✅ Generated |
@@ -381,7 +381,7 @@ test('should handle delete confirmation', async ({ page }) => {
 
 ```bash
 # Set environment variables
-export HA_URL=http://localhost:18123
+export HA_URL=http://localhost:8123
 export HA_USER=tests
 export HA_PASSWORD=tests
 

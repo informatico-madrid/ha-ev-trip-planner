@@ -18,7 +18,7 @@ Deploy → Register → Use → Verify → Complete
 
 ```bash
 # Copiar componente a HA
-cp -r custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/
+cp -r custom_components/ev_trip_planner $HOME/homeassistant/custom_components/
 
 # Verificar despliegue
 # El agente usa [VERIFY:*] tags y emite STATE_MATCH
@@ -49,10 +49,10 @@ curl -X POST \
       "vehicle_id": "tesla_model_3"
     }
   }' \
-  http://192.168.1.100:8123/api/config/config_entries/post
+  http://192.168.1.201:8123/api/config/config_entries/post
 
 # Verificar registro
-curl http://192.168.1.100:8123/api/config/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner")'
+curl http://192.168.1.201:8123/api/config/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner")'
 ```
 
 **Qué verificar:**
@@ -68,7 +68,7 @@ curl http://192.168.1.100:8123/api/config/config_entries/entry | jq '.[] | selec
 
 ```bash
 # Test sensor reading
-curl http://192.168.1.100:8123/api/states/sensor.ev_trip_distance
+curl http://192.168.1.201:8123/api/states/sensor.ev_trip_distance
 # Expected: {"entity_id":"sensor.ev_trip_distance","state":"125.5",...}
 
 # Test service call
@@ -76,10 +76,10 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"trip_id": "trip_001", "destination": "Madrid"}' \
-  http://192.168.1.100:8123/api/services/ev_trip_planner/calculate_trip
+  http://192.168.1.201:8123/api/services/ev_trip_planner/calculate_trip
 
 # Test device control
-curl http://192.168.1.100:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip"))'
+curl http://192.168.1.201:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip"))'
 ```
 
 **Qué verificar:**
@@ -95,18 +95,18 @@ curl http://192.168.1.100:8123/api/devices | jq '.[] | select(.manufacturer | co
 
 ```bash
 # Check entity state is valid
-STATE=$(curl -s http://192.168.1.100:8123/api/states/sensor.ev_trip_distance | jq -r '.state')
+STATE=$(curl -s http://192.168.1.201:8123/api/states/sensor.ev_trip_distance | jq -r '.state')
 test "$STATE" != "unavailable" && test "$STATE" != "unknown" && echo "✓ Sensor working" || echo "✗ Sensor broken"
 
 # Check logs for initialization
-grep -i "ev-trip-planner initialized" /home/malka/homeassistant/home-assistant.log | tail -5
+grep -i "ev-trip-planner initialized" $HOME/homeassistant/home-assistant.log | tail -5
 
 # Check config entries exist
-CONFIG_ENTRIES=$(curl -s -H "Authorization: Bearer $HA_TOKEN" http://192.168.1.100:8123/api/config/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner") | length')
+CONFIG_ENTRIES=$(curl -s -H "Authorization: Bearer $HA_TOKEN" http://192.168.1.201:8123/api/config/config_entries/entry | jq '.[] | select(.domain == "ev_trip_planner") | length')
 test "$CONFIG_ENTRIES" -gt 0 && echo "✓ Config entries exist" || echo "✗ No config entries"
 
 # Check entities registered
-ENTITIES=$(curl -s http://192.168.1.100:8123/api/states | jq '.[] | select(.entity_id | contains("ev_trip")) | length')
+ENTITIES=$(curl -s http://192.168.1.201:8123/api/states | jq '.[] | select(.entity_id | contains("ev_trip")) | length')
 test "$ENTITIES" -gt 0 && echo "✓ Entities registered" || echo "✗ No entities"
 ```
 
@@ -172,7 +172,7 @@ Mark task as [x] **ONLY IF ALL** of the following are true:
 **User Journey:**
 ```bash
 # Step 1: Deploy
-cp -r custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/
+cp -r custom_components/ev_trip_planner $HOME/homeassistant/custom_components/
 python3 .ralph/scripts/[VERIFY:*] tags + STATE_MATCH ev_trip_planner
 
 # Step 2: Register
@@ -180,23 +180,23 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"domain": "ev_trip_planner", "title": "Test"}' \
-  http://192.168.1.100:8123/api/config/config_entries/post
+  http://192.168.1.201:8123/api/config/config_entries/post
 
 # Step 3: Use - Trigger trip and check sensor
 curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"origin": "Madrid", "destination": "Barcelona"}' \
-  http://192.168.1.100:8123/api/services/ev_trip_planner/calculate_trip
+  http://192.168.1.201:8123/api/services/ev_trip_planner/calculate_trip
 
 sleep 5  # Wait for processing
-STATE=$(curl -s http://192.168.1.100:8123/api/states/sensor.ev_trip_distance | jq -r '.state')
+STATE=$(curl -s http://192.168.1.201:8123/api/states/sensor.ev_trip_distance | jq -r '.state')
 echo "Sensor state: $STATE"
 
 # Step 4: Verify
 test "$STATE" =~ ^[0-9]+\.?[0-9]*$ && echo "✓ Valid numeric state" || echo "✗ Invalid state"
-grep -i "trip.*distance.*calculated" /home/malka/homeassistant/home-assistant.log | tail -3
-curl http://192.168.1.100:8123/api/states | jq '.[] | select(.entity_id == "sensor.ev_trip_distance")'
+grep -i "trip.*distance.*calculated" $HOME/homeassistant/home-assistant.log | tail -3
+curl http://192.168.1.201:8123/api/states | jq '.[] | select(.entity_id == "sensor.ev_trip_distance")'
 
 # Step 5: Complete
 # If all above pass → Mark [x]
@@ -209,7 +209,7 @@ curl http://192.168.1.100:8123/api/states | jq '.[] | select(.entity_id == "sens
 **User Journey:**
 ```bash
 # Step 1: Deploy
-cp -r custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/
+cp -r custom_components/ev_trip_planner $HOME/homeassistant/custom_components/
 python3 .ralph/scripts/[VERIFY:*] tags + STATE_MATCH ev_trip_planner
 
 # Step 2: Register
@@ -217,7 +217,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"domain": "ev_trip_planner", "title": "Charging Service"}' \
-  http://192.168.1.100:8123/api/config/config_entries/post
+  http://192.168.1.201:8123/api/config/config_entries/post
 
 # Step 3: Use - Call service
 START_TIME=$(date +%s)
@@ -225,13 +225,13 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"vehicle": "tesla", "battery_level": 20}' \
-  http://192.168.1.100:8123/api/services/ev_trip_planner/optimize_charging
+  http://192.168.1.201:8123/api/services/ev_trip_planner/optimize_charging
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 echo "Service response time: ${DURATION}s"
 
 # Step 4: Verify
-SERVICE_EXISTS=$(curl http://192.168.1.100:8123/api/services | jq '.[] | select(.domain == "ev_trip_planner" and .service == "optimize_charging")')
+SERVICE_EXISTS=$(curl http://192.168.1.201:8123/api/services | jq '.[] | select(.domain == "ev_trip_planner" and .service == "optimize_charging")')
 test -n "$SERVICE_EXISTS" && echo "✓ Service exists" || echo "✗ Service missing"
 
 test "$DURATION" -lt 30 && echo "✓ Fast response (<30s)" || echo "✗ Slow response"
@@ -247,7 +247,7 @@ test "$DURATION" -lt 30 && echo "✓ Fast response (<30s)" || echo "✗ Slow res
 **User Journey:**
 ```bash
 # Step 1: Deploy
-cp -r custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/
+cp -r custom_components/ev_trip_planner $HOME/homeassistant/custom_components/
 python3 .ralph/scripts/[VERIFY:*] tags + STATE_MATCH ev_trip_planner
 
 # Step 2: Register
@@ -255,17 +255,17 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $HA_TOKEN" \
   -d '{"domain": "ev_trip_planner", "title": "Vehicle Registry"}' \
-  http://192.168.1.100:8123/api/config/config_entries/post
+  http://192.168.1.201:8123/api/config/config_entries/post
 
 # Step 3: Use - Query device
-curl http://192.168.1.100:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip"))'
+curl http://192.168.1.201:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip"))'
 
 # Step 4: Verify
-DEVICE_COUNT=$(curl http://192.168.1.100:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip")) | length')
+DEVICE_COUNT=$(curl http://192.168.1.201:8123/api/devices | jq '.[] | select(.manufacturer | contains("EV Trip")) | length')
 test "$DEVICE_COUNT" -gt 0 && echo "✓ Devices found ($DEVICE_COUNT)" || echo "✗ No devices"
 
 # Check device entities
-ENTITIES=$(curl http://192.168.1.100:8123/api/states | jq ".[] | select(.device_id != null) | length")
+ENTITIES=$(curl http://192.168.1.201:8123/api/states | jq ".[] | select(.device_id != null) | length")
 test "$ENTITIES" -gt 0 && echo "✓ Device entities exist ($ENTITIES)" || echo "✗ No device entities"
 
 # Step 5: Complete

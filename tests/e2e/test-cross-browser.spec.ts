@@ -14,7 +14,7 @@
 import { test, expect } from '@playwright/test';
 
 const vehicleId = process.env.VEHICLE_ID || 'Coche2';
-const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+const haUrl = process.env.HA_URL || process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 
 test.describe('EV Trip Planner Cross-Browser Compatibility', () => {
   test('should load panel correctly in browser', async ({ page }) => {

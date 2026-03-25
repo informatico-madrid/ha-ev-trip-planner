@@ -99,10 +99,10 @@ Each `test-us{N}.spec.ts` must contain tests specific to that User Story.
 ### Deployment Routes
 
 For this project, use these paths:
-- **Dev**: `/home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner`
-- **HA**: `/home/malka/homeassistant/custom_components/ev_trip_planner`
+- **Dev**: `$PROJECT_ROOT/custom_components/ev_trip_planner`
+- **HA**: `$HOME/homeassistant/custom_components/ev_trip_planner`
 
-Copy to HA: `cp -r /home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner /home/malka/homeassistant/custom_components/`
+Copy to HA: `cp -r $PROJECT_ROOT/custom_components/ev_trip_planner $HOME/homeassistant/custom_components/`
 
 ## Outline
 

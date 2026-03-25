@@ -23,7 +23,7 @@ export class TripPanel {
   protected haUrl: string;
   protected consoleErrors: string[] = [];
 
-  constructor(page: Page, vehicleId: string = 'Coche2', haUrl: string = 'http://192.168.1.100:18123') {
+  constructor(page: Page, vehicleId: string = 'Coche2', haUrl: string = process.env.HA_TEST_URL || 'http://192.168.1.201:8123') {
     this.page = page;
     this.vehicleId = vehicleId;
     this.haUrl = haUrl;

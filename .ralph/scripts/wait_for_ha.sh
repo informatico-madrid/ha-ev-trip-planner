@@ -4,12 +4,12 @@
 #
 # Usage:
 #   .ralph/scripts/wait_for_ha.sh
-#   HA_URL=http://localhost:18123 .ralph/scripts/wait_for_ha.sh
+#   HA_URL=http://localhost:8123 .ralph/scripts/wait_for_ha.sh
 #
 set -euo pipefail
 
 # Configuration
-HA_URL="${HA_URL:-http://localhost:18123}"
+HA_URL="${HA_URL:-http://localhost:8123}"
 MAX_RETRIES="${MAX_RETRIES:-30}"
 RETRY_INTERVAL="${RETRY_INTERVAL:-5}"
 

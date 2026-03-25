@@ -42,7 +42,7 @@ if [[ -f "$PROJECT_DIR/.env" ]]; then
 fi
 
 # Ensure E2E mock credentials are always available
-HA_URL="${HA_URL:-http://localhost:18123}"
+HA_URL="${HA_URL:-http://localhost:8123}"
 HA_USER="${HA_USER:-${HA_USERNAME:-tests}}"
 HA_USERNAME="${HA_USERNAME:-$HA_USER}"
 HA_PASSWORD="${HA_PASSWORD:-tests}"

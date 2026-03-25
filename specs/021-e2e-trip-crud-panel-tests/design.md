@@ -44,7 +44,7 @@ graph TB
 class TripPanelTestBase {
   page: Page;
   vehicleId: string = 'test-vehicle';
-  haUrl: string = 'http://localhost:18123';
+  haUrl: string = 'http://localhost:8123';
 
   async gotoPanel() {
     await this.page.goto(`${this.haUrl}/ev-trip-planner-${this.vehicleId}`);
@@ -265,7 +265,7 @@ sequenceDiagram
 ### Requirements
 
 1. **Home Assistant Instance**
-   - URL: `http://localhost:18123` (or configurable)
+   - URL: `http://localhost:8123` (or configurable)
    - EV Trip Planner integration installed
    - Test vehicle configured
 
@@ -284,7 +284,7 @@ sequenceDiagram
 const config: PlaywrightTestConfig = {
   webServer: {
     command: 'ha core start',
-    url: 'http://localhost:18123',
+    url: 'http://localhost:8123',
     timeout: 120000,
   },
   testDir: 'tests/e2e',

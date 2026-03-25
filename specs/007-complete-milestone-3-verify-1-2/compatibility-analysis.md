@@ -98,7 +98,7 @@
 ### Fase 3E: Integration Testing & Migration (PENDIENTE)
 
 #### 3E.1: Testing en Entorno de Producción
-- [ ] Desplegar en Home Assistant local (http://192.168.1.100:8123)
+- [ ] Desplegar en Home Assistant local (http://$HA_URL:8123)
 - [ ] Configurar EMHASS integration existente
 - [ ] Configurar vehicle control (switch/service/script)
 - [ ] Configurar presence detection (binary sensors)

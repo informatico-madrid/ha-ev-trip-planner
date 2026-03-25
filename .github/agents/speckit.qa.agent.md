@@ -40,15 +40,15 @@ When using mcp-playwright to navigate, you **MUST ALWAYS** add cache buster:
 
 ```javascript
 // CORRECT EXAMPLE:
-await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba?v=' + Date.now());
+await page.goto('http://localhost:8123/ev-trip-planner-cocheprueba?v=' + Date.now());
 
 // INCORRECT EXAMPLE (DO NOT DO):
-await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba');
+await page.goto('http://localhost:8123/ev-trip-planner-cocheprueba');
 ```
 
 ### Cache Verification Steps:
 1. **DO NOT assume** problems are cache-related without verification
-2. **VERIFY** using: `curl -I http://localhost:18123/api/` to confirm HA responds
+2. **VERIFY** using: `curl -I http://localhost:8123/api/` to confirm HA responds
 3. **FORCE** no-cache loading using headers or cache buster
 4. **CONFIRM** the error by reproducing it in incognito mode if necessary
 
