@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "updated": "2026-03-25T18:13:04Z",
+  "directories": [
+    {
+      "path": "./specs",
+      "specsCount": 12,
+      "isDefault": true
+    }
+  ],
+  "specs": [
+    {
+      "name": "001-milestone-3-2-complete",
+      "path": "./specs/001-milestone-3-2-complete",
+      "phase": "completed",
+      "taskIndex": 81,
+      "totalTasks": 81
+    },
+    {
+      "name": "007-complete-milestone-3-verify-1-2",
+      "path": "./specs/007-complete-milestone-3-verify-1-2",
+      "phase": "completed",
+      "taskIndex": 96,
+      "totalTasks": 96
+    },
+    {
+      "name": "008-fix-config-flow-dashboard-sensors",
+      "path": "./specs/008-fix-config-flow-dashboard-sensors",
+      "phase": "completed",
+      "taskIndex": 63,
+      "totalTasks": 63
+    },
+    {
+      "name": "009-fix-vehicle-creation-dashboard-notifications",
+      "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
+      "phase": "tasks",
+      "taskIndex": 0
+0,
+      "totalTasks": 158
+    },
+    {
+      "name": "010-fix-sensor-errors-dashboard-issues",
+      "path": "./specs/010-fix-sensor-errors-dashboard-issues",
+      "phase": "completed",
+      "taskIndex": 24,
+      "totalTasks": 24
+    },
+    {
+      "name": "011-fix-production-errors",
+      "path": "./specs/011-fix-production-errors",
+      "phase": "completed",
+      "taskIndex": 21,
+      "totalTasks": 21
+    },
+    {
+      "name": "012-dashboard-crud-verify",
+      "path": "./specs/012-dashboard-crud-verify",
+      "phase": "completed",
+      "taskIndex": 53,
+      "totalTasks": 53
+    },
+    {
+      "name": "017-native-panel-core",
+      "path": "./specs/017-native-panel-core",
+      "phase": "tasks",
+      "taskIndex": 0
+0,
+      "totalTasks": 73
+    },
+    {
+      "name": "018-e2e-playwright-testing",
+      "path": "./specs/018-e2e-playwright-testing",
+      "phase": "tasks",
+      "taskIndex": 0
+0,
+      "totalTasks": 34
+    },
+    {
+      "name": "019-panel-vehicle-crud",
+      "path": "./specs/019-panel-vehicle-crud",
+      "phase": "tasks",
+      "taskIndex": 31,
+      "totalTasks": 32
+    },
+    {
+      "name": "020-fix-panel-trips-sensors",
+      "path": "./specs/020-fix-panel-trips-sensors",
+      "phase": "tasks",
+      "taskIndex": 0,
+      "totalTasks": 5
+    },
+    {
+      "name": "021-e2e-trip-crud-panel-tests",
+      "path": "./specs/021-e2e-trip-crud-panel-tests",
+      "phase": "execution",
+      "taskIndex": 0,
+      "totalTasks": 18
+    }
+  ]
+}
