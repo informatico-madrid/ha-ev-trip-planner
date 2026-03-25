@@ -39,7 +39,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - **Commit**: `chore(e2e): remove duplicate integration test`
   - _Requirements: research.md section "Tests que Deben Eliminarse"_
 
-- [ ] 1.4 [P] Configurar ambiente de tests
+- [x] 1.4 [P] Configurar ambiente de tests
   - **Do**:
     1. Verificar `.env` tiene HA_URL y VEHICLE_ID definidos
     2. Confirmar variables: `HA_URL=http://192.168.1.100:18123`
@@ -50,7 +50,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - **Commit**: `chore(test): verify environment configuration`
   - _Requirements: Design "Security Considerations"_
 
-- [ ] 1.5 [P] Crear trip-crud.spec.ts - Test Create Recurrente
+- [x] 1.5 [P] Crear trip-crud.spec.ts - Test Create Recurrente
   - **Do**:
     1. Crear `tests/e2e/trip-crud.spec.ts`
     2. Escribir test describe para CRUD de viajes
@@ -67,7 +67,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-3, AC-1.1 to AC-1.15_
   - _Design: Test Orchestrator (trip-crud.spec.ts)_
 
-- [ ] 1.6 [P] Crear trip-crud.spec.ts - Test Edit Trip
+- [x] 1.6 [P] Crear trip-crud.spec.ts - Test Edit Trip
   - **Do**:
     1. Agregar test: "should edit an existing trip"
     2. Check si tripCards.count() > 0, skip si no
@@ -83,7 +83,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-4, AC-3.1 to AC-3.12_
   - _Design: Test Orchestrator (trip-crud.spec.ts)_
 
-- [ ] 1.7 [P] Crear trip-crud.spec.ts - Test Delete Trip
+- [x] 1.7 [P] Crear trip-crud.spec.ts - Test Delete Trip
   - **Do**:
     1. Agregar test: "should delete an existing trip"
     2. Check tripCards.count() > 0, skip si no
@@ -98,7 +98,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-5, AC-4.1 to AC-4.10_
   - _Design: Test Orchestrator (trip-crud.spec.ts)_
 
-- [ ] 1.8 [VERIFY] Quality checkpoint: lint && typecheck
+- [x] 1.8 [VERIFY] Quality checkpoint: lint && typecheck
   - **Do**:
     1. Ejecutar lint: `pnpm lint`
     2. Ejecutar typecheck: `pnpm check-types`
@@ -110,7 +110,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 [P] Refactorizar code quality en trip-crud.spec.ts
+- [x] 2.1 [P] Refactorizar code quality en trip-crud.spec.ts
   - **Do**:
     1. Eliminar todos waitForTimeout del código
     2. Reemplazar con Playwright waits: toBeVisible, toBeHidden, toHaveCount
@@ -123,7 +123,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: NFR-4, NFR-5, NFR-6_
   - _Design: Test Strategy_
 
-- [ ] 2.2 [VERIFY] Quality checkpoint: test run
+- [x] 2.2 [VERIFY] Quality checkpoint: test run
   - **Do**:
     1. Ejecutar tests: `pnpm test trip-crud.spec.ts`
     2. Verificar todos pasan
@@ -135,7 +135,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 [P] Crear trip-states.spec.ts - Test Pause Trip
+- [x] 3.1 [P] Crear trip-states.spec.ts - Test Pause Trip
   - **Do**:
     1. Crear `tests/e2e/trip-states.spec.ts`
     2. Test: "should pause a recurring trip"
@@ -150,7 +150,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-6, AC-5.1 to AC-5.10_
   - _Design: Test States (trip-states.spec.ts)_
 
-- [ ] 3.2 [P] Crear trip-states.spec.ts - Test Resume Trip
+- [x] 3.2 [P] Crear trip-states.spec.ts - Test Resume Trip
   - **Do**:
     1. Test: "should resume a paused trip"
     2. Configurar dialog handler
@@ -164,7 +164,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-7, AC-5.1 to AC-5.10_
   - _Design: Test States (trip-states.spec.ts)_
 
-- [ ] 3.3 [P] Crear trip-states.spec.ts - Test Complete Cancel Punctual
+- [x] 3.3 [P] Crear trip-states.spec.ts - Test Complete Cancel Punctual
   - **Do**:
     1. Test: "should complete a punctual trip"
     2. Verificar trip type es puntual
@@ -177,7 +177,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-8, AC-6.1 to AC-6.7_
   - _Design: Test States (trip-states.spec.ts)_
 
-- [ ] 3.4 [P] Crear trip-states.spec.ts - Test Cancel Punctual
+- [x] 3.4 [P] Crear trip-states.spec.ts - Test Cancel Punctual
   - **Do**:
     1. Test: "should cancel a punctual trip"
     2. Click `.cancel-btn` en trip puntual
@@ -189,7 +189,7 @@ Focus: Configurar entorno y crear tests CRUD básicos con funcionalidad real.
   - _Requirements: FR-9, AC-6.1 to AC-6.7_
   - _Design: Test States (trip-states.spec.ts)_
 
-- [ ] 3.5 [VERIFY] Quality checkpoint: lint && typecheck && test
+- [x] 3.5 [VERIFY] Quality checkpoint: lint && typecheck && test
   - **Do**:
     1. Ejecutar lint
     2. Ejecutar typecheck

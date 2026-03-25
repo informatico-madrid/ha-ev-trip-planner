@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { HA_URL, VEHICLE_ID } from './env';
 
 test.describe('Trip States Operations', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, { waitUntil: 'domcontentloaded' });
 
     await page.waitForFunction(() => customElements.get('ev-trip-planner-panel'), {
       timeout: 10000

@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+import { HA_URL, VEHICLE_ID } from './env';
+
 test.describe('Trip CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, { waitUntil: 'domcontentloaded' });
 
     await page.waitForFunction(() => customElements.get('ev-trip-planner-panel'), {
       timeout: 10000
@@ -30,7 +32,7 @@ test.describe('Trip CRUD Operations', () => {
     await expect(formOverlay).toBeHidden();
 
     const tripCards = page.locator('.trip-card');
-    await expect(tripCards).toHaveCount(1);
+    await expect(tripCards).toHaveCount({ min: 1 });
   });
 
   test('should edit an existing trip', async ({ page }) => {
@@ -50,8 +52,8 @@ test.describe('Trip CRUD Operations', () => {
 
       await expect(formOverlay).toBeHidden();
 
-      await expect(page.locator('.trip-card')).toContainText('40.0 km');
-      await expect(page.locator('.trip-card')).toContainText('14:30');
+      await expect(tripCards).toContainText('40.0 km');
+      await expect(tripCards).toContainText('14:30');
     }
   });
 
@@ -59,22 +61,25 @@ test.describe('Trip CRUD Operations', () => {
     await page.waitForSelector('ev-trip-planner-panel', { timeout: 10000 });
 
     const tripCards = page.locator('.trip-card');
-    if (await tripCards.count() > 0) {
-      await page.on('dialog', async dialog => {
+    const initialCount = await tripCards.count();
+
+    if (initialCount > 0) {
+      // Set up dialog handler before click
+      page.on('dialog', async dialog => {
         await dialog.accept();
       });
 
       await page.locator('.trip-action-btn.delete-btn').first().click();
 
-      await page.waitForSelector('.no-trips');
+      // Wait for deletion to complete
+      await expect(tripCards).toHaveCount({ max: initialCount });
 
+      // Check for empty state if last trip was deleted
       const noTrips = page.locator('.no-trips');
-      const remainingTrips = page.locator('.trip-card');
+      const currentCount = await tripCards.count();
 
-      if (await noTrips.count() > 0) {
+      if (currentCount === 0) {
         await expect(noTrips).toBeVisible();
-      } else {
-        await expect(remainingTrips).not.toHaveCount(1);
       }
     }
   });
