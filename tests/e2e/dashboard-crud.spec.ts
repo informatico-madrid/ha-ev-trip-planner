@@ -16,16 +16,11 @@ test.describe('Dashboard Loading Tests', () => {
 
         // Handle login if needed
         if (page.url().includes('auth/login')) {
-            const usernameInput = page.getByLabel('Username', { timeout: 5000 });
-            const passwordInput = page.getByLabel('Password', { timeout: 5000 });
-            const loginButton = page.getByRole('button', { name: 'Login', timeout: 5000 });
-
-            if (await usernameInput.isVisible()) {
-                await usernameInput.fill('admin');
-                await passwordInput.fill('admin');
-                await loginButton.click();
-                await page.waitForLoadState('networkidle', { timeout: 30000 });
-            }
+            // Use correct HA login form selectors
+            await page.fill('input[name="username"]', 'tests', { timeout: 5000 });
+            await page.fill('input[name="password"]', 'tests', { timeout: 5000 });
+            await page.click('ha-button[variant="brand"]', { timeout: 5000 });
+            await page.waitForLoadState('networkidle', { timeout: 30000 });
         }
 
         // Navigate to the dashboard
