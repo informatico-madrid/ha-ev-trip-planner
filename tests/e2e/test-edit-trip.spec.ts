@@ -1,7 +1,8 @@
 /**
- * E2E Test: Edit Trip (Complete CRUD Validation)
+ * E2E Test: Edit Trip - Complete Backend Validation
  *
- * Verifies that editing a trip actually updates the backend, not just the UI.
+ * IMPORTANT: Tests MUST verify the actual system state changes, not just UI behavior.
+ * A test that only checks if the form closed is USELESS - the backend might have failed.
  *
  * Usage:
  *   npx playwright test test-edit-trip.spec.ts
@@ -12,7 +13,7 @@ import { test, expect } from '@playwright/test';
 const vehicleId = process.env.VEHICLE_ID || 'Coche2';
 const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 
-test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
+test.describe('EV Trip Planner - Complete Edit Validation', () => {
   // Helper to fetch trips from backend
   async function fetchTripsFromBackend(page: any, vehicle: string) {
     const response = await page.request.post(`${haUrl}/api/services/ev_trip_planner/trip_list`, {
@@ -24,31 +25,28 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
   test('should edit a recurring trip and verify backend update', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Get initial trip data from backend
+    // Get initial trip from BACKEND
     const initialResponse = await fetchTripsFromBackend(page, vehicleId);
-    const initialRecurringTrips = initialResponse?.result?.recurring_trips || [];
+    const initialTrips = initialResponse?.result?.recurring_trips || [];
 
-    if (initialRecurringTrips.length === 0) {
+    if (initialTrips.length === 0) {
       test.skip('No recurring trips to edit');
       return;
     }
 
-    // Get the first trip ID
-    const tripId = initialRecurringTrips[0].id;
-    const originalTime = initialRecurringTrips[0].hora;
-    const originalKm = initialRecurringTrips[0].km;
+    const tripId = initialTrips[0].id;
+    const originalTime = initialTrips[0].hora;
+    const originalKm = initialTrips[0].km;
 
     // Click edit button
     await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.edit-btn').click();
 
-    // Verify form is pre-filled with original data
+    // Verify form is pre-filled with original data from backend
     const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
     await expect(formOverlay).toBeVisible({ timeout: 10000 });
 
@@ -90,8 +88,6 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
   test('should edit trip description and verify backend update', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -113,9 +109,6 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
     const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
     await expect(formOverlay).toBeVisible({ timeout: 10000 });
 
-    // Get original description
-    const originalDesc = await page.locator('ev-trip-planner-panel >> #trip-description').inputValue();
-
     // Update description
     const newDesc = 'Updated description from E2E test';
     await page.locator('ev-trip-planner-panel >> #trip-description').fill(newDesc);
@@ -134,8 +127,6 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
   test('should edit trip day and time and verify backend update', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -144,14 +135,13 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
     // Get initial trip
     const initialResponse = await fetchTripsFromBackend(page, vehicleId);
     const tripId = initialResponse?.result?.recurring_trips?.[0]?.id;
+    const originalDay = initialResponse?.result?.recurring_trips?.[0]?.dia_semana;
+    const originalTime = initialResponse?.result?.recurring_trips?.[0]?.hora;
 
     if (!tripId) {
       test.skip('No trips to edit');
       return;
     }
-
-    const originalDay = initialResponse.result.recurring_trips[0].dia_semana;
-    const originalTime = initialResponse.result.recurring_trips[0].hora;
 
     // Click edit button
     await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.edit-btn').click();
@@ -179,8 +169,6 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
   test('should verify edit fails with invalid data - backend unchanged', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -219,8 +207,6 @@ test.describe('EV Trip Planner Edit Trip - Complete Validation', () => {
   test('should edit a punctual trip and verify backend update', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }

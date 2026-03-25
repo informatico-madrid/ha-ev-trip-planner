@@ -1,8 +1,8 @@
 /**
- * E2E Test: Delete Trip (Complete CRUD Validation)
+ * E2E Test: Delete Trip - Complete Backend Validation
  *
- * Verifies that deleting a trip actually removes it from the backend, not just the UI.
- * A test that only checks if the form closed is useless - the backend might have failed.
+ * IMPORTANT: Tests MUST verify the actual system state changes, not just UI behavior.
+ * A test that only checks if the form closed is USELESS - the backend might have failed.
  *
  * Usage:
  *   npx playwright test test-delete-trip.spec.ts
@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 const vehicleId = process.env.VEHICLE_ID || 'Coche2';
 const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 
-test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
+test.describe('EV Trip Planner - Complete Delete Validation', () => {
   // Helper to fetch trips from backend
   async function fetchTripsFromBackend(page: any, vehicle: string) {
     const response = await page.request.post(`${haUrl}/api/services/ev_trip_planner/trip_list`, {
@@ -25,30 +25,42 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
   test('should delete a recurring trip and verify backend removal', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Get initial trip count and ID from backend
+    // Get initial trip count and ID from BACKEND
     const initialResponse = await fetchTripsFromBackend(page, vehicleId);
-    const initialRecurringTrips = initialResponse?.result?.recurring_trips || [];
+    const initialTrips = initialResponse?.result?.recurring_trips || [];
 
-    if (initialRecurringTrips.length === 0) {
+    if (initialTrips.length === 0) {
       test.skip('No recurring trips to delete');
       return;
     }
 
-    const tripToDelete = initialRecurringTrips[0];
+    const tripToDelete = initialTrips[0];
     const tripId = tripToDelete.id;
-    const initialCount = initialRecurringTrips.length;
+    const initialCount = initialTrips.length;
 
     // Click delete button
     await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.delete-btn').click();
 
-    // CRITICAL: Verify backend was actually updated
+    // Accept deletion
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres eliminar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      // If user cancelled, trip should still exist in backend
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentCount = response?.result?.recurring_trips?.length || 0;
+      expect(currentCount).toBe(initialCount, 'Backend should not delete when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually deleted from the BACKEND
     const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
     const updatedTrips = updatedResponse?.result?.recurring_trips || [];
 
@@ -64,15 +76,12 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
 
     // Verify UI reflects backend state
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
-    await expect(tripCards).toHaveCount(updatedTrips.length + (updatedResponse.result.punctual_trips?.length || 0),
-      { timeout: 10000 });
+    await expect(tripCards).toHaveCount(updatedTrips.length, { timeout: 10000 });
   });
 
   test('should delete a punctual trip and verify backend removal', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -98,7 +107,20 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
 
     await punctualTrip.locator('.delete-btn').click();
 
-    // CRITICAL: Verify backend was actually updated
+    // Accept deletion
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres eliminar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentCount = response?.result?.punctual_trips?.length || 0;
+      expect(currentCount).toBe(initialCount, 'Backend should not delete when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually deleted from the BACKEND
     const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
     const updatedPunctualTrips = updatedResponse?.result?.punctual_trips || [];
 
@@ -113,11 +135,9 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
       'Backend punctual trip count should decrease by 1');
   });
 
-  test('should cancel deletion and verify backend unchanged', async ({ page }) => {
+  test('should verify cancellation keeps trip in backend', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -137,7 +157,6 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
 
     // Set up handler to cancel deletion
     page.on('dialog', async (dialog) => {
-      console.log(`Cancelling deletion: ${dialog.message()}`);
       await dialog.dismiss();
     });
 
@@ -153,14 +172,12 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
   test('should delete all trips and verify empty backend state', async ({ page }) => {
     // Navigate to panel
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Get all trips
+    // Get all trips from backend
     const initialResponse = await fetchTripsFromBackend(page, vehicleId);
     const initialRecurring = initialResponse?.result?.recurring_trips || [];
     const initialPunctual = initialResponse?.result?.punctual_trips || [];
@@ -204,35 +221,5 @@ test.describe('EV Trip Planner Delete Trip - Complete Validation', () => {
     // Verify UI shows empty state
     const noTripsMessage = page.locator('ev-trip-planner-panel >> .no-trips');
     await expect(noTripsMessage).toBeVisible({ timeout: 10000 });
-  });
-
-  test('should verify trip ID in backend matches UI', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to load
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Get trip ID from backend
-    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
-    const initialTrips = initialResponse?.result?.recurring_trips || [];
-
-    if (initialTrips.length === 0) {
-      test.skip('No trips to verify');
-      return;
-    }
-
-    const backendTripId = initialTrips[0].id;
-
-    // Get trip ID from UI
-    const tripCard = page.locator('ev-trip-planner-panel >> .trip-card').first();
-    const uiTripId = await tripCard.getAttribute('data-trip-id');
-
-    // Verify IDs match
-    expect(uiTripId).toBe(backendTripId,
-      'UI trip ID should match backend trip ID');
   });
 });

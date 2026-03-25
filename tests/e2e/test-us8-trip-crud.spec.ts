@@ -1,131 +1,177 @@
 /**
  * E2E Tests for User Story 8: CRUD de viajes en el panel de control
  *
- * This test verifies the complete CRUD (Create, Read, Update, Delete) functionality
- * for trips in the EV Trip Planner vehicle panel through REAL browser interactions.
- * Acceptance Scenarios:
- * 1. Create a new trip (recurrente and puntual) - REAL TEST
- * 2. Read/Display trips in the panel UI - REAL TEST
- * 3. Edit an existing trip - REAL TEST
- * 4. Delete a trip - REAL TEST
- * 5. Pause/Resume recurring trips - REAL TEST
- * 6. Complete/Cancel punctual trips - REAL TEST
+ * IMPORTANT: Tests MUST verify actual backend state changes, not just UI behavior.
+ * This test validates complete CRUD lifecycle through backend API calls.
+ *
  * Usage:
  *   npx playwright test test-us8-trip-crud.spec.ts
  */
 
 import { test, expect } from '@playwright/test';
 
-const HA_URL = 'http://192.168.1.100:18123';
-const VEHICLE_ID = 'Coche2';
+const vehicleId = process.env.VEHICLE_ID || 'Coche2';
+const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 
-test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () => {
-  // ============================================
-  // REAL TESTS - Create trip through actual browser interaction
-  test('should click "Agregar Viaje" button and open form', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // REAL INTERACTION: Click the add trip button
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-
-    // Wait for form to appear - Playwright penetrates Shadow DOM
-    const formOverlay = page.locator('ev-trip-planner-panel >> #trip-form-overlay');
-    await expect(formOverlay).toBeVisible({ timeout: 10000 });
+// Helper to fetch trips from backend via service call
+async function fetchTripsFromBackend(page: any, vehicle: string) {
+  const response = await page.request.post(`${haUrl}/api/services/ev_trip_planner/trip_list`, {
+    data: { service_data: { vehicle_id: vehicle } }
   });
+  return await response.json();
+}
 
-  test('should create a recurring trip through the form', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
+test.describe('US8: CRUD de viajes - COMPLETO VALIDACION BACKEND', () => {
+  // ============================================
+  // CREATE - Validar que los viajes se crean en el backend
+  // ============================================
 
-    // Wait for panel to be ready
+  test('should create a recurring trip and verify backend storage', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
+
+    // Get initial trip count from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialCount = initialResponse?.result?.recurring_trips?.length || 0;
 
     // Click add trip button
     await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
 
-    // Wait for form to appear
-    const formOverlay = page.locator('ev-trip-planner-panel >> #trip-form-overlay');
+    // Verify form appears
+    const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
     await expect(formOverlay).toBeVisible({ timeout: 10000 });
 
-    // Fill form - REAL INTERACTIONS
+    // Fill form with recurring trip data
     await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
-    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
+    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1'); // Lunes
     await page.locator('ev-trip-planner-panel >> #trip-time').fill('08:00');
     await page.locator('ev-trip-planner-panel >> #trip-km').fill('25.5');
     await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('5.2');
-    await page.locator('ev-trip-planner-panel >> #trip-description').fill('Test trip via E2E');
-
-    // Submit form - REAL INTERACTION
-    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
-
-    // Verify trip was created - check for success message or trip in list
-    await page.waitForTimeout(2000);
-
-    // Check trips section was updated
-    const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
-    await expect(tripsSection).toBeVisible({ timeout: 10000 });
-  });
-
-  test('should create a punctual trip through the form', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Click add trip button
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-
-    // Wait for form to appear
-    const formOverlay = page.locator('ev-trip-planner-panel >> #trip-form-overlay');
-    await expect(formOverlay).toBeVisible({ timeout: 10000 });
-
-    // Fill form for punctual trip
-    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('puntual');
-    await page.locator('ev-trip-planner-panel >> #trip-datetime').fill('2026-03-25T10:00');
-    await page.locator('ev-trip-planner-panel >> #trip-km').fill('50.0');
-    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('10.5');
-    await page.locator('ev-trip-planner-panel >> #trip-description').fill('Punctual trip test');
+    await page.locator('ev-trip-planner-panel >> #trip-description').fill('Test E2E viaje recurrente');
 
     // Submit form
     await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
 
-    // Wait for success
-    await page.waitForTimeout(2000);
+    // Verify form closes
+    await expect(formOverlay).toBeHidden({ timeout: 10000 });
 
-    // Verify trip was created
-    const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
-    await expect(tripsSection).toBeVisible({ timeout: 10000 });
+    // CRITICAL: Verify trip was actually created in BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedCount = updatedResponse?.result?.recurring_trips?.length || 0;
+
+    // Backend MUST have created at least 1 new trip
+    expect(updatedCount).toBe(initialCount + 1, 'Backend should have created a new recurring trip');
+
+    // Verify the new trip has correct data
+    const newTrip = updatedResponse.result.recurring_trips.find(
+      (t: any) => t.descripcion === 'Test E2E viaje recurrente'
+    );
+
+    expect(newTrip).toBeDefined('Trip with correct description should exist in backend');
+    expect(newTrip.dia_semana).toBe('1', 'Day should be Monday');
+    expect(newTrip.hora).toBe('08:00', 'Time should be 08:00');
+    expect(newTrip.km).toBe(25.5, 'Distance should be 25.5 km');
+
+    // Verify UI reflects backend state
+    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
+    await expect(tripCards).toHaveCount(updatedCount, { timeout: 10000 });
+  });
+
+  test('should create a punctual trip and verify backend storage', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Get initial punctual trip count
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialPunctualCount = initialResponse?.result?.punctual_trips?.length || 0;
+
+    // Click add trip button
+    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
+
+    // Wait for form
+    const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
+    await expect(formOverlay).toBeVisible({ timeout: 10000 });
+
+    // Fill form with punctual trip data
+    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('puntual');
+    await page.locator('ev-trip-planner-panel >> #trip-datetime').fill('2026-03-25T14:00');
+    await page.locator('ev-trip-planner-panel >> #trip-km').fill('15.0');
+    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('3.0');
+    await page.locator('ev-trip-planner-panel >> #trip-description').fill('Viaje al aeropuerto');
+
+    // Submit form
+    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+
+    // Verify form closes
+    await expect(formOverlay).toBeHidden({ timeout: 10000 });
+
+    // CRITICAL: Verify trip was actually created in BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedPunctualCount = updatedResponse?.result?.punctual_trips?.length || 0;
+
+    // Backend MUST have created at least 1 new punctual trip
+    expect(updatedPunctualCount).toBe(initialPunctualCount + 1,
+      'Backend should have created a new punctual trip');
+
+    // Verify the new trip has correct data
+    const newTrip = updatedResponse.result.punctual_trips.find(
+      (t: any) => t.descripcion === 'Viaje al aeropuerto'
+    );
+
+    expect(newTrip).toBeDefined('Trip with correct description should exist in backend');
+    expect(newTrip.datetime).toContain('2026-03-25', 'Date should be 2026-03-25');
+    expect(newTrip.datetime).toContain('14:00', 'Time should be 14:00');
+  });
+
+  test('should validate required fields - empty km should fail', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Get initial trip count
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialCount = initialResponse?.result?.recurring_trips?.length || 0;
+
+    // Click add trip button
+    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
+
+    // Fill form with EMPTY required field (km should be required)
+    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
+    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
+    await page.locator('ev-trip-planner-panel >> #trip-time').fill('10:00');
+    await page.locator('ev-trip-planner-panel >> #trip-km').fill(''); // Empty - should fail
+    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('5.0');
+
+    // Submit form
+    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+
+    // Backend should reject the invalid trip - count should be unchanged
+    const response = await fetchTripsFromBackend(page, vehicleId);
+    const currentCount = response?.result?.recurring_trips?.length || 0;
+
+    // The backend should NOT have created a trip with empty km
+    expect(currentCount).toBe(initialCount,
+      'Backend should reject trip with empty required field');
   });
 
   // ============================================
-  // REAL TESTS - Verify trips are displayed
-  test('should display trips header with count', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
+  // READ - Validar que los viajes se muestran correctamente
+  // ============================================
 
-    // Wait for panel to be ready
+  test('should display trips section with header', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
@@ -135,294 +181,482 @@ test.describe('US8: CRUD de viajes en el panel de control - REAL E2E TESTS', () 
     const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
     await expect(tripsHeader).toBeVisible({ timeout: 10000 });
 
-    // Verify trips header contains "Viajes Programados"
+    // Verify header contains expected text
     const headerText = await tripsHeader.textContent();
     expect(headerText).toContain('Viajes Programados');
   });
 
-  test('should display "No hay viajes programados" when no trips exist', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
+  test('should display add trip button', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Check for no trips message
-    const noTripsElement = page.locator('ev-trip-planner-panel >> .no-trips');
-    const hasNoTrips = await noTripsElement.count() > 0;
-
-    // Either no trips message exists OR there are trips
-    expect(hasNoTrips || true).toBe(true);
+    // Check for add trip button
+    const addTripButton = page.locator('ev-trip-planner-panel >> .add-trip-btn');
+    await expect(addTripButton).toBeVisible({ timeout: 10000 });
   });
 
-  // ============================================
-  // REAL TESTS - Edit trip
-  test('should show edit button on trip cards', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
+  test('should show no trips message when empty', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Click add trip to create one first
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-    await page.locator('ev-trip-planner-panel >> #trip-form-overlay').isVisible();
+    // Get trips from backend
+    const response = await fetchTripsFromBackend(page, vehicleId);
+    const hasAnyTrips = (response.result?.recurring_trips?.length || 0) > 0 ||
+                        (response.result?.punctual_trips?.length || 0) > 0;
 
-    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
-    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
-    await page.locator('ev-trip-planner-panel >> #trip-time').fill('09:00');
-    await page.locator('ev-trip-planner-panel >> #trip-km').fill('30.0');
-    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('6.0');
-    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+    // Check for either no trips message or trip cards
+    const hasNoTrips = await page.locator('ev-trip-planner-panel >> .no-trips').count() > 0;
+    const hasTripCards = await page.locator('ev-trip-planner-panel >> .trip-card').count() > 0;
 
-    await page.waitForTimeout(3000);
-
-    // Now verify edit button exists
-    const editBtns = page.locator('ev-trip-planner-panel >> .edit-btn');
-    const count = await editBtns.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
-  // ============================================
-  // REAL TESTS - Delete trip
-  test('should delete a trip', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // First create a trip
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-    await page.locator('ev-trip-planner-panel >> #trip-form-overlay').isVisible();
-
-    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
-    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('2');
-    await page.locator('ev-trip-planner-panel >> #trip-time').fill('10:00');
-    await page.locator('ev-trip-planner-panel >> #trip-km').fill('35.0');
-    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('7.0');
-    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
-
-    await page.waitForTimeout(3000);
-
-    // Now delete the trip
-    const deleteBtn = page.locator('ev-trip-planner-panel >> .delete-btn').first();
-    if (await deleteBtn.count() > 0) {
-      await deleteBtn.click();
-      await page.waitForTimeout(1000);
+    if (!hasAnyTrips) {
+      expect(hasNoTrips).toBe(true, 'Should show no trips message when backend is empty');
+    } else {
+      expect(hasTripCards).toBe(true, 'Should show trip cards when backend has trips');
     }
   });
 
   // ============================================
-  // REAL TESTS - Pause/Resume and Complete/Cancel buttons
-  test('should show pause button on recurring trips', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    const pauseBtns = page.locator('ev-trip-planner-panel >> .pause-btn');
-    const count = await pauseBtns.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
-  test('should show resume button on paused trips', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    const resumeBtns = page.locator('ev-trip-planner-panel >> .resume-btn');
-    const count = await resumeBtns.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
-  test('should show complete button on punctual trips', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    const completeBtns = page.locator('ev-trip-planner-panel >> .complete-btn');
-    const count = await completeBtns.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
-  test('should show cancel button on punctual trips', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    const cancelBtns = page.locator('ev-trip-planner-panel >> .cancel-btn');
-    const count = await cancelBtns.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
+  // UPDATE - Validar edición de viajes
   // ============================================
-  // INTEGRATION TESTS
-  test('should have complete CRUD integration flow', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
 
-    // Wait for panel to be ready
+  test('should edit a recurring trip and verify backend update', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    // Verify all CRUD buttons are present
-    const addBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
-    await expect(addBtn).toBeVisible({ timeout: 10000 });
+    // Get initial trip from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialTrips = initialResponse?.result?.recurring_trips || [];
 
-    // Verify panel has all required elements
-    const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
-    await expect(tripsHeader).toBeVisible({ timeout: 10000 });
-  });
+    if (initialTrips.length === 0) {
+      test.skip('No recurring trips to edit');
+      return;
+    }
 
-  // ============================================
-  // VISUAL FEEDBACK TESTS
-  test('should show success feedback after trip creation', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
+    const tripId = initialTrips[0].id;
+    const originalTime = initialTrips[0].hora;
+    const originalKm = initialTrips[0].km;
 
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
+    // Click edit button
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.edit-btn').click();
 
-    // Create a trip
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-    await page.locator('ev-trip-planner-panel >> #trip-form-overlay').isVisible();
+    // Verify form is pre-filled with original data from backend
+    const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
+    await expect(formOverlay).toBeVisible({ timeout: 10000 });
 
-    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
-    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
-    await page.locator('ev-trip-planner-panel >> #trip-time').fill('11:00');
-    await page.locator('ev-trip-planner-panel >> #trip-km').fill('40.0');
-    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('8.0');
-    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+    const tripTime = page.locator('ev-trip-planner-panel >> #trip-time');
+    const tripKm = page.locator('ev-trip-planner-panel >> #trip-km');
 
-    // Wait for success
-    await page.waitForTimeout(2000);
+    await expect(tripTime).toHaveValue(originalTime);
+    await expect(tripKm).toHaveValue(String(originalKm));
 
-    // Verify trips section was updated
-    const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
-    await expect(tripsSection).toBeVisible({ timeout: 10000 });
-  });
+    // Modify the trip
+    const newTime = '15:30';
+    const newKm = '35.0';
 
-  test('should handle form cleanup after submission', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
-    // Open form
-    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
-    await page.locator('ev-trip-planner-panel >> #trip-form-overlay').isVisible();
-
-    // Fill form
-    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
-    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
-    await page.locator('ev-trip-planner-panel >> #trip-time').fill('12:00');
-    await page.locator('ev-trip-planner-panel >> #trip-km').fill('45.0');
-    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('9.0');
+    await tripTime.fill(newTime);
+    await tripKm.fill(newKm);
 
     // Submit form
     await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
 
-    // Wait for form cleanup
-    await page.waitForTimeout(1000);
+    // Wait for form to close
+    await expect(formOverlay).toBeHidden({ timeout: 10000 });
 
-    // Form should be cleaned up or reused
-    const overlay = page.locator('ev-trip-planner-panel >> #trip-form-overlay');
-    const count = await overlay.count();
-    expect(count).toBeGreaterThanOrEqual(0);
+    // CRITICAL: Verify backend was actually updated
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedTrips = updatedResponse?.result?.recurring_trips || [];
+
+    const updatedTrip = updatedTrips.find((t: any) => t.id === tripId);
+
+    expect(updatedTrip).toBeDefined('Trip should exist in backend after edit');
+    expect(updatedTrip.hora).toBe(newTime, 'Backend should have updated time');
+    expect(updatedTrip.km).toBe(parseFloat(newKm), 'Backend should have updated km');
+
+    // Verify UI reflects the backend state
+    const tripCard = page.locator('ev-trip-planner-panel >> .trip-card').first();
+    await expect(tripCard).toContainText(newTime);
+    await expect(tripCard).toContainText(`${newKm} km`);
+  });
+
+  test('should pause and resume a recurring trip and verify backend state', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Get initial trip state from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialTrips = initialResponse?.result?.recurring_trips || [];
+
+    if (initialTrips.length === 0) {
+      test.skip('No recurring trips to pause');
+      return;
+    }
+
+    const tripId = initialTrips[0].id;
+    const initialActive = initialTrips[0].activo !== false;
+
+    if (!initialActive) {
+      test.skip('Trip already paused, need active trip to test pause');
+      return;
+    }
+
+    // Pause the trip
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.pause-btn').click();
+
+    // Accept confirmation
+    const pauseConfirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres pausar este viaje recurrente?');
+    });
+
+    if (pauseConfirmed) {
+      // Verify trip is paused in backend
+      const pausedResponse = await fetchTripsFromBackend(page, vehicleId);
+      const pausedTrip = pausedResponse.result.recurring_trips.find((t: any) => t.id === tripId);
+      expect(pausedTrip.activo).toBe(false, 'Backend should have paused the trip');
+
+      // Now resume the trip
+      await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.resume-btn').click();
+
+      const resumeConfirmed = await page.evaluate(() => {
+        return confirm('¿Estás seguro de que quieres reanudar este viaje?');
+      });
+
+      if (resumeConfirmed) {
+        // Verify trip is resumed in backend
+        const resumedResponse = await fetchTripsFromBackend(page, vehicleId);
+        const resumedTrip = resumedResponse.result.recurring_trips.find((t: any) => t.id === tripId);
+        expect(resumedTrip.activo).toBe(true, 'Backend should have resumed the trip');
+      }
+    }
   });
 
   // ============================================
-  // VISUAL ELEMENTS TESTS
-  test('should display trip type badges with emoji icons', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
+  // DELETE - Validar eliminación de viajes
+  // ============================================
 
-    // Wait for panel to be ready
+  test('should delete a recurring trip and verify backend removal', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    const tripTypeBadges = page.locator('ev-trip-planner-panel >> .trip-type');
-    expect(tripTypeBadges.count() >= 0).toBe(true);
+    // Get initial trip count and ID from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialTrips = initialResponse?.result?.recurring_trips || [];
+
+    if (initialTrips.length === 0) {
+      test.skip('No recurring trips to delete');
+      return;
+    }
+
+    const tripToDelete = initialTrips[0];
+    const tripId = tripToDelete.id;
+    const initialCount = initialTrips.length;
+
+    // Click delete button
+    await page.locator('ev-trip-planner-panel >> .trip-card').first().locator('.delete-btn').click();
+
+    // Accept deletion
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres eliminar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      // If user cancelled, trip should still exist in backend
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentCount = response?.result?.recurring_trips?.length || 0;
+      expect(currentCount).toBe(initialCount, 'Backend should not delete when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually deleted from the BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedTrips = updatedResponse?.result?.recurring_trips || [];
+
+    // Backend should have deleted the trip
+    const deletedTripStillExists = updatedTrips.find((t: any) => t.id === tripId);
+    expect(deletedTripStillExists).toBeUndefined(
+      'Backend should have deleted the trip'
+    );
+
+    // Verify count decreased
+    expect(updatedTrips.length).toBe(initialCount - 1,
+      'Backend trip count should decrease by 1');
+
+    // Verify UI reflects backend state
+    const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
+    await expect(tripCards).toHaveCount(updatedTrips.length, { timeout: 10000 });
   });
 
-  test('should display status badges', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
-
-    // Wait for panel to be ready
+  test('should delete a punctual trip and verify backend removal', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
     await page.waitForFunction(
       () => customElements.get('ev-trip-planner-panel') !== undefined,
       { timeout: 30000 }
     );
 
-    const statusActive = page.locator('ev-trip-planner-panel >> .status-active');
-    const statusInactive = page.locator('ev-trip-planner-panel >> .status-inactive');
+    // Get initial punctual trip
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialPunctualTrips = initialResponse?.result?.punctual_trips || [];
 
-    expect(statusActive.count() >= 0).toBe(true);
-    expect(statusInactive.count() >= 0).toBe(true);
+    if (initialPunctualTrips.length === 0) {
+      test.skip('No punctual trips to delete');
+      return;
+    }
+
+    const tripToDelete = initialPunctualTrips[0];
+    const tripId = tripToDelete.id;
+    const initialCount = initialPunctualTrips.length;
+
+    // Find and click delete button on punctual trip
+    const punctualTrip = page.locator('ev-trip-planner-panel >> .trip-card').filter({
+      hasText: 'Puntual'
+    }).first();
+
+    await punctualTrip.locator('.delete-btn').click();
+
+    // Accept deletion
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres eliminar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentCount = response?.result?.punctual_trips?.length || 0;
+      expect(currentCount).toBe(initialCount, 'Backend should not delete when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually deleted from the BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedPunctualTrips = updatedResponse?.result?.punctual_trips || [];
+
+    // Backend should have deleted the trip
+    const deletedTripStillExists = updatedPunctualTrips.find((t: any) => t.id === tripId);
+    expect(deletedTripStillExists).toBeUndefined(
+      'Backend should have deleted the punctual trip'
+    );
+
+    // Verify count decreased
+    expect(updatedPunctualTrips.length).toBe(initialCount - 1,
+      'Backend punctual trip count should decrease by 1');
+  });
+
+  // ============================================
+  // COMPLETE/CANCEL - Validar acciones de viajes puntuales
+  // ============================================
+
+  test('should complete a punctual trip and verify backend removal', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Get initial punctual trips from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialPunctualTrips = initialResponse?.result?.punctual_trips || [];
+
+    if (initialPunctualTrips.length === 0) {
+      test.skip('No punctual trips to complete');
+      return;
+    }
+
+    const tripToComplete = initialPunctualTrips[0];
+    const tripId = tripToComplete.id;
+    const initialCount = initialPunctualTrips.length;
+
+    // Find and click complete button on punctual trip
+    const punctualTrip = page.locator('ev-trip-planner-panel >> .trip-card').filter({
+      hasText: 'Puntual'
+    }).first();
+
+    await punctualTrip.locator('.complete-btn').click();
+
+    // Accept confirmation
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres completar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      // If user cancelled, trip should still exist in backend
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentTrips = response?.result?.punctual_trips || [];
+      expect(currentTrips.length).toBe(initialCount, 'Backend should not complete trip when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually completed (removed) from the BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedPunctualTrips = updatedResponse?.result?.punctual_trips || [];
+
+    // Completed trips should be removed from the list
+    const completedTripStillExists = updatedPunctualTrips.find((t: any) => t.id === tripId);
+    expect(completedTripStillExists).toBeUndefined(
+      'Backend should have removed the completed trip'
+    );
+
+    // Verify count decreased
+    expect(updatedPunctualTrips.length).toBe(initialCount - 1,
+      'Backend punctual trip count should decrease by 1');
+  });
+
+  test('should cancel a punctual trip and verify backend removal', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Get initial punctual trips from BACKEND
+    const initialResponse = await fetchTripsFromBackend(page, vehicleId);
+    const initialPunctualTrips = initialResponse?.result?.punctual_trips || [];
+
+    if (initialPunctualTrips.length === 0) {
+      test.skip('No punctual trips to cancel');
+      return;
+    }
+
+    const tripToCancel = initialPunctualTrips[0];
+    const tripId = tripToCancel.id;
+    const initialCount = initialPunctualTrips.length;
+
+    // Find and click cancel button on punctual trip
+    const punctualTrip = page.locator('ev-trip-planner-panel >> .trip-card').filter({
+      hasText: 'Puntual'
+    }).first();
+
+    await punctualTrip.locator('.cancel-btn').click();
+
+    // Accept confirmation
+    const confirmed = await page.evaluate(() => {
+      return confirm('¿Estás seguro de que quieres cancelar este viaje?');
+    });
+
+    if (!confirmed) {
+      await page.locator('body').press('Escape');
+      // If user cancelled, trip should still exist in backend
+      const response = await fetchTripsFromBackend(page, vehicleId);
+      const currentTrips = response?.result?.punctual_trips || [];
+      expect(currentTrips.length).toBe(initialCount, 'Backend should not cancel trip when user cancels');
+      return;
+    }
+
+    // CRITICAL: Verify trip was actually cancelled (removed) from the BACKEND
+    const updatedResponse = await fetchTripsFromBackend(page, vehicleId);
+    const updatedPunctualTrips = updatedResponse?.result?.punctual_trips || [];
+
+    // Cancelled trips should be removed from the list
+    const cancelledTripStillExists = updatedPunctualTrips.find((t: any) => t.id === tripId);
+    expect(cancelledTripStillExists).toBeUndefined(
+      'Backend should have removed the cancelled trip'
+    );
+
+    // Verify count decreased
+    expect(updatedPunctualTrips.length).toBe(initialCount - 1,
+      'Backend punctual trip count should decrease by 1');
+  });
+
+  // ============================================
+  // EDGE CASES - Casos borde
+  // ============================================
+
+  test('should handle special characters in description', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Click add trip button
+    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
+
+    // Fill form with special characters in description
+    const specialChars = 'Test with special: á é í ó ú ñ <script>alert("xss")</script>';
+    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
+    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
+    await page.locator('ev-trip-planner-panel >> #trip-time').fill('10:00');
+    await page.locator('ev-trip-planner-panel >> #trip-km').fill('10.0');
+    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('2.0');
+    await page.locator('ev-trip-planner-panel >> #trip-description').fill(specialChars);
+
+    // Submit form
+    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+
+    // Wait for form to close
+    const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
+    await expect(formOverlay).toBeHidden({ timeout: 10000 });
+
+    // CRITICAL: Verify backend stored the description correctly (escaped)
+    const response = await fetchTripsFromBackend(page, vehicleId);
+    const newTrip = response.result.recurring_trips.find(
+      (t: any) => t.descripcion && t.descripcion.includes('special')
+    );
+
+    expect(newTrip).toBeDefined('Trip with special characters should be stored in backend');
+
+    // Backend should have escaped the HTML (XSS protection)
+    expect(newTrip.descripcion).not.toContain('<script>');
+  });
+
+  test('should handle long descriptions', async ({ page }) => {
+    // Navigate to panel
+    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.waitForFunction(
+      () => customElements.get('ev-trip-planner-panel') !== undefined,
+      { timeout: 30000 }
+    );
+
+    // Click add trip button
+    await page.locator('ev-trip-planner-panel >> .add-trip-btn').click();
+
+    // Fill form with very long description
+    const longDescription = 'A'.repeat(2000);
+    await page.locator('ev-trip-planner-panel >> #trip-type').selectOption('recurrente');
+    await page.locator('ev-trip-planner-panel >> #trip-day').selectOption('1');
+    await page.locator('ev-trip-planner-panel >> #trip-time').fill('10:00');
+    await page.locator('ev-trip-planner-panel >> #trip-km').fill('10.0');
+    await page.locator('ev-trip-planner-panel >> #trip-kwh').fill('2.0');
+    await page.locator('ev-trip-planner-panel >> #trip-description').fill(longDescription);
+
+    // Submit form
+    await page.locator('ev-trip-planner-panel >> button[type="submit"]').click();
+
+    // Wait for form to close
+    const formOverlay = page.locator('ev-trip-planner-panel >> .trip-form-overlay');
+    await expect(formOverlay).toBeHidden({ timeout: 10000 });
+
+    // CRITICAL: Verify backend stored the long description
+    const response = await fetchTripsFromBackend(page, vehicleId);
+    const newTrip = response.result.recurring_trips.find(
+      (t: any) => t.descripcion && t.descripcion.length > 100
+    );
+
+    expect(newTrip).toBeDefined('Trip with long description should be stored in backend');
+    expect(newTrip.descripcion.length).toBeGreaterThan(100, 'Backend should store long description');
   });
 });
