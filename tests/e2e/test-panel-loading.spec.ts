@@ -12,10 +12,23 @@ const VEHICLE_ID = 'Coche2';
 
 test.describe('EV Trip Planner Panel Loading', () => {
   test('should load panel at correct URL', async ({ page }) => {
+    const urlBefore = page.url();
     await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
+
+    // Debug: Log current URL and page title
+    console.log('Current URL:', page.url());
+    console.log('Current title:', await page.title());
+
+    // Check if we're on login page
+    const loginSelector = await page.$('ha-login');
+    console.log('Is login page:', loginSelector !== null);
+
+    // Check if we're on home page
+    const homeSelector = await page.$('home-assistant');
+    console.log('Is home page:', homeSelector !== null);
 
     // Wait for panel to be ready
     await page.waitForFunction(
