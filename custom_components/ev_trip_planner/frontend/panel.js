@@ -661,12 +661,15 @@ class EVTripPlannerPanel extends LitElement {
 
       console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
 
-      // HA service responses come as {result: {...}} or array of {result: {...}}
+      // HA service responses from callService come directly, not wrapped in {result: {...}}
+      // The response should be the actual return value from the service handler
       let tripsData = response;
-      if (response && response.result) {
-        tripsData = response.result;
-      } else if (Array.isArray(response) && response.length > 0) {
-        tripsData = response[0].result || response[0];
+
+      // Check if response has context (error case) or actual data
+      if (response && response.context && !response.recurring_trips) {
+        // This is an error response with just context
+        console.warn('EV Trip Planner Panel: Service returned context-only response:', response);
+        return [];
       }
 
       if (tripsData && tripsData.recurring_trips !== undefined) {

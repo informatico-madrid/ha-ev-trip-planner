@@ -811,7 +811,21 @@ class TripManager:
 
     def _get_day_index(self, day_name: str) -> int:
         """Obtiene el índice del día de la semana."""
-        return DAYS_OF_WEEK.index(day_name.lower())
+        day_lower = day_name.lower().strip()
+        # Try direct match first
+        try:
+            return DAYS_OF_WEEK.index(day_lower)
+        except ValueError:
+            pass
+
+        # Try with proper capitalization
+        for i, day in enumerate(DAYS_OF_WEEK):
+            if day.lower() == day_lower:
+                return i
+
+        # If still not found, default to Monday (index 1)
+        _LOGGER.warning("Day '%s' not found in DAYS_OF_WEEK, defaulting to Monday", day_name)
+        return 1
 
     async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
         """Obtiene el SOC actual del vehículo desde el sensor configurado."""
