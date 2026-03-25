@@ -107,7 +107,7 @@
 ### Milestone 3 - Fase 3E (PENDING VALIDATION)
 
 #### Testing en Producción (CRÍTICO)
-- [ ] Desplegar en HA local (http://192.168.1.100:8123)
+- [ ] Desplegar en HA local (http://$HA_URL:8123)
 - [ ] Configurar EMHASS integration
 - [ ] Configurar vehicle control
 - [ ] Configurar presence detection

@@ -70,7 +70,7 @@ shell_command:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `YOUR_VEHICLE_ID` | Your vehicle identifier from EV Trip Planner | `ovms_chispitas`, `tesla_model_3` |
-| `YOUR_EMHASS_IP` | IP address of your EMHASS instance | `192.168.1.100` |
+| `YOUR_EMHASS_IP` | IP address of your EMHASS instance | `192.168.1.201` |
 
 ### Jinja2 Template Filters
 

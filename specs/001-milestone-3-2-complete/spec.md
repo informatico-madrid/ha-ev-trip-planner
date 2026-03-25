@@ -554,7 +554,7 @@ shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
       "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_ovms_chispitas', 'power_profile_watts') | default([0]*168) + state_attr('sensor.emhass_perfil_diferible_morgan', 'power_profile_watts') | default([0]*168)) | tojson }}
-    }' http://192.168.1.100:5000/action/dayahead-optim
+    }' http://$EMHASS_IP:5000/action/dayahead-optim
 ```
 
 **Key Points**:
@@ -750,7 +750,7 @@ shell_command:
 
 ### 7. Manual Input Fallback - Planning Horizon
 **Answer**: 
-- Usar config de EMHASS - Leer de `/home/malka/emhass/config/config.json`
+- Usar config de EMHASS - Leer de `$EMHASS_CONFIG_PATH/config.json`
 - Campo en config_flow - Decir al usuario la ruta de su config.json
 - Instalación final - El usuario final podrá tenerlo en otro lugar
 - Fallback manual - Si no hay sensor, usar valor manual

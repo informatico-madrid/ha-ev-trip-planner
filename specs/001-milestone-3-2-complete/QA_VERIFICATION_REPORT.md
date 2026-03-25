@@ -76,7 +76,7 @@ All success criteria verified:
 
 ## Worktree vs Main Branch
 The implementation exists in the worktree:
-`/home/malka/ha-ev-trip-planner/.worktrees/001-milestone-3-2-complete-20260317_193133`
+`$PROJECT_ROOT/.worktrees/001-milestone-3-2-complete-20260317_193133`
 
 **Files only in worktree (not yet merged to main):**
 - `utils.py`

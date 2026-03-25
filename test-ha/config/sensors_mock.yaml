@@ -5,7 +5,7 @@
 # y pueden ser manipulados via API REST para los tests
 #
 # Para manipularlos:
-#   curl -X POST "http://localhost:18123/api/services/input_number/set" \
+#   curl -X POST "http://localhost:8123/api/services/input_number/set" \
 #     -H "Authorization: Bearer $TOKEN" \
 #     -H "Content-Type: application/json" \
 #     -d '{"entity_id": "input_number.coche1_battery_capacity", "value": 75}'

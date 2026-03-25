@@ -81,7 +81,7 @@ description: "Task list for fixing production errors in EV Trip Planner"
   - Change: `self._attr_state_class = SensorStateClass.MEASUREMENT`
   - To: `self._attr_state_class = SensorStateClass.TOTAL_INCREASING`
   - **Skill**: Use `homeassistant-best-practices`
-  - **MASTERGUIDE**: Confirmar contra `/home/malka/homeassistant` que TOTAL_INCREASING es el enum correcto
+  - **MASTERGUIDE**: Confirmar contra $HOMEASSISTANT_SRC que TOTAL_INCREASING es el enum correcto
 
 ### Verification P001
 

@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_HA_DIR="$PROJECT_DIR/test-ha"
 HA_CONTAINER="ha-ev-test"
-HA_URL="${HA_URL:-http://localhost:18123}"
+HA_URL="${HA_URL:-http://localhost:8123}"
 WAIT_SECONDS="${WAIT_SECONDS:-180}"
 
 # Colors
@@ -102,8 +102,8 @@ update_env_file() {
 
 # Integration source - use worktree path when running from ralph-loop
 INTEGRATION_SOURCE=<INTEGRATION_SOURCE_PLACEHOLDER>
-# EMHASS config path
-EMHASS_CONFIG_PATH=/home/malka/emhass
+# EMHASS config path - use environment variable with sensible default
+EMHASS_CONFIG_PATH="${EMHASS_CONFIG_PATH:-/mnt/bunker_data/ha-ev-trip-planner/test-ha/config}"
 ENVEOF
 
     # Replace placeholder with actual integration source
@@ -208,7 +208,7 @@ main() {
 
         # Create and start container with environment variables
         INTEGRATION_SOURCE="$INTEGRATION_SOURCE" \
-        EMHASS_CONFIG_PATH="/home/malka/emhass" \
+        EMHASS_CONFIG_PATH="${EMHASS_CONFIG_PATH:-/mnt/bunker_data/ha-ev-trip-planner/test-ha/config}" \
         docker-compose up -d
     fi
 

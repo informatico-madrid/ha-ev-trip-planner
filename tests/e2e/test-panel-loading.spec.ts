@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const HA_URL = 'http://192.168.1.100:18123';
+const HA_URL = process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 const VEHICLE_ID = 'Coche2';
 
 test.describe('EV Trip Planner Panel Loading', () => {

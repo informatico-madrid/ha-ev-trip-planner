@@ -6,7 +6,14 @@ Update T999 instructions in tasks.md to be more explicit about error handling
 import re
 from pathlib import Path
 
-tasks_file = Path("/home/malka/ha-ev-trip-planner/specs/019-panel-vehicle-crud/tasks.md")
+# Use environment variable with sensible default
+import os
+tasks_file = Path(
+    os.environ.get(
+        "TASKS_FILE_PATH",
+        "/mnt/bunker_data/ha-ev-trip-planner/specs/019-panel-vehicle-crud/tasks.md"
+    )
+)
 
 # Read the file
 content = tasks_file.read_text()

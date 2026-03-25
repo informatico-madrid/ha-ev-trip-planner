@@ -29,7 +29,7 @@ views:
           ```
 
           **Reemplaza:**
-          - `TU_IP_EMHASS`: La IP de tu instancia EMHASS (ej: `192.168.1.100`)
+          - `TU_IP_EMHASS`: La IP de tu instancia EMHASS (ej: `192.168.1.201`)
 
           📖 **[Ver documentación completa](https://github.com/davidusb-ge/emhass)** | **[Guía de integración EMHASS](../ev_trip_planner/docs/EMHASS_INTEGRATION.md)**
 

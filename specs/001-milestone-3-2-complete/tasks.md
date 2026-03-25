@@ -39,7 +39,7 @@ Fase 0 → Fase 1 → Fase 2 → Fase 3 → Fase 4 → Fase 5 → Fase 6 → Fas
   - `sensor.emhass_perfil_diferible_morgan` (power_profile_watts)
 - [x] **T002.2** Document existing shell commands:
   - `emhass_day_ahead_optim` in configuration.yaml
-  - API EMHASS: http://192.168.1.100:5000/action/dayahead-optim
+  - API EMHASS: http://$EMHASS_IP:5000/action/dayahead-optim
 
 **Files**: `docs/EMHASS_CURRENT_STATE.md`  
 **Dependencies**: None  
@@ -102,7 +102,7 @@ Fase 0 → Fase 1 → Fase 2 → Fase 3 → Fase 4 → Fase 5 → Fase 6 → Fas
 - [x] **T007.2** Add validation logic
   - Validate planning horizon against sensor if available
   - Manual input fallback if sensor not available
-  - Use config from `/home/malka/emhass/config/config.json`
+  - Use config from `$EMHASS_CONFIG_PATH/config.json`
 - [x] **T007.3** Store EMHASS configuration in config entry
   - Save to `config_entry.data`
   - Include: planning_horizon, max_deferrable_loads, planning_sensor

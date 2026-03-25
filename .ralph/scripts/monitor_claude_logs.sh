@@ -5,14 +5,14 @@
 # Usage:
 #   ./.ralph/scripts/monitor_claude_logs.sh [output_file]
 #
-# Default output: /home/malka/ha-ev-trip-planner/logs/claude_tool_logs.log
+# Default output: $PROJECT_ROOT/logs/claude_tool_logs.log
 #
 
 set -euo pipefail
 
-# Configuration - use absolute path directly
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects"
-OUTPUT_FILE="${1:-/home/malka/ha-ev-trip-planner/logs/claude_tool_logs.log}"
+# Configuration - use environment variables with sensible defaults
+CLAUDE_PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}"
+OUTPUT_FILE="${1:-$PROJECT_ROOT/logs/claude_tool_logs.log}"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Colors

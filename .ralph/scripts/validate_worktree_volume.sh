@@ -188,8 +188,8 @@ main() {
 
 # Integration source - use worktree path when running from ralph-loop
 INTEGRATION_SOURCE=$EXPECTED_WORKTREE/custom_components/ev_trip_planner
-# EMHASS config path
-EMHASS_CONFIG_PATH=/home/malka/emhass
+# EMHASS config path - use environment variable with sensible default
+EMHASS_CONFIG_PATH="${EMHASS_CONFIG_PATH:-/mnt/bunker_data/ha-ev-trip-planner/test-ha/config}"
 EOF
         log_ok "Updated $env_file"
     fi

@@ -32,7 +32,7 @@ shell_command:
 
 # Placeholder replacements:
 # - YOUR_VEHICLE_ID: e.g., ovms_chispitas, morgan, tesla_model_3
-# - YOUR_EMHASS_IP: e.g., 192.168.1.100
+# - YOUR_EMHASS_IP: e.g., 192.168.1.201
 
 ---
 
@@ -229,7 +229,7 @@ script:
 # Replace these placeholders in the examples above:
 #
 # YOUR_VEHICLE_ID    -> e.g., ovms_chispitas, morgan, tesla_model_3
-# YOUR_EMHASS_IP    -> e.g., 192.168.1.100
+# YOUR_EMHASS_IP    -> e.g., 192.168.1.201
 # your_phone        -> e.g., pixel_7_pro
 # ev_charger        -> your charger entity ID
 #

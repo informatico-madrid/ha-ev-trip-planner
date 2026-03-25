@@ -169,7 +169,7 @@ After deploying changes to Home Assistant:
 3. **Verify Home Assistant sensors** have valid states:
    ```bash
    # Check sensor states via API
-   curl -s http://192.168.1.100:8123/api/states/sensor.chispitas_soc_actual
+   curl -s http://$HA_URL:8123/api/states/sensor.chispitas_soc_actual
    ```
 
 ### If Vehicle ID is Null

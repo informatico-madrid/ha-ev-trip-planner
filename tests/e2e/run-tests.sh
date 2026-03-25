@@ -2,12 +2,13 @@
 
 set -e
 
-PROJECT_DIR="/home/malka/ha-ev-trip-planner-full-trip-management"
+PROJECT_DIR="${PROJECT_ROOT:-/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner}"
 
 echo "=== EV Trip Planner E2E Test Runner ==="
 
 # Configuration
-HA_URL="${HA_URL:-http://192.168.1.100:18123}"
+DEFAULT_HA_URL="${DEFAULT_HA_URL:-http://192.168.1.201:8123}"
+HA_URL="${HA_URL:-${HA_TEST_URL:-http://192.168.1.201:8123}}"
 VEHICLE_ID="${VEHICLE_ID:-chispitas}"
 
 echo "HA URL: $HA_URL"
@@ -16,7 +17,7 @@ echo "Vehicle ID: $VEHICLE_ID"
 # Update environment variables in test files
 echo "Updating test configuration..."
 for f in "$PROJECT_DIR/tests/e2e"/*.spec.ts; do
-    sed -i "s|http://192.168.1.100:18123|$HA_URL|g" "$f"
+    sed -i "s|http://$DEFAULT_HA_URL|$HA_URL|g" "$f"
     sed -i "s|chispitas|$VEHICLE_ID|g" "$f"
 done
 

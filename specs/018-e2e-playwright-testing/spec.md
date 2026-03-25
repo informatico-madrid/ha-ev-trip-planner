@@ -14,7 +14,7 @@ El objetivo es navegar manualmente con Playwright browser automation a Home Assi
 ```
 Playwright Browser Automation
     ↓
-Navegar a http://192.168.1.100:18123/
+Navegar a http://$HA_URL:8123/
     ↓
 Login con credenciales (malka / Darkpunk666/)
     ↓
@@ -45,7 +45,7 @@ Navegar a /panel/ev-trip-planner-{vehicle-name}
 
 **Independent Test**:
 - Ejecutar script de Playwright en headless mode
-- Navegar a http://192.168.1.100:18123/
+- Navegar a http://$HA_URL:8123/
 - Loguearse con credenciales
 - Navegar a integraciones
 - Agregar EV Trip Planner
@@ -54,7 +54,7 @@ Navegar a /panel/ev-trip-planner-{vehicle-name}
 
 **Acceptance Scenarios**:
 
-1. **Given** Home Assistant está accesible en http://192.168.1.100:18123/, **When** ejecuto el script de Playwright, **Then** el script navega a la página de login
+1. **Given** Home Assistant está accesible en http://$HA_URL:8123/, **When** ejecuto el script de Playwright, **Then** el script navega a la página de login
 
 2. **Given** estoy en la página de login, **When** el script ingresa credenciales (malka / Darkpunk666/) y hace login, **Then** soy redirigido al dashboard de Home Assistant
 
@@ -129,7 +129,7 @@ Navegar a /panel/ev-trip-planner-{vehicle-name}
 
 ### Functional Requirements
 
-- **FR-001**: El sistema DEBE permitir navegar con Playwright a http://192.168.1.100:18123/
+- **FR-001**: El sistema DEBE permitir navegar con Playwright a http://$HA_URL:8123/
 - **FR-002**: El sistema DEBE permitir loguearse en Home Assistant con credenciales de usuario (malka / Darkpunk666/)
 - **FR-003**: El sistema DEBE permitir navegar a /config/integrations
 - **FR-004**: El sistema DEBE permitir agregar EV Trip Planner desde la lista de integraciones
@@ -179,7 +179,7 @@ Cómo probar que el cambio funciona:
 
 ## Assumptions
 
-1. Se asume que Home Assistant está ejecutándose en http://192.168.1.100:18123/
+1. Se asume que Home Assistant está ejecutándose en http://$HA_URL:8123/
 2. Se asume que se tienen credenciales de acceso válidas (usuario: malka, contraseña: Darkpunk666/)
 3. Se asume que Playwright puede usar Chromium en headless mode
 4. Se asume que el usuario tiene permisos de administrador en Home Assistant
@@ -199,7 +199,7 @@ const context = await browser.newContext();
 const page = await context.newPage();
 
 // Navegar a HA
-await page.goto('http://192.168.1.100:18123/');
+await page.goto('http://$HA_URL:8123/');
 
 // Login
 await page.fill('input[type="email"]', 'malka');
@@ -207,7 +207,7 @@ await page.fill('input[type="password"]', 'Darkpunk666/');
 await page.click('button[type="submit"]');
 
 // Navegar a integraciones
-await page.goto('http://192.168.1.100:18123/config/integrations');
+await page.goto('http://$HA_URL:8123/config/integrations');
 
 // Agregar integración
 await page.click('button:has-text("Integrar integración")');
@@ -222,7 +222,7 @@ const sidebarPanels = await page.$$('ha-side-nav-menu-item');
 // Verificar si hay panel con nombre del vehículo
 
 // Navegar al panel
-await page.goto('http://192.168.1.100:18123/panel/ev-trip-planner-test-vehicle');
+await page.goto('http://$HA_URL:8123/panel/ev-trip-planner-test-vehicle');
 ```
 
 ### Depuración
@@ -237,7 +237,7 @@ await page.goto('http://192.168.1.100:18123/panel/ev-trip-planner-test-vehicle')
 ### Sesión 2026-03-21
 
 - **Q: ¿Qué URL de Home Assistant se usa?**
-  → **A: http://192.168.1.100:18123/** (URL local del entorno de desarrollo)
+  → **A: http://$HA_URL:8123/** (URL local del entorno de desarrollo)
 
 - **Q: ¿Cómo se loguea Playwright?**
   → **A: Usando el formulario de login de HA (email: malka, password: Darkpunk666/)**

@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
+const HA_URL = process.env.HA_URL || process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 
 test.describe('Home Assistant Authentication', () => {
   test('should display login page', async ({ page }) => {
@@ -439,7 +439,7 @@ test.describe('EV Trip Planner Dashboard - Performance & Accessibility', () => {
 
 test.describe('EV Trip Planner Dashboard - Integration Tests', () => {
   test('should display sensor entities via API', async ({ request }) => {
-    const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
+    const haUrl = process.env.HA_URL || process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
     const haToken = process.env.HA_TOKEN;
 
     if (!haToken) {

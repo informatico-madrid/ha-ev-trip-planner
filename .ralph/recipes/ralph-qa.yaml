@@ -71,15 +71,15 @@ instructions: |
   
   ```javascript
   // EJEMPLO CORRECTO:
-  await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba?v=' + Date.now());
+  await page.goto('http://localhost:8123/ev-trip-planner-cocheprueba?v=' + Date.now());
   
   // EJEMPLO INCORRECTO (NO HACER):
-  await page.goto('http://localhost:18123/ev-trip-planner-cocheprueba');
+  await page.goto('http://localhost:8123/ev-trip-planner-cocheprueba');
   ```
   
   ## Verificación de Cache en Playwright
   1. **NO asumas** que los problemas son de cache sin verificar
-  2. **VERIFICA** usando: `curl -I http://localhost:18123/api/` para confirmar HA responde
+  2. **VERIFICA** usando: `curl -I http://localhost:8123/api/` para confirmar HA responde
   3. **FUERZA** carga sin cache usando headers o cache buster
   4. **CONFIRMA** el error reproduciéndolo en modo incógnito si es necesario
   

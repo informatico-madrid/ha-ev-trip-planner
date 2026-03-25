@@ -88,7 +88,7 @@ Each checklist validates **requirements quality** (NOT implementation):
 
 ## 📋 File Locations
 
-All checklists in: `/home/malka/ha-ev-trip-planner/specs/001-milestone-3-2-complete/checklists/`
+All checklists in: `$PROJECT_ROOT/specs/001-milestone-3-2-complete/checklists/`
 
 - `ux.md` - UX requirements quality
 - `config.md` - Config flow requirements quality

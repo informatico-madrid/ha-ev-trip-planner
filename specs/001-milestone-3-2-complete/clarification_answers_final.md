@@ -51,7 +51,7 @@
 ### 7. Manual Input Fallback - Planning Horizon
 **Question**: ¿Qué hacer si el sensor de planificación no está disponible?
 **Answer**: 
-- **Usar config de EMHASS** - Leer de `/home/malka/emhass/config/config.json`
+- **Usar config de EMHASS** - Leer de `$EMHASS_CONFIG_PATH/config.json`
 - **Campo en config_flow** - Decir al usuario la ruta de su config.json
 - **Instalación final** - El usuario final podrá tenerlo en otro lugar
 - **Fallback manual** - Si no hay sensor, usar valor manual

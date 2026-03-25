@@ -79,7 +79,7 @@ self._attr_state_class = SensorStateClass.MEASUREMENT  # INVALIDO!
 
 ### Referencias al Código Fuente de Home Assistant
 
-El código fuente de Home Assistant está en: `/home/malka/homeassistant`
+El código fuente de Home Assistant está en: $HOMEASSISTANT_SRC (default: `$HOME/homeassistant`)
 
 **APIs a verificar**:
 

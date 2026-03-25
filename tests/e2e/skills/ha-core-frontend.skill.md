@@ -65,7 +65,7 @@ panel_custom:
 
 3. **Frontend loads the panel:**
 ```javascript
-// Browser requests: http://localhost:18123/ev_trip_planner/panel.js
+// Browser requests: http://localhost:8123/ev_trip_planner/panel.js
 // HA serves from: custom_components/ev_trip_planner/frontend/panel.js
 ```
 

@@ -36,7 +36,7 @@
   - ✅ `sensor.emhass_perfil_diferible_morgan` (power_profile_watts)
 - [ ] **0.2.2** Documentar shell commands existentes:
   - ✅ `emhass_day_ahead_optim` en configuration.yaml
-  - ✅ API EMHASS: http://192.168.1.100:5000/action/dayahead-optim
+  - ✅ API EMHASS: http://$EMHASS_IP:5000/action/dayahead-optim
 
 ### Deliverables
 - Entorno de testing configurado

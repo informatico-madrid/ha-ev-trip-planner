@@ -6,7 +6,7 @@
 ## Credenciales para Verificaciones
 
 ```
-Home Assistant URL: http://localhost:18123 (test-ha para verificaciones AUTOMÁTICAS)
+Home Assistant URL: http://localhost:8123 (test-ha para verificaciones AUTOMÁTICAS)
 Usuario: available in environment archivo .en
 Password: available in environment archivo .en
 Token LTA: available in environment archivo .en
@@ -313,12 +313,12 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
      docker logs ha-ev-test --tail 100 2>&1 | grep -i "error\|warn" | tail -50
      Buscar errores o advertencias relacionadas con ev_trip_planner
   2. Limpiar cualquier estado previo problemático
-  3. Verificar que test-ha está funcionando (curl http://localhost:18123/api/)
+  3. Verificar que test-ha está funcionando (curl http://localhost:8123/api/)
   ```
 
   **FASE 1: Crear integración vehículo para pruebas**
   ```
-  4. Navegar a Home Assistant: http://localhost:18123/?v=$(date +%s)
+  4. Navegar a Home Assistant: http://localhost:8123/?v=$(date +%s)
   5. Si requiere login, hacer login con credenciales de test-ha
   6. Ir a Configuración > Integraciones > Añadir Integración
   7. Buscar "EV Trip Planner" y añadir
@@ -351,7 +351,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
 
   **FASE 4: Verificar Panel renderiza sin error vehicle_id (US1)**
   ```
-  17. Navegar al panel: http://localhost:18123/ev-trip-planner-cocheprueba?v=$(date +%s)
+  17. Navegar al panel: http://localhost:8123/ev-trip-planner-cocheprueba?v=$(date +%s)
   18. Verificar que NO aparece "Cannot render - no vehicle_id"
   19. Verificar que el panel renderiza correctamente
   20. Verificar que muestra "EV Trip Planner - CochePrueba" en el header
@@ -440,7 +440,7 @@ CONSULTAR EL CORE DEL CODIGO FUENTE Y DOCUMENTAR EN ESTE DOCUMENTO DETALLES RELE
   57. Volver a Configuración > Integraciones
   58. Eliminar la integración del vehículo "CochePrueba"
   59. Verificar que el panel deja de aparecer en el sidebar
-  60. Intentar navegar a la URL del panel: http://localhost:18123/ev-trip-planner-cocheprueba
+  60. Intentar navegar a la URL del panel: http://localhost:8123/ev-trip-planner-cocheprueba
   61. Verificar que devuelve error 404 o panel no encontrado
   62. SI FALLA: Documentar en T011-T012
   ```
@@ -534,7 +534,7 @@ Las tareas mínimas para tener un MVP funcional son:
 - Debe escribir los fallos de errores que encuentre en las tareas relacionadas
 
 **Credenciales HA**:
-- URL: http://localhost:18123 (test-ha)
+- URL: http://localhost:8123 (test-ha)
 - Usuario: available in environment
 - Password: available in environment
 - Token: Obtener de variable de entorno
