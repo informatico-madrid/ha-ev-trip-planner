@@ -7,13 +7,20 @@
     "doc": "docs",
     "test": "tests"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "lint": "eslint tests/",
+    "check-types": "tsc --noEmit"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
-    "@types/node": "^25.5.0"
+    "@types/node": "^25.5.0",
+    "eslint": "^9.28.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "dotenv": "^17.3.1"
