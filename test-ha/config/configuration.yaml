@@ -9,18 +9,6 @@ homeassistant:
   external_url: http://192.168.1.201:8123
   internal_url: http://192.168.1.201:8123
 
-# Disable authentication for testing - allow access from trusted networks
-http:
-  server_port: 8123
-  api_password: tests
-  trusted_networks:
-    - 127.0.0.1
-    - 192.168.1.0/24
-  allowlist:
-    - 127.0.0.1
-    - 192.168.1.0/24
-
-
 # Enable logging for debugging
 logger:
   default: info
@@ -36,17 +24,5 @@ input_number: !include input_number.yaml
 input_boolean: !include input_boolean.yaml
 template: !include template_sensors.yaml
 
-# Panel Custom para EV Trip Planner - ambos vehículos que funcionan
-panel_custom:
-  - name: "ev-trip-planner-Coche2"
-    sidebar_title: "Coche2"
-    sidebar_icon: "mdi:car"
-    module_url: "/ev-trip-planner/panel.js?v=3.0.0"
-    config:
-      vehicle_id: "Coche2"
-  - name: "ev-trip-planner-CochePrueba"
-    sidebar_title: "CochePrueba"
-    sidebar_icon: "mdi:car"
-    module_url: "/ev-trip-planner/panel.js?v=3.0.0"
-    config:
-      vehicle_id: "CochePrueba"
+# EV Trip Planner Integration - se instala como integración normal
+# El frontend se carga automáticamente cuando la integración está configurada
