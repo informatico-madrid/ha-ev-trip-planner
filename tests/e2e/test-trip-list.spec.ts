@@ -23,21 +23,11 @@ async function fetchTripsFromBackend(page: any, vehicle: string) {
 
 test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
 
-  // ============================================
-  // READ - Validar visualización de lista de viajes
-  // ============================================
-
   test('should display trips section', async ({ page }) => {
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Verify trips section exists
     const tripsSection = page.locator('ev-trip-planner-panel >> .trips-section');
@@ -49,12 +39,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Check for trips header
     const tripsHeader = page.locator('ev-trip-planner-panel >> .trips-header');
@@ -71,12 +55,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       timeout: 60000
     });
 
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
     // Check for add trip button
     const addTripButton = page.locator('ev-trip-planner-panel >> .add-trip-btn');
     await expect(addTripButton).toBeVisible({ timeout: 10000 });
@@ -87,12 +65,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Get trips from backend
     const response = await fetchTripsFromBackend(page, vehicleId);
@@ -115,12 +87,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       timeout: 60000
     });
 
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
     // Get trips from backend
     const response = await fetchTripsFromBackend(page, vehicleId);
     const backendRecurring = response.result?.recurring_trips?.length || 0;
@@ -141,12 +107,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Check for trip cards
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
@@ -179,12 +139,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       timeout: 60000
     });
 
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
     // Check for trip cards
     const tripCards = page.locator('ev-trip-planner-panel >> .trip-card');
     const cardCount = await tripCards.count();
@@ -205,12 +159,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Get trips from backend
     const response = await fetchTripsFromBackend(page, vehicleId);
@@ -239,12 +187,6 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
       timeout: 60000
     });
 
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
-
     // Get trips from backend
     const response = await fetchTripsFromBackend(page, vehicleId);
     const trips = [...(response.result?.recurring_trips || []), ...(response.result?.punctual_trips || [])];
@@ -268,21 +210,11 @@ test.describe('EV Trip Planner Trip List - VALIDACION BACKEND', () => {
     }
   });
 
-  // ============================================
-  // INTEGRATION - Validar flujo completo CRUD
-  // ============================================
-
   test('should have complete CRUD integration flow', async ({ page }) => {
     await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-
-    // Wait for panel to be ready
-    await page.waitForFunction(
-      () => customElements.get('ev-trip-planner-panel') !== undefined,
-      { timeout: 30000 }
-    );
 
     // Verify all CRUD buttons are present
     const addBtn = page.locator('ev-trip-planner-panel >> .add-trip-btn');
