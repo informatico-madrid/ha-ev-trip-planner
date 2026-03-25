@@ -8,8 +8,8 @@
  * @author EV Trip Planner Team
  */
 
-// Import map for Lit dependencies (required for ES module loading)
-import { LitElement, html, css } from 'https://cdn.jsdelivr.net/npm/lit@2.8.0/index.min.js';
+// Import bundled Lit from esm.sh CDN (bundled with all dependencies)
+import { LitElement, html, css } from 'https://esm.sh/lit@2.8.0?bundle';
 
 class EVTripPlannerPanel extends LitElement {
   // Lit handles Shadow DOM automatically - no need for attachShadow
@@ -552,7 +552,7 @@ class EVTripPlannerPanel extends LitElement {
         <span class="status-label">${s.name}</span>
         <span class="status-value">${this._formatSensorValue(s.entityId)}</span>
       </div>
-    `).join('');
+    `);
 
     const sensorListHtml = Object.entries(filteredGroupedSensors)
       .filter(([_, sensors]) => sensors.length > 0)
@@ -578,10 +578,10 @@ class EVTripPlannerPanel extends LitElement {
                   </div>
                 </div>
               `;
-            }).join('')}
+            })}
           </div>
         </div>
-      `).join('');
+      `);
 
     const hasValidSensors = Object.values(filteredGroupedSensors).some(s => s.length > 0);
 
@@ -628,7 +628,7 @@ class EVTripPlannerPanel extends LitElement {
               </button>
             </div>
             ${this._isLoading ? html`<h2>Cargando viajes...</h2>` : html`
-              ${this._trips.length === 0 ? html`<p class="no-trips">No hay viajes programados</p>` : html`
+              ${(this._trips?.length || 0) === 0 ? html`<p class="no-trips">No hay viajes programados</p>` : html`
                 <div class="trips-list">
                   ${this._trips.map(trip => this._formatTripDisplay(trip))}
                 </div>
@@ -661,11 +661,12 @@ class EVTripPlannerPanel extends LitElement {
 
       console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
 
+      // HA service responses come as {result: {...}} or array of {result: {...}}
       let tripsData = response;
-      if (Array.isArray(response) && response.length > 0) {
-        tripsData = response[0].result || response[0];
-      } else if (response && response.result) {
+      if (response && response.result) {
         tripsData = response.result;
+      } else if (Array.isArray(response) && response.length > 0) {
+        tripsData = response[0].result || response[0];
       }
 
       if (tripsData && tripsData.recurring_trips !== undefined) {
@@ -950,8 +951,8 @@ class EVTripPlannerPanel extends LitElement {
     } else {
       const day = formData.get('day');
       const time = formData.get('time');
-      serviceData.day_of_week = day;
-      serviceData.time = time;
+      serviceData.dia_semana = day;
+      serviceData.hora = time;
     }
 
     if (km) serviceData.km = parseFloat(km);
@@ -1148,8 +1149,8 @@ class EVTripPlannerPanel extends LitElement {
         serviceData.datetime = datetime;
       }
     } else {
-      if (day) serviceData.day_of_week = day;
-      if (time) serviceData.time = time;
+      if (day) serviceData.dia_semana = day;
+      if (time) serviceData.hora = time;
     }
 
     if (km) serviceData.km = parseFloat(km);
