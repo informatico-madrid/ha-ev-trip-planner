@@ -1,0 +1,190 @@
+# ============================================
+# INPUT NUMBERS MOCK PARA TESTS E2E
+# ============================================
+# Sensores numéricos configurables para los vehículos de prueba
+# Pueden ser manipulados via API REST durante los tests
+
+# Coche 1 - Chispitas
+coche1_battery_capacity:
+  name: "Coche1 Capacidad Batería"
+  initial: 60.0
+  min: 10.0
+  max: 200.0
+  step: 1.0
+  unit_of_measurement: "kWh"
+  mode: box
+
+coche1_charging_power:
+  name: "Coche1 Potencia Carga"
+  initial: 11.0
+  min: 1.0
+  max: 22.0
+  step: 0.5
+  unit_of_measurement: "kW"
+  mode: box
+
+coche1_consumption:
+  name: "Coche1 Consumo"
+  initial: 0.15
+  min: 0.05
+  max: 0.5
+  step: 0.01
+  unit_of_measurement: "kWh/km"
+  mode: box
+
+coche1_safety_margin:
+  name: "Coche1 Margen Seguridad"
+  initial: 10
+  min: 0
+  max: 50
+  step: 1
+  unit_of_measurement: "%"
+  mode: slider
+
+# Coche 2 - Morgan
+coche2_battery_capacity:
+  name: "Coche2 Capacidad Batería"
+  initial: 75.0
+  min: 10.0
+  max: 200.0
+  step: 1.0
+  unit_of_measurement: "kWh"
+  mode: box
+
+coche2_charging_power:
+  name: "Coche2 Potencia Carga"
+  initial: 7.4
+  min: 1.0
+  max: 22.0
+  step: 0.5
+  unit_of_measurement: "kW"
+  mode: box
+
+coche2_consumption:
+  name: "Coche2 Consumo"
+  initial: 0.18
+  min: 0.05
+  max: 0.5
+  step: 0.01
+  unit_of_measurement: "kWh/km"
+  mode: box
+
+coche2_safety_margin:
+  name: "Coche2 Margen Seguridad"
+  initial: 15
+  min: 0
+  max: 50
+  step: 1
+  unit_of_measurement: "%"
+  mode: slider
+
+# Coche 3
+coche3_battery_capacity:
+  name: "Coche3 Capacidad Batería"
+  initial: 50.0
+  min: 10.0
+  max: 200.0
+  step: 1.0
+  unit_of_measurement: "kWh"
+  mode: box
+
+coche3_charging_power:
+  name: "Coche3 Potencia Carga"
+  initial: 22.0
+  min: 1.0
+  max: 22.0
+  step: 0.5
+  unit_of_measurement: "kW"
+  mode: box
+
+coche3_consumption:
+  name: "Coche3 Consumo"
+  initial: 0.20
+  min: 0.05
+  max: 0.5
+  step: 0.01
+  unit_of_measurement: "kWh/km"
+  mode: box
+
+coche3_safety_margin:
+  name: "Coche3 Margen Seguridad"
+  initial: 20
+  min: 0
+  max: 50
+  step: 1
+  unit_of_measurement: "%"
+  mode: slider
+
+# Coche 4
+coche4_battery_capacity:
+  name: "Coche4 Capacidad Batería"
+  initial: 40.0
+  min: 10.0
+  max: 200.0
+  step: 1.0
+  unit_of_measurement: "kWh"
+  mode: box
+
+coche4_charging_power:
+  name: "Coche4 Potencia Carga"
+  initial: 3.7
+  min: 1.0
+  max: 22.0
+  step: 0.5
+  unit_of_measurement: "kW"
+  mode: box
+
+coche4_consumption:
+  name: "Coche4 Consumo"
+  initial: 0.12
+  min: 0.05
+  max: 0.5
+  step: 0.01
+  unit_of_measurement: "kWh/km"
+  mode: box
+
+coche4_safety_margin:
+  name: "Coche4 Margen Seguridad"
+  initial: 25
+  min: 0
+  max: 50
+  step: 1
+  unit_of_measurement: "%"
+  mode: slider
+
+# Coche 5
+coche5_battery_capacity:
+  name: "Coche5 Capacidad Batería"
+  initial: 82.0
+  min: 10.0
+  max: 200.0
+  step: 1.0
+  unit_of_measurement: "kWh"
+  mode: box
+
+coche5_charging_power:
+  name: "Coche5 Potencia Carga"
+  initial: 11.0
+  min: 1.0
+  max: 22.0
+  step: 0.5
+  unit_of_measurement: "kW"
+  mode: box
+
+coche5_consumption:
+  name: "Coche5 Consumo"
+  initial: 0.17
+  min: 0.05
+  max: 0.5
+  step: 0.01
+  unit_of_measurement: "kWh/km"
+  mode: box
+
+coche5_safety_margin:
+  name: "Coche5 Margen Seguridad"
+  initial: 5
+  min: 0
+  max: 50
+  step: 1
+  unit_of_measurement: "%"
+  mode: slider

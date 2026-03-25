@@ -1,0 +1,113 @@
+# Servicios de EV Trip Planner
+
+add_recurring_trip:
+  name: Añadir viaje recurrente
+  description: Crea un viaje recurrente semanal para un vehículo
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    dia_semana:
+      description: Día de la semana (lunes-domingo)
+      example: lunes
+    hora:
+      description: Hora en formato HH:MM
+      example: "09:00"
+    km:
+      description: Distancia del viaje en km
+      example: 24
+    kwh:
+      description: Energía estimada en kWh
+      example: 3.6
+    descripcion:
+      description: Descripción del viaje
+      example: Trabajo
+
+add_punctual_trip:
+  name: Añadir viaje puntual
+  description: Crea un viaje puntual (una sola vez)
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    datetime:
+      description: Fecha y hora (ISO) del viaje
+      example: "2025-11-19T15:00:00"
+    km:
+      description: Distancia del viaje en km
+      example: 110
+    kwh:
+      description: Energía estimada en kWh
+      example: 16.5
+    descripcion:
+      description: Descripción del viaje
+      example: Viaje a Toledo
+
+edit_trip:
+  name: Editar viaje
+  description: Edita los campos de un viaje existente
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje a editar
+      example: rec_lun_abc12345
+    updates:
+      description: Diccionario de campos a actualizar
+      example: {"hora": "10:00"}
+
+delete_trip:
+  name: Borrar viaje
+  description: Elimina un viaje existente
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje a borrar
+      example: rec_lun_abc12345
+
+pause_recurring_trip:
+  name: Pausar viaje recurrente
+  description: Marca un viaje recurrente como inactivo
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje recurrente
+      example: rec_lun_abc12345
+
+resume_recurring_trip:
+  name: Reanudar viaje recurrente
+  description: Marca un viaje recurrente como activo
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje recurrente
+      example: rec_lun_abc12345
+
+complete_punctual_trip:
+  name: Completar viaje puntual
+  description: Marca un viaje puntual como completado
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje puntual
+      example: pun_20251119_abc12345
+
+cancel_punctual_trip:
+  name: Cancelar viaje puntual
+  description: Marca un viaje puntual como cancelado
+  fields:
+    vehicle_id:
+      description: Identificador del vehículo
+      example: chispitas
+    trip_id:
+      description: ID del viaje puntual
+      example: pun_20251119_abc12345

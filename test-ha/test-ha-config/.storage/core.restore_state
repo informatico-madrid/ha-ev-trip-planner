@@ -1,0 +1,360 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.restore_state",
+  "data": [
+    {
+      "state": {"entity_id":"person.tests","state":"unknown","attributes":{"editable":true,"id":"tests","device_trackers":[],"user_id":"c9b4a6c45fa046e1a1eaa38682913a1f","friendly_name":"tests"},"last_changed":"2026-03-22T17:55:06.215119+00:00","last_reported":"2026-03-22T17:55:06.215119+00:00","last_updated":"2026-03-22T17:55:06.215119+00:00","context":{"id":"01KMBAZCB7FZRW4R58FJK4N45W","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche1_battery_capacity","state":"60.0","attributes":{"initial":60.0,"editable":false,"min":10.0,"max":200.0,"step":1.0,"mode":"box","unit_of_measurement":"kWh","friendly_name":"Coche1 Capacidad Batería"},"last_changed":"2026-03-22T17:55:06.215685+00:00","last_reported":"2026-03-22T17:55:06.215685+00:00","last_updated":"2026-03-22T17:55:06.215685+00:00","context":{"id":"01KMBAZCB7R85JKPDRRBMC8058","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche1_charging_power","state":"11.0","attributes":{"initial":11.0,"editable":false,"min":1.0,"max":22.0,"step":0.5,"mode":"box","unit_of_measurement":"kW","friendly_name":"Coche1 Potencia Carga"},"last_changed":"2026-03-22T17:55:06.215929+00:00","last_reported":"2026-03-22T17:55:06.215929+00:00","last_updated":"2026-03-22T17:55:06.215929+00:00","context":{"id":"01KMBAZCB7J09S7R3KCHJSVK5V","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche1_consumption","state":"0.15","attributes":{"initial":0.15,"editable":false,"min":0.05,"max":0.5,"step":0.01,"mode":"box","unit_of_measurement":"kWh/km","friendly_name":"Coche1 Consumo"},"last_changed":"2026-03-22T17:55:06.216138+00:00","last_reported":"2026-03-22T17:55:06.216138+00:00","last_updated":"2026-03-22T17:55:06.216138+00:00","context":{"id":"01KMBAZCB827AF8WWRBM8K8JSC","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche1_safety_margin","state":"10.0","attributes":{"initial":10.0,"editable":false,"min":0.0,"max":50.0,"step":1.0,"mode":"slider","unit_of_measurement":"%","friendly_name":"Coche1 Margen Seguridad"},"last_changed":"2026-03-22T17:55:06.216349+00:00","last_reported":"2026-03-22T17:55:06.216349+00:00","last_updated":"2026-03-22T17:55:06.216349+00:00","context":{"id":"01KMBAZCB8NFTTYY28J48AQFRW","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche2_battery_capacity","state":"75.0","attributes":{"initial":75.0,"editable":false,"min":10.0,"max":200.0,"step":1.0,"mode":"box","unit_of_measurement":"kWh","friendly_name":"Coche2 Capacidad Batería"},"last_changed":"2026-03-22T17:55:06.216557+00:00","last_reported":"2026-03-22T17:55:06.216557+00:00","last_updated":"2026-03-22T17:55:06.216557+00:00","context":{"id":"01KMBAZCB8RB33S1WRV5AZ16Y6","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche2_charging_power","state":"7.4","attributes":{"initial":7.4,"editable":false,"min":1.0,"max":22.0,"step":0.5,"mode":"box","unit_of_measurement":"kW","friendly_name":"Coche2 Potencia Carga"},"last_changed":"2026-03-22T17:55:06.216750+00:00","last_reported":"2026-03-22T17:55:06.216750+00:00","last_updated":"2026-03-22T17:55:06.216750+00:00","context":{"id":"01KMBAZCB8GX4K0WS1RMEWM6QV","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche2_consumption","state":"0.18","attributes":{"initial":0.18,"editable":false,"min":0.05,"max":0.5,"step":0.01,"mode":"box","unit_of_measurement":"kWh/km","friendly_name":"Coche2 Consumo"},"last_changed":"2026-03-22T17:55:06.216986+00:00","last_reported":"2026-03-22T17:55:06.216986+00:00","last_updated":"2026-03-22T17:55:06.216986+00:00","context":{"id":"01KMBAZCB8CQSNV0K9B2D4B1V6","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche2_safety_margin","state":"15.0","attributes":{"initial":15.0,"editable":false,"min":0.0,"max":50.0,"step":1.0,"mode":"slider","unit_of_measurement":"%","friendly_name":"Coche2 Margen Seguridad"},"last_changed":"2026-03-22T17:55:06.217194+00:00","last_reported":"2026-03-22T17:55:06.217194+00:00","last_updated":"2026-03-22T17:55:06.217194+00:00","context":{"id":"01KMBAZCB986FTF0MPTP1AK5HG","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche3_battery_capacity","state":"50.0","attributes":{"initial":50.0,"editable":false,"min":10.0,"max":200.0,"step":1.0,"mode":"box","unit_of_measurement":"kWh","friendly_name":"Coche3 Capacidad Batería"},"last_changed":"2026-03-22T17:55:06.217385+00:00","last_reported":"2026-03-22T17:55:06.217385+00:00","last_updated":"2026-03-22T17:55:06.217385+00:00","context":{"id":"01KMBAZCB94875V2AV5VY6RJ1Z","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche3_charging_power","state":"22.0","attributes":{"initial":22.0,"editable":false,"min":1.0,"max":22.0,"step":0.5,"mode":"box","unit_of_measurement":"kW","friendly_name":"Coche3 Potencia Carga"},"last_changed":"2026-03-22T17:55:06.217584+00:00","last_reported":"2026-03-22T17:55:06.217584+00:00","last_updated":"2026-03-22T17:55:06.217584+00:00","context":{"id":"01KMBAZCB9BQB0NT3H090GPTCE","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche3_consumption","state":"0.2","attributes":{"initial":0.2,"editable":false,"min":0.05,"max":0.5,"step":0.01,"mode":"box","unit_of_measurement":"kWh/km","friendly_name":"Coche3 Consumo"},"last_changed":"2026-03-22T17:55:06.217782+00:00","last_reported":"2026-03-22T17:55:06.217782+00:00","last_updated":"2026-03-22T17:55:06.217782+00:00","context":{"id":"01KMBAZCB9KFTAGX64JF31GQ6P","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche3_safety_margin","state":"20.0","attributes":{"initial":20.0,"editable":false,"min":0.0,"max":50.0,"step":1.0,"mode":"slider","unit_of_measurement":"%","friendly_name":"Coche3 Margen Seguridad"},"last_changed":"2026-03-22T17:55:06.217969+00:00","last_reported":"2026-03-22T17:55:06.217969+00:00","last_updated":"2026-03-22T17:55:06.217969+00:00","context":{"id":"01KMBAZCB93A609Q3KCG71KP4V","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche4_battery_capacity","state":"40.0","attributes":{"initial":40.0,"editable":false,"min":10.0,"max":200.0,"step":1.0,"mode":"box","unit_of_measurement":"kWh","friendly_name":"Coche4 Capacidad Batería"},"last_changed":"2026-03-22T17:55:06.218153+00:00","last_reported":"2026-03-22T17:55:06.218153+00:00","last_updated":"2026-03-22T17:55:06.218153+00:00","context":{"id":"01KMBAZCBA5G484YRERHM0E45B","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche4_charging_power","state":"3.7","attributes":{"initial":3.7,"editable":false,"min":1.0,"max":22.0,"step":0.5,"mode":"box","unit_of_measurement":"kW","friendly_name":"Coche4 Potencia Carga"},"last_changed":"2026-03-22T17:55:06.218339+00:00","last_reported":"2026-03-22T17:55:06.218339+00:00","last_updated":"2026-03-22T17:55:06.218339+00:00","context":{"id":"01KMBAZCBA40ZK0BT7D2KDZZ29","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche4_consumption","state":"0.12","attributes":{"initial":0.12,"editable":false,"min":0.05,"max":0.5,"step":0.01,"mode":"box","unit_of_measurement":"kWh/km","friendly_name":"Coche4 Consumo"},"last_changed":"2026-03-22T17:55:06.218526+00:00","last_reported":"2026-03-22T17:55:06.218526+00:00","last_updated":"2026-03-22T17:55:06.218526+00:00","context":{"id":"01KMBAZCBAD1MNGM4KHKMZR0ZD","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche4_safety_margin","state":"25.0","attributes":{"initial":25.0,"editable":false,"min":0.0,"max":50.0,"step":1.0,"mode":"slider","unit_of_measurement":"%","friendly_name":"Coche4 Margen Seguridad"},"last_changed":"2026-03-22T17:55:06.218716+00:00","last_reported":"2026-03-22T17:55:06.218716+00:00","last_updated":"2026-03-22T17:55:06.218716+00:00","context":{"id":"01KMBAZCBAVG97KRG4GFNMC0W8","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche5_battery_capacity","state":"82.0","attributes":{"initial":82.0,"editable":false,"min":10.0,"max":200.0,"step":1.0,"mode":"box","unit_of_measurement":"kWh","friendly_name":"Coche5 Capacidad Batería"},"last_changed":"2026-03-22T17:55:06.219207+00:00","last_reported":"2026-03-22T17:55:06.219207+00:00","last_updated":"2026-03-22T17:55:06.219207+00:00","context":{"id":"01KMBAZCBBENBM03N2DHNJ16JZ","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche5_charging_power","state":"11.0","attributes":{"initial":11.0,"editable":false,"min":1.0,"max":22.0,"step":0.5,"mode":"box","unit_of_measurement":"kW","friendly_name":"Coche5 Potencia Carga"},"last_changed":"2026-03-22T17:55:06.219448+00:00","last_reported":"2026-03-22T17:55:06.219448+00:00","last_updated":"2026-03-22T17:55:06.219448+00:00","context":{"id":"01KMBAZCBBHTEP3SYA20590XV2","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche5_consumption","state":"0.17","attributes":{"initial":0.17,"editable":false,"min":0.05,"max":0.5,"step":0.01,"mode":"box","unit_of_measurement":"kWh/km","friendly_name":"Coche5 Consumo"},"last_changed":"2026-03-22T17:55:06.219639+00:00","last_reported":"2026-03-22T17:55:06.219639+00:00","last_updated":"2026-03-22T17:55:06.219639+00:00","context":{"id":"01KMBAZCBB6H117M1RCXVVWEVP","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_number.coche5_safety_margin","state":"5.0","attributes":{"initial":5.0,"editable":false,"min":0.0,"max":50.0,"step":1.0,"mode":"slider","unit_of_measurement":"%","friendly_name":"Coche5 Margen Seguridad"},"last_changed":"2026-03-22T17:55:06.219814+00:00","last_reported":"2026-03-22T17:55:06.219814+00:00","last_updated":"2026-03-22T17:55:06.219814+00:00","context":{"id":"01KMBAZCBBFMXQN4SG59VM7PS2","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche1_charging","state":"off","attributes":{"editable":false,"icon":"mdi:lightning-bolt","friendly_name":"Coche1 Cargando"},"last_changed":"2026-03-22T17:55:06.244722+00:00","last_reported":"2026-03-22T17:55:06.244722+00:00","last_updated":"2026-03-22T17:55:06.244722+00:00","context":{"id":"01KMBAZCC4P7RYZ2S0ZNF5315V","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche1_home","state":"on","attributes":{"editable":false,"icon":"mdi:home","friendly_name":"Coche1 En Casa"},"last_changed":"2026-03-22T17:55:06.244944+00:00","last_reported":"2026-03-22T17:55:06.244944+00:00","last_updated":"2026-03-22T17:55:06.244944+00:00","context":{"id":"01KMBAZCC4FEVK5G0HA05AYVDD","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche1_plugged","state":"on","attributes":{"editable":false,"icon":"mdi:power-plug","friendly_name":"Coche1 Enchufado"},"last_changed":"2026-03-22T17:55:06.245183+00:00","last_reported":"2026-03-22T17:55:06.245183+00:00","last_updated":"2026-03-22T17:55:06.245183+00:00","context":{"id":"01KMBAZCC52TQF791HQAZSH2RX","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche2_charging","state":"off","attributes":{"editable":false,"icon":"mdi:lightning-bolt","friendly_name":"Coche2 Cargando"},"last_changed":"2026-03-22T17:55:06.245377+00:00","last_reported":"2026-03-22T17:55:06.245377+00:00","last_updated":"2026-03-22T17:55:06.245377+00:00","context":{"id":"01KMBAZCC55WXCEDMVK64428T3","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche2_home","state":"on","attributes":{"editable":false,"icon":"mdi:home","friendly_name":"Coche2 En Casa"},"last_changed":"2026-03-22T17:55:06.245565+00:00","last_reported":"2026-03-22T17:55:06.245565+00:00","last_updated":"2026-03-22T17:55:06.245565+00:00","context":{"id":"01KMBAZCC5EN9NDF44443Z8MF8","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche2_plugged","state":"on","attributes":{"editable":false,"icon":"mdi:power-plug","friendly_name":"Coche2 Enchufado"},"last_changed":"2026-03-22T17:55:06.245751+00:00","last_reported":"2026-03-22T17:55:06.245751+00:00","last_updated":"2026-03-22T17:55:06.245751+00:00","context":{"id":"01KMBAZCC5NJS4ZW1E50QZZFMM","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche3_charging","state":"off","attributes":{"editable":false,"icon":"mdi:lightning-bolt","friendly_name":"Coche3 Cargando"},"last_changed":"2026-03-22T17:55:06.245939+00:00","last_reported":"2026-03-22T17:55:06.245939+00:00","last_updated":"2026-03-22T17:55:06.245939+00:00","context":{"id":"01KMBAZCC5TCC3AC2XHZPW38TV","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche3_home","state":"off","attributes":{"editable":false,"icon":"mdi:home","friendly_name":"Coche3 En Casa"},"last_changed":"2026-03-22T17:55:06.246117+00:00","last_reported":"2026-03-22T17:55:06.246117+00:00","last_updated":"2026-03-22T17:55:06.246117+00:00","context":{"id":"01KMBAZCC6DPMYYYZ8QF2DVDR4","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche3_plugged","state":"on","attributes":{"editable":false,"icon":"mdi:power-plug","friendly_name":"Coche3 Enchufado"},"last_changed":"2026-03-22T17:55:06.246312+00:00","last_reported":"2026-03-22T17:55:06.246312+00:00","last_updated":"2026-03-22T17:55:06.246312+00:00","context":{"id":"01KMBAZCC690B2NDFEJSJ1PKAW","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche4_charging","state":"off","attributes":{"editable":false,"icon":"mdi:lightning-bolt","friendly_name":"Coche4 Cargando"},"last_changed":"2026-03-22T17:55:06.246485+00:00","last_reported":"2026-03-22T17:55:06.246485+00:00","last_updated":"2026-03-22T17:55:06.246485+00:00","context":{"id":"01KMBAZCC6H4Z51XPDV8J7C3H8","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche4_home","state":"on","attributes":{"editable":false,"icon":"mdi:home","friendly_name":"Coche4 En Casa"},"last_changed":"2026-03-22T17:55:06.246671+00:00","last_reported":"2026-03-22T17:55:06.246671+00:00","last_updated":"2026-03-22T17:55:06.246671+00:00","context":{"id":"01KMBAZCC68QG4QD8WY8NGD6Y2","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche4_plugged","state":"off","attributes":{"editable":false,"icon":"mdi:power-plug","friendly_name":"Coche4 Enchufado"},"last_changed":"2026-03-22T17:55:06.246847+00:00","last_reported":"2026-03-22T17:55:06.246847+00:00","last_updated":"2026-03-22T17:55:06.246847+00:00","context":{"id":"01KMBAZCC607N79XNYW50B8F4C","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche5_charging","state":"on","attributes":{"editable":false,"icon":"mdi:lightning-bolt","friendly_name":"Coche5 Cargando"},"last_changed":"2026-03-22T17:55:06.247007+00:00","last_reported":"2026-03-22T17:55:06.247007+00:00","last_updated":"2026-03-22T17:55:06.247007+00:00","context":{"id":"01KMBAZCC735QQQTE483SR31P9","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche5_home","state":"on","attributes":{"editable":false,"icon":"mdi:home","friendly_name":"Coche5 En Casa"},"last_changed":"2026-03-22T17:55:06.247177+00:00","last_reported":"2026-03-22T17:55:06.247177+00:00","last_updated":"2026-03-22T17:55:06.247177+00:00","context":{"id":"01KMBAZCC7T1AS33MJ13KSBMFA","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"input_boolean.coche5_plugged","state":"on","attributes":{"editable":false,"icon":"mdi:power-plug","friendly_name":"Coche5 Enchufado"},"last_changed":"2026-03-22T17:55:06.247366+00:00","last_reported":"2026-03-22T17:55:06.247366+00:00","last_updated":"2026-03-22T17:55:06.247366+00:00","context":{"id":"01KMBAZCC7BY81XG1E6TAEJBNM","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche1_soc_actual","state":"60.0","attributes":{"unit_of_measurement":"%","friendly_name":"Coche1 SOC Actual"},"last_changed":"2026-03-22T17:55:07.579330+00:00","last_reported":"2026-03-22T17:55:07.579330+00:00","last_updated":"2026-03-22T17:55:07.579330+00:00","context":{"id":"01KMBAZDNVP435847JYVV4ZSCD","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 60.0,
+        "native_unit_of_measurement": "%"
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche1_estado_carga","state":"idle","attributes":{"icon":"mdi:battery","friendly_name":"Coche1 Estado Carga"},"last_changed":"2026-03-22T17:55:07.579909+00:00","last_reported":"2026-03-22T17:55:07.579909+00:00","last_updated":"2026-03-22T17:55:07.579909+00:00","context":{"id":"01KMBAZDNVASTZBH09YCZN1TCX","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "idle",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche1_presencia","state":"home","attributes":{"icon":"mdi:home","friendly_name":"Coche1 Presencia"},"last_changed":"2026-03-22T17:55:07.580371+00:00","last_reported":"2026-03-22T17:55:07.580371+00:00","last_updated":"2026-03-22T17:55:07.580371+00:00","context":{"id":"01KMBAZDNWP5BABNW8ZYV2Y3R1","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "home",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche1_conexion","state":"plugged","attributes":{"icon":"mdi:power-plug","friendly_name":"Coche1 Conexión"},"last_changed":"2026-03-22T17:55:07.580808+00:00","last_reported":"2026-03-22T17:55:07.580808+00:00","last_updated":"2026-03-22T17:55:07.580808+00:00","context":{"id":"01KMBAZDNW4BBS041XGQ76KXN7","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "plugged",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche2_soc_actual","state":"75.0","attributes":{"unit_of_measurement":"%","friendly_name":"Coche2 SOC Actual"},"last_changed":"2026-03-22T17:55:07.581107+00:00","last_reported":"2026-03-22T17:55:07.581107+00:00","last_updated":"2026-03-22T17:55:07.581107+00:00","context":{"id":"01KMBAZDNXW6RWKC8CAZ3P1HJE","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 75.0,
+        "native_unit_of_measurement": "%"
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche2_estado_carga","state":"idle","attributes":{"icon":"mdi:battery","friendly_name":"Coche2 Estado Carga"},"last_changed":"2026-03-22T17:55:07.581692+00:00","last_reported":"2026-03-22T17:55:07.581692+00:00","last_updated":"2026-03-22T17:55:07.581692+00:00","context":{"id":"01KMBAZDNXQ1NR110SG0PYSDQC","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "idle",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche2_presencia","state":"home","attributes":{"icon":"mdi:home","friendly_name":"Coche2 Presencia"},"last_changed":"2026-03-22T17:55:07.582253+00:00","last_reported":"2026-03-22T17:55:07.582253+00:00","last_updated":"2026-03-22T17:55:07.582253+00:00","context":{"id":"01KMBAZDNY76V6VV7F1YNDZW34","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "home",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche2_conexion","state":"plugged","attributes":{"icon":"mdi:power-plug","friendly_name":"Coche2 Conexión"},"last_changed":"2026-03-22T17:55:07.584696+00:00","last_reported":"2026-03-22T17:55:07.584696+00:00","last_updated":"2026-03-22T17:55:07.584696+00:00","context":{"id":"01KMBAZDP0X2RT31KQB5RTNEYS","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "plugged",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche3_soc_actual","state":"50.0","attributes":{"unit_of_measurement":"%","friendly_name":"Coche3 SOC Actual"},"last_changed":"2026-03-22T17:55:07.585017+00:00","last_reported":"2026-03-22T17:55:07.585017+00:00","last_updated":"2026-03-22T17:55:07.585017+00:00","context":{"id":"01KMBAZDP1E3Y0S5XKPE0SA6R3","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 50.0,
+        "native_unit_of_measurement": "%"
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche3_estado_carga","state":"idle","attributes":{"icon":"mdi:battery","friendly_name":"Coche3 Estado Carga"},"last_changed":"2026-03-22T17:55:07.585443+00:00","last_reported":"2026-03-22T17:55:07.585443+00:00","last_updated":"2026-03-22T17:55:07.585443+00:00","context":{"id":"01KMBAZDP1SKS563ECSMBT57JX","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "idle",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche3_presencia","state":"away","attributes":{"icon":"mdi:home-off","friendly_name":"Coche3 Presencia"},"last_changed":"2026-03-22T17:55:07.585853+00:00","last_reported":"2026-03-22T17:55:07.585853+00:00","last_updated":"2026-03-22T17:55:07.585853+00:00","context":{"id":"01KMBAZDP1WR7FQ2PQTDTPYEJV","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "away",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche3_conexion","state":"plugged","attributes":{"icon":"mdi:power-plug","friendly_name":"Coche3 Conexión"},"last_changed":"2026-03-22T17:55:07.586236+00:00","last_reported":"2026-03-22T17:55:07.586236+00:00","last_updated":"2026-03-22T17:55:07.586236+00:00","context":{"id":"01KMBAZDP2TJAPB9VCFFPKVKAE","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "plugged",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche4_soc_actual","state":"40.0","attributes":{"unit_of_measurement":"%","friendly_name":"Coche4 SOC Actual"},"last_changed":"2026-03-22T17:55:07.586484+00:00","last_reported":"2026-03-22T17:55:07.586484+00:00","last_updated":"2026-03-22T17:55:07.586484+00:00","context":{"id":"01KMBAZDP21QCMQY9M4WD1QTRS","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 40.0,
+        "native_unit_of_measurement": "%"
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche4_estado_carga","state":"idle","attributes":{"icon":"mdi:battery","friendly_name":"Coche4 Estado Carga"},"last_changed":"2026-03-22T17:55:07.586855+00:00","last_reported":"2026-03-22T17:55:07.586855+00:00","last_updated":"2026-03-22T17:55:07.586855+00:00","context":{"id":"01KMBAZDP2RYTZA3XF1ZVB5W0M","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "idle",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche4_presencia","state":"home","attributes":{"icon":"mdi:home","friendly_name":"Coche4 Presencia"},"last_changed":"2026-03-22T17:55:07.587298+00:00","last_reported":"2026-03-22T17:55:07.587298+00:00","last_updated":"2026-03-22T17:55:07.587298+00:00","context":{"id":"01KMBAZDP391NA8YQZ091818SP","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "home",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche4_conexion","state":"unplugged","attributes":{"icon":"mdi:power-plug-off","friendly_name":"Coche4 Conexión"},"last_changed":"2026-03-22T17:55:07.587700+00:00","last_reported":"2026-03-22T17:55:07.587700+00:00","last_updated":"2026-03-22T17:55:07.587700+00:00","context":{"id":"01KMBAZDP339KSY0ZZFFY46EK9","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "unplugged",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche5_soc_actual","state":"82.0","attributes":{"unit_of_measurement":"%","friendly_name":"Coche5 SOC Actual"},"last_changed":"2026-03-22T17:55:07.587963+00:00","last_reported":"2026-03-22T17:55:07.587963+00:00","last_updated":"2026-03-22T17:55:07.587963+00:00","context":{"id":"01KMBAZDP3VC7F3KSG0WXFEFKZ","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": 82.0,
+        "native_unit_of_measurement": "%"
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche5_estado_carga","state":"charging","attributes":{"icon":"mdi:battery-charging","friendly_name":"Coche5 Estado Carga"},"last_changed":"2026-03-22T17:55:07.588349+00:00","last_reported":"2026-03-22T17:55:07.588349+00:00","last_updated":"2026-03-22T17:55:07.588349+00:00","context":{"id":"01KMBAZDP4YP1ZMA1KXBQP10XP","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "charging",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche5_presencia","state":"home","attributes":{"icon":"mdi:home","friendly_name":"Coche5 Presencia"},"last_changed":"2026-03-22T17:55:07.588729+00:00","last_reported":"2026-03-22T17:55:07.588729+00:00","last_updated":"2026-03-22T17:55:07.588729+00:00","context":{"id":"01KMBAZDP4AE33052SVJSRJ090","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "home",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"sensor.coche5_conexion","state":"plugged","attributes":{"icon":"mdi:power-plug","friendly_name":"Coche5 Conexión"},"last_changed":"2026-03-22T17:55:07.589144+00:00","last_reported":"2026-03-22T17:55:07.589144+00:00","last_updated":"2026-03-22T17:55:07.589144+00:00","context":{"id":"01KMBAZDP5JKVNVF7QZNYYGCC8","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "native_value": "plugged",
+        "native_unit_of_measurement": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"event.backup_automatic_backup","state":"unknown","attributes":{"event_types":["completed","failed","in_progress"],"event_type":null,"friendly_name":"Backup Copia de seguridad automática"},"last_changed":"2026-03-22T17:55:07.448858+00:00","last_reported":"2026-03-22T17:55:07.448858+00:00","last_updated":"2026-03-22T17:55:07.448858+00:00","context":{"id":"01KMBAZDHRK6SHWQPKT196M595","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "last_event_type": null,
+        "last_event_attributes": null
+      },
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    },
+    {
+      "state": {"entity_id":"tts.google_translate_en_com","state":"unknown","attributes":{"friendly_name":"Google Translate en com"},"last_changed":"2026-03-22T17:55:07.453072+00:00","last_reported":"2026-03-22T17:55:07.453072+00:00","last_updated":"2026-03-22T17:55:07.453072+00:00","context":{"id":"01KMBAZDHX7V4R4ZRFZRP3SYE5","parent_id":null,"user_id":null}},
+      "extra_data": null,
+      "last_seen": "2026-03-22T18:12:54.056233+00:00"
+    }
+  ]
+}

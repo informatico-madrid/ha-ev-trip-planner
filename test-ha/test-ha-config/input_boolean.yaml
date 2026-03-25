@@ -1,0 +1,85 @@
+# ============================================
+# INPUT BOOLEANS MOCK PARA TESTS E2E
+# ============================================
+# Sensores booleanos para presencia y carga de los vehículos
+# Pueden ser manipulados via API REST durante los tests
+
+# Coche 1 - Chispitas
+coche1_charging:
+  name: "Coche1 Cargando"
+  initial: off
+  icon: mdi:lightning-bolt
+
+coche1_home:
+  name: "Coche1 En Casa"
+  initial: on
+  icon: mdi:home
+
+coche1_plugged:
+  name: "Coche1 Enchufado"
+  initial: on
+  icon: mdi:power-plug
+
+# Coche 2 - Morgan
+coche2_charging:
+  name: "Coche2 Cargando"
+  initial: off
+  icon: mdi:lightning-bolt
+
+coche2_home:
+  name: "Coche2 En Casa"
+  initial: on
+  icon: mdi:home
+
+coche2_plugged:
+  name: "Coche2 Enchufado"
+  initial: on
+  icon: mdi:power-plug
+
+# Coche 3
+coche3_charging:
+  name: "Coche3 Cargando"
+  initial: off
+  icon: mdi:lightning-bolt
+
+coche3_home:
+  name: "Coche3 En Casa"
+  initial: off
+  icon: mdi:home
+
+coche3_plugged:
+  name: "Coche3 Enchufado"
+  initial: on
+  icon: mdi:power-plug
+
+# Coche 4
+coche4_charging:
+  name: "Coche4 Cargando"
+  initial: off
+  icon: mdi:lightning-bolt
+
+coche4_home:
+  name: "Coche4 En Casa"
+  initial: on
+  icon: mdi:home
+
+coche4_plugged:
+  name: "Coche4 Enchufado"
+  initial: off
+  icon: mdi:power-plug
+
+# Coche 5
+coche5_charging:
+  name: "Coche5 Cargando"
+  initial: on
+  icon: mdi:lightning-bolt
+
+coche5_home:
+  name: "Coche5 En Casa"
+  initial: on
+  icon: mdi:home
+
+coche5_plugged:
+  name: "Coche5 Enchufado"
+  initial: on
+  icon: mdi:power-plug

@@ -82,4 +82,4 @@ tests/e2e/test-results/.last-run.json
 *.png
 test-ha/.storage/*
 test-ha/test-ha-config/custom_components/hacs/hacs_frontend/frontend_es5/*
-test-ha/test-ha-config/custom_components/hacs/hacs_frontend/frontend_latest/70.e2f3a787e38d8ccd.js
+test-ha/test-ha-config/custom_components/hacs/hacs_frontend/frontend_*
