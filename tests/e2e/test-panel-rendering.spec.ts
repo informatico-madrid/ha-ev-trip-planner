@@ -17,7 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
-const HA_USERNAME = process.env.HA_USER || 'admin';
+const HA_USERNAME = process.env.HA_USER || 'tests';
 const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 // Path to panel.js in the worktree

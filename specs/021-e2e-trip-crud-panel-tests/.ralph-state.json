@@ -1,0 +1,22 @@
+{
+  "source": "ralph-specum:implement",
+  "name": "021-e2e-trip-crud-panel-tests",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 18,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "awaitingApproval": false,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0
+}

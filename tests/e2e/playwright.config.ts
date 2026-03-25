@@ -40,13 +40,13 @@ if (fs.existsSync(envPath)) {
 }
 
 // Ensure E2E credentials are always available (mock-safe defaults)
-process.env.HA_URL = process.env.HA_URL || 'http://localhost:18123';
+process.env.HA_URL = process.env.HA_URL || 'http://192.168.1.100:18123';
 process.env.HA_USER = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
 process.env.HA_USERNAME = process.env.HA_USERNAME || process.env.HA_USER;
 process.env.HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
 // Get HA URL from environment or use default
-const haUrl = process.env.HA_URL;
+const haUrl = process.env.HA_URL || 'http://192.168.1.100:18123';
 const haToken = process.env.HA_TOKEN || '';
 
 export default defineConfig({
@@ -94,6 +94,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    command: 'cd /home/malka/ha-ev-trip-planner/test-ha && docker-compose up -d',
     url: haUrl,
     timeout: 120 * 1000,
     reuseExistingServer: true,

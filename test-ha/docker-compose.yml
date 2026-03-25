@@ -15,11 +15,11 @@ services:
       - /home/malka/ha-ev-trip-planner/test-ha/config:/config
       - /etc/localtime:/etc/localtime:ro
       # Montar integración desde el worktree full-trip-management
-      - /home/malka/ha-ev-trip-planner-full-trip-management/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+      - /home/malka/ha-ev-trip-planner/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
       # Montar configuración de EMHASS (necesario para config flow)
       - /home/malka/emhass:/home/malka/emhass
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18123/api/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8123/api/health"]
       interval: 10s
       timeout: 5s
       retries: 30
