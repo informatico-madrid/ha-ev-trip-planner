@@ -13,12 +13,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const HA_URL = process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 const VEHICLE_ID = 'Coche2';
 
 test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
   test('should navigate to vehicle panel and verify no vehicle_id error', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -35,7 +34,7 @@ test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
   });
 
   test('should display vehicle panel header with vehicle name', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -54,7 +53,7 @@ test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
   });
 
   test('should not show error div in panel', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -71,7 +70,7 @@ test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
   });
 
   test('should have panel container element', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -90,7 +89,7 @@ test.describe('US1: Vehicle Panel Renders Without vehicle_id Error', () => {
 
 test.describe('US1: Panel JavaScript Console Validation', () => {
   test('should have no critical JavaScript errors in console', async ({ page }) => {
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
@@ -142,7 +141,7 @@ test.describe('US1: Panel JavaScript Console Validation', () => {
       }
     });
 
-    await page.goto(`${HA_URL}/panel/ev-trip-planner-${VEHICLE_ID}`, {
+    await page.goto(`/panel/ev-trip-planner-${VEHICLE_ID}`, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });

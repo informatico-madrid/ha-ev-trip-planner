@@ -11,7 +11,6 @@
 import { test, expect } from '@playwright/test';
 
 const vehicleId = process.env.VEHICLE_ID || 'Coche2';
-const haUrl = process.env.HA_URL || process.env.HA_TEST_URL || 'http://192.168.1.201:8123';
 
 test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
   // Helper to fetch trips from the panel component state via JavaScript
@@ -47,8 +46,8 @@ test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
   }
 
   test('should create a recurring trip and verify it exists in backend', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    // Navigate to panel (hass-test-framework provides the HA URL)
+    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
     // Wait for panel to be ready
     await page.waitForTimeout(3000);
@@ -98,7 +97,7 @@ test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
 
   test('should create a punctual trip and verify it exists in backend', async ({ page }) => {
     // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
     // Wait for panel to be ready
     await page.waitForTimeout(3000);
@@ -149,7 +148,7 @@ test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
 
   test('should validate required fields - empty km should fail', async ({ page }) => {
     // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
     // Wait for panel to be ready
     await page.waitForTimeout(3000);
@@ -182,7 +181,7 @@ test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
 
   test('should create trip with special characters and verify backend storage', async ({ page }) => {
     // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
     // Wait for panel to be ready
     await page.waitForTimeout(3000);
@@ -220,7 +219,7 @@ test.describe('EV Trip Planner - Complete Trip Creation Validation', () => {
 
   test('should handle long descriptions', async ({ page }) => {
     // Navigate to panel
-    await page.goto(`${haUrl}/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
+    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
 
     // Wait for panel to be ready
     await page.waitForTimeout(3000);

@@ -2,20 +2,32 @@
   "name": "ha-ev-trip-planner",
   "version": "1.0.0",
   "description": "**Planifica viajes eléctricos y optimiza el consumo energético de tu vehículo**",
+  "type": "module",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:e2e": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/",
+    "test:ui": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/card-loading.test.js --verbose"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@types/node": "^25.5.0"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.0",
+    "hass-taste-test": "^0.2.7",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
   },
   "dependencies": {
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "engram-sdk": "^0.6.1"
   }
 }
