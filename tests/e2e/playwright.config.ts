@@ -1,55 +1,32 @@
 /**
  * Playwright E2E Configuration for Home Assistant
  *
- * This configuration is designed for testing the Home Assistant UI
- * including the EV Trip Planner integration dashboard.
- *
  * Usage:
  *   npx playwright test              # Run all tests
  *   npx playwright test --headed     # Run with browser visible
  *   npx playwright test --debug      # Run in debug mode
+ *
+ * Environment Variables:
+ *   HA_URL - Home Assistant URL (required)
+ *   HA_USER - Home Assistant username (default: tests)
+ *   HA_PASSWORD - Home Assistant password (default: tests)
  */
 
 import { defineConfig, devices } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
 
-// Load environment variables from worktree .env (without external deps)
-const envPath = path.resolve(__dirname, '../../../.env');
-if (fs.existsSync(envPath)) {
-  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) {
-      continue;
-    }
+// HA_URL is REQUIRED - no fallback to prevent invalid URLs
+const HA_URL = process.env.HA_URL;
+const HA_USER = process.env.HA_USER || 'tests';
+const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
 
-    const separator = line.indexOf('=');
-    if (separator < 1) {
-      continue;
-    }
-
-    const key = line.slice(0, separator).trim();
-    let value = line.slice(separator + 1).trim();
-    value = value.replace(/^['\"]|['\"]$/g, '');
-
-    if (key && process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
+if (!HA_URL) {
+  throw new Error(
+    'HA_URL environment variable is required. Set it to your Home Assistant URL, e.g.: export HA_URL=http://localhost:8123'
+  );
 }
 
-// Ensure E2E credentials are always available (mock-safe defaults)
-process.env.HA_USER = process.env.HA_USER || process.env.HA_USERNAME || 'tests';
-process.env.HA_USERNAME = process.env.HA_USERNAME || process.env.HA_USER;
-process.env.HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
-
-// Get HA URL from environment
-const haUrl = process.env.HA_URL || 'http://192.168.1.201:8123';
-const haToken = process.env.HA_TOKEN || '';
-
 export default defineConfig({
-  testDir: './',
+  testDir: '.',
   timeout: 60000,
   expect: {
     timeout: 10000,
@@ -64,11 +41,12 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: haUrl,
+    baseURL: HA_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 15000,
+    navigationTimeout: 30000,
   },
   projects: [
     {
@@ -92,10 +70,4 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
     },
   ],
-  webServer: {
-    command: `cd ${process.env.PROJECT_ROOT}/test-ha && docker compose up -d`,
-    url: haUrl,
-    timeout: 120 * 1000,
-    reuseExistingServer: true,
-  },
 });

@@ -12,8 +12,8 @@
   "requirements": [],
   "translations": ["es"],
   "version": "0.3.2-dev",
-  "frontend": {
-    "name": "ev-trip-planner-panel",
-    "js_url": "ev_trip_planner/panel.js"
+  "panel_custom": {
+    "name": "EV Trip Planner",
+    "js_url": "ev_trip_planner/ev-trip-planner-simple.js"
   }
 }

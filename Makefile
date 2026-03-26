@@ -1,10 +1,11 @@
-.PHONY: help test test-cover test-verbose test-dashboard lint mypy format check clean htmlcov
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e lint mypy format check clean htmlcov
 
 help:
 	@echo "Comandos disponibles:"
-	@echo "  make test            - Ejecutar todos los tests"
-	@echo "  make test-cover      - Ejecutar tests con reporte de cobertura"
-	@echo "  make test-verbose    - Ejecutar tests con salida detallada"
+	@echo "  make test            - Ejecutar todos los tests Python"
+	@echo "  make test-cover      - Ejecutar tests Python con reporte de cobertura"
+	@echo "  make test-verbose    - Ejecutar tests Python con salida detallada"
+	@echo "  make test-e2e        - Ejecutar tests E2E con Playwright"
 	@echo "  make test-dashboard  - Ejecutar tests y abrir dashboard de cobertura"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
@@ -21,6 +22,13 @@ test-cover:
 
 test-verbose:
 	python3 -m pytest tests -vv -s --tb=long
+
+test-dashboard:
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
+	@echo "Dashboard de cobertura generado en htmlcov/index.html"
+
+test-e2e:
+	npx playwright test tests/e2e/ --reporter=line --timeout=60000
 
 test-dashboard:
 	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80

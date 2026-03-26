@@ -1,83 +1,37 @@
-name: Playwright Tests
+name: Playwright E2E Tests
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-    
+
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    
-    - name: Start HA test container
-      run: |
-        cd test-ha
-        docker-compose up -d
-        
-        # Wait for HA to be ready (allow 401 as it means HA is running)
-        for i in $(seq 1 30); do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8123/api/")
-          if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "401" ]]; then
-            echo "Home Assistant is ready! (HTTP $HTTP_CODE)"
-            break
-          fi
-          echo "Waiting for HA... ($i/30) HTTP $HTTP_CODE"
-          sleep 5
-        done
-        
-        # Inject pre-configured files
-        echo "Injecting pre-configured HA files..."
-        docker cp tests/test-ha-config/.storage/. ha-ev-test:/config/.storage/
-        docker cp tests/test-ha-config/configuration.yaml ha-ev-test:/config/
-        docker cp tests/test-ha-config/input_*.yaml ha-ev-test:/config/
-        docker cp tests/test-ha-config/template_sensors.yaml ha-ev-test:/config/
-        docker cp tests/test-ha-config/custom_components/. ha-ev-test:/config/custom_components/
-        
-        # Restart HA to load new config
-        docker restart ha-ev-test
-        
-        # Wait again for HA
-        for i in $(seq 1 20); do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8123/api/")
-          if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "401" ]]; then
-            echo "Home Assistant restarted! (HTTP $HTTP_CODE)"
-            break
-          fi
-          echo "Waiting for HA restart... ($i/20) HTTP $HTTP_CODE"
-          sleep 5
-        done
-    
+
     - name: Install dependencies
       run: npm ci
-    
+
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-    
-    - name: Run Playwright tests
-      run: npx playwright test
+
+    - name: Run Playwright E2E tests
+      # Tests use relative URLs and HA_URL environment variable
+      run: npx playwright test tests/e2e/
       env:
-        HA_URL: http://localhost:8123
+        HA_URL: http://192.168.1.201:18124
         HA_USER: ${{ secrets.HA_USER }}
         HA_PASSWORD: ${{ secrets.HA_PASSWORD }}
-        HA_TOKEN: ${{ secrets.HA_TOKEN }}
-    
-    - name: Stop and cleanup HA test container
-      if: always()
-      run: |
-        cd test-ha
-        docker-compose down -v
-    
+        CI: ${{ github.event_name == 'push' && 'true' || '' }}
+
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

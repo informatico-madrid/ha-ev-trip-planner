@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-03-25T18:13:04Z
+**Last updated:** 2026-03-25T20:57:58Z
 
 ## Directories (1)
 
@@ -29,7 +29,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 0/34 tasks |
 | 019-panel-vehicle-crud | ./specs | tasks | 31/32 tasks |
 | 020-fix-panel-trips-sensors | ./specs | tasks |  |
-| 021-e2e-trip-crud-panel-tests | ./specs | execution | 0/18 tasks |
+| 021-e2e-trip-crud-panel-tests | ./specs | execution | 10/18 tasks |
 
 ---
 
