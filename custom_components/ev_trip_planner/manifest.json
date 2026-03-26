@@ -14,6 +14,6 @@
   "version": "0.3.2-dev",
   "panel_custom": {
     "name": "EV Trip Planner",
-    "js_url": "ev_trip_planner/ev-trip-planner-simple.js"
+    "js_url": "frontend/panel.js"
   }
 }

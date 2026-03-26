@@ -8,6 +8,8 @@
 /// <reference types="playwright/types/test" />
 import { test as baseTest, expect, Page } from '@playwright/test';
 import { HomeAssistant, PlaywrightBrowser } from 'hass-taste-test';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Declare customElements for browser context
 declare const customElements: CustomElementRegistry;
@@ -22,10 +24,13 @@ let hassUrl: string = '';
  */
 export async function getHassInstance(): Promise<HomeAssistant> {
   if (!hassInstance) {
-    // Configuration for the ephemeral HA instance
-    // Include our custom component path
+    // Path to the custom component
     const evTripPlannerPath = '/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner';
+    // Path to the panel JavaScript file
+    const panelJsPath = evTripPlannerPath + '/frontend/panel.js';
 
+    // Use lovelace.resources to load the JS module directly
+    // This bypasses the need for panel_custom registration
     hassInstance = await HomeAssistant.create(`
 input_boolean:
   coche1_cargando:
@@ -34,13 +39,26 @@ input_boolean:
     name: "Coche1 En Casa"
   coche1_enchufado:
     name: "Coche1 Enchufado"
+
+# Load the panel JS as a Lovelace resource (no config flow needed)
+lovelace:
+  mode: storage
+  resources:
+    - url: /local/panel.js
+      type: module
 `, {
       python: 'python3',
       browser: new PlaywrightBrowser('chromium'),
       customComponents: [evTripPlannerPath],
     });
 
-    // Get the authenticated URL
+    // Copy the real panel.js to the ephemeral HA's www directory
+    // This makes it available at /local/panel.js (maps to <config_dir>/www/panel.js)
+    const wwwDir = path.join(hassInstance.configDir, 'www');
+    fs.mkdirSync(wwwDir, { recursive: true });
+    fs.copyFileSync(panelJsPath, path.join(wwwDir, 'panel.js'));
+    console.log('[HassTasteTest] Copied panel.js to:', path.join(wwwDir, 'panel.js'));
+
     hassUrl = hassInstance.link;
     console.log('[HassTasteTest] Ephemeral HA URL:', hassUrl);
   }

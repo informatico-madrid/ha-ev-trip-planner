@@ -7,23 +7,19 @@
  *   npx playwright test --debug      # Run in debug mode
  *
  * Environment Variables:
- *   HA_URL - Home Assistant URL (required)
+ *   HA_URL - Home Assistant URL (default: http://localhost:8123 for local testing)
  *   HA_USER - Home Assistant username (default: tests)
  *   HA_PASSWORD - Home Assistant password (default: tests)
+ *
+ * Note: When using hass-taste-test, the URL is generated dynamically and passed
+ * directly to page.goto() in tests, so HA_URL is only needed for fallback.
  */
 
 import { defineConfig, devices } from '@playwright/test';
 
-// HA_URL is REQUIRED - no fallback to prevent invalid URLs
-const HA_URL = process.env.HA_URL;
+const HA_URL = process.env.HA_URL || 'http://localhost:8123';
 const HA_USER = process.env.HA_USER || 'tests';
 const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
-
-if (!HA_URL) {
-  throw new Error(
-    'HA_URL environment variable is required. Set it to your Home Assistant URL, e.g.: export HA_URL=http://localhost:8123'
-  );
-}
 
 export default defineConfig({
   testDir: '.',
