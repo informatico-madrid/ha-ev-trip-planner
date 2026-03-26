@@ -1,0 +1,4 @@
+- [feedback_verification](feedback_verification.md) — Regla de verificación obligatoria antes de afirmar
+- [test_separation](test_separation.md) — Test 1 en test-config-flow.spec.ts, tests de validación en test-config-flow-validation.spec.ts
+- [feedback_selectors](feedback_selectors.md) — Lecciones sobre selectores Playwright y Shadow DOM en HA
+- [scripts_location](scripts_location.md) — Scripts de ha-e2e-testing están en ~/.claude/skills/ha-e2e-testing/scripts/ (ruta correcta)

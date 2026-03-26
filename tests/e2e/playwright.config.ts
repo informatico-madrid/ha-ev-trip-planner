@@ -1,69 +1,65 @@
 /**
  * Playwright E2E Configuration for Home Assistant
  *
- * Usage:
- *   npx playwright test              # Run all tests
- *   npx playwright test --headed     # Run with browser visible
- *   npx playwright test --debug      # Run in debug mode
- *
- * Environment Variables:
- *   HA_URL - Home Assistant URL (default: http://localhost:8123 for local testing)
- *   HA_USER - Home Assistant username (default: tests)
- *   HA_PASSWORD - Home Assistant password (default: tests)
- *
- * Note: When using hass-taste-test, the URL is generated dynamically and passed
- * directly to page.goto() in tests, so HA_URL is only needed for fallback.
+ * Projects:
+ *   - auth: Authenticates and saves storageState to file
+ *   - chromium: Main tests - uses storageState from auth project
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const HA_URL = process.env.HA_URL || 'http://localhost:8123';
-const HA_USER = process.env.HA_USER || 'tests';
-const HA_PASSWORD = process.env.HA_PASSWORD || 'tests';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = join(__dirname, '..', '..');
 
 export default defineConfig({
-  testDir: '.',
+  testDir: __dirname,
   timeout: 60000,
   expect: {
     timeout: 10000,
   },
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: 0,
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'playwright-results.xml' }],
     ['list'],
   ],
+
+  globalSetup: join(rootDir, 'tests', 'global.setup.ts'),
+  globalTeardown: join(rootDir, 'tests', 'global.teardown.ts'),
+
   use: {
-    baseURL: HA_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
+
   projects: [
+    // Step 1: Authentication setup - saves storage state
+    {
+      name: 'auth',
+      testMatch: 'auth.setup.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // Step 2: Main tests - uses saved auth state
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
+      testMatch: 'panel.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Reuse authentication from auth project
+        storageState: join(rootDir, 'playwright', '.auth', 'user.json'),
+      },
+      dependencies: ['auth'],
     },
   ],
 });

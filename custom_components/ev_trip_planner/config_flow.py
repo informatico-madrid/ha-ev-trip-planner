@@ -718,17 +718,19 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
     async def _async_create_entry(self) -> FlowResult:
         """Crea la entrada de configuración."""
+        _LOGGER.info("Starting _async_create_entry for vehicle: %s", self.context.get("vehicle_data", {}).get("vehicle_name", "unknown"))
+
         vehicle_data = self._get_vehicle_data()
         vehicle_name = vehicle_data[CONF_VEHICLE_NAME]
         vehicle_id = vehicle_name.lower().replace(" ", "_")
 
         # Log all collected configuration data for diagnosis
-        _LOGGER.debug(
+        _LOGGER.info(
             "Creating config entry for vehicle: %s (ID: %s)",
             vehicle_name,
             vehicle_id,
         )
-        _LOGGER.debug(
+        _LOGGER.info(
             "Config flow final data keys: %s",
             list(vehicle_data.keys()),
         )
@@ -738,6 +740,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             title=vehicle_name,
             data=vehicle_data,
         )
+        _LOGGER.info("Config entry created successfully for %s", vehicle_name)
 
         # Try to import dashboard after entry creation
         # We do this after creation to ensure hass is fully initialized
@@ -759,6 +762,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 vehicle_name=vehicle_name,
                 use_charts=use_charts,
             )
+            _LOGGER.info("Dashboard imported successfully for %s", vehicle_name)
         except Exception as err:  # pragma: no cover
             # Log but don't fail the flow - dashboard import is optional
             _LOGGER.warning(
@@ -776,6 +780,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 vehicle_id=vehicle_id,  # Use friendly ID from vehicle name
                 vehicle_name=vehicle_name,
             )
+            _LOGGER.info("Panel registered successfully for %s", vehicle_name)
         except Exception as err:  # pragma: no cover
             # Log but don't fail the flow - panel registration is optional
             _LOGGER.warning(
@@ -784,7 +789,8 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 err,
             )
 
-        return result
+        _LOGGER.info("Returning FlowResult for %s", vehicle_name)
+        return result  # Returns FlowResult with entry created
 
     @staticmethod
     @callback
