@@ -326,6 +326,7 @@ class EVTripPlannerPanel extends HTMLElement {
       console.error('EV Trip Planner Panel: Error creating trip:', error);
       this._showAlert(`❌ Error al crear el viaje: ${error.message}`, false);
     } finally {
+      form.reset();
       submitBtn.textContent = originalText;
       submitBtn.disabled = false;
     }
@@ -397,6 +398,7 @@ class EVTripPlannerPanel extends HTMLElement {
       console.error('Error updating trip:', error);
       this._showAlert(`❌ Error al actualizar el viaje: ${error.message}`, false);
     } finally {
+      form.reset();
       submitBtn.textContent = originalText;
       submitBtn.disabled = false;
     }
