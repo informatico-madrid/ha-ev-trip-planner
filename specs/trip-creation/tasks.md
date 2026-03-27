@@ -17,6 +17,8 @@ This document contains the implementation tasks for the trip creation feature. T
 
 **Description:** Add try-catch-finally pattern to the `_handleTripCreate` function in panel.js to handle service calls properly with loading states.
 
+**Status:** [x] Complete
+
 **Do:**
 ```javascript
 async _handleTripCreate(e) {
@@ -104,6 +106,8 @@ async _handleTripCreate(e) {
 ---
 
 ### Task 1.2: Implement Form Validation
+
+**Status:** [x] Complete
 
 **Description:** Add form validation before service call to ensure required fields are present and valid.
 
