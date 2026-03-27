@@ -717,9 +717,9 @@ async _handleTripCreate(e) {
 - `README.md`
 
 **Done when:**
-- [ ] JSDoc comments added
-- [ ] README updated
-- [ ] API documented
+- [x] JSDoc comments added
+- [x] README updated
+- [x] API documented
 
 **Verify:**
 ```bash
