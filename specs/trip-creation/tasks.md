@@ -628,6 +628,8 @@ npx playwright test tests/e2e/test-edit-trip.spec.ts -v
 
 ### Task 3.3: Add E2E Tests for Delete Trip
 
+**Status:** [x] Complete
+
 **Description:** Create E2E tests for delete functionality.
 
 **Do:**
