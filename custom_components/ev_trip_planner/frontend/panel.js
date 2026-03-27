@@ -151,8 +151,8 @@ class EVTripPlannerPanel extends HTMLElement {
     const tripCards = this._tripList.map(trip => `
       <div class="trip-card" data-trip-id="${trip.id}">
         <strong>${trip.type}</strong> - ${trip.km} km
-        <button class="edit-btn" data-trip-id="${trip.id}">Edit</button>
-        <button class="delete-btn" data-trip-id="${trip.id}">Delete</button>
+        <button class="edit-btn" data-trip-id="${trip.id}" @click="${this._handleTripEdit}">Edit</button>
+        <button class="delete-btn" data-trip-id="${trip.id}" @click="${this._handleDeleteTrip}">Delete</button>
       </div>
     `).join('');
 
