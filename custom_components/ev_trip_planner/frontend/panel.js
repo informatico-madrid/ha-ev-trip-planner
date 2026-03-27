@@ -929,18 +929,20 @@ class EVTripPlannerPanel extends LitElement {
     e.preventDefault();
 
     if (!this._hass || !this._vehicleId) {
-      alert('Error: No hay conexión con Home Assistant');
+      this._showAlert('Error: No hay conexión con Home Assistant', false);
       return;
     }
 
     const form = e.target;
     const formData = new FormData(form);
 
+    // Extract form data
     const type = formData.get('type');
     const km = formData.get('km');
     const kwh = formData.get('kwh');
     const description = formData.get('description');
 
+    // Build service data
     const serviceData = {
       vehicle_id: this._vehicleId,
       type: type,
@@ -958,10 +960,11 @@ class EVTripPlannerPanel extends LitElement {
       serviceData.hora = time;
     }
 
-    if (km) serviceData.km = parseFloat(km);
-    if (kwh) serviceData.kwh = parseFloat(kwh);
-    if (description) serviceData.description = description;
+    serviceData.km = parseFloat(km);
+    serviceData.kwh = parseFloat(kwh);
+    serviceData.description = description || '';
 
+    // Set loading state
     const submitBtn = form.querySelector('.btn-primary');
     const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Creando...';
@@ -971,10 +974,10 @@ class EVTripPlannerPanel extends LitElement {
       await this._hass.callService('ev_trip_planner', 'trip_create', serviceData);
       this._closeForm();
       await this._loadTrips();
-      alert('✅ Viaje creado exitosamente');
+      this._showAlert('✅ Viaje creado exitosamente', true);
     } catch (error) {
       console.error('EV Trip Planner Panel: Error creating trip:', error);
-      alert('❌ Error al crear el viaje: ' + (error.message || 'Verifique los logs'));
+      this._showAlert(`❌ Error al crear el viaje: ${error.message}`, false);
     } finally {
       submitBtn.textContent = originalText;
       submitBtn.disabled = false;
@@ -1565,6 +1568,35 @@ class EVTripPlannerPanel extends LitElement {
     }
 
     return value;
+  }
+
+  /**
+   * Show alert message (toast notification)
+   * @param {string} message - Alert message to display
+   * @param {boolean} isSuccess - Whether this is a success message
+   */
+  _showAlert(message, isSuccess = false) {
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isSuccess ? '#10b981' : '#ef4444'};
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 350px;
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 5000);
   }
 
   /**
