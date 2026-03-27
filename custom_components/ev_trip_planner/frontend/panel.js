@@ -468,8 +468,15 @@ class EVTripPlannerPanel extends HTMLElement {
       return;
     }
 
+    const deleteBtn = document.querySelector(`[data-trip-id="${tripId}"].delete-btn`);
+    const originalText = deleteBtn?.textContent;
+    if (deleteBtn) {
+      deleteBtn.textContent = 'Eliminando...';
+      deleteBtn.disabled = true;
+    }
+
     try {
-      await this._hass.callService('ev_trip_planner', 'delete_trip', {
+      await this._callTripService('delete_trip', {
         vehicle_id: this._vehicleId,
         trip_id: tripId,
       });
@@ -479,6 +486,11 @@ class EVTripPlannerPanel extends HTMLElement {
     } catch (error) {
       console.error('Error deleting trip:', error);
       this._showAlert(`❌ Error: ${error.message}`, false);
+    } finally {
+      if (deleteBtn) {
+        deleteBtn.textContent = originalText;
+        deleteBtn.disabled = false;
+      }
     }
   }
 
