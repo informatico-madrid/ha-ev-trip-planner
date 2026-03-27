@@ -75,6 +75,8 @@ tests/e2e/playwright-report/data/*
 claude.log
 .gitignore
 claude.log.positions
+.claude/settings.json
+.claude/settings.local.json
 tests/e2e/test-results
 tests/e2e/playwright-screenshots/*
 tests/e2e/test-results/.last-run.json
