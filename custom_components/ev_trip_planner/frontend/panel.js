@@ -48,7 +48,7 @@ class EVTripPlannerPanel extends HTMLElement {
         vehicle_id: this._vehicleId,
       });
 
-      let tripsData = response;
+      const tripsData = response;
       if (tripsData && tripsData.recurring_trips !== undefined) {
         const allTrips = [
           ...tripsData.recurring_trips.map(t => ({...t, trip_type: 'recurrente'})),
@@ -512,7 +512,7 @@ class EVTripPlannerPanel extends HTMLElement {
         trip_id: tripId,
       });
 
-      let tripsData = response;
+      const tripsData = response;
       if (tripsData && tripsData.recurring_trips !== undefined) {
         const allTrips = [
           ...tripsData.recurring_trips.map(t => ({...t, trip_type: 'recurrente'})),

@@ -224,7 +224,7 @@ const EVTripPlannerDashboard = (() => {
         }
       );
 
-      showSuccess(`Viaje actualizado exitosamente`);
+      showSuccess('Viaje actualizado exitosamente');
       return result;
     } catch (error) {
       showError(`Error al actualizar viaje: ${error.message}`);
@@ -259,7 +259,7 @@ const EVTripPlannerDashboard = (() => {
         }
       );
 
-      showSuccess(`Viaje eliminado exitosamente`);
+      showSuccess('Viaje eliminado exitosamente');
       return result;
     } catch (error) {
       showError(`Error al eliminar viaje: ${error.message}`);

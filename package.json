@@ -11,7 +11,8 @@
   "scripts": {
     "test": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:e2e": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/",
-    "test:ui": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/card-loading.test.js --verbose"
+    "test:ui": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/card-loading.test.js --verbose",
+    "lint": "eslint custom_components/"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "@playwright/test": "^1.58.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.0",
+    "eslint": "^8.57.1",
     "hass-taste-test": "^0.2.7",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.6",

@@ -70,7 +70,7 @@ class EVTripPlannerPanel extends HTMLElement {
 
     // Method 1: Regex match on pathname
     console.log('EV Trip Planner Panel: Attempt 1 - Regex match on pathname');
-    let match = path.match(/\/ev-trip-planner-(.+)/);
+    const match = path.match(/\/ev-trip-planner-(.+)/);
     if (match && match[1]) {
       this._vehicleId = match[1];
       console.log('EV Trip Planner Panel: ✓ vehicle_id from pathname regex:', this._vehicleId);
