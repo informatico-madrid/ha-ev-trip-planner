@@ -44,7 +44,7 @@ class EVTripPlannerPanel extends HTMLElement {
     if (!this._hass || !this._vehicleId) return;
 
     try {
-      const response = await this._hass.callService('ev_trip_planner', 'trip_list', {
+      const response = await this._callTripService('trip_list', {
         vehicle_id: this._vehicleId,
       });
 
@@ -70,8 +70,8 @@ class EVTripPlannerPanel extends HTMLElement {
     if (!this.shadowRoot) return;
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
-
     const style = document.createElement('style');
+
     style.textContent = `
       :host { display: block; padding: 16px; font-family: Arial, sans-serif; }
       .add-trip-btn {
@@ -132,15 +132,36 @@ class EVTripPlannerPanel extends HTMLElement {
       .error { color: #f44336; }
     `;
 
-    const tripListHtml = this._renderTripList();
-    const formHtml = this._renderForm();
-
-    shadowRoot.innerHTML = `
+    // Build HTML content
+    let htmlContent = `
       ${style}
       <button class="add-trip-btn" @click="${this._openForm}">Add Trip</button>
-      ${tripListHtml}
-      ${formHtml}
     `;
+
+    // Trip list with event delegation
+    htmlContent += this._renderTripList();
+
+    // Form overlay
+    htmlContent += this._renderForm();
+
+    shadowRoot.innerHTML = htmlContent;
+
+    // Add event delegation for trip list
+    shadowRoot.addEventListener('click', (e) => {
+      if (e.target.classList.contains('delete-btn')) {
+        const tripId = e.target.getAttribute('data-trip-id');
+        if (tripId) {
+          e.stopPropagation();
+          this._handleDeleteTrip(tripId);
+        }
+      } else if (e.target.classList.contains('edit-btn')) {
+        const tripId = e.target.getAttribute('data-trip-id');
+        if (tripId) {
+          e.stopPropagation();
+          this._handleTripEdit(tripId);
+        }
+      }
+    });
   }
 
   _renderTripList() {
@@ -151,8 +172,8 @@ class EVTripPlannerPanel extends HTMLElement {
     const tripCards = this._tripList.map(trip => `
       <div class="trip-card" data-trip-id="${trip.id}">
         <strong>${trip.type}</strong> - ${trip.km} km
-        <button class="edit-btn" data-trip-id="${trip.id}" @click="${this._handleTripEdit}">Edit</button>
-        <button class="delete-btn" data-trip-id="${trip.id}" @click="${this._handleDeleteTrip}">Delete</button>
+        <button class="edit-btn" data-trip-id="${trip.id}">Edit</button>
+        <button class="delete-btn" data-trip-id="${trip.id}">Delete</button>
       </div>
     `).join('');
 
@@ -260,6 +281,11 @@ class EVTripPlannerPanel extends HTMLElement {
     }
   }
 
+  /**
+   * Handle trip creation form submission
+   * @param {Event} e - Form submit event
+   * @memberof EVTripPlannerPanel
+   */
   async _handleTripCreate(e) {
     e.preventDefault();
 
@@ -318,7 +344,7 @@ class EVTripPlannerPanel extends HTMLElement {
     submitBtn.disabled = true;
 
     try {
-      await this._hass.callService('ev_trip_planner', 'trip_create', serviceData);
+      await this._callTripService('trip_create', serviceData);
       this._closeForm();
       await this._loadTrips();
       this._showAlert('✅ Viaje creado exitosamente', true);
@@ -332,6 +358,11 @@ class EVTripPlannerPanel extends HTMLElement {
     }
   }
 
+  /**
+   * Handle trip update form submission
+   * @param {Event} e - Form submit event
+   * @memberof EVTripPlannerPanel
+   */
   async _handleTripUpdate(e) {
     e.preventDefault();
 
@@ -390,7 +421,7 @@ class EVTripPlannerPanel extends HTMLElement {
     submitBtn.disabled = true;
 
     try {
-      await this._hass.callService('ev_trip_planner', 'trip_update', serviceData);
+      await this._callTripService('trip_update', serviceData);
       this._closeForm();
       await this._loadTrips();
       this._showAlert('✅ Viaje actualizado exitosamente', true);
@@ -404,6 +435,11 @@ class EVTripPlannerPanel extends HTMLElement {
     }
   }
 
+  /**
+   * Handle trip edit by fetching trip data and displaying in form
+   * @param {string} tripId - The trip ID to edit
+   * @memberof EVTripPlannerPanel
+   */
   async _handleTripEdit(tripId) {
     const trip = await this._getTripById(tripId);
     if (!trip) {
@@ -414,6 +450,11 @@ class EVTripPlannerPanel extends HTMLElement {
     this._showEditForm(trip);
   }
 
+  /**
+   * Show edit form with pre-filled trip data
+   * @param {Object} trip - Trip data object
+   * @memberof EVTripPlannerPanel
+   */
   _showEditForm(trip) {
     this._editingTrip = trip;
     this._showForm = true;
@@ -439,11 +480,34 @@ class EVTripPlannerPanel extends HTMLElement {
     }, 0);
   }
 
+  /**
+   * Call EV Trip Planner service with centralized error handling
+   * @param {string} serviceName - Name of the service to call
+   * @param {Object} serviceData - Service data payload
+   * @returns {Promise<Object>} Service call result
+   * @memberof EVTripPlannerPanel
+   */
+  async _callTripService(serviceName, serviceData) {
+    try {
+      const result = await this._hass.callService('ev_trip_planner', serviceName, serviceData);
+      return result;
+    } catch (error) {
+      console.error(`Service call failed for ${serviceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch trip data by ID from the service
+   * @param {string} tripId - The trip ID to fetch
+   * @returns {Promise<Object|null>} Trip data or null if not found
+   * @memberof EVTripPlannerPanel
+   */
   async _getTripById(tripId) {
     if (!this._hass || !this._vehicleId) return null;
 
     try {
-      const response = await this._hass.callService('ev_trip_planner', 'trip_list', {
+      const response = await this._callTripService('trip_list', {
         vehicle_id: this._vehicleId,
         trip_id: tripId,
       });
@@ -463,6 +527,11 @@ class EVTripPlannerPanel extends HTMLElement {
     }
   }
 
+  /**
+   * Handle trip deletion with confirmation dialog
+   * @param {string} tripId - The trip ID to delete
+   * @memberof EVTripPlannerPanel
+   */
   async _handleDeleteTrip(tripId) {
     if (!confirm('¿Estás seguro de que quieres eliminar este viaje?')) {
       return;
@@ -494,6 +563,12 @@ class EVTripPlannerPanel extends HTMLElement {
     }
   }
 
+  /**
+   * Show toast notification alert
+   * @param {string} message - Alert message to display
+   * @param {boolean} isSuccess - Whether this is a success message
+   * @memberof EVTripPlannerPanel
+   */
   _showAlert(message, isSuccess) {
     const alertDiv = document.createElement('div');
     alertDiv.textContent = message;
