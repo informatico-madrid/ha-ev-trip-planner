@@ -783,84 +783,102 @@ async def _save_lovelace_dashboard(
                 "METHOD: lovelace.save service NOT available, trying storage API"
             )
 
-        # Try alternative method: use the storage API directly
+        # Use HA's official Store API for persistence
+        from homeassistant.helpers import storage as ha_storage
+
         _LOGGER.info(
-            "METHOD: Attempting storage API for dashboard import"
+            "METHOD: Using Store API for dashboard import"
         )
 
         # Verify storage write permissions before attempting to write
         if not await _verify_storage_permissions(hass, vehicle_id):
             _LOGGER.warning(
-                "STORAGE API NOT AVAILABLE for %s, using YAML fallback",
+                "Store API NOT AVAILABLE for %s, using YAML fallback",
                 vehicle_id,
             )
             _LOGGER.info(
-                "Storage API not available, falling back to YAML for %s", vehicle_id
+                "Store API not available, falling back to YAML for %s", vehicle_id
             )
             return await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
 
-        if hasattr(hass, "storage") and hasattr(hass.storage, "async_read"):
-            try:
-                # Get current lovelace config
-                _LOGGER.info("Reading current Lovelace config from storage")
-                lovelace_config = await hass.storage.async_read("lovelace")
+        try:
+            # Get current lovelace config using Store API
+            _LOGGER.info("Reading current Lovelace config from storage")
 
-                if lovelace_config and "data" in lovelace_config:
-                    current_data = lovelace_config["data"]
-                    views = current_data.get("views", [])
-                    _LOGGER.info(
-                        "Current Lovelace config has %d views", len(views)
+            store = ha_storage.Store(
+                hass,
+                version=1,
+                key="lovelace",
+            )
+
+            lovelace_config = await store.async_load()
+
+            if lovelace_config and "data" in lovelace_config:
+                current_data = lovelace_config["data"]
+                views = current_data.get("views", [])
+                _LOGGER.info(
+                    "Current Lovelace config has %d views", len(views)
+                )
+
+                # Get new dashboard view
+                new_views = dashboard_config.get("views", [])
+                if not new_views:
+                    _LOGGER.error(
+                        "STORAGE API FAILED: No views found in dashboard config"
                     )
+                    raise DashboardStorageError(
+                        "storage_api",
+                        "No views found in dashboard config",
+                    )
+                new_view = new_views[0]
 
-                    # Get new dashboard view
-                    new_views = dashboard_config.get("views", [])
-                    if not new_views:
-                        _LOGGER.error(
-                            "STORAGE API FAILED: No views found in dashboard config"
+                # FR-004: Replace existing view with same path, or append
+                new_path = new_view.get("path", vehicle_id)
+                _LOGGER.info("New dashboard view path: %s", new_path)
+
+                replaced = False
+                for i, existing_view in enumerate(views):
+                    if existing_view.get("path") == new_path:
+                        views[i] = new_view
+                        replaced = True
+                        _LOGGER.info(
+                            "Replaced existing dashboard view: %s", new_path
                         )
-                        raise DashboardStorageError(
-                            "storage_api",
-                            "No views found in dashboard config",
-                        )
-                    new_view = new_views[0]
+                        break
 
-                    # FR-004: Replace existing view with same path, or append
-                    new_path = new_view.get("path", vehicle_id)
-                    _LOGGER.info("New dashboard view path: %s", new_path)
+                if not replaced:
+                    views.append(new_view)
+                    _LOGGER.info("Added new dashboard view: %s", new_path)
 
-                    replaced = False
-                    for i, existing_view in enumerate(views):
-                        if existing_view.get("path") == new_path:
-                            views[i] = new_view
-                            replaced = True
-                            _LOGGER.info(
-                                "Replaced existing dashboard view: %s", new_path
-                            )
-                            break
+                _LOGGER.info(
+                    "Saving dashboard: total views=%d, vehicle_id=%s",
+                    len(views),
+                    vehicle_id,
+                )
+                # Save updated config using HA's official Store API
+                from homeassistant.helpers import storage as ha_storage
+                _LOGGER.info("Writing dashboard config to storage: lovelace")
 
-                    if not replaced:
-                        views.append(new_view)
-                        _LOGGER.info("Added new dashboard view: %s", new_path)
+                # Use HA's official Store API for persistence
+                store = ha_storage.Store(
+                    hass,
+                    version=1,
+                    key="lovelace",
+                )
 
-                    _LOGGER.info(
-                        "Saving dashboard: total views=%d, vehicle_id=%s",
-                        len(views),
-                        vehicle_id,
-                    )
-                    # Save updated config using async_write_dict
-                    _LOGGER.info("Writing dashboard config to storage: lovelace")
-                    await hass.storage.async_write_dict(
-                        "lovelace",
-                        {"version": 1, "data": {**current_data, "views": views}},
-                    )
-                    _LOGGER.info("DASHBOARD SAVED via storage API")
-                    return DashboardImportResult(
-                        success=True,
-                        vehicle_id=vehicle_id,
-                        vehicle_name=vehicle_id,
-                        dashboard_type="simple",
-                        storage_method="storage_api",
-                    )
+                await store.async_save({
+                    "version": 1,
+                    "data": {**current_data, "views": views},
+                })
+
+                _LOGGER.info("DASHBOARD SAVED via storage API")
+                return DashboardImportResult(
+                    success=True,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    dashboard_type="simple",
+                    storage_method="storage_api",
+                )
 
                 _LOGGER.error(
                     "STORAGE API FAILED: Lovelace config not found in storage or has no data"
@@ -869,22 +887,17 @@ async def _save_lovelace_dashboard(
                     "storage_api",
                     "Lovelace config not found in storage or has no data",
                 )
-            except Exception as e:  # pragma: no cover
-                _LOGGER.error(
-                    "STORAGE API FAILED for %s: %s",
-                    vehicle_id,
-                    e,
-                    exc_info=True,
-                )
-                raise DashboardStorageError(
-                    "storage_api",
-                    f"Storage operation failed: {str(e)}",
-                )
-
-        # Storage API not available - fall through to YAML fallback
-        _LOGGER.info(
-            "STORAGE API FAILED: Storage API not available for dashboard import"
-        )
+        except Exception as e:  # pragma: no cover
+            _LOGGER.error(
+                "STORAGE API FAILED for %s: %s",
+                vehicle_id,
+                e,
+                exc_info=True,
+            )
+            raise DashboardStorageError(
+                "storage_api",
+                f"Storage operation failed: {str(e)}",
+            )
 
     except DashboardStorageError as e:
         # Storage operation failed - fall back to YAML
@@ -951,56 +964,28 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
             "VERIFYING STORAGE PERMISSIONS for vehicle %s", vehicle_id
         )
 
-        # Check if hass.storage is available
-        if not hasattr(hass, "storage"):
-            _LOGGER.warning(
-                "STORAGE PERMISSION DENIED: Storage API not available for vehicle %s",
-                vehicle_id,
-            )
-            return False
+        # Use HA's official Store API for persistence
+        from homeassistant.helpers import storage as ha_storage
 
-        # Check if async_write_dict method is available
-        if not hasattr(hass.storage, "async_write_dict"):
-            _LOGGER.warning(
-                "STORAGE PERMISSION DENIED: async_write_dict not available for vehicle %s",
-                vehicle_id,
-            )
-            return False
+        # Try to create a test store to verify it works
+        test_store = ha_storage.Store(
+            hass,
+            version=1,
+            key="test_storage_check",
+        )
 
-        # Try to read existing lovelace config to verify storage mode is available
-        try:
-            lovelace_config = await hass.storage.async_read("lovelace")
+        # Try to load to verify storage is available
+        test_data = await test_store.async_load()
+        _LOGGER.info("Store API test load succeeded for %s", vehicle_id)
 
-            # If we get here, storage mode is available
-            if lovelace_config is not None:
-                _LOGGER.info(
-                    "Storage API available for %s (lovelace config exists)", vehicle_id
-                )
-                return True
-
-            # lovelace config is None, which means storage mode is not active
-            # This happens in Container mode where YAML mode is default
-            _LOGGER.info(
-                "Lovelace storage mode not active for %s (config is None), using YAML fallback",
-                vehicle_id
-            )
-            return False
-
-        except Exception as e:
-            # Storage read failed - this indicates storage mode is not available
-            _LOGGER.info(
-                "Lovelace storage mode not available for %s: %s, using YAML fallback",
-                vehicle_id,
-                e
-            )
-            return False
+        # Store API is available
+        return True
 
     except Exception as e:
-        _LOGGER.error(
-            "STORAGE PERMISSION VERIFICATION FAILED for %s: %s",
+        _LOGGER.warning(
+            "Store API not available for %s: %s, using YAML fallback",
             vehicle_id,
-            e,
-            exc_info=True,
+            e
         )
         return False
 

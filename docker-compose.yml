@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  homeassistant:
+    image: homeassistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    ports:
+      - "8124:8123"
+    volumes:
+      # Configuración de Home Assistant (storage, config.yaml, etc.)
+      - ./tests/ha-manual/ha-manual-config:/config
+      # Custom components - write para permitir guardar datos del Store API
+      - /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+    environment:
+      - TZ=Europe/Madrid
+    privileged: true

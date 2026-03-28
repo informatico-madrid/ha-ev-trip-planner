@@ -50,10 +50,10 @@ export default defineConfig({
       },
     },
 
-    // Step 2: Main tests - uses saved auth state
+    // Step 2: Main E2E tests - uses saved auth state from auth project
     {
       name: 'chromium',
-      testMatch: 'panel.spec.ts',
+      testMatch: ['**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
         // Reuse authentication from auth project

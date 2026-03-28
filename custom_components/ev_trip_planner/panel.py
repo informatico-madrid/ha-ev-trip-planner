@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom
@@ -63,17 +64,22 @@ async def async_register_panel(
         # Use panel_custom.async_register_panel - this is the correct API
         # Note: module_url loads the script as an ES module (<script type="module">)
         # Using absolute path to avoid URL resolution issues in HA
+        # Add timestamp to force JS reload (bypass HA cache)
+        # VERSION=3.0.2 UNIQUE_ID=VTP-2026-03-28-RETURN-RESPONSE-FIX
+        cache_bust = "3.0.2-" + str(int(time.time()))
+        module_url = f"/{DOMAIN.replace('_', '-')}/panel.js?v={cache_bust}"
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=frontend_url_path,
             webcomponent_name=PANEL_COMPONENT_NAME,
-            module_url=f"/{DOMAIN.replace('_', '-')}/panel.js",
+            module_url=module_url,
             sidebar_title=vehicle_name,
             sidebar_icon=DEFAULT_SIDEBAR_ICON,
             config={"vehicle_id": vehicle_id},
             require_admin=False,
             embed_iframe=False,
         )
+        _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
 
         # Register additional static resource for panel.css
         # This ensures the CSS file is served correctly

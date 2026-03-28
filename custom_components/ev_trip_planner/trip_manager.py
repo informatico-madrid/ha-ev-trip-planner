@@ -83,31 +83,55 @@ class TripManager:
 
     async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente."""
+        _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
         try:
-            # FIX: Usar hass.storage para persistencia entre reinicios
+            from homeassistant.helpers import storage as ha_storage
+
             storage_key = f"{DOMAIN}_{self.vehicle_id}"
+            _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
 
-            # Check if storage API is available (not available in Container)
-            if not hasattr(self.hass, "storage") or self.hass.storage is None:
-                # YAML fallback for Container environment
-                await self._load_trips_yaml(storage_key)
-                return
+            # Use HA's official Store API for persistence
+            store = ha_storage.Store(
+                self.hass,
+                version=1,
+                key=storage_key,
+            )
+            _LOGGER.warning("=== Store created with key: %s ===", storage_key)
 
-            stored_data = await self.hass.storage.async_read(storage_key)
+            stored_data = await store.async_load()
+            _LOGGER.warning("=== async_load returned: %s ===", stored_data is not None)
+            _LOGGER.warning("=== stored_data type: %s ===", type(stored_data).__name__)
+            _LOGGER.warning("=== stored_data value: %s ===", stored_data)
+            if stored_data:
+                _LOGGER.warning("=== stored_data structure: %s ===", list(stored_data.keys()) if isinstance(stored_data, dict) else "not a dict")
+                _LOGGER.warning("=== stored_data['data'] exists: %s ===", "data" in stored_data if isinstance(stored_data, dict) else False)
 
-            if stored_data and "data" in stored_data:
-                data = stored_data["data"]
+                # Store API retorna datos dentro de la clave "data"
+                if isinstance(stored_data, dict) and "data" in stored_data:
+                    data = stored_data.get("data", {})
+                else:
+                    # Fallback: use stored_data directly if no "data" key
+                    data = stored_data
+                _LOGGER.warning("=== data extracted: %s ===", data)
+                _LOGGER.warning("=== data from stored_data.get('data', {}): %s ===", data)
+
                 self._trips = data.get("trips", {})
                 self._recurring_trips = data.get("recurring_trips", {})
                 self._punctual_trips = data.get("punctual_trips", {})
                 self._last_update = data.get("last_update")
-                _LOGGER.info(
-                    "Viajes cargados desde storage: %d recurrentes, %d puntuales",
-                    len(self._recurring_trips),
-                    len(self._punctual_trips),
-                )
+
+                _LOGGER.warning("=== AFTER LOAD ===")
+                _LOGGER.warning("=== self._trips: %d trips ===", len(self._trips))
+                _LOGGER.warning("=== self._recurring_trips: %d recurrentes ===", len(self._recurring_trips))
+                _LOGGER.warning("=== self._punctual_trips: %d puntuales ===", len(self._punctual_trips))
+
+                # Log detailed trip info
+                if self._recurring_trips:
+                    _LOGGER.warning("=== Recurring trips IDs: %s ===", list(self._recurring_trips.keys())[:5])
+                if self._punctual_trips:
+                    _LOGGER.warning("=== Punctual trips IDs: %s ===", list(self._punctual_trips.keys())[:5])
             else:
-                _LOGGER.info(
+                _LOGGER.warning(
                     "No se encontraron viajes almacenados para %s",
                     self.vehicle_id,
                 )
@@ -116,7 +140,7 @@ class TripManager:
                 self._punctual_trips = {}
                 self._last_update = None
         except Exception as err:
-            _LOGGER.error("Error cargando viajes: %s", err)
+            _LOGGER.error("Error cargando viajes: %s", err, exc_info=True)
             self._trips = {}
             self._recurring_trips = {}
             self._punctual_trips = {}
@@ -177,35 +201,46 @@ class TripManager:
 
     async def async_save_trips(self) -> None:
         """Guarda los viajes en el almacenamiento persistente."""
+        _LOGGER.info(
+            "async_save_trips START - vehicle=%s, recurrentes=%d, puntuales=%d",
+            self.vehicle_id,
+            len(self._recurring_trips),
+            len(self._punctual_trips),
+        )
         try:
+            from homeassistant.helpers import storage as ha_storage
+
             storage_key = f"{DOMAIN}_{self.vehicle_id}"
+            _LOGGER.info("Creating store with key: %s", storage_key)
 
-            # Check if storage API is available (not available in Container)
-            if not hasattr(self.hass, "storage") or self.hass.storage is None:
-                # YAML fallback for Container environment
-                await self._save_trips_yaml(storage_key)
-                return
-
-            # Use storage API for Supervisor environment
-            await self.hass.storage.async_write_dict(
-                storage_key,
-                {
-                    "version": 1,
-                    "data": {
-                        "trips": self._trips,
-                        "recurring_trips": self._recurring_trips,
-                        "punctual_trips": self._punctual_trips,
-                        "last_update": datetime.now().isoformat(),
-                    },
-                },
+            # Use HA's official Store API for persistence
+            store = ha_storage.Store(
+                self.hass,
+                version=1,
+                key=storage_key,
             )
+
+            data = {
+                "trips": self._trips,
+                "recurring_trips": self._recurring_trips,
+                "punctual_trips": self._punctual_trips,
+                "last_update": datetime.now().isoformat(),
+            }
+
+            _LOGGER.info("About to call async_save with data keys: %s", list(data.keys()))
+            await store.async_save(data)
             _LOGGER.info(
-                "Viajes guardados en storage: %d recurrentes, %d puntuales",
+                "Viajes guardados en HA storage: %d recurrentes, %d puntuales",
                 len(self._recurring_trips),
                 len(self._punctual_trips),
             )
         except Exception as err:
-            _LOGGER.error("Error guardando viajes: %s", err)
+            _LOGGER.error("Error guardando viajes: %s", err, exc_info=True)
+            # Fallback to YAML if HA storage fails
+            try:
+                await self._save_trips_yaml(f"{DOMAIN}_{self.vehicle_id}")
+            except Exception as yaml_err:
+                _LOGGER.error("YAML fallback also failed: %s", yaml_err)
 
     async def _save_trips_yaml(self, storage_key: str) -> None:
         """Guarda los viajes en un archivo YAML (fallback para Container)."""

@@ -13,7 +13,7 @@ from typing import Any, Optional
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
@@ -432,7 +432,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         True if setup was successful, False otherwise.
     """
     vehicle_id = entry.data.get("vehicle_name")
-    _LOGGER.info("Setting up EV Trip Planner for vehicle: %s", vehicle_id)
+    _LOGGER.warning("=== async_setup_entry START === vehicle=%s", vehicle_id)
+    _LOGGER.warning("=== async_setup_entry - namespace: %s ===", f"{DOMAIN}_{entry.entry_id}")
 
     # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
@@ -440,7 +441,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DATA_RUNTIME].setdefault(namespace, {})
     
     # Create and initialize TripManager for this vehicle
+    _LOGGER.warning("=== async_setup_entry - Creating TripManager ===")
     trip_manager = TripManager(hass, vehicle_id)
+    _LOGGER.warning("=== async_setup_entry - Before async_setup - trips: recurring=%d, punctual=%d ===", len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
+    _LOGGER.warning("=== async_setup_entry - Calling await trip_manager.async_setup() ===")
     await trip_manager.async_setup()
 
     # Create EMHASS adapter for this vehicle (if EMHASS config exists)
@@ -480,20 +484,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register the JavaScript file
     if panel_js_path.exists():
         static_paths.append(
-            StaticPathConfig("/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=True)
+            StaticPathConfig("/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=False)
             if HAS_STATIC_PATH_CONFIG
-            else ("ev-trip-planner/panel.js", str(panel_js_path), True)
+            else ("ev-trip-planner/panel.js", str(panel_js_path), False)
         )
-        _LOGGER.info("Registering panel.js at /ev-trip-planner/panel.js from %s", panel_js_path)
+        _LOGGER.info("Registering panel.js at /ev-trip-planner/panel.js from %s (cache_headers=False)", panel_js_path)
 
     # Register the CSS file
     if panel_css_path.exists():
         static_paths.append(
-            StaticPathConfig("/ev_trip_planner/panel.css", str(panel_css_path), cache_headers=True)
+            StaticPathConfig("/ev_trip_planner/panel.css", str(panel_css_path), cache_headers=False)
             if HAS_STATIC_PATH_CONFIG
-            else ("ev_trip_planner/panel.css", str(panel_css_path), True)
+            else ("ev_trip_planner/panel.css", str(panel_css_path), False)
         )
-        _LOGGER.info("Registering panel.css at ev_trip_planner/panel.css from %s", panel_css_path)
+        _LOGGER.info("Registering panel.css at ev_trip_planner/panel.css from %s (cache_headers=False)", panel_css_path)
 
     # Register all static paths
     if static_paths and hass.http is not None:
@@ -1105,38 +1109,67 @@ def register_services(hass: HomeAssistant) -> None:
 
         Returns a dict with vehicle_id, trips, and total count.
         """
+        _LOGGER.warning("=== trip_list SERVICE HANDLER CALLED ===")
+        _LOGGER.warning("=== call.data: %s", call.data)
         data = call.data
         vehicle_id = data.get("vehicle_id", "unknown")
-        _LOGGER.info("trip_list service called for vehicle: %s", vehicle_id)
+        _LOGGER.warning("=== trip_list SERVICE CALLED === vehicle: %s", vehicle_id)
 
         mgr = _get_manager(hass, vehicle_id)
-        await _ensure_setup(mgr)
+        # _get_manager already calls async_setup which loads trips from storage
+        _LOGGER.warning("=== _get_manager returned manager ===")
+        _LOGGER.warning("=== Before async_get_recurring_trips - mgr._recurring_trips: %d",
+                     len(mgr._recurring_trips))
+        _LOGGER.warning("=== Before async_get_punctual_trips - mgr._punctual_trips: %d",
+                     len(mgr._punctual_trips))
 
         try:
-            _LOGGER.info("Getting recurring trips for %s", vehicle_id)
+            _LOGGER.warning("Getting recurring trips for %s", vehicle_id)
             recurring_trips = await mgr.async_get_recurring_trips()
-            _LOGGER.info("Got %d recurring trips", len(recurring_trips))
+            _LOGGER.warning("Got %d recurring trips", len(recurring_trips))
 
-            _LOGGER.info("Getting punctual trips for %s", vehicle_id)
+            _LOGGER.warning("Getting punctual trips for %s", vehicle_id)
             punctual_trips = await mgr.async_get_punctual_trips()
-            _LOGGER.info("Got %d punctual trips", len(punctual_trips))
+            _LOGGER.warning("Got %d punctual trips", len(punctual_trips))
 
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Retrieved %d recurring trips and %d punctual trips for vehicle %s",
                 len(recurring_trips),
                 len(punctual_trips),
                 vehicle_id,
             )
 
+            # Debug: Log each recurring trip
+            for i, trip in enumerate(recurring_trips):
+                _LOGGER.warning("Recurring trip %d: id=%s, tipo=%s, activo=%s",
+                           i, trip.get("id"), trip.get("tipo"), trip.get("activo"))
+
+            # Debug: Log each punctual trip
+            for i, trip in enumerate(punctual_trips):
+                _LOGGER.warning("Punctual trip %d: id=%s, tipo=%s, estado=%s",
+                           i, trip.get("id"), trip.get("tipo"), trip.get("estado"))
+
             # Combine trips for dashboard display
-            return {
+            # Return ONLY the data, no context wrapper
+            result = {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": recurring_trips,
                 "punctual_trips": punctual_trips,
                 "total_trips": len(recurring_trips) + len(punctual_trips),
             }
+            _LOGGER.warning("=== trip_list result ===")
+            _LOGGER.warning("recurring_trips count: %d", len(recurring_trips))
+            _LOGGER.warning("punctual_trips count: %d", len(punctual_trips))
+            _LOGGER.warning("total_trips: %d", result["total_trips"])
+            if recurring_trips:
+                _LOGGER.warning("First recurring trip: %s", recurring_trips[0])
+            if punctual_trips:
+                _LOGGER.warning("First punctual trip: %s", punctual_trips[0])
+
+            # Return the result - MUST return explicitly
+            return result
         except Exception as err:  # pragma: no cover
-            _LOGGER.error("Error listing trips for vehicle %s: %s", vehicle_id, err)
+            _LOGGER.error("Error listing trips for vehicle %s: %s", vehicle_id, err, exc_info=True)
             return {
                 "vehicle_id": vehicle_id,
                 "recurring_trips": [],
@@ -1169,6 +1202,7 @@ def register_services(hass: HomeAssistant) -> None:
         "trip_list",
         handle_trip_list,
         schema=trip_list_schema,
+        supports_response=SupportsResponse.ONLY,
     )
 
 # Helper functions with proper type hints
@@ -1183,14 +1217,54 @@ def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
 
 def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
     """Get or create TripManager for vehicle."""
+    _LOGGER.info("=== _get_manager START - vehicle_id: %s ===", vehicle_id)
     entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
+        _LOGGER.error("=== _get_manager ERROR - Vehicle %s not found in config entries ===", vehicle_id)
         raise ValueError(f"Vehicle {vehicle_id} not found in config entries")
+    _LOGGER.info("=== _get_manager - Found entry: %s, entry_id: %s ===", entry.unique_id, entry.entry_id)
+
     # Use hass.data for runtime storage
     namespace = f"{DOMAIN}_{entry.entry_id}"
     runtime_data = hass.data.get(DATA_RUNTIME, {})
-    managers = runtime_data.get(namespace, {}).get("managers", {})
-    return managers.get(vehicle_id) or TripManager(hass, vehicle_id)
+    _LOGGER.info("=== _get_manager - namespace: %s ===", namespace)
+    _LOGGER.info("=== _get_manager - runtime_data keys: %s ===", list(runtime_data.keys()) if runtime_data else "empty")
+
+    # Retrieve from the correct storage location where trip_manager is stored
+    trip_manager = runtime_data.get(namespace, {}).get("trip_manager")
+    _LOGGER.info("=== _get_manager - trip_manager from runtime_data: %s ===", trip_manager)
+
+    # If manager not found in runtime storage, create new one and load from HA storage
+    if not trip_manager:
+        _LOGGER.info("=== _get_manager - Creating new TripManager for vehicle %s ===", vehicle_id)
+        trip_manager = TripManager(hass, vehicle_id)
+        _LOGGER.info("=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ===",
+                     len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
+
+        # Load trips from HA storage - use hass.loop.run_until_complete
+        # This is safe because we're in the callback, not inside an async context
+        try:
+            _LOGGER.info("=== _get_manager - Calling hass.loop.run_until_complete(trip_manager.async_setup()) ===")
+            hass.loop.run_until_complete(trip_manager.async_setup())
+            _LOGGER.info("=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ===",
+                         len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
+        except Exception as setup_err:
+            _LOGGER.error("=== _get_manager - Error setting up manager for %s: %s ===", vehicle_id, setup_err, exc_info=True)
+
+        # Save manager back to runtime storage for future calls
+        if namespace not in runtime_data:
+            runtime_data[namespace] = {}
+        runtime_data[namespace]["trip_manager"] = trip_manager
+        _LOGGER.info("=== _get_manager - Manager saved to runtime_data ===")
+        _LOGGER.info("=== _get_manager - Manager created and set up for %s ===", vehicle_id)
+        _LOGGER.info("=== _get_manager - Trips loaded: %d recurring, %d punctual ===",
+                     len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
+    else:
+        _LOGGER.info("=== _get_manager - Manager already exists for %s, trips: %d recurring, %d punctual ===",
+                     vehicle_id, len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
+
+    _LOGGER.info("=== _get_manager END - returning manager for vehicle %s ===", vehicle_id)
+    return trip_manager
 
 
 async def _ensure_setup(mgr: TripManager) -> None:

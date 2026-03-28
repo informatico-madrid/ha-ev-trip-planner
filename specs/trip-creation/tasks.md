@@ -735,10 +735,21 @@ grep -A 5 "_handleTripCreate" custom_components/ev_trip_planner/frontend/panel.j
 
 **Description:** Add ESLint rules for consistent code style.
 
+**Status:** [x] Complete
+
 **Do:**
 ```json
 // .eslintrc.json
 {
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
   "rules": {
     "no-console": "warn",
     "prefer-const": "error",
@@ -751,11 +762,12 @@ grep -A 5 "_handleTripCreate" custom_components/ev_trip_planner/frontend/panel.j
 
 **Files:**
 - `.eslintrc.json`
+- `package.json` (lint script and eslint dev dependency)
 
 **Done when:**
-- [ ] ESLint configured
-- [ ] Rules added
-- [ ] Code passes linting
+- [x] ESLint configured
+- [x] Rules added
+- [x] Code passes linting
 
 **Verify:**
 ```bash

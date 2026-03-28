@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import { fileURLToPath, URL } from 'url'
+import * as fs from 'fs'
+import * as path from 'path'
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 /**
@@ -49,7 +51,18 @@ export default defineConfig({
   // Configuración global
   use: {
     // Base URL para navegación relativa
-    baseURL: process.env.HA_URL || 'http://localhost:8123',
+    // Leer la URL del servidor HA desde server-info.json (creado por globalSetup)
+    baseURL: (() => {
+      const authDir = path.join(__dirname, 'playwright', '.auth');
+      const serverInfoPath = path.join(authDir, 'server-info.json');
+      try {
+        const serverInfo = JSON.parse(fs.readFileSync(serverInfoPath, 'utf-8'));
+        return new URL(serverInfo.link).origin;
+      } catch (error) {
+        console.warn('Could not read server-info.json, using default localhost:8123');
+        return 'http://localhost:8123';
+      }
+    })(),
 
     // Trace en primer retry para debugging
     trace: 'on-first-retry',

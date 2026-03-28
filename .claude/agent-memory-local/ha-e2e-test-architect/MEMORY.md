@@ -2,3 +2,25 @@
 - [test_separation](test_separation.md) — Test 1 en test-config-flow.spec.ts, tests de validación en test-config-flow-validation.spec.ts
 - [feedback_selectors](feedback_selectors.md) — Lecciones sobre selectores Playwright y Shadow DOM en HA
 - [scripts_location](scripts_location.md) — Scripts de ha-e2e-testing están en ~/.claude/skills/ha-e2e-testing/scripts/ (ruta correcta)
+- [lessons_learned_debugging](lessons_learned_debugging.md) — Reconocer señales de progreso y no sobre-ingenierizar en debugging de tests E2E
+- [debugging_cache_busting](debugging_cache_busting.md) — Forzar actualización de JS en HA con VERSION/TIMESTAMP logs y cache_headers=False
+- [service_workers_disable](service_workers_disable.md) — Deshabilitar service workers en Playwright para evitar cacheo de JS en HA
+- [frontend_development_hot_reload](frontend_development_hot_reload.md) — Servidor de desarrollo frontend HA con HMR para evitar cacheo agresivo de JS
+- [trip_manager_retrieval_bug](trip_manager_retrieval_bug.md) — Bug en _get_manager que creaba TripManager nuevo en lugar del existente
+- [ha_container_restart_issue](ha_container_restart_issue.md) — Problema con reinicio de contenedor HA y pérdida de trip_manager en memoria volátil
+- [playwright_mcp_lock_file_issue](playwright_mcp_lock_file_issue.md) — Problema con lock file corrupto en cache de Playwright MCP
+- [browser_loading_page_issue](browser_loading_page_issue.md) — HA muestra página "Loading data" inicial que confunde al agente - debe esperar y tomar snapshots adicionales
+- [datetime_field_bug](datetime_field_bug.md) — Bug en servicio handle_add_punctual con campo datetime incorrecto
+- [metodologia_investigacion_profunda](metodologia_investigacion_profunda.md) — Investigar profundamente antes de implementar, no ir a prueba y error
+- [metodologia_verificacion](metodologia_verificacion.md) — Verificar con logs Y observabilidad frontend, no solo logs
+- [ha_callService_parameters](ha_callService_parameters.md) — return_response=true obligatorio para SupportsResponse.ONLY services
+- [investigacion_core_api](investigacion_core_api.md) — Método para investigar parámetros de funciones del core de HA antes de usarlas
+- [voluptuous_service_schema](voluptuous_service_schema.md) — return_response NO debe estar en schema del servicio, solo en la llamada
+- [voluptuous_core_api](voluptuous_core_api.md) — API completa de voluptuous en HA - parámetros, constantes y uso correcto
+- [voluptuous_investigation_results](voluptuous_investigation_results.md) — Resultados de investigación del core de HA sobre voluptuous y schemas
+- [ha_frontend_source_clone](ha_frontend_source_clone.md) — Clon del repositorio frontend HA para investigar código fuente original
+- [callService_signature_fix](callService_signature_fix.md) — Firma correcta: callService(domain, service, serviceData, target, notifyOnError, returnResponse)
+- [fix_applied_validation](fix_applied_validation.md) — Validación final - error service_lacks_response_request corregido con éxito
+- [response_extraction_fix](response_extraction_fix.md) — Corrección response.response para SupportsResponse.ONLY
+- [debugging_workflow_optimization](debugging_workflow_optimization.md) — Metodología optimizada para debugging con cache y response structure
+- [mcp_cleanup_after_destructive_kill](mcp_cleanup_after_destructive_kill.md) — MCP Playwright requiere limpieza manual tras kill destructivo

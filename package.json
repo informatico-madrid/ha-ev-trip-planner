@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "dotenv": "^17.3.1",
-    "engram-sdk": "^0.6.1"
+    "engram-sdk": "^0.6.1",
+    "lit": "^2.8.0"
   }
 }
