@@ -997,7 +997,19 @@ def register_services(hass: HomeAssistant) -> None:
         {
             vol.Required("vehicle_id"): str,
             vol.Required("trip_id"): str,
-            vol.Required("updates"): dict,
+            vol.Required("type"): vol.In(["recurrente", "puntual"]),
+            # Recurring trip fields
+            vol.Optional("dia_semana"): str,
+            vol.Optional("day_of_week"): str,  # Alternative name for compatibility
+            vol.Optional("hora"): str,
+            vol.Optional("time"): str,  # Alternative name for compatibility
+            # Punctual trip fields
+            vol.Optional("datetime"): str,
+            # Common fields
+            vol.Optional("km"): vol.Coerce(float),
+            vol.Optional("kwh"): vol.Coerce(float),
+            vol.Optional("descripcion"): str,
+            vol.Optional("description"): str,  # Alternative name for compatibility
         }
     )
 
@@ -1202,6 +1214,83 @@ def register_services(hass: HomeAssistant) -> None:
         "trip_list",
         handle_trip_list,
         schema=trip_list_schema,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    # Schema for trip_get service - get single trip by ID
+    trip_get_schema = vol.Schema({
+        vol.Required("vehicle_id"): str,
+        vol.Required("trip_id"): str,
+    })
+
+    async def handle_trip_get(call: ServiceCall) -> dict:
+        """Handle getting a single trip by ID.
+
+        Returns the trip data for a specific trip_id.
+        """
+        _LOGGER.warning("=== trip_get SERVICE HANDLER CALLED ===")
+        _LOGGER.warning("=== call.data: %s", call.data)
+        data = call.data
+        vehicle_id = data.get("vehicle_id", "unknown")
+        trip_id = data.get("trip_id", "unknown")
+        _LOGGER.warning("=== trip_get SERVICE CALLED === vehicle: %s, trip_id: %s", vehicle_id, trip_id)
+
+        mgr = _get_manager(hass, vehicle_id)
+        _LOGGER.warning("=== _get_manager returned manager ===")
+
+        try:
+            # Get all trips and find the one with matching ID
+            _LOGGER.warning("Getting all trips to find trip_id: %s", trip_id)
+            recurring_trips = await mgr.async_get_recurring_trips()
+            punctual_trips = await mgr.async_get_punctual_trips()
+
+            _LOGGER.warning("Found %d recurring and %d punctual trips",
+                           len(recurring_trips), len(punctual_trips))
+
+            # Search for the trip in both lists
+            all_trips = [
+                *recurring_trips,
+                *punctual_trips,
+            ]
+
+            _LOGGER.warning("Searching through %d trips for ID: %s", len(all_trips), trip_id)
+            trip_found = None
+            for trip in all_trips:
+                if str(trip.get("id")) == trip_id:
+                    trip_found = trip
+                    _LOGGER.warning("Found trip: %s", trip)
+                    break
+
+            if trip_found:
+                _LOGGER.warning("=== trip_get SUCCESS - Found trip: %s ===", trip_found)
+                return {
+                    "vehicle_id": vehicle_id,
+                    "trip": trip_found,
+                    "found": True,
+                }
+            else:
+                _LOGGER.warning("=== trip_get NOT FOUND - trip_id: %s ===", trip_id)
+                return {
+                    "vehicle_id": vehicle_id,
+                    "trip": None,
+                    "found": False,
+                    "error": f"Trip with ID {trip_id} not found",
+                }
+        except Exception as err:  # pragma: no cover
+            _LOGGER.error("Error getting trip %s for vehicle %s: %s", trip_id, vehicle_id, err, exc_info=True)
+            return {
+                "vehicle_id": vehicle_id,
+                "trip": None,
+                "found": False,
+                "error": str(err),
+            }
+
+    # Register trip_get service
+    hass.services.async_register(
+        DOMAIN,
+        "trip_get",
+        handle_trip_get,
+        schema=trip_get_schema,
         supports_response=SupportsResponse.ONLY,
     )
 

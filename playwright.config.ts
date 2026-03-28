@@ -78,7 +78,10 @@ export default defineConfig({
     navigationTimeout: 30000,
 
     // Estado de autenticación - LO ÚNICO QUE LOS TESTS NECESITAN
-    storageState: 'playwright/.auth/user.json'
+    storageState: 'playwright/.auth/user.json',
+
+    // Deshabilitar Service Workers para evitar cacheo agresivo de JS en HA
+    serviceWorkers: 'block'
   },
 
   // Proyectos

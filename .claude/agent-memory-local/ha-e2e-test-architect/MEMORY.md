@@ -24,3 +24,10 @@
 - [response_extraction_fix](response_extraction_fix.md) — Corrección response.response para SupportsResponse.ONLY
 - [debugging_workflow_optimization](debugging_workflow_optimization.md) — Metodología optimizada para debugging con cache y response structure
 - [mcp_cleanup_after_destructive_kill](mcp_cleanup_after_destructive_kill.md) — MCP Playwright requiere limpieza manual tras kill destructivo
+- [ephemeral_ha_testing_limitations](ephemeral_ha_testing_limitations.md) — Custom panels no se renderizan en hass-test-framework, usar HA real para tests de UI
+- [skill_usage_instruction](skill_usage_instruction.md) — Instrucción obligatoria: usar siempre ha-e2e-testing skill para E2E testing
+- [NEVER_FORGET_skill_usage](NEVER_FORGET_skill_usage.md) — 🚨 CRITICAL: ALWAYS USE ha-e2e-testing skill - no usar npx playwright test directamente
+- [ha_frontend_cache_limitation](ha_frontend_cache_limitation.md) — HA caches panel.js aggressively, browser loads old version despite container fix
+- [mcp_browser_cache_fix](mcp_browser_cache_fix.md) — MCP Playwright browser cache fix: browser_close + browser_navigate pattern to clear HA IndexedDB cache
+- [mcp_isolated_mode](mcp_isolated_mode.md) — MCP Playwright config with --isolated and --storage-state=/tmp/playwright-storage-state.json for permanent cache clearing
+- [edit_trip_name_attr_fix](edit_trip_name_attr_fix.md) — Edit trip form input needs name= attribute for formData.get() to work

@@ -65,9 +65,9 @@ async def async_register_panel(
         # Note: module_url loads the script as an ES module (<script type="module">)
         # Using absolute path to avoid URL resolution issues in HA
         # Add timestamp to force JS reload (bypass HA cache)
-        # VERSION=3.0.2 UNIQUE_ID=VTP-2026-03-28-RETURN-RESPONSE-FIX
-        cache_bust = "3.0.2-" + str(int(time.time()))
-        module_url = f"/{DOMAIN.replace('_', '-')}/panel.js?v={cache_bust}"
+        # VERSION=3.0.11 UNIQUE_ID=TRIP_GET_EDIT_FIX_FINAL_2026-03-28-13-35
+        cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
+        module_url = f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
         await panel_custom.async_register_panel(
             hass=hass,
             frontend_url_path=frontend_url_path,
@@ -81,7 +81,7 @@ async def async_register_panel(
         )
         _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
 
-        # Register additional static resource for panel.css
+        # Register additional static resource for panel.css with cache control
         # This ensures the CSS file is served correctly
         try:
             hass.http.register_static_paths(
@@ -95,6 +95,23 @@ async def async_register_panel(
             _LOGGER.debug("Registered static path for panel.css")
         except Exception as ex:
             _LOGGER.warning("Failed to register static path for panel.css: %s", ex)
+
+        # Register panel.js with dynamic cache-busting to bypass browser cache
+        # Use a dynamic URL that includes a timestamp to force reload
+        try:
+            # Add cache-busting to the panel.js URL
+            cache_param = f"cb={int(time.time())}"
+            hass.http.register_static_paths(
+                [
+                    (
+                        f"/{DOMAIN.replace('_', '-')}/panel.js",
+                        f"{_MODULE_PATH}/frontend/panel.js",
+                    ),
+                ]
+            )
+            _LOGGER.debug("Registered static path for panel.js with cache param: %s", cache_param)
+        except Exception as ex:
+            _LOGGER.warning("Failed to register static path for panel.js: %s", ex)
 
         # Store vehicle-to-panel mapping
         _store_vehicle_panel_mapping(hass, vehicle_id, frontend_url_path)

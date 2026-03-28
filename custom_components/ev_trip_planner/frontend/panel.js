@@ -8,8 +8,8 @@
  * @author EV Trip Planner Team
  */
 
-// VERSION=3.0.1 UNIQUE_LOG_ID=VTP-2026-03-28-TRIPMANAGER-FISH789
-console.log('EV Trip Planner Panel: VERSION=3.0.1 UNIQUE_LOG_ID=VTP-2026-03-28-TRIPMANAGER-FISH789');
+// VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40
+console.log('EV Trip Planner Panel: VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40');
 
 // Cache busting timestamp to force reload
 const CACHE_BUST = Date.now();
@@ -505,7 +505,7 @@ class EVTripPlannerPanel extends LitElement {
   constructor() {
     super();
     console.log('EV Trip Planner Panel: Lit constructor called');
-    console.log('EV Trip Planner Panel: VERSION=3.0.5 TIMESTAMP=' + new Date().toISOString());
+    console.log('EV Trip Planner Panel: VERSION=3.0.12 TIMESTAMP=' + new Date().toISOString());
   }
 
   /**
@@ -1384,16 +1384,20 @@ class EVTripPlannerPanel extends LitElement {
   }
 
   /**
-   * Get trip by ID
+   * Get trip by ID using trip_get service
    */
   async _getTripById(tripId) {
     if (!this._hass || !this._vehicleId) return null;
 
     try {
       // Use correct callService signature: (domain, service, serviceData, target, notifyOnError, returnResponse)
+      console.log('EV Trip Planner Panel: _getTripById called with tripId:', tripId);
+      console.log('EV Trip Planner Panel: _hass:', this._hass ? 'available' : 'null');
+      console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+
       const response = await this._hass.callService(
         'ev_trip_planner',
-        'trip_list',
+        'trip_get',
         {
           vehicle_id: this._vehicleId,
           trip_id: tripId,
@@ -1403,21 +1407,24 @@ class EVTripPlannerPanel extends LitElement {
         true  // returnResponse (6th param, boolean)
       );
 
-      let tripsData = response;
-      if (Array.isArray(response) && response.length > 0) {
-        tripsData = response[0].result || response[0];
-      } else if (response && response.result) {
-        tripsData = response.result;
+      console.log('EV Trip Planner Panel: trip_get response:', JSON.stringify(response, null, 2));
+      console.log('EV Trip Planner Panel: response keys:', Object.keys(response || {}));
+
+      // Handle response structure: {context: {...}, response: {vehicle_id, trip, found}}
+      const responseData = response?.response || response;
+      console.log('EV Trip Planner Panel: responseData:', JSON.stringify(responseData, null, 2));
+
+      // Response structure: { vehicle_id, trip, found }
+      if (responseData && responseData.found && responseData.trip) {
+        const trip = responseData.trip;
+        // Add trip_type based on trip structure
+        trip.trip_type = trip.tipo === 'recurrente' ? 'recurrente' : 'puntual';
+        console.log('EV Trip Planner Panel: Returning trip:', trip);
+        return trip;
       }
 
-      if (!tripsData || !tripsData.recurring_trips || !tripsData.punctual_trips) return null;
-
-      const allTrips = [
-        ...tripsData.recurring_trips.map(t => ({...t, trip_type: 'recurrente'})),
-        ...tripsData.punctual_trips.map(t => ({...t, trip_type: 'puntual'})),
-      ];
-
-      return allTrips.find(t => t.id === tripId) || null;
+      console.error('EV Trip Planner Panel: Trip not found or invalid response:', responseData);
+      return null;
     } catch (error) {
       console.error('EV Trip Planner Panel: Error fetching trip:', error);
       return null;
@@ -1472,7 +1479,7 @@ class EVTripPlannerPanel extends LitElement {
             <button class="close-form-btn" @click=${this._closeForm}>×</button>
           </div>
           <form @submit=${this._handleTripUpdate}>
-            <input type="hidden" id="edit-trip-id" value="${this._escapeHtml(trip.id || trip.trip_id)}">
+            <input type="hidden" name="edit-trip-id" value="${this._escapeHtml(trip.id || trip.trip_id)}">
             <div class="form-group">
               <label for="edit-trip-type">Tipo de Viaje</label>
               <select id="edit-trip-type" name="type" required @change=${this._handleTripTypeChange}>
