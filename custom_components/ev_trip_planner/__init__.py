@@ -322,8 +322,14 @@ async def create_dashboard_input_helpers(
 class TripPlannerCoordinator(DataUpdateCoordinator):
     """Coordinator to manage and update trip data."""
 
-    def __init__(self, hass: HomeAssistant, trip_manager: TripManager) -> None:
-        """Initialize the coordinator."""
+    def __init__(self, hass: HomeAssistant, trip_manager: TripManager, config_entry: ConfigEntry | None = None) -> None:
+        """Initialize the coordinator.
+
+        Args:
+            hass: HomeAssistant instance
+            trip_manager: TripManager instance for trip data
+            config_entry: Optional config entry for async_config_entry_first_refresh
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -332,6 +338,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
         self.trip_manager = trip_manager
+        self._config_entry = config_entry
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch and calculate all trip data from TripManager."""
@@ -459,7 +466,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("EMHASS adapter initialized for vehicle %s", vehicle_id)
 
     # Create coordinator for this vehicle
-    coordinator = TripPlannerCoordinator(hass, trip_manager)
+    coordinator = TripPlannerCoordinator(hass, trip_manager, entry)
     await coordinator.async_config_entry_first_refresh()
 
     # Register static paths for the native panel (must be done in async_setup_entry)

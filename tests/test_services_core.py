@@ -37,7 +37,8 @@ def mock_hass():
         def __init__(self):
             self.registry = {}
 
-        def async_register(self, domain, name, handler, schema=None):
+        def async_register(self, domain, name, handler, schema=None, supports_response=None):
+            # Accept supports_response argument to match Home Assistant 2025.1+ API
             if domain == DOMAIN:
                 self.registry[name] = handler
 
@@ -83,14 +84,9 @@ async def test_services_use_seeded_trip_manager_instance(mock_hass):
     seeded.async_setup = AsyncMock()
     seeded.async_add_recurring_trip = AsyncMock(return_value="rec_lun_seeded")
 
-    # Also need coordinator in runtime_data (with async_refresh_trips)
-    seeded_coordinator = MagicMock()
-    seeded_coordinator.async_refresh_trips = AsyncMock()
-
-    # Seed at hass.data[DATA_RUNTIME][namespace] - this is where _get_manager looks
+    # Seed trip_manager directly at hass.data[DATA_RUNTIME][namespace] - this is where _get_manager looks
     mock_hass.data.setdefault(DATA_RUNTIME, {})[namespace] = {
-        "managers": {"chispitas": seeded},
-        "coordinators": {"chispitas": seeded_coordinator},
+        "trip_manager": seeded,
     }
 
     # Set up config_entries to find our entry

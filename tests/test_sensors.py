@@ -24,8 +24,14 @@ def mock_trip_manager(hass: HomeAssistant, mock_store):
 @pytest.fixture
 async def coordinator(hass: HomeAssistant, mock_trip_manager):
     """Create a coordinator with test data."""
-    coordinator = TripPlannerCoordinator(hass, mock_trip_manager)
-    
+    from unittest.mock import MagicMock
+    mock_config_entry = MagicMock()
+    mock_config_entry.entry_id = "test_entry"
+    mock_config_entry.domain = "ev_trip_planner"
+    mock_config_entry.state = "loaded"
+
+    coordinator = TripPlannerCoordinator(hass, mock_trip_manager, mock_config_entry)
+
     # Add test trips
     await mock_trip_manager.async_add_recurring_trip(
         descripcion="Work",
@@ -40,7 +46,7 @@ async def coordinator(hass: HomeAssistant, mock_trip_manager):
         kwh=7.5,
         descripcion="Airport"
     )
-    
+
     await coordinator.async_refresh()
     return coordinator
 

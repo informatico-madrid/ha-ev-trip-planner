@@ -25,6 +25,8 @@ def vehicle_id() -> str:
 @pytest.fixture
 def mock_hass():
     """Create a mock hass with config_entries, data, and storage."""
+    from homeassistant.helpers import storage as ha_storage
+
     hass = MagicMock()
     # Mock config_entries with async_entries returning list of entries
     mock_entry = MagicMock()
@@ -37,10 +39,13 @@ def mock_hass():
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
     # Mock hass.data with proper namespace (legacy)
     hass.data = {}
-    # Mock hass.storage for persistence (new implementation)
-    hass.storage = MagicMock()
-    hass.storage.async_read = AsyncMock(return_value=None)
-    hass.storage.async_write_dict = AsyncMock(return_value=True)
+    # Mock async_add_executor_job - required by HA Store API
+    hass.async_add_executor_job = AsyncMock(return_value=None)
+
+    # Mock config
+    hass.config = MagicMock()
+    hass.config.config_dir = "/tmp/test_config"
+
     return hass
 
 
@@ -63,7 +68,9 @@ async def test_async_setup_initializes_empty_storage(mock_hass, vehicle_id):
 @pytest.mark.asyncio
 async def test_async_setup_loads_existing_and_does_not_save(mock_hass, vehicle_id):
     """Test that async_setup loads existing trips from hass.storage."""
-    # Pre-populate hass.storage with trips (new persistence mechanism)
+    from homeassistant.helpers import storage as ha_storage
+
+    # Pre-populate store with trips
     existing_trips = {
         "rec_lun_123": {
             "id": "rec_lun_123",
@@ -72,39 +79,42 @@ async def test_async_setup_loads_existing_and_does_not_save(mock_hass, vehicle_i
             "hora": "09:00"
         }
     }
-    storage_key = f"ev_trip_planner_{vehicle_id}"
-    mock_hass.storage.async_read = AsyncMock(
-        return_value={
-            "data": {
-                "trips": existing_trips,
-                "recurring_trips": existing_trips,
-                "punctual_trips": {}
-            }
+
+    # Patch Store.async_load to return our test data
+    with patch.object(ha_storage.Store, 'async_load', new_callable=lambda: AsyncMock(return_value={
+        "data": {
+            "trips": existing_trips,
+            "recurring_trips": existing_trips,
+            "punctual_trips": {}
         }
-    )
+    })):
+        manager = TripManager(mock_hass, vehicle_id)
+        await manager.async_setup()
 
-    manager = TripManager(mock_hass, vehicle_id)
-    await manager.async_setup()
-
-    # Should have loaded the existing trips
-    assert "rec_lun_123" in manager._recurring_trips
+        # Should have loaded the existing trips
+        assert "rec_lun_123" in manager._recurring_trips
 
 
 @pytest.mark.asyncio
 async def test_async_load_trips_empty_returns_list(mock_hass, vehicle_id):
     """Test that _load_trips returns empty when no data exists."""
-    manager = TripManager(mock_hass, vehicle_id)
-    await manager._load_trips()
+    from homeassistant.helpers import storage as ha_storage
 
-    assert manager._trips == {}
-    assert manager._recurring_trips == {}
-    assert manager._punctual_trips == {}
+    # Patch Store.async_load to return None (empty)
+    with patch.object(ha_storage.Store, 'async_load', new_callable=lambda: AsyncMock(return_value=None)):
+        manager = TripManager(mock_hass, vehicle_id)
+        await manager._load_trips()
+
+        assert manager._trips == {}
+        assert manager._recurring_trips == {}
+        assert manager._punctual_trips == {}
 
 
 @pytest.mark.asyncio
 async def test_async_load_trips_with_data(mock_hass, vehicle_id):
     """Test that _load_trips loads data from hass.storage."""
-    # Pre-populate hass.storage with trips
+    from homeassistant.helpers import storage as ha_storage
+
     existing_recurring = {
         "rec_lun_123": {
             "id": "rec_lun_123",
@@ -120,29 +130,29 @@ async def test_async_load_trips_with_data(mock_hass, vehicle_id):
             "datetime": "2025-11-19T15:00:00",
         },
     }
-    storage_key = f"ev_trip_planner_{vehicle_id}"
-    mock_hass.storage.async_read = AsyncMock(
-        return_value={
-            "data": {
-                "trips": {**existing_recurring, **existing_punctual},
-                "recurring_trips": existing_recurring,
-                "punctual_trips": existing_punctual
-            }
+
+    # Patch Store.async_load to return test data
+    with patch.object(ha_storage.Store, 'async_load', new_callable=lambda: AsyncMock(return_value={
+        "data": {
+            "trips": {**existing_recurring, **existing_punctual},
+            "recurring_trips": existing_recurring,
+            "punctual_trips": existing_punctual
         }
-    )
+    })):
+        manager = TripManager(mock_hass, vehicle_id)
+        await manager._load_trips()
 
-    manager = TripManager(mock_hass, vehicle_id)
-    await manager._load_trips()
-
-    assert len(manager._recurring_trips) == 1
-    assert len(manager._punctual_trips) == 1
-    assert "rec_lun_123" in manager._recurring_trips
-    assert "pun_20251119_123" in manager._punctual_trips
+        assert len(manager._recurring_trips) == 1
+        assert len(manager._punctual_trips) == 1
+        assert "rec_lun_123" in manager._recurring_trips
+        assert "pun_20251119_123" in manager._punctual_trips
 
 
 @pytest.mark.asyncio
 async def test_async_save_trips_calls_store_save(mock_hass, vehicle_id):
-    """Test that async_save_trips saves to hass.storage."""
+    """Test that async_save_trips saves to HA storage."""
+    from homeassistant.helpers import storage as ha_storage
+
     manager = TripManager(mock_hass, vehicle_id)
     manager._recurring_trips = {
         "rec_lun_abc": {
@@ -153,14 +163,19 @@ async def test_async_save_trips_calls_store_save(mock_hass, vehicle_id):
         }
     }
 
-    await manager.async_save_trips()
+    # Patch Store.async_save to capture the save
+    saved_data = {}
+    async def capture_save(data):
+        saved_data["data"] = data
+        return True
 
-    # Check data was saved to hass.storage.async_write_dict
-    storage_key = f"ev_trip_planner_{vehicle_id}"
-    mock_hass.storage.async_write_dict.assert_called_once()
-    call_args = mock_hass.storage.async_write_dict.call_args
-    assert call_args[0][0] == storage_key
-    assert "rec_lun_abc" in call_args[0][1]["data"]["recurring_trips"]
+    with patch.object(ha_storage.Store, 'async_save', new_callable=lambda: AsyncMock(side_effect=capture_save)):
+        await manager.async_save_trips()
+
+        # Check data was saved
+        assert "data" in saved_data
+        assert "recurring_trips" in saved_data["data"]
+        assert "rec_lun_abc" in saved_data["data"]["recurring_trips"]
 
 
 @pytest.mark.asyncio

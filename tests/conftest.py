@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+_LOGGER = logging.getLogger(__name__)
 
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
-    """Enable custom integrations in all tests."""
-    yield
+
+# Note: pytest-homeassistant-custom-component is not available
+# The auto_enable_custom_integrations fixture is commented out
+# Tests that require it should use the hass fixture instead
+# @pytest.fixture(autouse=True)
+# def auto_enable_custom_integrations(enable_custom_integrations):
+#     """Enable custom integrations in all tests."""
+#     yield
 
 
 @pytest.fixture
@@ -120,12 +126,12 @@ def hass():
         """Mock async_run_hass_job for debounce - devuelve una tarea real."""
         if job is None:
             return None
-        
+
         # Extraer la función del HassJob
         job_target = None
         job_args = args or []
         job_kwargs = kwargs or {}
-        
+
         # Si job tiene target (es un HassJob)
         if hasattr(job, 'target'):
             job_target = job.target
@@ -137,18 +143,34 @@ def hass():
         else:
             # Si es una función directa
             job_target = job
-        
+
         if job_target is None:
             return None
-        
+
+        # Filtrar kwargs: solo pasar argumentos válidos
+        import inspect
+        sig = inspect.signature(job_target)
+        valid_params = set(sig.parameters.keys())
+
+        # Para async_refresh, los únicos parámetros válidos son self y log_failures
+        # Filtramos cualquier kwarg que no esté en la signature
+        filtered_kwargs = {k: v for k, v in job_kwargs.items() if k in valid_params}
+
         # Crear y devolver una tarea que ejecute la función
-        if asyncio.iscoroutinefunction(job_target):
-            return job_target(*job_args, **job_kwargs)
-        else:
-            # Para funciones síncronas, envolver en coroutine
-            async def _wrapper():
-                return job_target(*job_args, **job_kwargs)
-            return _wrapper()
+        try:
+            if asyncio.iscoroutinefunction(job_target):
+                coro = job_target(*job_args, **filtered_kwargs)
+                if asyncio.iscoroutine(coro):
+                    return coro
+                return asyncio.ensure_future(coro)
+            else:
+                # Para funciones síncronas, envolver en coroutine
+                async def _wrapper():
+                    return job_target(*job_args, **filtered_kwargs)
+                return asyncio.ensure_future(_wrapper())
+        except Exception as e:
+            _LOGGER.error("Error in mock_async_run_hass_job: %s", e, exc_info=True)
+            raise
     
     hass.async_run_hass_job = _mock_async_run_hass_job
     
@@ -179,6 +201,37 @@ def mock_store():
     store.async_save = _async_save
 
     yield store
+
+
+@pytest.fixture
+def mock_store_class():
+    """
+    Fixture to patch the Store class for testing.
+
+    This properly mocks homeassistant.helpers.storage.Store so tests
+    don't hit the real HA Store implementation which requires special
+    internal state.
+    """
+    from homeassistant.helpers import storage as ha_storage
+    from unittest.mock import patch
+
+    # Create a proper mock Store class
+    class MockStore:
+        def __init__(self, hass, version, key, *, private=None):
+            self.hass = hass
+            self.version = version
+            self.key = key
+            self._storage = {}
+
+        async def async_load(self):
+            return self._storage.get("data")
+
+        async def async_save(self, data):
+            self._storage["data"] = data
+            return True
+
+    with patch.object(ha_storage, 'Store', MockStore):
+        yield MockStore
 
 
 # ============================================================================

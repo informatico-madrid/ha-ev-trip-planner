@@ -68,7 +68,7 @@ def mock_hass():
     hass._services_registry = services_registry
 
     class Services:
-        def async_register(self, domain, name, handler, schema=None):
+        def async_register(self, domain, name, handler, schema=None, supports_response=None):
             if domain == DOMAIN:
                 services_registry[name] = handler
 
@@ -233,16 +233,15 @@ class TestFullUserJourney:
         if DATA_RUNTIME not in mock_hass.data:
             mock_hass.data[DATA_RUNTIME] = {}
         if namespace not in mock_hass.data[DATA_RUNTIME]:
-            mock_hass.data[DATA_RUNTIME][namespace] = {
-                "managers": {},
-                "coordinators": {},
-            }
-        mock_hass.data[DATA_RUNTIME][namespace]["managers"][vehicle_id] = manager
+            mock_hass.data[DATA_RUNTIME][namespace] = {}
+
+        # _get_manager looks for trip_manager directly under namespace
+        mock_hass.data[DATA_RUNTIME][namespace]["trip_manager"] = manager
 
         # Create mock coordinator
         coordinator = MagicMock()
         coordinator.async_refresh_trips = AsyncMock()
-        mock_hass.data[DATA_RUNTIME][namespace]["coordinators"][vehicle_id] = coordinator
+        mock_hass.data[DATA_RUNTIME][namespace]["coordinator"] = coordinator
 
         # =====================================================================
         # STEP 2: Register services

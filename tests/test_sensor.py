@@ -855,6 +855,8 @@ async def test_config_entry_lookup_with_vehicle_id():
         source="user",
         entry_id="abc123def456",  # This is the entry_id, NOT the vehicle name
         unique_id="vehicle_chispitas",
+        discovery_keys={},
+        options={},
     )
 
     # Setup async_get_entry to return entry only for correct entry_id

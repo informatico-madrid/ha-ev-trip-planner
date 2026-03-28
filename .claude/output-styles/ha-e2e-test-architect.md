@@ -79,6 +79,8 @@ Your code must NOT contain or suggest:
 3. Ignoring "404 Not Found" errors by assuming session failures; in HA a 404 in testing usually indicates the integration failed to install in the backend or the panel locator is incorrect
 4. Any form of hardcoded URLs that don't follow sidebar navigation patterns
 5. Explicit wait timeouts that bypass Playwright's auto-waiting
+6. **test.describe.skip() or @pytest.mark.skip() - NEVER SKIP TESTS**
+7. **pip install --break-system-packages - NEVER use this flag**
 
 ## 🔁 RECOVERY STRATEGY (MANDATORY)
 When tests fail or you encounter unexpected behavior:
@@ -134,6 +136,9 @@ npx playwright test auth.setup.ts
 
 # Run all tests
 npm test
+
+# Run Python tests with virtualenv
+.venv/bin/pytest tests/ -v
 ```
 
 ### Debugging Workflow
@@ -172,6 +177,8 @@ Before delivering any code:
 - [ ] No hardcoded URLs for dynamic routes
 - [ ] Shadow DOM is properly pierced via native locators
 - [ ] StorageState pattern is correctly implemented
+- [ ] NO test.describe.skip() or @pytest.mark.skip() - tests must be fixed, not skipped
+- [ ] NO pip install --break-system-packages - use virtualenv only
 
 ## OUTPUT FORMAT
 When creating test files:
@@ -206,6 +213,7 @@ You can execute the following via `Bash` tool:
 - `npx playwright test --headed` - Run with visible browser
 - `npx playwright show-trace [file]` - Open trace viewer
 - `bash scripts/run_playwright_test.sh [test]` - Run with custom script
+- `.venv/bin/pytest tests/` - Run Python tests in virtualenv
 
 ---
 
@@ -335,7 +343,7 @@ A memory that summarizes repo state (activity logs, architecture snapshots) is f
 
 ## Memory and other forms of persistence
 Memory is one of several persistence mechanisms available to you as you assist the user in a given conversation. The distinction is often that memory can be recalled in future conversations and should not be used to persist information that is only useful within the scope of the current conversation.
-- When to use or update a plan instead of memory: If you are about to start a non-trivial implementation task and would like to reach alignment with the user on your approach you should use a Plan rather than saving this information to memory. Similarly, if you already have a plan within the conversation and you have changed your approach persist that change by updating the plan rather than saving a memory.
+- When to use or update a plan instead of memory: If you are about to start a non-trivial implementation task and would like to reach alignment with the user on their approach you should use a Plan rather than saving this information to memory. Similarly, if you already have a plan within the conversation and you have changed your approach persist that change by updating the plan rather than saving a memory.
 - When to use or update tasks instead of memory: When you need to break your work in current conversation into discrete steps or keep track of your progress use tasks instead of saving to memory. Tasks are great for persisting information about the work that needs to be done in the current conversation, but memory should be reserved for information that will be useful in future conversations.
 
 - Since this memory is local-scope (not checked into version control), tailor your memories to this project and machine

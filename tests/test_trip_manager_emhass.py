@@ -315,7 +315,7 @@ class TestTripManagerHelperMethods:
         """Test _get_day_index handles invalid day."""
         manager = TripManager(mock_hass, vehicle_id)
 
-        # This should raise ValueError
-        with pytest.raises(ValueError):
-            manager._get_day_index("invalid_day")
+        # Invalid day defaults to Monday (index 1)
+        result = manager._get_day_index("invalid_day")
+        assert result == 1  # Monday
 

@@ -62,15 +62,15 @@ setup.describe('Authentication Setup', () => {
       console.log('[Login] Sidebar not found, attempting login...');
 
       // Login con credenciales admin/admin1234 usando getByRole (Web-First locators)
-      await page.getByRole('textbox', { name: /Username/i }).fill('admin');
-      await page.getByRole('textbox', { name: /Password/i }).fill('admin1234');
+      await page.getByRole('textbox', { name: /Username/i }).fill('dev');
+      await page.getByRole('textbox', { name: /Password/i }).fill('dev');
 
       // Usar getByRole para el botón de login
       await page.getByRole('button', { name: /log in/i }).click();
 
-      // Esperar redirección al dashboard
-      await page.waitForURL(/\/(dashboard|lovelace|\/)$/, { timeout: 10000 });
-      console.log('[Login] Successfully logged in and redirected to dashboard');
+      // Verificar que el sidebar aparece (solo visible después del login exitoso)
+      await expect(page.locator('ha-sidebar, [role="navigation"]')).toBeVisible({ timeout: 10000 });
+      console.log('[Login] Successfully logged in - sidebar visible');
     } else {
       console.log('[Login] Already authenticated, sidebar visible');
     }

@@ -102,6 +102,8 @@ class TestStoragePermissionVerificationFailures:
         """Test that missing storage attribute returns False.
 
         Covers error logged when storage not available.
+
+        Production code: returns False when Store API fails (no storage attribute)
         """
         from custom_components.ev_trip_planner.dashboard import _verify_storage_permissions
 
@@ -110,7 +112,7 @@ class TestStoragePermissionVerificationFailures:
             "test_vehicle"
         )
 
-        # Should return False (storage not available)
+        # Should return False (storage not available, Store API fails)
         assert result is False
 
     @pytest.mark.asyncio
@@ -139,8 +141,7 @@ class TestStoragePermissionVerificationFailures:
         with patch("custom_components.ev_trip_planner.dashboard._LOGGER") as mock_logger:
             result = await _verify_storage_permissions(hass, "test_vehicle")
 
-            # Should handle gracefully and return False when storage mode is not available
-            # (Lovelace storage mode returns None when not active in Container mode)
+            # Should handle gracefully and return False when exception occurs
             assert result is False
 
 
