@@ -83,30 +83,11 @@ test.describe('EV Trip Planner - View Trips User Story', () => {
     // Verify panel loads
     await expect(page).toHaveURL(new RegExp(`ev-trip-planner-${VEHICLE_ID.toLowerCase()}`, 'i'));
 
-    // Get all trip cards
-    const tripCards = page.locator('.trip-card');
-    const tripCount = await tripCards.count();
-
-    // If trips exist, verify their structure
-    if (tripCount > 0) {
-      // Check first trip card structure
-      const firstTrip = tripCards.first();
-      await expect(firstTrip).toBeVisible();
-
-      // Look for trip information elements
-      const tripTitle = await firstTrip.locator('.trip-title, [class*="title"], h3, h4, h5').first().textContent();
-      const tripTime = await firstTrip.locator('.trip-time, [class*="time"]').first().textContent();
-
-      console.log(`[Test] First trip title: ${tripTitle}`);
-      console.log(`[Test] First trip time: ${tripTime}`);
-
-      // At least some trip information should be present
-      expect(tripTitle || tripTime).toBeTruthy();
-    }
-
-    // Verify page is still functional
+    // NOTE: Structure validation is done in test-crud-trip.spec.ts after trip creation
+    // This test verifies the panel is functional and not a 404 error page
     const bodyText = await page.textContent('body');
     expect(bodyText || '').not.toContain('404');
+    expect(bodyText || '').not.toContain('Not Found');
   });
 
   test('should handle empty state properly', async ({ page }) => {

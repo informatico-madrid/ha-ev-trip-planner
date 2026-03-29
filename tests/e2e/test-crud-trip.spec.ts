@@ -138,6 +138,13 @@ test.describe('EV Trip Planner - Create & Edit Trip User Story', () => {
     const firstTripCard = tripCards.first();
     await expect(firstTripCard).toBeVisible();
 
+    // Validate trip card internal structure
+    const tripType = await firstTripCard.locator('.trip-type').first().textContent();
+    const tripTime = await firstTripCard.locator('.trip-time').first().textContent();
+    console.log(`[Test] Trip type: ${tripType}`);
+    console.log(`[Test] Trip time: ${tripTime}`);
+    expect(tripType || tripTime).toBeTruthy();
+
     // Check for trip details in the card
     const tripText = await firstTripCard.allTextContents();
     const fullText = tripText.join(' ');
