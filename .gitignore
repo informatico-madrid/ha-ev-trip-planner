@@ -86,3 +86,4 @@ test-ha/test-ha/config*
 tests/ha-manual/
 playwright-results.json
 playwright-results.xml
+.env
