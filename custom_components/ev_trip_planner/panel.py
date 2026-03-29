@@ -84,13 +84,9 @@ async def async_register_panel(
         # Register additional static resource for panel.css with cache control
         # This ensures the CSS file is served correctly
         try:
-            hass.http.register_static_paths(
-                [
-                    (
-                        f"/{DOMAIN.replace('_', '-')}/panel.css",
-                        f"{_MODULE_PATH}/frontend/panel.css",
-                    ),
-                ]
+            hass.http.register_static_path(
+                f"/{DOMAIN.replace('_', '-')}/panel.css",
+                f"{_MODULE_PATH}/frontend/panel.css"
             )
             _LOGGER.debug("Registered static path for panel.css")
         except Exception as ex:
@@ -101,13 +97,9 @@ async def async_register_panel(
         try:
             # Add cache-busting to the panel.js URL
             cache_param = f"cb={int(time.time())}"
-            hass.http.register_static_paths(
-                [
-                    (
-                        f"/{DOMAIN.replace('_', '-')}/panel.js",
-                        f"{_MODULE_PATH}/frontend/panel.js",
-                    ),
-                ]
+            hass.http.register_static_path(
+                f"/{DOMAIN.replace('_', '-')}/panel.js",
+                f"{_MODULE_PATH}/frontend/panel.js"
             )
             _LOGGER.debug("Registered static path for panel.js with cache param: %s", cache_param)
         except Exception as ex:

@@ -19,18 +19,44 @@
  */
 
 import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+import { join } from 'path';
 
 const VEHICLE_ID = 'Coche2';
+const SERVER_INFO_PATH = join(process.cwd(), 'playwright/.auth/server-info.json');
+
+function getBaseUrl(): string {
+  if (fs.existsSync(SERVER_INFO_PATH)) {
+    const info = JSON.parse(fs.readFileSync(SERVER_INFO_PATH, 'utf-8'));
+    return new URL(info.link || info.baseUrl || process.env.HA_BASE_URL!).origin;
+  }
+  throw new Error('Server info not found - run auth.setup.ts first');
+}
 
 test.describe('EV Trip Planner - View Trips User Story', () => {
   /**
-   * Setup: Navigate to panel URL using auth.setup authentication
+   * Setup: Navigate to panel via sidebar using auth.setup authentication
+   * Pattern: ha-sidebar → getByRole('option', VEHICLE_ID).first() → wait for panel
    */
   async function navigateToPanel(page: any): Promise<void> {
-    await page.goto(`ev-trip-planner-${VEHICLE_ID.toLowerCase()}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    });
+    const baseUrl = getBaseUrl();
+
+    // 1. NAVEGACIÓN ESTRICTA POR MENÚ LATERAL (ha-sidebar)
+    console.log('[Test Setup] Navigating to Home Assistant dashboard via sidebar...');
+    await page.goto(baseUrl);
+
+    // Wait for sidebar to be visible
+    const sidebar = page.locator('ha-sidebar');
+    await expect(sidebar).toBeVisible({ timeout: 15000 });
+
+    // Click on vehicle option in sidebar (from snapshot: it's an option, not a link)
+    const vehicleOption = sidebar.getByRole('option', { name: VEHICLE_ID }).first();
+    await vehicleOption.waitFor({ state: 'visible', timeout: 10000 });
+    await vehicleOption.click();
+
+    // Wait for panel content to load
+    const panel = page.locator('ev-trip-planner-panel, ha-panel-ev_trip_planner').first();
+    await expect(panel).toBeVisible({ timeout: 15000 });
   }
 
   test('should display trip list panel', async ({ page }) => {

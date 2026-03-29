@@ -469,6 +469,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = TripPlannerCoordinator(hass, trip_manager, entry)
     await coordinator.async_config_entry_first_refresh()
 
+    _LOGGER.warning("=== async_setup_entry COMPLETE === vehicle=%s, entry_id=%s", vehicle_id, entry.entry_id)
+
     # Register static paths for the native panel (must be done in async_setup_entry)
     from pathlib import Path
 
@@ -511,26 +513,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             await hass.http.async_register_static_paths(static_paths)
             _LOGGER.info("Registered %d static path(s) for EV Trip Planner panel", len(static_paths))
-        except (TypeError, AttributeError) as err:
+        except (TypeError, AttributeError, RuntimeError) as err:
             # Fallback for different HA versions - use legacy register_static_path
+            # RuntimeError can occur when route is already registered (e.g., from previous setup)
             _LOGGER.warning(
                 "async_register_static_paths not available or error: %s, trying legacy method",
                 err,
             )
             try:
                 for path_spec in static_paths:
-                    if isinstance(path_spec, tuple):
-                        url_path, file_path, _ = path_spec
-                        hass.http.register_static_path(url_path, file_path)
-                    else:
-                        # StaticPathConfig - try to extract values
-                        hass.http.register_static_path(path_spec.path, path_spec.url_path)
+                    try:
+                        if isinstance(path_spec, tuple):
+                            url_path, file_path, _ = path_spec
+                            hass.http.register_static_path(url_path, file_path)
+                        else:
+                            # StaticPathConfig - try to extract values
+                            hass.http.register_static_path(path_spec.path, path_spec.url_path)
+                    except RuntimeError as path_err:
+                        # Route already exists - this is OK if panel was registered before
+                        if "already registered" in str(path_err).lower():
+                            _LOGGER.info("Static path already registered, skipping: %s", url_path)
+                            continue
+                        raise
                 _LOGGER.info("Registered static paths using legacy method")
             except Exception as legacy_err:
                 _LOGGER.error(
                     "Failed to register static paths with legacy method: %s",
                     legacy_err,
                 )
+                # Don't fail setup - panel will still work via panel_custom registration
+                pass
     elif static_paths:
         _LOGGER.warning("hass.http is None - static paths will be served via panel_custom")
 
@@ -1303,10 +1315,10 @@ def register_services(hass: HomeAssistant) -> None:
 
 # Helper functions with proper type hints
 def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
-    """Find config entry by vehicle name."""
+    """Find config entry by vehicle name (case-insensitive)."""
     return next(
         (e for e in hass.config_entries.async_entries(DOMAIN)
-         if e.data.get("vehicle_name") == vehicle_id),
+         if e.data.get("vehicle_name", "").lower() == vehicle_id.lower()),
         None,
     )
 

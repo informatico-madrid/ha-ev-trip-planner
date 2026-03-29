@@ -1,6 +1,5 @@
-- [feedback_verification](feedback_verification.md) — Regla de verificación obligatoria antes de afirmar
-- [test_separation](test_separation.md) — Test 1 en test-config-flow.spec.ts, tests de validación en test-config-flow-validation.spec.ts
 - [feedback_selectors](feedback_selectors.md) — Lecciones sobre selectores Playwright y Shadow DOM en HA
+- [selector_modal_no_role](selector_modal_no_role.md) — Usar clase del contenedor del modal cuando no tiene role="dialog"
 - [scripts_location](scripts_location.md) — Scripts de ha-e2e-testing están en ~/.claude/skills/ha-e2e-testing/scripts/ (ruta correcta)
 - [lessons_learned_debugging](lessons_learned_debugging.md) — Reconocer señales de progreso y no sobre-ingenierizar en debugging de tests E2E
 - [debugging_cache_busting](debugging_cache_busting.md) — Forzar actualización de JS en HA con VERSION/TIMESTAMP logs y cache_headers=False
@@ -31,3 +30,6 @@
 - [mcp_browser_cache_fix](mcp_browser_cache_fix.md) — MCP Playwright browser cache fix: browser_close + browser_navigate pattern to clear HA IndexedDB cache
 - [mcp_isolated_mode](mcp_isolated_mode.md) — MCP Playwright config with --isolated and --storage-state=/tmp/playwright-storage-state.json for permanent cache clearing
 - [edit_trip_name_attr_fix](edit_trip_name_attr_fix.md) — Edit trip form input needs name= attribute for formData.get() to work
+- [feedback_vehicle_lookup](feedback_vehicle_lookup.md) — Vehicle ID lookup must be case-insensitive to match frontend vehicle_id with HA config entry vehicle_name
+- [feedback_cancelled_error](feedback_cancelled_error.md) — Handle asyncio.CancelledError gracefully in trip_manager.py storage operations during hass-taste-test setup
+- [feedback_modal_close](feedback_modal_close.md) — Wait for dialog to detach before verifying trip list after form submission

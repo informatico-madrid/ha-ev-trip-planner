@@ -8,6 +8,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Cerrar el archivo de logs
+const logFilePath = path.join('/tmp', 'ha-logs.txt');
+if (fs.existsSync(logFilePath)) {
+  console.log(`[GlobalTeardown] Logs saved to: ${logFilePath}`);
+}
+
 async function globalTeardown() {
   console.log('[GlobalTeardown] Cleaning up...');
 

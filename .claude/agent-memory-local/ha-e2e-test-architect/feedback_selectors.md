@@ -17,16 +17,17 @@ type: feedback
 - Reemplazar `waitForTimeout(2000)` con `expect(locator).toBeVisible({ timeout: 10000 })`
 - El test seguirá pasando e incluso puede ser más rápido (2.4s vs 7.2s en mi caso)
 
-## 2. getByRole('listitem') NO funciona siempre para elementos del Shadow DOM
+## 2. Verificar código fuente del panel.js para estructura del modal
 
-**Regla:** Verifica el DOM real antes de asumir el role correcto.
+**Regla:** Para modales de Lit Elements sin role="dialog", revisar el código fuente del panel.js para encontrar la clase del contenedor del modal.
 
-**Por qué:** Home Assistant usa Lit Elements que pueden renderizar elementos con roles diferentes a los esperados. El snapshot mostró que "EV Trip Planner" estaba dentro de un elemento `generic` dentro de una `list`, no como `listitem`.
+**Por qué:** Los modales de Lit Elements usan divs con clases específicas (ej: `.trip-form-overlay`) en lugar de roles semánticos. No confiar solo en snapshots del DOM.
 
 **Cómo aplicar:**
-- Usar `getByText('EV Trip Planner')` cuando `getByRole('listitem')` falla
-- Verificar el snapshot del DOM con `test-results/*/error-context.md` para ver la estructura real
-- Preferir selectores más simples: `getByText` > `getByRole('listitem')` > `getByRole('generic')`
+1. Buscar en `custom_components/*/frontend/panel.js` la estructura del modal
+2. Identificar la clase del overlay (ej: `.trip-form-overlay`)
+3. Usar esa clase para acotar el selector: `page.locator('.trip-form-overlay').getByRole(...)`
+4. Ver archivo `selector_modal_no_role.md` para el patrón completo
 
 ## 3. XPath selectors son innecesarios y frágiles
 

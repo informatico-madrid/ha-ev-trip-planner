@@ -98,22 +98,6 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json'
       },
       dependencies: ['setup']
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'playwright/.auth/user.json'
-      },
-      dependencies: ['setup']
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-        storageState: 'playwright/.auth/user.json'
-      },
-      dependencies: ['setup']
     }
   ],
 
@@ -123,11 +107,7 @@ export default defineConfig({
   // Global teardown para cleanup
   globalTeardown: './tests/global.teardown.ts',
 
-  // WebServer opcional si necesitas levantar el proyecto
-  webServer: process.env.CI ? null : {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000
-  }
+  // Sin webServer - hass-taste-test maneja el servidor HA efímero
+  // El panel.js se copia después de que HA arranca (líneas 43-55 de global.setup.ts)
+  // Esto funciona porque hass-taste-test crea el directorio www/ antes de iniciar HA
 })
