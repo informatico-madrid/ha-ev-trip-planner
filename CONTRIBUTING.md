@@ -21,7 +21,7 @@ custom_components/
     ├── manifest.json            # Metadata (REQUERIDO)
     ├── const.py                 # Constantes globales
     ├── config_flow.py           # Configuración UI (opcional pero recomendado)
-    ├── coordinator.py           # Data Update Coordinator (recomendado)
+    ├── __init__.py              # Entry point + Coordinator logic
     │
     ├── sensor.py                # Platform: Sensors
     ├── binary_sensor.py         # Platform: Binary sensors

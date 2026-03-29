@@ -4,7 +4,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg
   ?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Versión](https://img.shields.io/badge/version-0.4.0--dev-blue.svg
+[![Versión](https://img.shields.io/badge/version-0.4.1--dev-blue.svg
   ?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
 [![Licencia](https://img.shields.io/badge/license-MIT-green.svg
   ?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -54,7 +54,7 @@
 - **📈 Sensor de Perfil**: Perfil de potencia con 168 horas de planificación
 - **🧠 Optimización Inteligente**: Distribuye carga justo antes de cada viaje
 
-### 🚀 Milestone 4.1 - Próximas Mejoras (PLANIFICADO)
+### 🚀 Milestone 4.1 - Próximas Mejoras (EN DESARROLLO)
 - **⚡ Carga Distribuida**: Distribuir en múltiples horas con optimización de costes
 - **🚗 Múltiples Vehículos**: Soporte para 2+ vehículos con balanceo de carga
 - **🌡️ Predicción Climática**: Ajusta consumo según temperatura
@@ -203,21 +203,21 @@
 
 ### Configuración avanzada (YAML)
 
+> ⚠️ **DEPRECADO**: La integración EV Trip Planner usa exclusivamente **config flow UI**.
+> No se soporta configuración via `configuration.yaml`. Esta sección se mantiene solo
+> para referencia histórica.
+
+<!--
 ```yaml
-# configuration.yaml
+# configuration.yaml (YA NO SOPORTADO)
 ev_trip_planner:
   vehicles:
     - name: "Chispitas"
       battery_capacity_kwh: 27
       efficiency_kwh_km: 0.15
-      min_soc: 20  # % mínimo de batería
-    - name: "Morgan"
-      battery_capacity_kwh: 52
-      efficiency_kwh_km: 0.18
-      min_soc: 15
+      min_soc: 20
 ```
-
-**Reinicia Home Assistant** después de editar `configuration.yaml`.
+-->
 
 ---
 
@@ -639,7 +639,8 @@ ha-ev-trip-planner/
 │   ├── test_sensors.py      # Tests sensores
 │   └── test_trip_manager.py # Tests manager
 ├── .github/workflows/
-│   └── validate.yml         # CI/CD
+│   ├── playwright.yml        # Playwright E2E tests
+│   └── python-tests.yml     # Python pytest tests
 ├── hacs.json                # Metadata HACS
 ├── manifest.json            # Metadata HA
 └── README.md               # Este archivo

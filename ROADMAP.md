@@ -2,9 +2,9 @@
 
 ## 📊 Project Status
 
-**Current Version**: 0.2.0-dev
-**Development Stage**: Milestone 2 Completed
-**Target Release**: v1.0.0 (Q1 2025)
+**Current Version**: 0.4.1-dev
+**Development Stage**: Milestone 4.1 In Progress
+**Target Release**: v1.0.0 (Q2 2026)
 
 ---
 
@@ -332,39 +332,31 @@ async def async_cleanup_past_trips(self):
 
 ### 📊 Updated Project Status
 
-**Current Version**: 0.3.0-dev (Milestone 3 Code Complete)
-**Development Stage**: ✅ **MILESTONE 3 CODE COMPLETE** - Production Validation Required
-**Next Milestone**: Milestone 4 (Production Validation & Polishing)
+**Current Version**: 0.4.1-dev
+**Development Stage**: ✅ **MILESTONE 4.1 IN PROGRESS** - Smart Charge Profile
+**Next Milestone**: Milestone 4.1 validation
 
 **Current Status Summary**:
 - ✅ **Milestone 0**: Project Foundation - COMPLETE
 - ✅ **Milestone 1**: Core Infrastructure - COMPLETE
 - ✅ **Milestone 2**: Trip Calculations - COMPLETE
+- ✅ **Milestone 3**: EMHASS Integration - COMPLETE
 - ✅ **Milestone 3.1**: UX Improvements - COMPLETE
 - ✅ **Milestone 3.2**: Advanced Configuration - COMPLETE
-- ⚠️ **Milestone 3**: Production Validation - **IN PROGRESS** (NOT STARTED)
+- ✅ **Milestone 4**: Smart Charge Profile - COMPLETE
+- 🚧 **Milestone 4.1**: Next Improvements - **IN PROGRESS**
 
-**Updated Timeline**:
-- ✅ Milestone 3.1: COMPLETED (1-2 days)
-- ✅ Milestone 3.2: COMPLETED (1 week)
-- ⚠️ **Milestone 4**: Production Validation - **NEXT STEP**
-  - Deploy to Home Assistant local environment
-  - Configure test vehicle with EMHASS parameters
-  - Create test trips and verify dynamic index assignment
-  - Test presence detection with real sensors
-  - Monitor for 24 hours without errors
-  - Validate migration service with real data
-- **Target for v1.0**: ~1 week (production validation only)
+**Current Testing**:
+- 793 Python tests passing (pytest)
+- 10 Playwright E2E tests passing
+- CI/CD pipelines automated (GitHub Actions)
 
-**Remaining Work**:
-- ❌ Production environment testing (HA local at http://$HA_URL:8123)
-- ❌ EMHASS integration validation (http://$EMHASS_IP:5000)
-- ❌ End-to-end trip workflow testing
-- ❌ Presence detection validation with real sensors
-- ❌ Index persistence across HA restarts
-- ❌ Migration service validation
+**Next Steps**:
+- Milestone 4.1: Distributed charging optimization
+- Multi-vehicle support
+- Weather prediction integration
 
-**Critical Next Step**: Deploy to production environment and validate all functionality before release.
+**Target for v1.0**: Q2 2026
 
 ---
 
@@ -805,7 +797,7 @@ We welcome contributions at any stage! Current priorities:
 
 ---
 
-**Last Updated**: November 22, 2025  
+**Last Updated**: March 29, 2026  
 **Next Review**: After Milestone 3 completion
 
 ---
