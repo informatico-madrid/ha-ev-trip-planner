@@ -56,8 +56,6 @@ export default defineConfig({
       testMatch: ['**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        // Reuse authentication from auth project
-        storageState: join(rootDir, 'playwright', '.auth', 'user.json'),
       },
       dependencies: ['auth'],
     },
