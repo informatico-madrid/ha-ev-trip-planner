@@ -13,9 +13,9 @@ import * as path from 'path';
 async function globalSetup(config: FullConfig) {
   console.log('[GlobalSetup] Starting ephemeral HA server...');
 
-  const evTripPlannerPath = '/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner';
-  const panelJsPath = evTripPlannerPath + '/frontend/panel.js';
-  const rootDir = '/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner';
+  const evTripPlannerPath = path.join(process.cwd(), 'custom_components/ev_trip_planner');
+  const panelJsPath = path.join(evTripPlannerPath, 'frontend/panel.js');
+  const rootDir = process.cwd();
 
   // Start ephemeral HA with the custom component
   const hassInstance = await HomeAssistant.create(`
