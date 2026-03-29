@@ -30,10 +30,6 @@ test-dashboard:
 test-e2e:
 	npx playwright test tests/e2e/ --reporter=line --timeout=60000
 
-test-dashboard:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
-	@echo "Dashboard de cobertura generado en htmlcov/index.html"
-
 lint:
 	ruff check .
 	pylint custom_components/ tests/

@@ -131,7 +131,7 @@
 }
 
 .status-card {
-  background: var(--card-background-color, white);
+  background: var(--card-background-color, red);
   border-radius: 12px;
   padding: 20px 16px;
   text-align: center;
@@ -175,7 +175,7 @@
    ============================================================================= */
 
 .sensor-list-grouped {
-  background: var(--card-background-color, white);
+  background: var(--card-background-color, red);
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -338,14 +338,14 @@
 }
 
 .trips-list {
-  background: var(--card-background-color, white);
+  background: var(--card-background-color, red);
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .trip-card {
-  background: var(--card-background-color, white);
+  background: var(--card-background-color, red);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
@@ -563,7 +563,7 @@
 }
 
 .trip-form-container {
-  background: var(--card-background-color, white);
+  background: var(--card-background-color, red);
   border-radius: 12px;
   padding: 24px;
   max-width: 500px;
