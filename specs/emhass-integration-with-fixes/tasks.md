@@ -130,11 +130,12 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Verify**: `python3 -m pytest tests/ -v --tb=short`
   - **Commit**: `refactor(errors): clean up error handling paths`
 
-- [ ] 1.16 [VERIFY] Quality checkpoint: All AC tests pass
+- [x] 1.16 [VERIFY] Quality checkpoint: All AC tests pass
   - **Do**: Run pytest for all integration tests
   - **Verify**: `python3 -m pytest tests/test_integration_uninstall.py tests/test_sensor_coverage.py tests/test_dashboard.py -v --tb=short`
   - **Done when**: All integration tests pass
-  - **Commit**: `chore(tests): pass AC integration tests` (only if fixes needed)
+  - **Commit**: `chore(tests): pass AC integration tests`
+  - Fixed test bugs: test 1 needed trip in _recurring_trips and async_entries mock; test 2 needed async_entries mock
 
 ## Phase 2: Additional Testing
 

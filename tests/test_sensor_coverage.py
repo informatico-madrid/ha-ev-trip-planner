@@ -604,7 +604,20 @@ class TestTripStateChangeUpdatesSensor:
 
         # Now change the trip state by updating a trip
         # This simulates what happens when user edits a trip
-        mock_trip_manager_for_sensor.async_update_trip = AsyncMock()
+        # Pre-populate _recurring_trips so the real async_update_trip can find and sync the trip
+        mock_trip_manager_for_sensor._recurring_trips["trip_1"] = {
+            "id": "trip_1",
+            "km": 30,
+            "kwh": 4.5,
+            "activo": True,
+        }
+        # Use side_effect to call the real async_update_trip implementation
+        real_update_trip = mock_trip_manager_for_sensor.__class__.async_update_trip
+
+        async def side_effect_impl(tid, upd, **kw):
+            return await real_update_trip(mock_trip_manager_for_sensor, tid, upd, **kw)
+
+        mock_trip_manager_for_sensor.async_update_trip = AsyncMock(side_effect=side_effect_impl)
 
         # Trigger trip state change
         await mock_trip_manager_for_sensor.async_update_trip(
@@ -650,6 +663,7 @@ class TestTripStateChangeUpdatesSensor:
         }
         mock_entry.entry_id = "test_entry_id"
         hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
         mock_trip_manager_for_sensor.async_generate_power_profile = AsyncMock(
             return_value=[1000]
