@@ -56,7 +56,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
   - _Requirements: AC-1, AC-4_
   - _Design: Interface Contracts_
 
-- [ ] 1.5 [VERIFY] Quality checkpoint: POC builds and basic functionality works
+- [x] 1.5 [VERIFY] Quality checkpoint: POC builds and basic functionality works
   - **Do**: Run lint and type check on modified files
   - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && ruff check custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/emhass_adapter.py && echo PASS`
   - **Done when**: No lint errors, code compiles
@@ -220,7 +220,7 @@ EOF
   - **Verify**: All commands exit 0
   - **Done when**: All checks pass, PR merged or approved
 
-- [ ] 5.4 VE1 [VERIFY] E2E startup: verify sensor entity available
+- [x] 5.4 VE1 [VERIFY] E2E startup: verify sensor entity available
   - **Do**:
     1. This is a library component - verify build and import works
     2. Run: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && python3 -c "from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor; from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter; print('Import OK')"`
@@ -228,7 +228,7 @@ EOF
   - **Done when**: Module imports correctly
   - **Commit**: None
 
-- [ ] 5.5 VE2 [VERIFY] E2E cleanup: verify no residual state
+- [x] 5.5 VE2 [VERIFY] E2E cleanup: verify no residual state
   - **Do**:
     1. Run tests with verbose output to ensure clean state: `python3 -m pytest tests/test_emhass_soft_delete.py tests/test_deferrable_load_sensors.py -v --tb=short 2>&1 | grep -E "PASSED|FAILED|ERROR" | tail -20`
   - **Verify**: All tests pass with no errors
