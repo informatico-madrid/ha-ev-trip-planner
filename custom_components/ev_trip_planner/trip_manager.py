@@ -874,6 +874,67 @@ class TripManager:
                         next_trip = {"time": trip_time, "trip": trip}
         return next_trip["trip"] if next_trip else None
 
+    async def async_get_next_trip_after(
+        self, hora_regreso: datetime
+    ) -> Optional[Dict[str, Any]]:
+        """Obtiene el próximo viaje pendiente después de una hora de regreso.
+
+        Filtra viajes puntuales con datetime > hora_regreso y estado=pendiente,
+        y viajes recurrentes con hora > hora_regreso.time() para el día de
+        hoy de la semana y activo=True.
+
+        Args:
+            hora_regreso: Fecha y hora de regreso del vehículo
+
+        Returns:
+            El próximo viaje más temprano después de hora_regreso, o None si
+            no hay viajes pendientes.
+        """
+        next_trip = None
+        hora_regreso_time = hora_regreso.time()
+        hoy = hora_regreso.date()
+        dia_semana_hoy = DAYS_OF_WEEK[hoy.weekday()]
+
+        # Filter punctual trips: datetime > hora_regreso and estado=pendiente
+        for trip in self._punctual_trips.values():
+            if trip.get("estado") != "pendiente":
+                continue
+            trip_time = self._get_trip_time(trip)
+            if trip_time and trip_time > hora_regreso:
+                if next_trip is None or trip_time < next_trip["time"]:
+                    next_trip = {"time": trip_time, "trip": trip}
+
+        # Filter recurring trips: today's day_of_week, hora > hora_regreso.time(), activo=True
+        for trip in self._recurring_trips.values():
+            if not trip.get("activo", True):
+                continue
+            if trip.get("dia_semana", "").lower() != dia_semana_hoy:
+                continue
+            # Parse hora (format: "HH:MM")
+            try:
+                trip_hour = int(trip["hora"].split(":")[0])
+                trip_minute = int(trip["hora"].split(":")[1])
+                regreso_hour = hora_regreso.hour
+                regreso_minute = hora_regreso.minute
+                # Compare time only (not date) for recurring trips
+                if trip_hour < regreso_hour or (
+                    trip_hour == regreso_hour and trip_minute <= regreso_minute
+                ):
+                    continue
+            except (ValueError, KeyError) as err:
+                _LOGGER.warning(
+                    "Error parsing recurring trip hora '%s': %s",
+                    trip.get("hora"),
+                    err,
+                )
+                continue
+            # Build full datetime for today at the trip's hour
+            trip_time = datetime.combine(hoy, datetime.strptime(trip["hora"], "%H:%M").time())
+            if next_trip is None or trip_time < next_trip["time"]:
+                next_trip = {"time": trip_time, "trip": trip}
+
+        return next_trip["trip"] if next_trip else None
+
     def _is_trip_today(self, trip: Dict[str, Any], today: datetime.date) -> bool:
         """Verifica si un viaje ocurre hoy."""
         if trip["tipo"] == TRIP_TYPE_RECURRING:

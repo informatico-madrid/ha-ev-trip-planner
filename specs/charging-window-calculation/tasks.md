@@ -46,7 +46,7 @@
   - _Requirements: AC-2, AC-3_
   - _Design: Dependencies section - reading hora_regreso from Spec 1_
 
-- [ ] 1.3 Add helper to get next pending trip after a given time
+- [x] 1.3 Add helper to get next pending trip after a given time
   - **Do**:
     1. Add method `async_get_next_trip_after(hora_regreso: datetime)` to TripManager
     2. Filter punctual trips with datetime > hora_regreso and estado=pendiente
