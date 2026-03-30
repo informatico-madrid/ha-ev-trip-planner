@@ -148,7 +148,7 @@ Focus: Handle edge cases and document required HA entities.
   - **Commit**: `feat(automation): add SOC-based charge limiting`
   - _Design: Edge Cases from templateborradorcargasaplazablesvehiculo.yaml_
 
-- [ ] 3.2 Handle intensity adjustment for Morgan (V2C) case
+- [x] 3.2 Handle intensity adjustment for Morgan (V2C) case
   - **Do**:
     1. Add intensity calculation: potencia / 230
     2. Add min/max clamping (6A min, 32A max)

@@ -80,6 +80,7 @@ variables:
   carga_activa: "{{ is_state('switch.carga_' ~ vehicle_id ~ '_iniciar_carga', 'on') }}"
   soc: "{{ states(soc_sensor) | float(0) }}"
   soc_alto: "{{ soc > 90 }}"
+  intensidad: "{{ [[p_deferrable0 | float / 230, 6] | max, 32] | min }}"
   debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado and not soc_alto }}"
   debe_detener: "{{ p_deferrable0 == 0 and carga_activa }}"
 conditions:
