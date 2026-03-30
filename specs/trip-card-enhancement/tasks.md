@@ -77,7 +77,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
   - _Requirements: AC-1, AC-2_
   - _Design: Architecture_
 
-- [ ] 1.6 [GREEN] Pass test: Add soc_target to TripSensor extra_state_attributes
+- [x] 1.6 [GREEN] Pass test: Add soc_target to TripSensor extra_state_attributes
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. In `TripSensor.__init__()`, extract soc_objetivo from trip_data
