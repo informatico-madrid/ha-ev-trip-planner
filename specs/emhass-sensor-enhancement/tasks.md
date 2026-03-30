@@ -180,11 +180,11 @@ After POC validated, clean up code structure.
 - Wire sensor updates to trip add/modify/delete handlers
 
 ## Test plan
-- [ ] Unit tests for soft delete index stability
-- [ ] Unit tests for last_update and emhass_status attributes
-- [ ] Integration tests for deferrables_schedule p_deferrable{n} format
-- [ ] Multiple trips assigned sequential indices test
-- [ ] All existing tests pass
+- [x] Unit tests for soft delete index stability (tests/test_emhass_soft_delete.py - 4 tests)
+- [x] Unit tests for last_update and emhass_status attributes (tests/test_deferrable_load_sensors.py - 3 tests)
+- [x] Integration tests for deferrables_schedule p_deferrable{n} format (tests/test_deferrable_load_sensors.py)
+- [x] Multiple trips assigned sequential indices test (tests/test_emhass_adapter.py::test_multiple_trips_assigned_sequential_indices)
+- [x] All existing tests pass (80 tests in emhass adapter/sensor tests)
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF

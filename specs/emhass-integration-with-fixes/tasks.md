@@ -191,7 +191,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: None
   - PR #7 created: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/7 (CI: 2 tests pass in ~2m57s and 1m28s)
 
-- [ ] 4.2 Address review comments
+- [x] 4.2 Address review comments (fixes merged via PR #8 which was merged into main)
   - **Do**: Fix any issues raised in code review
   - **Verify**: CI remains green after fixes
   - **Done when**: All comments addressed

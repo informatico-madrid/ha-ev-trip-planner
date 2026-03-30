@@ -62,7 +62,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-3_
   - _Design: Interface Contracts_
 
-- [ ] 1.6 V1 [VERIFY] Quality checkpoint: YAML syntax validation
+- [x] 1.6 V1 [VERIFY] Quality checkpoint: YAML syntax validation (verified: YAML valid)
   - **Do**: Run Home Assistant config validator or YAML linter
   - **Verify**: `python3 -c "import yaml; yaml.safe_load(open('automations/emhass_charge_control_template.yaml'))" && echo V1_PASS`
   - **Done when**: YAML parses without errors
@@ -128,7 +128,7 @@ Focus: Support both sensor naming patterns identified in plan.
   - _Requirements: Sensor Naming Clarification_
   - _Design: Interface Contracts_
 
-- [ ] 2.3 V2 [VERIFY] Quality checkpoint: validate both sensor patterns
+- [x] 2.3 V2 [VERIFY] Quality checkpoint: validate both sensor patterns (verified: YAML valid)
   - **Do**: Test template with both sensor naming conventions
   - **Verify**: `python3 -c "import yaml; d=yaml.safe_load(open('automations/emhass_charge_control_template.yaml')); print('OK')"`
   - **Done when**: Template valid with both patterns
@@ -169,7 +169,7 @@ Focus: Handle edge cases and document required HA entities.
   - _Requirements: TODO item 5_
   - _Design: TODO item 5_
 
-- [ ] 3.4 V3 [VERIFY] Quality checkpoint: edge cases and docs
+- [x] 3.4 V3 [VERIFY] Quality checkpoint: edge cases and docs (verified: edge cases implemented)
   - **Do**: Review all edge case handling
   - **Verify**: `grep -E "(soc_alto|intensidad|not debe_cargar)" automations/emhass_charge_control_template.yaml | wc -l`
   - **Done when**: All edge cases implemented
@@ -194,19 +194,19 @@ Focus: Handle edge cases and document required HA entities.
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Monitor CI pipeline
+- [x] 5.1 Monitor CI pipeline (PR #4 merged - CI passing)
   - **Do**: Check PR checks status
   - **Verify**: `gh pr checks 2>/dev/null || echo "CI check skipped"`
   - **Done when**: All checks pass
   - **Commit**: None
 
-- [ ] 5.2 Address review comments if any
+- [x] 5.2 Address review comments if any (none received)
   - **Do**: Handle feedback from code review
   - **Done when**: All comments resolved
   - **Verify**: `gh pr view --comments 2>/dev/null | grep -c "comment" || echo "0"`
   - **Commit**: `fix(automation): address review comments`
 
-- [ ] 5.3 Final merge to main
+- [x] 5.3 Final merge to main (PR #4 merged)
   - **Do**: Merge PR after all checks pass
   - **Verify**: `git log --oneline -1`
   - **Done when**: PR merged
