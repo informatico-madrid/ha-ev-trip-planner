@@ -105,6 +105,62 @@ class TripManager:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
 
+    @staticmethod
+    def _validate_hora(hora: str) -> None:
+        """Valida que una cadena de hora tenga el formato HH:MM y valores válidos.
+
+        Args:
+            hora: Cadena de hora en formato HH:MM.
+
+        Raises:
+            ValueError: Si el formato no es HH:MM o los valores están fuera de rango.
+        """
+        parts = hora.split(":")
+        if len(parts) != 2:
+            raise ValueError(f"Formato de hora inválido: '{hora}'. Se esperaba HH:MM")
+        try:
+            hour = int(parts[0])
+            minute = int(parts[1])
+        except ValueError as err:
+            raise ValueError(
+                f"Formato de hora inválido: '{hora}'. Se esperaba HH:MM"
+            ) from err
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            raise ValueError(
+                f"Hora/minuto fuera de rango: {hora}"
+            )
+
+    def _sanitize_recurring_trips(
+        self, trips: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Elimina viajes recurrentes con formato de hora inválido del almacenamiento.
+
+        Itera sobre los viajes recurrentes cargados y descarta los que tienen
+        una cadena 'hora' con formato o valores fuera de rango, registrando
+        una advertencia descriptiva para cada entrada eliminada.
+
+        Args:
+            trips: Diccionario de viajes recurrentes cargados del almacenamiento.
+
+        Returns:
+            Diccionario limpio que sólo contiene entradas con hora válida.
+        """
+        sanitized: Dict[str, Any] = {}
+        for trip_id, trip in trips.items():
+            hora = trip.get("hora", "")
+            try:
+                self._validate_hora(hora)
+                sanitized[trip_id] = trip
+            except ValueError as err:
+                _LOGGER.warning(
+                    "Viaje recurrente '%s' ignorado por formato de hora inválido "
+                    "('%s'): %s. Elimine o corrija la entrada en el almacenamiento.",
+                    trip_id,
+                    hora,
+                    err,
+                )
+        return sanitized
+
     async def _publish_deferrable_loads(self) -> None:
         """Publish current trips to EMHASS as deferrable loads."""
         if not self._emhass_adapter:
@@ -172,6 +228,11 @@ class TripManager:
                 self._recurring_trips = data.get("recurring_trips", {})
                 self._punctual_trips = data.get("punctual_trips", {})
                 self._last_update = data.get("last_update")
+
+                # Sanitize recurring trips: remove entries with invalid hora format
+                self._recurring_trips = self._sanitize_recurring_trips(
+                    self._recurring_trips
+                )
 
                 _LOGGER.warning("=== AFTER LOAD ===")
                 _LOGGER.warning("=== self._trips: %d trips ===", len(self._trips))
@@ -392,6 +453,10 @@ class TripManager:
             kwargs.get("km", 0),
             kwargs.get("kwh", 0),
         )
+        # Validate hora format before storing
+        hora = kwargs.get("hora", "")
+        self._validate_hora(hora)
+
         # Generate trip ID using the new format: rec_{day}_{random}
         if "trip_id" in kwargs:
             trip_id = kwargs["trip_id"]
@@ -1013,15 +1078,19 @@ class TripManager:
                     trip_hour == regreso_hour and trip_minute <= regreso_minute
                 ):
                     continue
+                # Build full datetime for today at the trip's hour
+                trip_time = datetime.combine(
+                    hoy, datetime.strptime(trip["hora"], "%H:%M").time()
+                )
             except (ValueError, KeyError) as err:
                 _LOGGER.warning(
-                    "Error parsing recurring trip hora '%s': %s",
+                    "Viaje recurrente '%s' omitido: formato de hora inválido "
+                    "('%s'): %s",
+                    trip.get("id", "desconocido"),
                     trip.get("hora"),
                     err,
                 )
                 continue
-            # Build full datetime for today at the trip's hour
-            trip_time = datetime.combine(hoy, datetime.strptime(trip["hora"], "%H:%M").time())
             if next_trip is None or trip_time < next_trip["time"]:
                 next_trip = {"time": trip_time, "trip": trip}
 
