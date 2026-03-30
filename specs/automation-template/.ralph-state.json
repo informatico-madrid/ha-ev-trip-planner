@@ -1,0 +1,17 @@
+{
+  "source": "spec",
+  "name": "automation-template",
+  "basePath": "specs/automation-template",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 24,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [],
+  "epicName": "emhass-deferrable-integration",
+  "granularity": "fine"
+}
