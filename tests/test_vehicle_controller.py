@@ -798,7 +798,7 @@ class TestVehicleControllerRetry:
         wrapper.async_call_service = mock_service_call
 
         # This should reset the retry state due to disconnect detection
-        result = await controller.async_activate_charging()
+        await controller.async_activate_charging()
 
         # Retry counter should be reset
         assert controller._retry_state.get_attempt_count() == 0
@@ -809,11 +809,6 @@ class TestVehicleControllerRetry:
         controller = VehicleController(hass, "test_vehicle")
 
         # Set up presence monitor that will fail
-        presence_config = {
-            "home_sensor": "binary_sensor.home",
-            "plugged_sensor": "binary_sensor.plugged",
-            "charging_sensor": "binary_sensor.charging",
-        }
         controller._presence_monitor = Mock()
         controller._presence_monitor.async_check_charging_readiness = AsyncMock(return_value=(False, "not at home"))
 

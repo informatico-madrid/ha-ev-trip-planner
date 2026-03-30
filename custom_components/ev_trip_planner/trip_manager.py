@@ -969,7 +969,6 @@ class TripManager:
             no hay viajes pendientes.
         """
         next_trip = None
-        hora_regreso_time = hora_regreso.time()
         hoy = hora_regreso.date()
         dia_semana_hoy = DAYS_OF_WEEK[hoy.weekday()]
 
@@ -1463,7 +1462,6 @@ class TripManager:
             trip = ventana["trip"]
             ventana_horas = ventana["ventana_horas"]
             kwh_necesarios = ventana["kwh_necesarios"]
-            horas_carga_necesarias = ventana["horas_carga_necesarias"]
 
             # SOC al inicio de este viaje
             soc_inicio = soc_actual
@@ -1739,7 +1737,6 @@ class TripManager:
                 trip, vehicle_config
             )
             energia_kwh = energia_info["energia_necesaria_kwh"]
-            horas_carga = energia_info["horas_carga_necesarias"]
 
             if energia_kwh <= 0:
                 continue

@@ -78,8 +78,6 @@ def mock_hass():
                 call = MagicMock()
                 call.data = data or {}
                 # Execute handler - it's an async function, so it returns a coroutine
-                import asyncio
-                loop = asyncio.get_running_loop()
                 coro = handler(call)
                 if asyncio.iscoroutine(coro):
                     result = await coro

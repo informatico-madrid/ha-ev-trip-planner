@@ -555,12 +555,8 @@ class TestChargingWindowMultitrip:
         # Trip 1: departs 19:00, arrives 01:00 next day
         # Trip 2: departs 21:00, arrives 03:00 next day
         # Trip 3: departs 23:00, arrives 05:00 next day
-        trip1_departure = datetime(2099, 4, 1, 19, 0, 0)
         trip1_arrival = datetime(2099, 4, 2, 1, 0, 0)  # 19:00 + 6h
-        trip2_departure = datetime(2099, 4, 1, 21, 0, 0)
         trip2_arrival = datetime(2099, 4, 2, 3, 0, 0)  # 21:00 + 6h
-        trip3_departure = datetime(2099, 4, 1, 23, 0, 0)
-        trip3_arrival = datetime(2099, 4, 2, 5, 0, 0)  # 23:00 + 6h
 
         # First trip: window from 17:00 to 01:00 next day = 8 hours
         assert results[0]["ventana_horas"] == 8.0, \
@@ -623,7 +619,6 @@ class TestChargingWindowMultitrip:
         )
 
         # First trip's window should start at hora_regreso (18:00)
-        trip1_departure = datetime(2099, 4, 1, 20, 0, 0)
         trip1_arrival = datetime(2099, 4, 2, 2, 0, 0)  # 20:00 + 6h
         assert results[0]["inicio_ventana"] == hora_regreso, \
             f"First trip should start at hora_regreso {hora_regreso}, got {results[0]['inicio_ventana']}"

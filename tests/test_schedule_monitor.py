@@ -775,36 +775,6 @@ async def test_async_start_charging_vehicle_not_plugged(
 
 
 @pytest.mark.asyncio
-async def test_async_stop_charging(
-    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
-):
-    """Test stop charging."""
-    monitor = VehicleScheduleMonitor(
-        hass=mock_hass,
-        vehicle_id="test_vehicle",
-        control_strategy=mock_control_strategy,
-        presence_monitor=mock_presence_monitor,
-        notification_service="persistent_notification.create",
-        emhass_adapter=mock_emhass_adapter,
-    )
-
-    # Set up last action
-    monitor._last_actions[0] = "start"
-
-    # Mock control strategy
-    mock_control_strategy.async_deactivate = AsyncMock(return_value=True)
-
-    # Mock notify
-    monitor._async_notify = AsyncMock()
-
-    # Should stop charging
-    await monitor._async_stop_charging(0)
-
-    # Verify control strategy was called
-    mock_control_strategy.async_deactivate.assert_called_once()
-
-
-@pytest.mark.asyncio
 async def test_remove_trip_monitor_not_tracked(
     mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
 ):

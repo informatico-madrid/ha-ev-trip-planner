@@ -1310,7 +1310,7 @@ async def test_publish_deferrable_load_kwh_zero(hass: HomeAssistant, mock_store)
         }
 
         # Publish should work even with zero kwh
-        result = await adapter.async_publish_deferrable_load(trip)
+        await adapter.async_publish_deferrable_load(trip)
 
         # Should return True (or handle zero kwh gracefully)
         # The exact behavior depends on implementation

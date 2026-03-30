@@ -193,10 +193,14 @@ async def test_service_pause_resume_complete_cancel(mock_hass):
         complete_h = mock_hass.services.registry["complete_punctual_trip"]
         cancel_h = mock_hass.services.registry["cancel_punctual_trip"]
 
-        call1 = MagicMock(); call1.data = {"vehicle_id": "chispitas", "trip_id": "rec_lun_abc"}
-        call2 = MagicMock(); call2.data = {"vehicle_id": "chispitas", "trip_id": "rec_lun_abc"}
-        call3 = MagicMock(); call3.data = {"vehicle_id": "chispitas", "trip_id": "pun_20251119_abc"}
-        call4 = MagicMock(); call4.data = {"vehicle_id": "chispitas", "trip_id": "pun_20251119_abc"}
+        call1 = MagicMock()
+        call1.data = {"vehicle_id": "chispitas", "trip_id": "rec_lun_abc"}
+        call2 = MagicMock()
+        call2.data = {"vehicle_id": "chispitas", "trip_id": "rec_lun_abc"}
+        call3 = MagicMock()
+        call3.data = {"vehicle_id": "chispitas", "trip_id": "pun_20251119_abc"}
+        call4 = MagicMock()
+        call4.data = {"vehicle_id": "chispitas", "trip_id": "pun_20251119_abc"}
 
         await pause_h(call1)
         await resume_h(call2)

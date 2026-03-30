@@ -71,7 +71,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        import psutil  # type: ignore
+        pass  # type: ignore
     except Exception:
         # Fallback to pkill if psutil is not available in the environment.
         import subprocess

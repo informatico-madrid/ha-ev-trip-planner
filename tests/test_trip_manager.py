@@ -8,7 +8,7 @@ This test suite covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

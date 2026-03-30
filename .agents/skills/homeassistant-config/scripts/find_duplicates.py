@@ -7,12 +7,11 @@ Usage: python3 find_duplicates.py <directory_or_file> [--verbose]
 """
 
 import sys
-import os
 import re
 import json
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
+from typing import List, Set
 from difflib import SequenceMatcher
 from collections import defaultdict
 

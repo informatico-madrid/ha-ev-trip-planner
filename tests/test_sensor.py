@@ -900,7 +900,7 @@ async def test_sensor_with_none_coordinator():
     from custom_components.ev_trip_planner.sensor import KwhTodaySensor
 
     # Create sensor with coordinator=None
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         warnings.simplefilter("always")
         sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=None)
 
