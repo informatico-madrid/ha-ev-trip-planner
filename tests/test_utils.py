@@ -111,7 +111,7 @@ class TestIsValidTripId:
 
     def test_invalid_none(self):
         """Test None is invalid."""
-        assert is_valid_trip_id(None) is False  # type: ignore
+        assert is_valid_trip_id(None) is False
 
     def test_invalid_rec_short_suffix(self):
         """Test recurrent ID with short suffix is invalid."""

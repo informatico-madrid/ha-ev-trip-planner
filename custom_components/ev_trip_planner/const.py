@@ -69,7 +69,7 @@ DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index re
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types
-TripType = Literal["recurrente", "punctual"]
+TripType = Literal["recurrente", "puntual"]
 TRIP_TYPE_RECURRING: TripType = "recurrente"
 TRIP_TYPE_PUNCTUAL: TripType = "puntual"
 

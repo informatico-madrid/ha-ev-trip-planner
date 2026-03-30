@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 
 class FakeEntry:
-    def __init__(self, entry_id: str, data: dict) -> None:
+    def __init__(self, entry_id: str, data: dict[str, Any]) -> None:
         self.entry_id = entry_id
         self.data = data
 
@@ -39,7 +39,7 @@ async def test_async_setup_entry_creates_three_sensors():
         data={"vehicle_name": "Chispitas"},
     )
 
-    created: List = []
+    created: List[Any] = []
 
     def add_entities(ents):
         created.extend(ents)

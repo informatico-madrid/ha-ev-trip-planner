@@ -598,7 +598,6 @@ class TestTripStateChangeUpdatesSensor:
         # Initial update - sensor should be ready
         await sensor.async_update()
         initial_native_value = sensor.native_value
-        initial_attrs = sensor.extra_state_attributes.copy()
 
         assert initial_native_value == "ready", "Sensor should be ready after initial update"
 

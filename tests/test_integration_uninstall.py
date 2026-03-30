@@ -4,7 +4,7 @@ Tests that vehicle deletion properly cleans up all trips from TripManager storag
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
@@ -52,7 +52,7 @@ class TestCascadeDelete:
         mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
 
         # Mock async_unregister_panel
-        with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock) as mock_unregister:
+        with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock):
             # Import and call async_unload_entry
             from custom_components.ev_trip_planner import async_unload_entry
 
