@@ -149,7 +149,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Verify**: Multi-trip deficit chain test passes
   - **Commit**: `feat(soc-milestone): handle consecutive deficits`
 
-- [ ] 1.14 [P] Handle battery_capacity_kwh fallback
+- [x] 1.14 [P] Handle battery_capacity_kwh fallback
   - **Do**:
     1. Extract battery_capacity_kwh from vehicle_config if available
     2. Fallback to 50.0 kWh if not available

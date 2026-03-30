@@ -1496,7 +1496,7 @@ class TripManager:
         trips: List[Dict[str, Any]],
         soc_inicial: float,
         charging_power_kw: float,
-        battery_capacity_kwh: float,
+        vehicle_config: Optional[Dict[str, Any]] = None,
         hora_regreso: Optional[datetime] = None,
     ) -> List[Dict[str, Any]]:
         """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás.
@@ -1514,12 +1514,18 @@ class TripManager:
             trips: Lista de diccionarios con datos de viajes
             soc_inicial: SOC inicial del vehículo al comenzar la cadena (%)
             charging_power_kw: Potencia de carga en kW
-            battery_capacity_kwh: Capacidad de batería en kWh
+            vehicle_config: Diccionario con configuración del vehículo
+                - battery_capacity_kwh: Capacidad de batería en kWh (fallback 50.0)
             hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
 
         Returns:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
         """
+        # Extract battery_capacity_kwh from vehicle_config with fallback to 50.0 kWh
+        battery_capacity_kwh = 50.0
+        if vehicle_config and isinstance(vehicle_config, dict):
+            battery_capacity_kwh = vehicle_config.get("battery_capacity_kwh", 50.0)
+
         if not trips:
             return []
 
