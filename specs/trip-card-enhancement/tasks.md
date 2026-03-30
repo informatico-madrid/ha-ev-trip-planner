@@ -170,7 +170,7 @@ Update `update_from_trip_data` to include new attributes when trip is edited.
   - _Requirements: AC-4_
   - _Design: AC-4_
 
-- [ ] 2.2 [GREEN] Pass test: Update update_from_trip_data to include new attributes
+- [x] 2.2 [GREEN] Pass test: Update update_from_trip_data to include new attributes
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. Find `update_from_trip_data` method in TripSensor
