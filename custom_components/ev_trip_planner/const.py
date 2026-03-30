@@ -35,6 +35,7 @@ CONF_CONTROL_TYPE = "control_type"
 
 # EMHASS Integration (Milestone 3)
 CONF_MAX_DEFERRABLE_LOADS = "max_deferrable_loads"
+CONF_INDEX_COOLDOWN_HOURS = "index_cooldown_hours"
 CONF_PLANNING_HORIZON = "planning_horizon_days"
 CONF_PLANNING_SENSOR = "planning_sensor_entity"
 
@@ -64,6 +65,7 @@ DEFAULT_SOC_BUFFER_PERCENT = 10  # percent (minimum SOC buffer for backward defi
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
+DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types

@@ -82,7 +82,7 @@ After POC validated, clean up code structure.
   - **Commit**: `refactor(emhass): extract EMHASS state constants`
   - _Design: Architecture_
 
-- [ ] 2.2 Add index cooldown configuration to config flow
+- [x] 2.2 Add index cooldown configuration to config flow
   - **Do**:
     1. Add `CONF_INDEX_COOLDOWN_HOURS` to const.py with default value 24
     2. Add cooldown hours field to config flow schema

@@ -25,6 +25,7 @@ from .const import (
     CONF_CHARGING_SENSOR,
     CONF_CONSUMPTION,
     CONF_HOME_SENSOR,
+    CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_DEVICES,
     CONF_NOTIFICATION_SERVICE,
@@ -36,6 +37,7 @@ from .const import (
     CONF_VEHICLE_NAME,
     CONFIG_VERSION,
     DEFAULT_CONSUMPTION,
+    DEFAULT_INDEX_COOLDOWN_HOURS,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
@@ -101,6 +103,15 @@ STEP_EMHASS_SCHEMA = vol.Schema(
                 "description": "Cargas diferibles (10-100). Valor recomendado: 50.",
             },
         ): vol.All(vol.Coerce(int), vol.Range(min=10, max=100)),
+        vol.Required(
+            CONF_INDEX_COOLDOWN_HOURS,
+            default=DEFAULT_INDEX_COOLDOWN_HOURS,
+            description={
+                "suggested_value": "24",
+                "placeholder": "24",
+                "description": "Horas de cooldown antes de reutilizar un índice liberado (1-168).",
+            },
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=168)),
         vol.Optional(CONF_PLANNING_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
                 domain="sensor",

@@ -9,9 +9,11 @@ from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_CHARGING_POWER,
+    CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
     CONF_VEHICLE_NAME,
+    DEFAULT_INDEX_COOLDOWN_HOURS,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     EMHASS_STATE_READY,
@@ -39,9 +41,11 @@ class EMHASSAdapter:
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
 
-        # Soft delete: released indices with timestamp for 24h cooldown
+        # Soft delete: released indices with timestamp for cooldown
         self._released_indices: Dict[int, datetime] = {}
-        self._index_cooldown_hours: int = 24
+        self._index_cooldown_hours: int = vehicle_config.get(
+            CONF_INDEX_COOLDOWN_HOURS, DEFAULT_INDEX_COOLDOWN_HOURS
+        )
 
         # Error tracking
         self._last_error: Optional[str] = None
