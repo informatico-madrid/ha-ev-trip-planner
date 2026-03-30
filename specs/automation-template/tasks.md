@@ -4,7 +4,7 @@
 
 Focus: Create working YAML automation template based on existing borrador. Validate sensor patterns and core logic.
 
-- [ ] 1.1 Create base automation template structure
+- [x] 1.1 Create base automation template structure
   - **Do**:
     1. Create `automations/emhass_charge_control_template.yaml`
     2. Add alias, description, mode (single), max_exceeded (silent)
