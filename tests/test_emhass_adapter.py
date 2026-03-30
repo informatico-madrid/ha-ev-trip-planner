@@ -131,12 +131,13 @@ async def test_release_trip_index(hass: HomeAssistant, mock_store):
         assert index == 0
         assert len(adapter._available_indices) == 49
         
-        # Release index
+        # Release index (soft delete - goes to cooldown, not immediately available)
         result = await adapter.async_release_trip_index("trip_001")
         assert result is True
-        assert len(adapter._available_indices) == 50
-        assert 0 in adapter._available_indices
-        
+        assert len(adapter._available_indices) == 49  # Index still in soft delete, not available
+        assert 0 not in adapter._available_indices  # Index NOT available yet
+        assert 0 in adapter._released_indices  # Index is in soft-delete cooldown
+
         # Verify trip no longer in map
         assert adapter.get_assigned_index("trip_001") is None
 
@@ -285,11 +286,12 @@ async def test_remove_deferrable_load(hass: HomeAssistant, mock_store):
         # Remove
         result = await adapter.async_remove_deferrable_load("trip_001")
         assert result is True
-        
-        # Verify index released
+
+        # Verify index released (soft delete - goes to cooldown, not immediately available)
         assert adapter.get_assigned_index("trip_001") is None
-        assert index in adapter._available_indices
-        
+        assert index not in adapter._available_indices  # Not available yet
+        assert index in adapter._released_indices  # Index is in soft-delete cooldown
+
         # Verify sensor cleared
         sensor_id = f"sensor.emhass_deferrable_load_config_{index}"
         state = hass.states.get(sensor_id)
