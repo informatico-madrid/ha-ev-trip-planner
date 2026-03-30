@@ -18,7 +18,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
   - _Requirements: AC-3, AC-5_
   - _Design: Interface Contracts_
 
-- [ ] 1.2 [P] Add soft delete mechanism to EMHASSAdapter
+- [x] 1.2 [P] Add soft delete mechanism to EMHASSAdapter
   - **Do**:
     1. Open `custom_components/ev_trip_planner/emhass_adapter.py`
     2. In `__init__()`, add `self._released_indices: Dict[int, datetime] = {}` and `self._index_cooldown_hours: int = 24`

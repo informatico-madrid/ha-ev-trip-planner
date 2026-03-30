@@ -36,6 +36,10 @@ class EMHASSAdapter:
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
 
+        # Soft delete: released indices with timestamp for 24h cooldown
+        self._released_indices: Dict[int, datetime] = {}
+        self._index_cooldown_hours: int = 24
+
         # Error tracking
         self._last_error: Optional[str] = None
         self._last_error_time: Optional[datetime] = None
@@ -84,7 +88,8 @@ class EMHASSAdapter:
             # Trip already has an index, reuse it
             return self._index_map[trip_id]
 
-        if not self._available_indices:
+        available = self.get_available_indices()
+        if not available:
             _LOGGER.error(
                 "No available EMHASS indices for vehicle %s. "
                 "Max deferrable loads: %d, currently used: %d",
@@ -95,7 +100,7 @@ class EMHASSAdapter:
             return None
 
         # Assign the smallest available index
-        assigned_index = min(self._available_indices)
+        assigned_index = min(available)
         self._available_indices.remove(assigned_index)
         self._index_map[trip_id] = assigned_index
 
@@ -115,6 +120,7 @@ class EMHASSAdapter:
     async def async_release_trip_index(self, trip_id: str) -> bool:
         """
         Release an EMHASS index when trip is deleted/completed.
+        Uses soft delete - index goes to cooldown for 24h before reuse.
 
         Returns:
             True if index was released, False if trip not found
@@ -124,17 +130,18 @@ class EMHASSAdapter:
             return False
 
         released_index = self._index_map.pop(trip_id)
-        self._available_indices.append(released_index)
-        self._available_indices.sort()
+        # Soft delete: store in released_indices with timestamp instead of returning to available
+        self._released_indices[released_index] = datetime.now()
 
         await self.async_save()
 
         _LOGGER.info(
             "Released EMHASS index %d from trip %s for vehicle %s. "
-            "Index now available for reuse",
+            "Index in soft-delete cooldown for %d hours",
             released_index,
             trip_id,
             self.vehicle_id,
+            self._index_cooldown_hours,
         )
 
         return True
@@ -289,6 +296,29 @@ class EMHASSAdapter:
     def get_all_assigned_indices(self) -> Dict[str, int]:
         """Get all trip-index mappings."""
         return self._index_map.copy()
+
+    def get_available_indices(self) -> List[int]:
+        """
+        Get list of available indices, excluding those in soft-delete cooldown.
+
+        Returns:
+            List of available EMHASS indices
+        """
+        # Clean up expired cooldown indices first
+        now = datetime.now()
+        expired = [
+            idx
+            for idx, released_time in self._released_indices.items()
+            if (now - released_time).total_seconds() >= self._index_cooldown_hours * 3600
+        ]
+        for idx in expired:
+            del self._released_indices[idx]
+            self._available_indices.append(idx)
+
+        if expired:
+            self._available_indices.sort()
+
+        return self._available_indices
 
     def calculate_deferrable_parameters(
         self,

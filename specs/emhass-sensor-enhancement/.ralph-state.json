@@ -1,0 +1,18 @@
+{
+  "source": "spec",
+  "name": "emhass-sensor-enhancement",
+  "basePath": "specs/emhass-sensor-enhancement",
+  "phase": "execution",
+  "taskIndex": 1,
+  "totalTasks": 26,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 2,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [],
+  "epicName": "emhass-deferrable-integration",
+  "granularity": "fine",
+  "awaitingApproval": true
+}
