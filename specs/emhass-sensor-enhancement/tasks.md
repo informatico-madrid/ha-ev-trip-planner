@@ -150,7 +150,7 @@ After POC validated, clean up code structure.
   - _Requirements: AC-1_
   - _Design: Interface Contracts_
 
-- [ ] 3.5 [VERIFY] Quality checkpoint: all tests pass
+- [x] 3.5 [VERIFY] Quality checkpoint: all tests pass
   - **Do**: Run full test suite
   - **Verify**: `make test 2>&1 | tail -40`
   - **Done when**: All tests pass
@@ -158,7 +158,7 @@ After POC validated, clean up code structure.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run ALL quality checks locally
   - **Verify**: All commands must pass:
     - Type check: `make mypy`

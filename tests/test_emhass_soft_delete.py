@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime, timedelta
 from homeassistant.core import HomeAssistant
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.const import (
@@ -11,7 +11,6 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
     CONF_INDEX_COOLDOWN_HOURS,
-    DEFAULT_INDEX_COOLDOWN_HOURS,
 )
 
 
