@@ -1,0 +1,121 @@
+blueprint:
+  name: EMHASS Charge Control
+  description: Template automation for EMHASS-controlled vehicle charging based on MPC plan deferrable load
+  domain: automation
+  input:
+    vehicle_id:
+      name: Vehicle ID
+      description: The vehicle identifier used in sensor names (e.g., ovms_chispitas)
+      default: ovms_chispitas
+    home_sensor:
+      name: Home Sensor
+      description: Binary sensor entity that indicates if the vehicle is at home
+      selector:
+        entity:
+          domain: binary_sensor
+    plugged_sensor:
+      name: Plugged Sensor
+      description: Sensor entity that indicates if the vehicle is plugged in (on/off)
+      selector:
+        entity:
+          domain: sensor
+    charge_switch:
+      name: Charge Switch
+      description: Switch entity to start/stop charging
+      selector:
+        entity:
+          domain: switch
+    manual_mode_input:
+      name: Manual Mode Input
+      description: Input boolean that controls manual mode override
+      selector:
+        entity:
+          domain: input_boolean
+    sensor_pattern_input:
+      name: Sensor Pattern
+      description: Input select entity with sensor pattern preference (pattern_1 or pattern_2)
+      selector:
+        entity:
+          domain: input_select
+    emhass_plan_sensor:
+      name: EMHASS Plan Sensor
+      description: Sensor containing the EMHASS MPC plan with p_deferrable values
+      selector:
+        entity:
+          domain: sensor
+    soc_sensor:
+      name: SOC Sensor
+      description: Sensor entity that reports current battery State of Charge (percentage)
+      selector:
+        entity:
+          domain: sensor
+
+alias: EMHASS Charge Control Template
+description: Template automation for EMHASS charge control - configure vehicle_id at include time
+mode: single
+max_exceeded: silent
+triggers:
+  - time_pattern:
+      minutes: "5"
+  - time_pattern:
+      minutes: "35"
+variables:
+  # SENSOR NAMING PATTERNS:
+  # Pattern 1 (primary): sensor.emhass_plan_{vehicle}_mpc_congelado
+  #   - Per-vehicle MPC frozen plan with plan_deferrable{n}_horario_mpc attributes
+  # Pattern 2: sensor.emhass_deferrable{n}_schedule
+  #   - Per-index schedule with horario_mpc attribute
+  # Both patterns provide equivalent data; template switches between them via sensor_pattern_input.
+  vehicle_id: "{{ vehicle_id | default('ovms_chispitas') }}"
+  sensor_pattern: "{{ sensor_pattern_input | default('pattern_1') }}"
+  hora_actual: "{{ now().hour }}"
+  # Pattern 1: sensor.emhass_plan_{vehicle}_mpc_congelado
+  p_deferrable0_pattern1: "{{ state_attr('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
+  # Pattern 2: sensor.emhass_deferrable0_schedule
+  p_deferrable0_pattern2: "{{ state_attr('sensor.emhass_deferrable0_schedule', 'horario_mpc')[hora_actual] | int(0) }}"
+  # Select based on pattern preference
+  p_deferrable0: "{{ p_deferrable0_pattern1 if sensor_pattern == 'pattern_1' else p_deferrable0_pattern2 }}"
+  coche_en_casa: "{{ is_state('binary_sensor.carga_' ~ vehicle_id ~ '_coche_en_casa', 'on') }}"
+  coche_enchufado: "{{ is_state('sensor.carga_' ~ vehicle_id ~ '_enchufado', 'on') }}"
+  carga_activa: "{{ is_state('switch.carga_' ~ vehicle_id ~ '_iniciar_carga', 'on') }}"
+  soc: "{{ states(soc_sensor) | float(0) }}"
+  soc_alto: "{{ soc > 90 }}"
+  intensidad: "{{ [[p_deferrable0 | float / 230, 6] | max, 32] | min }}"
+  debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado and not soc_alto }}"
+  debe_detener: "{{ p_deferrable0 == 0 and carga_activa }}"
+conditions:
+  - condition: template
+    value_template: "{{ states('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado') not in ['unavailable', 'unknown'] }}"
+  - condition: state
+    entity_id: input_boolean.carga_{{ vehicle_id }}_modo_manual
+    state: "off"
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ debe_cargar }}"
+        sequence:
+          - service: switch.turn_on
+            entity_id: switch.carga_{{ vehicle_id }}_iniciar_carga
+      - conditions:
+          - condition: template
+            value_template: "{{ debe_detener }}"
+        sequence:
+          - service: switch.turn_off
+            entity_id: switch.carga_{{ vehicle_id }}_iniciar_carga
+      - conditions:
+          - condition: template
+            value_template: "{{ (not coche_en_casa or not coche_enchufado) and p_deferrable0 > 100 }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Charging Opportunity Missed"
+              message: "EMHASS scheduled charging for vehicle {{ vehicle_id }}, but car is {{ 'not at home' if not coche_en_casa else 'not plugged in' }}."
+      - conditions:
+          - condition: template
+            value_template: "{{ soc_alto and p_deferrable0 > 100 }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "SOC High - Manual Intervention Required"
+              message: "EMHASS scheduled charging for vehicle {{ vehicle_id }}, but SOC is at {{ soc | int }}%. Manual activation required to charge."
