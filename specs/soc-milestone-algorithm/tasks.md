@@ -50,7 +50,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - _Requirements: AC-4_
   - _Design: Algorithm step 1_
 
-- [ ] 1.5 [P] Implement SOC at trip start calculation using calcular_ventana_carga_multitrip
+- [x] 1.5 [P] Implement SOC at trip start calculation using calcular_ventana_carga_multitrip
   - **Do**:
     1. Call existing `calcular_ventana_carga_multitrip` to get windows
     2. For each trip, SOC at start = previous trip arrival SOC after charging

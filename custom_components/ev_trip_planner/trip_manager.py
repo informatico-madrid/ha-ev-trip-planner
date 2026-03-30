@@ -1419,6 +1419,80 @@ class TripManager:
 
         return results
 
+    async def calcular_soc_inicio_trips(
+        self,
+        trips: List[Dict[str, Any]],
+        soc_inicial: float,
+        hora_regreso: Optional[datetime],
+        charging_power_kw: float,
+        battery_capacity_kwh: float = 50.0,
+    ) -> List[Dict[str, Any]]:
+        """Calcula el SOC al inicio de cada viaje en cadena.
+
+        Utiliza calcular_ventana_carga_multitrip para obtener las ventanas de carga
+        y calcula el SOC de inicio para cada viaje.
+
+        Args:
+            trips: Lista de diccionarios con datos de viajes
+            soc_inicial: SOC inicial del vehículo al comenzar la cadena (%)
+            hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
+            charging_power_kw: Potencia de carga en kW
+            battery_capacity_kwh: Capacidad de batería en kWh
+
+        Returns:
+            Lista de diccionarios, uno por viaje, conteniendo:
+                - soc_inicio: SOC al inicio del viaje (%)
+                - trip: El trip original
+                - arrival_soc: SOC al llegar (después de cargar)
+        """
+        if not trips:
+            return []
+
+        # Obtener ventanas de carga para todos los viajes
+        ventanas = await self.calcular_ventana_carga_multitrip(
+            trips=trips,
+            soc_actual=soc_inicial,
+            hora_regreso=hora_regreso,
+            charging_power_kw=charging_power_kw,
+        )
+
+        results = []
+        soc_actual = soc_inicial
+
+        for idx, ventana in enumerate(ventanas):
+            trip = ventana["trip"]
+            ventana_horas = ventana["ventana_horas"]
+            kwh_necesarios = ventana["kwh_necesarios"]
+            horas_carga_necesarias = ventana["horas_carga_necesarias"]
+
+            # SOC al inicio de este viaje
+            soc_inicio = soc_actual
+
+            # Calcular energía que se puede cargar en la ventana
+            if charging_power_kw > 0 and ventana_horas > 0:
+                kwh_disponibles = charging_power_kw * ventana_horas
+                kwh_a_cargar = min(kwh_necesarios, kwh_disponibles)
+            else:
+                kwh_a_cargar = 0.0
+
+            # Calcular SOC después de cargar (llegada al destino del viaje)
+            if battery_capacity_kwh > 0:
+                soc_llegada = soc_actual + (kwh_a_cargar / battery_capacity_kwh * 100)
+                soc_llegada = min(100.0, soc_llegada)  # Cap at 100%
+            else:
+                soc_llegada = soc_actual
+
+            results.append({
+                "soc_inicio": round(soc_inicio, 2),
+                "trip": trip,
+                "arrival_soc": round(soc_llegada, 2),
+            })
+
+            # Actualizar SOC para el siguiente viaje
+            soc_actual = soc_llegada
+
+        return results
+
     async def async_generate_power_profile(
         self,
         charging_power_kw: float = 3.6,
