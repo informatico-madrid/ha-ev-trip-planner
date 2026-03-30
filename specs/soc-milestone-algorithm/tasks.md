@@ -182,7 +182,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): create test file with fixtures`
   - _Design: Test Strategy_
 
-- [ ] 2.2 [P] Test AC-1: Morning/Night trip deficit propagation (BACKWARD)
+- [x] 2.2 [P] Test AC-1: Morning/Night trip deficit propagation (BACKWARD)
   - **Do**:
     1. Create trips: morning 12:00 (30% SOC needed), night 22:00 (80% SOC needed)
     2. Night arrives at 20% SOC
