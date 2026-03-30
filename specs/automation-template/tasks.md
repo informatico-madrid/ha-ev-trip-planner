@@ -117,7 +117,7 @@ Focus: Support both sensor naming patterns identified in plan.
   - _Requirements: Sensor Naming Clarification_
   - _Design: Interface Contracts_
 
-- [ ] 2.2 Add template switch for sensor pattern selection
+- [x] 2.2 Add template switch for sensor pattern selection
   - **Do**:
     1. Add input_select for sensor pattern preference
     2. Add conditions that check which pattern to use

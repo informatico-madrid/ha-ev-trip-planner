@@ -31,6 +31,12 @@ blueprint:
       selector:
         entity:
           domain: input_boolean
+    sensor_pattern_input:
+      name: Sensor Pattern
+      description: Input select entity with sensor pattern preference (pattern_1 or pattern_2)
+      selector:
+        entity:
+          domain: input_select
     emhass_plan_sensor:
       name: EMHASS Plan Sensor
       description: Sensor containing the EMHASS MPC plan with p_deferrable values
@@ -53,10 +59,16 @@ variables:
   #   - Per-vehicle MPC frozen plan with plan_deferrable{n}_horario_mpc attributes
   # Pattern 2: sensor.emhass_deferrable{n}_schedule
   #   - Per-index schedule with horario_mpc attribute
-  # Both patterns provide equivalent data; this template uses Pattern 1.
+  # Both patterns provide equivalent data; template switches between them via sensor_pattern_input.
   vehicle_id: "{{ vehicle_id | default('ovms_chispitas') }}"
+  sensor_pattern: "{{ sensor_pattern_input | default('pattern_1') }}"
   hora_actual: "{{ now().hour }}"
-  p_deferrable0: "{{ state_attr('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
+  # Pattern 1: sensor.emhass_plan_{vehicle}_mpc_congelado
+  p_deferrable0_pattern1: "{{ state_attr('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
+  # Pattern 2: sensor.emhass_deferrable0_schedule
+  p_deferrable0_pattern2: "{{ state_attr('sensor.emhass_deferrable0_schedule', 'horario_mpc')[hora_actual] | int(0) }}"
+  # Select based on pattern preference
+  p_deferrable0: "{{ p_deferrable0_pattern1 if sensor_pattern == 'pattern_1' else p_deferrable0_pattern2 }}"
   coche_en_casa: "{{ is_state('binary_sensor.carga_' ~ vehicle_id ~ '_coche_en_casa', 'on') }}"
   coche_enchufado: "{{ is_state('sensor.carga_' ~ vehicle_id ~ '_enchufado', 'on') }}"
   carga_activa: "{{ is_state('switch.carga_' ~ vehicle_id ~ '_iniciar_carga', 'on') }}"
