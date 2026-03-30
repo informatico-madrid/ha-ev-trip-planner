@@ -597,6 +597,44 @@ async def test_trip_sensor_charging_window_attribute(mock_hass_with_storage):
     assert attrs["charging_window"]["end"] == "22:00", "charging_window end should be 22:00"
 
 
+# Tests for soc_target attribute (TripCard Enhancement - AC-3)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_soc_target(mock_hass_with_storage):
+    """Test that TripSensor shows soc_target in extra_state_attributes.
+
+    This test verifies AC-3: Trip card shows SOC target when deficit propagated
+    (e.g., "SOC objetivo: 60%")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with soc_objetivo (spanish key from trip_manager)
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "soc_objetivo": 60,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify soc_target is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "soc_target" in attrs, "soc_target should be in extra_state_attributes"
+    assert attrs["soc_target"] == 60, "soc_target should be 60"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 

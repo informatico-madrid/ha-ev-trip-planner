@@ -661,6 +661,11 @@ class TripSensor(SensorEntity):
             "estado": trip_data.get("estado", "pendiente"),
         }
 
+        # Add soc_target if soc_objetivo is present (AC-3)
+        soc_objetivo = trip_data.get("soc_objetivo")
+        if soc_objetivo is not None:
+            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
+
         # Add EMHASS-related info
         self._attr_extra_state_attributes.update(self._get_emhass_info())
 
@@ -757,6 +762,11 @@ class TripSensor(SensorEntity):
             "activo": trip_data.get("activo", True),
             "estado": trip_data.get("estado", "pendiente"),
         }
+        # Add soc_target if soc_objetivo is present (AC-3)
+        soc_objetivo = trip_data.get("soc_objetivo")
+        if soc_objetivo is not None:
+            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
+
         # Add EMHASS-related info
         self._attr_extra_state_attributes.update(self._get_emhass_info())
 
