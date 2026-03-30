@@ -48,7 +48,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `feat(sensors): ensure EmhassDeferrableLoadSensor registration`
   - _Requirements: AC-2_
 
-- [ ] 1.6 [YELLOW] Refactor: Verify sensor creation is triggered from async_setup_entry
+- [x] 1.6 [YELLOW] Refactor: Verify sensor creation is triggered from async_setup_entry
   - **Do**: Check `__init__.py` `async_setup_entry()` calls sensor creation, ensure TripManager.set_emhass_adapter() is called
   - **Files**: `custom_components/ev_trip_planner/__init__.py`, `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Sensor creation flow verified
