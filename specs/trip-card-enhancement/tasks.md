@@ -118,7 +118,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
 
 ### Trip 5: EMHASS Not Configured Case
 
-- [ ] 1.9 [RED] Failing test: TripSensor handles EMHASS not configured gracefully
+- [x] 1.9 [RED] Failing test: TripSensor handles EMHASS not configured gracefully
   - **Do**:
     1. Open `tests/test_sensor.py`
     2. Add test `test_trip_sensor_no_emhass_attributes` that:
