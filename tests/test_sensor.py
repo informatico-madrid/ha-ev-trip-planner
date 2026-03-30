@@ -672,6 +672,43 @@ async def test_trip_sensor_deficit_attribute(mock_hass_with_storage):
     assert attrs["deficit_from_previous"] == 5.0, "deficit_from_previous should be 5.0"
 
 
+# Tests for EMHASS not configured (TripCard Enhancement - AC-5)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_no_emhass_attributes(mock_hass_with_storage):
+    """Test that TripSensor handles EMHASS not configured gracefully.
+
+    This test verifies AC-5: No EMHASS info shown when EMHASS not configured
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager with emhass_adapter = None
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    # EMHASS not configured - get_emhass_adapter() returns None
+    trip_manager.get_emhass_adapter.return_value = None
+
+    # Create trip data with id and tipo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify p_deferrable_index is NOT in extra_state_attributes when EMHASS not configured
+    attrs = sensor.extra_state_attributes
+    assert "p_deferrable_index" not in attrs, "p_deferrable_index should NOT be in extra_state_attributes when EMHASS is not configured"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 
