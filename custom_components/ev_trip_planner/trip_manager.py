@@ -1225,6 +1225,122 @@ class TripManager:
             "es_suficiente": es_suficiente,
         }
 
+    async def calcular_ventana_carga_multitrip(
+        self,
+        trips: List[Dict[str, Any]],
+        soc_actual: float,
+        hora_regreso: Optional[datetime],
+        charging_power_kw: float,
+    ) -> List[Dict[str, Any]]:
+        """Calcula ventanas de carga para múltiples viajes en cadena.
+
+        Cada viaje obtiene su propia ventana de carga. La ventana del primer
+        viaje comienza en hora_regreso. Los viajes subsequentes comienzan
+        cuando termina el viaje anterior (departure + 6h).
+
+        Args:
+            trips: Lista de diccionarios con datos de viajes
+            soc_actual: SOC actual del vehículo en porcentaje (0-100)
+            hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
+            charging_power_kw: Potencia de carga en kW
+
+        Returns:
+            Lista de diccionarios, uno por viaje, cada uno conteniendo:
+                - ventana_horas: Horas disponibles para cargar
+                - kwh_necesarios: Energía necesaria en kWh
+                - horas_carga_necesarias: Horas necesarias para cargar
+                - inicio_ventana: Fecha y hora de inicio de la ventana
+                - fin_ventana: Fecha y hora de fin de la ventana
+                - es_suficiente: True si la ventana es suficiente
+                - trip: El trip original
+        """
+        # Hardcoded trip duration: 6 hours (default)
+        DURACION_VIAJE_HORAS = 6
+
+        if not trips:
+            return []
+
+        # Parse hora_regreso if it's a string
+        parsed_hora_regreso = None
+        if hora_regreso is not None:
+            if isinstance(hora_regreso, str):
+                try:
+                    parsed_hora_regreso = datetime.fromisoformat(hora_regreso)
+                except (ValueError, TypeError) as err:
+                    _LOGGER.warning(
+                        "Error parsing hora_regreso '%s': %s", hora_regreso, err
+                    )
+                    parsed_hora_regreso = None
+            else:
+                parsed_hora_regreso = hora_regreso
+
+        # Sort trips by departure time (earliest first)
+        sorted_trips = []
+        for trip in trips:
+            trip_time = self._get_trip_time(trip)
+            if trip_time:
+                sorted_trips.append((trip_time, trip))
+        sorted_trips.sort(key=lambda x: x[0])
+        trips_with_times = [(trip, trip_time) for trip_time, trip in sorted_trips]
+
+        # Calculate window for each trip in chain
+        results = []
+        previous_arrival = None
+
+        for idx, (trip, trip_departure_time) in enumerate(trips_with_times):
+            # Determine window start for this trip
+            if idx == 0:
+                # First trip: window starts at hora_regreso (or estimated)
+                if parsed_hora_regreso is not None:
+                    # Car has returned - use real return time
+                    window_start = parsed_hora_regreso
+                else:
+                    # Car not yet returned - estimate return as departure - 6h
+                    window_start = trip_departure_time - timedelta(hours=DURACION_VIAJE_HORAS)
+            else:
+                # Subsequent trips: window starts at previous trip's arrival
+                window_start = previous_arrival
+
+            # Calculate arrival time for this trip (departure + 6h)
+            trip_arrival = trip_departure_time + timedelta(hours=DURACION_VIAJE_HORAS)
+
+            # Calculate ventana_horas
+            delta = trip_arrival - window_start
+            ventana_horas = max(0.0, delta.total_seconds() / 3600)
+
+            # Calculate kwh_necesarios using existing logic
+            vehicle_config = {
+                "battery_capacity_kwh": 50.0,
+                "charging_power_kw": charging_power_kw,
+                "soc_current": soc_actual,
+            }
+            energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+            kwh_necesarios = energia_info["energia_necesaria_kwh"]
+
+            # Calculate horas_carga_necesarias
+            if charging_power_kw > 0:
+                horas_carga_necesarias = kwh_necesarios / charging_power_kw
+            else:
+                horas_carga_necesarias = 0.0
+
+            # Calculate es_suficiente
+            es_suficiente = ventana_horas >= horas_carga_necesarias
+
+            results.append({
+                "ventana_horas": round(ventana_horas, 2),
+                "kwh_necesarios": round(kwh_necesarios, 3),
+                "horas_carga_necesarias": round(horas_carga_necesarias, 2),
+                "inicio_ventana": window_start,
+                "fin_ventana": trip_departure_time,
+                "es_suficiente": es_suficiente,
+                "trip": trip,
+            })
+
+            # Update previous_arrival for next iteration
+            previous_arrival = trip_arrival
+
+        return results
+
     async def async_generate_power_profile(
         self,
         charging_power_kw: float = 3.6,

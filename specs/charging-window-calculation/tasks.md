@@ -79,7 +79,7 @@
   - _Requirements: AC-5_
   - _Design: AC-5 edge case handling_
 
-- [ ] 1.5 Handle multi-trip window chaining (AC-4)
+- [x] 1.5 Handle multi-trip window chaining (AC-4)
   - **Do**:
     1. Add function `calcular_ventana_carga_multitrip(trips, soc_actual, hora_regreso, charging_power_kw)` to TripManager
     2. Sort trips by departure time (earliest first)
