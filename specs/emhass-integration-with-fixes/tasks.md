@@ -65,7 +65,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(dashboard): red - failing test for dashboard sync`
   - _Requirements: AC-3_
 
-- [ ] 1.8 [GREEN] Pass test: Implement dashboard data sync via trip_list service
+- [x] 1.8 [GREEN] Pass test: Implement dashboard data sync via trip_list service
   - **Do**: Verify `trip_list` service in `__init__.py` returns trips from TripManager correctly
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: Test passes, service returns trips

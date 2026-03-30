@@ -367,6 +367,17 @@ class TripManager:
         """Obtiene la lista de viajes puntuales."""
         return list(self._punctual_trips.values())
 
+    def get_all_trips(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Get all trips (both recurring and punctual) as a combined dict.
+
+        Returns:
+            Dict with 'recurring' and 'punctual' keys containing trip lists.
+        """
+        return {
+            "recurring": list(self._recurring_trips.values()),
+            "punctual": list(self._punctual_trips.values()),
+        }
+
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         _LOGGER.debug(
