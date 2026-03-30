@@ -8,6 +8,7 @@ This test suite covers:
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -605,3 +606,68 @@ class TestTripManagerInitialization:
 
         trip_manager.set_emhass_adapter(mock_adapter)
         assert trip_manager.get_emhass_adapter() is mock_adapter
+
+
+class TestChargingWindowCalculation:
+    """Tests for charging window calculation (AC-1)."""
+
+    @pytest.mark.asyncio
+    async def test_basic_window_calculation_4_hours(self, trip_manager, caplog):
+        """Test basic window calculation: hora_regreso=18:00, next trip=22:00, verify ventana=4 hours.
+
+        This is the POC test for AC-1:
+        Given the car is at home from 18:00 and the next trip is at 22:00,
+        then the charging window is 4 hours.
+        """
+        # Setup: Add a punctual trip at 22:00 today
+        # Use the format expected by trip_manager: %Y-%m-%dT%H:%M
+        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
+        await trip_manager.async_add_punctual_trip(
+            datetime_str=datetime_str,
+            km=50.0,
+            kwh=10.0,
+            descripcion="Evening trip",
+        )
+
+        # Mock async_calcular_energia_necesaria to return predictable values
+        trip_manager.async_calcular_energia_necesaria = AsyncMock(
+            return_value={"energia_necesaria_kwh": 10.0}
+        )
+
+        # Set hora_regreso at 18:00 today
+        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+
+        # Get the trip we just added
+        trips = await trip_manager.async_get_punctual_trips()
+        trip = trips[0]
+
+        # Call calcular_ventana_carga
+        result = await trip_manager.calcular_ventana_carga(
+            trip=trip,
+            soc_actual=50.0,
+            hora_regreso=hora_regreso,
+            charging_power_kw=7.4,
+        )
+
+        # Verify window is 4 hours (from 18:00 to 22:00)
+        assert result["ventana_horas"] == 4.0, f"Expected 4.0 hours, got {result['ventana_horas']}"
+
+        # Verify all expected fields are returned (AC-1 interface contract)
+        assert "ventana_horas" in result, "Missing ventana_horas field"
+        assert "kwh_necesarios" in result, "Missing kwh_necesarios field"
+        assert "horas_carga_necesarias" in result, "Missing horas_carga_necesarias field"
+        assert "inicio_ventana" in result, "Missing inicio_ventana field"
+        assert "fin_ventana" in result, "Missing fin_ventana field"
+        assert "es_suficiente" in result, "Missing es_suficiente field"
+
+        # Verify energy calculation
+        assert result["kwh_necesarios"] == 10.0
+        assert result["horas_carga_necesarias"] == pytest.approx(1.35, rel=0.01)  # 10.0 / 7.4
+
+        # Verify window start and end times
+        assert result["inicio_ventana"] == hora_regreso
+        assert result["fin_ventana"] == trip_datetime
+
+        # Verify es_suficiente is True (4 hours > 1.35 hours needed)
+        assert result["es_suficiente"] is True
