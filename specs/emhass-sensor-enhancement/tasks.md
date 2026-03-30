@@ -62,7 +62,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
   - **Done when**: No lint errors, code compiles
   - **Commit**: `chore: pass POC quality checkpoint`
 
-- [ ] 1.6 POC Checkpoint: Verify sensor has correct attributes format
+- [x] 1.6 POC Checkpoint: Verify sensor has correct attributes format
   - **Do**: Run targeted tests to verify sensor attributes format
   - **Done when**: Sensor state returns "ready" | "error", attributes include power_profile_watts (168 values), deferrables_schedule, trips_count, vehicle_id, last_update, emhass_status
   - **Verify**: `python3 -m pytest tests/test_deferrable_load_sensors.py -v --tb=short -k "test_sensor_initial_state or test_sensor_updates_attributes" 2>&1 | tail -20`
