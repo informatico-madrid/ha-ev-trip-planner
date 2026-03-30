@@ -15,7 +15,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
+from homeassistant.helpers import entity_registry as er, selector
 
 from .dashboard import import_dashboard, is_lovelace_available
 from . import panel as panel_module
@@ -394,7 +394,8 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         # Try to read EMHASS config for validation defaults
         emhass_config_path = os.environ.get(
-            "EMHASS_CONFIG_PATH", "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/test-ha/config"
+            "EMHASS_CONFIG_PATH",
+            "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/test-ha/config",
         )
         emhass_config = _read_emhass_config(emhass_config_path)
         emhass_horizon = _get_emhass_planning_horizon(emhass_config)
@@ -521,9 +522,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         return self.async_show_form(
             step_id="emhass",
             data_schema=STEP_EMHASS_SCHEMA,
-            description_placeholders={
-                "description": "Configure EMHASS (optional)."
-            },
+            description_placeholders={"description": "Configure EMHASS (optional)."},
         )
 
     async def async_step_presence(
@@ -629,16 +628,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             # as entities in the entity registry (notify.<entity_name>)
             available_services = []
             try:
-                # Import the entity registry module and get the async function
-                from homeassistant.helpers import entity_registry
-                entity_registry_obj = await entity_registry.async_get_registry(self.hass)
+                entity_registry_obj = await er.async_get(self.hass)
                 notify_entities = [
                     entity.entity_id
                     for entity in entity_registry_obj.entities.values()
                     if entity.domain == "notify"
                 ]
                 available_services = sorted(notify_entities)
-                
+
                 _LOGGER.debug(
                     "Available notify entities: %s",
                     available_services,
@@ -647,9 +644,13 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                     "Notification step: %d notify entities available",
                     len(available_services),
                 )
-                
+
                 # Log Nabu Casa specific entities for debugging
-                nabu_casa_entities = [s for s in available_services if "alexa" in s.lower() or "nabu" in s.lower()]
+                nabu_casa_entities = [
+                    s
+                    for s in available_services
+                    if "alexa" in s.lower() or "nabu" in s.lower()
+                ]
                 if nabu_casa_entities:
                     _LOGGER.info(
                         "Nabu Casa notify entities detected: %s",
@@ -658,7 +659,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             except Exception as err:
                 _LOGGER.warning(
                     "Failed to get notify entities from registry: %s, using services API",
-                    err
+                    err,
                 )
                 # Fallback to services if registry fails
                 notify_services = self.hass.services.async_services().get("notify", {})
@@ -667,7 +668,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                     "Using services API: %d notify services available",
                     len(available_services),
                 )
-            
+
             return self.async_show_form(
                 step_id="notifications",
                 data_schema=STEP_NOTIFICATIONS_SCHEMA,
@@ -725,7 +726,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
     async def _async_create_entry(self) -> FlowResult:
         """Crea la entrada de configuración."""
-        _LOGGER.info("Starting _async_create_entry for vehicle: %s", self.context.get("vehicle_data", {}).get("vehicle_name", "unknown"))
+        _LOGGER.info(
+            "Starting _async_create_entry for vehicle: %s",
+            self.context.get("vehicle_data", {}).get("vehicle_name", "unknown"),
+        )
 
         vehicle_data = self._get_vehicle_data()
         vehicle_name = vehicle_data[CONF_VEHICLE_NAME]
@@ -807,6 +811,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         """Devuelve el flujo de opciones para la entrada de configuración."""
         return EVTripPlannerOptionsFlowHandler(config_entry)
 
+
 class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
     """Maneja las opciones de configuración para EV Trip Planner."""
 
@@ -819,7 +824,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Paso inicial del flujo de opciones."""
         _LOGGER.debug("Options flow step init: showing form")
-        
+
         if user_input is not None:
             _LOGGER.debug(
                 "Options flow step init: battery=%.1f, charging=%.1f, "
@@ -829,7 +834,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                 user_input.get(CONF_CONSUMPTION, 0),
                 user_input.get(CONF_SAFETY_MARGIN, 0),
             )
-            
+
             # Only include options that were actually provided
             update_data = {}
             if CONF_BATTERY_CAPACITY in user_input:
@@ -840,24 +845,16 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                 update_data[CONF_CONSUMPTION] = user_input[CONF_CONSUMPTION]
             if CONF_SAFETY_MARGIN in user_input:
                 update_data[CONF_SAFETY_MARGIN] = user_input[CONF_SAFETY_MARGIN]
-            
+
             return self.async_create_entry(title="", data=update_data)
 
         # Get current values from config entry with safe defaults
         # Use .get() with safe handling for None data
         config_data = self._config_entry.data or {}
-        current_battery = config_data.get(
-            CONF_BATTERY_CAPACITY, 60.0
-        )
-        current_charging = config_data.get(
-            CONF_CHARGING_POWER, 11.0
-        )
-        current_consumption = config_data.get(
-            CONF_CONSUMPTION, DEFAULT_CONSUMPTION
-        )
-        current_safety = config_data.get(
-            CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN
-        )
+        current_battery = config_data.get(CONF_BATTERY_CAPACITY, 60.0)
+        current_charging = config_data.get(CONF_CHARGING_POWER, 11.0)
+        current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
+        current_safety = config_data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
 
         return self.async_show_form(
             step_id="init",

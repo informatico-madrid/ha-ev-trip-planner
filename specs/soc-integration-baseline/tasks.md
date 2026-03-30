@@ -115,7 +115,7 @@
   - **Commit**: `chore(soc): pass quality checkpoint` (only if fixes needed)
   - _Files: presence_monitor.py, config_flow.py_
 
-- [ ] 1.8 Add unit tests for state change triggers
+- [x] 1.8 Add unit tests for state change triggers
   - **Do**:
     1. Create `tests/test_presence_monitor_soc.py`
     2. Add test: SOC change triggers recalculation when home+plugged
