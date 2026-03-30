@@ -82,7 +82,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### AC-4: Trip State Change Updates
 
-- [ ] 1.10 [RED] Failing test: Trip state change updates corresponding sensor
+- [x] 1.10 [RED] Failing test: Trip state change updates corresponding sensor
   - **Do**: Write test verifying trip state change triggers sensor update
   - **Files**: `tests/test_sensor_coverage.py`
   - **Done when**: Test exists AND fails
