@@ -60,6 +60,7 @@ CONTROL_TYPE_EXTERNAL = "external"
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
+DEFAULT_SOC_BUFFER_PERCENT = 10  # percent (minimum SOC buffer for backward deficit propagation)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
