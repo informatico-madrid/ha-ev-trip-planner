@@ -18,7 +18,7 @@
 
 ### Implementation Tasks
 
-- [ ] 1.1 Add SOC change listener to PresenceMonitor
+- [x] 1.1 Add SOC change listener to PresenceMonitor
   - **Do**:
     1. Import `CONF_SOC_SENSOR` from const.py
     2. Add `soc_sensor` config attribute in `PresenceMonitor.__init__`

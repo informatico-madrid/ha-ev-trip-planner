@@ -2,9 +2,13 @@
 
 import logging
 from math import radians, sin, cos, sqrt, atan2
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
-from homeassistant.core import HomeAssistant
+if TYPE_CHECKING:
+    from .trip_manager import TripManager
+
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import (
     CONF_HOME_SENSOR,
@@ -12,6 +16,7 @@ from .const import (
     CONF_HOME_COORDINATES,
     CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_NOTIFICATION_SERVICE,
+    CONF_SOC_SENSOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,14 +30,18 @@ HOME_DISTANCE_THRESHOLD_METERS = 30.0
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
     
-    def __init__(self, hass: HomeAssistant, vehicle_id: str, config: Dict[str, Any]):
+    def __init__(self, hass: HomeAssistant, vehicle_id: str, config: Dict[str, Any], trip_manager: Optional["TripManager"] = None):
         """Initialize presence monitor."""
         self.hass = hass
         self.vehicle_id = vehicle_id
+        self._trip_manager = trip_manager
 
         # Sensor-based detection (priority 1)
         self.home_sensor = config.get(CONF_HOME_SENSOR)
         self.plugged_sensor = config.get(CONF_PLUGGED_SENSOR)
+
+        # SOC sensor for state of charge tracking
+        self.soc_sensor = config.get(CONF_SOC_SENSOR)
 
         # Coordinate-based detection (priority 2)
         self.home_coords = self._parse_coordinates(config.get(CONF_HOME_COORDINATES))
@@ -43,12 +52,16 @@ class PresenceMonitor:
 
         _LOGGER.debug(
             "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
-            "notification_service=%s",
+            "notification_service=%s, soc_sensor=%s",
             vehicle_id,
             self.home_sensor,
             self.home_coords,
             self.notification_service,
+            self.soc_sensor,
         )
+
+        # Set up SOC change listener if soc_sensor is configured
+        self._async_setup_soc_listener()
     
     async def async_check_home_status(self) -> bool:
         """
@@ -240,6 +253,99 @@ class PresenceMonitor:
         earth_radius = 6371000
 
         return earth_radius * c
+
+    def _async_setup_soc_listener(self) -> None:
+        """Set up SOC sensor state change listener."""
+        if not self.soc_sensor:
+            _LOGGER.debug(
+                "No SOC sensor configured for %s, SOC listener not set up",
+                self.vehicle_id,
+            )
+            return
+
+        _LOGGER.debug(
+            "Setting up SOC listener for %s with sensor %s",
+            self.vehicle_id,
+            self.soc_sensor,
+        )
+
+        async_track_state_change_event(
+            self.hass,
+            self.soc_sensor,
+            self._async_handle_soc_change,
+        )
+
+    async def _async_handle_soc_change(self, event: Dict[str, Any]) -> None:
+        """Handle SOC state change event.
+
+        Called when the SOC sensor state changes. If the vehicle is home
+        and plugged in, triggers power profile and schedule recalculation.
+
+        Args:
+            event: The state change event from Home Assistant
+        """
+        if not self._trip_manager:
+            _LOGGER.debug(
+                "SOC change detected for %s but no trip_manager available, skipping",
+                self.vehicle_id,
+            )
+            return
+
+        # Get new SOC value from event
+        new_state = event.get("data", {}).get("new_state")
+        if not new_state:
+            _LOGGER.debug(
+                "SOC change event for %s has no new_state, skipping",
+                self.vehicle_id,
+            )
+            return
+
+        try:
+            new_soc = float(new_state.state)
+        except (ValueError, AttributeError):
+            _LOGGER.debug(
+                "Could not parse SOC value from %s for %s",
+                new_state.state,
+                self.vehicle_id,
+            )
+            return
+
+        _LOGGER.debug(
+            "SOC change detected for %s: new SOC = %s",
+            self.vehicle_id,
+            new_soc,
+        )
+
+        # Check if home and plugged
+        is_home = await self.async_check_home_status()
+        is_plugged = await self.async_check_plugged_status()
+
+        if not is_home:
+            _LOGGER.debug(
+                "SOC change for %s skipped: vehicle not at home (is_home=%s)",
+                self.vehicle_id,
+                is_home,
+            )
+            return
+
+        if not is_plugged:
+            _LOGGER.debug(
+                "SOC change for %s skipped: vehicle not plugged (is_plugged=%s)",
+                self.vehicle_id,
+                is_plugged,
+            )
+            return
+
+        # Vehicle is home and plugged - trigger recalculation
+        _LOGGER.info(
+            "SOC changed to %s%% while %s is home and plugged, triggering recalculation",
+            new_soc,
+            self.vehicle_id,
+        )
+
+        # Call the public async methods on trip_manager
+        await self._trip_manager.async_generate_power_profile()
+        await self._trip_manager.async_generate_deferrables_schedule()
 
     async def async_notify_charging_not_possible(
         self,
