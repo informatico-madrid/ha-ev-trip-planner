@@ -40,7 +40,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(sensors): red - failing test for EmhassDeferrableLoadSensor creation`
   - _Requirements: AC-2_
 
-- [ ] 1.5 [GREEN] Pass test: Ensure EmhassDeferrableLoadSensor is created on vehicle setup
+- [x] 1.5 [GREEN] Pass test: Ensure EmhassDeferrableLoadSensor is created on vehicle setup
   - **Do**: In `sensor.py`, verify `EmhassDeferrableLoadSensor` class exists and is properly registered in HA
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Sensor class exists and test passes
