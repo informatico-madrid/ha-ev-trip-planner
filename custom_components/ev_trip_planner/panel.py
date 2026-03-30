@@ -86,7 +86,7 @@ async def async_register_panel(
         try:
             hass.http.register_static_path(
                 f"/{DOMAIN.replace('_', '-')}/panel.css",
-                f"{_MODULE_PATH}/frontend/panel.css"
+                f"{_MODULE_PATH}/frontend/panel.css",
             )
             _LOGGER.debug("Registered static path for panel.css")
         except Exception as ex:
@@ -99,9 +99,11 @@ async def async_register_panel(
             cache_param = f"cb={int(time.time())}"
             hass.http.register_static_path(
                 f"/{DOMAIN.replace('_', '-')}/panel.js",
-                f"{_MODULE_PATH}/frontend/panel.js"
+                f"{_MODULE_PATH}/frontend/panel.js",
             )
-            _LOGGER.debug("Registered static path for panel.js with cache param: %s", cache_param)
+            _LOGGER.debug(
+                "Registered static path for panel.js with cache param: %s", cache_param
+            )
         except Exception as ex:
             _LOGGER.warning("Failed to register static path for panel.js: %s", ex)
 

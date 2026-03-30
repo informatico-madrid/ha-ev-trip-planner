@@ -33,8 +33,7 @@ class RetryState:
         self.attempts.append(current_time)
         # Clean up old attempts outside the time window
         self.attempts = [
-            t for t in self.attempts
-            if current_time - t <= RETRY_TIME_WINDOW_SECONDS
+            t for t in self.attempts if current_time - t <= RETRY_TIME_WINDOW_SECONDS
         ]
 
     def should_retry(self) -> bool:
@@ -46,8 +45,7 @@ class RetryState:
         current_time = time.time()
         # Clean up old attempts first
         self.attempts = [
-            t for t in self.attempts
-            if current_time - t <= RETRY_TIME_WINDOW_SECONDS
+            t for t in self.attempts if current_time - t <= RETRY_TIME_WINDOW_SECONDS
         ]
         return len(self.attempts) < MAX_RETRY_ATTEMPTS
 
@@ -55,8 +53,7 @@ class RetryState:
         """Get the current number of attempts in the time window."""
         current_time = time.time()
         self.attempts = [
-            t for t in self.attempts
-            if current_time - t <= RETRY_TIME_WINDOW_SECONDS
+            t for t in self.attempts if current_time - t <= RETRY_TIME_WINDOW_SECONDS
         ]
         return len(self.attempts)
 
@@ -67,17 +64,17 @@ class RetryState:
 
 class HomeAssistantWrapper:
     """Wrapper for Home Assistant service and state calls to enable testing."""
-    
+
     def __init__(self, hass: HomeAssistant):
         """Initialize wrapper."""
         self._hass = hass
-    
+
     async def async_call_service(
         self, domain: str, service: str, data: Dict[str, Any]
     ) -> None:
         """Call a service."""
         await self._hass.services.async_call(domain, service, data)
-    
+
     def get_state(self, entity_id: str):
         """Get state of an entity."""
         return self._hass.states.get(entity_id)
@@ -85,22 +82,22 @@ class HomeAssistantWrapper:
 
 class VehicleControlStrategy(ABC):
     """Abstract base class for vehicle control strategies."""
-    
+
     def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):
         """Initialize strategy."""
         self.hass_wrapper = hass_wrapper
         self.config = config
-    
+
     @abstractmethod
     async def async_activate(self) -> bool:
         """Activate vehicle charging."""
         pass
-    
+
     @abstractmethod
     async def async_deactivate(self) -> bool:
         """Deactivate vehicle charging."""
         pass
-    
+
     @abstractmethod
     async def async_get_status(self) -> bool:
         """Get current charging status."""
@@ -109,11 +106,11 @@ class VehicleControlStrategy(ABC):
 
 class SwitchStrategy(VehicleControlStrategy):
     """Control via switch entity."""
-    
+
     def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):
         super().__init__(hass_wrapper, config)
         self.switch_entity_id = config["entity_id"]
-    
+
     async def async_activate(self) -> bool:
         """Turn on switch."""
         try:
@@ -123,11 +120,9 @@ class SwitchStrategy(VehicleControlStrategy):
             _LOGGER.info("Activated charging via switch: %s", self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error(
-                "Error activating switch: %s", err, exc_info=True
-            )
+            _LOGGER.error("Error activating switch: %s", err, exc_info=True)
             return False
-    
+
     async def async_deactivate(self) -> bool:
         """Turn off switch."""
         try:
@@ -137,11 +132,9 @@ class SwitchStrategy(VehicleControlStrategy):
             _LOGGER.info("Deactivated charging via switch: %s", self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error(
-                "Error deactivating switch: %s", err, exc_info=True
-            )
+            _LOGGER.error("Error deactivating switch: %s", err, exc_info=True)
             return False
-    
+
     async def async_get_status(self) -> bool:
         """Get switch state."""
         state = self.hass_wrapper.get_state(self.switch_entity_id)
@@ -152,21 +145,19 @@ class SwitchStrategy(VehicleControlStrategy):
 
 class ServiceStrategy(VehicleControlStrategy):
     """Control via custom service call."""
-    
+
     def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):
         super().__init__(hass_wrapper, config)
         self.service_on = config["service_on"]
         self.service_off = config["service_off"]
         self.data_on = config.get("data_on", {})
         self.data_off = config.get("data_off", {})
-    
+
     async def async_activate(self) -> bool:
         """Call service to start charging."""
         try:
             domain, service = self.service_on.split(".", 1)
-            await self.hass_wrapper.async_call_service(
-                domain, service, self.data_on
-            )
+            await self.hass_wrapper.async_call_service(domain, service, self.data_on)
             _LOGGER.info("Activated charging via service: %s", self.service_on)
             return True
         except Exception as err:
@@ -174,14 +165,12 @@ class ServiceStrategy(VehicleControlStrategy):
                 "Error calling service %s: %s", self.service_on, err, exc_info=True
             )
             return False
-    
+
     async def async_deactivate(self) -> bool:
         """Call service to stop charging."""
         try:
             domain, service = self.service_off.split(".", 1)
-            await self.hass_wrapper.async_call_service(
-                domain, service, self.data_off
-            )
+            await self.hass_wrapper.async_call_service(domain, service, self.data_off)
             _LOGGER.info("Deactivated charging via service: %s", self.service_off)
             return True
         except Exception as err:
@@ -189,7 +178,7 @@ class ServiceStrategy(VehicleControlStrategy):
                 "Error calling service %s: %s", self.service_off, err, exc_info=True
             )
             return False
-    
+
     async def async_get_status(self) -> bool:
         """Get status via service or sensor."""
         # This would need a sensor or additional config
@@ -199,12 +188,12 @@ class ServiceStrategy(VehicleControlStrategy):
 
 class ScriptStrategy(VehicleControlStrategy):
     """Control via script execution."""
-    
+
     def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):
         super().__init__(hass_wrapper, config)
         self.script_on = config["script_on"]
         self.script_off = config["script_off"]
-    
+
     async def async_activate(self) -> bool:
         """Execute start charging script."""
         try:
@@ -218,7 +207,7 @@ class ScriptStrategy(VehicleControlStrategy):
                 "Error executing script %s: %s", self.script_on, err, exc_info=True
             )
             return False
-    
+
     async def async_deactivate(self) -> bool:
         """Execute stop charging script."""
         try:
@@ -232,7 +221,7 @@ class ScriptStrategy(VehicleControlStrategy):
                 "Error executing script %s: %s", self.script_off, err, exc_info=True
             )
             return False
-    
+
     async def async_get_status(self) -> bool:
         """Get status - scripts typically don't return status."""
         return False
@@ -240,17 +229,17 @@ class ScriptStrategy(VehicleControlStrategy):
 
 class ExternalStrategy(VehicleControlStrategy):
     """No direct control - external system manages charging."""
-    
+
     async def async_activate(self) -> bool:
         """No-op."""
         _LOGGER.info("External strategy: no action taken")
         return True
-    
+
     async def async_deactivate(self) -> bool:
         """No-op."""
         _LOGGER.info("External strategy: no action taken")
         return True
-    
+
     async def async_get_status(self) -> bool:
         """Unknown status."""
         return False
@@ -267,17 +256,23 @@ def create_control_strategy(
         entity_id = config["charge_control_entity"]
         return SwitchStrategy(hass_wrapper, {"entity_id": entity_id})
     elif control_type == "service":
-        return ServiceStrategy(hass_wrapper, {
-            "service_on": config["charge_service_on"],
-            "service_off": config["charge_service_off"],
-            "data_on": config.get("charge_service_data_on", {}),
-            "data_off": config.get("charge_service_data_off", {}),
-        })
+        return ServiceStrategy(
+            hass_wrapper,
+            {
+                "service_on": config["charge_service_on"],
+                "service_off": config["charge_service_off"],
+                "data_on": config.get("charge_service_data_on", {}),
+                "data_off": config.get("charge_service_data_off", {}),
+            },
+        )
     elif control_type == "script":
-        return ScriptStrategy(hass_wrapper, {
-            "script_on": config["charge_script_on"],
-            "script_off": config["charge_script_off"],
-        })
+        return ScriptStrategy(
+            hass_wrapper,
+            {
+                "script_on": config["charge_script_on"],
+                "script_off": config["charge_script_off"],
+            },
+        )
     else:
         return ExternalStrategy(hass_wrapper, {})
 
@@ -311,7 +306,9 @@ class VehicleController:
 
         # Initialize presence monitor if config provided
         if presence_config:
-            self._presence_monitor = PresenceMonitor(hass, vehicle_id, presence_config, trip_manager)
+            self._presence_monitor = PresenceMonitor(
+                hass, vehicle_id, presence_config, trip_manager
+            )
 
     async def async_setup(self) -> None:
         """Set up the vehicle controller."""

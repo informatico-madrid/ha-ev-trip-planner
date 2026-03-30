@@ -1,7 +1,7 @@
 """Presence Monitor for EV Trip Planner."""
 
 import logging
-from math import radians, sin, cos, sqrt, atan2
+from math import atan2, cos, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from homeassistant.core import HomeAssistant, callback

@@ -400,7 +400,9 @@ async def import_dashboard(
 
     except Exception as e:  # pragma: no cover
         error_msg = f"Unexpected error loading template: {str(e)}"
-        _LOGGER.error("DASHBOARD IMPORT FAILED: Exception loading template: %s", e, exc_info=True)
+        _LOGGER.error(
+            "DASHBOARD IMPORT FAILED: Exception loading template: %s", e, exc_info=True
+        )
         return DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id,
@@ -430,9 +432,7 @@ async def import_dashboard(
     storage_method = "none"
 
     # Try to save using the Lovelace storage API first
-    _LOGGER.info(
-        "Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id
-    )
+    _LOGGER.info("Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id)
 
     try:
         if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
@@ -582,9 +582,7 @@ def _validate_dashboard_config(
     views = dashboard_config.get("views", [])
     has_vehicle_path = any(vehicle_id in v.get("path", "") for v in views)
     if not has_vehicle_path:
-        _LOGGER.warning(
-            "Vehicle ID '%s' not found in any view path", vehicle_id
-        )
+        _LOGGER.warning("Vehicle ID '%s' not found in any view path", vehicle_id)
 
 
 async def _load_dashboard_template(
@@ -663,6 +661,7 @@ async def _load_dashboard_template(
                 async_add_executor_job = getattr(hass, "async_add_executor_job")
                 # Check if it's actually a coroutine function (has __await__ or is coroutine)
                 import inspect
+
                 if inspect.iscoroutinefunction(async_add_executor_job):
                     template_content = await async_add_executor_job(
                         _read_file_content, template_path
@@ -681,9 +680,7 @@ async def _load_dashboard_template(
             _LOGGER.error("Failed to read template file: %s", template_path)
             return None
 
-        _LOGGER.debug(
-            "Template content length: %d chars", len(template_content)
-        )
+        _LOGGER.debug("Template content length: %d chars", len(template_content))
 
         # Substitute template variables
         template_content = template_content.replace("{{ vehicle_id }}", vehicle_id)
@@ -736,9 +733,7 @@ async def _save_lovelace_dashboard(
     try:
         # Check if we can use the lovelace.config service
         if hass.services.has_service("lovelace", "save"):
-            _LOGGER.info(
-                "METHOD: Using lovelace.save service for dashboard import"
-            )
+            _LOGGER.info("METHOD: Using lovelace.save service for dashboard import")
 
             # Try to save each view as a separate dashboard
             views = dashboard_config.get("views", [])
@@ -786,9 +781,7 @@ async def _save_lovelace_dashboard(
         # Use HA's official Store API for persistence
         from homeassistant.helpers import storage as ha_storage
 
-        _LOGGER.info(
-            "METHOD: Using Store API for dashboard import"
-        )
+        _LOGGER.info("METHOD: Using Store API for dashboard import")
 
         # Verify storage write permissions before attempting to write
         if not await _verify_storage_permissions(hass, vehicle_id):
@@ -799,7 +792,9 @@ async def _save_lovelace_dashboard(
             _LOGGER.info(
                 "Store API not available, falling back to YAML for %s", vehicle_id
             )
-            return await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
+            return await _save_dashboard_yaml_fallback(
+                hass, dashboard_config, vehicle_id
+            )
 
         try:
             # Get current lovelace config using Store API
@@ -816,9 +811,7 @@ async def _save_lovelace_dashboard(
             if lovelace_config and "data" in lovelace_config:
                 current_data = lovelace_config["data"]
                 views = current_data.get("views", [])
-                _LOGGER.info(
-                    "Current Lovelace config has %d views", len(views)
-                )
+                _LOGGER.info("Current Lovelace config has %d views", len(views))
 
                 # Get new dashboard view
                 new_views = dashboard_config.get("views", [])
@@ -841,9 +834,7 @@ async def _save_lovelace_dashboard(
                     if existing_view.get("path") == new_path:
                         views[i] = new_view
                         replaced = True
-                        _LOGGER.info(
-                            "Replaced existing dashboard view: %s", new_path
-                        )
+                        _LOGGER.info("Replaced existing dashboard view: %s", new_path)
                         break
 
                 if not replaced:
@@ -857,6 +848,7 @@ async def _save_lovelace_dashboard(
                 )
                 # Save updated config using HA's official Store API
                 from homeassistant.helpers import storage as ha_storage
+
                 _LOGGER.info("Writing dashboard config to storage: lovelace")
 
                 # Use HA's official Store API for persistence
@@ -866,10 +858,12 @@ async def _save_lovelace_dashboard(
                     key="lovelace",
                 )
 
-                await store.async_save({
-                    "version": 1,
-                    "data": {**current_data, "views": views},
-                })
+                await store.async_save(
+                    {
+                        "version": 1,
+                        "data": {**current_data, "views": views},
+                    }
+                )
 
                 _LOGGER.info("DASHBOARD SAVED via storage API")
                 return DashboardImportResult(
@@ -914,11 +908,15 @@ async def _save_lovelace_dashboard(
             exc_info=True,
         )
         # Fall back to YAML on any error
-        yaml_result = await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
+        yaml_result = await _save_dashboard_yaml_fallback(
+            hass, dashboard_config, vehicle_id
+        )
         if isinstance(yaml_result, DashboardImportResult):
             return yaml_result
         return DashboardImportResult(
-            success=yaml_result if isinstance(yaml_result, bool) else yaml_result.success,
+            success=(
+                yaml_result if isinstance(yaml_result, bool) else yaml_result.success
+            ),
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_id,
             dashboard_type="simple",
@@ -926,10 +924,10 @@ async def _save_lovelace_dashboard(
         )
 
     # Storage not available - fall back to YAML
-    _LOGGER.info(
-        "Storage API not available, falling back to YAML for %s", vehicle_id
+    _LOGGER.info("Storage API not available, falling back to YAML for %s", vehicle_id)
+    yaml_result = await _save_dashboard_yaml_fallback(
+        hass, dashboard_config, vehicle_id
     )
-    yaml_result = await _save_dashboard_yaml_fallback(hass, dashboard_config, vehicle_id)
     if isinstance(yaml_result, DashboardImportResult):
         return yaml_result
     # If YAML fallback returns boolean, wrap it
@@ -960,9 +958,7 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
         True if storage is writable, False otherwise.
     """
     try:
-        _LOGGER.info(
-            "VERIFYING STORAGE PERMISSIONS for vehicle %s", vehicle_id
-        )
+        _LOGGER.info("VERIFYING STORAGE PERMISSIONS for vehicle %s", vehicle_id)
 
         # Use HA's official Store API for persistence
         from homeassistant.helpers import storage as ha_storage
@@ -983,9 +979,7 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
 
     except Exception as e:
         _LOGGER.warning(
-            "Store API not available for %s: %s, using YAML fallback",
-            vehicle_id,
-            e
+            "Store API not available for %s: %s, using YAML fallback", vehicle_id, e
         )
         return False
 
@@ -1069,43 +1063,49 @@ async def _save_dashboard_yaml_fallback(
             if not isinstance(view, dict):
                 _LOGGER.error("Dashboard view at index %d must be a dict", i)
                 return DashboardImportResult(
-                success=False,
-                vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
-                error="Invalid dashboard config",
-                dashboard_type="simple",
-                storage_method="yaml_fallback",
-            )
+                    success=False,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    error="Invalid dashboard config",
+                    dashboard_type="simple",
+                    storage_method="yaml_fallback",
+                )
             if "path" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'path' field", i)
+                _LOGGER.error(
+                    "Dashboard view at index %d missing required 'path' field", i
+                )
                 return DashboardImportResult(
-                success=False,
-                vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
-                error="Invalid dashboard config",
-                dashboard_type="simple",
-                storage_method="yaml_fallback",
-            )
+                    success=False,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    error="Invalid dashboard config",
+                    dashboard_type="simple",
+                    storage_method="yaml_fallback",
+                )
             if "title" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'title' field", i)
+                _LOGGER.error(
+                    "Dashboard view at index %d missing required 'title' field", i
+                )
                 return DashboardImportResult(
-                success=False,
-                vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
-                error="Invalid dashboard config",
-                dashboard_type="simple",
-                storage_method="yaml_fallback",
-            )
+                    success=False,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    error="Invalid dashboard config",
+                    dashboard_type="simple",
+                    storage_method="yaml_fallback",
+                )
             if "cards" not in view:
-                _LOGGER.error("Dashboard view at index %d missing required 'cards' field", i)
+                _LOGGER.error(
+                    "Dashboard view at index %d missing required 'cards' field", i
+                )
                 return DashboardImportResult(
-                success=False,
-                vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
-                error="Invalid dashboard config",
-                dashboard_type="simple",
-                storage_method="yaml_fallback",
-            )
+                    success=False,
+                    vehicle_id=vehicle_id,
+                    vehicle_name=vehicle_id,
+                    error="Invalid dashboard config",
+                    dashboard_type="simple",
+                    storage_method="yaml_fallback",
+                )
 
         # Get config directory path
         config_dir = hass.config.config_dir
@@ -1128,13 +1128,17 @@ async def _save_dashboard_yaml_fallback(
         counter = 2
 
         # Check path exists with async executor fallback
-        path_check_result = _call_async_executor_sync(hass, _check_path_exists, yaml_path)
+        path_check_result = _call_async_executor_sync(
+            hass, _check_path_exists, yaml_path
+        )
         path_exists = await _await_executor_result(path_check_result)
 
         while path_exists:
             yaml_path = os.path.join(config_dir, f"{base_filename}.{counter}")
             counter += 1
-            path_check_result = _call_async_executor_sync(hass, _check_path_exists, yaml_path)
+            path_check_result = _call_async_executor_sync(
+                hass, _check_path_exists, yaml_path
+            )
             path_exists = await _await_executor_result(path_check_result)
 
         _LOGGER.info(
@@ -1143,7 +1147,9 @@ async def _save_dashboard_yaml_fallback(
         )
 
         # Create config directory if it doesn't exist
-        config_check_result = _call_async_executor_sync(hass, _check_path_exists, config_dir)
+        config_check_result = _call_async_executor_sync(
+            hass, _check_path_exists, config_dir
+        )
         config_exists = await _await_executor_result(config_check_result)
 
         if not config_exists:
@@ -1184,12 +1190,8 @@ async def _save_dashboard_yaml_fallback(
         _LOGGER.info(
             "To import dashboard in Home Assistant Container, follow these steps:"
         )
-        _LOGGER.info(
-            "1. Go to Settings > Dashboards in Home Assistant"
-        )
-        _LOGGER.info(
-            "2. Click the three dots menu > Manage dashboards"
-        )
+        _LOGGER.info("1. Go to Settings > Dashboards in Home Assistant")
+        _LOGGER.info("2. Click the three dots menu > Manage dashboards")
         _LOGGER.info(
             "3. Click 'Import dashboard' and select: %s",
             yaml_path,

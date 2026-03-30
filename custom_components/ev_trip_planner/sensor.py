@@ -65,9 +65,12 @@ class TripPlannerSensor(SensorEntity):
         try:
             if self._sensor_type == "kwh_needed_today":
                 _LOGGER.debug(  # noqa: E501
-                    "Sensor update kwh_needed_today for %s: fetching trips data", vehicle_id
+                    "Sensor update kwh_needed_today for %s: fetching trips data",
+                    vehicle_id,
                 )
-                self._attr_native_value = await self.trip_manager.async_get_kwh_needed_today()
+                self._attr_native_value = (
+                    await self.trip_manager.async_get_kwh_needed_today()
+                )
                 # Cache attributes for synchronous access
                 recurring = await self.trip_manager.async_get_recurring_trips()
                 punctual = await self.trip_manager.async_get_punctual_trips()
@@ -82,9 +85,12 @@ class TripPlannerSensor(SensorEntity):
                 )
             elif self._sensor_type == "hours_needed_today":
                 _LOGGER.debug(  # noqa: E501
-                    "Sensor update hours_needed_today for %s: fetching hours data", vehicle_id
+                    "Sensor update hours_needed_today for %s: fetching hours data",
+                    vehicle_id,
                 )
-                self._attr_native_value = await self.trip_manager.async_get_hours_needed_today()
+                self._attr_native_value = (
+                    await self.trip_manager.async_get_hours_needed_today()
+                )
                 charging_power = self.trip_manager.get_charging_power()
                 self._cached_attrs["potencia_carga"] = charging_power
                 _LOGGER.debug(  # noqa: E501
@@ -95,10 +101,13 @@ class TripPlannerSensor(SensorEntity):
                 )
             elif self._sensor_type == "next_trip":
                 _LOGGER.debug(  # noqa: E501
-                    "Sensor update next_trip for %s: fetching next trip data", vehicle_id
+                    "Sensor update next_trip for %s: fetching next trip data",
+                    vehicle_id,
                 )
                 next_trip = await self.trip_manager.async_get_next_trip()
-                self._attr_native_value = next_trip["descripcion"] if next_trip else "N/A"
+                self._attr_native_value = (
+                    next_trip["descripcion"] if next_trip else "N/A"
+                )
                 if next_trip:
                     self._cached_attrs["fecha_hora"] = (
                         next_trip["datetime"]
@@ -150,7 +159,10 @@ class TripPlannerSensor(SensorEntity):
         try:
             # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                if (
+                    config_entry.data
+                    and config_entry.data.get("vehicle_name") == vehicle_id
+                ):
                     vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
@@ -172,9 +184,7 @@ class TripPlannerSensor(SensorEntity):
 class RecurringTripsCountSensor(TripPlannerSensor):
     """Sensor for counting recurring trips (alias for backward compatibility)."""
 
-    def __init__(
-        self, vehicle_id: str, coordinator: TripPlannerCoordinator
-    ) -> None:
+    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
         self._vehicle_id = vehicle_id
@@ -212,9 +222,7 @@ class RecurringTripsCountSensor(TripPlannerSensor):
 class PunctualTripsCountSensor(TripPlannerSensor):
     """Sensor for counting punctual trips (alias for backward compatibility)."""
 
-    def __init__(
-        self, vehicle_id: str, coordinator: TripPlannerCoordinator
-    ) -> None:
+    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
         self._vehicle_id = vehicle_id
@@ -277,9 +285,7 @@ class TripsListSensor(TripPlannerSensor):
                 self._cached_attrs["punctual_trips"] = punctual
                 self._cached_attrs["trips"] = recurring + punctual
                 return len(recurring) + len(punctual)
-        _LOGGER.debug(
-            "TripsListSensor(%s) returning default value 0", self._vehicle_id
-        )
+        _LOGGER.debug("TripsListSensor(%s) returning default value 0", self._vehicle_id)
         return 0
 
 
@@ -499,7 +505,10 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         try:
             # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                if (
+                    config_entry.data
+                    and config_entry.data.get("vehicle_name") == vehicle_id
+                ):
                     vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
@@ -532,7 +541,9 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 _LOGGER.warning("No config entry found for %s", self._entry_id)
                 return
 
-            charging_power_kw = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
+            charging_power_kw = entry.data.get(
+                CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER
+            )
             planning_horizon_days = entry.data.get("planning_horizon_days", 7)
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: charging_power=%s, horizon=%s",
@@ -660,7 +671,10 @@ class TripSensor(SensorEntity):
         try:
             # Find the config entry for this specific vehicle_id
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data and config_entry.data.get("vehicle_name") == vehicle_id:
+                if (
+                    config_entry.data
+                    and config_entry.data.get("vehicle_name") == vehicle_id
+                ):
                     vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
                     break
         except Exception:
@@ -744,7 +758,9 @@ async def async_setup_entry(
 
         if not trip_manager:
             # Try old DOMAIN-based storage
-            trip_manager = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
+            trip_manager = (
+                hass.data.get(DOMAIN, {}).get(entry_id, {}).get("trip_manager")
+            )
             coordinator = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("coordinator")
         _LOGGER.debug(
             "trip_manager lookup: legacy fallback result for %s: found=%s",
@@ -911,7 +927,9 @@ async def async_create_trip_sensor(
     # Create the trip sensor (new signature - trip_id and trip_type derived from trip_data)
     try:
         sensor = TripSensor(hass, trip_manager, trip_data)
-        hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][namespace].get("trip_sensors", {})
+        hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][
+            namespace
+        ].get("trip_sensors", {})
         hass.data[DATA_RUNTIME][namespace]["trip_sensors"][trip_id] = sensor
         _LOGGER.debug("Trip sensor created for trip %s", trip_id)
         return True

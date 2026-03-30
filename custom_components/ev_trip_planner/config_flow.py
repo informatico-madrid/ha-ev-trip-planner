@@ -15,9 +15,9 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import selector
 
-from .dashboard import import_dashboard, is_lovelace_available
 from . import panel as panel_module
 from .const import (
     CONF_BATTERY_CAPACITY,
@@ -34,13 +34,14 @@ from .const import (
     CONF_SAFETY_MARGIN,
     CONF_SOC_SENSOR,
     CONF_VEHICLE_NAME,
+    CONFIG_VERSION,
     DEFAULT_CONSUMPTION,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DOMAIN,
-    CONFIG_VERSION,
 )
+from .dashboard import import_dashboard, is_lovelace_available
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -26,16 +25,23 @@ from .const import (
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
+from .emhass_adapter import EMHASSAdapter
 from .utils import calcular_energia_kwh, generate_trip_id
 from .vehicle_controller import VehicleController
-from .emhass_adapter import EMHASSAdapter
 
 _LOGGER = logging.getLogger(__name__)
 
 # Days of week in Spanish (lowercase)
 DAYS_OF_WEEK = (
-    "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo",
+    "lunes",
+    "martes",
+    "miercoles",
+    "jueves",
+    "viernes",
+    "sabado",
+    "domingo",
 )
+
 
 class TripManager:
     """Gestión central de viajes y optimización de carga para vehículos eléctricos.
@@ -45,11 +51,18 @@ class TripManager:
     2026 para runtime_data y tipado estricto.
     """
 
-    def __init__(self, hass: HomeAssistant, vehicle_id: str, presence_config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        vehicle_id: str,
+        presence_config: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
         self.vehicle_id = vehicle_id
-        self.vehicle_controller = VehicleController(hass, vehicle_id, presence_config, self)
+        self.vehicle_controller = VehicleController(
+            hass, vehicle_id, presence_config, self
+        )
         self._trips: Dict[str, Any] = {}
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
@@ -104,8 +117,18 @@ class TripManager:
             _LOGGER.warning("=== stored_data type: %s ===", type(stored_data).__name__)
             _LOGGER.warning("=== stored_data value: %s ===", stored_data)
             if stored_data:
-                _LOGGER.warning("=== stored_data structure: %s ===", list(stored_data.keys()) if isinstance(stored_data, dict) else "not a dict")
-                _LOGGER.warning("=== stored_data['data'] exists: %s ===", "data" in stored_data if isinstance(stored_data, dict) else False)
+                _LOGGER.warning(
+                    "=== stored_data structure: %s ===",
+                    (
+                        list(stored_data.keys())
+                        if isinstance(stored_data, dict)
+                        else "not a dict"
+                    ),
+                )
+                _LOGGER.warning(
+                    "=== stored_data['data'] exists: %s ===",
+                    "data" in stored_data if isinstance(stored_data, dict) else False,
+                )
 
                 # Store API retorna datos dentro de la clave "data"
                 if isinstance(stored_data, dict) and "data" in stored_data:
@@ -114,7 +137,9 @@ class TripManager:
                     # Fallback: use stored_data directly if no "data" key
                     data = stored_data
                 _LOGGER.warning("=== data extracted: %s ===", data)
-                _LOGGER.warning("=== data from stored_data.get('data', {}): %s ===", data)
+                _LOGGER.warning(
+                    "=== data from stored_data.get('data', {}): %s ===", data
+                )
 
                 self._trips = data.get("trips", {})
                 self._recurring_trips = data.get("recurring_trips", {})
@@ -123,14 +148,26 @@ class TripManager:
 
                 _LOGGER.warning("=== AFTER LOAD ===")
                 _LOGGER.warning("=== self._trips: %d trips ===", len(self._trips))
-                _LOGGER.warning("=== self._recurring_trips: %d recurrentes ===", len(self._recurring_trips))
-                _LOGGER.warning("=== self._punctual_trips: %d puntuales ===", len(self._punctual_trips))
+                _LOGGER.warning(
+                    "=== self._recurring_trips: %d recurrentes ===",
+                    len(self._recurring_trips),
+                )
+                _LOGGER.warning(
+                    "=== self._punctual_trips: %d puntuales ===",
+                    len(self._punctual_trips),
+                )
 
                 # Log detailed trip info
                 if self._recurring_trips:
-                    _LOGGER.warning("=== Recurring trips IDs: %s ===", list(self._recurring_trips.keys())[:5])
+                    _LOGGER.warning(
+                        "=== Recurring trips IDs: %s ===",
+                        list(self._recurring_trips.keys())[:5],
+                    )
                 if self._punctual_trips:
-                    _LOGGER.warning("=== Punctual trips IDs: %s ===", list(self._punctual_trips.keys())[:5])
+                    _LOGGER.warning(
+                        "=== Punctual trips IDs: %s ===",
+                        list(self._punctual_trips.keys())[:5],
+                    )
             else:
                 _LOGGER.warning(
                     "No se encontraron viajes almacenados para %s",
@@ -241,7 +278,9 @@ class TripManager:
                 "last_update": datetime.now().isoformat(),
             }
 
-            _LOGGER.info("About to call async_save with data keys: %s", list(data.keys()))
+            _LOGGER.info(
+                "About to call async_save with data keys: %s", list(data.keys())
+            )
             await store.async_save(data)
             _LOGGER.info(
                 "Viajes guardados en HA storage: %d recurrentes, %d puntuales",
@@ -466,11 +505,15 @@ class TripManager:
 
     async def async_pause_recurring_trip(self, trip_id: str) -> None:
         """Pausa un viaje recurrente."""
-        _LOGGER.debug("Pausing recurring trip %s for vehicle %s", trip_id, self.vehicle_id)
+        _LOGGER.debug(
+            "Pausing recurring trip %s for vehicle %s", trip_id, self.vehicle_id
+        )
         if trip_id in self._recurring_trips:
             self._recurring_trips[trip_id]["activo"] = False
             await self.async_save_trips()
-            _LOGGER.info("Paused recurring trip %s for vehicle %s", trip_id, self.vehicle_id)
+            _LOGGER.info(
+                "Paused recurring trip %s for vehicle %s", trip_id, self.vehicle_id
+            )
         else:
             _LOGGER.warning(
                 "Recurring trip %s not found for pause in vehicle %s",
@@ -480,11 +523,15 @@ class TripManager:
 
     async def async_resume_recurring_trip(self, trip_id: str) -> None:
         """Reanuda un viaje recurrente."""
-        _LOGGER.debug("Resuming recurring trip %s for vehicle %s", trip_id, self.vehicle_id)
+        _LOGGER.debug(
+            "Resuming recurring trip %s for vehicle %s", trip_id, self.vehicle_id
+        )
         if trip_id in self._recurring_trips:
             self._recurring_trips[trip_id]["activo"] = True
             await self.async_save_trips()
-            _LOGGER.info("Resumed recurring trip %s for vehicle %s", trip_id, self.vehicle_id)
+            _LOGGER.info(
+                "Resumed recurring trip %s for vehicle %s", trip_id, self.vehicle_id
+            )
         else:
             _LOGGER.warning(
                 "Recurring trip %s not found for resume in vehicle %s",
@@ -545,10 +592,7 @@ class TripManager:
             device_reg = device_registry.async_get(self.hass)
             device_id = None
             for dev in device_reg.devices.values():
-                if (
-                    dev.identifiers
-                    and (DOMAIN, self.vehicle_id) in dev.identifiers
-                ):
+                if dev.identifiers and (DOMAIN, self.vehicle_id) in dev.identifiers:
                     device_id = dev.id
                     break
 
@@ -559,9 +603,7 @@ class TripManager:
                 "descripcion": trip_data.get("descripcion", ""),
                 "km": trip_data.get("km", 0.0),
                 "kwh": trip_data.get("kwh", 0.0),
-                "fecha_hora": trip_data.get(
-                    "datetime", trip_data.get("hora", "")
-                ),
+                "fecha_hora": trip_data.get("datetime", trip_data.get("hora", "")),
                 "activo": trip_data.get("activo", True),
                 "estado": trip_data.get("estado", "pendiente"),
             }
@@ -598,11 +640,15 @@ class TripManager:
 
     async def async_complete_punctual_trip(self, trip_id: str) -> None:
         """Marca un viaje puntual como completado."""
-        _LOGGER.debug("Completing punctual trip %s for vehicle %s", trip_id, self.vehicle_id)
+        _LOGGER.debug(
+            "Completing punctual trip %s for vehicle %s", trip_id, self.vehicle_id
+        )
         if trip_id in self._punctual_trips:
             self._punctual_trips[trip_id]["estado"] = "completado"
             await self.async_save_trips()
-            _LOGGER.info("Completed punctual trip %s for vehicle %s", trip_id, self.vehicle_id)
+            _LOGGER.info(
+                "Completed punctual trip %s for vehicle %s", trip_id, self.vehicle_id
+            )
         else:
             _LOGGER.warning(
                 "Punctual trip %s not found for completion in vehicle %s",
@@ -612,11 +658,15 @@ class TripManager:
 
     async def async_cancel_punctual_trip(self, trip_id: str) -> None:
         """Cancela un viaje puntual."""
-        _LOGGER.debug("Cancelling punctual trip %s for vehicle %s", trip_id, self.vehicle_id)
+        _LOGGER.debug(
+            "Cancelling punctual trip %s for vehicle %s", trip_id, self.vehicle_id
+        )
         if trip_id in self._punctual_trips:
             del self._punctual_trips[trip_id]
             await self.async_save_trips()
-            _LOGGER.info("Cancelled punctual trip %s for vehicle %s", trip_id, self.vehicle_id)
+            _LOGGER.info(
+                "Cancelled punctual trip %s for vehicle %s", trip_id, self.vehicle_id
+            )
         else:
             _LOGGER.warning(
                 "Punctual trip %s not found for cancellation in vehicle %s",
@@ -653,8 +703,7 @@ class TripManager:
                 # Trip is paused/cancelled - remove from EMHASS
                 await self._async_remove_trip_from_emhass(trip_id)
                 _LOGGER.info(
-                    "Trip %s is inactive, removed from EMHASS deferrable loads",
-                    trip_id
+                    "Trip %s is inactive, removed from EMHASS deferrable loads", trip_id
                 )
                 return
 
@@ -674,7 +723,12 @@ class TripManager:
 
             # Check for critical changes that require recalculation
             recalc_fields = {
-                "km", "kwh", "datetime", "hora", "dia_semana", "descripcion",
+                "km",
+                "kwh",
+                "datetime",
+                "hora",
+                "dia_semana",
+                "descripcion",
             }
             needs_recalculate = bool(changed_fields & recalc_fields)
 
@@ -697,15 +751,11 @@ class TripManager:
                 _LOGGER.debug(
                     "Trip %s updated in EMHASS (attributes only): changed fields=%s",
                     trip_id,
-                    changed_fields
+                    changed_fields,
                 )
 
         except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error syncing trip %s to EMHASS: %s",
-                trip_id,
-                err
-            )
+            _LOGGER.error("Error syncing trip %s to EMHASS: %s", trip_id, err)
 
     async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
         """Remove a trip from EMHASS deferrable loads."""
@@ -720,11 +770,7 @@ class TripManager:
 
             _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
         except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error removing trip %s from EMHASS: %s",
-                trip_id,
-                err
-            )
+            _LOGGER.error("Error removing trip %s from EMHASS: %s", trip_id, err)
 
     async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
         """Publish a new trip to EMHASS as a deferrable load."""
@@ -743,11 +789,7 @@ class TripManager:
                 trip.get("id"),
             )
         except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error publishing trip %s to EMHASS: %s",
-                trip.get("id"),
-                err
-            )
+            _LOGGER.error("Error publishing trip %s to EMHASS: %s", trip.get("id"), err)
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
         """Get all active trips for EMHASS publishing."""
@@ -775,6 +817,7 @@ class TripManager:
     async def async_get_hours_needed_today(self) -> int:
         """Calcula las horas necesarias para cargar hoy."""
         import math
+
         kwh_needed = await self.async_get_kwh_needed_today()
         charging_power = self._get_charging_power()
         return math.ceil(kwh_needed / charging_power) if charging_power > 0 else 0
@@ -788,7 +831,7 @@ class TripManager:
                 if config_entry.data.get("vehicle_name") == self.vehicle_id:
                     entry = config_entry
                     break
-            
+
             if entry and entry.data:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 # Ensure we return a valid number
@@ -873,7 +916,9 @@ class TripManager:
                 return i
 
         # If still not found, default to Monday (index 1)
-        _LOGGER.warning("Day '%s' not found in DAYS_OF_WEEK, defaulting to Monday", day_name)
+        _LOGGER.warning(
+            "Day '%s' not found in DAYS_OF_WEEK, defaulting to Monday", day_name
+        )
         return 1
 
     async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
@@ -885,7 +930,7 @@ class TripManager:
                 if config_entry.data.get("vehicle_name") == vehicle_id:
                     entry = config_entry
                     break
-            
+
             if entry and entry.data:
                 soc_sensor = entry.data.get("soc_sensor")
                 if soc_sensor:
@@ -1069,7 +1114,9 @@ class TripManager:
                 "charging_power_kw": charging_power_kw,
                 "soc_current": soc_current,
             }
-            energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+            energia_info = await self.async_calcular_energia_necesaria(
+                trip, vehicle_config
+            )
             energia_kwh = energia_info["energia_necesaria_kwh"]
             horas_carga = energia_info["horas_carga_necesarias"]
 
@@ -1180,7 +1227,9 @@ class TripManager:
         profile_length = planning_horizon_days * 24
 
         # Inicializar perfiles para cada viaje
-        power_profiles: List[List[float]] = [[0.0] * profile_length for _ in range(num_trips)]
+        power_profiles: List[List[float]] = [
+            [0.0] * profile_length for _ in range(num_trips)
+        ]
 
         # Obtener configuración del vehículo
         battery_capacity = 50.0
@@ -1200,7 +1249,9 @@ class TripManager:
                 "charging_power_kw": charging_power_kw,
                 "soc_current": soc_current,
             }
-            energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+            energia_info = await self.async_calcular_energia_necesaria(
+                trip, vehicle_config
+            )
             energia_kwh = energia_info["energia_necesaria_kwh"]
             horas_carga = energia_info["horas_carga_necesarias"]
 
@@ -1265,7 +1316,9 @@ class TripManager:
 
         return schedule
 
-    async def async_create_trip_sensor(self, trip_id: str, trip_data: Dict[str, Any]) -> None:
+    async def async_create_trip_sensor(
+        self, trip_id: str, trip_data: Dict[str, Any]
+    ) -> None:
         """Create a Home Assistant sensor entity for a trip.
 
         This method creates a sensor entity for each trip when it's added.
