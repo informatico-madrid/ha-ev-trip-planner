@@ -140,7 +140,7 @@ After POC validated, clean up code structure.
   - _Requirements: AC-4, AC-5_
   - _Design: Interface Contracts_
 
-- [ ] 3.4 Add test for multiple trips with correct p_deferrable indices
+- [x] 3.4 Add test for multiple trips with correct p_deferrable indices
   - **Do**:
     1. Add test `test_multiple_trips_assigned_sequential_indices()` to verify 3 trips get p_deferrable0, p_deferrable1, p_deferrable2
   - **Files**: tests/test_emhass_adapter.py
