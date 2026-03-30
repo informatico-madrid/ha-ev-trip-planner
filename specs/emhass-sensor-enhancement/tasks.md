@@ -93,7 +93,7 @@ After POC validated, clean up code structure.
   - **Commit**: `feat(config): add index cooldown configuration`
   - _Design: Soft Delete Algorithm_
 
-- [ ] 2.3 [VERIFY] Quality checkpoint: refactored code passes checks
+- [x] 2.3 [VERIFY] Quality checkpoint: refactored code passes checks
   - **Do**: Run quality checks on refactored code
   - **Verify**: `make lint && make mypy 2>&1 | tail -30`
   - **Done when**: All lint and type checks pass
@@ -101,7 +101,7 @@ After POC validated, clean up code structure.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Add unit tests for soft delete index stability
+- [x] 3.1 Add unit tests for soft delete index stability
   - **Do**:
     1. Create test file `tests/test_emhass_soft_delete.py`
     2. Add tests:
