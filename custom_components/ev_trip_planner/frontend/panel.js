@@ -1040,9 +1040,9 @@ class EVTripPlannerPanel extends LitElement {
       `switch.ev_trip_planner_${lowerVehicleId}`, `switch.ev_trip_planner_${lowerVehicleId}_`,
       `light.ev_trip_planner_${lowerVehicleId}`, `light.ev_trip_planner_${lowerVehicleId}_`,
       `fan.ev_trip_planner_${lowerVehicleId}`, `fan.ev_trip_planner_${lowerVehicleId}_`,
-      `sensor.trip_`,
-      `sensor.ev_trip_planner_`,
-      `sensor.ev_trip_planner`,
+      'sensor.trip_',
+      'sensor.ev_trip_planner_',
+      'sensor.ev_trip_planner',
     ];
 
     if (states instanceof Map) {
@@ -1188,7 +1188,7 @@ class EVTripPlannerPanel extends LitElement {
     const state = states[entityId];
     if (!state) return null;
 
-    let value = state.state;
+    const value = state.state;
 
     if (value === 'unavailable' || value === 'unknown' || value === 'N/A' || value === 'none' || value === '' || value === null) {
       return 'N/A';
