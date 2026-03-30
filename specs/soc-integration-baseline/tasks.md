@@ -97,7 +97,7 @@
 
 ### POC Checkpoint
 
-- [ ] 1.6 [VERIFY] POC verification: SOC listener triggers recalculation
+- [x] 1.6 [VERIFY] POC verification: SOC listener triggers recalculation
   - **Do**:
     1. Start HA with test SOC sensor
     2. Verify SOC change events are tracked
@@ -108,7 +108,7 @@
 
 ### Quality Checkpoints
 
-- [ ] 1.7 [VERIFY] Quality checkpoint: lint and type check
+- [x] 1.7 [VERIFY] Quality checkpoint: lint and type check
   - **Do**: Run lint and type checks on modified files
   - **Verify**: `pylint custom_components/ev_trip_planner/presence_monitor.py custom_components/ev_trip_planner/config_flow.py && python -m mypy custom_components/ev_trip_planner/presence_monitor.py custom_components/ev_trip_planner/config_flow.py --ignore-missing-imports`
   - **Done when**: No lint errors, no type errors
@@ -132,13 +132,13 @@
 
 ## Phase 2: Verification
 
-- [ ] 2.1 [VERIFY] Full local CI: lint && typecheck && test
+- [x] 2.1 [VERIFY] Full local CI: lint && typecheck && test
   - **Do**: Run complete local CI suite
   - **Verify**: `pylint custom_components/ev_trip_planner/*.py && python -m mypy custom_components/ev_trip_planner/*.py --ignore-missing-imports && pytest tests/ -v --tb=short`
   - **Done when**: Build succeeds, all tests pass, no lint/type errors
   - **Commit**: `chore(soc): pass local CI` (only if fixes needed)
 
-- [ ] 2.2 [VERIFY] CI pipeline passes
+- [x] 2.2 [VERIFY] CI pipeline passes
   - **Do**: Verify GitHub Actions/CI passes after push
   - **Verify**: `gh run list --workflow=ci.yml 2>&1 | head -10`
   - **Done when**: CI pipeline passes
