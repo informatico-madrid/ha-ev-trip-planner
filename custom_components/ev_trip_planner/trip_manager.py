@@ -1497,10 +1497,10 @@ class TripManager:
         self,
         trips: List[Dict[str, Any]],
         soc_inicial: float,
-        hora_regreso: Optional[datetime],
         charging_power_kw: float,
-        battery_capacity_kwh: float = 50.0,
-    ) -> List[SOCMilestoneResult]:
+        battery_capacity_kwh: float,
+        hora_regreso: Optional[datetime] = None,
+    ) -> List[Dict[str, Any]]:
         """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás.
 
         Implementa el algoritmo de detección y propagación de déficit:
@@ -1515,9 +1515,9 @@ class TripManager:
         Args:
             trips: Lista de diccionarios con datos de viajes
             soc_inicial: SOC inicial del vehículo al comenzar la cadena (%)
-            hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
             charging_power_kw: Potencia de carga en kW
             battery_capacity_kwh: Capacidad de batería en kWh
+            hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
 
         Returns:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
