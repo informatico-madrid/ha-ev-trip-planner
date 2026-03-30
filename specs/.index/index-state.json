@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-03-30T02:54:35Z",
+  "updated": "2026-03-30T03:08:32Z",
   "directories": [
     {
       "path": "./specs",
@@ -124,7 +124,8 @@
     {
       "name": "charging-window-calculation",
       "path": "./specs/charging-window-calculation",
-      "phase": "new"
+      "phase": "tasks",
+      "awaitingApproval": true
     },
     {
       "name": "soc-milestone-algorithm",
