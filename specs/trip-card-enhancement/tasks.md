@@ -20,7 +20,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
   - _Requirements: AC-1_
   - _Design: Interface Contracts_
 
-- [ ] 1.2 [GREEN] Pass test: Add p_deferrable_index to TripSensor extra_state_attributes
+- [x] 1.2 [GREEN] Pass test: Add p_deferrable_index to TripSensor extra_state_attributes
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. In `TripSensor.__init__()`, get emhass_adapter from trip_manager

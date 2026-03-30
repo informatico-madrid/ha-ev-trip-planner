@@ -661,6 +661,13 @@ class TripSensor(SensorEntity):
             "estado": trip_data.get("estado", "pendiente"),
         }
 
+        # Add p_deferrable_index if EMHASS is configured
+        emhass_adapter = trip_manager.get_emhass_adapter()
+        if emhass_adapter is not None:
+            p_deferrable_index = emhass_adapter.get_assigned_index(self._trip_id)
+            if p_deferrable_index is not None:
+                self._attr_extra_state_attributes["p_deferrable_index"] = p_deferrable_index
+
     @property
     def native_value(self) -> Any:
         """Return sensor value based on trip type and status."""
