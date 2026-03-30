@@ -23,7 +23,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `fix(uninstall): implement cascade delete for trips`
   - _Requirements: AC-1_
 
-- [ ] 1.3 [YELLOW] Refactor: Ensure EMHASS adapter indices are cleaned up
+- [x] 1.3 [YELLOW] Refactor: Ensure EMHASS adapter indices are cleaned up
   - **Do**: Review `emhass_adapter.py` for index cleanup on vehicle delete, add `async_cleanup_vehicle_indices()` if missing
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: All EMHASS indices for deleted vehicle are released

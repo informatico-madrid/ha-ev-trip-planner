@@ -1032,6 +1032,66 @@ class EMHASSAdapter:
         except HomeAssistantError as err:
             _LOGGER.error("Failed to clear error status: %s", err)
 
+    async def async_cleanup_vehicle_indices(self) -> None:
+        """
+        Clean up all EMHASS indices for this vehicle when it is deleted.
+
+        This is a HARD cleanup - immediately releases all indices without cooldown
+        since the vehicle is being deleted. Clears all deferrable load sensors.
+
+        Called during vehicle deletion cascade to ensure no orphaned indices remain.
+        """
+        # Clear all trip-to-index mappings immediately
+        assigned_trips = list(self._index_map.keys())
+
+        # Clear all deferrable load config sensors for this vehicle
+        for trip_id in assigned_trips:
+            emhass_index = self._index_map.get(trip_id)
+            if emhass_index is not None:
+                config_sensor_id = self._get_config_sensor_id(emhass_index)
+                try:
+                    await self.hass.states.async_set(config_sensor_id, "idle", {})
+                except HomeAssistantError as err:
+                    _LOGGER.warning(
+                        "Failed to clear sensor %s during vehicle cleanup: %s",
+                        config_sensor_id,
+                        err,
+                    )
+
+        # Hard reset: clear all mappings and released indices
+        self._index_map.clear()
+        self._released_indices.clear()
+        self._available_indices = list(range(self.max_deferrable_loads))
+
+        # Clear the main vehicle sensor
+        try:
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            await self.hass.states.async_set(
+                sensor_id,
+                "idle",
+                {
+                    "power_profile_watts": [0.0] * 168,
+                    "deferrables_schedule": [],
+                    "vehicle_id": self.vehicle_id,
+                    "trips_count": 0,
+                },
+            )
+        except HomeAssistantError as err:
+            _LOGGER.warning(
+                "Failed to clear vehicle sensor %s during cleanup: %s",
+                sensor_id,
+                err,
+            )
+
+        # Persist the cleared state
+        await self.async_save()
+
+        _LOGGER.info(
+            "Cleaned up all EMHASS indices for vehicle %s. Released %d trip indices.",
+            self.vehicle_id,
+            len(assigned_trips),
+        )
+
     def _calculate_power_profile_from_trips(
         self,
         trips: List[Dict[str, Any]],
