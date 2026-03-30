@@ -133,7 +133,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
   - _Requirements: AC-5_
   - _Design: AC-5_
 
-- [ ] 1.10 [GREEN] Pass test: Handle EMHASS not configured in TripSensor
+- [x] 1.10 [GREEN] Pass test: Handle EMHASS not configured in TripSensor
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. In `TripSensor.__init__()`, check if trip_manager has emhass_adapter
