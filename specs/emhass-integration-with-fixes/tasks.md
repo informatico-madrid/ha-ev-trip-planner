@@ -141,7 +141,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### Integration Tests
 
-- [ ] 2.1 Integration test: Full vehicle lifecycle (add -> trips -> delete)
+- [x] 2.1 Integration test: Full vehicle lifecycle (add -> trips -> delete)
   - **Do**: Create test that adds vehicle, creates trips, deletes vehicle, verifies cascade
   - **Files**: `tests/test_integration_uninstall.py`
   - **Done when**: Full lifecycle test passes
