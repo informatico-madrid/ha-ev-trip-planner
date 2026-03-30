@@ -11,7 +11,7 @@
     },
     {
       "name": "charging-window-calculation",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "soc-integration-baseline"
       ]
@@ -58,7 +58,7 @@
     }
   ],
   "totalSpecs": 7,
-  "completedSpecs": 1,
+  "completedSpecs": 2,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
   "output": "spec-files",
