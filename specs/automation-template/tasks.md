@@ -158,7 +158,7 @@ Focus: Handle edge cases and document required HA entities.
   - **Commit**: `feat(automation): add intensity adjustment for V2C`
   - _Design: Edge Cases from templateborradorcargasaplazablesvehiculo.yaml_
 
-- [ ] 3.3 Document required HA entities
+- [x] 3.3 Document required HA entities
   - **Do**:
     1. Create `docs/automation_entities.md`
     2. List all required entities: home_sensor, plugged_sensor, soc_sensor, modo_manual, etc.
