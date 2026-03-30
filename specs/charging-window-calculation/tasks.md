@@ -121,7 +121,7 @@
 
 ### Quality Checkpoints
 
-- [ ] 1.8 [VERIFY] Quality checkpoint: lint and type check
+- [x] 1.8 [VERIFY] Quality checkpoint: lint and type check
   - **Do**: Run lint and type checks on modified files
   - **Verify**: `pylint custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/presence_monitor.py && python -m mypy custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/presence_monitor.py --ignore-missing-imports`
   - **Done when**: No lint errors, no type errors

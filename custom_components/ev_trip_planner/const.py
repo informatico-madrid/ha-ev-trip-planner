@@ -10,6 +10,8 @@ Note: All CONF_* keys are used in the config flow and entity configuration.
 Default values are optimized for typical EV/PHEV usage patterns.
 """
 
+from typing import Literal
+
 DOMAIN = "ev_trip_planner"
 
 # Config entry version for migrations
@@ -64,8 +66,9 @@ DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types
-TRIP_TYPE_RECURRING = "recurrente"
-TRIP_TYPE_PUNCTUAL = "puntual"
+TripType = Literal["recurrente", "punctual"]
+TRIP_TYPE_RECURRING: TripType = "recurrente"
+TRIP_TYPE_PUNCTUAL: TripType = "puntual"
 
 # Trip status (for punctual trips)
 TRIP_STATUS_PENDING = "pendiente"
