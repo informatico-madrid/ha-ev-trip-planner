@@ -15,7 +15,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - _Requirements: AC-1_
   - _Design: Integration Points - TripManager -> EMHASSAdapter_
 
-- [ ] 1.2 [GREEN] Pass test: Implement cascade delete in async_unload_entry
+- [x] 1.2 [GREEN] Pass test: Implement cascade delete in async_unload_entry
   - **Do**: In `__init__.py`, modify `async_unload_entry()` to call `trip_manager.async_delete_all_trips()` before cleanup
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: Previously failing test now passes
