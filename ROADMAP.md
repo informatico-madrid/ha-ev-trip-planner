@@ -57,9 +57,9 @@ We're following an **incremental development approach** (Option B):
 - [x] Service: `import_from_weekly_pattern` (for migration)
 
 **Phase 1C: Basic Sensors (Day 3-4)** ✅
-- [ ] Sensor: `{vehicle}_trips_list` (informational)
-- [ ] Sensor: `{vehicle}_recurring_trips_count`
-- [ ] Sensor: `{vehicle}_punctual_trips_count`
+- [x] Sensor: `{vehicle}_trips_list` (informational)
+- [x] Sensor: `{vehicle}_recurring_trips_count`
+- [x] Sensor: `{vehicle}_punctual_trips_count`
 - [x] Register sensors via `async_setup_entry` (wiring en HA)
 
 **Phase 1D: Dashboard Foundation (Day 4-5)** ✅

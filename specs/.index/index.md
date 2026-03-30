@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-03-25T20:57:58Z
+**Last updated:** 2026-03-30T01:09:55Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 12 | Yes |
+| ./specs | 22 | Yes |
 
-## All Specs (12)
+## All Specs (22)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -29,7 +29,17 @@ See [index-state.json](./index-state.json) for machine-readable data.
 0/34 tasks |
 | 019-panel-vehicle-crud | ./specs | tasks | 31/32 tasks |
 | 020-fix-panel-trips-sensors | ./specs | tasks |  |
-| 021-e2e-trip-crud-panel-tests | ./specs | execution | 10/18 tasks |
+| 021-e2e-trip-crud-panel-tests | ./specs | tasks | 70/75 tasks |
+| trip-creation | ./specs | tasks | 6/59 tasks |
+| ev-trip-planner-integration-fixes | ./specs | requirements | awaiting approval |
+| _epics | ./specs | new |  |
+| soc-integration-baseline | ./specs | tasks | awaiting approval |
+| charging-window-calculation | ./specs | new |  |
+| soc-milestone-algorithm | ./specs | new |  |
+| emhass-sensor-enhancement | ./specs | new |  |
+| trip-card-enhancement | ./specs | new |  |
+| automation-template | ./specs | new |  |
+| emhass-integration-with-fixes | ./specs | new |  |
 
 ---
 

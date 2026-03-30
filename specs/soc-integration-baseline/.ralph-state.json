@@ -1,0 +1,17 @@
+{
+  "source": "spec",
+  "name": "soc-integration-baseline",
+  "basePath": "specs/soc-integration-baseline",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 10,
+  "awaitingApproval": true,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [],
+  "epicName": "emhass-deferrable-integration"
+}

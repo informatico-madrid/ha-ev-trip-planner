@@ -1,0 +1,21 @@
+{
+  "source": "epic",
+  "name": "emhass-deferrable-integration",
+  "basePath": "specs/_epics/emhass-deferrable-integration",
+  "phase": "triage",
+  "specs": [
+    {"name": "soc-integration-baseline", "status": "pending", "dependencies": []},
+    {"name": "charging-window-calculation", "status": "pending", "dependencies": ["soc-integration-baseline"]},
+    {"name": "soc-milestone-algorithm", "status": "pending", "dependencies": ["charging-window-calculation"]},
+    {"name": "emhass-sensor-enhancement", "status": "pending", "dependencies": ["soc-milestone-algorithm"]},
+    {"name": "trip-card-enhancement", "status": "pending", "dependencies": ["emhass-sensor-enhancement"]},
+    {"name": "automation-template", "status": "pending", "dependencies": ["emhass-sensor-enhancement"]},
+    {"name": "emhass-integration-with-fixes", "status": "pending", "dependencies": ["soc-integration-baseline", "charging-window-calculation", "soc-milestone-algorithm", "emhass-sensor-enhancement", "trip-card-enhancement", "automation-template"]}
+  ],
+  "totalSpecs": 7,
+  "completedSpecs": 0,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "output": "spec-files",
+  "issueNumber": null
+}

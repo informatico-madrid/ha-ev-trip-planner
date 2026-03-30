@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-03-25T20:57:58Z",
+  "updated": "2026-03-30T01:09:55Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 12,
+      "specsCount": 22,
       "isDefault": true
     }
   ],
@@ -92,9 +92,65 @@
     {
       "name": "021-e2e-trip-crud-panel-tests",
       "path": "./specs/021-e2e-trip-crud-panel-tests",
-      "phase": "execution",
-      "taskIndex": 10,
-      "totalTasks": 18
+      "phase": "tasks",
+      "taskIndex": 70,
+      "totalTasks": 75
+    },
+    {
+      "name": "trip-creation",
+      "path": "./specs/trip-creation",
+      "phase": "tasks",
+      "taskIndex": 6,
+      "totalTasks": 59
+    },
+    {
+      "name": "ev-trip-planner-integration-fixes",
+      "path": "./specs/ev-trip-planner-integration-fixes",
+      "phase": "requirements",
+      "awaitingApproval": true
+    },
+    {
+      "name": "_epics",
+      "path": "./specs/_epics",
+      "phase": "new"
+    },
+    {
+      "name": "soc-integration-baseline",
+      "path": "./specs/soc-integration-baseline",
+      "phase": "tasks",
+      "taskIndex": 0,
+      "totalTasks": 10,
+      "awaitingApproval": true
+    },
+    {
+      "name": "charging-window-calculation",
+      "path": "./specs/charging-window-calculation",
+      "phase": "new"
+    },
+    {
+      "name": "soc-milestone-algorithm",
+      "path": "./specs/soc-milestone-algorithm",
+      "phase": "new"
+    },
+    {
+      "name": "emhass-sensor-enhancement",
+      "path": "./specs/emhass-sensor-enhancement",
+      "phase": "new"
+    },
+    {
+      "name": "trip-card-enhancement",
+      "path": "./specs/trip-card-enhancement",
+      "phase": "new"
+    },
+    {
+      "name": "automation-template",
+      "path": "./specs/automation-template",
+      "phase": "new"
+    },
+    {
+      "name": "emhass-integration-with-fixes",
+      "path": "./specs/emhass-integration-with-fixes",
+      "phase": "new"
     }
   ]
 }
