@@ -7,6 +7,7 @@ Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
@@ -25,6 +26,8 @@ from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
     DOMAIN,
+    EMHASS_STATE_ERROR,
+    EMHASS_STATE_READY,
     TRIP_TYPE_PUNCTUAL,
 )
 from .trip_manager import TripManager
@@ -485,6 +488,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         self._attr_has_entity_name = True
         self._attr_native_value = "ready"
         self._cached_attrs: Dict[str, Any] = {}
+        self._index_cooldown_hours: int = 24
 
     @property
     def unique_id(self) -> str:
@@ -562,11 +566,21 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 planning_horizon_days=planning_horizon_days,
             )
 
+            # Get active trips count for sensor attributes
+            recurring_trips = await self.trip_manager.async_get_recurring_trips()
+            punctual_trips = await self.trip_manager.async_get_punctual_trips()
+            trips_count = len(recurring_trips) + len(punctual_trips)
+            vehicle_id = self.trip_manager.vehicle_id
+
             self._cached_attrs = {
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": schedule,
+                "last_update": datetime.now().isoformat(),
+                "emhass_status": EMHASS_STATE_READY,
+                "trips_count": trips_count,
+                "vehicle_id": vehicle_id,
             }
-            self._attr_native_value = "ready"
+            self._attr_native_value = EMHASS_STATE_READY
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
                 self._entry_id,
@@ -581,7 +595,9 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 err,
                 exc_info=True,
             )
-            self._attr_native_value = "error"
+            self._cached_attrs["emhass_status"] = EMHASS_STATE_ERROR
+            self._cached_attrs["last_update"] = datetime.now().isoformat()
+            self._attr_native_value = EMHASS_STATE_ERROR
 
 
 class TripSensor(SensorEntity):
@@ -645,6 +661,46 @@ class TripSensor(SensorEntity):
             "estado": trip_data.get("estado", "pendiente"),
         }
 
+        # Add soc_target if soc_objetivo is present (AC-3)
+        soc_objetivo = trip_data.get("soc_objetivo")
+        if soc_objetivo is not None:
+            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
+
+        # Add deficit_from_previous if deficit_acumulado is present (AC-3)
+        deficit_acumulado = trip_data.get("deficit_acumulado")
+        if deficit_acumulado is not None:
+            self._attr_extra_state_attributes["deficit_from_previous"] = deficit_acumulado
+
+        # Add EMHASS-related info
+        self._attr_extra_state_attributes.update(self._get_emhass_info())
+
+        # Add charging_window if ventana_carga exists
+        ventana_carga = trip_data.get("ventana_carga")
+        if ventana_carga:
+            inicio = ventana_carga.get("inicio_ventana", "")
+            fin = ventana_carga.get("fin_ventana", "")
+            if inicio and fin:
+                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
+                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+                self._attr_extra_state_attributes["charging_window"] = {
+                    "start": start_time,
+                    "end": end_time,
+                }
+
+    def _get_emhass_info(self) -> Dict[str, Any]:
+        """Get EMHASS-related info for this trip.
+
+        Returns dict with EMHASS-related attributes (e.g., p_deferrable_index).
+        Designed to be extended with future EMHASS attributes like soc_target.
+        """
+        emhass_info: Dict[str, Any] = {}
+        emhass_adapter = self.trip_manager.get_emhass_adapter()
+        if emhass_adapter is not None:
+            p_deferrable_index = emhass_adapter.get_assigned_index(self._trip_id)
+            if p_deferrable_index is not None:
+                emhass_info["p_deferrable_index"] = p_deferrable_index
+        return emhass_info
+
     @property
     def native_value(self) -> Any:
         """Return sensor value based on trip type and status."""
@@ -689,6 +745,40 @@ class TripSensor(SensorEntity):
             "via_device": (DOMAIN, vehicle_id),
         }
 
+    def _update_state_attributes_from_trip_data(
+        self, trip_data: Dict[str, Any]
+    ) -> None:
+        """Update extra_state_attributes from trip data.
+
+        Args:
+            trip_data: Trip data to extract attributes from.
+        """
+        # Add deficit_from_previous if deficit_acumulado is present (AC-3)
+        deficit_acumulado = trip_data.get("deficit_acumulado")
+        if deficit_acumulado is not None:
+            self._attr_extra_state_attributes["deficit_from_previous"] = deficit_acumulado
+
+        # Add soc_target if soc_objetivo is present (AC-3)
+        soc_objetivo = trip_data.get("soc_objetivo")
+        if soc_objetivo is not None:
+            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
+
+        # Add EMHASS-related info
+        self._attr_extra_state_attributes.update(self._get_emhass_info())
+
+        # Add charging_window if ventana_carga exists
+        ventana_carga = trip_data.get("ventana_carga")
+        if ventana_carga:
+            inicio = ventana_carga.get("inicio_ventana", "")
+            fin = ventana_carga.get("fin_ventana", "")
+            if inicio and fin:
+                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
+                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+                self._attr_extra_state_attributes["charging_window"] = {
+                    "start": start_time,
+                    "end": end_time,
+                }
+
     def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
         """Update sensor state from trip data.
 
@@ -711,12 +801,12 @@ class TripSensor(SensorEntity):
             "activo": trip_data.get("activo", True),
             "estado": trip_data.get("estado", "pendiente"),
         }
+        # Update state attributes from trip data (AC-4)
+        self._update_state_attributes_from_trip_data(trip_data)
+
         # Trigger state update only if entity_id is set (entity is registered)
         if self.entity_id is not None:
             self.async_schedule_update_ha_state()
-        else:
-            # For unregistered entities, manually write state
-            self.async_write_ha_state()
 
 
 async def async_setup_entry(

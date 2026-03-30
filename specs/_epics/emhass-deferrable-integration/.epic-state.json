@@ -18,14 +18,14 @@
     },
     {
       "name": "soc-milestone-algorithm",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "charging-window-calculation"
       ]
     },
     {
       "name": "emhass-sensor-enhancement",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "soc-milestone-algorithm"
       ]
@@ -58,7 +58,7 @@
     }
   ],
   "totalSpecs": 7,
-  "completedSpecs": 2,
+  "completedSpecs": 4,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
   "output": "spec-files",

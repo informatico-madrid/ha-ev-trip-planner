@@ -9,9 +9,14 @@ from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_CHARGING_POWER,
+    CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
     CONF_VEHICLE_NAME,
+    DEFAULT_INDEX_COOLDOWN_HOURS,
+    EMHASS_STATE_ACTIVE,
+    EMHASS_STATE_ERROR,
+    EMHASS_STATE_READY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +40,12 @@ class EMHASSAdapter:
         self._store = Store(hass, version=1, key=store_key)
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
+
+        # Soft delete: released indices with timestamp for cooldown
+        self._released_indices: Dict[int, datetime] = {}
+        self._index_cooldown_hours: int = vehicle_config.get(
+            CONF_INDEX_COOLDOWN_HOURS, DEFAULT_INDEX_COOLDOWN_HOURS
+        )
 
         # Error tracking
         self._last_error: Optional[str] = None
@@ -84,7 +95,8 @@ class EMHASSAdapter:
             # Trip already has an index, reuse it
             return self._index_map[trip_id]
 
-        if not self._available_indices:
+        available = self.get_available_indices()
+        if not available:
             _LOGGER.error(
                 "No available EMHASS indices for vehicle %s. "
                 "Max deferrable loads: %d, currently used: %d",
@@ -95,7 +107,7 @@ class EMHASSAdapter:
             return None
 
         # Assign the smallest available index
-        assigned_index = min(self._available_indices)
+        assigned_index = min(available)
         self._available_indices.remove(assigned_index)
         self._index_map[trip_id] = assigned_index
 
@@ -115,6 +127,7 @@ class EMHASSAdapter:
     async def async_release_trip_index(self, trip_id: str) -> bool:
         """
         Release an EMHASS index when trip is deleted/completed.
+        Uses soft delete - index goes to cooldown for 24h before reuse.
 
         Returns:
             True if index was released, False if trip not found
@@ -124,17 +137,18 @@ class EMHASSAdapter:
             return False
 
         released_index = self._index_map.pop(trip_id)
-        self._available_indices.append(released_index)
-        self._available_indices.sort()
+        # Soft delete: store in released_indices with timestamp instead of returning to available
+        self._released_indices[released_index] = datetime.now()
 
         await self.async_save()
 
         _LOGGER.info(
             "Released EMHASS index %d from trip %s for vehicle %s. "
-            "Index now available for reuse",
+            "Index in soft-delete cooldown for %d hours",
             released_index,
             trip_id,
             self.vehicle_id,
+            self._index_cooldown_hours,
         )
 
         return True
@@ -209,7 +223,7 @@ class EMHASSAdapter:
 
             # Set state
             config_sensor_id = self._get_config_sensor_id(emhass_index)
-            await self.hass.states.async_set(config_sensor_id, "active", attributes)
+            await self.hass.states.async_set(config_sensor_id, EMHASS_STATE_ACTIVE, attributes)
 
             _LOGGER.info(
                 "Published deferrable load for trip %s (index %d): %s hours, %s W",
@@ -289,6 +303,29 @@ class EMHASSAdapter:
     def get_all_assigned_indices(self) -> Dict[str, int]:
         """Get all trip-index mappings."""
         return self._index_map.copy()
+
+    def get_available_indices(self) -> List[int]:
+        """
+        Get list of available indices, excluding those in soft-delete cooldown.
+
+        Returns:
+            List of available EMHASS indices
+        """
+        # Clean up expired cooldown indices first
+        now = datetime.now()
+        expired = [
+            idx
+            for idx, released_time in self._released_indices.items()
+            if (now - released_time).total_seconds() >= self._index_cooldown_hours * 3600
+        ]
+        for idx in expired:
+            del self._released_indices[idx]
+            self._available_indices.append(idx)
+
+        if expired:
+            self._available_indices.sort()
+
+        return self._available_indices
 
     def calculate_deferrable_parameters(
         self,
@@ -410,7 +447,7 @@ class EMHASSAdapter:
         sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
         await self.hass.states.async_set(
             sensor_id,
-            "ready",
+            EMHASS_STATE_READY,
             {
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": deferrables_schedule,
@@ -577,7 +614,7 @@ class EMHASSAdapter:
             if config_state:
                 emhass_states[config_sensor] = config_state
 
-                if config_state.state == "active":
+                if config_state.state == EMHASS_STATE_ACTIVE:
                     result["verified_trips"].append(trip_id)
                     continue
 
@@ -640,7 +677,7 @@ class EMHASSAdapter:
 
         # Determine overall status
         if not verification["deferrable_sensor_exists"]:
-            status = "error"
+            status = EMHASS_STATE_ERROR
             message = "Deferrable sensor not found. Configure shell command."
         elif not verification["deferrable_sensor_has_data"]:
             status = "warning"
@@ -653,7 +690,7 @@ class EMHASSAdapter:
             missing = len(response_check["missing_trips"])
             message = f"EMHASS not responding to {missing} trip(s)."
         else:
-            status = "ok"
+            status = EMHASS_STATE_READY
             message = "EMHASS integration working correctly."
 
         return {
@@ -728,7 +765,7 @@ class EMHASSAdapter:
                 "deferrables_schedule": [],
                 "vehicle_id": self.vehicle_id,
                 "trips_count": 0,
-                "emhass_status": "error",
+                "emhass_status": EMHASS_STATE_ERROR,
                 "error_type": error_type,
                 "error_message": message,
                 "error_time": datetime.now().isoformat(),
@@ -739,7 +776,7 @@ class EMHASSAdapter:
 
             await self.hass.states.async_set(
                 sensor_id,
-                "error",
+                EMHASS_STATE_ERROR,
                 attributes,
             )
 
@@ -983,7 +1020,7 @@ class EMHASSAdapter:
                 attributes.pop("error_message", None)
                 attributes.pop("error_time", None)
                 attributes.pop("error_trip_id", None)
-                attributes["emhass_status"] = "ok"
+                attributes["emhass_status"] = EMHASS_STATE_READY
 
                 await self.hass.states.async_set(
                     sensor_id,

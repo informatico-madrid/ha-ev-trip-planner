@@ -35,7 +35,7 @@ lint:
 	pylint custom_components/ tests/
 
 mypy:
-	mypy custom_components/ tests/
+	mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages
 
 format:
 	black .

@@ -45,7 +45,7 @@ class HAYamlValidator:
         if not path.exists():
             return {"valid": False, "error": f"File not found: {file_path}"}
 
-        if not path.suffix.lower() in ('.yaml', '.yml'):
+        if path.suffix.lower() not in ('.yaml', '.yml'):
             self.warnings.append(f"File extension '{path.suffix}' is not .yaml or .yml")
 
         try:

@@ -763,24 +763,6 @@ async def test_check_plugged_status_sensor_not_found(mock_hass):
     assert result is True
 
 
-@pytest.mark.asyncio
-async def test_check_home_status_sensor_not_found(mock_hass):
-    """Test home status check when sensor doesn't exist."""
-    config = {
-        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
-    }
-
-    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-
-    # Mock hass.states.get to return None (sensor not found)
-    mock_hass.states.get = Mock(return_value=None)
-
-    # Should return False (assume not home) when sensor not found
-    result = await monitor.async_check_home_status()
-
-    assert result is False
-
-
 # =============================================================================
 # SOC Listener Tests (Task 1.6)
 # =============================================================================

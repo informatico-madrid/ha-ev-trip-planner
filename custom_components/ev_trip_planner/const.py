@@ -35,6 +35,7 @@ CONF_CONTROL_TYPE = "control_type"
 
 # EMHASS Integration (Milestone 3)
 CONF_MAX_DEFERRABLE_LOADS = "max_deferrable_loads"
+CONF_INDEX_COOLDOWN_HOURS = "index_cooldown_hours"
 CONF_PLANNING_HORIZON = "planning_horizon_days"
 CONF_PLANNING_SENSOR = "planning_sensor_entity"
 
@@ -60,15 +61,22 @@ CONTROL_TYPE_EXTERNAL = "external"
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
+DEFAULT_SOC_BUFFER_PERCENT = 10  # percent (minimum SOC buffer for backward deficit propagation)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
+DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Trip types
 TripType = Literal["recurrente", "punctual"]
 TRIP_TYPE_RECURRING: TripType = "recurrente"
 TRIP_TYPE_PUNCTUAL: TripType = "puntual"
+
+# EMHASS states
+EMHASS_STATE_READY = "ready"
+EMHASS_STATE_ACTIVE = "active"
+EMHASS_STATE_ERROR = "error"
 
 # Trip status (for punctual trips)
 TRIP_STATUS_PENDING = "pendiente"

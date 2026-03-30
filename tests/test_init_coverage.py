@@ -138,7 +138,7 @@ class TestStoragePermissionVerificationFailures:
 
         # This will trigger the outer exception handler
         # when the storage read exception is not caught properly
-        with patch("custom_components.ev_trip_planner.dashboard._LOGGER") as mock_logger:
+        with patch("custom_components.ev_trip_planner.dashboard._LOGGER"):
             result = await _verify_storage_permissions(hass, "test_vehicle")
 
             # Should handle gracefully and return False when exception occurs

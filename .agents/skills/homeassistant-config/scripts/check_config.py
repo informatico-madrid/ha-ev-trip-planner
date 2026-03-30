@@ -7,11 +7,10 @@ Usage: python3 check_config.py <directory_or_file> [--verbose]
 """
 
 import sys
-import os
 import re
 import json
 from pathlib import Path
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set
 
 try:
     import yaml

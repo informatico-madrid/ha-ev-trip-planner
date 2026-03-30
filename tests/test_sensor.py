@@ -518,6 +518,261 @@ async def test_trip_planner_sensor_device_info(mock_hass):
     assert device_info["model"] == "EV Trip Planner"
 
 
+# Tests for p_deferrable_index attribute (TripCard Enhancement - AC-1)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_p_deferrable_index_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows p_deferrable_index in extra_state_attributes.
+
+    This test verifies AC-1: Trip card shows p_deferrable index (e.g., "Carga diferible: p_deferrable0")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager with emhass_adapter
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    # Implementation calls: trip_manager.get_emhass_adapter().get_assigned_index(trip_id)
+    trip_manager.get_emhass_adapter.return_value.get_assigned_index.return_value = 5
+
+    # Create trip data with id and tipo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify p_deferrable_index is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "p_deferrable_index" in attrs, "p_deferrable_index should be in extra_state_attributes"
+    assert attrs["p_deferrable_index"] == 5, "p_deferrable_index should be 5"
+
+
+# Tests for charging_window attribute (TripCard Enhancement - AC-2)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_charging_window_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows charging_window in extra_state_attributes.
+
+    This test verifies AC-2: Trip card shows charging window hours (e.g., "Ventana: 18:00 - 22:00")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with ventana_carga
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T18:00:00",
+            "fin_ventana": "2026-03-30T22:00:00",
+        },
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify charging_window is in extra_state_attributes with formatted times
+    attrs = sensor.extra_state_attributes
+    assert "charging_window" in attrs, "charging_window should be in extra_state_attributes"
+    assert attrs["charging_window"]["start"] == "18:00", "charging_window start should be 18:00"
+    assert attrs["charging_window"]["end"] == "22:00", "charging_window end should be 22:00"
+
+
+# Tests for soc_target attribute (TripCard Enhancement - AC-3)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_soc_target(mock_hass_with_storage):
+    """Test that TripSensor shows soc_target in extra_state_attributes.
+
+    This test verifies AC-3: Trip card shows SOC target when deficit propagated
+    (e.g., "SOC objetivo: 60%")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with soc_objetivo (spanish key from trip_manager)
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "soc_objetivo": 60,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify soc_target is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "soc_target" in attrs, "soc_target should be in extra_state_attributes"
+    assert attrs["soc_target"] == 60, "soc_target should be 60"
+
+
+# Tests for deficit_from_previous attribute (TripCard Enhancement - AC-3)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_deficit_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows deficit_from_previous in extra_state_attributes.
+
+    This test verifies AC-3: Trip card shows deficit propagated from previous milestone
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with deficit_acumulado
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "deficit_acumulado": 5.0,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify deficit_from_previous is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "deficit_from_previous" in attrs, "deficit_from_previous should be in extra_state_attributes"
+    assert attrs["deficit_from_previous"] == 5.0, "deficit_from_previous should be 5.0"
+
+
+# Tests for EMHASS not configured (TripCard Enhancement - AC-5)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_no_emhass_attributes(mock_hass_with_storage):
+    """Test that TripSensor handles EMHASS not configured gracefully.
+
+    This test verifies AC-5: No EMHASS info shown when EMHASS not configured
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager with emhass_adapter = None
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    # EMHASS not configured - get_emhass_adapter() returns None
+    trip_manager.get_emhass_adapter.return_value = None
+
+    # Create trip data with id and tipo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify p_deferrable_index is NOT in extra_state_attributes when EMHASS not configured
+    attrs = sensor.extra_state_attributes
+    assert "p_deferrable_index" not in attrs, "p_deferrable_index should NOT be in extra_state_attributes when EMHASS is not configured"
+
+
+# Tests for update_from_trip_data with new attributes (TripCard Enhancement - AC-4)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_update_from_trip_data_new_attributes(mock_hass_with_storage):
+    """Test that update_from_trip_data preserves new attributes like charging_window and soc_target.
+
+    This test verifies AC-4: When trip is edited, update_from_trip_data should
+    include the new attributes (charging_window, soc_target, deficit_from_previous).
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    trip_manager.get_emhass_adapter.return_value = None
+
+    # Create initial trip data WITH ventana_carga and soc_objetivo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T18:00:00",
+            "fin_ventana": "2026-03-30T22:00:00",
+        },
+        "soc_objetivo": 60,
+    }
+
+    # Create sensor with initial trip data
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify initial attributes are set correctly
+    initial_attrs = sensor.extra_state_attributes
+    assert "charging_window" in initial_attrs, "charging_window should be in initial attrs"
+    assert "soc_target" in initial_attrs, "soc_target should be in initial attrs"
+
+    # Now call update_from_trip_data with updated trip data
+    updated_trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Updated commute",
+        "km": 30.0,
+        "kwh": 5.0,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T19:00:00",
+            "fin_ventana": "2026-03-30T23:00:00",
+        },
+        "soc_objetivo": 65,
+    }
+
+    sensor.update_from_trip_data(updated_trip_data)
+
+    # Verify extra_state_attributes includes charging_window and soc_target after update
+    attrs = sensor.extra_state_attributes
+    assert "charging_window" in attrs, "charging_window should be preserved in extra_state_attributes after update"
+    assert "soc_target" in attrs, "soc_target should be preserved in extra_state_attributes after update"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 
@@ -900,7 +1155,7 @@ async def test_sensor_with_none_coordinator():
     from custom_components.ev_trip_planner.sensor import KwhTodaySensor
 
     # Create sensor with coordinator=None
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         warnings.simplefilter("always")
         sensor = KwhTodaySensor(vehicle_id="test_vehicle", coordinator=None)
 

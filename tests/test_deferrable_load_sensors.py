@@ -303,6 +303,50 @@ class TestEmhassDeferrableLoadSensor:
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
 
+    async def test_sensor_includes_last_update_attribute(self, sensor):
+        """Test that last_update timestamp is present after update."""
+        sensor.trip_manager.async_generate_power_profile = AsyncMock(
+            return_value=[0.0] * 168
+        )
+        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
+            return_value=[]
+        )
+
+        await sensor.async_update()
+
+        attrs = sensor.extra_state_attributes
+        assert "last_update" in attrs
+        assert attrs["last_update"] is not None
+        # Verify it's a valid ISO format timestamp
+        assert "T" in attrs["last_update"]  # ISO format contains 'T'
+
+    async def test_sensor_includes_emhass_status_attribute(self, sensor):
+        """Test that emhass_status attribute is present after update."""
+        sensor.trip_manager.async_generate_power_profile = AsyncMock(
+            return_value=[0.0] * 168
+        )
+        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
+            return_value=[]
+        )
+
+        await sensor.async_update()
+
+        attrs = sensor.extra_state_attributes
+        assert "emhass_status" in attrs
+        assert attrs["emhass_status"] == "ready"
+
+    async def test_sensor_emhass_status_error_on_exception(self, sensor):
+        """Test that emhass_status is set to error on exception."""
+        sensor.trip_manager.async_generate_power_profile = AsyncMock(
+            side_effect=Exception("Test error")
+        )
+
+        await sensor.async_update()
+
+        assert sensor._attr_native_value == "error"
+        assert sensor.extra_state_attributes["emhass_status"] == "error"
+        assert "last_update" in sensor.extra_state_attributes
+
 
 class TestPowerProfileSemantics:
     """Tests for power_profile_watts semantic meaning: 0W = no charging, positive = charging."""

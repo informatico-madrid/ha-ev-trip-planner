@@ -131,12 +131,13 @@ async def test_release_trip_index(hass: HomeAssistant, mock_store):
         assert index == 0
         assert len(adapter._available_indices) == 49
         
-        # Release index
+        # Release index (soft delete - goes to cooldown, not immediately available)
         result = await adapter.async_release_trip_index("trip_001")
         assert result is True
-        assert len(adapter._available_indices) == 50
-        assert 0 in adapter._available_indices
-        
+        assert len(adapter._available_indices) == 49  # Index still in soft delete, not available
+        assert 0 not in adapter._available_indices  # Index NOT available yet
+        assert 0 in adapter._released_indices  # Index is in soft-delete cooldown
+
         # Verify trip no longer in map
         assert adapter.get_assigned_index("trip_001") is None
 
@@ -285,11 +286,12 @@ async def test_remove_deferrable_load(hass: HomeAssistant, mock_store):
         # Remove
         result = await adapter.async_remove_deferrable_load("trip_001")
         assert result is True
-        
-        # Verify index released
+
+        # Verify index released (soft delete - goes to cooldown, not immediately available)
         assert adapter.get_assigned_index("trip_001") is None
-        assert index in adapter._available_indices
-        
+        assert index not in adapter._available_indices  # Not available yet
+        assert index in adapter._released_indices  # Index is in soft-delete cooldown
+
         # Verify sensor cleared
         sensor_id = f"sensor.emhass_deferrable_load_config_{index}"
         state = hass.states.get(sensor_id)
@@ -1310,7 +1312,7 @@ async def test_publish_deferrable_load_kwh_zero(hass: HomeAssistant, mock_store)
         }
 
         # Publish should work even with zero kwh
-        result = await adapter.async_publish_deferrable_load(trip)
+        await adapter.async_publish_deferrable_load(trip)
 
         # Should return True (or handle zero kwh gracefully)
         # The exact behavior depends on implementation
@@ -1383,3 +1385,59 @@ async def test_index_assignment_and_persistence(hass: HomeAssistant, mock_store)
         assert adapter.get_assigned_index("trip_1") == 0
         assert adapter.get_assigned_index("trip_2") == 1
         assert adapter.get_assigned_index("trip_3") == 2
+
+
+@pytest.mark.asyncio
+async def test_multiple_trips_assigned_sequential_indices(hass: HomeAssistant, mock_store):
+    """Test that 3 trips get p_deferrable0, p_deferrable1, p_deferrable2 in schedule (AC-1)."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Create 3 trips with staggered deadlines
+        trips = [
+            {
+                "id": f"trip_{i:03d}",
+                "kwh": 3.0 + i,
+                "datetime": (datetime.now() + timedelta(hours=8+i)).isoformat(),
+                "descripcion": f"Trip {i}",
+            }
+            for i in range(3)
+        ]
+
+        # Publish all trips
+        result = await adapter.publish_deferrable_loads(trips, 7.4)
+        assert result is True
+
+        # Verify each trip got sequential indices
+        for i, trip in enumerate(trips):
+            index = adapter.get_assigned_index(trip["id"])
+            assert index == i, f"Trip {i} should have index {i}, got {index}"
+
+        # Verify template sensor has correct schedule
+        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.vehicle_id}"
+        state = hass.states.get(sensor_id)
+        assert state is not None
+
+        schedule = state.attributes["deferrables_schedule"]
+        assert len(schedule) == 168  # 7 days * 24 hours
+
+        # Verify schedule entries have p_deferrable0, p_deferrable1, p_deferrable2
+        first_entry = schedule[0]
+        assert "p_deferrable0" in first_entry
+        assert "p_deferrable1" in first_entry
+        assert "p_deferrable2" in first_entry
+
+        # Verify values are valid numeric strings (non-negative)
+        for key in ["p_deferrable0", "p_deferrable1", "p_deferrable2"]:
+            val = float(first_entry[key])
+            assert val >= 0, f"{key} should be non-negative"
+
+        # Verify trips_count
+        assert state.attributes["trips_count"] == 3

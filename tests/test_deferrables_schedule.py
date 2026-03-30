@@ -229,6 +229,40 @@ class TestDeferrablesScheduleGeneration:
         assert ("+" in date_str) or (date_str.endswith("Z")) or ("-" in date_str and date_str.index("-") > date_str.index("T")), \
             f"ISO format should include timezone: {date_str}"
 
+    async def test_schedule_shows_p_deferrable_per_hour(self, trip_manager):
+        """Test that schedule entries contain p_deferrable{n} keys for each hour.
+
+        AC-4: deferrables_schedule shows p_deferrable{n} for specific hour
+        AC-5: EMHASS MPC plan → automation can read p_deferrable{n} per hour
+        """
+        trip_manager._load_trips = AsyncMock()
+        trip_manager._recurring_trips = {}
+        trip_manager._punctual_trips = {}
+        trip_manager.async_get_vehicle_soc = AsyncMock(return_value=50.0)
+        trip_manager.async_generate_power_profile = AsyncMock(
+            return_value=[0.0] * 24  # 1 day = 24 hours
+        )
+
+        schedule = await trip_manager.async_generate_deferrables_schedule(
+            charging_power_kw=3.6,
+            planning_horizon_days=1,
+        )
+
+        # Verify schedule has 24 entries (one per hour)
+        assert len(schedule) == 24, "Should have 24 entries (one per hour)"
+
+        # Each entry should have date and p_deferrable0 at minimum
+        for hour_idx, entry in enumerate(schedule):
+            assert "date" in entry, f"Hour {hour_idx}: entry should have 'date' key"
+            assert "p_deferrable0" in entry, f"Hour {hour_idx}: entry should have 'p_deferrable0' key"
+
+            # Verify p_deferrable keys follow naming pattern p_deferrable{n}
+            for key in entry:
+                if key.startswith("p_deferrable"):
+                    # Verify the suffix is a number
+                    suffix = key[len("p_deferrable"):]
+                    assert suffix.isdigit(), f"Hour {hour_idx}: key {key} should have numeric suffix"
+
 
 class TestMultipleTripsHandling:
     """Tests for T013.2: Handle multiple trips with index assignment, conflict detection, and priority."""

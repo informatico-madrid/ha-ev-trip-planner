@@ -971,7 +971,7 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
         )
 
         # Try to load to verify storage is available
-        test_data = await test_store.async_load()
+        await test_store.async_load()
         _LOGGER.info("Store API test load succeeded for %s", vehicle_id)
 
         # Store API is available
