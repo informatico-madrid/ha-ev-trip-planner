@@ -68,7 +68,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - **Done when**: YAML parses without errors
   - **Commit**: None
 
-- [ ] 1.7 Add notification for missed charging opportunities
+- [x] 1.7 Add notification for missed charging opportunities
   - **Do**:
     1. Add conditions: car not home OR not plugged AND potencia > 100
     2. Add notification action (persistent_notification.create)

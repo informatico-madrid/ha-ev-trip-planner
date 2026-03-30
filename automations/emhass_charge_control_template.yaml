@@ -35,3 +35,11 @@ actions:
         sequence:
           - service: switch.turn_off
             entity_id: switch.carga_{vehicle}_iniciar_carga
+      - conditions:
+          - condition: template
+            value_template: "{{ (not coche_en_casa or not coche_enchufado) and p_deferrable0 > 100 }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "Charging Opportunity Missed"
+              message: "EMHASS scheduled charging for vehicle {vehicle}, but car is {{ 'not at home' if not coche_en_casa else 'not plugged in' }}."
