@@ -1580,9 +1580,9 @@ class TripManager:
             if original_idx is None:
                 continue
 
-            # soc_inicio_info y ventanas están indexados por posición original
-            soc_data = soc_inicio_info[original_idx]
-            ventana = ventanas[original_idx]
+            # soc_inicio_info y ventanas están indexados en orden temporal (ordered_idx)
+            soc_data = soc_inicio_info[ordered_idx]
+            ventana = ventanas[ordered_idx]
             trip = trips[original_idx]
 
             soc_inicio = soc_data["soc_inicio"]
