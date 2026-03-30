@@ -7,6 +7,9 @@ triggers:
       minutes: "5"
   - time_pattern:
       minutes: "35"
+variables:
+  hora_actual: "{{ now().hour }}"
+  p_deferrable0: "{{ state_attr('sensor.emhass_plan_{vehicle}_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
 conditions:
   - condition: template
     value_template: "{{ states('sensor.emhass_plan_{vehicle}_mpc_congelado') not in ['unavailable', 'unknown'] }}"

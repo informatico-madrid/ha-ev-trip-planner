@@ -27,7 +27,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-5_
   - _Design: Interface Contracts_
 
-- [ ] 1.3 Implement p_deferrable{n} reading for current hour
+- [x] 1.3 Implement p_deferrable{n} reading for current hour
   - **Do**:
     1. Add variables section with plan attribute reading
     2. Parse `state_attr('sensor.emhass_plan_{vehicle}_mpc_congelado', 'plan_deferrable{n}_horario_mpc')`
