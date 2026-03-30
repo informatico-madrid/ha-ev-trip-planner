@@ -334,7 +334,7 @@ Focus: Clean up implementation, improve code quality.
   - **Commit**: `refactor(soc-milestone): extract SOC calculation helpers`
   - _Design: Architecture section_
 
-- [ ] 3.2 Add docstrings to all new methods
+- [x] 3.2 Add docstrings to all new methods
   - **Do**:
     1. Add Google-style docstrings to `calcular_hitos_soc`
     2. Add docstrings to all helper methods
