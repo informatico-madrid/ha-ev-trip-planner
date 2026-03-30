@@ -556,6 +556,47 @@ async def test_trip_sensor_p_deferrable_index_attribute(mock_hass_with_storage):
     assert attrs["p_deferrable_index"] == 5, "p_deferrable_index should be 5"
 
 
+# Tests for charging_window attribute (TripCard Enhancement - AC-2)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_charging_window_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows charging_window in extra_state_attributes.
+
+    This test verifies AC-2: Trip card shows charging window hours (e.g., "Ventana: 18:00 - 22:00")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with ventana_carga
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T18:00:00",
+            "fin_ventana": "2026-03-30T22:00:00",
+        },
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify charging_window is in extra_state_attributes with formatted times
+    attrs = sensor.extra_state_attributes
+    assert "charging_window" in attrs, "charging_window should be in extra_state_attributes"
+    assert attrs["charging_window"]["start"] == "18:00", "charging_window start should be 18:00"
+    assert attrs["charging_window"]["end"] == "22:00", "charging_window end should be 22:00"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 
