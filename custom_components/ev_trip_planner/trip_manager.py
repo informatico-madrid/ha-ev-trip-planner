@@ -1613,10 +1613,14 @@ class TripManager:
                 deficits[original_idx] += deficit
 
         # Construir resultados finales
+        # Note: soc_inicio_info and ventanas are in sorted order (by departure time)
+        # We need to map original indices to sorted indices properly
         results: List[SOCMilestoneResult] = []
         for idx, trip in enumerate(trips):
-            soc_data = soc_inicio_info[idx]
-            ventana = ventanas[idx]
+            # Get the sorted position for this original index
+            ordered_idx = idx_to_ordered.get(idx, idx)
+            soc_data = soc_inicio_info[ordered_idx]
+            ventana = ventanas[ordered_idx]
 
             soc_objetivo = self._calcular_soc_objetivo_base(
                 trip, battery_capacity_kwh
