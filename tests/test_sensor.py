@@ -635,6 +635,43 @@ async def test_trip_sensor_soc_target(mock_hass_with_storage):
     assert attrs["soc_target"] == 60, "soc_target should be 60"
 
 
+# Tests for deficit_from_previous attribute (TripCard Enhancement - AC-3)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_deficit_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows deficit_from_previous in extra_state_attributes.
+
+    This test verifies AC-3: Trip card shows deficit propagated from previous milestone
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+
+    # Create trip data with deficit_acumulado
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "deficit_acumulado": 5.0,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify deficit_from_previous is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "deficit_from_previous" in attrs, "deficit_from_previous should be in extra_state_attributes"
+    assert attrs["deficit_from_previous"] == 5.0, "deficit_from_previous should be 5.0"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 
