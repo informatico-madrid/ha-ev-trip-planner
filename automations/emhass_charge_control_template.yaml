@@ -7,3 +7,9 @@ triggers:
       minutes: "5"
   - time_pattern:
       minutes: "35"
+conditions:
+  - condition: template
+    value_template: "{{ states('sensor.emhass_plan_{vehicle}_mpc_congelado') not in ['unavailable', 'unknown'] }}"
+  - condition: state
+    entity_id: input_boolean.carga_{vehicle}_modo_manual
+    state: "off"

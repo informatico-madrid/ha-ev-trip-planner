@@ -16,7 +16,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-1_
   - _Design: Interface Contracts_
 
-- [ ] 1.2 Add condition checks for EMHASS sensor availability
+- [x] 1.2 Add condition checks for EMHASS sensor availability
   - **Do**:
     1. Add template condition: sensor not in ['unavailable', 'unknown']
     2. Add manual mode condition: input_boolean.carga_{vehicle}_modo_manual == 'off'
