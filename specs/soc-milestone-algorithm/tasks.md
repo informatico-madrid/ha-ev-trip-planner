@@ -16,7 +16,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Commit**: `feat(soc-milestone): add DEFAULT_SOC_BUFFER_PERCENT constant`
   - _Design: Buffer Definition_
 
-- [ ] 1.2 [P] Define type hints for calcular_hitos_soc return structure
+- [x] 1.2 [P] Define type hints for calcular_hitos_soc return structure
   - **Do**:
     1. Add TypedDict or type hints for return structure in trip_manager.py
     2. Fields: trip_id, soc_objetivo, kwh_necesarios, deficit_acumulado, ventana_carga
