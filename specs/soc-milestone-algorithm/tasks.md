@@ -196,7 +196,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): add AC-1 morning/night backward deficit propagation test`
   - _Requirements: AC-1_
 
-- [ ] 2.3 [P] Test AC-2: Morning trip has more kWh than night trip
+- [x] 2.3 [P] Test AC-2: Morning trip has more kWh than night trip
   - **Do**:
     1. Using AC-1 scenario, verify morning trip kwh_necesarios > night trip kwh_necesarios
     2. This proves deficit was propagated backward
