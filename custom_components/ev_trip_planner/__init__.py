@@ -731,9 +731,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Unloading EV Trip Planner for vehicle: %s", vehicle_name)
 
+    # Cascade delete: remove all trips before unloading
+    namespace = f"{DOMAIN}_{entry.entry_id}"
+    if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
+        trip_manager = hass.data[DATA_RUNTIME][namespace].get("trip_manager")
+        if trip_manager:
+            await trip_manager.async_delete_all_trips()
+            _LOGGER.info(
+                "Cascade deleted all trips for vehicle %s during unload", vehicle_name
+            )
+
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Clean up runtime data
-        namespace = f"{DOMAIN}_{entry.entry_id}"
         if DATA_RUNTIME in hass.data:
             hass.data[DATA_RUNTIME].pop(namespace, None)
 

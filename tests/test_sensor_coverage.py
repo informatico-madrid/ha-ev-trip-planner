@@ -416,6 +416,65 @@ class TestNextTripSensorNoTrips:
         )
 
 
+class TestEmhassDeferrableLoadSensorCreation:
+    """Tests for EmhassDeferrableLoadSensor creation on vehicle setup.
+
+    RED test: EmhassDeferrableLoadSensor should be created when async_setup_entry
+    is called. This verifies AC-2: Vehicle addition creates all necessary sensors
+    including EmhassDeferrableLoadSensor.
+    """
+
+    async def test_emhass_deferrable_sensor_created_on_setup(
+        self, hass: HomeAssistant, mock_trip_manager_for_sensor
+    ):
+        """Test that EmhassDeferrableLoadSensor is created when vehicle config completes.
+
+        This test verifies AC-2: When async_setup_entry is called (vehicle setup),
+        EmhassDeferrableLoadSensor should be created and added to the entities list.
+        """
+        from custom_components.ev_trip_planner import DATA_RUNTIME
+
+        entry = MagicMock(spec=ConfigEntry)
+        entry.data = {"vehicle_name": "test_vehicle"}
+        entry.entry_id = "test_entry_id"
+
+        # Set up runtime data with trip_manager
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {
+            "recurring_trips": [],
+            "punctual_trips": [],
+            "kwh_today": 0.0,
+            "hours_today": 0,
+            "next_trip": None,
+        }
+
+        hass.data = {
+            DATA_RUNTIME: {
+                "ev_trip_planner_test_entry_id": {
+                    "trip_manager": mock_trip_manager_for_sensor,
+                    "coordinator": mock_coordinator,
+                }
+            }
+        }
+
+        async_add_entities = MagicMock()
+
+        from custom_components.ev_trip_planner.sensor import async_setup_entry
+        result = await async_setup_entry(hass, entry, async_add_entities)
+
+        assert result is True
+        async_add_entities.assert_called_once()
+
+        # Verify EmhassDeferrableLoadSensor is in the created entities
+        entities = async_add_entities.call_args[0][0]
+        entity_types = [type(e).__name__ for e in entities]
+
+        assert "EmhassDeferrableLoadSensor" in entity_types, (
+            f"EmhassDeferrableLoadSensor should be created on vehicle setup. "
+            f"Created entities: {entity_types}"
+        )
+
+
 class TestAsyncSetupEntryErrorPath:
     """Tests for async_setup_entry error paths."""
 
@@ -477,3 +536,163 @@ class TestAsyncSetupEntryErrorPath:
         # Verify 8 entities were added
         entities = async_add_entities.call_args[0][0]
         assert len(entities) == 8
+
+
+class TestTripStateChangeUpdatesSensor:
+    """Tests for AC-4: Trip state change updates corresponding sensor.
+
+    RED test: When a trip state changes (via async_update_trip or similar),
+    the EmhassDeferrableLoadSensor should be updated to reflect the change.
+    """
+
+    async def test_trip_state_change_triggers_emhass_sensor_update(
+        self, hass: HomeAssistant, mock_trip_manager_for_sensor
+    ):
+        """Test that trip state change triggers EmhassDeferrableLoadSensor update.
+
+        This test verifies AC-4: When a trip's state is modified
+        (e.g., km, datetime, estado), the EmhassDeferrableLoadSensor should
+        be updated to reflect the new trip state.
+
+        Before implementation: Sensor state does not reflect trip changes
+        After implementation: Sensor state updates when trips change
+        """
+        from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+        # Set up the emhass_adapter on trip_manager (required for EMHASS sync)
+        mock_emhass_adapter = MagicMock()
+        mock_emhass_adapter.async_update_deferrable_load = AsyncMock(return_value=True)
+        mock_emhass_adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+        mock_trip_manager_for_sensor._emhass_adapter = mock_emhass_adapter
+
+        # Create the EmhassDeferrableLoadSensor
+        sensor = EmhassDeferrableLoadSensor(
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
+        )
+
+        # Set up mock config entry
+        mock_entry = MagicMock(spec=ConfigEntry)
+        mock_entry.data = {
+            "vehicle_name": "test_vehicle",
+            "charging_power": 7.0,
+            "planning_horizon_days": 7,
+        }
+        mock_entry.entry_id = "test_entry_id"
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+
+        # Mock trip_manager methods used by sensor's async_update
+        mock_trip_manager_for_sensor.async_generate_power_profile = AsyncMock(
+            return_value=[1000, 2000, 3000]
+        )
+        mock_trip_manager_for_sensor.async_generate_deferrables_schedule = AsyncMock(
+            return_value=[{"hour": 0, "power": 1000}, {"hour": 1, "power": 2000}]
+        )
+        mock_trip_manager_for_sensor.async_get_recurring_trips = AsyncMock(
+            return_value=[{"id": "trip_1", "km": 30, "kwh": 4.5}]
+        )
+        mock_trip_manager_for_sensor.async_get_punctual_trips = AsyncMock(
+            return_value=[{"id": "trip_2", "km": 50, "kwh": 7.5}]
+        )
+
+        # Initial update - sensor should be ready
+        await sensor.async_update()
+        initial_native_value = sensor.native_value
+
+        assert initial_native_value == "ready", "Sensor should be ready after initial update"
+
+        # Now change the trip state by updating a trip
+        # This simulates what happens when user edits a trip
+        # Pre-populate _recurring_trips so the real async_update_trip can find and sync the trip
+        mock_trip_manager_for_sensor._recurring_trips["trip_1"] = {
+            "id": "trip_1",
+            "km": 30,
+            "kwh": 4.5,
+            "activo": True,
+        }
+        # Use side_effect to call the real async_update_trip implementation
+        real_update_trip = mock_trip_manager_for_sensor.__class__.async_update_trip
+
+        async def side_effect_impl(tid, upd, **kw):
+            return await real_update_trip(mock_trip_manager_for_sensor, tid, upd, **kw)
+
+        mock_trip_manager_for_sensor.async_update_trip = AsyncMock(side_effect=side_effect_impl)
+
+        # Trigger trip state change
+        await mock_trip_manager_for_sensor.async_update_trip(
+            "trip_1",
+            {"km": 35, "kwh": 5.25}  # Change trip distance
+        )
+
+        # The sensor should detect the trip state change and update
+        # Verify by checking that async_update_deferrable_load was called
+        # on the emhass_adapter (this is the mechanism for updating EMHASS sensors)
+        assert mock_emhass_adapter.async_update_deferrable_load.called, (
+            "Trip state change should trigger async_update_deferrable_load call "
+            "to update the EMHASS sensor"
+        )
+
+    async def test_trip_state_change_updates_emhass_sensor_attributes(
+        self, hass: HomeAssistant, mock_trip_manager_for_sensor
+    ):
+        """Test that trip state change updates EmhassDeferrableLoadSensor attributes.
+
+        When a trip's state changes (e.g., new trip added, trip modified,
+        trip deleted), the EmhassDeferrableLoadSensor attributes should be
+        updated to reflect the current trip state.
+        """
+        from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+        # Set up emhass_adapter
+        mock_emhass_adapter = MagicMock()
+        mock_emhass_adapter.async_update_deferrable_load = AsyncMock(return_value=True)
+        mock_trip_manager_for_sensor._emhass_adapter = mock_emhass_adapter
+
+        # Create sensor
+        sensor = EmhassDeferrableLoadSensor(
+            hass, mock_trip_manager_for_sensor, "test_entry_id"
+        )
+
+        # Set up mocks
+        mock_entry = MagicMock(spec=ConfigEntry)
+        mock_entry.data = {
+            "vehicle_name": "test_vehicle",
+            "charging_power": 7.0,
+            "planning_horizon_days": 7,
+        }
+        mock_entry.entry_id = "test_entry_id"
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+
+        mock_trip_manager_for_sensor.async_generate_power_profile = AsyncMock(
+            return_value=[1000]
+        )
+        mock_trip_manager_for_sensor.async_generate_deferrables_schedule = AsyncMock(
+            return_value=[{"hour": 0, "power": 1000}]
+        )
+        mock_trip_manager_for_sensor.async_get_recurring_trips = AsyncMock(
+            return_value=[]
+        )
+        mock_trip_manager_for_sensor.async_get_punctual_trips = AsyncMock(
+            return_value=[]
+        )
+
+        # Initial state
+        await sensor.async_update()
+        initial_trips_count = sensor.extra_state_attributes.get("trips_count", 0)
+
+        # Simulate adding a trip (trip state change)
+        mock_trip_manager_for_sensor.async_get_punctual_trips = AsyncMock(
+            return_value=[{"id": "new_trip", "km": 25, "kwh": 3.75}]
+        )
+
+        # Update sensor after trip was added
+        await sensor.async_update()
+        updated_trips_count = sensor.extra_state_attributes.get("trips_count", 0)
+
+        # After trip was added, trips_count should increase
+        assert updated_trips_count > initial_trips_count, (
+            "EmhassDeferrableLoadSensor should reflect trip count changes. "
+            f"Expected trips_count to increase from {initial_trips_count}, "
+            f"but got {updated_trips_count}"
+        )

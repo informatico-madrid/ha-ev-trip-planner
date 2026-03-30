@@ -42,8 +42,8 @@ async def test_recurring_and_punctual_counts(mock_hass):
     )
 
     coord = FakeCoordinator(_sample_trips(), mock_hass)
-    rec = RecurringTripsCountSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
-    pun = PunctualTripsCountSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
+    rec = RecurringTripsCountSensor(vehicle_id="chispitas", coordinator=coord)
+    pun = PunctualTripsCountSensor(vehicle_id="chispitas", coordinator=coord)
 
     assert rec.native_value == 2
     assert pun.native_value == 1
@@ -54,7 +54,7 @@ async def test_trips_list_sensor_attributes(mock_hass):
     from custom_components.ev_trip_planner.sensor import TripsListSensor
 
     coord = FakeCoordinator(_sample_trips(), mock_hass)
-    s = TripsListSensor(vehicle_id="chispitas", coordinator=coord)  # type: ignore[arg-type]
+    s = TripsListSensor(vehicle_id="chispitas", coordinator=coord)
 
     # Valor nativo: total
     assert s.native_value == 3

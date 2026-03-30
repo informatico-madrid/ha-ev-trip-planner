@@ -1,7 +1,7 @@
 """Schedule Monitor for EV Trip Planner."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -18,7 +18,7 @@ class ScheduleMonitor:
         """Initialize monitor."""
         self.hass = hass
         self._vehicle_monitors: Dict[str, "VehicleScheduleMonitor"] = {}
-        self._unsub_handlers: List[callable] = []
+        self._unsub_handlers: List[Callable[..., Any]] = []
 
     async def async_setup(self, vehicle_configs: Dict[str, Dict[str, Any]]):
         """Set up monitoring for all vehicles."""
@@ -61,7 +61,7 @@ class VehicleScheduleMonitor:
         vehicle_id: str,
         control_strategy,
         presence_monitor,
-        notification_service: str,
+        notification_service: str | None,
         emhass_adapter,
     ):
         """Initialize vehicle monitor."""
@@ -72,7 +72,7 @@ class VehicleScheduleMonitor:
         self.notification_service = notification_service
         self.emhass_adapter = emhass_adapter  # NEW: For index lookup
 
-        self._unsub_handlers: Dict[int, callable] = {}  # index -> unsub function
+        self._unsub_handlers: Dict[int, Callable[..., Any]] = {}  # index -> unsub function
         self._last_actions: Dict[int, str] = {}  # index -> last action
 
         _LOGGER.debug("Created VehicleScheduleMonitor for %s", vehicle_id)

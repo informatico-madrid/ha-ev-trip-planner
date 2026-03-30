@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from unittest.mock import patch, AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.trip_manager import TripManager
 from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
     CONF_MAX_DEFERRABLE_LOADS,
@@ -1441,3 +1442,337 @@ async def test_multiple_trips_assigned_sequential_indices(hass: HomeAssistant, m
 
         # Verify trips_count
         assert state.attributes["trips_count"] == 3
+
+
+# ============================================================================
+# Trip CRUD Integration Tests
+# Verifies that trip create/edit/delete operations trigger EMHASS sensor updates.
+# Requirements: AC-3 (Dashboard Data Synchronization), AC-4 (Trip State Change Updates)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_trip_create_triggers_emhass_update(hass: HomeAssistant, mock_store):
+    """Test that creating a trip triggers EMHASS publish.
+
+    AC-3: Dashboard data sync - when a trip is created, EMHASS should be updated.
+    AC-4: Trip state change updates - new trip state triggers sensor update.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Mock EMHASS adapter methods to verify they are called
+    adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+
+    # Add a recurring trip
+    await trip_manager.async_add_recurring_trip(
+        dia_semana="lunes",
+        hora="09:00",
+        km=24,
+        kwh=3.6,
+        descripcion="Work commute",
+    )
+
+    # Verify EMHASS adapter methods were called
+    adapter.async_publish_deferrable_load.assert_called_once()
+    call_args = adapter.async_publish_deferrable_load.call_args[0][0]
+    assert call_args["id"] is not None
+    assert call_args["kwh"] == 3.6
+
+
+@pytest.mark.asyncio
+async def test_trip_update_triggers_emhass_update(hass: HomeAssistant, mock_store):
+    """Test that updating a trip triggers EMHASS update.
+
+    AC-4: Trip state change updates - when trip kwh/datetime changes,
+    EMHASS should recalculate deferrable load parameters.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Mock EMHASS adapter methods
+    adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+    adapter.async_update_deferrable_load = AsyncMock(return_value=True)
+
+    # Add a recurring trip first
+    trip_id = None
+
+    async def capture_publish(trip):
+        nonlocal trip_id
+        trip_id = trip["id"]
+        return True
+
+    adapter.async_publish_deferrable_load = AsyncMock(side_effect=capture_publish)
+
+    await trip_manager.async_add_recurring_trip(
+        dia_semana="lunes",
+        hora="09:00",
+        km=24,
+        kwh=3.6,
+        descripcion="Work commute",
+    )
+
+    # Reset mock to track update calls
+    adapter.async_publish_deferrable_load.reset_mock()
+    adapter.async_update_deferrable_load.reset_mock()
+
+    # Update the trip (change kwh)
+    await trip_manager.async_update_trip(
+        trip_id,
+        {"kwh": 5.0, "descripcion": "Updated commute"},
+    )
+
+    # Verify EMHASS adapter's update method was called
+    adapter.async_update_deferrable_load.assert_called_once()
+    update_call = adapter.async_update_deferrable_load.call_args[0][0]
+    assert update_call["kwh"] == 5.0
+    assert update_call["descripcion"] == "Updated commute"
+
+
+@pytest.mark.asyncio
+async def test_trip_delete_triggers_emhass_update(hass: HomeAssistant, mock_store):
+    """Test that deleting a trip triggers EMHASS update.
+
+    AC-3: Dashboard data sync - when trip is deleted, EMHASS should remove it.
+    AC-4: Trip state change updates - deletion triggers sensor update.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Mock EMHASS adapter methods
+    adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+    adapter.async_remove_deferrable_load = AsyncMock(return_value=True)
+
+    # Add a recurring trip first
+    trip_id = None
+
+    async def capture_trip_id(trip):
+        nonlocal trip_id
+        trip_id = trip["id"]
+        return True
+
+    adapter.async_publish_deferrable_load = AsyncMock(side_effect=capture_trip_id)
+
+    await trip_manager.async_add_recurring_trip(
+        dia_semana="lunes",
+        hora="09:00",
+        km=24,
+        kwh=3.6,
+        descripcion="Work commute",
+    )
+
+    # Reset mock and delete trip
+    adapter.async_publish_deferrable_load.reset_mock()
+
+    # Delete the trip
+    await trip_manager.async_delete_trip(trip_id)
+
+    # Verify EMHASS adapter's remove method was called
+    adapter.async_remove_deferrable_load.assert_called_once_with(trip_id)
+
+
+@pytest.mark.asyncio
+async def test_punctual_trip_create_triggers_emhass_update(hass: HomeAssistant, mock_store):
+    """Test that creating a punctual trip triggers EMHASS publish.
+
+    AC-3: Dashboard data sync - punctual trips also trigger EMHASS updates.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Mock EMHASS adapter methods
+    adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+
+    # Add a punctual trip
+    await trip_manager.async_add_punctual_trip(
+        datetime_str=(datetime.now() + timedelta(hours=8)).isoformat(),
+        km=110,
+        kwh=16.5,
+        descripcion="Viaje a Toledo",
+    )
+
+    # Verify EMHASS adapter methods were called
+    adapter.async_publish_deferrable_load.assert_called_once()
+    call_args = adapter.async_publish_deferrable_load.call_args[0][0]
+    assert call_args["kwh"] == 16.5
+    assert call_args["tipo"] == "puntual"
+
+
+@pytest.mark.asyncio
+async def test_multiple_trips_all_sync_to_emhass(hass: HomeAssistant, mock_store):
+    """Test that multiple trips all sync correctly to EMHASS.
+
+    AC-3: Dashboard data sync - all trips (recurring + punctual) sync to EMHASS.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Mock EMHASS adapter methods
+    adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+
+    # Add recurring trip
+    await trip_manager.async_add_recurring_trip(
+        dia_semana="lunes",
+        hora="09:00",
+        km=24,
+        kwh=3.6,
+        descripcion="Work commute",
+    )
+
+    # Add punctual trip
+    await trip_manager.async_add_punctual_trip(
+        datetime_str=(datetime.now() + timedelta(hours=12)).isoformat(),
+        km=110,
+        kwh=16.5,
+        descripcion="Viaje a Toledo",
+    )
+
+    # Verify both trips triggered EMHASS publish (2 calls)
+    assert adapter.async_publish_deferrable_load.call_count == 2
+
+    # Verify dashboard can get all trips (AC-3)
+    all_trips = trip_manager.get_all_trips()
+    assert len(all_trips["recurring"]) == 1
+    assert len(all_trips["punctual"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_trip_crud_full_integration(hass: HomeAssistant, mock_store):
+    """Full integration test: Create -> Update -> Delete trip triggers correct EMHASS updates.
+
+    This test verifies AC-3 and AC-4 by testing the complete CRUD cycle:
+    1. CREATE: New trip triggers async_publish_deferrable_load
+    2. READ: Dashboard can read trips via get_all_trips
+    3. UPDATE: Modified trip triggers async_update_deferrable_load
+    4. DELETE: Deleted trip triggers async_remove_deferrable_load
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create EMHASS adapter
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Create TripManager with EMHASS adapter
+    trip_manager = TripManager(hass, "test_vehicle")
+    trip_manager.set_emhass_adapter(adapter)
+
+    # Track which EMHASS methods are called and with what data
+    calls = {"publish": [], "update": [], "remove": []}
+
+    async def mock_publish(trip):
+        calls["publish"].append(trip.copy())
+        return True
+
+    async def mock_update(trip):
+        calls["update"].append(trip.copy())
+        return True
+
+    async def mock_remove(trip_id):
+        calls["remove"].append(trip_id)
+        return True
+
+    adapter.async_publish_deferrable_load = AsyncMock(side_effect=mock_publish)
+    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+    adapter.async_update_deferrable_load = AsyncMock(side_effect=mock_update)
+    adapter.async_remove_deferrable_load = AsyncMock(side_effect=mock_remove)
+
+    # === CREATE ===
+    await trip_manager.async_add_recurring_trip(
+        dia_semana="lunes",
+        hora="09:00",
+        km=24,
+        kwh=3.6,
+        descripcion="Work commute",
+    )
+    assert len(calls["publish"]) == 1
+    assert calls["publish"][0]["kwh"] == 3.6
+
+    # === READ (Dashboard sync - AC-3) ===
+    all_trips = trip_manager.get_all_trips()
+    assert len(all_trips["recurring"]) == 1
+    recurring_trip_id = all_trips["recurring"][0]["id"]
+
+    # === UPDATE (Trip state change - AC-4) ===
+    await trip_manager.async_update_trip(recurring_trip_id, {"kwh": 5.0})
+    assert len(calls["update"]) == 1
+    assert calls["update"][0]["kwh"] == 5.0
+
+    # === DELETE ===
+    await trip_manager.async_delete_trip(recurring_trip_id)
+    assert len(calls["remove"]) == 1
+    assert calls["remove"][0] == recurring_trip_id
+
+    # Verify all EMHASS methods were called correctly
+    assert len(calls["publish"]) == 1   # CREATE
+    assert len(calls["update"]) == 1    # UPDATE
+    assert len(calls["remove"]) == 1    # DELETE

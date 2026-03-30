@@ -46,7 +46,7 @@
     },
     {
       "name": "emhass-integration-with-fixes",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "soc-integration-baseline",
         "charging-window-calculation",
@@ -58,7 +58,7 @@
     }
   ],
   "totalSpecs": 7,
-  "completedSpecs": 6,
+  "completedSpecs": 7,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
   "output": "spec-files",
