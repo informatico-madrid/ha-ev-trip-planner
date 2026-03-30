@@ -992,3 +992,112 @@ async def test_get_all_active_trips_empty(mock_hass, vehicle_id):
 
     # Should return empty list
     assert trips == []
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_rejects_invalid_hora_out_of_range(
+    mock_hass, vehicle_id
+):
+    """Test that async_add_recurring_trip rejects hora with out-of-range values."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    invalid_times = ["16:400", "25:00", "12:60", "24:00"]
+    for time_str in invalid_times:
+        with pytest.raises(ValueError):
+            await manager.async_add_recurring_trip(
+                dia_semana="lunes",
+                hora=time_str,
+                km=24.0,
+                kwh=3.6,
+                descripcion="Test",
+            )
+
+    # No trips should have been stored
+    assert len(manager._recurring_trips) == 0
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_rejects_invalid_hora_bad_format(
+    mock_hass, vehicle_id
+):
+    """Test that async_add_recurring_trip rejects hora with bad format."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    invalid_formats = ["1600", "16-00", "ab:cd", "16:00:00"]
+    for time_str in invalid_formats:
+        with pytest.raises(ValueError):
+            await manager.async_add_recurring_trip(
+                dia_semana="lunes",
+                hora=time_str,
+                km=24.0,
+                kwh=3.6,
+                descripcion="Test",
+            )
+
+    # No trips should have been stored
+    assert len(manager._recurring_trips) == 0
+
+
+@pytest.mark.asyncio
+async def test_sanitize_recurring_trips_removes_corrupted_hora(mock_hass, vehicle_id):
+    """Test that _sanitize_recurring_trips drops entries with invalid hora."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    trips = {
+        "rec_lun_valid": {
+            "id": "rec_lun_valid",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 3.6,
+            "activo": True,
+        },
+        "rec_lun_corrupt": {
+            "id": "rec_lun_corrupt",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "16:400",
+            "km": 10.0,
+            "kwh": 2.0,
+            "activo": True,
+        },
+    }
+
+    sanitized = manager._sanitize_recurring_trips(trips)
+
+    assert len(sanitized) == 1
+    assert "rec_lun_valid" in sanitized
+    assert "rec_lun_corrupt" not in sanitized
+
+
+@pytest.mark.asyncio
+async def test_sanitize_recurring_trips_all_corrupt_returns_empty(
+    mock_hass, vehicle_id
+):
+    """Test that _sanitize_recurring_trips returns empty dict when all entries are corrupt."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    all_corrupt = {
+        "rec_lun_bad1": {
+            "id": "rec_lun_bad1",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "16:400",
+            "km": 10.0,
+            "kwh": 2.0,
+            "activo": True,
+        },
+        "rec_lun_bad2": {
+            "id": "rec_lun_bad2",
+            "tipo": "recurrente",
+            "dia_semana": "martes",
+            "hora": "25:00",
+            "km": 10.0,
+            "kwh": 2.0,
+            "activo": True,
+        },
+    }
+
+    sanitized = manager._sanitize_recurring_trips(all_corrupt)
+    assert sanitized == {}
