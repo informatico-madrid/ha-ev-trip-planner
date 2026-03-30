@@ -88,7 +88,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Commit**: `feat(soc-milestone): add kWh needed calculation`
   - _Design: Algorithm step 4_
 
-- [ ] 1.8 [P] Implement main calcular_hitos_soc function
+- [x] 1.8 [P] Implement main calcular_hitos_soc function
   - **Do**:
     1. Create `async def calcular_hitos_soc(trips, soc_inicial, charging_power_kw, battery_capacity_kwh)`
     2. Sort trips by departure time (chronological order)
