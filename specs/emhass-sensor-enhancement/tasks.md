@@ -31,7 +31,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
   - _Requirements: AC-2_
   - _Design: Index Stability (Soft Delete)_
 
-- [ ] 1.3 [P] Add get_available_indices method with cooldown logic
+- [x] 1.3 [P] Add get_available_indices method with cooldown logic
   - **Do**:
     1. In `emhass_adapter.py`, add `get_available_indices()` method that:
        - Checks `_released_indices` for indices past cooldown
