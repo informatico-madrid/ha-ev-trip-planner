@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-03-30T01:09:55Z
+**Last updated:** 2026-03-30T02:54:35Z
 
 ## Directories (1)
 
@@ -33,7 +33,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | trip-creation | ./specs | tasks | 6/59 tasks |
 | ev-trip-planner-integration-fixes | ./specs | requirements | awaiting approval |
 | _epics | ./specs | new |  |
-| soc-integration-baseline | ./specs | tasks | awaiting approval |
+| soc-integration-baseline | ./specs | completed | done |
 | charging-window-calculation | ./specs | new |  |
 | soc-milestone-algorithm | ./specs | new |  |
 | emhass-sensor-enhancement | ./specs | new |  |

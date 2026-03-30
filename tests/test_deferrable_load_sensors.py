@@ -21,7 +21,6 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def mock_hass():
     """Create mock Home Assistant instance with config entry."""
-    from custom_components.ev_trip_planner.const import DOMAIN as EV_TRIP_DOMAIN
 
     hass = Mock()
     hass.data = {}

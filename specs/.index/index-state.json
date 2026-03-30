@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-03-30T01:09:55Z",
+  "updated": "2026-03-30T02:54:35Z",
   "directories": [
     {
       "path": "./specs",
@@ -117,10 +117,9 @@
     {
       "name": "soc-integration-baseline",
       "path": "./specs/soc-integration-baseline",
-      "phase": "tasks",
-      "taskIndex": 0,
-      "totalTasks": 10,
-      "awaitingApproval": true
+      "phase": "completed",
+      "taskIndex": 11,
+      "totalTasks": 11
     },
     {
       "name": "charging-window-calculation",

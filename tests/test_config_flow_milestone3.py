@@ -1,7 +1,6 @@
 """Tests for Milestone 3 config flow extensions."""
 
 import pytest
-from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
@@ -15,18 +14,10 @@ from custom_components.ev_trip_planner.const import (
     CONF_HOME_SENSOR,
     CONF_PLUGGED_SENSOR,
     CONF_CHARGING_SENSOR,
-    CONF_HOME_COORDINATES,
-    CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_NOTIFICATION_SERVICE,
     CONF_NOTIFICATION_DEVICES,
     CONF_SAFETY_MARGIN,
     CONF_VEHICLE_NAME,
-    DEFAULT_CONSUMPTION,
-    DEFAULT_PLANNING_HORIZON,
-    DEFAULT_MAX_DEFERRABLE_LOADS,
-    DEFAULT_NOTIFICATION_SERVICE,
-    DEFAULT_SAFETY_MARGIN,
-    DOMAIN,
 )
 
 
@@ -632,7 +623,6 @@ async def test_options_flow_init_shows_form(hass: HomeAssistant):
 async def test_options_flow_init_updates_config(hass: HomeAssistant):
     """Test options flow init updates configuration."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
-    from custom_components.ev_trip_planner.const import DEFAULT_CONSUMPTION
     from unittest.mock import MagicMock
 
     # Create a mock config entry with current values
@@ -671,10 +661,6 @@ async def test_options_flow_init_updates_config(hass: HomeAssistant):
 async def test_options_flow_uses_defaults_when_not_present(hass: HomeAssistant):
     """Test options flow uses defaults when current config doesn't have values."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
-    from custom_components.ev_trip_planner.const import (
-        DEFAULT_CONSUMPTION,
-        DEFAULT_SAFETY_MARGIN,
-    )
     from unittest.mock import MagicMock
 
     # Create a mock config entry with minimal values

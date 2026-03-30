@@ -10,7 +10,7 @@ Todos los tests deben FALLAR inicialmente (funciones no implementadas).
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from datetime import datetime
 import asyncio
 

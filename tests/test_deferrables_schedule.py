@@ -10,13 +10,10 @@ Tests the schedule generation format according to EMHASS requirements:
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 
-from homeassistant.util import dt as dt_util
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from custom_components.ev_trip_planner.const import DOMAIN
 
 
 pytestmark = pytest.mark.asyncio

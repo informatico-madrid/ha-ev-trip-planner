@@ -3,13 +3,11 @@
 This module contains comprehensive tests for recurrent and punctual trip ID generation.
 """
 
-import pytest
 from datetime import date, datetime
 
 from custom_components.ev_trip_planner.utils import (
     generate_trip_id,
     is_valid_trip_id,
-    generate_random_suffix,
 )
 
 

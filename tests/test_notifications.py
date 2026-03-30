@@ -149,7 +149,6 @@ async def test_notifications_step_invalid_service_shows_error():
     }
 
     # Mock entity registry to return empty list
-    from homeassistant.helpers import entity_registry
     flow.hass.helpers = MagicMock()
     flow.hass.helpers.entity_registry = MagicMock()
     flow.hass.helpers.entity_registry.async_get_registry = AsyncMock(return_value=MagicMock(entities={}))
@@ -193,7 +192,6 @@ async def test_notifications_step_logs_available_services():
 async def test_notifications_schema_entity_selector_config():
     """Test that notification schema uses correct EntitySelectorConfig."""
     from custom_components.ev_trip_planner.config_flow import STEP_NOTIFICATIONS_SCHEMA
-    import voluptuous as vol
 
     # Verify schema structure
     schema = STEP_NOTIFICATIONS_SCHEMA

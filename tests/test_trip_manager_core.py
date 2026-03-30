@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import unittest.mock
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from custom_components.ev_trip_planner.const import (
-    TRIP_STATUS_CANCELLED,
     TRIP_STATUS_COMPLETED,
     TRIP_STATUS_PENDING,
 )
@@ -25,7 +23,6 @@ def vehicle_id() -> str:
 @pytest.fixture
 def mock_hass():
     """Create a mock hass with config_entries, data, and storage."""
-    from homeassistant.helpers import storage as ha_storage
 
     hass = MagicMock()
     # Mock config_entries with async_entries returning list of entries
@@ -53,7 +50,7 @@ def mock_hass():
 async def test_async_setup_initializes_empty_storage(mock_hass, vehicle_id):
     """Test that async_setup initializes with empty trips when no data exists."""
     # Ensure namespace doesn't exist in hass.data
-    namespace = f"ev_trip_planner_test_entry_123"
+    namespace = "ev_trip_planner_test_entry_123"
     assert namespace not in mock_hass.data
 
     manager = TripManager(mock_hass, vehicle_id)
@@ -385,7 +382,6 @@ async def test_add_recurring_trip_accepts_valid_hour_formats(mock_hass, vehicle_
 async def test_async_get_kwh_needed_today_with_recurring_trips(mock_hass, vehicle_id):
     """Test async_get_kwh_needed_today returns correct kWh for recurring trips."""
     from datetime import datetime
-    import unittest.mock
 
     # Mock datetime to return a specific day (e.g., Monday 2025-01-06)
     mock_datetime = unittest.mock.MagicMock()
@@ -422,7 +418,6 @@ async def test_async_get_kwh_needed_today_with_recurring_trips(mock_hass, vehicl
 async def test_async_get_kwh_needed_today_with_punctual_trips(mock_hass, vehicle_id):
     """Test async_get_kwh_needed_today returns correct kWh for punctual trips."""
     from datetime import datetime
-    import unittest.mock
 
     # Mock datetime to return 2025-01-06 (Monday)
     mock_datetime = unittest.mock.MagicMock()
@@ -459,7 +454,6 @@ async def test_async_get_kwh_needed_today_with_punctual_trips(mock_hass, vehicle
 async def test_async_get_kwh_needed_today_excludes_inactive_trips(mock_hass, vehicle_id):
     """Test that inactive/paused recurring trips are excluded."""
     from datetime import datetime
-    import unittest.mock
 
     mock_datetime = unittest.mock.MagicMock()
     mock_datetime.now.return_value = datetime(2025, 1, 6, 10, 0)
@@ -495,7 +489,6 @@ async def test_async_get_kwh_needed_today_excludes_inactive_trips(mock_hass, veh
 async def test_async_get_kwh_needed_today_excludes_completed_trips(mock_hass, vehicle_id):
     """Test that completed punctual trips are excluded."""
     from datetime import datetime
-    import unittest.mock
 
     mock_datetime = unittest.mock.MagicMock()
     mock_datetime.now.return_value = datetime(2025, 1, 6, 10, 0)
@@ -629,7 +622,6 @@ async def test_async_get_next_trip_returns_next_recurring(mock_hass, vehicle_id)
 async def test_async_get_next_trip_returns_next_punctual(mock_hass, vehicle_id):
     """Test async_get_next_trip returns the next upcoming punctual trip."""
     from datetime import datetime
-    import unittest.mock
 
     mock_datetime = unittest.mock.MagicMock()
     mock_datetime.now.return_value = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
@@ -712,7 +704,6 @@ async def test_async_get_next_trip_excludes_paused_recurring(mock_hass, vehicle_
 async def test_async_get_next_trip_excludes_completed_punctual(mock_hass, vehicle_id):
     """Test that completed punctual trips are excluded from next trip."""
     from datetime import datetime
-    import unittest.mock
 
     mock_datetime = unittest.mock.MagicMock()
     mock_datetime.now.return_value = datetime(2025, 1, 6, 8, 0)

@@ -788,7 +788,6 @@ async def test_check_home_status_sensor_not_found(mock_hass):
 @pytest.mark.asyncio
 async def test_soc_listener_registered_with_soc_sensor(mock_hass):
     """Test SOC listener is registered when soc_sensor is configured."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
     from unittest.mock import patch
 
     config = {
@@ -827,7 +826,6 @@ async def test_soc_listener_not_registered_without_soc_sensor(mock_hass):
 @pytest.mark.asyncio
 async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass):
     """Test SOC change >= 5% triggers recalculation when home+plugged."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
 
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -884,7 +882,6 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass
 @pytest.mark.asyncio
 async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
     """Test SOC change < 5% does NOT trigger recalculation (debouncing)."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
 
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -944,7 +941,6 @@ async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
 @pytest.mark.asyncio
 async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
     """Test SOC change does NOT trigger recalculation when vehicle not home."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
 
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -999,7 +995,6 @@ async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
 @pytest.mark.asyncio
 async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
     """Test SOC change does NOT trigger recalculation when vehicle not plugged."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
 
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -1054,7 +1049,6 @@ async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
 @pytest.mark.asyncio
 async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass):
     """Test SOC change to unavailable/unknown state is skipped without updating _last_processed_soc."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
 
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -1110,7 +1104,6 @@ async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass)
 @pytest.mark.asyncio
 async def test_soc_listener_duplicate_setup_prevented(mock_hass):
     """Test SOC listener setup is idempotent - duplicate registration prevented."""
-    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
     from unittest.mock import patch
 
     config = {

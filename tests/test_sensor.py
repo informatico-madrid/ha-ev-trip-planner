@@ -23,7 +23,6 @@ def mock_hass_with_storage():
 async def test_trip_sensor_creation(mock_hass_with_storage):
     """Test that a TripSensor is created correctly for a trip."""
     from custom_components.ev_trip_planner.sensor import TripSensor
-    from custom_components.ev_trip_planner.const import DOMAIN
 
     # Create mock trip manager
     trip_manager = MagicMock()
@@ -802,7 +801,6 @@ async def test_state_class_warning_with_energy_device_class():
     After fix, state_class should be TOTAL_INCREASING.
     """
     from custom_components.ev_trip_planner.sensor import KwhTodaySensor
-    import warnings
 
     coordinator = FakeCoordinator(
         data={"kwh_today": 15.5, "recurring_trips": [], "punctual_trips": []},

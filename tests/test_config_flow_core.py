@@ -11,16 +11,12 @@ from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
     CONF_CONSUMPTION,
-    CONF_CONTROL_TYPE,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_PLANNING_HORIZON,
     CONF_SAFETY_MARGIN,
-    CONF_SOC_SENSOR,
     CONF_VEHICLE_NAME,
-    CONTROL_TYPE_NONE,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
-    DOMAIN,
 )
 from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 

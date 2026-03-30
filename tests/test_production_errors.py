@@ -15,16 +15,11 @@ Tests cover:
 
 from __future__ import annotations
 
-import logging
-from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from homeassistant.core import HomeAssistant
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.ev_trip_planner.sensor import (
     KwhTodaySensor,
@@ -35,7 +30,6 @@ from custom_components.ev_trip_planner.sensor import (
     PunctualTripsCountSensor,
 )
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from custom_components.ev_trip_planner.const import DOMAIN
 
 
 # =============================================================================

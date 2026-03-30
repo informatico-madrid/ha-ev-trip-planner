@@ -17,7 +17,6 @@ class FakeEntry:
 @pytest.mark.asyncio
 async def test_async_setup_entry_creates_three_sensors():
     from custom_components.ev_trip_planner.sensor import async_setup_entry
-    from unittest.mock import AsyncMock
 
     hass = MagicMock()
     # Seed shared TripManager and coordinator in hass.data like real setup_entry does

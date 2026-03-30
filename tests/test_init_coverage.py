@@ -121,7 +121,7 @@ class TestStoragePermissionVerificationFailures:
 
         Covers error logged for storage permission verification failure.
         """
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
         from custom_components.ev_trip_planner.dashboard import _verify_storage_permissions
 
         hass = MagicMock()
@@ -288,7 +288,7 @@ class TestSetupEntryPaths:
 
         Covers return values for setup success.
         """
-        from unittest.mock import MagicMock, AsyncMock, patch
+        from unittest.mock import MagicMock, AsyncMock
         from custom_components.ev_trip_planner import async_setup_entry
 
         hass = MagicMock()

@@ -5,8 +5,8 @@ These tests verify the basic structure and return format of the power profile.
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from datetime import timedelta
+from unittest.mock import Mock, AsyncMock, MagicMock
 from homeassistant.util import dt as dt_util
 
 from custom_components.ev_trip_planner.trip_manager import TripManager

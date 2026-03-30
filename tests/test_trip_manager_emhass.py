@@ -2,13 +2,12 @@
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 from custom_components.ev_trip_planner.const import (
     TRIP_STATUS_PENDING,
     TRIP_STATUS_COMPLETED,
-    TRIP_STATUS_CANCELLED,
 )
 
 

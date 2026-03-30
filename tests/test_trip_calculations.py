@@ -3,9 +3,8 @@
 import pytest
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
-from homeassistant.util import dt as dt_util
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -80,7 +79,6 @@ def mock_hass():
 @pytest.mark.asyncio
 async def test_get_next_trip_with_mixed_trips(mock_hass):
     """Test that next trip is correctly identified with mixed recurring and punctual trips."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
 
@@ -118,7 +116,6 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
 @pytest.mark.asyncio
 async def test_get_next_trip_empty_returns_none(mock_hass):
     """Test that next trip returns None when no trips exist."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
     
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
     
@@ -131,7 +128,6 @@ async def test_get_next_trip_empty_returns_none(mock_hass):
 @pytest.mark.asyncio
 async def test_get_kwh_needed_today_multiple_trips(mock_hass):
     """Test that kWh needed today sums correctly with multiple trips."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
 
@@ -165,7 +161,6 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
 @pytest.mark.asyncio
 async def test_get_kwh_needed_today_no_trips_returns_zero(mock_hass):
     """Test that kWh needed today returns 0 when no trips exist."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
     
@@ -178,7 +173,6 @@ async def test_get_kwh_needed_today_no_trips_returns_zero(mock_hass):
 @pytest.mark.asyncio
 async def test_get_hours_needed_today_rounds_up(mock_hass):
     """Test that hours needed today rounds up correctly."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
 

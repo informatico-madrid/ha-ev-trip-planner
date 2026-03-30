@@ -8,10 +8,9 @@ This test suite covers:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from datetime import datetime
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -29,7 +28,6 @@ def mock_hass_no_storage():
     The production code requires hass.storage to use HA Store API.
     This fixture provides a mocked storage so tests don't hit real storage.
     """
-    from unittest.mock import MagicMock, AsyncMock
 
     hass = MagicMock()
     # Mock config_entries
@@ -54,7 +52,6 @@ def mock_hass_no_storage():
 @pytest.fixture
 def mock_hass():
     """Create a mock Home Assistant instance with storage (Supervisor environment)."""
-    from unittest.mock import MagicMock
 
     hass = MagicMock()
     # Mock config_entries
@@ -603,7 +600,6 @@ class TestTripManagerInitialization:
     @pytest.mark.asyncio
     async def test_emhass_adapter_setter_getter(self, trip_manager):
         """Test setting and getting EMHASS adapter."""
-        from unittest.mock import MagicMock
 
         mock_adapter = MagicMock()
 

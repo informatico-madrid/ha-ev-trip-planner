@@ -15,7 +15,6 @@ from custom_components.ev_trip_planner import (
     TripPlannerCoordinator,
     create_dashboard_input_helpers,
 )
-from custom_components.ev_trip_planner.panel import async_unregister_panel
 
 
 @pytest.fixture

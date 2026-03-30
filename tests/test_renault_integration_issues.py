@@ -3,10 +3,8 @@
 import pytest
 from homeassistant import data_entry_flow
 from homeassistant.core import HomeAssistant
-from unittest.mock import MagicMock, patch
 
 from custom_components.ev_trip_planner.const import (
-    DOMAIN,
     CONF_VEHICLE_NAME,
     CONF_SOC_SENSOR,
     CONF_BATTERY_CAPACITY,

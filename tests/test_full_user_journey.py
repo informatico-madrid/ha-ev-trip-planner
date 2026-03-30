@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,

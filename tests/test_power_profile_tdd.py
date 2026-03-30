@@ -7,10 +7,9 @@ Milestone 4: Perfil de Carga Inteligente
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from homeassistant.util import dt as dt_util
-from homeassistant.core import HomeAssistant
 
 # Importar desde el módulo local
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -139,7 +138,7 @@ class TestGenerarPerfilPotencia:
     
     async def test_generar_perfil_potencia_maxima(self, hass):
         """Test: Perfil solo contiene 0W o max_power (3600W)."""
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import AsyncMock
         
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
@@ -223,7 +222,7 @@ class TestGetVehicleSOC:
     
     async def test_get_vehicle_soc_sensor_valido(self):
         """Test: Obtener SOC válido desde sensor."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import MagicMock
         
         # Crear hass mock completamente nuevo para evitar problemas con el fixture
         hass = MagicMock()

@@ -1,7 +1,7 @@
 """Tests for Vehicle Control Strategies."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.vehicle_controller import (

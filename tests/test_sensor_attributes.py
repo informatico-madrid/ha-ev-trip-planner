@@ -1,6 +1,5 @@
 """Tests for sensor attributes validation (Dashboard compatibility)."""
 
-import pytest
 from unittest.mock import Mock, patch
 
 from custom_components.ev_trip_planner.sensor import TripPlannerSensor

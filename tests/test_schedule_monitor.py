@@ -1,10 +1,8 @@
 """Tests for Schedule Monitor."""
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from custom_components.ev_trip_planner.schedule_monitor import (
     ScheduleMonitor,
