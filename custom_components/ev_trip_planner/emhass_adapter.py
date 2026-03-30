@@ -12,6 +12,9 @@ from .const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
     CONF_VEHICLE_NAME,
+    EMHASS_STATE_ACTIVE,
+    EMHASS_STATE_ERROR,
+    EMHASS_STATE_READY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -216,7 +219,7 @@ class EMHASSAdapter:
 
             # Set state
             config_sensor_id = self._get_config_sensor_id(emhass_index)
-            await self.hass.states.async_set(config_sensor_id, "active", attributes)
+            await self.hass.states.async_set(config_sensor_id, EMHASS_STATE_ACTIVE, attributes)
 
             _LOGGER.info(
                 "Published deferrable load for trip %s (index %d): %s hours, %s W",
@@ -440,7 +443,7 @@ class EMHASSAdapter:
         sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
         await self.hass.states.async_set(
             sensor_id,
-            "ready",
+            EMHASS_STATE_READY,
             {
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": deferrables_schedule,
@@ -607,7 +610,7 @@ class EMHASSAdapter:
             if config_state:
                 emhass_states[config_sensor] = config_state
 
-                if config_state.state == "active":
+                if config_state.state == EMHASS_STATE_ACTIVE:
                     result["verified_trips"].append(trip_id)
                     continue
 
@@ -670,7 +673,7 @@ class EMHASSAdapter:
 
         # Determine overall status
         if not verification["deferrable_sensor_exists"]:
-            status = "error"
+            status = EMHASS_STATE_ERROR
             message = "Deferrable sensor not found. Configure shell command."
         elif not verification["deferrable_sensor_has_data"]:
             status = "warning"
@@ -683,7 +686,7 @@ class EMHASSAdapter:
             missing = len(response_check["missing_trips"])
             message = f"EMHASS not responding to {missing} trip(s)."
         else:
-            status = "ok"
+            status = EMHASS_STATE_READY
             message = "EMHASS integration working correctly."
 
         return {
@@ -758,7 +761,7 @@ class EMHASSAdapter:
                 "deferrables_schedule": [],
                 "vehicle_id": self.vehicle_id,
                 "trips_count": 0,
-                "emhass_status": "error",
+                "emhass_status": EMHASS_STATE_ERROR,
                 "error_type": error_type,
                 "error_message": message,
                 "error_time": datetime.now().isoformat(),
@@ -769,7 +772,7 @@ class EMHASSAdapter:
 
             await self.hass.states.async_set(
                 sensor_id,
-                "error",
+                EMHASS_STATE_ERROR,
                 attributes,
             )
 
@@ -1013,7 +1016,7 @@ class EMHASSAdapter:
                 attributes.pop("error_message", None)
                 attributes.pop("error_time", None)
                 attributes.pop("error_trip_id", None)
-                attributes["emhass_status"] = "ok"
+                attributes["emhass_status"] = EMHASS_STATE_READY
 
                 await self.hass.states.async_set(
                     sensor_id,

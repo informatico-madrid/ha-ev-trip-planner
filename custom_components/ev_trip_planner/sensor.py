@@ -26,6 +26,8 @@ from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
     DOMAIN,
+    EMHASS_STATE_ERROR,
+    EMHASS_STATE_READY,
     TRIP_TYPE_PUNCTUAL,
 )
 from .trip_manager import TripManager
@@ -574,11 +576,11 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": schedule,
                 "last_update": datetime.now().isoformat(),
-                "emhass_status": "ok",
+                "emhass_status": EMHASS_STATE_READY,
                 "trips_count": trips_count,
                 "vehicle_id": vehicle_id,
             }
-            self._attr_native_value = "ready"
+            self._attr_native_value = EMHASS_STATE_READY
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
                 self._entry_id,
@@ -593,9 +595,9 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 err,
                 exc_info=True,
             )
-            self._cached_attrs["emhass_status"] = "error"
+            self._cached_attrs["emhass_status"] = EMHASS_STATE_ERROR
             self._cached_attrs["last_update"] = datetime.now().isoformat()
-            self._attr_native_value = "error"
+            self._attr_native_value = EMHASS_STATE_ERROR
 
 
 class TripSensor(SensorEntity):

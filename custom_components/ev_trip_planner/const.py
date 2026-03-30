@@ -71,6 +71,11 @@ TripType = Literal["recurrente", "punctual"]
 TRIP_TYPE_RECURRING: TripType = "recurrente"
 TRIP_TYPE_PUNCTUAL: TripType = "puntual"
 
+# EMHASS states
+EMHASS_STATE_READY = "ready"
+EMHASS_STATE_ACTIVE = "active"
+EMHASS_STATE_ERROR = "error"
+
 # Trip status (for punctual trips)
 TRIP_STATUS_PENDING = "pendiente"
 TRIP_STATUS_COMPLETED = "completado"

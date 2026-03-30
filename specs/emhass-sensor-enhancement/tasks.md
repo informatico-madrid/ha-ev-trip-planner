@@ -72,7 +72,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
 
 After POC validated, clean up code structure.
 
-- [ ] 2.1 Extract EMHASS status constants
+- [x] 2.1 Extract EMHASS status constants
   - **Do**:
     1. Create constants for EMHASS states in `const.py`: `EMHASS_STATE_READY = "ready"`, `EMHASS_STATE_ACTIVE = "active"`, `EMHASS_STATE_ERROR = "error"`
     2. Import and use these constants in `sensor.py` and `emhass_adapter.py`
