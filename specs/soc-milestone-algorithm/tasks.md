@@ -62,7 +62,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - _Dependencies: charging-window-calculation (Spec 2)_
   - _Design: Algorithm step 2_
 
-- [ ] 1.6 [P] Implement backward deficit detection and propagation
+- [x] 1.6 [P] Implement backward deficit detection and propagation
   - **Do**:
     1. Sort trips by departure time
     2. Iterate in REVERSE order (last trip to first)

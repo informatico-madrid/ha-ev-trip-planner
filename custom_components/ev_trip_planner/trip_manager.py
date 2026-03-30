@@ -1493,6 +1493,155 @@ class TripManager:
 
         return results
 
+    async def calcular_hitos_soc(
+        self,
+        trips: List[Dict[str, Any]],
+        soc_inicial: float,
+        hora_regreso: Optional[datetime],
+        charging_power_kw: float,
+        battery_capacity_kwh: float = 50.0,
+    ) -> List[SOCMilestoneResult]:
+        """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás.
+
+        Implementa el algoritmo de detección y propagación de déficit:
+        1. Ordena viajes por hora de salida (primero el más temprano)
+        2. Itera en ORDEN INVERSO (del último viaje al primero)
+        3. Calcula capacidad de carga: tasa_carga_soc * ventana_horas
+        4. Si soc_inicio + capacidad_carga < soc_objetivo:
+           - deficit = soc_objetivo - (soc_inicio + capacidad_carga)
+           - Añade el déficit al soc_objetivo del viaje ANTERIOR
+        5. Almacena deficit_acumulado para cada viaje
+
+        Args:
+            trips: Lista de diccionarios con datos de viajes
+            soc_inicial: SOC inicial del vehículo al comenzar la cadena (%)
+            hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
+            charging_power_kw: Potencia de carga en kW
+            battery_capacity_kwh: Capacidad de batería en kWh
+
+        Returns:
+            Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
+        """
+        if not trips:
+            return []
+
+        # Obtener información SOC inicio para todos los viajes
+        soc_inicio_info = await self.calcular_soc_inicio_trips(
+            trips=trips,
+            soc_inicial=soc_inicial,
+            hora_regreso=hora_regreso,
+            charging_power_kw=charging_power_kw,
+            battery_capacity_kwh=battery_capacity_kwh,
+        )
+
+        # Calcular tasa de carga SOC (%/hora)
+        tasa_carga_soc = self._calcular_tasa_carga_soc(
+            charging_power_kw, battery_capacity_kwh
+        )
+
+        # Obtener ventanas de carga
+        ventanas = await self.calcular_ventana_carga_multitrip(
+            trips=trips,
+            soc_actual=soc_inicial,
+            hora_regreso=hora_regreso,
+            charging_power_kw=charging_power_kw,
+        )
+
+        # Crear lista de resultados ordenada por tiempo de salida
+        # Primero, ordenamos los trips por departure time
+        sorted_trips_with_times = []
+        for idx, trip in enumerate(trips):
+            trip_time = self._get_trip_time(trip)
+            if trip_time:
+                sorted_trips_with_times.append((trip_time, idx, trip))
+        sorted_trips_with_times.sort(key=lambda x: x[0])  # Sort by time ascending
+
+        # Mapear índices originales a posiciones ordenadas
+        idx_to_ordered = {}
+        for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
+            idx_to_ordered[original_idx] = ordered_idx
+
+        # Inicializar deficit_acumulado para cada viaje
+        # El déficit se propaga al viaje anterior (en orden temporal, no en orden invertido)
+        deficits = [0.0] * len(trips)
+
+        # ITERAR EN ORDEN INVERSO (del último viaje al primero)
+        for ordered_idx in range(len(trips) - 1, -1, -1):
+            # Encontrar el índice original correspondiente
+            original_idx = None
+            for orig_idx, ord_idx in idx_to_ordered.items():
+                if ord_idx == ordered_idx:
+                    original_idx = orig_idx
+                    break
+            if original_idx is None:
+                continue
+
+            soc_data = soc_inicio_info[original_idx]
+            ventana = ventanas[original_idx]
+            trip = trips[original_idx]
+
+            soc_inicio = soc_data["soc_inicio"]
+            ventana_horas = ventana["ventana_horas"]
+
+            # Calcular soc_objetivo base para este viaje
+            soc_objetivo = self._calcular_soc_objetivo_base(
+                trip, battery_capacity_kwh
+            )
+
+            # Añadir déficit propagado desde viajes posteriores
+            soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
+
+            # Calcular capacidad de carga disponible
+            capacidad_carga = tasa_carga_soc * ventana_horas
+
+            # Verificar si hay déficit
+            if soc_inicio + capacidad_carga < soc_objetivo_ajustado:
+                deficit = soc_objetivo_ajustado - (soc_inicio + capacidad_carga)
+
+                # Propagar el déficit al viaje ANTERIOR (en orden temporal)
+                # Esto es, el viaje con departure time menor
+                if ordered_idx > 0:
+                    # Encontrar el índice original del viaje anterior
+                    prev_ordered_idx = ordered_idx - 1
+                    prev_original_idx = None
+                    for orig_idx, ord_idx in idx_to_ordered.items():
+                        if ord_idx == prev_ordered_idx:
+                            prev_original_idx = orig_idx
+                            break
+                    if prev_original_idx is not None:
+                        deficits[prev_original_idx] += deficit
+
+                # Guardar deficit_acumulado para este viaje
+                deficits[original_idx] += deficit
+
+        # Construir resultados finales
+        results: List[SOCMilestoneResult] = []
+        for idx, trip in enumerate(trips):
+            soc_data = soc_inicio_info[idx]
+            ventana = ventanas[idx]
+
+            soc_objetivo = self._calcular_soc_objetivo_base(
+                trip, battery_capacity_kwh
+            )
+            soc_objetivo_ajustado = soc_objetivo + deficits[idx]
+
+            results.append({
+                "trip_id": trip.get("id", f"trip_{idx}"),
+                "soc_objetivo": round(soc_objetivo_ajustado, 2),
+                "kwh_necesarios": ventana["kwh_necesarios"],
+                "deficit_acumulado": round(deficits[idx], 2),
+                "ventana_carga": {
+                    "ventana_horas": ventana["ventana_horas"],
+                    "kwh_necesarios": ventana["kwh_necesarios"],
+                    "horas_carga_necesarias": ventana["horas_carga_necesarias"],
+                    "inicio_ventana": ventana["inicio_ventana"],
+                    "fin_ventana": ventana["fin_ventana"],
+                    "es_suficiente": ventana["es_suficiente"],
+                },
+            })
+
+        return results
+
     async def async_generate_power_profile(
         self,
         charging_power_kw: float = 3.6,
