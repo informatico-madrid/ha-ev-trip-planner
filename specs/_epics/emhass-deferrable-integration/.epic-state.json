@@ -39,7 +39,7 @@
     },
     {
       "name": "automation-template",
-      "status": "in_progress",
+      "status": "completed",
       "dependencies": [
         "emhass-sensor-enhancement"
       ]
@@ -58,7 +58,7 @@
     }
   ],
   "totalSpecs": 7,
-  "completedSpecs": 5,
+  "completedSpecs": 6,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
   "output": "spec-files",
