@@ -87,10 +87,10 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
     today_weekday = datetime.now().weekday()
     today_spanish = day_map[today_weekday]
 
-    # Add recurring trip for today at 23:00 (future time to ensure it's after current time)
+    # Add recurring trip for today at 23:59 (always in future since max time is 23:59)
     await mgr.async_add_recurring_trip(
         dia_semana=today_spanish,
-        hora="23:00",
+        hora="23:59",
         km=25,
         kwh=3.75,
         descripcion="Trabajo"
@@ -110,7 +110,7 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
 
     assert next_trip is not None
     assert next_trip["descripcion"] == "Trabajo"
-    assert next_trip["hora"] == "23:00"
+    assert next_trip["hora"] == "23:59"
 
 
 @pytest.mark.asyncio
