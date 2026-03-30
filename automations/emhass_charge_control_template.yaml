@@ -12,7 +12,9 @@ variables:
   p_deferrable0: "{{ state_attr('sensor.emhass_plan_{vehicle}_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
   coche_en_casa: "{{ is_state('binary_sensor.carga_{vehicle}_coche_en_casa', 'on') }}"
   coche_enchufado: "{{ is_state('sensor.carga_{vehicle}_enchufado', 'on') }}"
+  carga_activa: "{{ is_state('switch.carga_{vehicle}_iniciar_carga', 'on') }}"
   debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado }}"
+  debe_detener: "{{ p_deferrable0 == 0 and carga_activa }}"
 conditions:
   - condition: template
     value_template: "{{ states('sensor.emhass_plan_{vehicle}_mpc_congelado') not in ['unavailable', 'unknown'] }}"
@@ -26,4 +28,10 @@ actions:
             value_template: "{{ debe_cargar }}"
         sequence:
           - service: switch.turn_on
+            entity_id: switch.carga_{vehicle}_iniciar_carga
+      - conditions:
+          - condition: template
+            value_template: "{{ debe_detener }}"
+        sequence:
+          - service: switch.turn_off
             entity_id: switch.carga_{vehicle}_iniciar_carga

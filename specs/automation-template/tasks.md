@@ -51,7 +51,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-2_
   - _Design: Interface Contracts_
 
-- [ ] 1.5 Add charge stop logic (0W, charging active)
+- [x] 1.5 Add charge stop logic (0W, charging active)
   - **Do**:
     1. Add choose branch for stop conditions: potencia == 0 AND charging active
     2. Add stop charging sequence
