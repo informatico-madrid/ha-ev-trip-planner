@@ -129,7 +129,7 @@ After POC validated, clean up code structure.
   - _Requirements: AC-3, AC-5_
   - _Design: Interface Contracts_
 
-- [ ] 3.3 Add integration test for deferrables_schedule p_deferrable{n} per hour
+- [x] 3.3 Add integration test for deferrables_schedule p_deferrable{n} per hour
   - **Do**:
     1. Add test to `tests/test_deferrables_schedule.py`:
        - `test_schedule_shows_p_deferrable_per_hour()` - verify schedule entries contain p_deferrable{n} keys
