@@ -21,6 +21,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
+    DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
@@ -899,6 +900,39 @@ class TripManager:
         if battery_capacity_kwh <= 0:
             return 0.0
         return (charging_power_kw / battery_capacity_kwh) * 100
+
+    def _calcular_soc_objetivo_base(
+        self,
+        trip: Dict[str, Any],
+        battery_capacity_kwh: float,
+        consumption_kwh_per_km: float = 0.15,
+    ) -> float:
+        """Calculates the base SOC target percentage for a trip.
+
+        Args:
+            trip: Dictionary with trip data (kwh or km, consumo)
+            battery_capacity_kwh: Battery capacity in kWh
+            consumption_kwh_per_km: Energy consumption in kWh/km (default 0.15)
+
+        Returns:
+            Base SOC target percentage for the trip (energy + buffer)
+        """
+        # Calculate energy needed for trip
+        if "kwh" in trip and trip["kwh"]:
+            energia_kwh = trip["kwh"]
+        else:
+            distance_km = trip.get("km", 0.0)
+            energia_kwh = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
+
+        # Convert to SOC percentage
+        if battery_capacity_kwh > 0:
+            energia_soc = (energia_kwh / battery_capacity_kwh) * 100
+        else:
+            energia_soc = 0.0
+
+        # Add buffer
+        soc_objetivo_base = energia_soc + DEFAULT_SOC_BUFFER_PERCENT
+        return soc_objetivo_base
 
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
