@@ -149,7 +149,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(integration): add full vehicle lifecycle test`
   - _Requirements: AC-1, AC-2_
 
-- [ ] 2.2 Integration test: Trip CRUD triggers EMHASS updates
+- [x] 2.2 Integration test: Trip CRUD triggers EMHASS updates
   - **Do**: Create test for trip create/edit/delete and verify EMHASS sensor updates
   - **Files**: `tests/test_emhass_adapter.py`
   - **Done when**: CRUD triggers correct updates
