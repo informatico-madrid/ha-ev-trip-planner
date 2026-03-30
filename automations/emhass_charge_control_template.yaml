@@ -43,6 +43,12 @@ blueprint:
       selector:
         entity:
           domain: sensor
+    soc_sensor:
+      name: SOC Sensor
+      description: Sensor entity that reports current battery State of Charge (percentage)
+      selector:
+        entity:
+          domain: sensor
 
 alias: EMHASS Charge Control Template
 description: Template automation for EMHASS charge control - configure vehicle_id at include time
@@ -72,7 +78,9 @@ variables:
   coche_en_casa: "{{ is_state('binary_sensor.carga_' ~ vehicle_id ~ '_coche_en_casa', 'on') }}"
   coche_enchufado: "{{ is_state('sensor.carga_' ~ vehicle_id ~ '_enchufado', 'on') }}"
   carga_activa: "{{ is_state('switch.carga_' ~ vehicle_id ~ '_iniciar_carga', 'on') }}"
-  debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado }}"
+  soc: "{{ states(soc_sensor) | float(0) }}"
+  soc_alto: "{{ soc > 90 }}"
+  debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado and not soc_alto }}"
   debe_detener: "{{ p_deferrable0 == 0 and carga_activa }}"
 conditions:
   - condition: template
@@ -102,3 +110,11 @@ actions:
             data:
               title: "Charging Opportunity Missed"
               message: "EMHASS scheduled charging for vehicle {{ vehicle_id }}, but car is {{ 'not at home' if not coche_en_casa else 'not plugged in' }}."
+      - conditions:
+          - condition: template
+            value_template: "{{ soc_alto and p_deferrable0 > 100 }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "SOC High - Manual Intervention Required"
+              message: "EMHASS scheduled charging for vehicle {{ vehicle_id }}, but SOC is at {{ soc | int }}%. Manual activation required to charge."

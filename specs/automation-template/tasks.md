@@ -138,7 +138,7 @@ Focus: Support both sensor naming patterns identified in plan.
 
 Focus: Handle edge cases and document required HA entities.
 
-- [ ] 3.1 Handle SOC-based charge limiting
+- [x] 3.1 Handle SOC-based charge limiting
   - **Do**:
     1. Add SOC check before starting charge (e.g., SOC > 90% = don't start)
     2. Add soc_alto variable and conditions
