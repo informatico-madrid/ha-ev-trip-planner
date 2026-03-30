@@ -161,13 +161,13 @@
 
 ## Phase 2: Verification
 
-- [ ] 2.1 [VERIFY] Full local CI: lint && typecheck && test
+- [x] 2.1 [VERIFY] Full local CI: lint && typecheck && test
   - **Do**: Run complete local CI suite
   - **Verify**: `pylint --rcfile=.pylintrc custom_components/ev_trip_planner/*.py && python -m mypy custom_components/ev_trip_planner/*.py --ignore-missing-imports && pytest tests/ -v --tb=short`
   - **Done when**: Build succeeds, all tests pass, no lint/type errors
   - **Commit**: `chore(charging): pass local CI` (only if fixes needed)
 
-- [ ] 2.2 [VERIFY] CI pipeline passes
+- [x] 2.2 [VERIFY] CI pipeline passes
   - **Do**: Verify GitHub Actions/CI passes after push
   - **Verify**: `gh run list --workflow=ci.yml 2>&1 | head -10`
   - **Done when**: CI pipeline passes
