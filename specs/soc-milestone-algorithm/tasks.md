@@ -344,7 +344,7 @@ Focus: Clean up implementation, improve code quality.
   - **Verify**: `grep -A 5 'def _calcular\|async def calcular_hitos' custom_components/ev_trip_planner/trip_manager.py | head -40`
   - **Commit**: `docs(soc-milestone): add docstrings to SOC calculation methods`
 
-- [ ] 3.3 Add logging for deficit propagation
+- [x] 3.3 Add logging for deficit propagation
   - **Do**:
     1. Add _LOGGER.debug for deficit calculation steps
     2. Log when deficit is propagated to previous trip

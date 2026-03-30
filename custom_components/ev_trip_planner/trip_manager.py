@@ -1571,6 +1571,8 @@ class TripManager:
         # El déficit se propaga al viaje anterior (en orden temporal, no en orden invertido)
         deficits = [0.0] * len(trips)
 
+        _LOGGER.debug("Deficit propagation START: %d trips, soc_inicial=%.2f%%, tasa_carga_soc=%.2f%%/h", len(trips), soc_inicial, tasa_carga_soc)
+
         # ITERAR EN ORDEN INVERSO (del último viaje al primero)
         for ordered_idx in range(len(trips) - 1, -1, -1):
             # Obtener el índice original usando ordered_to_idx
@@ -1597,9 +1599,13 @@ class TripManager:
             # Calcular capacidad de carga disponible
             capacidad_carga = tasa_carga_soc * ventana_horas
 
+            _LOGGER.debug("Deficit calculation for trip %s (ordered_idx=%d): soc_inicio=%.2f%%, ventana_horas=%.2f, capacidad_carga=%.2f%%, soc_objetivo_base=%.2f%%, deficit_acumulado_previo=%.2f%%", trip.get("id", f"trip_{original_idx}"), ordered_idx, soc_inicio, ventana_horas, capacidad_carga, soc_objetivo, deficits[original_idx])
+
             # Verificar si hay déficit
             if soc_inicio + capacidad_carga < soc_objetivo_ajustado:
                 deficit = soc_objetivo_ajustado - (soc_inicio + capacidad_carga)
+
+                _LOGGER.debug("Deficit DETECTED for trip %s: deficit=%.2f%%, propagating to previous trip (ordered_idx=%d)", trip.get("id", f"trip_{original_idx}"), deficit, ordered_idx - 1)
 
                 # Propagar el déficit al viaje ANTERIOR (en orden temporal)
                 # Esto es, el viaje con departure time menor
@@ -1616,6 +1622,8 @@ class TripManager:
         # Note: soc_inicio_info and ventanas están indexados por posición original
         # deficits también está indexado por posición original
         results: List[SOCMilestoneResult] = []
+
+        _LOGGER.debug("Final SOC targets for %d trips: deficit propagation complete", len(trips))
         for idx, trip in enumerate(trips):
             soc_data = soc_inicio_info[idx]
             ventana = ventanas[idx]
@@ -1643,6 +1651,10 @@ class TripManager:
                     "es_suficiente": ventana["es_suficiente"],
                 },
             })
+
+            _LOGGER.debug("Final SOC target for trip %s: soc_objetivo=%.2f%%, kwh_necesarios=%.3f, deficit_acumulado=%.2f%%", trip.get("id", f"trip_{idx}"), round(soc_objetivo_ajustado, 2), round(kwh_necesarios, 3), round(deficits[idx], 2))
+
+        _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
         return results
 
