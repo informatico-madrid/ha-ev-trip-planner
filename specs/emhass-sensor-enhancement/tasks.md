@@ -116,7 +116,7 @@ After POC validated, clean up code structure.
   - _Requirements: AC-2_
   - _Design: Index Stability_
 
-- [ ] 3.2 Add tests for sensor last_update and emhass_status attributes
+- [x] 3.2 Add tests for sensor last_update and emhass_status attributes
   - **Do**:
     1. Add tests to `tests/test_deferrable_load_sensors.py`:
        - `test_sensor_includes_last_update_attribute()` - verify last_update timestamp present
