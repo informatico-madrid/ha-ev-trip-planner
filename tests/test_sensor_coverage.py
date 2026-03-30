@@ -416,6 +416,65 @@ class TestNextTripSensorNoTrips:
         )
 
 
+class TestEmhassDeferrableLoadSensorCreation:
+    """Tests for EmhassDeferrableLoadSensor creation on vehicle setup.
+
+    RED test: EmhassDeferrableLoadSensor should be created when async_setup_entry
+    is called. This verifies AC-2: Vehicle addition creates all necessary sensors
+    including EmhassDeferrableLoadSensor.
+    """
+
+    async def test_emhass_deferrable_sensor_created_on_setup(
+        self, hass: HomeAssistant, mock_trip_manager_for_sensor
+    ):
+        """Test that EmhassDeferrableLoadSensor is created when vehicle config completes.
+
+        This test verifies AC-2: When async_setup_entry is called (vehicle setup),
+        EmhassDeferrableLoadSensor should be created and added to the entities list.
+        """
+        from custom_components.ev_trip_planner import DATA_RUNTIME
+
+        entry = MagicMock(spec=ConfigEntry)
+        entry.data = {"vehicle_name": "test_vehicle"}
+        entry.entry_id = "test_entry_id"
+
+        # Set up runtime data with trip_manager
+        mock_coordinator = MagicMock()
+        mock_coordinator.data = {
+            "recurring_trips": [],
+            "punctual_trips": [],
+            "kwh_today": 0.0,
+            "hours_today": 0,
+            "next_trip": None,
+        }
+
+        hass.data = {
+            DATA_RUNTIME: {
+                "ev_trip_planner_test_entry_id": {
+                    "trip_manager": mock_trip_manager_for_sensor,
+                    "coordinator": mock_coordinator,
+                }
+            }
+        }
+
+        async_add_entities = MagicMock()
+
+        from custom_components.ev_trip_planner.sensor import async_setup_entry
+        result = await async_setup_entry(hass, entry, async_add_entities)
+
+        assert result is True
+        async_add_entities.assert_called_once()
+
+        # Verify EmhassDeferrableLoadSensor is in the created entities
+        entities = async_add_entities.call_args[0][0]
+        entity_types = [type(e).__name__ for e in entities]
+
+        assert "EmhassDeferrableLoadSensor" in entity_types, (
+            f"EmhassDeferrableLoadSensor should be created on vehicle setup. "
+            f"Created entities: {entity_types}"
+        )
+
+
 class TestAsyncSetupEntryErrorPath:
     """Tests for async_setup_entry error paths."""
 
