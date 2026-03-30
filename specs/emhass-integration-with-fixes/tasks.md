@@ -90,7 +90,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(sensors): red - failing test for trip state updates`
   - _Requirements: AC-4_
 
-- [ ] 1.11 [GREEN] Pass test: Implement trip state to sensor propagation
+- [x] 1.11 [GREEN] Pass test: Implement trip state to sensor propagation
   - **Do**: In `trip_manager.py`, ensure `async_save_trip()` triggers EMHASS adapter update when trip state changes
   - **Files**: `custom_components/ev_trip_planner/trip_manager.py`
   - **Done when**: Trip save triggers sensor update
