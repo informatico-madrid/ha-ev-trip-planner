@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .trip_manager import TripManager
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt_util
 
@@ -18,6 +19,7 @@ from .const import (
     CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_NOTIFICATION_SERVICE,
     CONF_SOC_SENSOR,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +59,15 @@ class PresenceMonitor:
         # Return time tracking (AC-4, AC-6)
         self.hora_regreso: Optional[str] = None
         self.soc_en_regreso: Optional[float] = None
+
+        # Persistence store for return info (ha_storage.Store API)
+        self._return_info_store = ha_storage.Store(
+            hass,
+            version=1,
+            key=f"{DOMAIN}_{vehicle_id}_return_info",
+        )
+        # Entity ID for HA state entity
+        self._return_info_entity_id = f"sensor.{DOMAIN}_{vehicle_id}_return_info"
 
         _LOGGER.debug(
             "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
@@ -121,6 +132,8 @@ class PresenceMonitor:
             )
             self.hora_regreso = None
             self.soc_en_regreso = None
+            # Persist cleared state to Store and update HA state entity
+            await self._async_persist_return_info()
 
         # Update previous state tracking
         self._was_home = is_home
@@ -178,8 +191,41 @@ class PresenceMonitor:
             self.soc_en_regreso,
         )
 
-        # HA state entity update will be done in task 1.3
-    
+        # Persist to Store and update HA state entity
+        await self._async_persist_return_info()
+
+    async def _async_persist_return_info(self) -> None:
+        """
+        Persist return info to HA storage and update HA state entity.
+
+        Saves hora_regreso and soc_en_regreso to ha_storage.Store,
+        then updates the sensor.ev_trip_planner_{vehicle_id}_return_info entity.
+        """
+        # Save to HA storage
+        await self._return_info_store.async_save({
+            "hora_regreso": self.hora_regreso,
+            "soc_en_regreso": self.soc_en_regreso,
+        })
+
+        # Update HA state entity
+        self.hass.states.async_set(
+            self._return_info_entity_id,
+            self.hora_regreso or "unknown",
+            {
+                "soc_en_regreso": self.soc_en_regreso,
+                "hora_regreso_iso": self.hora_regreso,
+                "vehicle_id": self.vehicle_id,
+            },
+        )
+
+        _LOGGER.debug(
+            "Return info persisted for %s: entity=%s, hora_regreso=%s, soc_en_regreso=%s",
+            self.vehicle_id,
+            self._return_info_entity_id,
+            self.hora_regreso,
+            self.soc_en_regreso,
+        )
+
     async def async_check_charging_readiness(self) -> Tuple[bool, Optional[str]]:
         """
         Check if vehicle is ready for charging.

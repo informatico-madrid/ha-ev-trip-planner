@@ -54,7 +54,7 @@
   - _Requirements: AC-4, AC-6_
   - _Design: Return Time Detection section (plan.md)_
 
-- [ ] 1.3 Store return info using ha_storage.Store and hass.states.async_set()
+- [x] 1.3 Store return info using ha_storage.Store and hass.states.async_set()
   - **Do**:
     1. Add `hora_regreso` (Optional[str]) and `soc_en_regreso` (Optional[float]) instance attributes to `PresenceMonitor`
     2. Add `_return_info_store` using `ha_storage.Store` API (same pattern as trip_manager.py:95-102)
