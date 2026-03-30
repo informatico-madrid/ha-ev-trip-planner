@@ -39,7 +39,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-1_
   - _Design: Interface Contracts_
 
-- [ ] 1.4 Add charge start logic (>100W, home, plugged)
+- [x] 1.4 Add charge start logic (>100W, home, plugged)
   - **Do**:
     1. Add variables: coche_en_casa, coche_enchufado checks
     2. Add debe_cargar logic: potencia > 100 AND home AND plugged
