@@ -59,21 +59,41 @@ class EMHASSAdapter:
         )
 
     async def async_load(self):
-        """Load index mapping from storage."""
+        """Load index mapping and released indices from storage."""
         try:
             data = await self._store.async_load()
             if data:
                 self._index_map = data.get("index_map", {})
-                # Rebuild available indices
+
+                # Restore released indices and recalculate which are still in cooldown
+                self._released_indices = {}
+                stored_released = data.get("released_indices", {})
+                now = datetime.now()
+                for idx_str, released_iso in stored_released.items():
+                    idx = int(idx_str)
+                    try:
+                        released_time = datetime.fromisoformat(released_iso)
+                        elapsed = (now - released_time).total_seconds()
+                        if elapsed < self._index_cooldown_hours * 3600:
+                            # Still in cooldown
+                            self._released_indices[idx] = released_time
+                        # else: expired, don't restore
+                    except (ValueError, TypeError):
+                        pass
+
+                # Rebuild available indices (exclude used and released in cooldown)
                 used_indices = set(self._index_map.values())
+                released_in_cooldown = set(self._released_indices.keys())
                 self._available_indices = [
-                    i for i in range(self.max_deferrable_loads) if i not in used_indices
+                    i for i in range(self.max_deferrable_loads)
+                    if i not in used_indices and i not in released_in_cooldown
                 ]
                 _LOGGER.info(
-                    "Loaded %d trip-index mappings for %s, %d indices still available",
+                    "Loaded %d trip-index mappings for %s, %d indices available, %d in cooldown",
                     len(self._index_map),
                     self.vehicle_id,
                     len(self._available_indices),
+                    len(self._released_indices),
                 )
         except Exception as err:
             _LOGGER.error("Failed to load index mapping from storage: %s", err)
@@ -83,12 +103,18 @@ class EMHASSAdapter:
             )
 
     async def async_save(self):
-        """Save index mapping to storage."""
+        """Save index mapping and released indices to storage."""
         try:
+            # Serialize released_indices as {index_str: iso_timestamp}
+            released_to_save = {
+                str(idx): released_time.isoformat()
+                for idx, released_time in self._released_indices.items()
+            }
             await self._store.async_save(
                 {
                     "index_map": self._index_map,
                     "vehicle_id": self.vehicle_id,
+                    "released_indices": released_to_save,
                 }
             )
         except Exception as err:

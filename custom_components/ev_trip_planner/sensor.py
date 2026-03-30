@@ -35,6 +35,29 @@ from .trip_manager import TripManager
 _LOGGER = logging.getLogger(__name__)
 
 
+def _format_window_time(value: Any) -> str | None:
+    """Format window time to HH:MM from datetime or ISO string.
+
+    Args:
+        value: Either a datetime object or an ISO format string
+
+    Returns:
+        Time formatted as HH:MM, or None if formatting fails
+    """
+    if value is None:
+        return None
+    try:
+        if isinstance(value, datetime):
+            dt_value = value
+        elif isinstance(value, str):
+            dt_value = datetime.fromisoformat(value)
+        else:
+            return None
+        return dt_value.strftime("%H:%M")
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
 # Type alias for coordinator pattern used in tests
 TripPlannerCoordinator = Any
 
@@ -488,7 +511,6 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         self._attr_has_entity_name = True
         self._attr_native_value = "ready"
         self._cached_attrs: Dict[str, Any] = {}
-        self._index_cooldown_hours: int = 24
 
     @property
     def unique_id(self) -> str:
@@ -679,9 +701,9 @@ class TripSensor(SensorEntity):
         if ventana_carga:
             inicio = ventana_carga.get("inicio_ventana", "")
             fin = ventana_carga.get("fin_ventana", "")
-            if inicio and fin:
-                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
-                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+            start_time = _format_window_time(inicio)
+            end_time = _format_window_time(fin)
+            if start_time and end_time:
                 self._attr_extra_state_attributes["charging_window"] = {
                     "start": start_time,
                     "end": end_time,
@@ -771,9 +793,9 @@ class TripSensor(SensorEntity):
         if ventana_carga:
             inicio = ventana_carga.get("inicio_ventana", "")
             fin = ventana_carga.get("fin_ventana", "")
-            if inicio and fin:
-                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
-                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+            start_time = _format_window_time(inicio)
+            end_time = _format_window_time(fin)
+            if start_time and end_time:
                 self._attr_extra_state_attributes["charging_window"] = {
                     "start": start_time,
                     "end": end_time,

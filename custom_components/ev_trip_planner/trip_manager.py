@@ -1595,10 +1595,10 @@ class TripManager:
             if original_idx is None:
                 continue
 
-            # soc_inicio_info y ventanas están indexados por posición original
-            soc_data = soc_inicio_info[original_idx]
-            ventana = ventanas[original_idx]
-            trip = trips[original_idx]
+            # soc_inicio_info y ventanas están indexados por posición ordenada (sorted by time)
+            soc_data = soc_inicio_info[ordered_idx]
+            ventana = ventanas[ordered_idx]
+            trip = trips[ordered_idx]
 
             soc_inicio = soc_data["soc_inicio"]
             ventana_horas = ventana["ventana_horas"]
@@ -1634,29 +1634,33 @@ class TripManager:
                 deficits[original_idx] += deficit
 
         # Construir resultados finales
-        # Note: soc_inicio_info and ventanas están indexados por posición original
-        # deficits también está indexado por posición original
+        # soc_inicio_info, ventanas y deficits están indexados por posición ordenada (sorted by time)
         results: List[SOCMilestoneResult] = []
 
         _LOGGER.debug("Final SOC targets for %d trips: deficit propagation complete", len(trips))
-        for idx, trip in enumerate(trips):
-            soc_data = soc_inicio_info[idx]
-            ventana = ventanas[idx]
+        for ordered_idx in range(len(trips)):
+            # Get original index to retrieve the trip from unsorted list
+            original_idx = ordered_to_idx.get(ordered_idx)
+            if original_idx is None:
+                continue
+            trip = trips[original_idx]
+            soc_data = soc_inicio_info[ordered_idx]
+            ventana = ventanas[ordered_idx]
 
             soc_objetivo = self._calcular_soc_objetivo_base(
                 trip, battery_capacity_kwh
             )
-            soc_objetivo_ajustado = soc_objetivo + deficits[idx]
+            soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
 
             # Calculate kWh needed: (soc_objetivo - soc_inicio) * battery_capacity_kwh / 100
             soc_inicio = soc_data["soc_inicio"]
             kwh_necesarios = (soc_objetivo_ajustado - soc_inicio) * battery_capacity_kwh / 100
 
             results.append({
-                "trip_id": trip.get("id", f"trip_{idx}"),
+                "trip_id": trip.get("id", f"trip_{original_idx}"),
                 "soc_objetivo": round(soc_objetivo_ajustado, 2),
-                "kwh_necesarios": round(kwh_necesarios, 3),
-                "deficit_acumulado": round(deficits[idx], 2),
+                "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
+                "deficit_acumulado": round(deficits[original_idx], 2),
                 "ventana_carga": {
                     "ventana_horas": ventana["ventana_horas"],
                     "kwh_necesarios": ventana["kwh_necesarios"],
@@ -1667,7 +1671,7 @@ class TripManager:
                 },
             })
 
-            _LOGGER.debug("Final SOC target for trip %s: soc_objetivo=%.2f%%, kwh_necesarios=%.3f, deficit_acumulado=%.2f%%", trip.get("id", f"trip_{idx}"), round(soc_objetivo_ajustado, 2), round(kwh_necesarios, 3), round(deficits[idx], 2))
+            _LOGGER.debug("Final SOC target for trip %s: soc_objetivo=%.2f%%, kwh_necesarios=%.3f, deficit_acumulado=%.2f%%", trip.get("id", f"trip_{original_idx}"), round(soc_objetivo_ajustado, 2), round(max(0.0, kwh_necesarios), 3), round(deficits[original_idx], 2))
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
