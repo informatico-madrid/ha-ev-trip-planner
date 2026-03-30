@@ -13,7 +13,7 @@
 
 ### Implementation Tasks
 
-- [ ] 1.1 Implement `calcular_ventana_carga()` function in trip_manager.py
+- [x] 1.1 Implement `calcular_ventana_carga()` function in trip_manager.py
   - **Do**:
     1. Add function `calcular_ventana_carga(trip, soc_actual, hora_regreso, charging_power_kw)` to TripManager
     2. Parse `hora_regreso` string to datetime using `datetime.fromisoformat()` with error handling
