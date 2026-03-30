@@ -45,11 +45,11 @@ class TripManager:
     2026 para runtime_data y tipado estricto.
     """
 
-    def __init__(self, hass: HomeAssistant, vehicle_id: str) -> None:
+    def __init__(self, hass: HomeAssistant, vehicle_id: str, presence_config: Optional[Dict[str, Any]] = None) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
         self.vehicle_id = vehicle_id
-        self.vehicle_controller = VehicleController(hass, vehicle_id)
+        self.vehicle_controller = VehicleController(hass, vehicle_id, presence_config, self)
         self._trips: Dict[str, Any] = {}
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}

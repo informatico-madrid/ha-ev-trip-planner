@@ -447,12 +447,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DATA_RUNTIME, {})
     hass.data[DATA_RUNTIME].setdefault(namespace, {})
     
+    # Build presence_config from entry.data for PresenceMonitor (SOC listener)
+    from .const import (
+        CONF_HOME_SENSOR,
+        CONF_PLUGGED_SENSOR,
+        CONF_CHARGING_SENSOR,
+        CONF_HOME_COORDINATES,
+        CONF_VEHICLE_COORDINATES_SENSOR,
+        CONF_NOTIFICATION_SERVICE,
+        CONF_SOC_SENSOR,
+    )
+    presence_config = {
+        CONF_HOME_SENSOR: entry.data.get(CONF_HOME_SENSOR),
+        CONF_PLUGGED_SENSOR: entry.data.get(CONF_PLUGGED_SENSOR),
+        CONF_CHARGING_SENSOR: entry.data.get(CONF_CHARGING_SENSOR),
+        CONF_HOME_COORDINATES: entry.data.get(CONF_HOME_COORDINATES),
+        CONF_VEHICLE_COORDINATES_SENSOR: entry.data.get(CONF_VEHICLE_COORDINATES_SENSOR),
+        CONF_NOTIFICATION_SERVICE: entry.data.get(CONF_NOTIFICATION_SERVICE),
+        CONF_SOC_SENSOR: entry.data.get(CONF_SOC_SENSOR),
+    }
+
     # Create and initialize TripManager for this vehicle
     _LOGGER.warning("=== async_setup_entry - Creating TripManager ===")
-    trip_manager = TripManager(hass, vehicle_id)
+    trip_manager = TripManager(hass, vehicle_id, presence_config)
     _LOGGER.warning("=== async_setup_entry - Before async_setup - trips: recurring=%d, punctual=%d ===", len(trip_manager._recurring_trips), len(trip_manager._punctual_trips))
     _LOGGER.warning("=== async_setup_entry - Calling await trip_manager.async_setup() ===")
     await trip_manager.async_setup()
+
+    # Wire up SOC listener if soc_sensor is configured (idempotent call)
+    soc_sensor = entry.data.get(CONF_SOC_SENSOR)
+    if soc_sensor and hasattr(trip_manager, 'vehicle_controller') and trip_manager.vehicle_controller._presence_monitor:
+        trip_manager.vehicle_controller._presence_monitor._async_setup_soc_listener()
+        _LOGGER.info("SOC listener wired for vehicle %s (sensor: %s)", vehicle_id, soc_sensor)
 
     # Create EMHASS adapter for this vehicle (if EMHASS config exists)
     emhass_adapter = None

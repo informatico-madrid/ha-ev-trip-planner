@@ -84,7 +84,7 @@
   - _Requirements: AC-2, AC-3_
   - _Design: Debouncing section (plan.md) - 5% hardcoded delta threshold_
 
-- [ ] 1.5 Integrate SOC listener into async_setup_entry
+- [x] 1.5 Integrate SOC listener into async_setup_entry
   - **Do**:
     1. In `__init__.py:async_setup_entry()`, after PresenceMonitor creation, call `presence_monitor._async_setup_soc_listener()` if soc_sensor is configured
     2. Ensure the SOC listener is registered when the vehicle config entry is set up

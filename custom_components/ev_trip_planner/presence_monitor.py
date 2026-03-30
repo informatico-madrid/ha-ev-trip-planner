@@ -63,6 +63,9 @@ class PresenceMonitor:
         # SOC debouncing state - last processed SOC for delta comparison
         self._last_processed_soc: Optional[float] = None
 
+        # SOC listener registration guard - prevents duplicate listener registration
+        self._soc_listener_unsub: Optional[callback] = None
+
         # Persistence store for return info (ha_storage.Store API)
         self._return_info_store = ha_storage.Store(
             hass,
@@ -366,10 +369,18 @@ class PresenceMonitor:
         return earth_radius * c
 
     def _async_setup_soc_listener(self) -> None:
-        """Set up SOC sensor state change listener."""
+        """Set up SOC sensor state change listener (idempotent)."""
         if not self.soc_sensor:
             _LOGGER.debug(
                 "No SOC sensor configured for %s, SOC listener not set up",
+                self.vehicle_id,
+            )
+            return
+
+        # Guard against duplicate listener registration
+        if self._soc_listener_unsub is not None:
+            _LOGGER.debug(
+                "SOC listener already registered for %s, skipping duplicate setup",
                 self.vehicle_id,
             )
             return
@@ -380,7 +391,7 @@ class PresenceMonitor:
             self.soc_sensor,
         )
 
-        async_track_state_change_event(
+        self._soc_listener_unsub = async_track_state_change_event(
             self.hass,
             self.soc_sensor,
             self._async_handle_soc_change,

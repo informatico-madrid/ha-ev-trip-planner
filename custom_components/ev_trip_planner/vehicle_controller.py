@@ -4,12 +4,15 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_CHARGING_SENSOR
 from .presence_monitor import PresenceMonitor
+
+if TYPE_CHECKING:
+    from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -291,6 +294,7 @@ class VehicleController:
         hass: HomeAssistant,
         vehicle_id: str,
         presence_config: Optional[Dict[str, Any]] = None,
+        trip_manager: Optional["TripManager"] = None,
     ) -> None:
         """Initialize the vehicle controller."""
         self.hass = hass
@@ -307,7 +311,7 @@ class VehicleController:
 
         # Initialize presence monitor if config provided
         if presence_config:
-            self._presence_monitor = PresenceMonitor(hass, vehicle_id, presence_config)
+            self._presence_monitor = PresenceMonitor(hass, vehicle_id, presence_config, trip_manager)
 
     async def async_setup(self) -> None:
         """Set up the vehicle controller."""
