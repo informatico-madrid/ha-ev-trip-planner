@@ -36,7 +36,7 @@
   - _Requirements: AC-1, AC-2, AC-3_
   - _Design: Interface Contracts section (plan.md) - trigger conditions, call async_generate_power_profile() and async_generate_deferrables_schedule()_
 
-- [ ] 1.2 Add return-time detection to PresenceMonitor
+- [x] 1.2 Add return-time detection to PresenceMonitor
   - **Do**:
     1. Add `_was_home: bool = False` instance attribute to `PresenceMonitor.__init__`
     2. Modify `async_check_home_status()` to detect off->on transition (return home)

@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt_util
 
 from .const import (
     CONF_HOME_SENSOR,
@@ -50,6 +51,13 @@ class PresenceMonitor:
         # Notification configuration
         self.notification_service = config.get(CONF_NOTIFICATION_SERVICE)
 
+        # Track previous home state for return/departure detection
+        self._was_home: bool = False
+
+        # Return time tracking (AC-4, AC-6)
+        self.hora_regreso: Optional[str] = None
+        self.soc_en_regreso: Optional[float] = None
+
         _LOGGER.debug(
             "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
             "notification_service=%s, soc_sensor=%s",
@@ -66,26 +74,58 @@ class PresenceMonitor:
     async def async_check_home_status(self) -> bool:
         """
         Check if vehicle is at home.
-        
+
         Priority:
         1. Use sensor if configured
         2. Use coordinates if configured
         3. Return True (blind mode) if nothing configured
+
+        Detects off->on transition (return home) and on->off transition (departure).
         """
         # Priority 1: Sensor-based detection
         if self.home_sensor:
-            return await self._async_check_home_sensor()
-        
+            is_home = await self._async_check_home_sensor()
         # Priority 2: Coordinate-based detection
-        if self.home_coords and self.vehicle_coords_sensor:
-            return await self._async_check_home_coordinates()
-        
+        elif self.home_coords and self.vehicle_coords_sensor:
+            is_home = await self._async_check_home_coordinates()
         # Priority 3: Blind mode - assume at home
-        _LOGGER.debug(
-            "No home detection configured for %s, assuming at home (blind mode)",
-            self.vehicle_id,
-        )
-        return True
+        else:
+            _LOGGER.debug(
+                "No home detection configured for %s, assuming at home (blind mode)",
+                self.vehicle_id,
+            )
+            is_home = True
+
+        # Detect off->on transition (return home)
+        if is_home and not self._was_home:
+            _LOGGER.info(
+                "Vehicle %s returned home (off->on transition)",
+                self.vehicle_id,
+            )
+            # Get current SOC if available
+            soc_value: Optional[float] = None
+            if self.soc_sensor:
+                state = self.hass.states.get(self.soc_sensor)
+                if state:
+                    try:
+                        soc_value = float(state.state)
+                    except (ValueError, AttributeError):
+                        pass
+            await self.async_handle_return_home(soc_value)
+
+        # Detect on->off transition (departure) - invalidate hora_regreso
+        if not is_home and self._was_home:
+            _LOGGER.info(
+                "Vehicle %s departed (on->off transition), invalidating hora_regreso",
+                self.vehicle_id,
+            )
+            self.hora_regreso = None
+            self.soc_en_regreso = None
+
+        # Update previous state tracking
+        self._was_home = is_home
+
+        return is_home
     
     async def async_check_plugged_status(self) -> bool:
         """
@@ -117,6 +157,28 @@ class PresenceMonitor:
             is_plugged,
         )
         return is_plugged
+
+    async def async_handle_return_home(self, soc_value: Optional[float]) -> None:
+        """
+        Handle return home event (off->on transition).
+
+        Captures the return timestamp and SOC for calculating the charging window.
+
+        Args:
+            soc_value: The SOC value at the time of return, if available
+        """
+        now = dt_util.now()
+        self.hora_regreso = now.isoformat()
+        self.soc_en_regreso = soc_value
+
+        _LOGGER.info(
+            "Return home detected for %s: hora_regreso=%s, soc_en_regreso=%s",
+            self.vehicle_id,
+            self.hora_regreso,
+            self.soc_en_regreso,
+        )
+
+        # HA state entity update will be done in task 1.3
     
     async def async_check_charging_readiness(self) -> Tuple[bool, Optional[str]]:
         """
