@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-03-30T03:08:32Z",
+  "updated": "2026-03-30T03:27:46Z",
   "directories": [
     {
       "path": "./specs",
@@ -34,8 +34,7 @@
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 158
     },
     {
@@ -63,16 +62,14 @@
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 73
     },
     {
       "name": "018-e2e-playwright-testing",
       "path": "./specs/018-e2e-playwright-testing",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 34
     },
     {

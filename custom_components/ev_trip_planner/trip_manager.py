@@ -1346,6 +1346,7 @@ class TripManager:
         charging_power_kw: float = 3.6,
         planning_horizon_days: int = 7,
         vehicle_config: Optional[Dict[str, Any]] = None,
+        hora_regreso: Optional[datetime] = None,
     ) -> List[float]:
         """Genera el perfil de potencia para EMHASS.
 
@@ -1354,6 +1355,8 @@ class TripManager:
             planning_horizon_days: Días de horizonte de planificación
             vehicle_config: Optional configuration dict with battery_capacity_kwh,
                           charging_power_kw, soc_current
+            hora_regreso: Optional actual return time. If None, reads from
+                         presence_monitor.async_get_hora_regreso()
 
         Returns:
             Lista de valores de potencia en watts (0 = no cargar, positivo = cargar)
@@ -1380,6 +1383,11 @@ class TripManager:
         # Obtener SOC actual - only fetch if not provided in vehicle_config
         if soc_current is None:
             soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+
+        # Obtener hora_regreso si no fue proporcionada
+        # Si no hay hora_regreso detectada aun, usar departure_time + 6h como estimado
+        if hora_regreso is None and self.vehicle_controller._presence_monitor:
+            hora_regreso = await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
 
         # Inicializar perfil de potencia (0 = no cargar)
         profile_length = planning_horizon_days * 24
@@ -1414,6 +1422,7 @@ class TripManager:
             trip["_trip_index"] = idx
 
         # Procesar cada viaje
+        now = datetime.now()
         for trip in all_trips:
             # Calcular energía necesaria
             vehicle_config = {
@@ -1430,31 +1439,49 @@ class TripManager:
             if energia_kwh <= 0:
                 continue
 
+            # Usar calcular_ventana_carga para determinar la ventana de carga
+            ventana_info = await self.calcular_ventana_carga(
+                trip, soc_current, hora_regreso, charging_power_kw
+            )
+
+            # Si no hay ventana suficiente, skip
+            if not ventana_info.get("es_suficiente", False):
+                continue
+
+            # Obtener inicio y fin de ventana
+            inicio_ventana = ventana_info.get("inicio_ventana")
+            fin_ventana = ventana_info.get("fin_ventana")
+
+            if not inicio_ventana or not fin_ventana:
+                continue
+
             # Convertir a watts
             charging_power_watts = charging_power_kw * 1000
 
-            # Determinar las horas de carga
-            horas_necesarias = int(horas_carga) + (1 if horas_carga % 1 > 0 else 0)
+            # Determinar posición en el perfil basada en la ventana
+            delta_inicio = inicio_ventana - now
+            horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
+
+            if horas_desde_ahora < 0:
+                # La ventana ya empezó, cargar inmediatamente
+                hora_inicio_carga = 0
+            else:
+                hora_inicio_carga = horas_desde_ahora
+
+            # Las horas necesarias para cargar
+            horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
             if horas_necesarias == 0:
                 horas_necesarias = 1
 
-            # Obtener deadline del viaje
-            trip_time = self._get_trip_time(trip)
-            if not trip_time:
-                continue
+            # Fin de la ventana relativo a ahora
+            delta_fin = fin_ventana - now
+            horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
 
-            # Calcular posición en el perfil (desde ahora)
-            delta = trip_time - now
-            horas_hasta_viaje = int(delta.total_seconds() / 3600)
-
-            if horas_hasta_viaje < 0:
-                continue  # El viaje ya pasó
-
-            # Determinar horas de carga: las últimas horas antes del deadline
-            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+            if horas_hasta_fin < 0:
+                continue  # La ventana ya terminó
 
             # Distribuir la carga en las horas disponibles
-            for h in range(hora_inicio_carga, min(horas_hasta_viaje, profile_length)):
+            for h in range(hora_inicio_carga, min(hora_inicio_carga + horas_necesarias, horas_hasta_fin, profile_length)):
                 if h >= 0 and h < profile_length:
                     power_profile[h] = charging_power_watts
 

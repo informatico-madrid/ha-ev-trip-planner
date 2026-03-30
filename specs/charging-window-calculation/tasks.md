@@ -96,7 +96,7 @@
   - _Requirements: AC-4_
   - _Design: Multi-trip window chaining section (plan.md)_
 
-- [ ] 1.6 Wire hora_regreso reading into power profile generation
+- [x] 1.6 Wire hora_regreso reading into power profile generation
   - **Do**:
     1. Modify `async_generate_power_profile()` to accept optional `hora_regreso` parameter
     2. If `hora_regreso` is None, read it from `presence_monitor.async_get_hora_regreso()`
