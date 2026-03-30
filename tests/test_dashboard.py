@@ -2298,3 +2298,83 @@ class TestDashboardNoErrorsInLogs:
             f"No YAML syntax errors should occur. "
             f"Found: {yaml_errors}"
         )
+
+
+class TestEMHASSErrorNotifications:
+    """Tests for EMHASS error notifications (AC-5).
+
+    Verifies that error notifications are triggered when EMHASS load fails.
+    """
+
+    @pytest.fixture
+    def mock_hass_with_notification(self):
+        """Create a mock HomeAssistant with notification service."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+
+        # Mock storage API
+        hass.storage = MagicMock()
+        hass.storage.async_read_dict = AsyncMock(return_value={})
+        hass.storage.async_write_dict = AsyncMock()
+
+        # Mock services with notification service
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        # Mock states for sensor
+        hass.states = MagicMock()
+        hass.states.async_set = AsyncMock()
+        hass.states.get = MagicMock(return_value=None)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_error_notification_triggered_when_load_fails(
+        self, mock_hass_with_notification
+    ):
+        """Test that error notification is triggered when EMHASS load fails.
+
+        AC-5: Error Notification Display
+        - When EMHASS load fails, error notification should be triggered
+
+        This test should FAIL before implementation (RED phase).
+        The current async_load method does not call async_notify_error on failure.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+        # Create EMHASS adapter
+        vehicle_config = {
+            "vehicle_name": "test_vehicle",
+            "max_deferrable_loads": 10,
+            "charging_power": 7.4,
+            "notification_service": "notify.notify",
+        }
+
+        adapter = EMHASSAdapter(mock_hass_with_notification, vehicle_config)
+
+        # Mock the store's async_load to raise an exception (simulating storage failure)
+        async def failing_load():
+            raise Exception("Storage read failure")
+
+        adapter._store.async_load = failing_load
+
+        # Mock async_notify_error to track if it's called
+        from unittest.mock import AsyncMock
+        adapter.async_notify_error = AsyncMock(return_value=True)
+
+        # Call async_load - should trigger error notification on failure
+        await adapter.async_load()
+
+        # Verify that async_notify_error was called
+        # This assertion will FAIL because current async_load doesn't handle errors
+        adapter.async_notify_error.assert_called_once()

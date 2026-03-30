@@ -107,7 +107,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### AC-5: Error Notification Display
 
-- [ ] 1.13 [RED] Failing test: Load errors show appropriate notification
+- [x] 1.13 [RED] Failing test: Load errors show appropriate notification
   - **Do**: Write test verifying error notification is triggered when EMHASS load fails
   - **Files**: `tests/test_dashboard.py`
   - **Done when**: Test exists AND fails
