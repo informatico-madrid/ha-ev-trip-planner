@@ -666,6 +666,11 @@ class TripSensor(SensorEntity):
         if soc_objetivo is not None:
             self._attr_extra_state_attributes["soc_target"] = soc_objetivo
 
+        # Add deficit_from_previous if deficit_acumulado is present (AC-3)
+        deficit_acumulado = trip_data.get("deficit_acumulado")
+        if deficit_acumulado is not None:
+            self._attr_extra_state_attributes["deficit_from_previous"] = deficit_acumulado
+
         # Add EMHASS-related info
         self._attr_extra_state_attributes.update(self._get_emhass_info())
 

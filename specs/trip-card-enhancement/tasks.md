@@ -91,7 +91,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
 
 ### Trip 4: deficit_from_previous Display
 
-- [ ] 1.7 [RED] Failing test: TripSensor shows deficit_from_previous in extra_state_attributes
+- [x] 1.7 [RED] Failing test: TripSensor shows deficit_from_previous in extra_state_attributes
   - **Do**:
     1. Open `tests/test_sensor.py`
     2. Add test `test_trip_sensor_deficit_attribute` that:
@@ -104,7 +104,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
   - _Requirements: AC-3_
   - _Design: Interface Contracts_
 
-- [ ] 1.8 [GREEN] Pass test: Add deficit_from_previous to TripSensor extra_state_attributes
+- [x] 1.8 [GREEN] Pass test: Add deficit_from_previous to TripSensor extra_state_attributes
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. In `TripSensor.__init__()`, extract deficit_acumulado from trip_data
