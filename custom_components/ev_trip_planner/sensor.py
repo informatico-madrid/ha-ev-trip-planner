@@ -668,6 +668,19 @@ class TripSensor(SensorEntity):
             if p_deferrable_index is not None:
                 self._attr_extra_state_attributes["p_deferrable_index"] = p_deferrable_index
 
+        # Add charging_window if ventana_carga exists
+        ventana_carga = trip_data.get("ventana_carga")
+        if ventana_carga:
+            inicio = ventana_carga.get("inicio_ventana", "")
+            fin = ventana_carga.get("fin_ventana", "")
+            if inicio and fin:
+                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
+                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+                self._attr_extra_state_attributes["charging_window"] = {
+                    "start": start_time,
+                    "end": end_time,
+                }
+
     @property
     def native_value(self) -> Any:
         """Return sensor value based on trip type and status."""

@@ -49,7 +49,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
   - _Requirements: AC-2_
   - _Design: Interface Contracts_
 
-- [ ] 1.4 [GREEN] Pass test: Add charging_window to TripSensor extra_state_attributes
+- [x] 1.4 [GREEN] Pass test: Add charging_window to TripSensor extra_state_attributes
   - **Do**:
     1. Open `custom_components/ev_trip_planner/sensor.py`
     2. In `TripSensor.__init__()`, extract ventana_carga from trip_data
