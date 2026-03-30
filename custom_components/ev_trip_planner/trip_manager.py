@@ -314,6 +314,10 @@ class TripManager:
                 len(self._recurring_trips),
                 len(self._punctual_trips),
             )
+
+            # T019.3: Trigger EMHASS adapter update when trip state changes
+            if self._emhass_adapter:
+                await self._publish_deferrable_loads()
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err, exc_info=True)
             # Fallback to YAML if HA storage fails
