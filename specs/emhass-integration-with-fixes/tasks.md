@@ -123,7 +123,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `feat(errors): implement error notification on load failure`
   - _Requirements: AC-5_
 
-- [ ] 1.15 [YELLOW] Refactor: Clean up error handling paths
+- [x] 1.15 [YELLOW] Refactor: Clean up error handling paths
   - **Do**: Review all error paths in emhass_adapter and ensure consistent notification
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Error handling is consistent

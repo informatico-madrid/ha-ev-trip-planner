@@ -2,16 +2,17 @@
   "source": "spec",
   "name": "emhass-integration-with-fixes",
   "basePath": "specs/emhass-integration-with-fixes",
-  "phase": "tasks",
-  "taskIndex": 0,
+  "phase": "execution",
+  "taskIndex": 10,
   "totalTasks": 23,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 1,
+  "globalIteration": 11,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": false,
   "discoveredSkills": [],
   "epicName": "emhass-deferrable-integration",
-  "granularity": "fine"
+  "granularity": "fine",
+  "awaitingApproval": true
 }

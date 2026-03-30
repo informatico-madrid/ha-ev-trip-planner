@@ -84,12 +84,19 @@ class EMHASSAdapter:
 
     async def async_save(self):
         """Save index mapping to storage."""
-        await self._store.async_save(
-            {
-                "index_map": self._index_map,
-                "vehicle_id": self.vehicle_id,
-            }
-        )
+        try:
+            await self._store.async_save(
+                {
+                    "index_map": self._index_map,
+                    "vehicle_id": self.vehicle_id,
+                }
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to save index mapping to storage: %s", err)
+            await self.async_notify_error(
+                error_type="storage_error",
+                message=f"Failed to save data: {err}",
+            )
 
     async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
         """
@@ -247,6 +254,11 @@ class EMHASSAdapter:
             # Release index on error
             if "trip_id" in locals() and trip_id in self._index_map:
                 await self.async_release_trip_index(trip_id)
+            await self.async_notify_error(
+                error_type="sensor_error",
+                message=f"Failed to publish deferrable load: {err}",
+                trip_id=trip_id if "trip_id" in locals() else None,
+            )
             return False
 
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
@@ -273,6 +285,11 @@ class EMHASSAdapter:
 
         except Exception as err:
             _LOGGER.error("Error removing deferrable load: %s", err)
+            await self.async_notify_error(
+                error_type="sensor_error",
+                message=f"Failed to remove deferrable load: {err}",
+                trip_id=trip_id,
+            )
             return False
 
     async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool:
@@ -407,6 +424,8 @@ class EMHASSAdapter:
 
         except Exception as err:
             _LOGGER.error("Error calculating deferrable parameters: %s", err)
+            # Note: notification not sent here as this is a calculation-only method
+            # and calling code checks for empty result
             return {}
 
     async def publish_deferrable_loads(
@@ -452,16 +471,24 @@ class EMHASSAdapter:
 
         # Update the template sensor
         sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
-        await self.hass.states.async_set(
-            sensor_id,
-            EMHASS_STATE_READY,
-            {
-                "power_profile_watts": power_profile,
-                "deferrables_schedule": deferrables_schedule,
-                "vehicle_id": self.vehicle_id,
-                "trips_count": len(trips),
-            },
-        )
+        try:
+            await self.hass.states.async_set(
+                sensor_id,
+                EMHASS_STATE_READY,
+                {
+                    "power_profile_watts": power_profile,
+                    "deferrables_schedule": deferrables_schedule,
+                    "vehicle_id": self.vehicle_id,
+                    "trips_count": len(trips),
+                },
+            )
+        except HomeAssistantError as err:
+            _LOGGER.error("Error publishing deferrable loads to sensor: %s", err)
+            await self.async_notify_error(
+                error_type="sensor_error",
+                message=f"Failed to publish deferrable loads: {err}",
+            )
+            return False
 
         _LOGGER.info(
             "Published deferrable loads for %s: %d trips, profile length: %d",
