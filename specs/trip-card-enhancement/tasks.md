@@ -6,7 +6,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
 
 ### Trip 1: p_deferrable_index Display
 
-- [ ] 1.1 [RED] Failing test: TripSensor shows p_deferrable_index in extra_state_attributes
+- [x] 1.1 [RED] Failing test: TripSensor shows p_deferrable_index in extra_state_attributes
   - **Do**:
     1. Open `tests/test_sensor.py`
     2. Add test `test_trip_sensor_p_deferrable_index_attribute` that:

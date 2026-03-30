@@ -518,6 +518,43 @@ async def test_trip_planner_sensor_device_info(mock_hass):
     assert device_info["model"] == "EV Trip Planner"
 
 
+# Tests for p_deferrable_index attribute (TripCard Enhancement - AC-1)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_p_deferrable_index_attribute(mock_hass_with_storage):
+    """Test that TripSensor shows p_deferrable_index in extra_state_attributes.
+
+    This test verifies AC-1: Trip card shows p_deferrable index (e.g., "Carga diferible: p_deferrable0")
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager with emhass_adapter
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    trip_manager.emhass_adapter.get_assigned_index = MagicMock(return_value=5)
+
+    # Create trip data with id and tipo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+    }
+
+    # Create sensor
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify p_deferrable_index is in extra_state_attributes
+    attrs = sensor.extra_state_attributes
+    assert "p_deferrable_index" in attrs, "p_deferrable_index should be in extra_state_attributes"
+    assert attrs["p_deferrable_index"] == 5, "p_deferrable_index should be 5"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 
