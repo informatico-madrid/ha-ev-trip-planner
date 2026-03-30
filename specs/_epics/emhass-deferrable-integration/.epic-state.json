@@ -39,7 +39,7 @@
     },
     {
       "name": "automation-template",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [
         "emhass-sensor-enhancement"
       ]

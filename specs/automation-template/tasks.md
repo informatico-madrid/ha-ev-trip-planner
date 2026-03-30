@@ -177,7 +177,7 @@ Focus: Handle edge cases and document required HA entities.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 YAML validation against Home Assistant schema
+- [x] 4.1 YAML validation against Home Assistant schema
   - **Do**: Validate automation YAML structure
   - **Verify**: `python3 -c "import yaml; yaml.safe_load(open('automations/emhass_charge_control_template.yaml')); print('VALID')"`
   - **Done when**: YAML is valid Home Assistant automation
