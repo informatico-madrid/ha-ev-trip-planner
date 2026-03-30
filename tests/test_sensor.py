@@ -531,7 +531,8 @@ async def test_trip_sensor_p_deferrable_index_attribute(mock_hass_with_storage):
     # Create mock trip manager with emhass_adapter
     trip_manager = MagicMock()
     trip_manager.vehicle_id = "tesla_model_3"
-    trip_manager.emhass_adapter.get_assigned_index = MagicMock(return_value=5)
+    # Implementation calls: trip_manager.get_emhass_adapter().get_assigned_index(trip_id)
+    trip_manager.get_emhass_adapter.return_value.get_assigned_index.return_value = 5
 
     # Create trip data with id and tipo
     trip_data = {
