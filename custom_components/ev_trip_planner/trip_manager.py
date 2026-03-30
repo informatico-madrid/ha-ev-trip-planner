@@ -1625,10 +1625,14 @@ class TripManager:
             )
             soc_objetivo_ajustado = soc_objetivo + deficits[idx]
 
+            # Calculate kWh needed: (soc_objetivo - soc_inicio) * battery_capacity_kwh / 100
+            soc_inicio = soc_data["soc_inicio"]
+            kwh_necesarios = (soc_objetivo_ajustado - soc_inicio) * battery_capacity_kwh / 100
+
             results.append({
                 "trip_id": trip.get("id", f"trip_{idx}"),
                 "soc_objetivo": round(soc_objetivo_ajustado, 2),
-                "kwh_necesarios": ventana["kwh_necesarios"],
+                "kwh_necesarios": round(kwh_necesarios, 3),
                 "deficit_acumulado": round(deficits[idx], 2),
                 "ventana_carga": {
                     "ventana_horas": ventana["ventana_horas"],
