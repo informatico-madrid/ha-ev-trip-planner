@@ -709,6 +709,70 @@ async def test_trip_sensor_no_emhass_attributes(mock_hass_with_storage):
     assert "p_deferrable_index" not in attrs, "p_deferrable_index should NOT be in extra_state_attributes when EMHASS is not configured"
 
 
+# Tests for update_from_trip_data with new attributes (TripCard Enhancement - AC-4)
+
+@pytest.mark.asyncio
+async def test_trip_sensor_update_from_trip_data_new_attributes(mock_hass_with_storage):
+    """Test that update_from_trip_data preserves new attributes like charging_window and soc_target.
+
+    This test verifies AC-4: When trip is edited, update_from_trip_data should
+    include the new attributes (charging_window, soc_target, deficit_from_previous).
+    """
+    from custom_components.ev_trip_planner.sensor import TripSensor
+
+    # Create mock trip manager
+    trip_manager = MagicMock()
+    trip_manager.vehicle_id = "tesla_model_3"
+    trip_manager.get_emhass_adapter.return_value = None
+
+    # Create initial trip data WITH ventana_carga and soc_objetivo
+    trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Work commute",
+        "km": 25.5,
+        "kwh": 4.2,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T18:00:00",
+            "fin_ventana": "2026-03-30T22:00:00",
+        },
+        "soc_objetivo": 60,
+    }
+
+    # Create sensor with initial trip data
+    sensor = TripSensor(
+        hass=mock_hass_with_storage,
+        trip_manager=trip_manager,
+        trip_data=trip_data,
+    )
+
+    # Verify initial attributes are set correctly
+    initial_attrs = sensor.extra_state_attributes
+    assert "charging_window" in initial_attrs, "charging_window should be in initial attrs"
+    assert "soc_target" in initial_attrs, "soc_target should be in initial attrs"
+
+    # Now call update_from_trip_data with updated trip data
+    updated_trip_data = {
+        "id": "trip_001",
+        "tipo": "recurrente",
+        "descripcion": "Updated commute",
+        "km": 30.0,
+        "kwh": 5.0,
+        "ventana_carga": {
+            "inicio_ventana": "2026-03-30T19:00:00",
+            "fin_ventana": "2026-03-30T23:00:00",
+        },
+        "soc_objetivo": 65,
+    }
+
+    sensor.update_from_trip_data(updated_trip_data)
+
+    # Verify extra_state_attributes includes charging_window and soc_target after update
+    attrs = sensor.extra_state_attributes
+    assert "charging_window" in attrs, "charging_window should be preserved in extra_state_attributes after update"
+    assert "soc_target" in attrs, "soc_target should be preserved in extra_state_attributes after update"
+
+
 # Tests for alias sensors that read from coordinator.data
 
 

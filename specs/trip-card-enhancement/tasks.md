@@ -156,7 +156,7 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
 
 Update `update_from_trip_data` to include new attributes when trip is edited.
 
-- [ ] 2.1 [RED] Failing test: update_from_trip_data preserves new attributes
+- [x] 2.1 [RED] Failing test: update_from_trip_data preserves new attributes
   - **Do**:
     1. Open `tests/test_sensor.py`
     2. Add test `test_trip_sensor_update_from_trip_data_new_attributes` that:
