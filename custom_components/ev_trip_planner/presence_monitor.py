@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.util import dt_util
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_HOME_SENSOR,

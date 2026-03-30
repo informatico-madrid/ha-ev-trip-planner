@@ -11,17 +11,50 @@ from custom_components.ev_trip_planner.const import (
     CONF_HOME_COORDINATES,
     CONF_VEHICLE_COORDINATES_SENSOR,
     CONF_NOTIFICATION_SERVICE,
+    CONF_SOC_SENSOR,
 )
 
 
 @pytest.fixture
 def mock_hass():
-    """Create mock Home Assistant instance."""
+    """Create mock Home Assistant instance with required attributes for Store."""
     hass = Mock(spec=HomeAssistant)
+    hass.data = {}  # Required by ha_storage.Store
     hass.states = Mock()
     hass.services = Mock()
     hass.services.async_call = AsyncMock()
+    # Mock hass.bus for async_track_state_change_event
+    hass.bus = Mock()
+    hass.bus.async_listen = Mock()
+    # Mock async_run_hass_job for debounce
+    async def mock_async_run_hass_job(job, *_args, **_kwargs):
+        return None
+    hass.async_run_hass_job = mock_async_run_hass_job
     return hass
+
+
+@pytest.fixture(autouse=True)
+def mock_store_class():
+    """Fixture to patch the Store class for testing (autouse for all tests)."""
+    from homeassistant.helpers import storage as ha_storage
+    from unittest.mock import patch
+
+    class MockStore:
+        def __init__(self, hass, version, key, *, private=None):
+            self.hass = hass
+            self.version = version
+            self.key = key
+            self._storage = {}
+
+        async def async_load(self):
+            return self._storage.get("data")
+
+        async def async_save(self, data):
+            self._storage["data"] = data
+            return True
+
+    with patch.object(ha_storage, 'Store', MockStore):
+        yield MockStore
 
 
 @pytest.mark.asyncio
@@ -746,3 +779,355 @@ async def test_check_home_status_sensor_not_found(mock_hass):
     result = await monitor.async_check_home_status()
 
     assert result is False
+
+
+# =============================================================================
+# SOC Listener Tests (Task 1.6)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_soc_listener_registered_with_soc_sensor(mock_hass):
+    """Test SOC listener is registered when soc_sensor is configured."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+    from unittest.mock import patch
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    with patch('custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event') as mock_track:
+        mock_track.return_value = Mock()
+        monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+        # Verify listener was registered for the SOC sensor
+        mock_track.assert_called_once_with(
+            mock_hass,
+            "sensor.ovms_soc",
+            monitor._async_handle_soc_change,
+        )
+        assert monitor._soc_listener_unsub is not None
+
+
+@pytest.mark.asyncio
+async def test_soc_listener_not_registered_without_soc_sensor(mock_hass):
+    """Test SOC listener is NOT registered when soc_sensor is not configured."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # SOC listener should not be registered
+    assert monitor._soc_listener_unsub is None
+
+
+@pytest.mark.asyncio
+async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass):
+    """Test SOC change >= 5% triggers recalculation when home+plugged."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create mock trip_manager
+    mock_trip_manager = Mock()
+    mock_trip_manager.async_generate_power_profile = AsyncMock()
+    mock_trip_manager.async_generate_deferrables_schedule = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+
+    # Set up mocks: home=on, plugged=on
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Simulate SOC change event: 50% -> 60% (10% delta)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "60"
+
+    event = {
+        "data": {
+            "old_state": old_soc_state,
+            "new_state": new_soc_state,
+        }
+    }
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # Verify recalculation was triggered
+    mock_trip_manager.async_generate_power_profile.assert_called_once()
+    mock_trip_manager.async_generate_deferrables_schedule.assert_called_once()
+    # Verify _last_processed_soc was updated
+    assert monitor._last_processed_soc == 60.0
+
+
+@pytest.mark.asyncio
+async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
+    """Test SOC change < 5% does NOT trigger recalculation (debouncing)."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create mock trip_manager
+    mock_trip_manager = Mock()
+    mock_trip_manager.async_generate_power_profile = AsyncMock()
+    mock_trip_manager.async_generate_deferrables_schedule = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+
+    # Set up mocks: home=on, plugged=on
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Simulate SOC change event: 50% -> 53% (3% delta - below 5% threshold)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "53"
+
+    event = {
+        "data": {
+            "old_state": old_soc_state,
+            "new_state": new_soc_state,
+        }
+    }
+
+    # Set _last_processed_soc to simulate previous trigger
+    monitor._last_processed_soc = 50.0
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # Verify recalculation was NOT triggered (below 5% threshold)
+    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+    # Verify _last_processed_soc was NOT updated
+    assert monitor._last_processed_soc == 50.0
+
+
+@pytest.mark.asyncio
+async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
+    """Test SOC change does NOT trigger recalculation when vehicle not home."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create mock trip_manager
+    mock_trip_manager = Mock()
+    mock_trip_manager.async_generate_power_profile = AsyncMock()
+    mock_trip_manager.async_generate_deferrables_schedule = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+
+    # Set up mocks: home=off, plugged=on
+    mock_home_state = Mock()
+    mock_home_state.state = "off"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Simulate SOC change event: 50% -> 60% (10% delta)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "60"
+
+    event = {
+        "data": {
+            "old_state": old_soc_state,
+            "new_state": new_soc_state,
+        }
+    }
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # Verify recalculation was NOT triggered (not at home)
+    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
+    """Test SOC change does NOT trigger recalculation when vehicle not plugged."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create mock trip_manager
+    mock_trip_manager = Mock()
+    mock_trip_manager.async_generate_power_profile = AsyncMock()
+    mock_trip_manager.async_generate_deferrables_schedule = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+
+    # Set up mocks: home=on, plugged=off
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "off"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Simulate SOC change event: 50% -> 60% (10% delta)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "60"
+
+    event = {
+        "data": {
+            "old_state": old_soc_state,
+            "new_state": new_soc_state,
+        }
+    }
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # Verify recalculation was NOT triggered (not plugged)
+    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass):
+    """Test SOC change to unavailable/unknown state is skipped without updating _last_processed_soc."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    mock_trip_manager = Mock()
+    mock_trip_manager.async_generate_power_profile = AsyncMock()
+    mock_trip_manager.async_generate_deferrables_schedule = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+    monitor._last_processed_soc = 50.0
+
+    # Set up mocks: home=on, plugged=on
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Simulate SOC change to unavailable state
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "unavailable"
+
+    event = {
+        "data": {
+            "old_state": old_soc_state,
+            "new_state": new_soc_state,
+        }
+    }
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # Verify recalculation was NOT triggered
+    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    # Verify _last_processed_soc was NOT updated
+    assert monitor._last_processed_soc == 50.0
+
+
+@pytest.mark.asyncio
+async def test_soc_listener_duplicate_setup_prevented(mock_hass):
+    """Test SOC listener setup is idempotent - duplicate registration prevented."""
+    from custom_components.ev_trip_planner.const import CONF_SOC_SENSOR
+    from unittest.mock import patch
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    with patch('custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event') as mock_track:
+        mock_track.return_value = Mock()
+        monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+        # First call should register
+        assert mock_track.call_count == 1
+
+        # Call setup again manually - should NOT register again
+        monitor._async_setup_soc_listener()
+
+        # Should still only have been called once (duplicate prevented)
+        assert mock_track.call_count == 1
