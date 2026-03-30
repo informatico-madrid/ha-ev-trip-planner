@@ -130,7 +130,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Verify**: Empty trips returns []
   - **Commit**: `feat(soc-milestone): handle empty trips list`
 
-- [ ] 1.12 [P] Handle single trip (no propagation needed)
+- [x] 1.12 [P] Handle single trip (no propagation needed)
   - **Do**:
     1. For single trip, calculate base SOC target only
     2. No deficit propagation since no previous trip
