@@ -1871,6 +1871,84 @@ class TestDashboardAPICompatibility:
         assert saved_config.get("title") == "Test Dashboard"
 
 
+class TestDashboardDataSync:
+    """Tests for dashboard data synchronization from TripManager (AC-3).
+
+    Verifies that the dashboard loads and syncs data from TripManager correctly.
+    """
+
+    @pytest.fixture
+    def mock_hass_with_storage(self):
+        """Create a mock HomeAssistant with storage support."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+
+        # Mock storage API
+        hass.storage = MagicMock()
+        hass.storage.async_read_dict = AsyncMock(return_value={})
+        hass.storage.async_write_dict = AsyncMock()
+
+        return hass
+
+    @pytest.fixture
+    def trip_manager(self, mock_hass_with_storage):
+        """Create a TripManager instance for testing."""
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.trip_manager import TripManager
+
+        manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        return manager
+
+    @pytest.mark.asyncio
+    async def test_dashboard_syncs_all_trips_from_trip_manager(
+        self, trip_manager, mock_hass_with_storage
+    ):
+        """Test that dashboard loads and syncs all trips via get_all_trips().
+
+        AC-3: Dashboard loads and syncs data correctly from TripManager
+
+        This test verifies that:
+        1. TripManager has a get_all_trips() method
+        2. It returns both recurring and punctual trips combined
+        3. When trips are added, they appear in get_all_trips()
+
+        This test should FAIL before implementation (RED phase).
+        """
+        # Create some trips first
+        await trip_manager.async_add_recurring_trip(
+            dia_semana="lunes",
+            hora="08:00",
+            km=25.0,
+            kwh=3.0,
+            descripcion="Trabajo",
+        )
+        await trip_manager.async_add_punctual_trip(
+            datetime_str="2026-03-25T14:30",
+            km=150.0,
+            kwh=20.0,
+            descripcion="Barcelona",
+        )
+
+        # Verify get_all_trips() returns all trips combined
+        all_trips = trip_manager.get_all_trips()
+
+        assert all_trips is not None, "get_all_trips() should return data"
+        assert "recurring" in all_trips, "Should have recurring trips key"
+        assert "punctual" in all_trips, "Should have punctual trips key"
+        assert len(all_trips["recurring"]) == 1, "Should have 1 recurring trip"
+        assert len(all_trips["punctual"]) == 1, "Should have 1 punctual trip"
+        assert all_trips["recurring"][0]["descripcion"] == "Trabajo"
+        assert all_trips["punctual"][0]["descripcion"] == "Barcelona"
+
+
 class TestDashboardNoErrorsInLogs:
     """Tests to verify no dashboard errors appear in logs.
 

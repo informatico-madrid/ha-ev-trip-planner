@@ -57,7 +57,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### AC-3: Dashboard Data Synchronization
 
-- [ ] 1.7 [RED] Failing test: Dashboard loads and syncs data from TripManager
+- [x] 1.7 [RED] Failing test: Dashboard loads and syncs data from TripManager
   - **Do**: Write test verifying `trip_manager.get_all_trips()` returns correct data when dashboard loads
   - **Files**: `tests/test_dashboard.py`
   - **Done when**: Test exists AND fails (data not syncing)
