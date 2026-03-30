@@ -6,7 +6,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### AC-1: Cascade Delete Integration
 
-- [ ] 1.1 [RED] Failing test: Vehicle deletion removes all trips from TripManager storage
+- [x] 1.1 [RED] Failing test: Vehicle deletion removes all trips from TripManager storage
   - **Do**: Write test in `tests/test_integration_uninstall.py` asserting `async_delete_all_trips()` is called during `async_unload_entry`
   - **Files**: `tests/test_integration_uninstall.py`
   - **Done when**: Test exists AND fails with assertion error (method not called)
