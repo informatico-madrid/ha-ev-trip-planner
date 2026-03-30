@@ -7,6 +7,7 @@ Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
@@ -485,6 +486,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
         self._attr_has_entity_name = True
         self._attr_native_value = "ready"
         self._cached_attrs: Dict[str, Any] = {}
+        self._index_cooldown_hours: int = 24
 
     @property
     def unique_id(self) -> str:
@@ -565,6 +567,8 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             self._cached_attrs = {
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": schedule,
+                "last_update": datetime.now().isoformat(),
+                "emhass_status": "ok",
             }
             self._attr_native_value = "ready"
             _LOGGER.debug(
@@ -581,6 +585,8 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 err,
                 exc_info=True,
             )
+            self._cached_attrs["emhass_status"] = "error"
+            self._cached_attrs["last_update"] = datetime.now().isoformat()
             self._attr_native_value = "error"
 
 
