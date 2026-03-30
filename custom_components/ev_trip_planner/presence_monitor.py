@@ -47,7 +47,7 @@ class PresenceMonitor:
         self.soc_sensor = config.get(CONF_SOC_SENSOR)
 
         # Coordinate-based detection (priority 2)
-        self.home_coords = self._parse_coordinates(config.get(CONF_HOME_COORDINATES))
+        self.home_coords = self._parse_coordinates(config.get(CONF_HOME_COORDINATES) or "")
         self.vehicle_coords_sensor = config.get(CONF_VEHICLE_COORDINATES_SENSOR)
 
         # Notification configuration

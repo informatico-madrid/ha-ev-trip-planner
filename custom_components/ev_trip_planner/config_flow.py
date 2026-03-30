@@ -173,7 +173,7 @@ def _read_emhass_config(
     Returns:
         Diccionario con la configuración o None si no se puede leer.
     """
-    if not os.path.exists(config_path):
+    if config_path is None or not os.path.exists(config_path):
         _LOGGER.debug("EMHASS config file not found at %s", config_path)
         return None
 
