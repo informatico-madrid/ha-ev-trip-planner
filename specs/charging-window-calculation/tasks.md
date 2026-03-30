@@ -33,7 +33,7 @@
   - _Requirements: AC-1, AC-2, AC-3, AC-4, AC-5_
   - _Design: Interface Contracts section (plan.md)_
 
-- [ ] 1.2 Add helper to read `hora_regreso` from HA state entity
+- [x] 1.2 Add helper to read `hora_regreso` from HA state entity
   - **Do**:
     1. Add method `async_get_hora_regreso()` to PresenceMonitor that reads from `hass.states.get(_return_info_entity_id)`
     2. The state attributes contain `hora_regreso_iso` as ISO string

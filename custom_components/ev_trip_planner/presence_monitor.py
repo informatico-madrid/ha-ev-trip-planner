@@ -1,6 +1,7 @@
 """Presence Monitor for EV Trip Planner."""
 
 import logging
+from datetime import datetime
 from math import atan2, cos, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
@@ -207,6 +208,44 @@ class PresenceMonitor:
 
         # Persist to Store and update HA state entity
         await self._async_persist_return_info()
+
+    async def async_get_hora_regreso(self) -> Optional[datetime]:
+        """
+        Get the hora_regreso (return time) from the HA state entity.
+
+        Reads the hora_regreso_iso attribute from the return info entity.
+
+        Returns:
+            datetime object parsed from hora_regreso_iso attribute, or None if not available
+        """
+        state = self.hass.states.get(self._return_info_entity_id)
+        if not state:
+            _LOGGER.debug(
+                "Return info entity %s not found for %s",
+                self._return_info_entity_id,
+                self.vehicle_id,
+            )
+            return None
+
+        hora_regreso_iso = state.attributes.get("hora_regreso_iso")
+        if not hora_regreso_iso:
+            _LOGGER.debug(
+                "hora_regreso_iso attribute not found in %s for %s",
+                self._return_info_entity_id,
+                self.vehicle_id,
+            )
+            return None
+
+        try:
+            return datetime.fromisoformat(hora_regreso_iso)
+        except (ValueError, AttributeError) as err:
+            _LOGGER.warning(
+                "Failed to parse hora_regreso_iso '%s' for %s: %s",
+                hora_regreso_iso,
+                self.vehicle_id,
+                err,
+            )
+            return None
 
     async def _async_persist_return_info(self) -> None:
         """
