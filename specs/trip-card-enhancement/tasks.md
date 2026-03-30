@@ -64,18 +64,18 @@ Focus: Display p_deferrable_index and charging window on trip cards via TripSens
 
 ### Trip 3: soc_target Display
 
-- [ ] 1.5 [RED] Failing test: TripSensor shows soc_target in extra_state_attributes
+- [x] 1.5 [YELLOW] Refactor: Extract _get_emhass_info() helper method
   - **Do**:
-    1. Open `tests/test_sensor.py`
-    2. Add test `test_trip_sensor_soc_target_attribute` that:
-       - Creates a TripSensor with trip_data containing soc_objetivo=60
-       - Asserts `sensor.extra_state_attributes["soc_target"] == 60`
-  - **Files**: tests/test_sensor.py
-  - **Done when**: Test exists AND fails with AssertionError
-  - **Verify**: `python3 -m pytest tests/test_sensor.py -v --tb=short -k "test_trip_sensor_soc_target" 2>&1 | grep -q "FAILED" && echo RED_PASS`
-  - **Commit**: `test(trip-card): red - failing test for soc_target attribute`
-  - _Requirements: AC-3_
-  - _Design: Interface Contracts_
+    1. Open `custom_components/ev_trip_planner/sensor.py`
+    2. Find the pattern where p_deferrable_index is added to _attr_extra_state_attributes
+    3. Extract into `_get_emhass_info()` method that returns dict with all EMHASS-related attributes
+    4. Keep code DRY - this helper will be used by both p_deferrable_index and future soc_target
+  - **Files**: custom_components/ev_trip_planner/sensor.py
+  - **Done when**: Code refactored, tests still pass
+  - **Verify**: `python3 -m pytest tests/test_sensor.py -v --tb=short -k "p_deferrable_index or charging_window" 2>&1 | tail -10`
+  - **Commit**: `refactor(trip-card): extract _get_emhass_info helper`
+  - _Requirements: AC-1, AC-2_
+  - _Design: Architecture_
 
 - [ ] 1.6 [GREEN] Pass test: Add soc_target to TripSensor extra_state_attributes
   - **Do**:

@@ -661,12 +661,8 @@ class TripSensor(SensorEntity):
             "estado": trip_data.get("estado", "pendiente"),
         }
 
-        # Add p_deferrable_index if EMHASS is configured
-        emhass_adapter = trip_manager.get_emhass_adapter()
-        if emhass_adapter is not None:
-            p_deferrable_index = emhass_adapter.get_assigned_index(self._trip_id)
-            if p_deferrable_index is not None:
-                self._attr_extra_state_attributes["p_deferrable_index"] = p_deferrable_index
+        # Add EMHASS-related info
+        self._attr_extra_state_attributes.update(self._get_emhass_info())
 
         # Add charging_window if ventana_carga exists
         ventana_carga = trip_data.get("ventana_carga")
@@ -680,6 +676,20 @@ class TripSensor(SensorEntity):
                     "start": start_time,
                     "end": end_time,
                 }
+
+    def _get_emhass_info(self) -> Dict[str, Any]:
+        """Get EMHASS-related info for this trip.
+
+        Returns dict with EMHASS-related attributes (e.g., p_deferrable_index).
+        Designed to be extended with future EMHASS attributes like soc_target.
+        """
+        emhass_info: Dict[str, Any] = {}
+        emhass_adapter = self.trip_manager.get_emhass_adapter()
+        if emhass_adapter is not None:
+            p_deferrable_index = emhass_adapter.get_assigned_index(self._trip_id)
+            if p_deferrable_index is not None:
+                emhass_info["p_deferrable_index"] = p_deferrable_index
+        return emhass_info
 
     @property
     def native_value(self) -> Any:
@@ -747,6 +757,22 @@ class TripSensor(SensorEntity):
             "activo": trip_data.get("activo", True),
             "estado": trip_data.get("estado", "pendiente"),
         }
+        # Add EMHASS-related info
+        self._attr_extra_state_attributes.update(self._get_emhass_info())
+
+        # Add charging_window if ventana_carga exists
+        ventana_carga = trip_data.get("ventana_carga")
+        if ventana_carga:
+            inicio = ventana_carga.get("inicio_ventana", "")
+            fin = ventana_carga.get("fin_ventana", "")
+            if inicio and fin:
+                start_time = datetime.fromisoformat(inicio).strftime("%H:%M")
+                end_time = datetime.fromisoformat(fin).strftime("%H:%M")
+                self._attr_extra_state_attributes["charging_window"] = {
+                    "start": start_time,
+                    "end": end_time,
+                }
+
         # Trigger state update only if entity_id is set (entity is registered)
         if self.entity_id is not None:
             self.async_schedule_update_ha_state()
