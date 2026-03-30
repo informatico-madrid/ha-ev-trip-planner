@@ -61,7 +61,7 @@
   - _Requirements: AC-1, AC-4_
   - _Design: Multi-trip window chaining logic_
 
-- [ ] 1.4 Handle edge case: no trips pending (AC-5)
+- [x] 1.4 Handle edge case: no trips pending (AC-5)
   - **Do**:
     1. In `calcular_ventana_carga()`, check if next trip exists after hora_regreso
     2. If no trip exists, return dict with:

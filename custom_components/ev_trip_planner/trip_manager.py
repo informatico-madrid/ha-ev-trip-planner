@@ -1139,6 +1139,20 @@ class TripManager:
             else:
                 parsed_hora_regreso = hora_regreso
 
+        # Check if next trip exists after hora_regreso (AC-5 edge case)
+        if parsed_hora_regreso is not None:
+            next_trip = await self.async_get_next_trip_after(parsed_hora_regreso)
+            if next_trip is None:
+                # No trips pending after hora_regreso - return zero values
+                return {
+                    "ventana_horas": 0,
+                    "kwh_necesarios": 0,
+                    "horas_carga_necesarias": 0,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                }
+
         # Get trip departure time (fin_ventana)
         trip_departure_time = self._get_trip_time(trip)
         if trip_departure_time is None:
