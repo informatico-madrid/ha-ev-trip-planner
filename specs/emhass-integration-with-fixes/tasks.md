@@ -157,7 +157,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(emhass): add trip CRUD integration test`
   - _Requirements: AC-3, AC-4_
 
-- [ ] 2.3 [VERIFY] Quality checkpoint: Integration tests pass
+- [x] 2.3 [VERIFY] Quality checkpoint: Integration tests pass
   - **Do**: Run full integration test suite
   - **Verify**: `python3 -m pytest tests/test_integration_uninstall.py tests/test_emhass_adapter.py -v`
   - **Done when**: All integration tests pass
@@ -167,7 +167,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### Local CI
 
-- [ ] 3.1 [VERIFY] Quality check: lint, types, tests
+- [x] 3.1 [VERIFY] Quality check: lint, types, tests
   - **Do**: Run lint, mypy type check, and pytest
   - **Verify**: `make lint && make mypy && python3 -m pytest tests/ -v --tb=short`
   - **Done when**: Lint clean, types correct, all tests pass
