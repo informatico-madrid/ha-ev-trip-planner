@@ -70,7 +70,7 @@
   - _Requirements: AC-4_
   - _Design: Persistence section (plan.md) - ha_storage.Store API, hass.states.async_set() for HA state entity_
 
-- [ ] 1.4 Debounce SOC changes with 5% delta threshold (hardcoded)
+- [x] 1.4 Debounce SOC changes with 5% delta threshold (hardcoded)
   - **Do**:
     1. Add `_last_processed_soc: Optional[float] = None` attribute to `PresenceMonitor`
     2. In `_async_handle_soc_change()`, calculate: `delta = abs(new_soc - (last_processed_soc or 0))`

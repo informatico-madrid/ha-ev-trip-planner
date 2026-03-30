@@ -60,6 +60,9 @@ class PresenceMonitor:
         self.hora_regreso: Optional[str] = None
         self.soc_en_regreso: Optional[float] = None
 
+        # SOC debouncing state - last processed SOC for delta comparison
+        self._last_processed_soc: Optional[float] = None
+
         # Persistence store for return info (ha_storage.Store API)
         self._return_info_store = ha_storage.Store(
             hass,
@@ -389,6 +392,8 @@ class PresenceMonitor:
         Called when the SOC sensor state changes. If the vehicle is home
         and plugged in, triggers power profile and schedule recalculation.
 
+        Debouncing: Only triggers recalculation if SOC change >= 5% delta.
+
         Args:
             event: The state change event from Home Assistant
         """
@@ -408,6 +413,15 @@ class PresenceMonitor:
             )
             return
 
+        # Handle unavailable/unknown states - skip without updating _last_processed_soc
+        if new_state.state in ["unavailable", "unknown", "None", ""]:
+            _LOGGER.debug(
+                "SOC state for %s is '%s', skipping",
+                self.vehicle_id,
+                new_state.state,
+            )
+            return
+
         try:
             new_soc = float(new_state.state)
         except (ValueError, AttributeError):
@@ -417,6 +431,20 @@ class PresenceMonitor:
                 self.vehicle_id,
             )
             return
+
+        # Debounce: calculate delta from last processed SOC
+        last_soc = self._last_processed_soc
+        if last_soc is not None:
+            delta = abs(new_soc - last_soc)
+            if delta < 5.0:
+                _LOGGER.debug(
+                    "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below 5%% threshold, skipping",
+                    self.vehicle_id,
+                    last_soc,
+                    new_soc,
+                    delta,
+                )
+                return
 
         _LOGGER.debug(
             "SOC change detected for %s: new SOC = %s",
@@ -450,6 +478,9 @@ class PresenceMonitor:
             new_soc,
             self.vehicle_id,
         )
+
+        # Update last_processed_soc only when recalculation is triggered
+        self._last_processed_soc = new_soc
 
         # Call the public async methods on trip_manager
         await self._trip_manager.async_generate_power_profile()
