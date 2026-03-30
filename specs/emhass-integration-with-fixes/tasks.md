@@ -115,7 +115,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `test(notifications): red - failing test for error notifications`
   - _Requirements: AC-5_
 
-- [ ] 1.14 [GREEN] Pass test: Implement error notification on load failure
+- [x] 1.14 [GREEN] Pass test: Implement error notification on load failure
   - **Do**: In `emhass_adapter.py`, ensure error states call notification service when load fails
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Error notification triggered on failure

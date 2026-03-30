@@ -60,19 +60,26 @@ class EMHASSAdapter:
 
     async def async_load(self):
         """Load index mapping from storage."""
-        data = await self._store.async_load()
-        if data:
-            self._index_map = data.get("index_map", {})
-            # Rebuild available indices
-            used_indices = set(self._index_map.values())
-            self._available_indices = [
-                i for i in range(self.max_deferrable_loads) if i not in used_indices
-            ]
-            _LOGGER.info(
-                "Loaded %d trip-index mappings for %s, %d indices still available",
-                len(self._index_map),
-                self.vehicle_id,
-                len(self._available_indices),
+        try:
+            data = await self._store.async_load()
+            if data:
+                self._index_map = data.get("index_map", {})
+                # Rebuild available indices
+                used_indices = set(self._index_map.values())
+                self._available_indices = [
+                    i for i in range(self.max_deferrable_loads) if i not in used_indices
+                ]
+                _LOGGER.info(
+                    "Loaded %d trip-index mappings for %s, %d indices still available",
+                    len(self._index_map),
+                    self.vehicle_id,
+                    len(self._available_indices),
+                )
+        except Exception as err:
+            _LOGGER.error("Failed to load index mapping from storage: %s", err)
+            await self.async_notify_error(
+                error_type="storage_error",
+                message=f"Failed to load data: {err}",
             )
 
     async def async_save(self):
