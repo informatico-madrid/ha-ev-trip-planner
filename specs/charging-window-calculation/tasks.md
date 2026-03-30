@@ -110,7 +110,7 @@
   - _Requirements: AC-2, AC-3_
   - _Design: SOC change triggers recalculation section (plan.md)_
 
-- [ ] 1.7 POC Checkpoint: Verify basic window calculation
+- [x] 1.7 POC Checkpoint: Verify basic window calculation
   - **Do**:
     1. Create test: hora_regreso=18:00, next trip=22:00, verify ventana=4 hours
     2. Run the test to verify calculation is correct
