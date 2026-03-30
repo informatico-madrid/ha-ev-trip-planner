@@ -218,7 +218,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): add AC-3 faster charging rate test`
   - _Requirements: AC-3_
 
-- [ ] 2.5 [P] Test AC-4: No previous trips (standard buffer only)
+- [x] 2.5 [P] Test AC-4: No previous trips (standard buffer only)
   - **Do**:
     1. Single trip scenario with no previous deficit
     2. Verify SOC target = trip energy + 10% buffer only

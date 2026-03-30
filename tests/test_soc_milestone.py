@@ -540,78 +540,59 @@ class TestAC3:
             f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
 
 
-class TestEmptyAndSingleTrip:
-    """Test edge cases: empty trips and single trip."""
+class TestAC4:
+    """Test AC-4: No previous trips (standard buffer only).
+
+    When there is a single trip with no previous deficit:
+    - SOC target = trip energy + 10% buffer only
+    - deficit_acumulado = 0 (no previous trips to propagate deficit from)
+    """
 
     @pytest.mark.asyncio
-    async def test_empty_trips(self, trip_manager):
-        """Test that morning trip has more kWh needed than night trip.
+    async def test_single_trip_standard_buffer_only(self, trip_manager):
+        """Test single trip with no accumulated deficit.
 
-        Scenario (based on AC-1 but adjusted):
-        - Morning trip at 12:00: soc_inicio 5%, target 60% (40% base + 20% deficit)
-        - Night trip at 22:00: soc_inicio 50%, target 80% (80% base, no deficit propagated)
+        Scenario:
+        - Single trip at 14:00: needs 30% SOC energy
+        - No previous trips → deficit_acumulado = 0
+        - SOC target = 30% energy + 10% buffer = 40%
 
-        Morning gap: 60 - 5 = 55% → 27.5 kWh
-        Night gap: 80 - 50 = 30% → 15 kWh
-
-        Therefore morning kwh_necesarios > night kwh_necesarios.
-
-        This proves deficit was propagated backward - morning's higher target
-        (due to receiving night deficit) combined with its lower starting SOC
-        results in more kWh needed.
+        Expected:
+        - deficit_acumulado = 0 (no previous deficit)
+        - soc_objetivo = 40.0 (30% energy + 10% buffer)
         """
         now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # Morning trip at 12:00
-        morning_trip = {
-            "id": "morning",
+        # Single trip at 14:00
+        single_trip = {
+            "id": "single_trip",
             "tipo": "punctual",
-            "datetime": (now + timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M"),
+            "datetime": (now + timedelta(hours=14)).strftime("%Y-%m-%dT%H:%M"),
             "km": 50.0,
-            "kwh": 15.0,  # 30% SOC needed
+            "kwh": 15.0,  # 30% SOC energy needed
         }
 
-        # Night trip at 22:00
-        night_trip = {
-            "id": "night",
-            "tipo": "punctual",
-            "datetime": (now + timedelta(hours=22)).strftime("%Y-%m-%dT%H:%M"),
-            "km": 80.0,
-            "kwh": 40.0,  # 80% SOC needed
-        }
-
-        trips = [morning_trip, night_trip]
+        trips = [single_trip]
 
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
-            return [
-                {"soc_inicio": 5.0, "arrival_soc": 5.0, "trip": morning_trip},
-                {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": night_trip},
-            ]
+            return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": single_trip}]
 
         trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
         trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-
-        # Morning base = 40% (30% energy + 10% buffer), gets 20% deficit from night
-        # Night base = 80%, no deficit propagated to it
-        def mock_soc_objetivo_base(trip, battery_capacity_kwh):
-            if trip["id"] == "morning":
-                return 40.0  # 30% energy + 10% buffer (deficit added separately)
-            return 80.0  # 80% energy target
-
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        # 30% energy + 10% buffer = 40% target
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=40.0)
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
                 {
                     "ventana_horas": 4.0,
-                    "kwh_necesarios": 0.0,
-                    "horas_carga_necesarias": 0.0,
+                    "kwh_necesarios": 7.5,
+                    "horas_carga_necesarias": 1.0,
                     "inicio_ventana": None,
                     "fin_ventana": None,
-                    "es_suficiente": False,
-                    "trip": trip,
+                    "es_suficiente": True,
+                    "trip": single_trip,
                 }
-                for trip in trips
             ]
 
         trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
@@ -624,40 +605,21 @@ class TestEmptyAndSingleTrip:
 
         results = await trip_manager.calcular_hitos_soc(
             trips=trips,
-            soc_inicial=20.0,
+            soc_inicial=50.0,
             charging_power_kw=7.4,
             vehicle_config={"battery_capacity_kwh": 50.0},
         )
 
-        assert len(results) == 2
+        assert len(results) == 1
+        result = results[0]
 
-        result_morning = next(r for r in results if r["trip_id"] == "morning")
-        result_night = next(r for r in results if r["trip_id"] == "night")
+        # No accumulated deficit (single trip, no previous trips)
+        assert result["deficit_acumulado"] == 0.0, \
+            f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
 
-        # Morning has 20% deficit propagated from night
-        assert result_morning["deficit_acumulado"] == 20.0, \
-            f"Morning deficit_acumulado: expected 20.0, got {result_morning['deficit_acumulado']}"
-
-        # Morning target = 40% base + 20% deficit = 60%
-        assert result_morning["soc_objetivo"] == 60.0, \
-            f"Morning soc_objetivo: expected 60.0, got {result_morning['soc_objetivo']}"
-
-        # Night has its own 20% deficit (cannot reach 80% target)
-        assert result_night["deficit_acumulado"] == 20.0, \
-            f"Night deficit_acumulado: expected 20.0, got {result_night['deficit_acumulado']}"
-
-        # Key AC-2 assertion: morning kwh_necesarios > night kwh_necesarios
-        # Morning: (60 - 5) = 55% gap = 27.5 kWh
-        # Night: (80 - 50) = 30% gap = 15 kWh
-        assert result_morning["kwh_necesarios"] > result_night["kwh_necesarios"], \
-            f"AC-2 FAILED: morning kwh_necesarios ({result_morning['kwh_necesarios']}) " \
-            f"should be > night kwh_necesarios ({result_night['kwh_necesarios']})"
-
-        # Verify the actual values
-        assert result_morning["kwh_necesarios"] == 27.5, \
-            f"Morning kwh_necesarios: expected 27.5, got {result_morning['kwh_necesarios']}"
-        assert result_night["kwh_necesarios"] == 15.0, \
-            f"Night kwh_necesarios: expected 15.0, got {result_night['kwh_necesarios']}"
+        # SOC target = 30% energy + 10% buffer = 40%
+        assert result["soc_objetivo"] == 40.0, \
+            f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
 
 
 class TestEmptyAndSingleTrip:
