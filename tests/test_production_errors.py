@@ -327,9 +327,18 @@ def test_hours_today_sensor_no_energy_device_class():
             self.data = data
             self.trip_manager = trip_manager
 
-    # HoursTodaySensor should NOT have device_class set to ENERGY
-    # It has no device_class by default (text/signal sensor)
-    # The test passes if device_class is None or not ENERGY
+    coordinator = FakeCoordinator(
+        data={
+            "hours_today": 0.0,
+        },
+        trip_manager=MagicMock(hass=MagicMock()),
+    )
+
+    sensor = HoursTodaySensor(vehicle_id="test_vehicle", coordinator=coordinator)
+
+    # HoursTodaySensor has device_class = None (text/signal sensor)
+    # This test verifies it's not set to ENERGY
+    assert sensor.device_class is None
 
 
 @pytest.mark.asyncio

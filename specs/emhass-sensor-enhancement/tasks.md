@@ -207,7 +207,7 @@ EOF
   - **Verify**: `gh pr checks` shows all passing
   - **Done when**: All CI checks green
 
-- [ ] 5.2 Address code review comments
+- [x] 5.2 Address code review comments
   - **Do**: Respond to and resolve any review feedback
   - **Verify**: All comments resolved, CI still passing
   - **Done when**: PR approved
