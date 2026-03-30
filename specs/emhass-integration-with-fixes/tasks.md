@@ -73,7 +73,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `feat(dashboard): implement trip_list service sync`
   - _Requirements: AC-3_
 
-- [ ] 1.9 [YELLOW] Refactor: Ensure trip_manager and emhass_adapter are wired correctly
+- [x] 1.9 [YELLOW] Refactor: Ensure trip_manager and emhass_adapter are wired correctly
   - **Do**: Check `TripManager.set_emhass_adapter()` is called during initialization, verify data flow
   - **Files**: `custom_components/ev_trip_planner/__init__.py`, `custom_components/ev_trip_planner/trip_manager.py`
   - **Done when**: Wiring verified
