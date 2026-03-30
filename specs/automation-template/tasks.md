@@ -106,7 +106,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
 
 Focus: Support both sensor naming patterns identified in plan.
 
-- [ ] 2.1 Document both sensor naming patterns
+- [x] 2.1 Document both sensor naming patterns
   - **Do**:
     1. Add comments in template explaining both patterns
     2. Create `docs/emhass_sensor_naming.md` with mapping

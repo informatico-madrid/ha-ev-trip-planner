@@ -48,6 +48,12 @@ triggers:
   - time_pattern:
       minutes: "35"
 variables:
+  # SENSOR NAMING PATTERNS:
+  # Pattern 1 (primary): sensor.emhass_plan_{vehicle}_mpc_congelado
+  #   - Per-vehicle MPC frozen plan with plan_deferrable{n}_horario_mpc attributes
+  # Pattern 2: sensor.emhass_deferrable{n}_schedule
+  #   - Per-index schedule with horario_mpc attribute
+  # Both patterns provide equivalent data; this template uses Pattern 1.
   vehicle_id: "{{ vehicle_id | default('ovms_chispitas') }}"
   hora_actual: "{{ now().hour }}"
   p_deferrable0: "{{ state_attr('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
