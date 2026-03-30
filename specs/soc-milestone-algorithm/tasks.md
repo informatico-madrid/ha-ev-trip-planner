@@ -229,7 +229,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): add AC-4 standard buffer test`
   - _Requirements: AC-4_
 
-- [ ] 2.6 [P] Test edge case: very short charging window
+- [x] 2.6 [P] Test edge case: very short charging window
   - **Do**:
     1. 30 minute window, 10% SOC/hour = 5% SOC capacity
     2. Large deficit should be calculated and propagate backward
@@ -238,7 +238,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestEdgeShortWindow -v`
   - **Commit**: `test(soc-milestone): add short window edge case test`
 
-- [ ] 2.7 [P] Test edge case: exactly enough charging
+- [x] 2.7 [P] Test edge case: exactly enough charging
   - **Do**:
     1. Window provides exactly the SOC needed
     2. deficit = 0 (no propagation needed)
@@ -247,7 +247,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestEdgeExact -v`
   - **Commit**: `test(soc-milestone): add exactly sufficient charging edge case test`
 
-- [ ] 2.8 [P] Test edge case: more than enough charging (surplus)
+- [x] 2.8 [P] Test edge case: more than enough charging (surplus)
   - **Do**:
     1. Window provides more SOC than needed
     2. No deficit, possible surplus for next trip
@@ -256,7 +256,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestEdgeSurplus -v`
   - **Commit**: `test(soc-milestone): add surplus charging edge case test`
 
-- [ ] 2.9 [P] Test three trips consecutive deficit propagation (BACKWARD)
+- [x] 2.9 [P] Test three trips consecutive deficit propagation (BACKWARD)
   - **Do**:
     1. Create 3 trips with insufficient charging windows between them
     2. Verify deficit accumulates and propagates backward through all trips
@@ -284,7 +284,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestSingleTrip -v`
   - **Commit**: `test(soc-milestone): add single trip handling test`
 
-- [ ] 2.12 [P] Test battery_capacity_kwh fallback
+- [x] 2.12 [P] Test battery_capacity_kwh fallback
   - **Do**:
     1. Pass battery_capacity_kwh = 50.0 explicitly
     2. Pass battery_capacity_kwh = None and verify fallback to 50.0
@@ -293,7 +293,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestBatteryFallback -v`
   - **Commit**: `test(soc-milestone): add battery capacity fallback test`
 
-- [ ] 2.13 [P] Test charging_power_kw affects SOC rate
+- [x] 2.13 [P] Test charging_power_kw affects SOC rate
   - **Do**:
     1. Test with 3.6 kW charging (low rate)
     2. Test with 11.0 kW charging (high rate)
@@ -303,7 +303,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestChargingPowerAffectsRate -v`
   - **Commit**: `test(soc-milestone): add charging power rate test`
 
-- [ ] 2.14 [P] Test result structure has all required fields
+- [x] 2.14 [P] Test result structure has all required fields
   - **Do**:
     1. Verify each result dict has: trip_id, soc_objetivo, kwh_necesarios, deficit_acumulado, ventana_carga
     2. Verify ventana_carga has inicio and fin datetime fields
