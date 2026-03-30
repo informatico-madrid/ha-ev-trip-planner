@@ -1,5 +1,5 @@
 alias: EMHASS Charge Control Template
-description: Template automation for EMHASS charge control
+description: Template automation for EMHASS charge control - configure vehicle_id at include time
 mode: single
 max_exceeded: silent
 triggers:
@@ -8,18 +8,19 @@ triggers:
   - time_pattern:
       minutes: "35"
 variables:
+  vehicle_id: "{{ vehicle_id | default('ovms_chispitas') }}"
   hora_actual: "{{ now().hour }}"
-  p_deferrable0: "{{ state_attr('sensor.emhass_plan_{vehicle}_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
-  coche_en_casa: "{{ is_state('binary_sensor.carga_{vehicle}_coche_en_casa', 'on') }}"
-  coche_enchufado: "{{ is_state('sensor.carga_{vehicle}_enchufado', 'on') }}"
-  carga_activa: "{{ is_state('switch.carga_{vehicle}_iniciar_carga', 'on') }}"
+  p_deferrable0: "{{ state_attr('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado', 'plan_deferrable0_horario_mpc')[hora_actual] | int(0) }}"
+  coche_en_casa: "{{ is_state('binary_sensor.carga_' ~ vehicle_id ~ '_coche_en_casa', 'on') }}"
+  coche_enchufado: "{{ is_state('sensor.carga_' ~ vehicle_id ~ '_enchufado', 'on') }}"
+  carga_activa: "{{ is_state('switch.carga_' ~ vehicle_id ~ '_iniciar_carga', 'on') }}"
   debe_cargar: "{{ p_deferrable0 > 100 and coche_en_casa and coche_enchufado }}"
   debe_detener: "{{ p_deferrable0 == 0 and carga_activa }}"
 conditions:
   - condition: template
-    value_template: "{{ states('sensor.emhass_plan_{vehicle}_mpc_congelado') not in ['unavailable', 'unknown'] }}"
+    value_template: "{{ states('sensor.emhass_plan_' ~ vehicle_id ~ '_mpc_congelado') not in ['unavailable', 'unknown'] }}"
   - condition: state
-    entity_id: input_boolean.carga_{vehicle}_modo_manual
+    entity_id: input_boolean.carga_{{ vehicle_id }}_modo_manual
     state: "off"
 actions:
   - choose:
@@ -28,13 +29,13 @@ actions:
             value_template: "{{ debe_cargar }}"
         sequence:
           - service: switch.turn_on
-            entity_id: switch.carga_{vehicle}_iniciar_carga
+            entity_id: switch.carga_{{ vehicle_id }}_iniciar_carga
       - conditions:
           - condition: template
             value_template: "{{ debe_detener }}"
         sequence:
           - service: switch.turn_off
-            entity_id: switch.carga_{vehicle}_iniciar_carga
+            entity_id: switch.carga_{{ vehicle_id }}_iniciar_carga
       - conditions:
           - condition: template
             value_template: "{{ (not coche_en_casa or not coche_enchufado) and p_deferrable0 > 100 }}"
@@ -42,4 +43,4 @@ actions:
           - service: persistent_notification.create
             data:
               title: "Charging Opportunity Missed"
-              message: "EMHASS scheduled charging for vehicle {vehicle}, but car is {{ 'not at home' if not coche_en_casa else 'not plugged in' }}."
+              message: "EMHASS scheduled charging for vehicle {{ vehicle_id }}, but car is {{ 'not at home' if not coche_en_casa else 'not plugged in' }}."

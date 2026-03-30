@@ -79,7 +79,7 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-4_
   - _Design: TODO item 4_
 
-- [ ] 1.8 Make automation template generic via variables
+- [x] 1.8 Make automation template generic via variables
   - **Do**:
     1. Replace hardcoded vehicle names with template variables
     2. Add vehicle_id as configurable parameter
