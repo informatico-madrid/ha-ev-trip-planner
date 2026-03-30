@@ -121,7 +121,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
 
 ### Edge Cases and Integration
 
-- [ ] 1.11 [P] Handle empty trips list
+- [x] 1.11 [P] Handle empty trips list
   - **Do**:
     1. Return empty list if trips is empty or None
     2. No deficit propagation needed
