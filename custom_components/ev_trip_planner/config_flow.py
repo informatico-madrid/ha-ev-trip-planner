@@ -32,6 +32,7 @@ from .const import (
     CONF_PLANNING_SENSOR,
     CONF_PLUGGED_SENSOR,
     CONF_SAFETY_MARGIN,
+    CONF_SOC_SENSOR,
     CONF_VEHICLE_NAME,
     DEFAULT_CONSUMPTION,
     DEFAULT_MAX_DEFERRABLE_LOADS,
@@ -65,6 +66,12 @@ STEP_SENSORS_SCHEMA = vol.Schema(
         ): vol.Coerce(float),
         vol.Required(CONF_SAFETY_MARGIN, default=DEFAULT_SAFETY_MARGIN): vol.Coerce(
             int
+        ),
+        vol.Optional(CONF_SOC_SENSOR): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="sensor",
+                multiple=False,
+            )
         ),
     }
 )

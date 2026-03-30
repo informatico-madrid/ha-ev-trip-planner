@@ -4,7 +4,7 @@
 
 ### CRITICAL PREREQUISITE (Must complete before 1.1)
 
-- [ ] 0.1 [CRITICAL] Add SOC sensor to STEP_SENSORS_SCHEMA in config_flow.py
+- [x] 0.1 [CRITICAL] Add SOC sensor to STEP_SENSORS_SCHEMA in config_flow.py
   - **Do**:
     1. Edit `config_flow.py` lines 57-70 STEP_SENSORS_SCHEMA
     2. Add `CONF_SOC_SENSOR` (already exists in `const.py:23`) as an optional entity selector in STEP_SENSORS_SCHEMA
