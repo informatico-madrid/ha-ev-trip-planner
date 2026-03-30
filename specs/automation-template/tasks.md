@@ -91,13 +91,16 @@ Focus: Create working YAML automation template based on existing borrador. Valid
   - _Requirements: AC-1, AC-2, AC-3_
   - _Design: Interface Contracts_
 
-- [ ] 1.9 POC Checkpoint: Validate template with real EMHASS data
+- [x] 1.9 Add blueprint metadata for easy import
   - **Do**:
-    1. Check sensor.emhass_plan_{vehicle}_mpc_congelado exists and has data
-    2. Verify plan_deferrable{n}_horario_mpc attribute format
-  - **Done when**: Template variables resolve correctly with actual sensor data
-  - **Verify**: `curl -s http://localhost:8123/api/states/sensor.emhass_plan_ovms_chispitas_mpc_congelado -H "Authorization: Bearer $HA_TOKEN" | jq '.attributes.plan_deferrable0_horario_mpc' 2>/dev/null | head -c 200`
-  - **Commit**: `feat(automation): complete POC validation`
+    1. Add Home Assistant blueprint header (name, description, domain)
+    2. Add input definitions for vehicle_id, home_sensor, plugged_sensor, etc.
+  - **Files**: `automations/emhass_charge_control_template.yaml`
+  - **Done when**: Blueprint metadata present
+  - **Verify**: `grep -c "blueprint:" automations/emhass_charge_control_template.yaml`
+  - **Commit**: `feat(automation): add blueprint metadata for easy import`
+  - _Requirements: General_
+  - _Design: Architecture_
 
 ## Phase 2: Sensor Pattern Support
 

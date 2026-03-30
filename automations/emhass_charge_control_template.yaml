@@ -1,3 +1,43 @@
+blueprint:
+  name: EMHASS Charge Control
+  description: Template automation for EMHASS-controlled vehicle charging based on MPC plan deferrable load
+  domain: automation
+  input:
+    vehicle_id:
+      name: Vehicle ID
+      description: The vehicle identifier used in sensor names (e.g., ovms_chispitas)
+      default: ovms_chispitas
+    home_sensor:
+      name: Home Sensor
+      description: Binary sensor entity that indicates if the vehicle is at home
+      selector:
+        entity:
+          domain: binary_sensor
+    plugged_sensor:
+      name: Plugged Sensor
+      description: Sensor entity that indicates if the vehicle is plugged in (on/off)
+      selector:
+        entity:
+          domain: sensor
+    charge_switch:
+      name: Charge Switch
+      description: Switch entity to start/stop charging
+      selector:
+        entity:
+          domain: switch
+    manual_mode_input:
+      name: Manual Mode Input
+      description: Input boolean that controls manual mode override
+      selector:
+        entity:
+          domain: input_boolean
+    emhass_plan_sensor:
+      name: EMHASS Plan Sensor
+      description: Sensor containing the EMHASS MPC plan with p_deferrable values
+      selector:
+        entity:
+          domain: sensor
+
 alias: EMHASS Charge Control Template
 description: Template automation for EMHASS charge control - configure vehicle_id at include time
 mode: single
