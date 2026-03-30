@@ -1,0 +1,9 @@
+alias: EMHASS Charge Control Template
+description: Template automation for EMHASS charge control
+mode: single
+max_exceeded: silent
+triggers:
+  - time_pattern:
+      minutes: "5"
+  - time_pattern:
+      minutes: "35"
