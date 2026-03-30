@@ -1243,8 +1243,9 @@ class EMHASSAdapter:
         schedule = []
         now = datetime.now()
 
-        # Generate schedule for next 7 days (168 hours)
-        for hour_offset in range(168):
+        # Generate schedule for next 24 hours only (reduced from 168 to avoid
+        # exceeding Home Assistant's 16KB state attributes limit)
+        for hour_offset in range(24):
             schedule_time = now.replace(minute=0, second=0, microsecond=0)
             schedule_time = schedule_time.replace(hour=(now.hour + hour_offset) % 24)
 

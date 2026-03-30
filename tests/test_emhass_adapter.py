@@ -532,7 +532,7 @@ def test_generate_schedule_from_trips():
 
     schedule = adapter._generate_schedule_from_trips(trips, 7.4)
 
-    assert len(schedule) == 168
+    assert len(schedule) == 24
     for entry in schedule:
         assert "date" in entry
         assert "p_deferrable0" in entry
@@ -1427,7 +1427,7 @@ async def test_multiple_trips_assigned_sequential_indices(hass: HomeAssistant, m
         assert state is not None
 
         schedule = state.attributes["deferrables_schedule"]
-        assert len(schedule) == 168  # 7 days * 24 hours
+        assert len(schedule) == 24  # 24 hours (reduced from 168 to stay within HA 16KB limit)
 
         # Verify schedule entries have p_deferrable0, p_deferrable1, p_deferrable2
         first_entry = schedule[0]
