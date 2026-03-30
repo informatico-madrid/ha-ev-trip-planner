@@ -882,6 +882,24 @@ class TripManager:
         """
         return self._get_charging_power()
 
+    def _calcular_tasa_carga_soc(
+        self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
+    ) -> float:
+        """Calcula la tasa de carga en % SOC/hora.
+
+        Formula: charging_power_kw / battery_capacity_kwh * 100 = % SOC/hour
+
+        Args:
+            charging_power_kw: Potencia de carga en kW
+            battery_capacity_kwh: Capacidad de la bateria en kWh (default 50.0)
+
+        Returns:
+            Tasa de carga en % SOC por hora
+        """
+        if battery_capacity_kwh <= 0:
+            return 0.0
+        return (charging_power_kw / battery_capacity_kwh) * 100
+
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
         now = datetime.now()
