@@ -32,7 +32,7 @@
     },
     {
       "name": "trip-card-enhancement",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "emhass-sensor-enhancement"
       ]
@@ -58,7 +58,7 @@
     }
   ],
   "totalSpecs": 7,
-  "completedSpecs": 4,
+  "completedSpecs": 5,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
   "output": "spec-files",
