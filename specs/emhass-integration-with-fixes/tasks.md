@@ -32,7 +32,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
 
 ### AC-2: Sensor Creation on Vehicle Add
 
-- [ ] 1.4 [RED] Failing test: Vehicle addition creates EmhassDeferrableLoadSensor
+- [x] 1.4 [RED] Failing test: Vehicle addition creates EmhassDeferrableLoadSensor
   - **Do**: Write test asserting `EmhassDeferrableLoadSensor` is created when vehicle config completes
   - **Files**: `tests/test_sensor_coverage.py`
   - **Done when**: Test exists AND fails (sensor not created)
