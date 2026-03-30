@@ -130,7 +130,7 @@
 
 ### Testing Tasks
 
-- [ ] 1.9 Add unit tests for calcular_ventana_carga
+- [x] 1.9 Add unit tests for calcular_ventana_carga
   - **Do**:
     1. Create `tests/test_charging_window.py`
     2. Add test: Basic window calculation (AC-1: 18:00 return, 22:00 trip = 4h window)
@@ -147,7 +147,7 @@
   - _Requirements: AC-1 through AC-5_
   - _Design: Test Strategy_
 
-- [ ] 1.10 Add unit tests for multi-trip window chaining
+- [x] 1.10 Add unit tests for multi-trip window chaining
   - **Do**:
     1. Add test: Two trips same day - second trip window starts at first trip departure
     2. Add test: Three trips same day - each gets sequential window
