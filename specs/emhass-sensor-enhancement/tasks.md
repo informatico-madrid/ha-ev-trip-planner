@@ -44,7 +44,7 @@ Focus: Validate the sensor enhancement works end-to-end. Skip tests initially, a
   - _Requirements: AC-2_
   - _Design: Index Stability (Soft Delete)_
 
-- [ ] 1.4 [P] Update async_update in sensor to include trips_count and vehicle_id
+- [x] 1.4 [P] Update async_update in sensor to include trips_count and vehicle_id
   - **Do**:
     1. In `EmhassDeferrableLoadSensor.async_update()`, after generating schedule, add:
        - `trips_count` to cached_attrs (from len of active trips)

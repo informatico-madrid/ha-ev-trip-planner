@@ -564,11 +564,19 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 planning_horizon_days=planning_horizon_days,
             )
 
+            # Get active trips count for sensor attributes
+            recurring_trips = await self.trip_manager.async_get_recurring_trips()
+            punctual_trips = await self.trip_manager.async_get_punctual_trips()
+            trips_count = len(recurring_trips) + len(punctual_trips)
+            vehicle_id = self.trip_manager.vehicle_id
+
             self._cached_attrs = {
                 "power_profile_watts": power_profile,
                 "deferrables_schedule": schedule,
                 "last_update": datetime.now().isoformat(),
                 "emhass_status": "ok",
+                "trips_count": trips_count,
+                "vehicle_id": vehicle_id,
             }
             self._attr_native_value = "ready"
             _LOGGER.debug(
