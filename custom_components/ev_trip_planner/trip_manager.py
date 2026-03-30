@@ -1554,10 +1554,12 @@ class TripManager:
                 sorted_trips_with_times.append((trip_time, idx, trip))
         sorted_trips_with_times.sort(key=lambda x: x[0])  # Sort by time ascending
 
-        # Mapear índices originales a posiciones ordenadas
+        # Mapear índices originales a posiciones ordenadas y viceversa
         idx_to_ordered = {}
+        ordered_to_idx = {}
         for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
             idx_to_ordered[original_idx] = ordered_idx
+            ordered_to_idx[ordered_idx] = original_idx
 
         # Inicializar deficit_acumulado para cada viaje
         # El déficit se propaga al viaje anterior (en orden temporal, no en orden invertido)
@@ -1565,15 +1567,12 @@ class TripManager:
 
         # ITERAR EN ORDEN INVERSO (del último viaje al primero)
         for ordered_idx in range(len(trips) - 1, -1, -1):
-            # Encontrar el índice original correspondiente
-            original_idx = None
-            for orig_idx, ord_idx in idx_to_ordered.items():
-                if ord_idx == ordered_idx:
-                    original_idx = orig_idx
-                    break
+            # Obtener el índice original usando ordered_to_idx
+            original_idx = ordered_to_idx.get(ordered_idx)
             if original_idx is None:
                 continue
 
+            # soc_inicio_info y ventanas están indexados por posición original
             soc_data = soc_inicio_info[original_idx]
             ventana = ventanas[original_idx]
             trip = trips[original_idx]
@@ -1599,13 +1598,8 @@ class TripManager:
                 # Propagar el déficit al viaje ANTERIOR (en orden temporal)
                 # Esto es, el viaje con departure time menor
                 if ordered_idx > 0:
-                    # Encontrar el índice original del viaje anterior
-                    prev_ordered_idx = ordered_idx - 1
-                    prev_original_idx = None
-                    for orig_idx, ord_idx in idx_to_ordered.items():
-                        if ord_idx == prev_ordered_idx:
-                            prev_original_idx = orig_idx
-                            break
+                    # Usar ordered_to_idx para encontrar el viaje anterior
+                    prev_original_idx = ordered_to_idx.get(ordered_idx - 1)
                     if prev_original_idx is not None:
                         deficits[prev_original_idx] += deficit
 
@@ -1613,14 +1607,12 @@ class TripManager:
                 deficits[original_idx] += deficit
 
         # Construir resultados finales
-        # Note: soc_inicio_info and ventanas are in sorted order (by departure time)
-        # We need to map original indices to sorted indices properly
+        # Note: soc_inicio_info and ventanas están indexados por posición original
+        # deficits también está indexado por posición original
         results: List[SOCMilestoneResult] = []
         for idx, trip in enumerate(trips):
-            # Get the sorted position for this original index
-            ordered_idx = idx_to_ordered.get(idx, idx)
-            soc_data = soc_inicio_info[ordered_idx]
-            ventana = ventanas[ordered_idx]
+            soc_data = soc_inicio_info[idx]
+            ventana = ventanas[idx]
 
             soc_objetivo = self._calcular_soc_objetivo_base(
                 trip, battery_capacity_kwh

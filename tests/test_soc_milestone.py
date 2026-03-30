@@ -1,0 +1,215 @@
+"""Tests for SOC Milestone Algorithm - Task 1.13: Consecutive Deficit Handling."""
+
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock
+
+import pytest
+
+from custom_components.ev_trip_planner.trip_manager import TripManager
+
+
+@pytest.fixture
+def mock_hass():
+    """Create a mock Home Assistant instance."""
+    hass = MagicMock()
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+    hass.config.config_dir = "/tmp/test_config"
+    return hass
+
+
+@pytest.fixture
+def trip_manager(mock_hass):
+    """Create a TripManager instance for testing."""
+    return TripManager(mock_hass, "test_vehicle")
+
+
+class TestConsecutiveDeficits:
+    """Test consecutive deficit accumulation (Task 1.13)."""
+
+    @pytest.mark.asyncio
+    async def test_two_trip_consecutive_deficit(self, trip_manager):
+        """Test that deficit propagates from trip B to trip A.
+
+        Scenario:
+        - Trip B (second): arrives 20% SOC, 1h window, needs 40% target
+        - Trip A (first): arrives 30% SOC, 1h window, needs 30% target
+
+        Expected:
+        - B deficit = 40 - (20 + 10) = 10
+        - B deficit_acumulado = 10
+        - A has B's deficit propagated: deficit_acumulado = 10
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        # Trip B at 18:00
+        trip_b = {
+            "id": "trip_b",
+            "tipo": "punctual",
+            "datetime": (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 67.0,
+            "kwh": 20.0,  # 40% SOC needed
+        }
+
+        # Trip A at 16:00
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "punctual",
+            "datetime": now.strftime("%Y-%m-%dT%H:%M"),
+            "km": 50.0,
+            "kwh": 15.0,  # 30% SOC needed
+        }
+
+        trips = [trip_a, trip_b]
+
+        # Mock helper methods
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [
+                {"soc_inicio": 30.0, "arrival_soc": 30.0, "trip": trip_a},
+                {"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip_b},
+            ]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+
+        def mock_soc_objetivo_base(trip, battery_capacity_kwh):
+            if trip["id"] == "trip_a":
+                return 30.0
+            return 40.0
+
+        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 1.0,
+                    "kwh_necesarios": 7.5,
+                    "horas_carga_necesarias": 1.0,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": False,
+                    "trip": trip,
+                }
+                for trip in trips
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+
+        def mock_get_trip_time(trip):
+            dt_str = trip.get("datetime")
+            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+
+        trip_manager._get_trip_time = mock_get_trip_time
+
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=20.0,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+
+        assert len(results) == 2
+
+        result_a = next(r for r in results if r["trip_id"] == "trip_a")
+        result_b = next(r for r in results if r["trip_id"] == "trip_b")
+
+        # B has its own deficit of 10
+        assert result_b["deficit_acumulado"] == 10.0, f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
+
+        # A has B's deficit propagated
+        assert result_a["deficit_acumulado"] == 10.0, f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+
+        # A's target = base 30 + deficit 10 = 40
+        assert result_a["soc_objetivo"] == 40.0, f"A target: expected 40.0, got {result_a['soc_objetivo']}"
+
+    @pytest.mark.asyncio
+    async def test_single_trip_no_deficit(self, trip_manager):
+        """Test single trip with no deficit.
+
+        Scenario:
+        - Trip A: arrives 50% SOC, 2h window, needs 30% target
+
+        Expected:
+        - A deficit = 0 (can meet target with surplus)
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "punctual",
+            "datetime": (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 50.0,
+            "kwh": 15.0,  # 30% SOC needed
+        }
+
+        trips = [trip_a]
+
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a}]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 7.5,
+                    "horas_carga_necesarias": 1.0,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_a,
+                }
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+
+        def mock_get_trip_time(trip):
+            dt_str = trip.get("datetime")
+            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+
+        trip_manager._get_trip_time = mock_get_trip_time
+
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+
+        assert len(results) == 1
+        result_a = results[0]
+
+        # A has no deficit
+        assert result_a["deficit_acumulado"] == 0.0, f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
+        # A's target is just base target (no deficit propagated)
+        assert result_a["soc_objetivo"] == 30.0, f"A target: expected 30.0, got {result_a['soc_objetivo']}"
+
+
+class TestEmptyAndSingleTrip:
+    """Test edge cases: empty trips and single trip."""
+
+    @pytest.mark.asyncio
+    async def test_empty_trips(self, trip_manager):
+        """Test that empty trips list returns empty results."""
+        results = await trip_manager.calcular_hitos_soc(
+            trips=[],
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+        assert results == []
+
+    @pytest.mark.asyncio
+    async def test_none_trips(self, trip_manager):
+        """Test that None trips returns empty results."""
+        results = await trip_manager.calcular_hitos_soc(
+            trips=None,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+        assert results == []

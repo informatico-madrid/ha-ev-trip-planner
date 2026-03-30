@@ -139,7 +139,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Verify**: Single trip test case passes
   - **Commit**: `feat(soc-milestone): handle single trip case`
 
-- [ ] 1.13 [P] Handle multiple consecutive deficits
+- [x] 1.13 [P] Handle multiple consecutive deficits
   - **Do**:
     1. If multiple trips cannot fully charge, accumulate deficit
     2. Each trip's deficit adds to the PREVIOUS trip's target
