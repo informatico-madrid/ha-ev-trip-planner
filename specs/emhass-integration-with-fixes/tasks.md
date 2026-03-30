@@ -98,7 +98,7 @@ Focus: Test-driven integration of cascade delete, sensor sync, dashboard sync, t
   - **Commit**: `feat(trips): propagate state changes to sensors`
   - _Requirements: AC-4_
 
-- [ ] 1.12 [YELLOW] Refactor: Verify schedule_monitor receives updates
+- [x] 1.12 [YELLOW] Refactor: Verify schedule_monitor receives updates
   - **Do**: Check `schedule_monitor.py` properly handles trip state changes
   - **Files**: `custom_components/ev_trip_planner/schedule_monitor.py`
   - **Done when**: Update flow verified
