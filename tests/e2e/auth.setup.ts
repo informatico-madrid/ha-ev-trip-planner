@@ -123,11 +123,12 @@ setup.describe('Authentication Setup', () => {
     }));
     console.log('  [Config] Input details:', JSON.stringify(inputInfo));
 
-    // CRITICAL FIX: Use exact field name 'vehicle_name' without asterisk
-    // The asterisk is visual indicator only, not part of name attribute
-    console.log('  [Config] Waiting for vehicle_name field to be ready...');
-    const vehicleNameField = page.getByRole('textbox', { name: 'vehicle_name' });
-    await vehicleNameField.waitFor({ state: 'attached', timeout: 30000 });
+    // CRITICAL FIX: Use locator with input[name] selector instead of getByRole('textbox')
+    // getByRole('textbox') may not recognize the element in CI due to Shadow DOM rendering
+    // but input[name="vehicle_name"] works reliably in both environments
+    console.log('  [Config] Waiting for vehicle_name input to be ready...');
+    const vehicleNameField = page.locator('input[name="vehicle_name"]');
+    await vehicleNameField.waitFor({ state: 'visible', timeout: 30000 });
     console.log('  [Config] vehicle_name field is ready, filling...');
 
     // Step 1: Vehicle name
