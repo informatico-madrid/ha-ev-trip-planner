@@ -126,19 +126,19 @@ STEP_PRESENCE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_CHARGING_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
-                domain="binary_sensor",
+                domain=["binary_sensor", "input_boolean"],
                 multiple=False,
             )
         ),
         vol.Optional(CONF_HOME_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
-                domain="binary_sensor",
+                domain=["binary_sensor", "input_boolean"],
                 multiple=False,
             )
         ),
         vol.Optional(CONF_PLUGGED_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
-                domain="binary_sensor",
+                domain=["binary_sensor", "input_boolean"],
                 multiple=False,
             )
         ),

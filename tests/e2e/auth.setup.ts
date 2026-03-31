@@ -194,20 +194,20 @@ setup.describe('Authentication Setup', () => {
       await page.getByRole('button', { name: 'Submit' }).click();
     }
 
-    // Seleccionar charging sensor (demo platform default: "Basement Floor Wet")
+    // Seleccionar charging sensor (input_boolean: "Coche1 Cargando")
     console.log('  [Config] Selecting charging_sensor...');
     await page.getByRole('combobox', { name: /charging_sensor/i }).click();
-    await page.getByRole('option', { name: /Basement Floor Wet/i }).click();
+    await page.getByRole('option', { name: /Coche1 Cargando/i }).click();
 
-    // Seleccionar home sensor (demo platform default: "Movement Backyard")
+    // Seleccionar home sensor (input_boolean: "Coche1 En Casa")
     console.log('  [Config] Selecting home_sensor...');
     await page.getByRole('combobox', { name: /home_sensor/i }).click();
-    await page.getByRole('option', { name: /Movement Backyard/i }).click();
+    await page.getByRole('option', { name: /Coche1 En Casa/i }).click();
 
-    // Seleccionar plugged sensor (same as charging: "Basement Floor Wet")
+    // Seleccionar plugged sensor (input_boolean: "Coche1 Enchufado")
     console.log('  [Config] Selecting plugged_sensor...');
     await page.getByRole('combobox', { name: /plugged_sensor/i }).click();
-    await page.getByRole('option', { name: /Basement Floor Wet/i }).click();
+    await page.getByRole('option', { name: /Coche1 Enchufado/i }).click();
 
     // Submit presence step
     console.log('  [Config] Submitting presence step...');

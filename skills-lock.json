@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "37ea37e42a81c926ebd81924691a15fb657df7c8a52b863c34967e5ab99cdc22"
     },
+    "github-actions-docs": {
+      "source": "xixu-me/skills",
+      "sourceType": "github",
+      "computedHash": "e7babb077d50cd88fb8c0e168373c8a560d056b540f364cb4892191bf524f5ee"
+    },
     "home-assistant-best-practices": {
       "source": "homeassistant-ai/skills",
       "sourceType": "github",
