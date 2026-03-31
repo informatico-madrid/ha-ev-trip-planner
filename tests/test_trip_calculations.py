@@ -82,21 +82,24 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
 
-    # Get current day of week in Spanish
+    # Get day of week in Spanish - use day AFTER tomorrow to ensure it's always in future
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-    today_weekday = datetime.now().weekday()
-    today_spanish = day_map[today_weekday]
+    # Use day after tomorrow to avoid time-dependent failures near midnight
+    future_day_offset = 2  # day after tomorrow
+    future_date = datetime.now() + timedelta(days=future_day_offset)
+    future_weekday = future_date.weekday()
+    future_day_spanish = day_map[future_weekday]
 
-    # Add recurring trip for today at 23:59 (always in future since max time is 23:59)
+    # Add recurring trip for day after tomorrow at 14:00 (guaranteed in future)
     await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish,
-        hora="23:59",
+        dia_semana=future_day_spanish,
+        hora="14:00",
         km=25,
         kwh=3.75,
         descripcion="Trabajo"
     )
 
-    # Add punctual trip for tomorrow at 14:00
+    # Add punctual trip for tomorrow at 14:00 (closer than recurring trip)
     tomorrow = datetime.now() + timedelta(days=1)
     await mgr.async_add_punctual_trip(
         datetime_str=tomorrow.strftime("%Y-%m-%dT14:00"),
@@ -105,12 +108,11 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         descripcion="Viaje largo"
     )
 
-    # Get next trip - should be today's recurring trip
+    # Get next trip - should be tomorrow's punctual trip (closer in time)
     next_trip = await mgr.async_get_next_trip()
 
     assert next_trip is not None
-    assert next_trip["descripcion"] == "Trabajo"
-    assert next_trip["hora"] == "23:59"
+    assert next_trip["descripcion"] == "Viaje largo"
 
 
 @pytest.mark.asyncio
