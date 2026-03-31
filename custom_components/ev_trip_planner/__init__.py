@@ -468,7 +468,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     Returns:
         True if setup was successful, False otherwise.
     """
-    vehicle_id = entry.data.get("vehicle_name")
+    vehicle_id = entry.data.get("vehicle_name").lower().replace(" ", "_")
     _LOGGER.warning("=== async_setup_entry START === vehicle=%s", vehicle_id)
     _LOGGER.warning(
         "=== async_setup_entry - namespace: %s ===", f"{DOMAIN}_{entry.entry_id}"
