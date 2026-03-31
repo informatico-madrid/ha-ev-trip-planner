@@ -47,7 +47,7 @@ def generate_random_suffix(length: int = 6) -> str:
 
 
 def generate_trip_id(
-    trip_type: Literal["recurrente", "punctual"],
+    trip_type: Literal["recurrente", "puntual"],
     day_or_date: str | date | None = None,
 ) -> str:
     """Generate a unique trip ID with the specified format.
@@ -57,7 +57,7 @@ def generate_trip_id(
         - Punctual: `pun_{date}_{random}` (e.g., `pun_20251119_abc123`)
 
     Args:
-        trip_type: The type of trip - "recurrente" or "punctual".
+        trip_type: The type of trip - "recurrente" or "puntual".
         day_or_date: For recurrent trips: day name (e.g., "lunes", "monday").
                     For punctual trips: date string (YYYYMMDD) or date object.
 
@@ -67,9 +67,9 @@ def generate_trip_id(
     Examples:
         >>> generate_trip_id("recurrente", "lunes")
         'rec_lun_abc123'
-        >>> generate_trip_id("punctual", "20251119")
+        >>> generate_trip_id("puntual", "20251119")
         'pun_20251119_abc123'
-        >>> generate_trip_id("punctual", date(2025, 11, 19))
+        >>> generate_trip_id("puntual", date(2025, 11, 19))
         'pun_20251119_xyz789'
     """
     random_suffix = generate_random_suffix()

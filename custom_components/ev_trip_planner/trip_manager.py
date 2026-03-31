@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 
@@ -1104,7 +1104,7 @@ class TripManager:
 
         return next_trip["trip"] if next_trip else None
 
-    def _is_trip_today(self, trip: Dict[str, Any], today: datetime.date) -> bool:
+    def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:
         """Verifica si un viaje ocurre hoy."""
         if trip["tipo"] == TRIP_TYPE_RECURRING:
             # Use weekday index to compare (0=lunes, 6=domingo)

@@ -285,16 +285,22 @@ setup.describe('Authentication Setup', () => {
       timeout: 30000,
     });
 
-    // Verificar si Coche2 aparece en la lista de integraciones configuradas
-    // El título de la integración es el nombre del vehículo, no "EV Trip Planner"
-    const vehicleIntegrationLink = page.locator(`text="${vehicleName}"`).first();
+    // Esperar a que el diálogo se cierre y la página de integraciones cargue completamente
+    // El diálogo puede tardar en cerrarse después de _async_create_entry
+    console.log('[Config] Waiting for dialog to close...');
+    await page.waitForTimeout(2000);
+
+    // Verificar si "EV Trip Planner" aparece en la lista de integraciones configuradas
+    // El título de la integración en la lista es "EV Trip Planner", no el nombre del vehículo
+    const integrationName = 'EV Trip Planner';
+    const vehicleIntegrationLink = page.locator(`text="${integrationName}"`).first();
     const vehicleIntegrationVisible = await vehicleIntegrationLink.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
 
     if (vehicleIntegrationVisible) {
-      console.log(`[Config] ✓ Integration "${vehicleName}" found in configured list!`);
+      console.log(`[Config] ✓ Integration "${integrationName}" found in configured list!`);
     } else {
-      console.log(`[Config] ✗ Integration "${vehicleName}" NOT found in configured list!`);
-      throw new Error(`Config Flow failed: Integration "${vehicleName}" was not created`);
+      console.log(`[Config] ✗ Integration "${integrationName}" NOT found in configured list!`);
+      throw new Error(`Config Flow failed: Integration "${integrationName}" was not created`);
     }
 
     // 12. Navegar al dashboard para establecer sesión

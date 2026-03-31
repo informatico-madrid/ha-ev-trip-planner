@@ -278,6 +278,7 @@ class VehicleScheduleMonitor:
     async def _async_notify(self, title: str, message: str):
         """Send notification."""
         try:
+            assert self.notification_service is not None
             domain, service = self.notification_service.split(".", 1)
             await self.hass.services.async_call(
                 domain,

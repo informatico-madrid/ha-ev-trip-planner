@@ -302,7 +302,9 @@ El sistema crea sensores de plantilla con atributos:
 
 - `sensor.emhass_perfil_diferible_{vehicle_id}` - Perfil de potencia
 - `power_profile_watts` - Array de 168 valores (1 semana)
-- `deferrables_schedule` - Detalle por hora
+- `deferrables_schedule` - Detalle por hora (24 valores, 1 día)
+
+**Nota**: La documentación técnica detallada sobre algoritmos de ventanas de carga y propagación de SOC está en `docs/VEHICLE_CONTROL.md`.
 
 ### Verificar integración
 

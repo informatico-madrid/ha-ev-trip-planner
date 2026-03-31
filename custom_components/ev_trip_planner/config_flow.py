@@ -18,7 +18,6 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
-from . import panel as panel_module
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
