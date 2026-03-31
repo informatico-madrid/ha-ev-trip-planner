@@ -90,19 +90,46 @@ lovelace:
   const hassInternal = (hassInstance as any).hass || (hassInstance as any)._hass;
 
   if (hassInternal && hassInternal.config_entries) {
-    // Create the config entry using HA's proper API
-    // This will automatically trigger async_setup_entry() for the ev_trip_planner integration
-    console.log('[GlobalSetup] Creating config entry for ev_trip_planner...');
-    const result = await hassInternal.config_entries.async_create_entry(
-      'ev_trip_planner',
-      {
-        vehicle_id: 'coche2',
-        vehicle_name: 'Coche2',
-        model: 'Model S',
-        make: 'Tesla',
+    // ============================================================
+    // RETRY LOGIC: Retry async_create_entry on transient errors
+    // This handles CancelledError from race conditions in CI
+    // ============================================================
+    const maxRetries = 3;
+    const retryDelay = 2000;
+    let result = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[GlobalSetup] Creating config entry (attempt ${attempt}/${maxRetries})...`);
+        result = await hassInternal.config_entries.async_create_entry(
+          'ev_trip_planner',
+          {
+            vehicle_id: 'coche2',
+            vehicle_name: 'Coche2',
+            model: 'Model S',
+            make: 'Tesla',
+          }
+        );
+        console.log('[GlobalSetup] Config entry created, entry_id:', result.entry_id);
+        break; // Success
+      } catch (e: any) {
+        const isCancelled = e.message?.includes('CancelledError') || e.name === 'CancelledError';
+        console.warn(`[GlobalSetup] Config entry attempt ${attempt} failed: ${e.message}`);
+        if (attempt < maxRetries) {
+          console.log(`[GlobalSetup] Retrying in ${retryDelay}ms... (${isCancelled ? 'cancelled' : 'error'})`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } else {
+          console.error('[GlobalSetup] All config entry attempts failed, using fallback');
+          // Fall through to fallback storage write
+          attempt = maxRetries + 1; // Force exit
+        }
       }
-    );
-    console.log('[GlobalSetup] Config entry created, entry_id:', result.entry_id);
+    }
+
+    // If all retries failed, use fallback
+    if (!result) {
+      console.warn('[GlobalSetup] Falling back to direct storage write');
+    }
   } else {
     console.warn('[GlobalSetup] WARNING: Could not access HA config_entries API');
     console.warn('[GlobalSetup] Falling back to direct storage write (NOT RECOMMENDED)');
@@ -136,6 +163,10 @@ lovelace:
     fs.writeFileSync(storagePath, JSON.stringify({ entries: configEntries }, null, 2));
     console.log('[GlobalSetup] Vehicle config entry written to storage (fallback)');
   }
+
+  // Additional stabilization wait after config entry creation
+  console.log('[GlobalSetup] Waiting for entities to fully register...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // Save server info to a file for other setups to use
   const authDir = path.join(rootDir, 'playwright', '.auth');
