@@ -168,7 +168,7 @@ def hass():
 
         # Crear y devolver una tarea que ejecute la función
         try:
-            if asyncio.iscoroutinefunction(job_target):
+            if inspect.iscoroutinefunction(job_target):
                 coro = job_target(*job_args, **filtered_kwargs)
                 if asyncio.iscoroutine(coro):
                     return coro
