@@ -2,153 +2,190 @@
 
 ## Goal
 
-Fix 5 critical bugs in the EV Trip Planner Home Assistant integration: duplicate vehicle panels from case-sensitive URL handling, aggressive panel refresh loops flooding debug logs, estimated energy field allowing manual input instead of auto-calculation, orphaned trips remaining after integration deletion, and missing p_deferrable index display per trip.
+Fix 7 critical bugs in the EV Trip Planner Home Assistant integration: duplicate panels from case-sensitive URL handling, console flooding from aggressive refresh loops, broken cascade deletion of trips, orphaned sensors after vehicle removal, incorrect EMHASS power values, missing SOC display, and kWh manual input instead of auto-calculation.
 
 ## User Stories
 
-### US-1: Duplicate Panel Prevention
+### US-1: Prevent Duplicate Vehicle Panels
 **As a** vehicle owner
-**I want** only one panel to be created when I add a vehicle via config flow
+**I want** only one panel to be created when I add a vehicle
 **So that** I do not see duplicate entries in my Home Assistant sidebar
 
 **Acceptance Criteria:**
-- [ ] AC-1.1: Adding a vehicle via config flow creates exactly one panel
-- [ ] AC-1.2: Panel URL uses consistent casing (vehicle_id lowercased)
-- [ ] AC-1.3: No two panels can have URLs differing only in case (e.g., `ev-trip-planner-chispitas` vs `ev-trip-planner-Chispitas`)
-- [ ] AC-1.4: Existing panel with same vehicle_id is reused, not recreated
-- [ ] AC-1.5: Test verifies no duplicate panels exist after config flow completes
+- [ ] AC-1.1: **Given** a user adds a vehicle named "Chispitas", **when** the integration is set up, **then** exactly ONE panel is created (not two panels with URLs differing only in case like `/ev-trip-planner-chispitas` and `/ev-trip-planner-Chispitas`).
+- [ ] AC-1.2: Panel URL uses normalized (lowercased) vehicle_id
+- [ ] AC-1.3: No two panels exist with URLs differing only in case
+- [ ] AC-1.4: Panel is registered in exactly one place (`__init__.py` OR `config_flow.py`, not both)
+- [ ] AC-1.5: Vehicle_id is normalized to lowercase before panel registration in `__init__.py:471`
 
-### US-2: Panel Refresh Throttling
+**Priority:** High
+
+---
+
+### US-2: Prevent Panel Refresh Flooding
 **As a** vehicle owner
-**I want** the panel to update at reasonable intervals
-**So that** my console is not flooded with repetitive debug messages
+**I want** panel refreshes to occur at reasonable intervals
+**So that** my console is not flooded with repetitive messages (1266+ occurrences)
 
 **Acceptance Criteria:**
-- [ ] AC-2.1: Panel does not refresh more than once per 5-second window
-- [ ] AC-2.2: Debug logs do not repeat the same message more than once per refresh cycle
-- [ ] AC-2.3: User interactions (trip create/edit/delete) trigger a single refresh, not multiple
-- [ ] AC-2.4: Coordinator ignores refresh requests while a refresh is already in progress
-- [ ] AC-2.5: Test verifies throttling behavior with rapid successive refresh requests
+- [ ] AC-2.1: **When** a vehicle is recreated with the same name after deletion, **then** only one panel is created (not two with different cases like "Chispitas" and "chispitas"). Fixing US-1 eliminates duplicate panel loading that causes flooding.
+- [ ] AC-2.2: WARNING logs for panel updates changed to DEBUG level
+- [ ] AC-2.3: No single refresh event generates more than 1 log entry
+- [ ] AC-2.4: Console shows < 10 messages per minute during normal operation
+- [ ] AC-2.5: Unit test verifies log level is DEBUG, not WARNING
 
-### US-3: Estimated Energy Auto-Calculation
+**Priority:** High
+
+---
+
+### US-3: Cascade Delete All Trips On Vehicle Removal
 **As a** vehicle owner
-**I want** the estimated energy field to be automatically calculated
-**So that** I see accurate energy requirements based on distance and vehicle consumption
+**I want** all trips to be automatically deleted when I remove a vehicle
+**So that** no orphaned trip data remains in Home Assistant storage
 
 **Acceptance Criteria:**
-- [ ] AC-3.1: Energy field displays calculated value as `distance_km * vehicle_consumption_kwh_per_100km / 100`
-- [ ] AC-3.2: Energy field is read-only in the dashboard form
-- [ ] AC-3.3: Energy recalculates automatically when distance changes
-- [ ] AC-3.4: Energy calculation uses the vehicle's stored consumption value
-- [ ] AC-3.5: Test verifies energy is correctly calculated for known distance and consumption values
-- [ ] AC-3.6: Test verifies energy field cannot be manually edited in the UI
+- [ ] AC-3.1: **Given** a vehicle with trips exists in HA, **when** the user deletes the vehicle integration, **then** all trips for that vehicle are removed from TripManager storage (including recurring and punctual trips).
+- [ ] AC-3.2: `async_delete_all_trips()` method exists in `trip_manager.py`
+- [ ] AC-3.3: `__init__.py:739` calls `trip_manager.async_delete_all_trips()` successfully (method is implemented)
+- [ ] AC-3.4: HA storage contains zero orphaned trip records after vehicle deletion
+- [ ] AC-3.5: Unit test verifies `async_delete_all_trips()` is called during unload
+- [ ] AC-3.6: Unit test verifies no trips remain for deleted vehicle_id
 
-### US-4: Cascade Delete Integration
+**Priority:** High
+
+---
+
+### US-4: Clean Up Old Sensors On Vehicle Removal
 **As a** vehicle owner
-**I want** all associated trips to be deleted when I remove a vehicle integration
-**So that** I do not have orphaned trip data remaining in Home Assistant storage
+**I want** old sensors like `sensor.ev_trip_planner_chispitas_emhass_perfil_diferible_01kn2grt...` to be removed when I delete a vehicle
+**So that** stale sensors do not persist in my entity registry
 
 **Acceptance Criteria:**
-- [ ] AC-4.1: Deleting a vehicle integration removes all its trips from TripManager storage
-- [ ] AC-4.2: HA storage is cleaned up (no orphaned trip records remain)
-- [ ] AC-4.3: Trip sensors for the deleted vehicle are removed
-- [ ] AC-4.4: No errors occur during cascade deletion
-- [ ] AC-4.5: Test verifies trips are deleted when integration is unloaded
-- [ ] AC-4.6: Test verifies HA storage contains no trips for deleted integration
+- [ ] AC-4.1: **Given** a vehicle with EMHASS sensors exists, **when** the vehicle is deleted, **then** all `EmhassDeferrableLoadSensor` entities are fully removed from HA (not orphaned like `sensor.ev_trip_planner_chispitas_emhass_perfil_diferible_01kn2grt...`).
+- [ ] AC-4.2: All deferrable sensor entities for the vehicle are unregistered from HA
+- [ ] AC-4.3: No sensor entities remain after vehicle removal (verified via HA entity registry)
+- [ ] AC-4.4: Entity cleanup occurs in correct order during unload (before storage cleanup)
+- [ ] AC-4.5: Unit test verifies entity removal during unload flow
 
-### US-5: p_deferrable Index Display
+**Priority:** High
+
+---
+
+### US-5: EMHASS Profile Displays Correct Power Values
 **As a** vehicle owner
-**I want** each trip to show its EMHASS p_deferrable index
-**So that** I can identify which trips correspond to each deferrable load schedule
+**I want** the EMHASS profile sensor to show correct power values (3600W)
+**So that** I can verify the deferrable load is configured correctly
 
 **Acceptance Criteria:**
-- [ ] AC-5.1: Each trip card displays its p_deferrable index (0, 1, 2, ...)
-- [ ] AC-5.2: Index is persisted with trip data (survives restart)
-- [ ] AC-5.3: Index assignment matches EMHASS adapter's `_index_map`
-- [ ] AC-5.4: Index is displayed prominently on the trip card (e.g., "Deferrable #0")
-- [ ] AC-5.5: Test verifies index is stored with trip data after EMHASS publish
-- [ ] AC-5.6: Test verifies index appears correctly in dashboard trip cards
+- [ ] AC-5.1: **Given** a vehicle with configured battery capacity and SOC sensor, **when** the EMHASS schedule is generated, **then** the sensor displays 3600W (not all zeros).
+- [ ] AC-5.2: Entry lookup in EMHASS adapter uses correct key (`entry_id`, not `vehicle_id`)
+- [ ] AC-5.3: Return values from adapter methods are used (not discarded)
+- [ ] AC-5.4: Unit test verifies `sensor.emhass_perfil_diferible_{vehicle_id}` returns non-zero power
+- [ ] AC-5.5: Unit test verifies correct entry lookup logic
+
+**Priority:** High
+
+---
+
+### US-6: SOC Display Using Configured Sensor
+**As a** vehicle owner
+**I want** the panel to display the State of Charge (SOC) from my configured sensor
+**So that** I can monitor battery level in the trip planner dashboard
+
+**Acceptance Criteria:**
+- [ ] AC-6.1: **Given** a vehicle configured with a SOC sensor (e.g., `sensor.ovms_chispitas_metric_v_b_soc`), **when** the dashboard loads, **then** it displays the SOC value from that configured sensor (not a hardcoded `sensor.{vehicle_id}_soc`).
+- [ ] AC-6.2: Dashboard uses the correct sensor name from vehicle configuration
+- [ ] AC-6.3: SOC updates automatically when sensor value changes
+- [ ] AC-6.4: Unit test verifies SOC is retrieved from configured sensor
+- [ ] AC-6.5: Unit test verifies dashboard uses `soc_sensor` attribute, not hardcoded name
+
+**Priority:** High
+
+---
+
+### US-7: kWh Auto-Calculation From Distance and Consumption
+**As a** vehicle owner
+**I want** the kWh field to be automatically calculated from distance and consumption
+**So that** I see accurate energy requirements without manual calculation
+
+**Acceptance Criteria:**
+- [ ] AC-7.1: **Given** a trip with distance_km and vehicle consumption configured, **when** the trip is created or distance changes, **then** kWh is automatically calculated (read-only, user cannot manually edit).
+- [ ] AC-7.2: kWh auto-calculated as `distance_km * vehicle_consumption_kwh_per_100km / 100`
+- [ ] AC-7.3: kWh recalculates automatically when distance changes
+- [ ] AC-7.4: Calculation uses vehicle's stored consumption value
+- [ ] AC-7.5: Unit test verifies correct calculation for known distance and consumption
+- [ ] AC-7.6: Unit test verifies kWh field is readonly in dashboard form
+
+**Priority:** High
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Acceptance Criteria |
 |----|-------------|----------|---------------------|
-| FR-1 | Single Panel Registration | High | Panel registered once per vehicle in `async_setup_entry`, not in `_async_create_entry` |
-| FR-2 | Case-Insensitive Panel URLs | High | Use lowercased vehicle_id for all panel URLs, reject duplicate case variants |
-| FR-3 | Refresh Debouncing | High | Coordinator ignores refresh requests within 5-second window using timestamp tracking |
-| FR-4 | Refresh Request Coalescing | High | Multiple calls to `async_request_refresh()` during active refresh are deduplicated |
-| FR-5 | Energy Read-Only Field | High | Dashboard form sets `readonly` attribute on energy input, calculation happens server-side |
-| FR-6 | Energy Auto-Calculation | High | `calcular_energia_kwh()` used as primary source, called when trip distance changes |
-| FR-7 | Cascade Trip Deletion | High | `async_unload_entry()` calls `async_delete_all_trips()` before removing runtime data |
-| FR-8 | Trip Index Persistence | High | `emhass_index` stored in trip data structure and persisted to HA storage |
-| FR-9 | Index Display in UI | High | Trip card template includes `emhass_index` field with "Deferrable #N" label |
-| FR-10 | Debounce Debug Logging | Medium | Log only when refresh actually occurs, not on throttled/debounced requests |
+| FR-1 | Single Panel Registration | High | Panel registered once per vehicle in `async_setup_entry`, NOT in `_async_create_entry` |
+| FR-2 | Case-Insensitive vehicle_id | High | `__init__.py:471` normalizes vehicle_id to lowercase before panel registration |
+| FR-3 | Cascade Trip Deletion | High | `async_unload_entry()` calls `trip_manager.async_delete_all_trips(vehicle_id)` |
+| FR-4 | Entity Cleanup On Unload | High | `EmhassDeferrableLoadSensor.async_will_remove_from_hass()` called for all entities |
+| FR-5 | Correct EMHASS Entry Lookup | High | Adapter uses correct entry key, return values are assigned to variable and used |
+| FR-6 | SOC From Configured Sensor | High | Dashboard reads `vehicle_config.soc_sensor`, not hardcoded sensor name |
+| FR-7 | kWh ReadOnly Auto-Calculate | High | Dashboard form sets `readonly` on kWh field, value computed via `calcular_energia_kwh()` |
 
 ## Non-Functional Requirements
 
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
 | NFR-1 | Panel Load Time | Time from sidebar click to panel visible | < 2 seconds |
-| NFR-2 | Refresh Latency | Time from data change to panel update | < 1 second after debounce window |
-| NFR-3 | Memory Usage | Additional memory for panel component | < 30MB |
-| NFR-4 | Console Log Volume | Debug messages per minute during idle | < 10 messages |
-| NFR-5 | HA Compatibility | Home Assistant versions | 2024.x, 2025.x, 2026.x |
-| NFR-6 | Storage Cleanup | Orphaned records after integration delete | 0 records |
+| NFR-2 | Console Log Volume | Debug/Warning messages per minute during idle | < 10 msg/min |
+| NFR-3 | Memory Usage | Additional memory for integration | < 30MB |
 
 ## Test Requirements
 
 ### Unit Tests (pytest)
 
-| Test | Coverage | Location |
-|------|----------|----------|
+| Test ID | Coverage | Location |
+|---------|----------|----------|
 | TU-1: Duplicate panel detection | FR-1, FR-2 | `tests/test_config_flow.py` |
-| TU-2: Case-insensitive vehicle_id | FR-2 | `tests/test_config_flow.py` |
-| TU-3: Refresh throttling | FR-3, FR-4 | `tests/test_coordinator.py` |
-| TU-4: Energy calculation accuracy | FR-6 | `tests/test_trip_manager.py` |
-| TU-5: Energy field readonly validation | FR-5 | `tests/test_dashboard.py` |
-| TU-6: Cascade deletion | FR-7 | `tests/test_integration_uninstall.py` |
-| TU-7: Trip index persistence | FR-8 | `tests/test_emhass_adapter.py` |
-| TU-8: Debounce logging suppression | FR-10 | `tests/test_coordinator.py` |
+| TU-2: Case-normalized vehicle_id | FR-2 | `tests/test___init__.py` |
+| TU-3: Console log level DEBUG | AC-2.2 | `tests/test_coordinator.py` |
+| TU-4: async_delete_all_trips exists and called | FR-3 | `tests/test_trip_manager.py` |
+| TU-5: Entity cleanup on unload | FR-4 | `tests/test_emhass_sensor.py` |
+| TU-6: EMHASS power values non-zero | FR-5 | `tests/test_emhass_adapter.py` |
+| TU-7: SOC from configured sensor | FR-6 | `tests/test_dashboard.py` |
+| TU-8: kWh readonly and calculated | FR-7 | `tests/test_dashboard.py` |
 
 ### Integration Tests (E2E Playwright)
 
-| Test | User Story | Flow |
-|------|------------|------|
+| Test ID | User Story | Flow |
+|---------|------------|------|
 | TE-1: Single panel after vehicle add | US-1 | Config flow -> verify one panel in sidebar |
-| TE-2: No duplicate panel URLs | US-1 | Add vehicle -> check no case-variant panels exist |
-| TE-3: Trip create triggers single refresh | US-2 | Create trip -> verify only one debug log entry |
-| TE-4: Energy field is readonly | US-3 | Open trip form -> verify energy input disabled |
-| TE-5: Energy auto-updates | US-3 | Change distance -> verify energy recalculates |
-| TE-6: Trips deleted with integration | US-4 | Delete integration -> verify trips removed from storage |
-| TE-7: p_deferrable index visible | US-5 | Publish to EMHASS -> verify index on trip cards |
-
-### Test Implementation Order
-
-1. Create failing tests that detect the bugs (tests should fail before fixes)
-2. Implement fixes
-3. Verify tests pass
-4. Run full test suite to ensure no regressions
+| TE-2: No console flooding | US-2 | Add vehicle -> verify < 10 msg/min in console |
+| TE-3: Trips deleted with integration | US-3 | Delete integration -> verify trips removed |
+| TE-4: No orphaned sensors | US-4 | Delete vehicle -> verify entity registry clean |
+| TE-5: EMHASS sensor shows 3600W | US-5 | Configure EMHASS -> verify power value |
+| TE-6: SOC visible in panel | US-6 | Configure SOC sensor -> verify display |
+| TE-7: kWh auto-calculated | US-7 | Enter distance -> verify kWh calculated |
 
 ## Glossary
 
-- **vehicle_id**: Unique identifier derived from vehicle name (lowercased, spaces to underscores)
-- **p_deferrable**: EMHASS deferrable load index for flexible energy scheduling (0, 1, 2, ...)
+- **vehicle_id**: Unique identifier from vehicle name (lowercased, spaces to underscores)
+- **Panel URL**: URL path registered with HA for custom panel (e.g., `ev-trip-planner-chispitas`)
+- **SOC**: State of Charge - battery level percentage
+- **EMHASS**: Energy Management for Home Assistant - handles deferrable load scheduling
+- **Deferrable Load**: Flexible energy load that can be scheduled (e.g., vehicle charging)
+- **p_deferrable**: Power value (Watts) for a deferrable load at a given timestep
 - **TripManager**: Component managing trip CRUD operations and HA storage persistence
-- **DataUpdateCoordinator**: HA component coordinating data updates with refresh throttling
-- **calcular_energia_kwh()**: Utility function calculating energy as `km * consumption / 100`
+- **EmhassDeferrableLoadSensor**: HA sensor entity for EMHASS deferrable load profile
 - **async_unload_entry()**: HA lifecycle method called when integration is removed
-- **Panel URL**: The URL path registered with Home Assistant for the custom panel (e.g., `ev-trip-planner-chispitas`)
-- **Cascade Delete**: Automatic deletion of child records when parent is deleted
+- **Cascade Delete**: Automatic deletion of child records (trips) when parent (vehicle) is deleted
+- **calcular_energia_kwh()**: Utility function calculating energy as `km * consumption / 100`
 
 ## Out of Scope
 
 - Adding new trip types beyond recurring and punctual
-- Modifying EMHASS adapter logic beyond index assignment
-- Creating new sensor types
+- Modifying EMHASS adapter logic beyond entry lookup fix
+- Creating new sensor types beyond bug fixes
 - Changing panel visual styling
 - Adding user authentication or multi-user support
-- Implementing trip history or analytics
-- Syncing trips with external calendars
 - Supporting multiple EMHASS instances per vehicle
 
 ## Dependencies
@@ -157,17 +194,19 @@ Fix 5 critical bugs in the EV Trip Planner Home Assistant integration: duplicate
 - `homeassistant.helpers.storage.Store` for trip persistence
 - `homeassistant.components.panel_custom` for panel registration
 - `DataUpdateCoordinator` from `homeassistant.helpers.update_coordinator`
-- `calcular_energia_kwh()` utility function in `utils.py`
 - TripManager class with `async_save_trips()`, `async_delete_trip()`, `async_delete_all_trips()`
-- EMHASS adapter with `_index_map` and `get_assigned_index()`
+- EMHASS adapter with deferrable load scheduling
+- `calcular_energia_kwh()` utility function in `utils.py`
 
 ## Success Criteria
 
-- [ ] US-1: Adding a vehicle creates exactly one panel with consistent URL casing
-- [ ] US-2: Debug logs show refresh activity at most once per 5 seconds during normal operation
-- [ ] US-3: Energy field displays calculated value and cannot be manually edited
-- [ ] US-4: Deleting an integration removes all associated trips from HA storage
-- [ ] US-5: Each trip card displays its p_deferrable index after EMHASS publish
+- [ ] US-1: Adding a vehicle creates exactly one panel with normalized URL
+- [ ] US-2: Console shows < 10 messages per minute during normal operation
+- [ ] US-3: Deleting an integration removes all associated trips
+- [ ] US-4: No orphaned sensors remain after vehicle removal
+- [ ] US-5: EMHASS profile sensor displays correct power values (3600W)
+- [ ] US-6: SOC displayed from configured sensor in dashboard
+- [ ] US-7: kWh field is read-only and auto-calculated
 - [ ] All unit tests pass (pytest)
 - [ ] All E2E tests pass (Playwright)
 - [ ] No regressions in existing functionality
@@ -177,144 +216,16 @@ Fix 5 critical bugs in the EV Trip Planner Home Assistant integration: duplicate
 - Q1: Should duplicate panel registration (case-variant) be rejected with an error, or silently deduplicated?
 - Q2: Is 5 seconds the appropriate debounce window, or should it be configurable?
 - Q3: Should the energy field show the calculated value before first EMHASS publish, or only after?
-- Q4: Is there a requirement to preserve trips if the integration is re-installed, or always delete on uninstall?
-- Q5: What happens if EMHASS publish is called multiple times - should indices be reassigned or preserved?
 
 ## Next Steps
 
-1. Create unit tests for all 5 issues (tests should fail before implementation)
+1. Create unit tests for all 7 bugs (tests should fail before implementation)
 2. Create E2E tests for user-facing behaviors
-3. Implement FR-1, FR-2: Remove duplicate panel registration, ensure case-insensitive deduplication
-4. Implement FR-3, FR-4, FR-10: Add debouncing to DataUpdateCoordinator with throttled logging
-5. Implement FR-5, FR-6: Make energy field readonly and use `calcular_energia_kwh()` as primary source
-6. Implement FR-7: Add `async_delete_all_trips()` call in `async_unload_entry()`
-7. Implement FR-8, FR-9: Persist `emhass_index` and display in trip card UI
-8. Run full test suite and verify all tests pass
-9. Update `.progress.md` with learnings from implementation
-
----
-
-## Learnings
-
-- Previous learnings...
-- Issue 1 (Duplicate Panels): Panel registered twice - once in config_flow._async_create_entry() and again in __init__.async_setup_entry(). Both use same lowercased vehicle_id but HA treats URLs as case-sensitive, creating two panels.
-- Issue 2 (Panel Flickering): DataUpdateCoordinator with update_interval=30s but services call async_request_refresh() on every trip operation. No debouncing.
-- Issue 3 (Estimated Energy): kwh field is user-provided but should be calculated from km x consumption. calcular_energia_kwh() exists but not used as primary source.
-- Issue 4 (Cascade Delete): async_unload_entry() does NOT delete trips from TripManager storage. Trips remain orphaned.
-- Issue 5 (p_deferrable Index): EMHASS adapter assigns indices but index NOT persisted with trip data.
-- panel_custom.py registers a static panel at "ev-trip-planner" URL - separate from per-vehicle dynamic panels
-- vehicle_id generation: vehicle_name.lower().replace(" ", "_") in config_flow.py line 725
-- TripManager uses HA Store API for persistence (not raw file I/O)
-- Test-first approach: Create failing tests that detect the bugs, then implement fixes
-
-## NEW: EMHASS Deferrable Load Integration (Extended Scope)
-
-### Context from User Request
-
-Each trip is a deferrable load. EMHASS returns planning data per trip with sensor IDs like `sensor.p_deferrable0` having attributes:
-```yaml
-device_class: power
-unit_of_measurement: W
-friendly_name: Deferrable Load 0
-deferrables_schedule:
-  - date: "2026-03-29T23:00:00+00:00"
-    p_deferrable0: "0.0"
-  - date: "2026-03-30T00:00:00+00:00"
-    p_deferrable0: "0.0"
-  ...
-```
-
-### US-6: Display p_deferrable Schedule on Trip Cards
-**As a** vehicle owner
-**I want** to see the p_deferrable charging schedule on each trip card
-**So that** I can understand when EMHASS plans to charge before each trip
-
-**Acceptance Criteria:**
-- [ ] AC-6.1: Trip card displays `p_deferrable{N}` schedule as a graphical chart
-- [ ] AC-6.2: Trip card shows the expected SOC at trip start and SOC at trip end
-- [ ] AC-6.3: Schedule updates automatically when EMHASS returns new planning data
-- [ ] AC-6.4: Warning displayed if insufficient charging window is detected
-
-### US-7: EMHASS JSON Format Transformation
-**As a** vehicle owner
-**I want** the panel to show sensor IDs with the correct EMHASS format
-**So that** I can copy them into my EMHASS configuration
-
-**Acceptance Criteria:**
-- [ ] AC-7.1: Panel displays sensor ID(s) for deferrable load profiles in EMHASS-compatible format
-- [ ] AC-7.2: For each deferrable load: start time, end time, nominal power are shown
-- [ ] AC-7.3: Sensor format follows EMHASS API requirements (`def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, etc.)
-- [ ] AC-7.4: User can copy sensor ID with one click
-
-### US-8: Automation Template for Charge Control
-**As a** vehicle owner
-**I want** an automation that controls vehicle charging based on EMHASS plan
-**So that** charging starts/stops automatically according to the schedule
-
-**Acceptance Criteria:**
-- [ ] AC-8.1: Automation template created (per-vehicle or global) that reads `sensor.emhass_perfil_diferible_{vehicle_id}`
-- [ ] AC-8.2: Automation starts charging when `p_deferrableN > 0` and car is home and plugged
-- [ ] AC-8.3: Automation stops charging when `p_deferrableN == 0` or SOC target reached
-- [ ] AC-8.4: Automation respects manual mode override (input_boolean)
-- [ ] AC-8.5: Automation template is provided at `docs/borrador/cargasAplazables.yaml` pattern
-
-### US-9: Improved Charging Window Calculation
-**As a** vehicle owner
-**I want** the system to calculate charging windows between trips
-**So that** EMHASS knows when the car can charge
-
-**Acceptance Criteria:**
-- [ ] AC-9.1: Charging window for trip N starts 6 hours after trip N-1 start time
-- [ ] AC-9.2: Charging window for trip N ends at trip N start time
-- [ ] AC-9.3: If charging window is insufficient, system pre-schedules charging in previous window
-- [ ] AC-9.4: Warning shown on trip if total required charge exceeds available windows
-- [ ] AC-9.5: SOC sensor integration triggers recalculation when car is home
-
-### US-10: SOC-Based Trip Planning
-**As a** vehicle owner
-**I want** the system to calculate required SOC for each trip
-**So that** I know if I need external charging
-
-**Acceptance Criteria:**
-- [ ] AC-10.1: Each trip shows expected SOC at start (based on previous charging)
-- [ ] AC-10.2: Each trip shows expected SOC at end (arrival SOC)
-- [ ] AC-10.3: System warns if expected SOC at trip start < required SOC for the trip
-- [ ] AC-10.4: `sensor.emhass_perfil_diferible_{vehicle_id}` recalculates when:
-  - Trip is added, modified, or deleted
-  - SOC sensor changes and car is home and plugged
-- [ ] AC-10.5: Display "External charging needed" warning if insufficient windows
-
-### EMHASS API Parameters Reference
-
-From `docs/borrador/BorradorLegacyParametrosEMHASS`:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `def_total_hours` | Array[float] | Hours needed for each deferrable load |
-| `P_deferrable_nom` | Array[float] | Nominal power in Watts |
-| `def_start_timestep` | Array[int] | Start index (0 = ASAP) |
-| `def_end_timestep` | Array[int] | End index (deadline hour) |
-| `treat_deferrable_load_as_semi_cont` | Array[bool] | Can load be paused? |
-| `set_deferrable_load_single_constant` | Array[bool] | Constant power? |
-| `P_deferrable` | Array[Array] | 168-value power profile (7 days) |
-
-### New Functional Requirements
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-11 | Display p_deferrable schedule chart on trip card | High |
-| FR-12 | Show SOC at start/end on trip card | High |
-| FR-13 | Generate EMHASS-compatible sensor format | High |
-| FR-14 | Display sensor IDs in panel for user copy | Medium |
-| FR-15 | Create automation template for charge control | High |
-| FR-16 | Calculate charging windows between trips | High |
-| FR-17 | Pre-charge in previous window if insufficient | Medium |
-| FR-18 | Warn if external charging needed | Medium |
-| FR-19 | Integrate SOC sensor for recalculation trigger | High |
-
-### Out of Scope (Extended)
-
-- Implementing actual EMHASS API communication (only sensor generation)
-- Hardware-specific charge controller integration
-- Multi-vehicle coordination beyond separate deferrable indices
-- Weather/price-based optimization
+3. Implement FR-1, FR-2: Remove duplicate panel registration, normalize vehicle_id in `__init__.py`
+4. Implement FR-3: Add `async_delete_all_trips()` method to TripManager, call from `__init__.py`
+5. Implement FR-4: Verify EmhassDeferrableLoadSensor cleanup on unload
+6. Implement FR-5: Fix entry lookup in EMHASS adapter, use returned values
+7. Implement FR-6: Use configured `soc_sensor` in dashboard
+8. Implement FR-7: Make kWh field readonly and use `calcular_energia_kwh()`
+9. Run full test suite and verify all tests pass
+10. Update `.progress.md` with learnings from implementation

@@ -1,226 +1,337 @@
----
-spec: ev-trip-planner-integration-fixes
-phase: research
-created: 2026-03-29
----
-
 # Research: EV Trip Planner Integration Fixes
 
 ## Executive Summary
 
-This research analyzes 5 issues in the EV Trip Planner HA integration:
-1. **Duplicate panels** due to case-insensitive URL collision (chispitas vs Chispitas)
-2. **Panel flickering** from aggressive update loops in DataUpdateCoordinator
-3. **Estimated energy field** should be read-only and auto-calculated
-4. **Cascade delete** needed - deleting integration should remove associated trips
-5. **p_deferrable index** display needed per trip for EMHASS planning
+This research analyzes critical bugs in the EV Trip Planner HA integration. Findings from HA core and frontend source code reveal root causes and proper patterns for fix implementation.
 
-Root causes identified through code analysis. Recommendations include tests first, then fixes.
+**Key findings:**
+- Panel duplicado: doble registro de panel (config_flow + __init__)
+- Panel flickering: causado por duplicated panels + aggressive refresh
+- Cascade delete: `async_delete_all_trips()` called but method NOT implemented
+- Sensores orphaned: cleanup incomplete en unload flow
+- EMHASS profile 0W: wrong entry lookup + discarded values
 
-## Issue Analysis
+## Research Sources
 
-### Issue 1: Duplicate Panel (Case Sensitivity)
+### HA Core (investigado)
+- `/mnt/bunker_data/ha-ev-trip-planner/ha-core-source/homeassistant/components/panel_custom/__init__.py`
+- `/mnt/bunker_data/ha-ev-trip-planner/ha-core-source/homeassistant/core.py` (ConfigEntries)
+- `/mnt/bunker_data/ha-ev-trip-planner/ha-core-source/homeassistant/components/frontend/__init__.py`
 
-**Problem**: When adding a vehicle via config flow, two panels are created with URLs differing only in case (e.g., `ev-trip-planner-chispitas` vs `ev-trip-planner-Chispitas`).
+### HA Frontend (investigado)
+- `/mnt/bunker_data/ai/home-assistant-frontend/src/layouts/partial-panel-resolver.ts`
+- `/mnt/bunker_data/ai/home-assistant-frontend/src/panels/lovelace/ha-panel-lovelace.ts`
+- `/mnt/bunker_data/ai/home-assistant-frontend/src/panels/lovelace/hui-root.ts`
 
-**Root Cause Analysis**:
-- In `config_flow.py` line 725, `vehicle_id` is derived: `vehicle_id = vehicle_name.lower().replace(" ", "_")`
-- In `config_flow.py` line 780, panel is registered with `vehicle_id=vehicle_id` (lowercased)
-- In `__init__.py` line 557, panel is also registered with `vehicle_id=vehicle_id`
-- **BUT**: Looking at `config_flow.py` line 725, the `vehicle_id` IS already lowercased
-- The issue may be in `_async_create_entry` calling panel registration twice OR in how vehicle_id is stored in entry.data
+### EV Trip Planner Codebase
+- `custom_components/ev_trip_planner/__init__.py`
+- `custom_components/ev_trip_planner/config_flow.py`
+- `custom_components/ev_trip_planner/trip_manager.py`
+- `custom_components/ev_trip_planner/emhass_adapter.py`
+- `custom_components/ev_trip_planner/panel.py`
 
-**Code Location**:
-- `config_flow.py` line 725: `vehicle_id = vehicle_name.lower().replace(" ", "_")`
-- `config_flow.py` line 778-782: Panel registration in `_async_create_entry`
-- `__init__.py` line 555-559: Panel registration in `async_setup_entry`
-- `panel.py` line 53: `frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"`
+---
 
-**Likely Fix**:
-- The duplicate comes from panel being registered in BOTH `_async_create_entry` (config_flow.py) AND `async_setup_entry` (__init__.py)
-- Need to ensure panel is registered only once, OR use case-insensitive deduplication
+## Bug 1: Panel Duplicado
 
-### Issue 2: Panel Flickering (Aggressive Update Loop)
+### Root Cause (CONFIRMED)
 
-**Problem**: The vehicle panel updates constantly in an aggressive loop, filling the console with repetitive debug messages.
+El panel se registra DOS VECES en puntos diferentes:
 
-**Root Cause Analysis**:
-- In `__init__.py` line 338, `update_interval=timedelta(seconds=30)` is set
-- But services call `coordinator.async_refresh_trips()` which calls `async_request_refresh()` (line 373)
-- Looking at the sensor.py `TripPlannerSensor.async_update()` - this is called by HA's sensor update mechanism
-- The issue is likely that `async_request_refresh()` triggers `_async_update_data()` which recalculates everything, causing UI refreshes
+1. **En `config_flow.py:778-782`** (durante `_async_create_entry`):
+   ```python
+   await panel_module.async_register_panel(
+       hass,
+       vehicle_id=vehicle_id,  # lowercase desde normalize_vehicle_id
+       vehicle_name=vehicle_name,
+   )
+   ```
 
-**Code Location**:
-- `__init__.py` line 322-342: `TripPlannerCoordinator` class
-- `__init__.py` line 371-373: `async_refresh_trips()` method
-- `sensor.py` line 62-129: `TripPlannerSensor.async_update()` - logs at DEBUG level but called frequently
+2. **En `__init__.py:652`** (durante `async_setup_entry`):
+   ```python
+   await panel_module.async_register_panel(
+       hass,
+       vehicle_id=vehicle_id,  # PROBLEMA: aquí vehicle_id NO está normalizado!
+       vehicle_name=vehicle_name,
+   )
+   ```
 
-**Likely Fix**:
-- Add debouncing to prevent rapid successive refreshes
-- Use `should_refresh` flag or timestamp tracking to throttle updates
-- Consider using `HomeAssistant.async_call_later` for debouncing
+### Evidence from HA Core
 
-### Issue 3: Estimated Energy Field (Read-Only Auto-Calculated)
-
-**Problem**: The estimated energy field should be read-only and automatically calculated as `distance x consumption`.
-
-**Root Cause Analysis**:
-- In `trip_manager.py` line 138-160, `calcular_energia_kwh()` already exists
-- In `trip_manager.py` line 932-938, `async_calcular_energia_necesaria()` uses `kwh` directly if available, otherwise calculates from `km * consumption`
-- The `kwh` field in trips is user-editable but should be calculated from `km` and vehicle consumption
-
-**Code Location**:
-- `utils.py` line 138-160: `calcular_energia_kwh()` function
-- `trip_manager.py` line 902-990: `async_calcular_energia_necesaria()` method
-- `sensor.py` line 626-635: TripSensor stores `kwh` as user-provided value
-
-**Likely Fix**:
-- In dashboard forms, make energy field readonly and populate from `km * vehicle_consumption`
-- Store `km` as primary value, calculate `kwh` on demand or cache it
-- Add validation that rejects manual kwh entry if km is available
-
-### Issue 4: Cascade Delete (Integration -> Trips)
-
-**Problem**: When deleting an integration, associated trips are not deleted.
-
-**Root Cause Analysis**:
-- In `__init__.py` line 630-656, `async_unload_entry()` only:
-  - Unloads platforms
-  - Cleans up runtime data
-  - Removes native panel
-- **Missing**: No call to delete trips from TripManager storage
-
-**Code Location**:
-- `__init__.py` line 630-656: `async_unload_entry()` function
-- `trip_manager.py` line 437-465: `async_delete_trip()` exists but not called on unload
-- `trip_manager.py` line 216-258: `async_save_trips()` / `_load_trips()` handle persistence
-
-**Likely Fix**:
-- In `async_unload_entry`, before removing runtime data:
-  1. Get TripManager for the vehicle
-  2. Call `async_delete_all_trips()` (new method) or iterate and delete each trip
-  3. This ensures HA storage is cleaned up
-
-### Issue 5: p_deferrable Index Display
-
-**Problem**: Each trip should show its index (0, 1, 2...) in the card since EMHASS returns planning separately for each p_deferrable.
-
-**Root Cause Analysis**:
-- In `emhass_adapter.py` line 74-111, `async_assign_index_to_trip()` assigns indices
-- In `emhass_adapter.py` line 299-301, `get_assigned_index()` returns the index
-- In `trip_manager.py` line 1170-1175, `trip_indices` dict is created but only stored locally in `async_generate_deferrables_schedule()`
-- The index is NOT persisted with the trip data
-
-**Code Location**:
-- `emhass_adapter.py` line 74-111: Index assignment logic
-- `emhass_adapter.py` line 34-36: `_index_map` stores trip_id -> index mapping
-- `emhass_adapter.py` line 299-305: `get_assigned_index()` method
-- `trip_manager.py` line 1170-1175: Index assigned but not stored with trip
-
-**Likely Fix**:
-- Store `emhass_index` in trip data (trip["emhass_index"])
-- Display index in dashboard card
-- Use `emhass_adapter.get_assigned_index(trip_id)` to retrieve when displaying
-
-## Codebase Analysis
-
-### Existing Patterns
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| Panel Registration | `panel.py` lines 37-124 | `async_register_panel()` with cache-busting |
-| Config Entry Setup | `__init__.py` lines 424-627 | `async_setup_entry()` initializes all components |
-| Trip Storage | `trip_manager.py` lines 85-161 | HA Store API for persistence |
-| EMHASS Integration | `emhass_adapter.py` lines 20-450+ | Deferrable load publishing |
-
-### Dependencies
-
-| Dependency | Used For |
-|------------|----------|
-| `homeassistant.helpers.storage.Store` | Trip persistence |
-| `homeassistant.components.panel_custom` | Native panel registration |
-| `homeassistant.core HomeAssistant` | All integrations |
-| `DataUpdateCoordinator` | Sensor data coordination |
-
-### Constraints
-
-1. **HA Version Compatibility**: Code must work with HA 2026.x
-2. **Storage API**: Must use HA Store API not raw file I/O for persistence
-3. **Config Entry Pattern**: All vehicles are config entries with unique entry_id
-
-## Quality Commands Discovery
-
-From `package.json`:
-```bash
-pnpm run lint      # ESLint for JS/TS
-pnpm run check-types  # TypeScript type checking
-pnpm test          # Jest tests
-pnpm test:e2e      # Playwright E2E tests
+**Panel registration** (`frontend/__init__.py` lines 359-393):
+```python
+def async_register_built_in_panel(...) -> None:
+    panel = Panel(...)
+    panels = hass.data.setdefault(DATA_PANELS, {})
+    if not update and panel.frontend_url_path in panels:
+        raise ValueError(f"Overwriting panel {panel.frontend_url_path}")
+    panels[panel.frontend_url_path] = panel
+    hass.bus.async_fire(EVENT_PANELS_UPDATED)
 ```
 
-From `Makefile`:
-```bash
-make test          # Run pytest
-make lint          # Run pylint
-make e2e           # Run E2E tests withHA
+**HA usa `frontend_url_path` como key** - si "Chispitas" y "chispitas" son tratados diferente, se crean 2 paneles.
+
+### Fix Required
+
+En `__init__.py:471`, normalizar vehicle_id ANTES de pasar a `async_register_panel`:
+```python
+vehicle_id_raw = entry.data.get("vehicle_name", "")
+vehicle_id = vehicle_id_raw.lower().replace(" ", "_") if vehicle_id_raw else ""
 ```
 
-**Local CI**: `pnpm run lint && pnpm run check-types && pnpm test && pnpm run build`
+O eliminar el registro de panel de `__init__.py` y solo dejarlo en `config_flow.py`.
 
-## Verification Tooling
+---
 
-| Tool | Command | Detected From |
-|------|---------|---------------|
-| Dev Server | `npm run dev` or `ha core start` | package.json / HA |
-| Browser Automation | `playwright` | devDependencies |
-| E2E Config | `playwright.config.ts` | project root |
-| Port | `8123` | HA default |
-| Health Endpoint | Not found | Custom component |
+## Bug 2: Panel Parpadeando (Flickering)
 
-**Project Type**: Home Assistant Custom Component (Python/TypeScript)
-**Verification Strategy**: Start dev server, use playwright for critical user flows
+### Root Cause Analysis
 
-## Recommendations for Requirements
+**No es problema del DataUpdateCoordinator** - es causado por:
 
-### Issue 1 (Duplicate Panels)
-1. Create test: verify single panel per vehicle_id after config flow
-2. Create test: verify case-insensitive vehicle_id deduplication
-3. Fix: Remove duplicate panel registration OR add case-insensitive check
+1. **Duplicate panels** (Bug 1) - dos paneles con URLs diferentes cargando el mismo contenido
+2. **Frontend view recreation** - cuando cambia algo, el frontend recrea toda la view
 
-### Issue 2 (Panel Flickering)
-1. Create test: verify refresh throttling (no more than 1 refresh per 5 seconds)
-2. Create test: verify debug log doesn't spam on each update
-3. Fix: Add debounce/throttle mechanism to coordinator
+### Evidence from HA Frontend
 
-### Issue 3 (Estimated Energy Read-Only)
-1. Create test: verify energy auto-calculated from km x consumption
-2. Create test: verify energy field is readonly in dashboard forms
-3. Fix: Make energy field calculated, not user-provided
+**`hui-root.ts` view selection** (lines 1160-1214):
+```typescript
+private _selectView(viewIndex: HUIRoot["_curView"]): void {
+  if (root.lastChild) {
+    root.removeChild(root.lastChild);  // Full removal!
+  }
+  root.appendChild(view);  // Append new view
+}
+```
 
-### Issue 4 (Cascade Delete)
-1. Create test: verify trips deleted when integration deleted
-2. Create test: verify HA storage cleaned after delete
-3. Fix: Add trip cleanup to `async_unload_entry`
+**`hui-view.ts` update pattern** (lines 203-256):
+```typescript
+protected update(changedProperties: PropertyValues) {
+  super.update(changedProperties);
+  if (this._layoutElement) {
+    if (changedProperties.has("hass")) {
+      this._badges.forEach((badge) => { badge.hass = this.hass; });
+      this._cards.forEach((element) => { element.hass = this.hass; });
+      // Cada card se actualiza con el nuevo hass
+    }
+  }
+}
+```
 
-### Issue 5 (p_deferrable Index)
-1. Create test: verify trip has emhass_index after EMHASS publish
-2. Create test: verify index displayed in trip card
-3. Fix: Store emhass_index in trip data and display in UI
+**Refresh debouncing** en Lovelace (`ha-panel-lovelace.ts` lines 359-411):
+```typescript
+if (this.lovelace && this.lovelace.mode === "yaml") {
+  this._ignoreNextUpdateEvent = true;
+  setTimeout(() => {
+    this._ignoreNextUpdateEvent = false;
+  }, 2000);  // 2-second ignore window
+}
+```
 
-## Open Questions
+### Source of WARNING Logs
 
-- **Q1**: Is the duplicate panel issue confirmed to be from two registration calls, or from case-sensitive URL handling in HA?
-- **Q2**: Should the estimated energy calculation use cached value or calculate on-demand?
-- **Q3**: Is there a need to preserve trips across re-installation of the integration, or should they be deleted with the integration?
+Los WARNING logs en `__init__.py:1326, 1328` son de `handle_trip_list()` service handler - NO del coordinator:
+```python
+_LOGGER.warning("First recurring trip: %s", recurring_trips[0])
+_LOGGER.warning("total_trips: %d", result["total_trips"])
+```
 
-## Sources
+Estos se llaman cuando el servicio `trip_list` es invocado. Si el panel está refreshindo constantemente, cada refresh llama el servicio.
 
-- `custom_components/ev_trip_planner/config_flow.py` - Config flow implementation
-- `custom_components/ev_trip_planner/__init__.py` - Integration setup/uninstall
-- `custom_components/ev_trip_planner/panel.py` - Panel registration
-- `custom_components/ev_trip_planner/trip_manager.py` - Trip CRUD operations
-- `custom_components/ev_trip_planner/emhass_adapter.py` - EMHASS integration
-- `custom_components/ev_trip_planner/sensor.py` - Sensor entities
-- `custom_components/ev_trip_planner/utils.py` - Utility functions
-- `tests/test_panel.py` - Existing panel tests
-- Home Assistant Custom Component Best Practices (internal skill reference)
+### Fix Required
+
+1. **Fix Bug 1** (duplicate panels) - esto eliminará el flickering
+2. Cambiar WARNING logs a DEBUG para evitar spam en consola
+3. Implementar debounce si es necesario
+
+---
+
+## Bug 3: Cascade Delete Roto
+
+### Root Cause (CONFIRMED)
+
+**`__init__.py:739` llama `trip_manager.async_delete_all_trips()` pero el método NO existe en TripManager.**
+
+### Evidence from HA Core
+
+**Config entry unload flow** (`core.py` lines 994-1032):
+```python
+result = await component.async_unload_entry(hass, self)
+if result:
+    await self._async_process_on_unload(hass)  # Procesa callbacks
+    if hasattr(self, "runtime_data"):
+        object.__delattr__(self, "runtime_data")
+```
+
+**Entity cleanup** (`entity_platform.py` lines 1000-1023):
+```python
+async def async_reset(self) -> None:
+    for entity in list(self.entities.values()):
+        await entity.async_remove()  # Cada entidad se limpia
+```
+
+### Fix Required
+
+Implementar `async_delete_all_trips()` en `trip_manager.py`:
+```python
+async def async_delete_all_trips(self) -> None:
+    """Elimina todos los viajes de este vehículo."""
+    self._recurring_trips.clear()
+    self._punctual_trips.clear()
+    await self.async_save_trips()
+```
+
+---
+
+## Bug 4: Sensores Old Persisten (Orphaned Sensors)
+
+### Root Cause
+
+Cuando se borra un vehículo:
+1. El panel se desregistra (`async_unregister_panel`)
+2. Los entities se limpian via `async_unload_platforms`
+3. **PERO** los sensors de tipo `sensor.py` basados en `EntityPlatform` deberían limpiarse automáticamente
+
+El problema es que el **sensor `emhass_perfil_diferible_01kn2grt...`** tiene un ID que sugiere que es de una instalación anterior.
+
+### Possible Cause
+
+El entity_id del sensor EMHASS usa un suffix basado en entry_id:
+```python
+# sensor.py línea ~350
+f"{DOMAIN}_emhass_perfil_diferible_{entry.entry_id[-13:]}"
+```
+
+Si el entry_id es diferente pero el vehicle_name es igual, el sensor podría tener un nombre residual.
+
+### Fix Required
+
+Verificar que `EmhassDeferrableLoadSensor` se limpia correctamente cuando el vehículo se desinstala.
+
+---
+
+## Bug 5: EMHASS Profile Muestra 0W
+
+### Root Cause (CONFIRMED - Multiple Issues)
+
+**Issue 5a**: Wrong entry lookup in `trip_manager.py`:
+```python
+# Línea 1919 - USA self.vehicle_id (nombre) en vez de entry_id!
+entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+# Esto siempre retorna None porque vehicle_id NO es entry_id
+```
+
+**Issue 5b**: Return values discarded:
+```python
+# Línea 1921 - return value IGNORED!
+entry.data.get("battery_capacity_kwh", 50.0)
+
+# Línea 1926 - return value IGNORED!
+await self.async_get_vehicle_soc(self.vehicle_id)
+```
+
+**Issue 5c**: Always falls back to defaults:
+```python
+battery_capacity = 50.0  # Default hardcoded
+soc_current = 50.0       # Default hardcoded
+```
+
+### Fix Required
+
+1. Fix entry lookup:
+```python
+entry = self.hass.config_entries.async_get_entry(self._entry_id)
+```
+
+2. Guardar y usar los valores:
+```python
+battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+```
+
+---
+
+## Bug 6: SOC No Se Muestra
+
+### Root Cause
+
+Dashboard template usa:
+```yaml
+{% set soc_sensor = states('sensor.{{ vehicle_id }}_soc') %}
+```
+
+Pero el SOC real viene de `entry.data.get("soc_sensor")` que tiene nombre diferente (ej: `sensor.ovms_chispitas_metric_v_b_soc`).
+
+### Fix Required
+
+El panel/dashboard debe usar el `soc_sensor` configurado, no un sensor inferido del vehicle_id.
+
+---
+
+## Bug 7: kWh Debería Auto-Calcularse
+
+### Current State
+
+El campo `kwh` es input de usuario. Debería calcularse de `km * consumption / 100`.
+
+### Evidence
+
+`calcular_energia_kwh()` existe en `utils.py` pero no se usa como source primario.
+
+### Fix Required
+
+1. Hacer campo kWh readonly en UI
+2. Calcular automáticamente cuando `km` cambia
+
+---
+
+## HA Core Patterns Reference
+
+### Panel Registration (Correct Pattern)
+```python
+# frontend/__init__.py
+def async_register_built_in_panel(...):
+    panels = hass.data.setdefault(DATA_PANELS, {})
+    if not update and panel.frontend_url_path in panels:
+        raise ValueError(f"Overwriting panel {panel.frontend_url_path}")
+    panels[panel.frontend_url_path] = panel
+```
+
+### Cascade Delete (Correct Pattern)
+```python
+# En async_unload_entry del componente:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # 1. Limpiar datos propios
+    await trip_manager.async_delete_all_trips()
+
+    # 2. Unload platforms (limpia entities)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # 3. Limpiar runtime data
+    if DATA_RUNTIME in hass.data:
+        hass.data[DATA_RUNTIME].pop(namespace, None)
+
+    return unload_ok
+```
+
+---
+
+## Skills Identified for Implementation
+
+| Skill | Purpose |
+|-------|---------|
+| `homeassistant-dashboard-designer` | Para arreglar panel flickering y UI del panel |
+| `homeassistant-best-practices` | Patrones correctos de HA para cascade delete, entity cleanup |
+| `ha-e2e-testing` | Tests E2E para verificar fixes |
+
+---
+
+## Next Steps
+
+1. **Fix Bug 1** (panel duplicado) - normalizar vehicle_id
+2. **Fix Bug 3** (cascade delete) - implementar `async_delete_all_trips()`
+3. **Fix Bug 5** (EMHASS 0W) - corregir entry lookup
+4. **Fix Bug 2** (flickering) - debería resolverse con Bug 1
+5. **Fix Bug 4** (orphan sensors) - verificar cleanup de sensors
+6. **Fix Bug 6** (SOC display) - usar soc_sensor correcto
+7. **Fix Bug 7** (kWh auto-calc) - implementar cálculo automático
