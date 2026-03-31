@@ -139,7 +139,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ### BUG-7: kWh Auto-Calculation (US-7)
 
-- [ ] 1.12 [[P]] [[US-7]] Update ev-trip-planner-simple.yaml kWh field to readonly auto-calc [use: homeassistant-dashboard-designer]
+- [x] 1.12 [[P]] [[US-7]] Update ev-trip-planner-simple.yaml kWh field to readonly auto-calc [use: homeassistant-dashboard-designer]
   Do:
     1. Read `custom_components/ev_trip_planner/dashboard/ev-trip-planner-simple.yaml` lines 229-234
     2. Change kwh input_number to mode: display (readonly)

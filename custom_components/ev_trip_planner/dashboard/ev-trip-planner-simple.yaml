@@ -231,7 +231,8 @@ views:
               min: 0
               max: 200
               step: 0.5
-              mode: box
+              mode: display
+              value_template: "{{ states('input_number.{{ vehicle_id }}_trip_km') | float * consumption / 100 }}"
 
           input_text:
             {{ vehicle_id }}_trip_desc:
