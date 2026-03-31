@@ -1362,7 +1362,8 @@ class EVTripPlannerPanel extends LitElement {
 
     try {
       // Use correct callService signature: (domain, service, serviceData, target, notifyOnError, returnResponse)
-      const result = await this._hass.callService('ev_trip_planner', 'trip_create', serviceData);
+      // Note: Some HA versions require return_response=true for services that may return data
+      const result = await this._hass.callService('ev_trip_planner', 'trip_create', serviceData, null, true, true);
       console.log('EV Trip Planner Panel: trip_create result:', result);
       this._closeForm();
 
@@ -1584,7 +1585,7 @@ class EVTripPlannerPanel extends LitElement {
 
     try {
       // Use correct callService signature: (domain, service, serviceData, target, notifyOnError, returnResponse)
-      await this._hass.callService('ev_trip_planner', 'trip_update', serviceData);
+      await this._hass.callService('ev_trip_planner', 'trip_update', serviceData, null, true, true);
       this._closeForm();
       await this._loadTrips();
       alert('✅ Viaje actualizado exitosamente');
