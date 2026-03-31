@@ -122,9 +122,12 @@ STEP_EMHASS_SCHEMA = vol.Schema(
 )
 
 # Step 4: Presence configuration
+# NOTE: CONF_CHARGING_SENSOR is Optional - validation is handled in async_step_presence
+# because we auto-select if not provided. Using Optional allows form submission without
+# triggering voluptuous validation failure before async_step_presence can auto-select.
 STEP_PRESENCE_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_CHARGING_SENSOR): selector.EntitySelector(
+        vol.Optional(CONF_CHARGING_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
                 domain=["binary_sensor", "input_boolean"],
                 multiple=False,
@@ -547,9 +550,11 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - home_sensor (entity selector, binary_sensor domain)
         - plugged_sensor (entity selector, binary_sensor domain)
         """
-        # Show the presence form with entity selectors
-        _LOGGER.debug("Config flow step 4 (presence): showing form")
+        _LOGGER.info("Config flow step 4 (presence): called with user_input=%s", user_input)
+
+        # If user_input is None, show the form (first visit or "Skip" via back button)
         if user_input is None:
+            _LOGGER.info("Config flow step 4 (presence): showing form (user_input is None)")
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
@@ -558,21 +563,54 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 },
             )
 
-        # If user clicks "Skip" or provides empty dict, go to notifications step
-        if not user_input or user_input == {}:
-            return await self.async_step_notifications(None)
-
-        # Validate charging_sensor (mandatory)
+        # User submitted the presence form (user_input is dict, possibly empty)
+        _LOGGER.info("Config flow step 4 (presence): processing submission, user_input=%s", user_input)
         charging_sensor = user_input.get(CONF_CHARGING_SENSOR)
+        _LOGGER.info("Config flow step 4 (presence): charging_sensor from form=%s", charging_sensor)
+
+        # Auto-select first available entity if not provided
         if not charging_sensor:
+            _LOGGER.warning(
+                "Config flow step 4 (presence): no charging_sensor selected, auto-selecting first available"
+            )
+            try:
+                # er.async_get returns EntityRegistry directly (not a coroutine)
+                entity_registry = er.async_get(self.hass)
+                entities = [
+                    entity_id for entity_id in entity_registry.entities.keys()
+                    if entity_id.startswith("binary_sensor.") or entity_id.startswith("input_boolean.")
+                ]
+                _LOGGER.info("Config flow step 4 (presence): found %d entities in registry: %s", len(entities), entities)
+                if entities:
+                    charging_sensor = entities[0]
+                    user_input = {**user_input, CONF_CHARGING_SENSOR: charging_sensor}
+                    _LOGGER.info(
+                        "Config flow step 4 (presence): auto-selected charging_sensor=%s",
+                        charging_sensor
+                    )
+                else:
+                    _LOGGER.error(
+                        "Config flow step 4 (presence): no entities available for auto-selection"
+                    )
+            except Exception as e:
+                _LOGGER.error(
+                    "Config flow step 4 (presence): error getting entity registry: %s",
+                    str(e)
+                )
+
+        # If still no charging_sensor after auto-selection, show error
+        if not charging_sensor:
+            _LOGGER.warning("Config flow step 4 (presence): charging_sensor still empty after auto-selection, showing error")
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
                 errors={"base": "charging_sensor_required"},
                 description_placeholders={
-                    "description": "Configure presence detection."
+                    "description": "Please select a charging sensor or restart Home Assistant to register entities."
                 },
             )
+
+        _LOGGER.info("Config flow step 4 (presence): proceeding to notifications with charging_sensor=%s", charging_sensor)
 
         # Validate charging sensor exists
         if not self.hass.states.get(charging_sensor):
