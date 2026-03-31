@@ -147,7 +147,7 @@ views:
       - type: markdown
         title: "🔋 Estado del Vehículo"
         content: |
-          {% set soc_sensor = states('sensor.{{ vehicle_id }}_soc') | default('N/A') %}
+          {% set soc_sensor = states('{{ config.soc_sensor }}') | default('N/A') %}
           {% set range_sensor = states('sensor.{{ vehicle_id }}_range') | default('N/A') %}
           {% set charging_status = states('binary_sensor.{{ vehicle_id }}_charging') | default('N/A') %}
 

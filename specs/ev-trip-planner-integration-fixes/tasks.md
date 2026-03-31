@@ -126,7 +126,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: `grep -n "soc_sensor" custom_components/ev_trip_planner/dashboard/ev-trip-planner-simple.yaml | head -5`
   Commit: `fix(dashboard): use configured soc_sensor in simple dashboard`
 
-- [ ] 1.11 [[P]] [[US-6]] Update ev-trip-planner-full.yaml SOC sensor reference [use: homeassistant-dashboard-designer]
+- [x] 1.11 [[P]] [[US-6]] Update ev-trip-planner-full.yaml SOC sensor reference [use: homeassistant-dashboard-designer]
   Do:
     1. Read `custom_components/ev_trip_planner/dashboard/ev-trip-planner-full.yaml` line 150
     2. Change `{% set soc_sensor = states('sensor.{{ vehicle_id }}_soc') | default('N/A') %}`
