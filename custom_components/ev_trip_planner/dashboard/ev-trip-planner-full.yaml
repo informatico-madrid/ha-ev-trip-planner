@@ -242,6 +242,8 @@ views:
         entities:
           - entity: input_number.{{ vehicle_id }}_trip_kwh
             name: kWh necesarios
+            mode: display
+            state_template: "{{ (states('input_number.' ~ vehicle_id ~ '_trip_km') | float * states('sensor.' ~ vehicle_id ~ '_consumption') | float / 100) | round(2) }}"
 
       # Description input for recurring trip
       - type: entities
@@ -316,6 +318,8 @@ views:
         entities:
           - entity: input_number.{{ vehicle_id }}_punctual_kwh
             name: kWh necesarios
+            mode: display
+            state_template: "{{ (states('input_number.' ~ vehicle_id ~ '_punctual_km') | float * states('sensor.' ~ vehicle_id ~ '_consumption') | float / 100) | round(2) }}"
 
       # Description input for punctual trip
       - type: entities
