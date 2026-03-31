@@ -726,7 +726,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    vehicle_id = entry.data.get("vehicle_id", "")
+    vehicle_id = entry.data.get("vehicle_name").lower().replace(" ", "_")
     vehicle_name = entry.data.get("vehicle_name", vehicle_id)
 
     _LOGGER.info("Unloading EV Trip Planner for vehicle: %s", vehicle_name)

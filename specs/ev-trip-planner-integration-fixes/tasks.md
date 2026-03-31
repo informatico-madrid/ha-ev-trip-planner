@@ -27,7 +27,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: `grep -n "async_register_panel" custom_components/ev_trip_planner/config_flow.py`
   Commit: `fix(config_flow): remove duplicate panel registration`
 
-- [ ] 1.3 [[P]] [[US-1]] Verify async_unregister_panel uses normalized vehicle_id [use: homeassistant-best-practices]
+- [x] 1.3 [[P]] [[US-1]] Verify async_unregister_panel uses normalized vehicle_id [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/__init__.py` around line 729
     2. Confirm `async_unregister_panel(hass, vehicle_id)` uses the normalized vehicle_id from line 471
