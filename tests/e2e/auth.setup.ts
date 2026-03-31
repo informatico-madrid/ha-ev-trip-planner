@@ -113,11 +113,20 @@ setup.describe('Authentication Setup', () => {
     const formFields = await page.locator('input').count();
     console.log('  [Config] Form input fields found:', formFields);
 
-    // CRITICAL FIX: Wait for form fields to actually be ready inside the dialog
-    // The dialog heading appearing doesn't mean the form is ready - HA renders
-    // forms inside Shadow DOM which may take additional time after dialog appears
+    // Debug: Log ALL input field names to help debug CI issues
+    const allInputs = await page.locator('input').all();
+    const inputInfo = await Promise.all(allInputs.map(async (input) => {
+      const name = await input.getAttribute('name');
+      const type = await input.getAttribute('type');
+      const placeholder = await input.getAttribute('placeholder');
+      return { name, type, placeholder };
+    }));
+    console.log('  [Config] Input details:', JSON.stringify(inputInfo));
+
+    // CRITICAL FIX: Use exact field name 'vehicle_name' without asterisk
+    // The asterisk is visual indicator only, not part of name attribute
     console.log('  [Config] Waiting for vehicle_name field to be ready...');
-    const vehicleNameField = page.getByRole('textbox', { name: /vehicle.?name/i });
+    const vehicleNameField = page.getByRole('textbox', { name: 'vehicle_name' });
     await vehicleNameField.waitFor({ state: 'attached', timeout: 30000 });
     console.log('  [Config] vehicle_name field is ready, filling...');
 
