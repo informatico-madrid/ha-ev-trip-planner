@@ -135,7 +135,8 @@ setup.describe('Authentication Setup', () => {
 
     // Click to focus first, then type character by character
     await vehicleNameField.click();
-    await vehicleNameField.type('Coche2', { delay: 50 });
+    const vehicleName = 'Coche2';
+    await vehicleNameField.type(vehicleName, { delay: 50 });
     console.log('  [Config] vehicle_name value typed, proceeding...');
 
     // Step 1: Vehicle name submitted
@@ -159,8 +160,8 @@ setup.describe('Authentication Setup', () => {
     }));
     console.log('  [Config Step 2] All inputs:', JSON.stringify(step2Info));
 
-    // Find numeric inputs - skip the search box (first input with type="text" that has placeholder)
-    const numericInputs = page.locator('input[type="numeric"]');
+    // Find numeric inputs - use type="number" not type="numeric"
+    const numericInputs = page.locator('input[type="number"]');
     const count = await numericInputs.count();
     console.log('  [Config Step 2] Found', count, 'numeric inputs');
 
@@ -211,6 +212,37 @@ setup.describe('Authentication Setup', () => {
     await presenceSubmitButton.waitFor({ state: 'visible', timeout: 10000 });
     await presenceSubmitButton.click();
 
+    // The presence form might need to be submitted twice due to JavaScript errors in HA's dialog
+    // Wait a moment and check if the form redisplayed (user_input=None case)
+    await page.waitForTimeout(1000);
+    const presenceFormRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+    if (presenceFormRedisplayed) {
+      console.log('  [Config] Presence form redisplayed - submitting again...');
+      await page.getByRole('button', { name: /Submit|Next/i }).click();
+      await page.waitForTimeout(1000);
+    }
+
+    // Wait for notifications form to appear (step 5)
+    console.log('  [Config] Waiting for notifications form to appear...');
+    await page.waitForTimeout(2000);
+
+    // The notifications form might also need to be submitted twice due to JavaScript errors
+    const notificationsSubmitButton = page.getByRole('button', { name: /Submit|Next/i });
+    const notificationsFormVisible = await notificationsSubmitButton.isVisible({ timeout: 5000 }).catch(() => false);
+    if (notificationsFormVisible) {
+      console.log('  [Config] Submitting notifications form...');
+      await notificationsSubmitButton.click();
+      await page.waitForTimeout(1000);
+
+      // Check if form redisplayed (user_input=None case for notifications)
+      const notificationsFormRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+      if (notificationsFormRedisplayed) {
+        console.log('  [Config] Notifications form redisplayed - submitting again...');
+        await page.getByRole('button', { name: /Submit|Next/i }).click();
+        await page.waitForTimeout(1000);
+      }
+    }
+
     // 11. Esperar mensaje de éxito o verificar integración
     console.log('\n[Step 10/10] Waiting for success message or checking integrations...');
 
@@ -251,17 +283,16 @@ setup.describe('Authentication Setup', () => {
       timeout: 30000,
     });
 
-    // Verificar si EV Trip Planner aparece en la lista de integraciones configuradas
-    // Usar texto directo en lugar de getByRole para mayor fiabilidad
-    const evTripPlannerLink = page.locator('text="EV Trip Planner"');
-    const evTripPlannerVisible = await evTripPlannerLink.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+    // Verificar si Coche2 aparece en la lista de integraciones configuradas
+    // El título de la integración es el nombre del vehículo, no "EV Trip Planner"
+    const vehicleIntegrationLink = page.locator(`text="${vehicleName}"`).first();
+    const vehicleIntegrationVisible = await vehicleIntegrationLink.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
 
-    if (evTripPlannerVisible) {
-      console.log('[Config] ✓ EV Trip Planner integration found in configured list!');
+    if (vehicleIntegrationVisible) {
+      console.log(`[Config] ✓ Integration "${vehicleName}" found in configured list!`);
     } else {
-      console.log('[Config] ⚠ EV Trip Planner integration NOT found in configured list (may be expected in ephemeral HA)');
-      console.log('[Config] Config Flow completed but integration may take time to register');
-      // No throw error - integration may be in the process of registering
+      console.log(`[Config] ✗ Integration "${vehicleName}" NOT found in configured list!`);
+      throw new Error(`Config Flow failed: Integration "${vehicleName}" was not created`);
     }
 
     // 12. Navegar al dashboard para establecer sesión
@@ -280,7 +311,6 @@ setup.describe('Authentication Setup', () => {
     // 14. Verificar que la integración se configuró correctamente
     // Nota: El panel webcomponent puede no renderizarse inmediatamente en entornos ephemeral
     // pero la integración debe aparecer en la lista de configuradas
-    const vehicleName = 'Coche2';
     const vehicleId = 'coche2';
     const panelUrl = `${baseUrl}/ev-trip-planner-${vehicleId}`;
 

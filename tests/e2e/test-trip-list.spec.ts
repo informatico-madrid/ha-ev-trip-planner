@@ -49,8 +49,9 @@ test.describe('EV Trip Planner - View Trips User Story', () => {
     const sidebar = page.locator('ha-sidebar');
     await expect(sidebar).toBeVisible({ timeout: 15000 });
 
-    // Click on vehicle option in sidebar (from snapshot: it's an option, not a link)
-    const vehicleOption = sidebar.getByRole('option', { name: VEHICLE_ID }).first();
+    // Click on vehicle option in sidebar (from snapshot: it's a listitem, not an option)
+    // Use getByText to find the vehicle name in the sidebar
+    const vehicleOption = sidebar.getByText(VEHICLE_ID).first();
     await vehicleOption.waitFor({ state: 'visible', timeout: 10000 });
     await vehicleOption.click();
 
