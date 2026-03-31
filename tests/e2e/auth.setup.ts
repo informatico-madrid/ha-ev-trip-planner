@@ -145,13 +145,22 @@ setup.describe('Authentication Setup', () => {
     await page.waitForTimeout(2000);
 
     // Step 2: Sensors
-    // Inputs in step 2 have type="numeric" and are in the dialog (not the search box)
+    // Inputs in step 2 have type="numeric" - use nth() to get specific fields
     console.log('  [Config Step 2/4] Filling sensors...');
 
-    // Find numeric inputs in the dialog (skip search box which is type="text")
-    const numericInputs = page.locator('dialog input[type="numeric"]');
+    // Debug: Log all inputs to see their types
+    const allStep2Inputs = await page.locator('input').all();
+    const step2Info = await Promise.all(allStep2Inputs.map(async (input) => {
+      const type = await input.getAttribute('type');
+      const labelledby = await input.getAttribute('aria-labelledby');
+      return { type, labelledby };
+    }));
+    console.log('  [Config Step 2] All inputs:', JSON.stringify(step2Info));
+
+    // Find numeric inputs - skip the search box (first input with type="text" that has placeholder)
+    const numericInputs = page.locator('input[type="numeric"]');
     const count = await numericInputs.count();
-    console.log('  [Config Step 2] Found', count, 'numeric inputs in dialog');
+    console.log('  [Config Step 2] Found', count, 'numeric inputs');
 
     // Fill the 4 numeric fields: battery_capacity, charging_power, consumption, safety_margin
     if (count >= 4) {
