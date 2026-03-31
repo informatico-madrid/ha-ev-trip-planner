@@ -33,10 +33,21 @@ setup.describe('Authentication Setup', () => {
     console.log('[AuthSetup] Starting authentication and config flow...');
     console.log('='.repeat(60));
 
-    // 1. Cargar información del servidor
-    const serverInfo = JSON.parse(fs.readFileSync(SERVER_INFO_PATH, 'utf-8'));
-    const hassUrl = serverInfo.link;
-    const baseUrl = new URL(hassUrl).origin;
+    // 1. Cargar información del servidor (o usar HA_URL si no hay servidor efímero)
+    let hassUrl: string;
+    let baseUrl: string;
+
+    if (fs.existsSync(SERVER_INFO_PATH)) {
+      const serverInfo = JSON.parse(fs.readFileSync(SERVER_INFO_PATH, 'utf-8'));
+      hassUrl = serverInfo.link;
+      baseUrl = new URL(hassUrl).origin;
+      console.log(`[AuthSetup] Using ephemeral server: ${hassUrl}`);
+    } else {
+      // Usar HA_URL del environment si no hay servidor efímero
+      hassUrl = process.env.HA_URL || 'http://localhost:8123';
+      baseUrl = hassUrl;
+      console.log(`[AuthSetup] Using external HA_URL: ${hassUrl}`);
+    }
 
     console.log(`[AuthSetup] Server URL: ${hassUrl}`);
     console.log(`[AuthSetup] Base URL (origin only): ${baseUrl}`);
