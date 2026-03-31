@@ -16,7 +16,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: `grep -n "vehicle_id = entry.data.get" custom_components/ev_trip_planner/__init__.py | head -3`
   Commit: `fix(__init__): normalize vehicle_id to lowercase in async_setup_entry`
 
-- [ ] 1.2 [[P]] [[US-1]] Remove duplicate async_register_panel from config_flow.py [use: homeassistant-best-practices]
+- [x] 1.2 [[P]] [[US-1]] Remove duplicate async_register_panel from config_flow.py [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/config_flow.py` lines 835-854
     2. Remove the entire `async_register_panel` block (lines 838-851)

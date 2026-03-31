@@ -832,23 +832,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 err,
             )
 
-        # Register native panel for the vehicle
-        # This creates a sidebar entry in HA without requiring Lovelace
-        # Use vehicle_id (from vehicle name) for cleaner URLs like /ev-trip-planner-chispitas
-        try:
-            await panel_module.async_register_panel(
-                self.hass,
-                vehicle_id=vehicle_id,  # Use friendly ID from vehicle name
-                vehicle_name=vehicle_name,
-            )
-            _LOGGER.info("Panel registered successfully for %s", vehicle_name)
-        except Exception as err:  # pragma: no cover
-            # Log but don't fail the flow - panel registration is optional
-            _LOGGER.warning(
-                "Could not register native panel for %s: %s",
-                vehicle_name,
-                err,
-            )
+        # Panel registration is now handled in __init__.py during setup
 
         _LOGGER.info("Returning FlowResult for %s", vehicle_name)
         return result  # Returns FlowResult with entry created
