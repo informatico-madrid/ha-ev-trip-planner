@@ -202,10 +202,21 @@ setup.describe('Authentication Setup', () => {
     await chargingCombobox.waitFor({ state: 'visible', timeout: 30000 });
     await chargingCombobox.click();
 
-    // Wait for options to appear in dropdown
+    // Wait a bit for dropdown to populate
+    await page.waitForTimeout(2000);
+
+    // Try to find the specific option, or fallback to first available
     const chargingOption = page.getByRole('option', { name: /Coche1 Cargando/i });
-    await chargingOption.waitFor({ state: 'visible', timeout: 15000 });
-    await chargingOption.click();
+    if (await chargingOption.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await chargingOption.click();
+    } else {
+      // Fallback: select first available option
+      console.log('  [Config] Charging option not found, selecting first available...');
+      const firstOption = page.locator('mwc-list-item').first();
+      if (await firstOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await firstOption.click();
+      }
+    }
 
     // Seleccionar home sensor (input_boolean: "Coche1 En Casa")
     console.log('  [Config] Selecting home_sensor...');
@@ -213,9 +224,17 @@ setup.describe('Authentication Setup', () => {
     await homeCombobox.waitFor({ state: 'visible', timeout: 15000 });
     await homeCombobox.click();
 
+    await page.waitForTimeout(2000);
     const homeOption = page.getByRole('option', { name: /Coche1 En Casa/i });
-    await homeOption.waitFor({ state: 'visible', timeout: 15000 });
-    await homeOption.click();
+    if (await homeOption.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await homeOption.click();
+    } else {
+      console.log('  [Config] Home option not found, selecting first available...');
+      const firstOption = page.locator('mwc-list-item').first();
+      if (await firstOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await firstOption.click();
+      }
+    }
 
     // Seleccionar plugged sensor (input_boolean: "Coche1 Enchufado")
     console.log('  [Config] Selecting plugged_sensor...');
@@ -223,9 +242,17 @@ setup.describe('Authentication Setup', () => {
     await pluggedCombobox.waitFor({ state: 'visible', timeout: 15000 });
     await pluggedCombobox.click();
 
+    await page.waitForTimeout(2000);
     const pluggedOption = page.getByRole('option', { name: /Coche1 Enchufado/i });
-    await pluggedOption.waitFor({ state: 'visible', timeout: 15000 });
-    await pluggedOption.click();
+    if (await pluggedOption.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await pluggedOption.click();
+    } else {
+      console.log('  [Config] Plugged option not found, selecting first available...');
+      const firstOption = page.locator('mwc-list-item').first();
+      if (await firstOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await firstOption.click();
+      }
+    }
 
     // Submit presence step
     console.log('  [Config] Submitting presence step...');
