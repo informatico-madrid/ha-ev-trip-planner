@@ -102,15 +102,23 @@ setup.describe('Authentication Setup', () => {
     await dialogHeading.waitFor({ state: 'visible', timeout: 15000 });
     console.log('[Config] Dialog visible, proceeding with configuration...');
 
+    // CI may have slower rendering - wait additional time for Shadow DOM form to render
+    console.log('[Config] Waiting for form to fully render (CI workaround)...');
+    await page.waitForTimeout(3000);
+
     // 11. Completar el Config Flow
     console.log('\n[Config Flow] Filling Config Flow...');
+
+    // Debug: Check if form fields are present
+    const formFields = await page.locator('input').count();
+    console.log('  [Config] Form input fields found:', formFields);
 
     // CRITICAL FIX: Wait for form fields to actually be ready inside the dialog
     // The dialog heading appearing doesn't mean the form is ready - HA renders
     // forms inside Shadow DOM which may take additional time after dialog appears
     console.log('  [Config] Waiting for vehicle_name field to be ready...');
     const vehicleNameField = page.getByRole('textbox', { name: /vehicle.?name/i });
-    await vehicleNameField.waitFor({ state: 'attached', timeout: 20000 });
+    await vehicleNameField.waitFor({ state: 'attached', timeout: 30000 });
     console.log('  [Config] vehicle_name field is ready, filling...');
 
     // Step 1: Vehicle name
