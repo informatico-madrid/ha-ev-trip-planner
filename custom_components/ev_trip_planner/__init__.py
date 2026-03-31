@@ -747,7 +747,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data[DATA_RUNTIME].pop(namespace, None)
 
         # Remove the native panel from sidebar
-        if vehicle_id:
+        if "vehicle_id" in entry.data:
             try:
                 await async_unregister_panel(hass, vehicle_id)
             except Exception as ex:  # pragma: no cover
