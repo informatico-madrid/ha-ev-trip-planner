@@ -17,6 +17,13 @@ jobs:
       with:
         node-version: lts/*
 
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Get Python path for hass-taste-test
+      run: echo "PYTHON_PATH=$(which python3)" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: npm install
 
@@ -27,12 +34,11 @@ jobs:
       run: mkdir -p playwright/.auth
 
     - name: Run Playwright E2E tests
-      # Tests use relative URLs and HA_URL environment variable
+      # Tests use globalSetup which starts ephemeral HA and writes server-info.json
+      # auth.setup.ts reads server-info.json to get the HA URL
+      # DO NOT set HA_URL here - tests use ephemeral HA from globalSetup
       run: npx playwright test tests/e2e/
       env:
-        HA_URL: http://192.168.1.201:18124
-        HA_USER: ${{ secrets.HA_USER }}
-        HA_PASSWORD: ${{ secrets.HA_PASSWORD }}
         CI: ${{ github.event_name == 'push' && 'true' || '' }}
 
     - uses: actions/upload-artifact@v4

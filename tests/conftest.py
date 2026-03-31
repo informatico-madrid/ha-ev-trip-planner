@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import logging
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 _LOGGER = logging.getLogger(__name__)
+
+
+# FIX: Mock frame reporting for HA 2026.3+ compatibility
+# DataUpdateCoordinator in HA 2026.3+ requires frame helper to be set up
+# This autouse fixture mocks the frame.report_usage to bypass the check
+@pytest.fixture(autouse=True)
+def mock_frame_reporting():
+    """Mock frame reporting to avoid 'Frame helper not set up' error."""
+    with patch('homeassistant.helpers.frame.report_usage', return_value=None):
+        yield
 
 
 # Note: pytest-homeassistant-custom-component is not available
@@ -403,6 +413,15 @@ def mock_flow_manager():
     flow_manager.async_init = _async_init
 
     yield flow_manager
+
+
+@pytest.fixture
+def mock_er_async_get(mock_entity_registry):
+    """Patch er.async_get to return mock_entity_registry."""
+    from homeassistant.helpers import entity_registry as er
+    from unittest.mock import patch
+    with patch.object(er, 'async_get', return_value=mock_entity_registry):
+        yield mock_entity_registry
 
 
 @pytest.fixture

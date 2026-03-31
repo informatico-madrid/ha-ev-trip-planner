@@ -6,7 +6,7 @@ to entry creation, verifying data persistence and validation.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
@@ -211,12 +211,27 @@ async def test_presence_step_shows_form():
 
 @pytest.mark.asyncio
 async def test_presence_step_skip_advances_to_notifications():
-    """Test that skipping presence step advances to notifications."""
+    """Test that skipping presence step advances to notifications via auto-selection."""
+    from homeassistant.helpers import entity_registry as er
+
     flow = EVTripPlannerFlowHandler()
     flow.hass = MagicMock()
     flow.context = {"vehicle_data": {CONF_VEHICLE_NAME: "TestVehicle"}}
 
-    result = await flow.async_step_presence({})
+    # Mock entity registry with a binary sensor for auto-selection
+    mock_entity_entry = MagicMock()
+    mock_entity_entry.entity_id = "binary_sensor.test_charging"
+    mock_registry = MagicMock()
+    # Use MagicMock's keys() to return list of entity IDs
+    mock_registry.entities.keys.return_value = ["binary_sensor.test_charging"]
+
+    # Mock hass.states.get for sensor validation
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    flow.hass.states.get.return_value = mock_state
+
+    with patch.object(er, 'async_get', return_value=mock_registry):
+        result = await flow.async_step_presence({})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
 
@@ -391,8 +406,15 @@ async def test_full_flow_success():
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "presence"
 
-    # Step 4: Skip presence
-    result = await flow.async_step_presence({})
+    # Step 4: Skip presence - mock entity registry for auto-selection
+    mock_registry = MagicMock()
+    mock_registry.entities.keys.return_value = ["binary_sensor.test_charging"]
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    flow.hass.states.get.return_value = mock_state
+
+    with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+        result = await flow.async_step_presence({})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
 

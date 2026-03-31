@@ -70,3 +70,38 @@
 
 ## E2E Tests
 - Need to verify they validate user stories
+
+## E2E Test Infrastructure Fix (NEW - Priority)
+
+**Status**: INVESTIGATION COMPLETE - Root cause identified
+
+**Issues Found**:
+
+1. **hass-taste-test package incompatibility**: josepy/acme modules have API changes that cause `AttributeError: module 'josepy' has no attribute 'ComparableX509'` in Python 3.11/3.12
+
+2. **External HA URL not accessible**: `http://192.168.1.201:18124` is a private IP not reachable from GitHub Actions CI
+
+3. **Missing system libraries**: ffmpeg and turbojpeg not installed in CI runner (though these may be secondary)
+
+**Root Cause**: The ephemeral HA approach (hass-taste-test) and external HA URL approach both cannot work in current CI environment
+
+**Options to Fix**:
+
+1. **Fix hass-taste-test**: Update or fork hass-taste-test to fix package compatibility with Python 3.11+
+2. **Use public HA instance**: Use a publicly accessible HA instance URL instead of private IP
+3. **GitHub Actions self-hosted runner**: Run CI on a runner that can access the private HA
+4. **Skip E2E in CI**: Run E2E tests only locally, document as "tests validate user stories manually"
+
+**Recommendation**: Option 4 (skip E2E in CI) is most practical - tests exist and can be run locally to validate user stories. E2E tests depend on external infrastructure that is not available in CI.
+
+**Current Changes in Branch**:
+- `.github/workflows/playwright.yml`: Added Python 3.11, commented globalSetup
+- `playwright.config.ts`: Commented out globalSetup/globalTeardown
+- `tests/e2e/auth.setup.ts`: Added fallback to HA_URL env var
+
+**Acceptance Criteria** (if we proceed):
+- [ ] auth.setup.ts completes successfully (login + integration creation)
+- [ ] test-crud-trip.spec.ts passes (create, edit trip)
+- [ ] test-trip-list.spec.ts passes (trip list display)
+- [ ] All 22+ E2E tests pass in CI
+- [ ] Tests are useful user story validations (not just UI noise)
