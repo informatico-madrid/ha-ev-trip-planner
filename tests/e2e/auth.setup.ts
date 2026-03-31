@@ -98,19 +98,29 @@ setup.describe('Authentication Setup', () => {
 
     // 10. Esperar el dialog de configuración
     console.log('[Step 10/10] Waiting for EV Trip Planner dialog...');
-    const dialogHeading = page.getByRole('heading', { name: 'EV Trip Planner' });
+    const dialogHeading = page.getByRole('heading', { name: /EV Trip Planner/i });
     await dialogHeading.waitFor({ state: 'visible', timeout: 15000 });
     console.log('[Config] Dialog visible, proceeding with configuration...');
 
     // 11. Completar el Config Flow
     console.log('\n[Config Flow] Filling Config Flow...');
 
+    // CRITICAL FIX: Wait for form fields to actually be ready inside the dialog
+    // The dialog heading appearing doesn't mean the form is ready - HA renders
+    // forms inside Shadow DOM which may take additional time after dialog appears
+    console.log('  [Config] Waiting for vehicle_name field to be ready...');
+    const vehicleNameField = page.getByRole('textbox', { name: /vehicle.?name/i });
+    await vehicleNameField.waitFor({ state: 'attached', timeout: 20000 });
+    console.log('  [Config] vehicle_name field is ready, filling...');
+
     // Step 1: Vehicle name
     console.log('  [Config Step 1/4] Filling vehicle_name...');
-    await page.getByRole('textbox', { name: 'vehicle_name*' }).fill('Coche2');
+    await vehicleNameField.fill('Coche2');
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Step 2: Sensors
+    // HA uses config key names as input names, NOT human-readable labels
+    // From debug output: battery_capacity_kwh*, kwh_per_km*, safety_margin_percent*
     console.log('  [Config Step 2/4] Filling sensors...');
     await page.getByRole('textbox', { name: 'battery_capacity_kwh*' }).fill('75.0');
     await page.getByRole('textbox', { name: 'charging_power_kw*' }).fill('11.0');
@@ -136,17 +146,17 @@ setup.describe('Authentication Setup', () => {
       await page.getByRole('button', { name: 'Submit' }).click();
     }
 
-    // Seleccionar charging sensor
+    // Seleccionar charging sensor (demo platform default: "Basement Floor Wet")
     console.log('  [Config] Selecting charging_sensor...');
     await page.getByRole('combobox', { name: /charging_sensor/i }).click();
     await page.getByRole('option', { name: /Basement Floor Wet/i }).click();
 
-    // Seleccionar home sensor
+    // Seleccionar home sensor (demo platform default: "Movement Backyard")
     console.log('  [Config] Selecting home_sensor...');
     await page.getByRole('combobox', { name: /home_sensor/i }).click();
     await page.getByRole('option', { name: /Movement Backyard/i }).click();
 
-    // Seleccionar plugged sensor
+    // Seleccionar plugged sensor (same as charging: "Basement Floor Wet")
     console.log('  [Config] Selecting plugged_sensor...');
     await page.getByRole('combobox', { name: /plugged_sensor/i }).click();
     await page.getByRole('option', { name: /Basement Floor Wet/i }).click();
