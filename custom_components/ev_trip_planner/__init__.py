@@ -532,7 +532,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     has_planning = entry.data.get("planning_horizon_days")
     has_deferrable = entry.data.get("max_deferrable_loads")
     if has_planning or has_deferrable:
-        emhass_adapter = EMHASSAdapter(hass, entry.data)
+        emhass_adapter = EMHASSAdapter(hass, entry)
         await emhass_adapter.async_load()
         # Wire EMHASS adapter to trip manager
         trip_manager.set_emhass_adapter(emhass_adapter)

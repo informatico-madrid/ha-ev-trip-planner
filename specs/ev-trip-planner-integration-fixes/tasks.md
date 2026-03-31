@@ -103,7 +103,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: `grep -n "emhass_perfil_diferible" custom_components/ev_trip_planner/emhass_adapter.py`
   Commit: `fix(emhass_adapter): use entry_id for sensor naming`
 
-- [ ] 1.9 [[P]] [[US-5]] Update __init__.py to pass entry to EMHASSAdapter [use: homeassistant-best-practices]
+- [x] 1.9 [[P]] [[US-5]] Update __init__.py to pass entry to EMHASSAdapter [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/__init__.py` around line 535
     2. Change `emhass_adapter = EMHASSAdapter(hass, entry.data)` to `emhass_adapter = EMHASSAdapter(hass, entry)`
