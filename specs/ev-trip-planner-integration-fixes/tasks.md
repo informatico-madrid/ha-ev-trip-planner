@@ -79,7 +79,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ### BUG-5: Fix EMHASS Entry Lookup (US-5)
 
-- [ ] 1.7 [[P]] [[US-5]] Modify EMHASSAdapter to receive ConfigEntry [use: homeassistant-best-practices]
+- [x] 1.7 [[P]] [[US-5]] Modify EMHASSAdapter to receive ConfigEntry [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/emhass_adapter.py` lines 28-34
     2. Change `__init__` signature from `vehicle_config: Dict[str, Any]` to `entry: ConfigEntry`
