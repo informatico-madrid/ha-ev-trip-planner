@@ -77,96 +77,13 @@ lovelace:
   fs.copyFileSync(panelJsPath, path.join(wwwPath, 'panel.js'));
   console.log('[GlobalSetup] Copied panel.js to:', path.join(wwwPath, 'panel.js'));
 
-  // Wait for the integration to be loaded
-  console.log('[GlobalSetup] Waiting for ev_trip_planner integration to load...');
+  // NOTE: global.setup.ts NO LONGER creates config entry via API.
+  // The auth.setup.ts test handles the FULL UI Config Flow - this IS the E2E test.
+  // This follows test-automator and ha-e2e-testing skills: Test Isolation, No API bypass.
+
+  // Wait for HA to be fully ready
+  console.log('[GlobalSetup] Waiting for HA to be ready...');
   await new Promise(resolve => setTimeout(resolve, 10000));
-
-  // Create vehicle config entry using HA's internal API
-  // This triggers async_setup_entry automatically - the CORRECT way
-  console.log('[GlobalSetup] Creating vehicle config entry via HA internal API...');
-
-  // Use hassInstance.hass.config_entries.async_create_entry
-  // This is the proper HA API that triggers async_setup_entry
-  const hassInternal = (hassInstance as any).hass || (hassInstance as any)._hass;
-
-  if (hassInternal && hassInternal.config_entries) {
-    // ============================================================
-    // RETRY LOGIC: Retry async_create_entry on transient errors
-    // This handles CancelledError from race conditions in CI
-    // ============================================================
-    const maxRetries = 3;
-    const retryDelay = 2000;
-    let result = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[GlobalSetup] Creating config entry (attempt ${attempt}/${maxRetries})...`);
-        result = await hassInternal.config_entries.async_create_entry(
-          'ev_trip_planner',
-          {
-            vehicle_id: 'coche2',
-            vehicle_name: 'Coche2',
-            model: 'Model S',
-            make: 'Tesla',
-          }
-        );
-        console.log('[GlobalSetup] Config entry created, entry_id:', result.entry_id);
-        break; // Success
-      } catch (e: any) {
-        const isCancelled = e.message?.includes('CancelledError') || e.name === 'CancelledError';
-        console.warn(`[GlobalSetup] Config entry attempt ${attempt} failed: ${e.message}`);
-        if (attempt < maxRetries) {
-          console.log(`[GlobalSetup] Retrying in ${retryDelay}ms... (${isCancelled ? 'cancelled' : 'error'})`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-        } else {
-          console.error('[GlobalSetup] All config entry attempts failed, using fallback');
-          // Fall through to fallback storage write
-          attempt = maxRetries + 1; // Force exit
-        }
-      }
-    }
-
-    // If all retries failed, use fallback
-    if (!result) {
-      console.warn('[GlobalSetup] Falling back to direct storage write');
-    }
-  } else {
-    console.warn('[GlobalSetup] WARNING: Could not access HA config_entries API');
-    console.warn('[GlobalSetup] Falling back to direct storage write (NOT RECOMMENDED)');
-
-    // Fallback: direct storage write (this doesn't trigger async_setup_entry)
-    const storagePath = path.join(wwwDir, '.storage', 'core.config_entries');
-    fs.mkdirSync(path.dirname(storagePath), { recursive: true });
-
-    let configEntries = [];
-    if (fs.existsSync(storagePath)) {
-      const existing = JSON.parse(fs.readFileSync(storagePath, 'utf-8'));
-      configEntries = existing.entries || [];
-    }
-
-    const vehicleData = {
-      version: 1,
-      minor_version: 1,
-      domain: "ev_trip_planner",
-      title: "Coche2",
-      data: {
-        vehicle_id: "coche2",
-        vehicle_name: "Coche2",
-        model: "Model S",
-        make: "Tesla",
-      },
-      options: {},
-      entry_id: "coche2_entry",
-    };
-
-    configEntries.push(vehicleData);
-    fs.writeFileSync(storagePath, JSON.stringify({ entries: configEntries }, null, 2));
-    console.log('[GlobalSetup] Vehicle config entry written to storage (fallback)');
-  }
-
-  // Additional stabilization wait after config entry creation
-  console.log('[GlobalSetup] Waiting for entities to fully register...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // Save server info to a file for other setups to use
   const authDir = path.join(rootDir, 'playwright', '.auth');
