@@ -103,44 +103,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.4.2-dev] - 2026-03-31 - EMHASS Deferrable Integration (Epic)
-
-### Added
-- **SOC Milestone Algorithm**: Propagación de deficit de carga entre viajes consecutivos
-  - Función `calcular_hitos_soc()` implementada en trip_manager.py
-  - Calcula SOC objetivo por viaje considerando deficits de viajes anteriores
-  - Buffer estándar del 10% sobre energía del viaje
-  - Soporte para múltiples viajes consecutivos con propagación hacia atrás
-  - Tests: 13+ casos incluyendo edge cases (ventana corta, surplus, etc.)
-
-- **Charging Window Calculation**: Ventanas de carga dinámicas basadas en hora de regreso
-  - Función `calcular_ventana_carga()` implementada
-  - Detección de `hora_regreso` via `async_get_hora_regreso()` en PresenceMonitor
-  - Encadenamiento de ventanas para múltiples viajes (`calcular_ventana_carga_multitrip()`)
-  - Integración con generación de power profile
-  - Tests: 10+ casos cubriendo AC-1 a AC-5
-
-- **EMHASS Sensor Enhancement**: Mejoras en sensores de carga diferible
-  - `hora_regreso` almacenado en `sensor.ev_trip_planner_{vehicle_id}_return_info`
-  - Próximo viaje después de hora_regreso via `async_get_next_trip_after()`
-  - Integración con change listeners para recálculo automático
-
-### Fixed
-- **deferrables_schedule 168h → 24h**: Fix producción - atributos de estado excedían 16KB límite HA
-  - Reducido schedule de 7 días a 1 día (24 horas)
-  - Suficiente para ciclos de optimización hourly de EMHASS
-  - Commit: 4c1896c
-
-### Technical Details
-- **Tests**: 822+ tests passing (82% coverage)
-- **Files Modified**:
-  - `trip_manager.py` - Added `calcular_ventana_carga()`, `calcular_hitos_soc()`, `calcular_ventana_carga_multitrip()`
-  - `presence_monitor.py` - Added `async_get_hora_regreso()`
-  - `emhass_adapter.py` - Reduced schedule window
-- **Documentation**: Detalles completos en `docs/` (ver README.md sección Documentación)
-
----
-
 ## [Unreleased]
 
 ### Added

@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-03-31T21:13:38Z",
+  "updated": "2026-03-30T03:27:46Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 24,
+      "specsCount": 22,
       "isDefault": true
     }
   ],
@@ -34,8 +34,7 @@
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 158
     },
     {
@@ -63,16 +62,14 @@
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 73
     },
     {
       "name": "018-e2e-playwright-testing",
       "path": "./specs/018-e2e-playwright-testing",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 34
     },
     {
@@ -106,9 +103,8 @@
     {
       "name": "ev-trip-planner-integration-fixes",
       "path": "./specs/ev-trip-planner-integration-fixes",
-      "phase": "execution",
-      "taskIndex": 30,
-      "totalTasks": 30
+      "phase": "requirements",
+      "awaitingApproval": true
     },
     {
       "name": "_epics",
@@ -125,57 +121,33 @@
     {
       "name": "charging-window-calculation",
       "path": "./specs/charging-window-calculation",
-      "phase": "completed",
-      "taskIndex": 13,
-      "totalTasks": 13
+      "phase": "tasks",
+      "awaitingApproval": true
     },
     {
       "name": "soc-milestone-algorithm",
       "path": "./specs/soc-milestone-algorithm",
-      "phase": "tasks",
-      "taskIndex": 34,
-      "totalTasks": 50
+      "phase": "new"
     },
     {
       "name": "emhass-sensor-enhancement",
       "path": "./specs/emhass-sensor-enhancement",
-      "phase": "completed",
-      "taskIndex": 26,
-      "totalTasks": 26
+      "phase": "new"
     },
     {
       "name": "trip-card-enhancement",
       "path": "./specs/trip-card-enhancement",
-      "phase": "execution",
-      "taskIndex": 5,
-      "totalTasks": 21
+      "phase": "new"
     },
     {
       "name": "automation-template",
       "path": "./specs/automation-template",
-      "phase": "completed",
-      "taskIndex": 21,
-      "totalTasks": 21
+      "phase": "new"
     },
     {
       "name": "emhass-integration-with-fixes",
       "path": "./specs/emhass-integration-with-fixes",
-      "phase": "execution",
-      "taskIndex": 10,
-      "totalTasks": 23,
-      "awaitingApproval": true
-    },
-    {
-      "name": "013-fix-emhass-attribute-size",
-      "path": "./specs/013-fix-emhass-attribute-size",
-      "phase": "completed",
-      "taskIndex": 6,
-      "totalTasks": 6
-    },
-    {
-      "name": "022-fix-production-bugs",
-      "path": "./specs/022-fix-production-bugs",
-      "phase": "proposed"
+      "phase": "new"
     }
   ]
 }
