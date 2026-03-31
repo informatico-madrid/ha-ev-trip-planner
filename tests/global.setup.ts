@@ -81,61 +81,10 @@ lovelace:
   console.log('[GlobalSetup] Waiting for ev_trip_planner integration to load...');
   await new Promise(resolve => setTimeout(resolve, 10000));
 
-  // Create vehicle config entry using HA's internal API
-  // This triggers async_setup_entry automatically - the CORRECT way
-  console.log('[GlobalSetup] Creating vehicle config entry via HA internal API...');
-
-  // Use hassInstance.hass.config_entries.async_create_entry
-  // This is the proper HA API that triggers async_setup_entry
-  const hassInternal = (hassInstance as any).hass || (hassInstance as any)._hass;
-
-  if (hassInternal && hassInternal.config_entries) {
-    // Create the config entry using HA's proper API
-    // This will automatically trigger async_setup_entry() for the ev_trip_planner integration
-    console.log('[GlobalSetup] Creating config entry for ev_trip_planner...');
-    const result = await hassInternal.config_entries.async_create_entry(
-      'ev_trip_planner',
-      {
-        vehicle_id: 'coche2',
-        vehicle_name: 'Coche2',
-        model: 'Model S',
-        make: 'Tesla',
-      }
-    );
-    console.log('[GlobalSetup] Config entry created, entry_id:', result.entry_id);
-  } else {
-    console.warn('[GlobalSetup] WARNING: Could not access HA config_entries API');
-    console.warn('[GlobalSetup] Falling back to direct storage write (NOT RECOMMENDED)');
-
-    // Fallback: direct storage write (this doesn't trigger async_setup_entry)
-    const storagePath = path.join(wwwDir, '.storage', 'core.config_entries');
-    fs.mkdirSync(path.dirname(storagePath), { recursive: true });
-
-    let configEntries = [];
-    if (fs.existsSync(storagePath)) {
-      const existing = JSON.parse(fs.readFileSync(storagePath, 'utf-8'));
-      configEntries = existing.entries || [];
-    }
-
-    const vehicleData = {
-      version: 1,
-      minor_version: 1,
-      domain: "ev_trip_planner",
-      title: "Coche2",
-      data: {
-        vehicle_id: "coche2",
-        vehicle_name: "Coche2",
-        model: "Model S",
-        make: "Tesla",
-      },
-      options: {},
-      entry_id: "coche2_entry",
-    };
-
-    configEntries.push(vehicleData);
-    fs.writeFileSync(storagePath, JSON.stringify({ entries: configEntries }, null, 2));
-    console.log('[GlobalSetup] Vehicle config entry written to storage (fallback)');
-  }
+  // NOTE: We intentionally do NOT create a config entry here.
+  // The auth.setup.ts test will use the UI to add the integration.
+  // Creating a config entry via storage write bypasses async_setup_entry
+  // and can cause issues with the config flow UI.
 
   // Save server info to a file for other setups to use
   const authDir = path.join(rootDir, 'playwright', '.auth');
