@@ -610,6 +610,14 @@ class TripManager:
         if self._emhass_adapter:
             await self._async_remove_trip_from_emhass(trip_id)
 
+    async def async_delete_all_trips(self) -> None:
+        """Deletes all recurring and punctual trips for cascade deletion."""
+        _LOGGER.debug("Deleting all trips for vehicle %s", self.vehicle_id)
+        self._recurring_trips = {}
+        self._punctual_trips = {}
+        await self.async_save_trips()
+        _LOGGER.info("Deleted all trips for vehicle %s", self.vehicle_id)
+
     async def async_pause_recurring_trip(self, trip_id: str) -> None:
         """Pausa un viaje recurrente."""
         _LOGGER.debug(

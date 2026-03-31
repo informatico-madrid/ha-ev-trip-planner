@@ -39,7 +39,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ### BUG-3: Implement Cascade Delete (US-3)
 
-- [ ] 1.4 [[P]] [[US-3]] Add async_delete_all_trips() method to TripManager [use: homeassistant-best-practices]
+- [x] 1.4 [[P]] [[US-3]] Add async_delete_all_trips() method to TripManager [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/trip_manager.py` to find existing delete methods
     2. Add new method `async_delete_all_trips()` that:
@@ -55,7 +55,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ### BUG-4: Entity Cleanup on Unload (US-4)
 
-- [ ] 1.5 [[P]] [[US-4]] Add async_will_remove_from_hass() to EmhassDeferrableLoadSensor [use: homeassistant-best-practices]
+- [x] 1.5 [[P]] [[US-4]] Add async_will_remove_from_hass() to EmhassDeferrableLoadSensor [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/sensor.py` around line 488-580 for EmhassDeferrableLoadSensor
     2. Add `async_will_remove_from_hass(self)` method that:
