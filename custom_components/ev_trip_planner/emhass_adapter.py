@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, HomeAssistantError
 from homeassistant.helpers.storage import Store
 
@@ -25,15 +26,16 @@ _LOGGER = logging.getLogger(__name__)
 class EMHASSAdapter:
     """Adapter to publish trips as EMHASS deferrable loads."""
 
-    def __init__(self, hass: HomeAssistant, vehicle_config: Dict[str, Any]):
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         """Initialize adapter."""
         self.hass = hass
-        self.vehicle_id = vehicle_config[CONF_VEHICLE_NAME]
-        self.max_deferrable_loads = vehicle_config.get(CONF_MAX_DEFERRABLE_LOADS, 50)
-        self.charging_power = vehicle_config.get(CONF_CHARGING_POWER, 7.4)
+        self.entry_id = entry.entry_id
+        self.vehicle_id = entry.data.get(CONF_VEHICLE_NAME)
+        self.max_deferrable_loads = entry.data.get(CONF_MAX_DEFERRABLE_LOADS, 50)
+        self.charging_power = entry.data.get(CONF_CHARGING_POWER, 7.4)
 
         # Notification configuration
-        self.notification_service = vehicle_config.get(CONF_NOTIFICATION_SERVICE)
+        self.notification_service = entry.data.get(CONF_NOTIFICATION_SERVICE)
 
         # Storage for trip_id → emhass_index mapping
         store_key = f"ev_trip_planner_{self.vehicle_id}_emhass_indices"
@@ -43,7 +45,7 @@ class EMHASSAdapter:
 
         # Soft delete: released indices with timestamp for cooldown
         self._released_indices: Dict[int, datetime] = {}
-        self._index_cooldown_hours: int = vehicle_config.get(
+        self._index_cooldown_hours: int = entry.data.get(
             CONF_INDEX_COOLDOWN_HOURS, DEFAULT_INDEX_COOLDOWN_HOURS
         )
 
@@ -496,7 +498,7 @@ class EMHASSAdapter:
         )
 
         # Update the template sensor
-        sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+        sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
         try:
             await self.hass.states.async_set(
                 sensor_id,

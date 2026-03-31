@@ -92,7 +92,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: `grep -n "self.entry_id" custom_components/ev_trip_planner/emhass_adapter.py`
   Commit: `fix(emhass_adapter): receive ConfigEntry and store entry_id`
 
-- [ ] 1.8 [[P]] [[US-5]] Update EMHASSAdapter.publish_deferrable_loads to use entry_id [use: homeassistant-best-practices]
+- [x] 1.8 [[P]] [[US-5]] Update EMHASSAdapter.publish_deferrable_loads to use entry_id [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/emhass_adapter.py` line 499
     2. Change `sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"` to use `self.entry_id`
