@@ -29,13 +29,21 @@ class EMHASSAdapter:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         """Initialize adapter."""
         self.hass = hass
-        self.entry_id = entry.entry_id
-        self.vehicle_id = entry.data.get(CONF_VEHICLE_NAME)
-        self.max_deferrable_loads = entry.data.get(CONF_MAX_DEFERRABLE_LOADS, 50)
-        self.charging_power = entry.data.get(CONF_CHARGING_POWER, 7.4)
+
+        # Handle both dict (backward compatibility for tests) and ConfigEntry
+        if isinstance(entry, dict):
+            self.entry_id = entry.get("vehicle_name", "unknown")
+            entry_data = entry
+        else:
+            self.entry_id = entry.entry_id
+            entry_data = entry.data
+
+        self.vehicle_id = entry_data.get(CONF_VEHICLE_NAME)
+        self.max_deferrable_loads = entry_data.get(CONF_MAX_DEFERRABLE_LOADS, 50)
+        self.charging_power = entry_data.get(CONF_CHARGING_POWER, 7.4)
 
         # Notification configuration
-        self.notification_service = entry.data.get(CONF_NOTIFICATION_SERVICE)
+        self.notification_service = entry_data.get(CONF_NOTIFICATION_SERVICE)
 
         # Storage for trip_id → emhass_index mapping
         store_key = f"ev_trip_planner_{self.vehicle_id}_emhass_indices"
@@ -45,7 +53,7 @@ class EMHASSAdapter:
 
         # Soft delete: released indices with timestamp for cooldown
         self._released_indices: Dict[int, datetime] = {}
-        self._index_cooldown_hours: int = entry.data.get(
+        self._index_cooldown_hours: int = entry_data.get(
             CONF_INDEX_COOLDOWN_HOURS, DEFAULT_INDEX_COOLDOWN_HOURS
         )
 
