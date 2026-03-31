@@ -115,7 +115,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ### BUG-6: Fix SOC Display Using Configured Sensor (US-6)
 
-- [ ] 1.10 [[P]] [[US-6]] Update ev-trip-planner-simple.yaml SOC sensor reference [use: homeassistant-dashboard-designer]
+- [x] 1.10 [[P]] [[US-6]] Update ev-trip-planner-simple.yaml SOC sensor reference [use: homeassistant-dashboard-designer]
   Do:
     1. Read `custom_components/ev_trip_planner/dashboard/ev-trip-planner-simple.yaml` line 134
     2. Change `{% set soc_sensor = states('sensor.{{ vehicle_id }}_soc') | default('N/A') %}`
