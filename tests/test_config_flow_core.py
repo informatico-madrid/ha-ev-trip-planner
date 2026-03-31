@@ -77,7 +77,15 @@ async def test_full_flow_success():
         assert result["step_id"] == "presence"
 
         # Step 4: Presence configuration (skip with empty input)
-        result = await flow.async_step_presence({})
+        # Mock entity registry for auto-selection
+        mock_registry = MagicMock()
+        mock_registry.entities.keys.return_value = ["binary_sensor.test_charging"]
+        mock_state = MagicMock()
+        mock_state.state = "on"
+        flow.hass.states.get.return_value = mock_state
+
+        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+            result = await flow.async_step_presence({})
         # Should advance to step 5 (notifications)
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "notifications"

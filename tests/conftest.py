@@ -406,6 +406,15 @@ def mock_flow_manager():
 
 
 @pytest.fixture
+def mock_er_async_get(mock_entity_registry):
+    """Patch er.async_get to return mock_entity_registry."""
+    from homeassistant.helpers import entity_registry as er
+    from unittest.mock import patch
+    with patch.object(er, 'async_get', return_value=mock_entity_registry):
+        yield mock_entity_registry
+
+
+@pytest.fixture
 def mock_hass_with_entity_registry(hass, mock_entity_registry, mock_device_registry, mock_config_entries):
     """
     Return a mock hass instance with entity and device registries.

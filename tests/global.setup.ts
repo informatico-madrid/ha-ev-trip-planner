@@ -9,7 +9,6 @@ import { chromium, FullConfig } from '@playwright/test';
 import { HomeAssistant, PlaywrightBrowser } from 'hass-taste-test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn } from 'child_process';
 
 async function globalSetup(config: FullConfig) {
   console.log('[GlobalSetup] Starting ephemeral HA server...');
@@ -17,28 +16,6 @@ async function globalSetup(config: FullConfig) {
   const evTripPlannerPath = path.join(process.cwd(), 'custom_components/ev_trip_planner');
   const panelJsPath = path.join(evTripPlannerPath, 'frontend/panel.js');
   const rootDir = process.cwd();
-
-  // FIX: josepy 1.14+ removed ComparableX509 which breaks acme (used by hass-nabucasa)
-  // Monkey-patch HomeAssistant.setupVenv to downgrade josepy after homeassistant installation
-  console.log('[GlobalSetup] Applying josepy compatibility fix...');
-
-  const runCommand = (command: string, args: string[]): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const proc = spawn(command, args, { stdio: 'inherit' });
-      proc.on('error', (err) => reject(err));
-      proc.on('close', (code) => resolve(code ?? 0));
-    });
-  };
-
-  const originalSetupVenv = (HomeAssistant.prototype as any).setupVenv;
-  (HomeAssistant.prototype as any).setupVenv = async function() {
-    // Call original setupVenv
-    await originalSetupVenv.call(this);
-    // After homeassistant is installed, downgrade josepy to 1.13.0 which has ComparableX509
-    console.log('[GlobalSetup] Downgrading josepy to 1.13.0...');
-    await runCommand(this.path_pip(), ['install', 'josepy==1.13.0']);
-    console.log('[GlobalSetup] josepy downgrade complete');
-  };
 
   // Start ephemeral HA with the custom component
   // Use input_boolean to create presence detection entities

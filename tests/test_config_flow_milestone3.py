@@ -1,5 +1,7 @@
 """Tests for Milestone 3 config flow extensions."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -181,7 +183,20 @@ async def test_step_presence_optional_skip(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Execute: Skip presence step (empty user_input)
-    result = await flow.async_step_presence(user_input={})
+    # Mock entity registry for auto-selection
+    from homeassistant.helpers import entity_registry as er
+    mock_entity = MagicMock()
+    mock_entity.entity_id = "binary_sensor.test_charging"
+    mock_registry = MagicMock()
+    mock_registry.entities = {"binary_sensor.test_charging": mock_entity}
+
+    # Mock hass.states.get to return a valid state for the auto-selected sensor
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    hass.states.get = MagicMock(return_value=mock_state)
+
+    with patch.object(er, 'async_get', return_value=mock_registry):
+        result = await flow.async_step_presence(user_input={})
 
     # Verify: Should advance to notifications step
     assert result["type"] == FlowResultType.FORM
@@ -190,12 +205,14 @@ async def test_step_presence_optional_skip(hass: HomeAssistant):
     # Now skip notifications step
     result = await flow.async_step_notifications(user_input={})
 
-    # Verify: Entry created without presence sensors
+    # Verify: Entry created - auto-selection adds charging_sensor but not home/plugged
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "test_vehicle"
     assert CONF_HOME_SENSOR not in result["data"]
     assert CONF_PLUGGED_SENSOR not in result["data"]
-    assert CONF_CHARGING_SENSOR not in result["data"]
+    # Auto-selection adds charging_sensor when user skips
+    assert CONF_CHARGING_SENSOR in result["data"]
+    assert result["data"][CONF_CHARGING_SENSOR] == "binary_sensor.test_charging"
 
 
 @pytest.mark.asyncio
@@ -779,7 +796,20 @@ async def test_full_flow_with_minimal_config(hass: HomeAssistant):
     assert result["step_id"] == "presence"
 
     # Step 4: Presence - skip (empty)
-    result = await flow.async_step_presence({})
+    # Mock entity registry for auto-selection
+    from homeassistant.helpers import entity_registry as er
+    mock_entity = MagicMock()
+    mock_entity.entity_id = "binary_sensor.test_charging"
+    mock_registry = MagicMock()
+    mock_registry.entities = {"binary_sensor.test_charging": mock_entity}
+
+    # Mock hass.states.get to return a valid state for the auto-selected sensor
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    hass.states.get = MagicMock(return_value=mock_state)
+
+    with patch.object(er, 'async_get', return_value=mock_registry):
+        result = await flow.async_step_presence({})
     assert result["step_id"] == "notifications"
 
     # Step 5: Notifications - skip (empty)

@@ -1,5 +1,7 @@
 """Tests for Renault integration specific issues."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from homeassistant import data_entry_flow
 from homeassistant.core import HomeAssistant
@@ -82,7 +84,20 @@ async def test_renault_home_sensor_field_optional(hass: HomeAssistant):
     
     # Act - Call async_step_presence with empty dict (simulating user skipping the step)
     # This should go to notifications step since presence is optional
-    result = await flow.async_step_presence(user_input={})
+    # Mock entity registry for auto-selection
+    from homeassistant.helpers import entity_registry as er
+    mock_entity = MagicMock()
+    mock_entity.entity_id = "binary_sensor.test_charging"
+    mock_registry = MagicMock()
+    mock_registry.entities = {"binary_sensor.test_charging": mock_entity}
+
+    # Mock hass.states.get to return a valid state for the auto-selected sensor
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    hass.states.get = MagicMock(return_value=mock_state)
+
+    with patch.object(er, 'async_get', return_value=mock_registry):
+        result = await flow.async_step_presence(user_input={})
 
     # Verify: Should advance to notifications step
     assert result["type"] == data_entry_flow.FlowResultType.FORM
