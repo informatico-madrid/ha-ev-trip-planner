@@ -129,6 +129,8 @@ setup.describe('Authentication Setup', () => {
     console.log('  [Config] Waiting for vehicle_name input to be ready...');
     const vehicleNameField = page.locator('input[name="vehicle_name"]');
     await vehicleNameField.waitFor({ state: 'visible', timeout: 30000 });
+    // In CI, element may be visible but not immediately interactable - click to focus first
+    await vehicleNameField.click();
     console.log('  [Config] vehicle_name field is ready, filling...');
 
     // Step 1: Vehicle name
