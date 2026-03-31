@@ -99,13 +99,13 @@ export default defineConfig({
     }
   ],
 
-  // Global setup para crear servidor HA efímero (DESHABILITADO - hass-taste-test tiene problemas de compatibilidad)
-  // globalSetup: './tests/global.setup.ts',
+  // Global setup para crear servidor HA efímero
+  globalSetup: './tests/global.setup.ts',
 
-  // Global teardown para cleanup (DESHABILITADO)
-  // globalTeardown: './tests/global.teardown.ts',
+  // Global teardown para cleanup
+  globalTeardown: './tests/global.teardown.ts',
 
-  // Sin webServer - usamos HA_URL externa configurada en el workflow
+  // Sin webServer - hass-taste-test maneja el servidor HA efímero
   // El panel.js se copia después de que HA arranca (líneas 43-55 de global.setup.ts)
   // Esto funciona porque hass-taste-test crea el directorio www/ antes de iniciar HA
 })
