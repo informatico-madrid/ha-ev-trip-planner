@@ -59,7 +59,7 @@ lovelace:
     - url: /local/panel.js
       type: module
 `, {
-    python: 'python3',
+    python: process.env.PYTHON_PATH || 'python3',
     browser: new PlaywrightBrowser('chromium'),
     customComponents: [evTripPlannerPath],
   });

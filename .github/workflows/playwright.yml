@@ -21,6 +21,9 @@ jobs:
       with:
         python-version: '3.14'
 
+    - name: Get Python path for hass-taste-test
+      run: echo "PYTHON_PATH=$(which python3)" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: npm install
 
