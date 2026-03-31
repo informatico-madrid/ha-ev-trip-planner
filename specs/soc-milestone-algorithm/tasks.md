@@ -6,7 +6,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
 
 ### Core Algorithm Implementation
 
-- [ ] 1.1 [P] Add DEFAULT_SOC_BUFFER_PERCENT constant
+- [x] 1.1 [P] Add DEFAULT_SOC_BUFFER_PERCENT constant
   - **Do**:
     1. Add `DEFAULT_SOC_BUFFER_PERCENT = 10` to `const.py`
     2. This represents the minimum SOC buffer as a percentage
@@ -26,7 +26,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - **Commit**: `feat(soc-milestone): define type hints for SOC milestone results`
   - _Requirements: Interface Contract_
 
-- [ ] 1.3 [P] Implement charging rate calculation helper
+- [x] 1.3 [P] Implement charging rate calculation helper
   - **Do**:
     1. Add `_calcular_tasa_carga_soc` method to TripManager
     2. Formula: `charging_power_kw / battery_capacity_kwh * 100` = % SOC/hour
@@ -38,7 +38,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - _Requirements: AC-3_
   - _Design: Technical Details section_
 
-- [ ] 1.4 [P] Implement base SOC target calculation
+- [x] 1.4 [P] Implement base SOC target calculation
   - **Do**:
     1. Calculate energy needed for trip from kwh field or km * consumption
     2. Convert energy to SOC percentage: `energia_kwh / battery_capacity_kwh * 100`
@@ -78,7 +78,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - _Requirements: AC-1, AC-2_
   - _Design: Algorithm section (BACKWARD PROPAGATION)_
 
-- [ ] 1.7 [P] Implement kWh needed calculation
+- [x] 1.7 [P] Implement kWh needed calculation
   - **Do**:
     1. Calculate: `kwh_necesarios = (soc_objetivo - soc_inicio) * battery_capacity_kwh / 100`
     2. Store in result dict
@@ -102,7 +102,7 @@ Focus: Implement backward deficit propagation algorithm for SOC milestones.
   - _Requirements: Interface Contract, AC-1, AC-2_
   - _Design: Algorithm section_
 
-- [ ] 1.9 [VERIFY] Quality checkpoint: lint and type check
+- [x] 1.9 [VERIFY] Quality checkpoint: lint and type check
   - **Do**: Run quality commands on modified files
   - **Verify**: `make lint && make mypy 2>&1 | tail -30`
   - **Done when**: No lint errors, no type errors
@@ -171,7 +171,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
 
 ### Unit Tests
 
-- [ ] 2.1 [P] Create test file for SOC milestone algorithm
+- [x] 2.1 [P] Create test file for SOC milestone algorithm
   - **Do**:
     1. Create `tests/test_soc_milestone.py`
     2. Add fixtures for mock_hass, trip_manager
@@ -206,7 +206,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): add AC-2 morning trip kWh verification test`
   - _Requirements: AC-2_
 
-- [ ] 2.4 [P] Test AC-3: Faster charging rate (no deficit)
+- [x] 2.4 [P] Test AC-3: Faster charging rate (no deficit)
   - **Do**:
     1. If charging rate is 20% SOC/hour instead of 10%
     2. 4 hour window = +80% SOC capability
@@ -266,7 +266,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestThreeTripChain -v`
   - **Commit**: `test(soc-milestone): add three-trip consecutive deficit test`
 
-- [ ] 2.10 [P] Test empty trips list handling
+- [x] 2.10 [P] Test empty trips list handling
   - **Do**:
     1. Call calcular_hitos_soc with empty list
     2. Verify returns empty list
@@ -275,7 +275,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py::TestEmptyTrips -v`
   - **Commit**: `test(soc-milestone): add empty trips handling test`
 
-- [ ] 2.11 [P] Test single trip handling
+- [x] 2.11 [P] Test single trip handling
   - **Do**:
     1. Call calcular_hitos_soc with single trip
     2. Verify base SOC target calculated, deficit_acumulado = 0
@@ -313,7 +313,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
   - **Commit**: `test(soc-milestone): add result structure validation test`
   - _Requirements: Interface Contract_
 
-- [ ] 2.15 [VERIFY] Quality checkpoint: all SOC milestone tests pass
+- [x] 2.15 [VERIFY] Quality checkpoint: all SOC milestone tests pass
   - **Do**: Run all SOC milestone tests
   - **Verify**: `python3 -m pytest tests/test_soc_milestone.py -v`
   - **Done when**: All tests pass
@@ -323,7 +323,7 @@ Focus: Add comprehensive unit tests for the SOC milestone algorithm.
 
 Focus: Clean up implementation, improve code quality.
 
-- [ ] 3.1 Extract SOC calculation logic into separate helper methods
+- [x] 3.1 Extract SOC calculation logic into separate helper methods
   - **Do**:
     1. Review existing helper methods added in Phase 1
     2. Ensure they are single-responsibility
@@ -354,7 +354,7 @@ Focus: Clean up implementation, improve code quality.
   - **Verify**: `grep -n "_LOGGER.*deficit\|deficit.*_LOGGER" custom_components/ev_trip_planner/trip_manager.py`
   - **Commit**: `feat(soc-milestone): add deficit propagation logging`
 
-- [ ] 3.4 Optimize trip sorting
+- [x] 3.4 Optimize trip sorting
   - **Do**:
     1. Ensure trips are sorted by departure time once at start
     2. Don't re-sort in each iteration
@@ -364,7 +364,7 @@ Focus: Clean up implementation, improve code quality.
   - **Verify**: Code review of sorting logic
   - **Commit**: `refactor(soc-milestone): optimize trip sorting`
 
-- [ ] 3.5 Handle datetime serialization in results
+- [x] 3.5 Handle datetime serialization in results
   - **Do**:
     1. Ensure datetime objects in ventana_carga are serializable
     2. Use isoformat() for JSON compatibility if needed
@@ -373,7 +373,7 @@ Focus: Clean up implementation, improve code quality.
   - **Verify**: Import test with json.dumps on results
   - **Commit**: `fix(soc-milestone): ensure datetime serialization in results`
 
-- [ ] 3.6 [VERIFY] Quality checkpoint: lint, type check, tests
+- [x] 3.6 [VERIFY] Quality checkpoint: lint, type check, tests
   - **Do**: Run full quality checks
   - **Verify**: `make check 2>&1 | tail -30`
   - **Done when**: All checks pass
