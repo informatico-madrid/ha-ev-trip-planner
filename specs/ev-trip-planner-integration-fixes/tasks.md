@@ -186,7 +186,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
   Verify: Code review of vehicle_id usage in __init__.py - both setup and unload use same normalization
   Commit: `refactor(__init__): ensure consistent vehicle_id normalization`
 
-- [ ] 2.2 [[P]] Verify EMHASSAdapter entry_id naming consistency [use: homeassistant-best-practices]
+- [x] 2.2 [[P]] Verify EMHASSAdapter entry_id naming consistency [use: homeassistant-best-practices]
   Do:
     1. Verify all EMHASS sensor naming uses entry_id consistently
     2. Verify adapter is passed ConfigEntry (not entry.data) everywhere

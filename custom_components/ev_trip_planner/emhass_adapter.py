@@ -558,7 +558,7 @@ class EMHASSAdapter:
         }
 
         # Check our deferrable sensor exists
-        sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+        sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
         deferrable_sensor = self.hass.states.get(sensor_id)
 
         if deferrable_sensor is None:
@@ -821,7 +821,7 @@ class EMHASSAdapter:
     ) -> None:
         """Update dashboard status sensor with error information."""
         try:
-            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             attributes = {
                 "power_profile_watts": [0.0] * 168,
                 "deferrables_schedule": [],
@@ -1072,7 +1072,7 @@ class EMHASSAdapter:
 
         # Restore normal status
         try:
-            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             current_state = self.hass.states.get(sensor_id)
 
             if current_state:
@@ -1127,7 +1127,7 @@ class EMHASSAdapter:
 
         # Clear the main vehicle sensor
         try:
-            sensor_id = f"sensor.emhass_perfil_diferible_{self.vehicle_id}"
+            sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             await self.hass.states.async_set(
                 sensor_id,
                 "idle",
