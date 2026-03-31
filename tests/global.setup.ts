@@ -41,16 +41,14 @@ async function globalSetup(config: FullConfig) {
   };
 
   // Start ephemeral HA with the custom component
+  // Use demo platform to create binary sensors for presence detection
+  // The demo platform creates default sensors including:
+  // - "Basement Floor Wet" (moisture) - used as charging_sensor
+  // - "Movement Backyard" (motion) - used as home_sensor
+  // These match the entity names expected by auth.setup.ts
   const hassInstance = await HomeAssistant.create(`
 binary_sensor:
   - platform: demo
-    devices:
-      - name: "Coche1 Cargando"
-        device_class: plug
-      - name: "Coche1 En Casa"
-        device_class: home
-      - name: "Coche1 Enchufado"
-        device_class: plug
 
 lovelace:
   mode: storage
