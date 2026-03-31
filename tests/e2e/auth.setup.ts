@@ -90,11 +90,13 @@ setup.describe('Authentication Setup', () => {
     // 8. Buscar EV Trip Planner en el dialog
     console.log('[Step 8/10] Searching for EV Trip Planner in brand selection...');
     await page.getByRole('textbox', { name: /Search for a brand name/i }).fill('EV Trip Planner');
-    await expect(page.getByText('EV Trip Planner')).toBeVisible({ timeout: 5000 });
+    // Use .first() because 'EV Trip Planner' matches both the heading AND the list item
+    await expect(page.getByText('EV Trip Planner').first()).toBeVisible({ timeout: 5000 });
 
     // 9. Seleccionar EV Trip Planner
     console.log('[Step 9/10] Clicking EV Trip Planner...');
-    await page.click('text="EV Trip Planner"');
+    // Use .first() to avoid strict mode violation when integration is already configured
+    await page.locator('text="EV Trip Planner"').first().click();
 
     // 10. Esperar el dialog de configuración
     console.log('[Step 10/10] Waiting for EV Trip Planner dialog...');
