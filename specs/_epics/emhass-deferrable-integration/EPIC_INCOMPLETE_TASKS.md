@@ -70,3 +70,29 @@
 
 ## E2E Tests
 - Need to verify they validate user stories
+
+## E2E Test Infrastructure Fix (NEW - Priority)
+
+**Critical Issue**: E2E tests failing in CI due to pre-existing infrastructure problems:
+
+1. `TypeError: Channel.getaddrinfo() takes 3 positional arguments but 4...` - aiohttp compatibility issue with hass-taste-test
+2. `FileNotFoundError: [Errno 2] No such file or directory: 'ffmpeg'` - Missing ffmpeg in CI runner
+3. `RuntimeError: Unable to locate turbojpeg library automatically` - Missing turbojpeg library
+
+**Root Cause**: hass-taste-test v0.2.7 uses an aiohttp version incompatible with Python 3.12+ in CI
+
+**Task**: Fix E2E test infrastructure so all tests pass and validate user stories
+
+**Approach**:
+1. Investigate if hass-taste-test has a newer version compatible with Python 3.12
+2. Or use custom HA startup script that works with current Python version
+3. Ensure auth.setup.ts login and integration creation still works
+4. Verify all CRUD E2E tests pass (create, edit, delete trips)
+5. Add task to ensure setup creates integration once, tests reuse it
+
+**Acceptance Criteria**:
+- [ ] auth.setup.ts completes successfully (login + integration creation)
+- [ ] test-crud-trip.spec.ts passes (create, edit trip)
+- [ ] test-trip-list.spec.ts passes (trip list display)
+- [ ] All 22+ E2E tests pass in CI
+- [ ] Tests are useful user story validations (not just UI noise)
