@@ -136,9 +136,8 @@ setup.describe('Authentication Setup', () => {
     await vehicleNameField.type('Coche2', { delay: 50 });
     console.log('  [Config] vehicle_name value typed, proceeding...');
 
-    // Step 1: Vehicle name
-    console.log('  [Config Step 1/4] Filling vehicle_name...');
-    await vehicleNameField.fill('Coche2');
+    // Step 1: Vehicle name submitted
+    console.log('  [Config Step 1/4] Submitting vehicle_name...');
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Step 2: Sensors
