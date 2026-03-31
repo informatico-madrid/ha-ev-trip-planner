@@ -15,10 +15,10 @@ help:
 	@echo "  make htmlcov         - Generar reporte HTML de cobertura"
 
 test:
-	python3 -m pytest tests -v --tb=short
+	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/
 
 test-cover:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80
+	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80 --ignore=tests/ha-manual/ --ignore=tests/e2e/
 
 test-verbose:
 	python3 -m pytest tests -vv -s --tb=long

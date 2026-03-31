@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import logging
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 _LOGGER = logging.getLogger(__name__)
+
+
+# FIX: Mock frame reporting for HA 2026.3+ compatibility
+# DataUpdateCoordinator in HA 2026.3+ requires frame helper to be set up
+# This autouse fixture mocks the frame.report_usage to bypass the check
+@pytest.fixture(autouse=True)
+def mock_frame_reporting():
+    """Mock frame reporting to avoid 'Frame helper not set up' error."""
+    with patch('homeassistant.helpers.frame.report_usage', return_value=None):
+        yield
 
 
 # Note: pytest-homeassistant-custom-component is not available

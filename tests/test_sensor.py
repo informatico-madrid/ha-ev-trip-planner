@@ -1110,6 +1110,7 @@ async def test_config_entry_lookup_with_vehicle_id():
         unique_id="vehicle_chispitas",
         discovery_keys={},
         options={},
+        subentries_data=[],  # Required in HA 2026.3+
     )
 
     # Setup async_get_entry to return entry only for correct entry_id
