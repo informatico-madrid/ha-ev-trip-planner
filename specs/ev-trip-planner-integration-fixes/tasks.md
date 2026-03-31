@@ -175,7 +175,7 @@ Focus: Implement the 7 bug fixes end-to-end. Skip tests initially.
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 [[P]] Verify consistent vehicle_id normalization in __init__.py [use: homeassistant-best-practices]
+- [x] 2.1 [[P]] Verify consistent vehicle_id normalization in __init__.py [use: homeassistant-best-practices]
   Do:
     1. Read `custom_components/ev_trip_planner/__init__.py` around line 729
     2. Ensure vehicle_id normalization is applied before async_unregister_panel call
