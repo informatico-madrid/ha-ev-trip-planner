@@ -140,14 +140,31 @@ setup.describe('Authentication Setup', () => {
     console.log('  [Config Step 1/4] Submitting vehicle_name...');
     await page.getByRole('button', { name: 'Submit' }).click();
 
+    // Wait for step 2 form to render
+    console.log('  [Config] Waiting for Step 2 form to render...');
+    await page.waitForTimeout(2000);
+
     // Step 2: Sensors
-    // HA uses config key names as input names, NOT human-readable labels
-    // From debug output: battery_capacity_kwh*, kwh_per_km*, safety_margin_percent*
+    // Inputs in step 2 have type="numeric" and are in the dialog (not the search box)
     console.log('  [Config Step 2/4] Filling sensors...');
-    await page.getByRole('textbox', { name: 'battery_capacity_kwh*' }).fill('75.0');
-    await page.getByRole('textbox', { name: 'charging_power_kw*' }).fill('11.0');
-    await page.getByRole('textbox', { name: 'kwh_per_km*' }).fill('0.17');
-    await page.getByRole('spinbutton', { name: 'safety_margin_percent*' }).fill('15');
+
+    // Find numeric inputs in the dialog (skip search box which is type="text")
+    const numericInputs = page.locator('dialog input[type="numeric"]');
+    const count = await numericInputs.count();
+    console.log('  [Config Step 2] Found', count, 'numeric inputs in dialog');
+
+    // Fill the 4 numeric fields: battery_capacity, charging_power, consumption, safety_margin
+    if (count >= 4) {
+      await numericInputs.nth(0).click();
+      await numericInputs.nth(0).type('75.0', { delay: 30 });
+      await numericInputs.nth(1).click();
+      await numericInputs.nth(1).type('11.0', { delay: 30 });
+      await numericInputs.nth(2).click();
+      await numericInputs.nth(2).type('0.17', { delay: 30 });
+      await numericInputs.nth(3).click();
+      await numericInputs.nth(3).type('15', { delay: 30 });
+    }
+
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Step 3: EMHASS (optional)
