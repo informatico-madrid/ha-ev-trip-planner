@@ -125,13 +125,16 @@ setup.describe('Authentication Setup', () => {
 
     // CRITICAL FIX: Use locator with input[name] selector instead of getByRole('textbox')
     // getByRole('textbox') may not recognize the element in CI due to Shadow DOM rendering
-    // but input[name="vehicle_name"] works reliably in both environments
+    // Use click first to focus, then type() which is more reliable for Shadow DOM inputs
     console.log('  [Config] Waiting for vehicle_name input to be ready...');
     const vehicleNameField = page.locator('input[name="vehicle_name"]');
     await vehicleNameField.waitFor({ state: 'visible', timeout: 30000 });
-    // In CI, element may be visible but not immediately interactable - click to focus first
+    console.log('  [Config] vehicle_name field is ready, focusing and typing...');
+
+    // Click to focus first, then type character by character
     await vehicleNameField.click();
-    console.log('  [Config] vehicle_name field is ready, filling...');
+    await vehicleNameField.type('Coche2', { delay: 50 });
+    console.log('  [Config] vehicle_name value typed, proceeding...');
 
     // Step 1: Vehicle name
     console.log('  [Config Step 1/4] Filling vehicle_name...');
