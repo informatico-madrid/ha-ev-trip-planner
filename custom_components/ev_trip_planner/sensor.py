@@ -621,6 +621,11 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             self._cached_attrs["last_update"] = datetime.now().isoformat()
             self._attr_native_value = EMHASS_STATE_ERROR
 
+    async def async_will_remove_from_hass(self) -> None:
+        """Clean up when entity is removed from Home Assistant."""
+        if hasattr(self.trip_manager, "_emhass_adapter") and self.trip_manager._emhass_adapter is not None:
+            await self.trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
+
 
 class TripSensor(SensorEntity):
     """Sensor para un viaje específico.
