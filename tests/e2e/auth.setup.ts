@@ -196,18 +196,36 @@ setup.describe('Authentication Setup', () => {
 
     // Seleccionar charging sensor (input_boolean: "Coche1 Cargando")
     console.log('  [Config] Selecting charging_sensor...');
-    await page.getByRole('combobox', { name: /charging_sensor/i }).click();
-    await page.getByRole('option', { name: /Coche1 Cargando/i }).click();
+
+    // Wait for combobox to be visible with longer timeout for CI
+    const chargingCombobox = page.getByRole('combobox', { name: /charging_sensor/i });
+    await chargingCombobox.waitFor({ state: 'visible', timeout: 30000 });
+    await chargingCombobox.click();
+
+    // Wait for options to appear in dropdown
+    const chargingOption = page.getByRole('option', { name: /Coche1 Cargando/i });
+    await chargingOption.waitFor({ state: 'visible', timeout: 15000 });
+    await chargingOption.click();
 
     // Seleccionar home sensor (input_boolean: "Coche1 En Casa")
     console.log('  [Config] Selecting home_sensor...');
-    await page.getByRole('combobox', { name: /home_sensor/i }).click();
-    await page.getByRole('option', { name: /Coche1 En Casa/i }).click();
+    const homeCombobox = page.getByRole('combobox', { name: /home_sensor/i });
+    await homeCombobox.waitFor({ state: 'visible', timeout: 15000 });
+    await homeCombobox.click();
+
+    const homeOption = page.getByRole('option', { name: /Coche1 En Casa/i });
+    await homeOption.waitFor({ state: 'visible', timeout: 15000 });
+    await homeOption.click();
 
     // Seleccionar plugged sensor (input_boolean: "Coche1 Enchufado")
     console.log('  [Config] Selecting plugged_sensor...');
-    await page.getByRole('combobox', { name: /plugged_sensor/i }).click();
-    await page.getByRole('option', { name: /Coche1 Enchufado/i }).click();
+    const pluggedCombobox = page.getByRole('combobox', { name: /plugged_sensor/i });
+    await pluggedCombobox.waitFor({ state: 'visible', timeout: 15000 });
+    await pluggedCombobox.click();
+
+    const pluggedOption = page.getByRole('option', { name: /Coche1 Enchufado/i });
+    await pluggedOption.waitFor({ state: 'visible', timeout: 15000 });
+    await pluggedOption.click();
 
     // Submit presence step
     console.log('  [Config] Submitting presence step...');
