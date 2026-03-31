@@ -10,7 +10,7 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/informatico-madrid/ha-ev-trip-planner/issues",
   "requirements": [],
-  "translations": ["es"],
+  "translations": ["es", "en"],
   "version": "0.4.1-dev",
   "panel_custom": {
     "name": "EV Trip Planner",

@@ -98,7 +98,9 @@ setup.describe('Authentication Setup', () => {
 
     // 10. Esperar el dialog de configuración
     console.log('[Step 10/10] Waiting for EV Trip Planner dialog...');
-    const dialogHeading = page.getByRole('heading', { name: /EV Trip Planner/i });
+    // The heading in HA 2026.3.4 is a generic element, not a heading role
+    // Use getByText to match the dialog title
+    const dialogHeading = page.getByText('EV Trip Planner');
     await dialogHeading.waitFor({ state: 'visible', timeout: 15000 });
     console.log('[Config] Dialog visible, proceeding with configuration...');
 
