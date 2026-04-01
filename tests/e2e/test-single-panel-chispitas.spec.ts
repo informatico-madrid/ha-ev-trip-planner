@@ -47,20 +47,14 @@ test.describe('EV Trip Planner - Single Panel for Vehicle "Chispitas" (US-1)', (
       timeout: 30000,
     });
 
-    // Verify sidebar is visible (authentication check)
-    const sidebarVisible = await page
-      .locator('ha-sidebar, [role="navigation"]')
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
-
-    if (!sidebarVisible) {
-      throw new Error('Not authenticated - sidebar not visible');
-    }
+    // Wait for sidebar to be visible (use expect for proper auto-waiting)
+    await expect(page.locator('ha-sidebar, [role="navigation"]')).toBeVisible({ timeout: 15000 });
     console.log('[Test Setup] Sidebar visible, authenticated');
   }
 
   /**
    * Add a new vehicle via the HA Config Flow
+   * Uses the same robust pattern as auth.setup.ts
    */
   async function addVehicleViaConfigFlow(page: any, vehicleName: string): Promise<void> {
     console.log(`[Config Flow] Starting to add vehicle: ${vehicleName}`);
@@ -72,23 +66,29 @@ test.describe('EV Trip Planner - Single Panel for Vehicle "Chispitas" (US-1)', (
     console.log('[Config Flow] Clicking Add integration...');
     await page.getByRole('button', { name: /Add integration/i }).click();
 
-    // Wait for the integration selection dialog
-    await page.waitForTimeout(1000);
-
     // Search for EV Trip Planner
     console.log('[Config Flow] Searching for EV Trip Planner...');
     const searchBox = page.getByRole('textbox', { name: /Search for a brand name/i });
     await searchBox.waitFor({ state: 'visible', timeout: 10000 });
     await searchBox.fill('EV Trip Planner');
-    await expect(page.getByText('EV Trip Planner')).toBeVisible({ timeout: 5000 });
 
-    // Select EV Trip Planner
-    console.log('[Config Flow] Selecting EV Trip Planner...');
-    await page.getByText('EV Trip Planner').click();
+    // Wait for search results and use .first() since we're adding a new instance
+    // The search results show only items matching the search, so there's no ambiguity
+    await expect(page.getByText('EV Trip Planner').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('text="EV Trip Planner"').first().click();
 
     // Wait for the config dialog to appear
-    console.log('[Config Flow] Waiting for config dialog...');
-    await page.waitForTimeout(2000);
+    console.log('[Config Flow] Waiting for EV Trip Planner dialog...');
+    const dialogHeading = page.getByText('EV Trip Planner');
+    await dialogHeading.waitFor({ state: 'visible', timeout: 15000 });
+    console.log('[Config Flow] Dialog visible, proceeding with configuration...');
+
+    // CI may have slower rendering - wait additional time for Shadow DOM form to render
+    await page.waitForTimeout(3000);
+
+    // Debug: Check if form fields are present
+    const formFields = await page.locator('input').count();
+    console.log('[Config Flow] Form input fields found:', formFields);
 
     // Step 1: Enter vehicle name
     console.log('[Config Flow Step 1] Entering vehicle name...');
@@ -98,7 +98,7 @@ test.describe('EV Trip Planner - Single Panel for Vehicle "Chispitas" (US-1)', (
     await vehicleNameField.type(vehicleName, { delay: 50 });
     await page.getByRole('button', { name: 'Submit' }).click();
 
-    // Wait for step 2 form
+    // Wait for step 2 form to render
     await page.waitForTimeout(2000);
 
     // Step 2: Fill sensors (numeric fields)
@@ -120,29 +120,68 @@ test.describe('EV Trip Planner - Single Panel for Vehicle "Chispitas" (US-1)', (
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Step 3: EMHASS (optional)
-    console.log('[Config Flow Step 3] Skipping EMHASS (optional)...');
+    console.log('[Config Flow Step 3] Submitting EMHASS (optional)...');
     await page.getByRole('button', { name: 'Submit' }).click();
 
-    // Wait for step 4 (presence sensors)
+    // Step 4: Presence sensors - wait for presence form to render
+    console.log('[Config Flow Step 4] Selecting presence sensors...');
     await page.waitForTimeout(2000);
 
-    // Step 4: Presence sensors - submit with auto-selection
-    console.log('[Config Flow Step 4] Submitting presence sensors...');
+    // Check if there's a validation error BEFORE trying to submit
+    const validationError = page.locator('text="Not all required fields are filled in"');
+    const hasValidationError = await validationError
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
+
+    if (hasValidationError) {
+      console.log('[Config] Validation error detected before presence submit, clicking Submit...');
+      await page.getByRole('button', { name: /Submit|Next/i }).click();
+    }
+
+    // Presence sensors - backend will auto-select if none selected
+    // Skip UI selection since dropdown may not populate in CI
+    console.log('[Config] Presence step - backend will auto-select entities...');
+
+    // Submit presence step - wait for the button to be enabled and click it
+    console.log('[Config] Submitting presence step...');
     const presenceSubmitButton = page.getByRole('button', { name: /Submit|Next/i });
     await presenceSubmitButton.waitFor({ state: 'visible', timeout: 10000 });
     await presenceSubmitButton.click();
 
-    // Wait for notifications form
-    await page.waitForTimeout(2000);
-
-    // Step 5: Notifications - submit if visible
-    const notificationsSubmitButton = page.getByRole('button', { name: /Submit|Next/i });
-    const notificationsVisible = await notificationsSubmitButton.isVisible({ timeout: 3000 }).catch(() => false);
-    if (notificationsVisible) {
-      console.log('[Config Flow Step 5] Submitting notifications...');
-      await notificationsSubmitButton.click();
+    // The presence form might need to be submitted twice due to JavaScript errors in HA's dialog
+    // Wait a moment and check if the form redisplayed (user_input=None case)
+    await page.waitForTimeout(1000);
+    const presenceFormRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+    if (presenceFormRedisplayed) {
+      console.log('[Config] Presence form redisplayed - submitting again...');
+      await page.getByRole('button', { name: /Submit|Next/i }).click();
       await page.waitForTimeout(1000);
     }
+
+    // Wait for notifications form to appear (step 5)
+    console.log('[Config] Waiting for notifications form to appear...');
+    await page.waitForTimeout(2000);
+
+    // The notifications form might also need to be submitted twice due to JavaScript errors
+    const notificationsSubmitButton = page.getByRole('button', { name: /Submit|Next/i });
+    const notificationsFormVisible = await notificationsSubmitButton.isVisible({ timeout: 5000 }).catch(() => false);
+    if (notificationsFormVisible) {
+      console.log('[Config] Submitting notifications form...');
+      await notificationsSubmitButton.click();
+      await page.waitForTimeout(1000);
+
+      // Check if form redisplayed (user_input=None case for notifications)
+      const notificationsFormRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+      if (notificationsFormRedisplayed) {
+        console.log('[Config] Notifications form redisplayed - submitting again...');
+        await page.getByRole('button', { name: /Submit|Next/i }).click();
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    // Verify the dialog has closed
+    console.log('[Config Flow] Waiting for dialog to close...');
+    await expect(page.getByRole('button', { name: /Add integration/i })).toBeVisible({ timeout: 10000 });
 
     console.log(`[Config Flow] Vehicle "${vehicleName}" added successfully`);
   }

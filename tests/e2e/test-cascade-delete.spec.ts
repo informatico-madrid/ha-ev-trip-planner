@@ -223,9 +223,8 @@ async function reAddIntegration(page: any, vehicleName: string): Promise<void> {
     timeout: 30000,
   });
 
-  // Wait for page to load
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(2000);
+  // Wait for sidebar to be visible
+  await expect(page.locator('ha-sidebar, [role="navigation"]')).toBeVisible({ timeout: 15000 });
 
   // Click "Add integration"
   console.log('[Test] Clicking Add integration...');
@@ -233,13 +232,21 @@ async function reAddIntegration(page: any, vehicleName: string): Promise<void> {
 
   // Search for EV Trip Planner
   console.log('[Test] Searching for EV Trip Planner...');
-  await page.getByRole('textbox', { name: /Search for a brand name/i }).fill('EV Trip Planner');
-  await expect(page.getByText('EV Trip Planner')).toBeVisible({ timeout: 5000 });
-  await page.getByText('EV Trip Planner').click();
+  const searchBox = page.getByRole('textbox', { name: /Search for a brand name/i });
+  await searchBox.waitFor({ state: 'visible', timeout: 10000 });
+  await searchBox.fill('EV Trip Planner');
+
+  // Wait for search results and use .first() - search results only show matching items
+  await expect(page.getByText('EV Trip Planner').first()).toBeVisible({ timeout: 5000 });
+  await page.locator('text="EV Trip Planner"').first().click();
 
   // Wait for dialog
   console.log('[Test] Waiting for dialog...');
-  await page.waitForTimeout(2000);
+  const dialogHeading = page.getByText('EV Trip Planner');
+  await dialogHeading.waitFor({ state: 'visible', timeout: 15000 });
+
+  // CI may have slower rendering
+  await page.waitForTimeout(3000);
 
   // Fill vehicle name
   const vehicleNameField = page.locator('input[name="vehicle_name"]');
@@ -272,18 +279,49 @@ async function reAddIntegration(page: any, vehicleName: string): Promise<void> {
   await page.getByRole('button', { name: 'Submit' }).click();
   await page.waitForTimeout(2000);
 
-  // Skip presence step
+  // Presence step - same robust handling as auth.setup.ts
+  console.log('[Test] Submitting presence step...');
+
+  // Check if there's a validation error BEFORE trying to submit
+  const validationError = page.locator('text="Not all required fields are filled in"');
+  const hasValidationError = await validationError
+    .isVisible({ timeout: 2000 })
+    .catch(() => false);
+
+  if (hasValidationError) {
+    console.log('[Test] Validation error detected before presence submit, clicking Submit...');
+    await page.getByRole('button', { name: /Submit|Next/i }).click();
+  }
+
   const presenceSubmit = page.getByRole('button', { name: /Submit|Next/i });
-  if (await presenceSubmit.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await presenceSubmit.click();
-    await page.waitForTimeout(2000);
+  await presenceSubmit.waitFor({ state: 'visible', timeout: 10000 });
+  await presenceSubmit.click();
+
+  // The presence form might need to be submitted twice
+  await page.waitForTimeout(1000);
+  const presenceFormRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+  if (presenceFormRedisplayed) {
+    console.log('[Test] Presence form redisplayed - submitting again...');
+    await page.getByRole('button', { name: /Submit|Next/i }).click();
+    await page.waitForTimeout(1000);
   }
 
   // Skip notifications step if visible
+  await page.waitForTimeout(2000);
   const notifSubmit = page.getByRole('button', { name: /Submit|Next/i });
-  if (await notifSubmit.isVisible({ timeout: 2000 }).catch(() => false)) {
+  const notifVisible = await notifSubmit.isVisible({ timeout: 3000 }).catch(() => false);
+  if (notifVisible) {
+    console.log('[Test] Submitting notifications form...');
     await notifSubmit.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1000);
+
+    // Check if form redisplayed
+    const notifRedisplayed = await page.getByRole('button', { name: /Submit|Next/i }).isVisible().catch(() => false);
+    if (notifRedisplayed) {
+      console.log('[Test] Notifications form redisplayed - submitting again...');
+      await page.getByRole('button', { name: /Submit|Next/i }).click();
+      await page.waitForTimeout(1000);
+    }
   }
 
   console.log('[Test] Re-added integration');

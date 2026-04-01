@@ -87,3 +87,4 @@ tests/ha-manual/
 playwright-results.json
 playwright-results.xml
 .env
+.playwright-mcp/*
