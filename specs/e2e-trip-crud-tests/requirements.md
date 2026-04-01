@@ -2,191 +2,159 @@
 
 ## Goal
 
-Create Playwright E2E tests that verify the complete CRUD lifecycle of trips (Create, Edit, Delete) for a configured vehicle in the EV Trip Planner panel. Tests interact through Shadow DOM with real user workflows and validate that trips persist correctly in the trip list.
+Create end-to-end Playwright tests that verify the CRUD functionality (Create, Edit, Delete) for trips in the EV Trip Planner Home Assistant integration. Production code exists and works; only tests are created.
 
 ## User Stories
 
 ### US-1: Create Recurring Trip
 
-**As a** vehicle owner
-**I want to** create a recurring trip with day, time, distance, and energy values
-**So that** I can schedule repeated weekly trips for my commute
+**As a** user  
+**I want to** create a recurring weekly trip for my vehicle  
+**So that** the system can plan charging schedules around my regular commute
 
 **Acceptance Criteria:**
-- [ ] AC-1.1: Clicking ".add-trip-btn" opens the trip form modal
-- [ ] AC-1.2: Selecting "recurrente" reveals day selector (#trip-day) and time selector (#trip-time)
-- [ ] AC-1.3: Day selector (#trip-day) accepts values 0-6 (Sunday-Saturday)
-- [ ] AC-1.4: Time selector (#trip-time) accepts 24h time format
-- [ ] AC-1.5: Distance field (#trip-km) accepts numeric values with 0.1 step
-- [ ] AC-1.6: Energy field (#trip-kwh) accepts numeric values with 0.1 step
-- [ ] AC-1.7: Description field (#trip-description) accepts free text
-- [ ] AC-1.8: Submitting form with "Crear Viaje" button creates the trip
-- [ ] AC-1.9: Form closes after successful creation
-- [ ] AC-1.10: New recurring trip appears in .trips-list with correct day/time/km values
-- [ ] AC-1.11: Trip card has unique data-trip-id attribute
+- [ ] AC-1.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
+- [ ] AC-1.2: Click "Add Trip" button and verify form opens
+- [ ] AC-1.3: Select trip type "Recurrente" (recurring)
+- [ ] AC-1.4: Select a day of the week (e.g., "Lunes")
+- [ ] AC-1.5: Enter time (e.g., "08:00")
+- [ ] AC-1.6: Enter distance in km (e.g., "25.5")
+- [ ] AC-1.7: Enter energy in kWh (e.g., "5.2")
+- [ ] AC-1.8: Submit form and verify trip appears in trip list
+- [ ] AC-1.9: Verify trip count increases by 1
+- [ ] AC-1.10: Trip persists after page reload
 
 ### US-2: Create Punctual Trip
 
-**As a** vehicle owner
-**I want to** create a one-time trip with a specific datetime and distance
-**So that** I can plan an irregular trip outside my regular schedule
+**As a** user  
+**I want to** create a one-time trip for my vehicle  
+**So that** the system can account for an irregular journey
 
 **Acceptance Criteria:**
-- [ ] AC-2.1: Clicking ".add-trip-btn" opens the trip form modal
-- [ ] AC-2.2: Selecting "puntual" reveals datetime selector (#trip-datetime) instead of day/time
-- [ ] AC-2.3: DateTime selector (#trip-datetime) accepts ISO datetime-local format
-- [ ] AC-2.4: Distance field (#trip-km) accepts numeric values
-- [ ] AC-2.5: Energy field (#trip-kwh) accepts numeric values
-- [ ] AC-2.6: Submitting form with "Crear Viaje" button creates the trip
-- [ ] AC-2.7: New punctual trip appears in .trips-list with correct datetime/km values
-- [ ] AC-2.8: Trip card shows punctual indicator (not showing day-of-week)
+- [ ] AC-2.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
+- [ ] AC-2.2: Click "Add Trip" button and verify form opens
+- [ ] AC-2.3: Select trip type "Puntual" (one-time)
+- [ ] AC-2.4: Verify day-of-week selector is hidden for punctual trips
+- [ ] AC-2.5: Enter date and time via datetime-local input
+- [ ] AC-2.6: Enter distance in km (e.g., "50.0")
+- [ ] AC-2.7: Enter energy in kWh (e.g., "10.0")
+- [ ] AC-2.8: Submit form and verify trip appears in trip list
+- [ ] AC-2.9: Verify trip count increases by 1
+- [ ] AC-2.10: Trip persists after page reload
 
 ### US-3: Edit Trip
 
-**As a** vehicle owner
-**I want to** modify an existing trip's details
-**So that** I can correct mistakes or update my schedule
+**As a** user  
+**I want to** edit an existing trip  
+**So that** I can update my travel plans when they change
 
 **Acceptance Criteria:**
-- [ ] AC-3.1: Clicking ".trip-action-btn.edit-btn" on a trip card opens edit form
-- [ ] AC-3.2: Edit form pre-fills all existing trip values (type, day/time or datetime, km, kwh, description)
-- [ ] AC-3.3: Submit button text changes to "Guardar Cambios"
-- [ ] AC-3.4: Modifying km or time and submitting saves the changes
-- [ ] AC-3.5: Edited trip reflects new values in the .trips-list immediately
-- [ ] AC-3.6: Clicking ".btn.btn-secondary" (Cancelar) discards changes and closes form
+- [ ] AC-3.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
+- [ ] AC-3.2: Verify at least one trip exists (create one if needed)
+- [ ] AC-3.3: Click edit button on a trip card
+- [ ] AC-3.4: Verify edit form opens with pre-filled values
+- [ ] AC-3.5: Modify time (e.g., change from "08:00" to "09:00")
+- [ ] AC-3.6: Modify distance (e.g., change from "25.5" to "30.0")
+- [ ] AC-3.7: Submit changes and verify form closes
+- [ ] AC-3.8: Verify trip card reflects updated values
+- [ ] AC-3.9: Changes persist after page reload
 
 ### US-4: Delete Trip
 
-**As a** vehicle owner
-**I want to** delete an unwanted trip
-**So that** I can remove trips I no longer need
+**As a** user  
+**I want to** delete a trip  
+**So that** I can remove trips that are no longer needed
 
 **Acceptance Criteria:**
-- [ ] AC-4.1: Clicking ".trip-action-btn.delete-btn" triggers browser confirmation dialog
-- [ ] AC-4.2: Accepting confirmation removes trip from .trips-list
-- [ ] AC-4.3: Dismissing confirmation keeps trip in .trips-list unchanged
-- [ ] AC-4.4: Deleted trip no longer appears in the list (data-trip-id removed)
-- [ ] AC-4.5: Empty state (.no-trips) shows if last trip is deleted
+- [ ] AC-4.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
+- [ ] AC-4.2: Verify at least one trip exists (create one if needed)
+- [ ] AC-4.3: Record current trip count
+- [ ] AC-4.4: Click delete button on a trip card
+- [ ] AC-4.5: Handle browser confirmation dialog (accept)
+- [ ] AC-4.6: Verify trip is removed from trip list
+- [ ] AC-4.7: Verify trip count decreases by 1
+- [ ] AC-4.8: Deletion persists after page reload
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Acceptance Criteria |
 |----|-------------|----------|---------------------|
-| FR-1 | Panel loads at /ev-trip-planner-{vehicle_id} | High | URL matches pattern, panel renders |
-| FR-2 | Shadow DOM traversal works | High | ev-trip-planner-panel >> .selector finds elements |
-| FR-3 | Recurring trip creation | High | AC-1.1 through AC-1.11 verified |
-| FR-4 | Punctual trip creation | High | AC-2.1 through AC-2.8 verified |
-| FR-5 | Trip editing | High | AC-3.1 through AC-3.6 verified |
-| FR-6 | Trip deletion with confirmation | High | AC-4.1 through AC-4.5 verified |
-| FR-7 | Form validation | Medium | Required fields enforced before submit |
-| FR-8 | Form cancel/discard | Medium | Cancel button closes form without changes |
-| FR-9 | Trip list updates reactively | High | New trips appear immediately after submit |
-| FR-10 | Independent test data | High | Each test creates and cleans up its own trips |
+| FR-1 | Navigate to EV Trip Planner panel | High | Panel loads with `ev-trip-planner-panel` custom element visible |
+| FR-2 | Open Add Trip form | High | Form overlay appears with all fields visible |
+| FR-3 | Shadow DOM selector traversal | High | All form fields accessible via `ev-trip-planner-panel >> #selector` |
+| FR-4 | Create recurring trip | High | Trip saved to backend and appears in UI |
+| FR-5 | Create punctual trip | High | Trip saved with datetime and appears in UI |
+| FR-6 | Form field validation | Medium | Required fields enforced before submit |
+| FR-7 | Open edit form | High | Edit form pre-populated with trip data |
+| FR-8 | Update trip | High | Changes saved and reflected in UI |
+| FR-9 | Delete trip with confirmation | High | Dialog handled, trip removed from list |
+| FR-10 | Trip persistence | High | All CRUD operations survive page reload |
+| FR-11 | Test independence | High | Each test cleans up created data |
+| FR-12 | Trip count tracking | Medium | `getTripCount()` returns accurate count via Shadow DOM evaluation |
 
 ## Non-Functional Requirements
 
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
-| NFR-1 | Execution time | Total test suite | < 5 minutes |
-| NFR-2 | Reliability | Pass rate | 100% (no flakes) |
-| NFR-3 | Browser support | Chromium | Latest stable |
-| NFR-4 | Auth state | Reused via storageState | Consistent login across tests |
-| NFR-5 | Test independence | Data isolation | No shared state between tests |
+| NFR-1 | Test execution time | seconds per test | < 60s per test |
+| NFR-2 | Selector reliability | Shadow DOM access | 100% - no flaky selectors |
+| NFR-3 | Dialog handling | page.on('dialog') | Must register before action triggers dialog |
+| NFR-4 | Cleanup | Trips removed | All test-created trips deleted in afterEach |
+| NFR-5 | Auth state | storageState | Reused across tests via auth.setup.ts |
 
 ## Glossary
 
-- **Shadow DOM**: Browser encapsulation in Lit web components - selectors must pierce via `ev-trip-planner-panel >> selector`
-- **Recurring trip**: Weekly repeating trip with day (0-6) and time fields
-- **Punctual trip**: One-time trip with specific datetime field
-- **storageState**: Playwright artifact containing encrypted auth cookies for session reuse
-- **Config Flow**: Home Assistant integration setup wizard dialog
+- **Shadow DOM**: Web Component encapsulated DOM - requires `>>` combinator in Playwright to pierce
+- **Ephemeral container**: Temporary Home Assistant instance created by hass-taste-test for testing
+- **Config Flow**: Home Assistant integration configuration wizard UI
+- **Coche2**: Test vehicle name configured via Config Flow
+- **Recurring trip**: Weekly repeating trip with day-of-week and time
+- **Punctual trip**: One-time trip with specific date and time
+- **storageState**: Playwright authenticated state file for reusing login across tests
 
 ## Out of Scope
 
-- Testing pause/resume functionality for recurring trips
-- Testing complete/cancel for punctual trips
-- Testing the backend service integration directly
-- Multi-vehicle scenarios
-- Performance/load testing
-- Cross-browser testing (Firefox, Safari)
-- Mobile viewport testing
+- Listing/reading trips (implicit - tests verify CRUD but don't explicitly test list pagination)
+- Pause/Resume trip functionality
+- Trip completion marking
+- Multiple vehicle support (tests use only "Coche2")
+- Backend API testing (only UI E2E tests)
+- Production code changes
 
 ## Dependencies
 
-| Dependency | Purpose | Notes |
-|------------|---------|-------|
-| Home Assistant test-ha | Running HA instance | localhost:8123 |
-| auth.setup.ts | Login + Config Flow + storageState | Must pass before tests run |
-| EV Trip Planner integration | Panel UI to test | Vehicle "Coche2" configured |
-| Playwright chromium | Browser automation | Only chromium required |
-| tests/e2e/global.setup.ts | Ephemeral HA server lifecycle | Manages test-ha Docker |
+- **auth.setup.ts**: Provides authenticated storageState with "Coche2" configured
+- **test-helpers.ts**: TripPanel base class with `navigateToPanel`, `fillTripForm`, `submitTripForm`, `setupDialogHandler`, `getTripCount`
+- **global.setup.ts**: Creates ephemeral HA container (handled by hass-taste-test)
+- **hass-taste-test**: Ephemeral HA instance management
 
 ## Verification Contract
 
-**Entry points:**
-- `npx playwright test e2e-trip-crud-tests/auth.setup.ts` - runs first to authenticate
-- `npx playwright test e2e-trip-crud-tests/trips.spec.ts` - runs CRUD tests
-- Panel URL: `http://localhost:8123/ev-trip-planner-Coche2`
+**Project type**: greenfield (new test files only, no production code changes)
 
-**Observable signals:**
+**Entry points**:
+- `tests/e2e/trip-crud.spec.ts` - main test file
+- `tests/e2e/pages/trips.page.ts` - Page Object for trips
+- `tests/e2e/auth.setup.ts` - existing authentication setup (no changes)
 
-*US-1/2 PASS:*
-- Form closes after submit
-- .trips-list contains .trip-card with data-trip-id
-- Card shows correct type label ("Recurrente" or "Puntual")
-- Card shows correct day/time or datetime
-- Card shows correct km/kwh values
+**Observable signals**:
+- PASS: Trip card appears in `.trips-list` with correct values, trip count changes
+- FAIL: Form stays open, trip not visible, console errors, wrong data displayed
 
-*US-1/2 FAIL:*
-- Form shows validation errors
-- Trip does not appear in list after 5s wait
-- Error notification appears
+**Hard invariants**:
+- Auth state must be valid - storageState from auth.setup.ts
+- Vehicle "Coche2" must be configured
+- Dialog must be accepted for delete to proceed
 
-*US-3 PASS:*
-- Edit form opens with pre-filled values
-- After edit, .trip-card reflects new values
-- "Guardar Cambios" button text visible during edit
+**Seed data**:
+- Vehicle "Coche2" configured via Config Flow in auth.setup.ts
+- Authenticated session via storageState
 
-*US-3 FAIL:*
-- Form not pre-filled (values show placeholder or empty)
-- Values unchanged after save
+**Dependency map**:
+- `tests/e2e/auth.setup.ts` - sets up Coche2 vehicle
+- `tests/e2e/test-helpers.ts` - TripPanel base class
 
-*US-4 PASS:*
-- Confirmation dialog appears (browser alert)
-- After accept, .trip-card with specific data-trip-id is removed
-- .no-trips shows if list becomes empty
-
-*US-4 FAIL:*
-- No confirmation dialog
-- Trip remains in list after "delete" click
-- data-trip-id still present
-
-**Hard invariants:**
-- Auth session remains valid throughout test file
-- Vehicle "Coche2" remains configured in HA
-- No test modifies another test's trips (independent cleanup)
-- Panel URL pattern is /ev-trip-planner-Coche2 (not /panel/ev-trip-planner-Coche2)
-
-**Seed data:**
-- Vehicle "Coche2" configured via auth.setup.ts Config Flow
-- Vehicle has battery_capacity=75, charging_power=11, consumption=0.17, safety_margin=15
-- No pre-existing trips (each test creates its own)
-
-**Dependency map:**
-- auth.setup.ts writes panel URL to `playwright/.auth/panel-url.txt`
-- global.setup.ts manages test-ha Docker container lifecycle
-- EV Trip Planner integration provides the web component
-
-**Escalate if:**
-- Browser confirmation dialog does not appear on delete (possible HA/panel regression)
-- Shadow DOM selectors stop working (web component changed)
-- Auth.setup.ts fails (blocks all subsequent tests)
-
-## Success Criteria
-
-- [ ] 4 user stories implemented as Playwright tests
-- [ ] All tests pass on first run (no retries)
-- [ ] Total execution time < 5 minutes
-- [ ] Tests run in CI pipeline via `npx playwright test`
-- [ ] Each test cleans up its own created trips
-- [ ] Tests use Shadow DOM traversal pattern correctly
+**Escalate if**:
+- Config Flow fails during auth.setup.ts (integration not configured)
+- Shadow DOM selectors fail to find elements (panel.js version mismatch)
+- Dialog not triggered on delete click (frontend regression)
