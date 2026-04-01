@@ -168,7 +168,7 @@ def hass():
 
         # Crear y devolver una tarea que ejecute la función
         try:
-            if inspect.iscoroutinefunction(job_target):
+            if asyncio.iscoroutinefunction(job_target):
                 coro = job_target(*job_args, **filtered_kwargs)
                 if asyncio.iscoroutine(coro):
                     return coro
@@ -396,31 +396,6 @@ def mock_config_entries():
     entries_manager._entries["config_entry_123"] = default_entry
 
     yield entries_manager
-
-
-@pytest.fixture
-def mock_entry(hass):
-    """
-    Return a mock ConfigEntry for EMHASSAdapter tests.
-
-    This creates a proper ConfigEntry mock with entry_id and data attributes
-    that EMHASSAdapter expects after the refactoring to use ConfigEntry.
-    """
-    from unittest.mock import MagicMock
-
-    entry = MagicMock()
-    entry.entry_id = "test_entry_id"
-    entry.data = {
-        "vehicle_name": "test_vehicle",
-        "max_deferrable_loads": 50,
-        "charging_power": 7.4,
-        "soc_sensor": "sensor.ovms_soc",
-        "battery_capacity_kwh": 60.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10,
-    }
-    entry.options = {}
-    return entry
 
 
 @pytest.fixture

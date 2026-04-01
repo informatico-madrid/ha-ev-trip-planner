@@ -88,3 +88,5 @@ playwright-results.json
 playwright-results.xml
 .env
 .playwright-mcp/*
+ui-map.local.md
+.claude/playwright-env.local.md

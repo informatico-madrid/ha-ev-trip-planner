@@ -137,7 +137,7 @@ await page.waitForTimeout(2000);
 | Acción | Selector |
 |---|---|
 | Botón Add integration | `getByRole('button', { name: /Add integration/i })` |
-| Search input | `getByRole('textbox', { name: /Search for a brand name/i })` |
+| Search input | `getByPlaceholder('Search for a brand name')` |
 | Resultado EV Trip Planner | `getByText('EV Trip Planner')` |
 | Campo vehicle_name | `locator('input[name="vehicle_name"]')` — usar `.type(value, {delay:50})` |
 | Submit | `getByRole('button', { name: 'Submit' })` |
@@ -145,7 +145,7 @@ await page.waitForTimeout(2000);
 **Patrón completo añadir integración:**
 ```ts
 await page.getByRole('button', { name: /Add integration/i }).click();
-await page.getByRole('textbox', { name: /Search for a brand name/i }).fill('EV Trip Planner');
+await page.getByPlaceholder('Search for a brand name').fill('EV Trip Planner');
 await expect(page.getByText('EV Trip Planner')).toBeVisible({ timeout: 5000 });
 await page.getByText('EV Trip Planner').click();
 await page.waitForTimeout(2000);
