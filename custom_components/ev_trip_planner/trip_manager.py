@@ -613,6 +613,8 @@ class TripManager:
     async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
         _LOGGER.debug("Deleting all trips for vehicle %s", self.vehicle_id)
+        # Clear ALL trip storage including legacy _trips dict
+        self._trips = {}
         self._recurring_trips = {}
         self._punctual_trips = {}
         await self.async_save_trips()
@@ -1134,6 +1136,19 @@ class TripManager:
     def _get_day_index(self, day_name: str) -> int:
         """Obtiene el índice del día de la semana."""
         day_lower = day_name.lower().strip()
+
+        # Handle numeric day values (0-6)
+        # 0 = Monday (in Python's weekday()) or 0 = Sunday depending on convention
+        # HA uses 0 = Monday, so we map 0-6 to DAYS_OF_WEEK directly
+        if day_lower.isdigit():
+            day_index = int(day_lower)
+            if 0 <= day_index < len(DAYS_OF_WEEK):
+                return day_index
+            _LOGGER.warning(
+                "Day index %d out of range, defaulting to Monday", day_index
+            )
+            return 0  # Monday
+
         # Try direct match first
         try:
             return DAYS_OF_WEEK.index(day_lower)
@@ -1145,11 +1160,11 @@ class TripManager:
             if day.lower() == day_lower:
                 return i
 
-        # If still not found, default to Monday (index 1)
+        # If still not found, default to Monday (index 0)
         _LOGGER.warning(
             "Day '%s' not found in DAYS_OF_WEEK, defaulting to Monday", day_name
         )
-        return 1
+        return 0
 
     async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
         """Obtiene el SOC actual del vehículo desde el sensor configurado."""
@@ -1893,7 +1908,7 @@ class TripManager:
                 continue  # La ventana ya terminó
 
             # Distribuir la carga en las horas disponibles
-            for h in range(hora_inicio_carga, min(hora_inicio_carga + horas_necesarias, horas_hasta_fin, profile_length)):
+            for h in range(int(hora_inicio_carga), min(int(hora_inicio_carga + horas_necesarias), horas_hasta_fin, profile_length)):
                 if h >= 0 and h < profile_length:
                     power_profile[h] = charging_power_watts
 
@@ -2028,7 +2043,7 @@ class TripManager:
             hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
 
             # Distribuir la carga en las horas disponibles
-            for h in range(hora_inicio_carga, min(horas_hasta_viaje, profile_length)):
+            for h in range(int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)):
                 if h >= 0 and h < profile_length:
                     power_profiles[idx][h] = charging_power_watts
 

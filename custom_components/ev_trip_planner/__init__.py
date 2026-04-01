@@ -474,6 +474,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "=== async_setup_entry - namespace: %s ===", f"{DOMAIN}_{entry.entry_id}"
     )
 
+    # Clean up any existing storage for this vehicle_id BEFORE loading
+    # This handles the case where async_remove_entry wasn't called (e.g., due to HA bugs)
+    # When a user deletes and re-adds an integration, we want a fresh start
+    try:
+        from homeassistant.helpers import storage as ha_storage
+        import os
+        from pathlib import Path
+        cleanup_key = f"{DOMAIN}_{vehicle_id}"
+        _LOGGER.warning(
+            "=== async_setup_entry - Checking for stale storage: %s ===", cleanup_key
+        )
+        cleanup_store = ha_storage.Store(hass, version=1, key=cleanup_key)
+        existing_data = await cleanup_store.async_load()
+        if existing_data:
+            _LOGGER.warning(
+                "=== async_setup_entry - Found stale storage for %s, cleaning up ===",
+                vehicle_id,
+            )
+            await cleanup_store.async_remove()
+            _LOGGER.info(
+                "Cleaned up stale storage for vehicle %s during setup", vehicle_id
+            )
+        else:
+            _LOGGER.warning(
+                "=== async_setup_entry - No stale storage found for %s ===", vehicle_id
+            )
+        # Also check for YAML fallback storage and remove it
+        yaml_path = Path(hass.config.config_dir or "/config") / "ev_trip_planner" / f"{cleanup_key}.yaml"
+        if yaml_path.exists():
+            _LOGGER.warning(
+                "=== async_setup_entry - Found stale YAML storage for %s, cleaning up ===",
+                vehicle_id,
+            )
+            os.unlink(yaml_path)
+            _LOGGER.info(
+                "Cleaned up stale YAML storage for vehicle %s during setup", vehicle_id
+            )
+    except Exception as cleanup_err:
+        _LOGGER.warning(
+            "=== async_setup_entry - Storage cleanup error (continuing): %s ===",
+            cleanup_err,
+        )
+
     # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
     hass.data.setdefault(DATA_RUNTIME, {})
@@ -645,21 +688,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace
     vehicle_name = entry.data.get("name", vehicle_id)
+    panel_registered = False
     try:
         # Import the panel module
         from . import panel as panel_module
 
-        await panel_module.async_register_panel(
+        panel_result = await panel_module.async_register_panel(
             hass,
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_name,
         )
-    except Exception as err:  # pragma: no cover
-        # Log but don't fail - panel registration is optional
-        _LOGGER.warning(
-            "Could not register native panel for %s: %s",
+        panel_registered = panel_result is True
+        if not panel_registered:
+            _LOGGER.error(
+                "Panel registration returned False for vehicle %s - panel will not be available in sidebar",
+                vehicle_name,
+            )
+    except Exception as err:
+        # Log the full error since panel registration failure is critical
+        _LOGGER.error(
+            "Failed to register panel for vehicle %s: %s. Panel will not be available.",
             vehicle_name,
             err,
+            exc_info=True,
         )
 
     # Store config, trip_manager, coordinator AND emhass_adapter
@@ -729,35 +780,165 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vehicle_id = entry.data.get("vehicle_name").lower().replace(" ", "_")
     vehicle_name = entry.data.get("vehicle_name", vehicle_id)
 
-    _LOGGER.info("Unloading EV Trip Planner for vehicle: %s", vehicle_name)
+    _LOGGER.warning("=== async_unload_entry CALLED for vehicle: %s ===", vehicle_name)
+    _LOGGER.warning("=== async_unload_entry - entry_id: %s ===", entry.entry_id)
 
     # Cascade delete: remove all trips before unloading
+    # IMPORTANT: This must complete BEFORE we return from this function
+    # to ensure trips are properly deleted when integration is removed
     namespace = f"{DOMAIN}_{entry.entry_id}"
+    trip_manager = None
     if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
         trip_manager = hass.data[DATA_RUNTIME][namespace].get("trip_manager")
-        if trip_manager:
-            await trip_manager.async_delete_all_trips()
-            _LOGGER.info(
-                "Cascade deleted all trips for vehicle %s during unload", vehicle_name
+
+    if trip_manager:
+        _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+        await trip_manager.async_delete_all_trips()
+        _LOGGER.warning(
+            "Cascade delete completed for vehicle %s during unload", vehicle_name
+        )
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # Clean up runtime data AFTER platforms are unloaded
+    if DATA_RUNTIME in hass.data:
+        hass.data[DATA_RUNTIME].pop(namespace, None)
+
+    # Remove the native panel from sidebar
+    # Use vehicle_id computed from vehicle_name (not entry.data["vehicle_id"] which doesn't exist)
+    if unload_ok:
+        try:
+            await async_unregister_panel(hass, vehicle_id)
+        except Exception as ex:  # pragma: no cover
+            _LOGGER.warning(
+                "Failed to unregister panel for vehicle %s: %s",
+                vehicle_id,
+                ex,
             )
 
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        # Clean up runtime data
-        if DATA_RUNTIME in hass.data:
-            hass.data[DATA_RUNTIME].pop(namespace, None)
-
-        # Remove the native panel from sidebar
-        if "vehicle_id" in entry.data:
-            try:
-                await async_unregister_panel(hass, vehicle_id)
-            except Exception as ex:  # pragma: no cover
-                _LOGGER.warning(
-                    "Failed to unregister panel for vehicle %s: %s",
-                    vehicle_id,
-                    ex,
-                )
-
+    _LOGGER.info(
+        "Unload completed for vehicle %s, unload_ok=%s", vehicle_name, unload_ok
+    )
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove a config entry and all its data.
+
+    This is called AFTER async_unload_entry when an entry is completely removed.
+    It handles final cleanup of persistent storage.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry: The config entry to remove.
+    """
+    _LOGGER.warning("=== async_remove_entry CALLED ===")
+    _LOGGER.warning("=== async_remove_entry - entry.entry_id: %s ===", entry.entry_id)
+    _LOGGER.warning("=== async_remove_entry - entry.data: %s ===", entry.data)
+    _LOGGER.warning("=== async_remove_entry - type(entry.data): %s ===", type(entry.data))
+
+    # Safely extract vehicle_name from entry.data
+    vehicle_name_raw = entry.data.get("vehicle_name") if entry.data else None
+    _LOGGER.warning("=== async_remove_entry - vehicle_name_raw: %s ===", vehicle_name_raw)
+
+    if not vehicle_name_raw:
+        _LOGGER.error("async_remove_entry: vehicle_name not found in entry.data! entry.data=%s", entry.data)
+        # Try to get from other possible keys
+        _LOGGER.error("async_remove_entry: available keys in entry.data: %s", list(entry.data.keys()) if entry.data else "None")
+        # Fall back to using entry_id as identifier
+        vehicle_id = entry.entry_id
+        vehicle_name = f"unknown_{entry.entry_id[:8]}"
+    else:
+        vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
+        vehicle_name = vehicle_name_raw
+
+    _LOGGER.warning("=== async_remove_entry CALLED for vehicle: %s (id: %s) ===", vehicle_name, vehicle_id)
+
+    try:
+        # Delete the persistent storage for this vehicle's trips
+        # This ensures that when a vehicle is removed and re-added,
+        # it starts with a fresh trip list (cascade delete on REMOVE, not just unload)
+        from homeassistant.helpers import storage as ha_storage
+
+        storage_key = f"{DOMAIN}_{vehicle_id}"
+        _LOGGER.info("Removing storage for key: %s", storage_key)
+
+        # Use Store to delete the data
+        store = ha_storage.Store(hass, version=1, key=storage_key)
+
+        #.async_remove() deletes the storage file
+        try:
+            await store.async_remove()
+            _LOGGER.info(
+                "Removed storage for vehicle %s during entry removal", vehicle_name
+            )
+        except Exception as store_err:
+            _LOGGER.warning(
+                "Could not remove storage for %s (may not exist): %s",
+                storage_key,
+                store_err,
+            )
+
+        # Also clean up YAML fallback storage (if Store fails, trips may be saved to YAML)
+        try:
+            import os
+            from pathlib import Path
+            config_dir = hass.config.config_dir or "/config"
+            yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+            if yaml_path.exists():
+                os.unlink(yaml_path)
+                _LOGGER.info(
+                    "Removed YAML storage for vehicle %s during entry removal", vehicle_name
+                )
+        except Exception as yaml_err:
+            _LOGGER.warning(
+                "Could not remove YAML storage for %s (may not exist): %s",
+                storage_key,
+                yaml_err,
+            )
+
+        # Also clean up any input helpers created for this vehicle
+        # These are created in create_dashboard_input_helpers
+        input_helper_entities = [
+            f"{vehicle_id}_trip_day",
+            f"{vehicle_id}_trip_time",
+            f"{vehicle_id}_trip_km",
+            f"{vehicle_id}_trip_kwh",
+            f"{vehicle_id}_trip_desc",
+            f"{vehicle_id}_punctual_datetime",
+            f"{vehicle_id}_punctual_km",
+            f"{vehicle_id}_punctual_kwh",
+            f"{vehicle_id}_punctual_desc",
+            f"{vehicle_id}_edit_trip_selector",
+            f"{vehicle_id}_edit_trip_time",
+            f"{vehicle_id}_edit_trip_km",
+            f"{vehicle_id}_edit_trip_kwh",
+            f"{vehicle_id}_edit_trip_desc",
+            f"{vehicle_id}_edit_punctual_datetime",
+        ]
+
+        for entity_id in input_helper_entities:
+            for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
+                full_entity_id = f"{prefix}{entity_id}"
+                try:
+                    if hass.states.get(full_entity_id):
+                        await hass.services.async_call(
+                            entity_id.split(".")[0],
+                            "remove",
+                            {"entity_id": full_entity_id},
+                            blocking=True,
+                        )
+                        _LOGGER.debug("Removed input helper: %s", full_entity_id)
+                except Exception:
+                    pass  # Entity might not exist, that's OK
+
+        _LOGGER.info(
+            "Entry removal complete for vehicle %s", vehicle_name
+        )
+    except Exception as err:
+        _LOGGER.error(
+            "Error removing entry for vehicle %s: %s", vehicle_name, err
+        )
 
 
 def register_services(hass: HomeAssistant) -> None:

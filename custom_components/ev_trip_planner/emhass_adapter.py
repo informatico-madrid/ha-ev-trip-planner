@@ -1225,7 +1225,7 @@ class EMHASSAdapter:
             hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
 
             hora_fin = min(horas_hasta_viaje, planning_horizon_hours)
-            for h in range(hora_inicio_carga, hora_fin):
+            for h in range(int(hora_inicio_carga), int(hora_fin)):
                 if h >= 0 and h < planning_horizon_hours:
                     # Set positive value = charging
                     power_profile[h] = charging_power_watts

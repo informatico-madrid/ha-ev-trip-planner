@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-03-30T03:27:46Z",
+  "updated": "2026-04-01T15:50:00Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 22,
+      "specsCount": 23,
       "isDefault": true
     }
   ],
@@ -12,142 +12,301 @@
     {
       "name": "001-milestone-3-2-complete",
       "path": "./specs/001-milestone-3-2-complete",
-      "phase": "completed",
-      "taskIndex": 81,
-      "totalTasks": 81
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "007-complete-milestone-3-verify-1-2",
       "path": "./specs/007-complete-milestone-3-verify-1-2",
-      "phase": "completed",
-      "taskIndex": 96,
-      "totalTasks": 96
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": true,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "008-fix-config-flow-dashboard-sensors",
       "path": "./specs/008-fix-config-flow-dashboard-sensors",
-      "phase": "completed",
-      "taskIndex": 63,
-      "totalTasks": 63
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
-      "phase": "tasks",
+      "phase": "new",
       "taskIndex": 0,
-      "totalTasks": 158
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "010-fix-sensor-errors-dashboard-issues",
       "path": "./specs/010-fix-sensor-errors-dashboard-issues",
-      "phase": "completed",
-      "taskIndex": 24,
-      "totalTasks": 24
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "011-fix-production-errors",
       "path": "./specs/011-fix-production-errors",
-      "phase": "completed",
-      "taskIndex": 21,
-      "totalTasks": 21
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "012-dashboard-crud-verify",
       "path": "./specs/012-dashboard-crud-verify",
-      "phase": "completed",
-      "taskIndex": 53,
-      "totalTasks": 53
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
+    },
+    {
+      "name": "013-fix-emhass-attribute-size",
+      "path": "./specs/013-fix-emhass-attribute-size",
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
-      "phase": "tasks",
+      "phase": "new",
       "taskIndex": 0,
-      "totalTasks": 73
+      "totalTasks": 0,
+      "files": {
+        "research": true,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "018-e2e-playwright-testing",
       "path": "./specs/018-e2e-playwright-testing",
-      "phase": "tasks",
+      "phase": "new",
       "taskIndex": 0,
-      "totalTasks": 34
+      "totalTasks": 0,
+      "files": {
+        "research": true,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "019-panel-vehicle-crud",
       "path": "./specs/019-panel-vehicle-crud",
       "phase": "tasks",
-      "taskIndex": 31,
-      "totalTasks": 32
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": true,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "020-fix-panel-trips-sensors",
       "path": "./specs/020-fix-panel-trips-sensors",
       "phase": "tasks",
       "taskIndex": 0,
-      "totalTasks": 5
+      "totalTasks": 5,
+      "files": {
+        "research": true,
+        "requirements": true,
+        "design": true,
+        "tasks": true
+      }
     },
     {
       "name": "021-e2e-trip-crud-panel-tests",
       "path": "./specs/021-e2e-trip-crud-panel-tests",
-      "phase": "tasks",
-      "taskIndex": 70,
-      "totalTasks": 75
-    },
-    {
-      "name": "trip-creation",
-      "path": "./specs/trip-creation",
-      "phase": "tasks",
-      "taskIndex": 6,
-      "totalTasks": 59
-    },
-    {
-      "name": "ev-trip-planner-integration-fixes",
-      "path": "./specs/ev-trip-planner-integration-fixes",
-      "phase": "requirements",
-      "awaitingApproval": true
+      "phase": "completed",
+      "taskIndex": 1,
+      "totalTasks": 1,
+      "files": {
+        "research": false,
+        "requirements": true,
+        "design": true,
+        "tasks": true
+      }
     },
     {
       "name": "_epics",
       "path": "./specs/_epics",
-      "phase": "new"
+      "phase": "new",
+      "taskIndex": 0,
+      "totalTasks": 0,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": false
+      }
+    },
+    {
+      "name": "automation-template",
+      "path": "./specs/automation-template",
+      "phase": "completed",
+      "taskIndex": 19,
+      "totalTasks": 19,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
+    },
+    {
+      "name": "charging-window-calculation",
+      "path": "./specs/charging-window-calculation",
+      "phase": "completed",
+      "taskIndex": 8,
+      "totalTasks": 8,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
+    },
+    {
+      "name": "emhass-integration-with-fixes",
+      "path": "./specs/emhass-integration-with-fixes",
+      "phase": "completed",
+      "taskIndex": 21,
+      "totalTasks": 21,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
+    },
+    {
+      "name": "emhass-sensor-enhancement",
+      "path": "./specs/emhass-sensor-enhancement",
+      "phase": "completed",
+      "taskIndex": 19,
+      "totalTasks": 19,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
+    },
+    {
+      "name": "ev-trip-planner-integration-fixes",
+      "path": "./specs/ev-trip-planner-integration-fixes",
+      "phase": "completed",
+      "taskIndex": 6,
+      "totalTasks": 6,
+      "files": {
+        "research": true,
+        "requirements": true,
+        "design": true,
+        "tasks": true
+      }
     },
     {
       "name": "soc-integration-baseline",
       "path": "./specs/soc-integration-baseline",
       "phase": "completed",
-      "taskIndex": 11,
-      "totalTasks": 11
-    },
-    {
-      "name": "charging-window-calculation",
-      "path": "./specs/charging-window-calculation",
-      "phase": "tasks",
-      "awaitingApproval": true
+      "taskIndex": 8,
+      "totalTasks": 8,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "soc-milestone-algorithm",
       "path": "./specs/soc-milestone-algorithm",
-      "phase": "new"
-    },
-    {
-      "name": "emhass-sensor-enhancement",
-      "path": "./specs/emhass-sensor-enhancement",
-      "phase": "new"
+      "phase": "completed",
+      "taskIndex": 19,
+      "totalTasks": 19,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
       "name": "trip-card-enhancement",
       "path": "./specs/trip-card-enhancement",
-      "phase": "new"
+      "phase": "completed",
+      "taskIndex": 12,
+      "totalTasks": 12,
+      "files": {
+        "research": false,
+        "requirements": false,
+        "design": false,
+        "tasks": true
+      }
     },
     {
-      "name": "automation-template",
-      "path": "./specs/automation-template",
-      "phase": "new"
-    },
-    {
-      "name": "emhass-integration-with-fixes",
-      "path": "./specs/emhass-integration-with-fixes",
-      "phase": "new"
+      "name": "trip-creation",
+      "path": "./specs/trip-creation",
+      "phase": "completed",
+      "taskIndex": 11,
+      "totalTasks": 11,
+      "files": {
+        "research": true,
+        "requirements": true,
+        "design": true,
+        "tasks": true
+      }
     }
   ]
 }
