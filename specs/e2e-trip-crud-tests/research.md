@@ -2,157 +2,195 @@
 
 ## ⚠️ Methodology Note
 
-This document distinguishes between **confirmed facts** (verified by reading actual code or running tests) and **hypotheses** (working theories pending confirmation). Nothing in the Hypotheses section should be treated as a fix until the corresponding Investigation Step confirms it.
+This document distinguishes between **confirmed facts** (verified by reading code or test output) and **hypotheses** (working theories pending confirmation). Nothing in the Hypotheses section should be treated as a fix until confirmed.
 
 ---
 
-## Confirmed Facts
+## 🟢 ROOT CAUSE — CONFIRMED
 
-### F1 — Task 3.6 result: 2 passed, 30 failed
-Error reported: `ReferenceError: TripsPage is not defined` in `page.evaluate()` callbacks.
-Source: `.progress.md` Task 3.6 FAIL entry.
+### RC-1: `baseURL` se evalúa en el momento de cargar el config, NO cuando corren los tests
 
-### F2 — Current `trips.page.ts` already passes constants as arguments to `page.evaluate()`
-Reading `trips.page.ts` (SHA: 55b569f7bfd03076ac70390f674442ceecb45039) confirms that `getTripCount()`, `isTripPaused()`, and all `callXxxService()` methods pass class constants as serialized arguments `{ PANEL_SELECTOR, TRIP_CARD_CLASS, ... }`, NOT via `TripsPage.CONSTANT` inside the callback.
-**Implication:** The `ReferenceError` from Task 3.6 may be stale — the code may have already been fixed AFTER Task 3.6 ran. Needs confirmation by running tests again.
+**Evidencia directa** de `playwright.config.ts` (SHA: `03f470f75460aa7b9ffd53c6b1c7c700fa1a83c9`):
 
-### F3 — `auth.setup.ts` saves `storageState` AFTER Config Flow + panel navigation
-`auth.setup.ts` (SHA: 60a774dcd6fdebb208a8518867a318397dcfc421): login → Config Flow 4 steps → `page.goto(panelUrl)` → `page.context().storageState()`. Timing is correct.
+```typescript
+// playwright.config.ts — líneas ~50-62
+baseURL: (() => {
+  const serverInfoPath = path.join(authDir, 'server-info.json');
+  try {
+    const serverInfo = JSON.parse(fs.readFileSync(serverInfoPath, 'utf-8'));
+    return new URL(serverInfo.link).origin;  // ← lee el fichero AQUÍ
+  } catch (error) {
+    console.warn('Could not read server-info.json, using default localhost:8123');
+    return 'http://localhost:8123';           // ← FALLBACK cuando no existe
+  }
+})()
+```
 
-### F4 — `DEFAULT_PANEL_URL` already uses lowercase `coche2`
-`trips.page.ts` line: `static readonly DEFAULT_PANEL_URL = 'http://127.0.0.1:8123/ev-trip-planner-coche2'`
-The previously documented "case mismatch" hypothesis (uppercase `Coche2`) appears already resolved in the current code. Needs confirmation.
+Esta IIFE (función autoejecutable) se ejecuta **cuando Node.js carga `playwright.config.ts`**.
+En ese momento, `globalSetup` todavía NO ha corrido — `server-info.json` no existe o tiene datos de una ejecución anterior.
 
-### F5 — HA Custom Panels return 404 on direct navigation without active WebSocket session
-`panel_custom.async_register_panel()` registers panels as static file paths that bypass React Router's auth middleware. `page.goto('/ev-trip-planner-coche2')` without an active authenticated WebSocket returns 404.
-Source: `research.md` previous version + codebase analysis of `panel.py`.
+**Resultado:**
+- El `baseURL` que ven todos los tests es `http://localhost:8123` (o el puerto de un run anterior)
+- `global.setup.ts` crea el servidor efimero en, por ejemplo, el puerto `8528`
+- `auth.setup.ts` guarda tokens válidos para el puerto `8528`
+- Todos los tests navegan a `http://localhost:8123/dashboard` → **404**
+- El sidebar de HA nunca aparece → `waitFor({ state: 'visible' })` lanza timeout
 
-### F6 — `auth.setup.ts` contains multiple hardcoded `waitForTimeout()` calls
-`waitForTimeout(3000)` for CI Shadow DOM rendering, `waitForTimeout(2000)` between Config Flow steps, `waitForTimeout(1000)` for form redisplay checks. These are potential sources of flakiness in slow CI environments.
+**Evidencia de los tests:**
+```
+Could not read server-info.json, using default localhost:8123   ← log de la IIFE
+...
+[GlobalTeardown] Cleaning up server at: http://127.0.0.1:8528/...  ← puerto real
+31 failed                                                           ← resultado
+```
 
-### F7 — `trips.spec.ts` uses `async` inside `page.evaluate()` in service call methods
-All `callXxxService()` methods use `await this.page.evaluate(async ({ ... }) => { ... })`. Playwright supports async callbacks in `evaluate`, but if `panel.hass` is not available (panel not rendered), these throw `'Cannot call service: panel or hass not available'` — not a `ReferenceError`. This distinguishes this failure mode from F1.
-
----
-
-## Hypotheses (unconfirmed — pending investigation steps)
-
-### H1 — The `ReferenceError` from Task 3.6 is stale
-**Theory:** The code was refactored AFTER the Task 3.6 checkpoint. The current `trips.page.ts` already has the fix. The real current failure mode is different.
-**Confirmation step:** Step 1 — run `auth.setup.ts` + `trips.spec.ts` and capture the actual current error.
-
-### H2 — `navigateDirect()` in US-2+ `beforeEach` is the real blocker
-**Theory:** US-1 tests pass because they use `navigateViaSidebar()`. US-2+ tests use `navigateDirect()` → panel returns 404 → `panel.hass` is null → service calls throw.
-**Confirmation step:** Step 3 — read `trips.spec.ts` `beforeEach` blocks for each US suite.
-
-### H3 — `callXxxService()` fails because `panel.hass` is null (panel not rendered via direct URL)
-**Theory:** When navigation is via direct URL (H2), the panel web component loads but HA's WebSocket is not initialized, so `panel.hass` is null. `callTripCreateService()` and similar methods then throw `'Cannot call service: panel or hass not available'`.
-**Confirmation step:** Step 1 actual error output + Step 3.
-
-### H4 — `waitForTimeout()` in `auth.setup.ts` causes intermittent failures in CI
-**Theory:** Hardcoded timeouts are too short on slow CI machines or too long locally. Replacing with `waitFor({ state: 'visible' })` on specific elements would be more robust.
-**Confirmation step:** Step 4 — verify if auth.setup.ts passes consistently or flakes.
-
-### H5 — `navigateViaSidebar()` requires panel to already be registered (Config Flow must have run)
-**Theory:** If `auth.setup.ts` fails silently mid-Config-Flow, the panel is never registered, sidebar link never appears, and `navigateViaSidebar()` clicks nothing or the wrong element.
-**Confirmation step:** Step 2 — verify `panel-url.txt` exists and contains a valid URL after auth setup runs.
+El puerto real era `8528`. El `baseURL` usó `localhost:8123`. Diferencia = causa de todos los 404.
 
 ---
 
-## External Sources — Proven Patterns
+### RC-2: `navigateViaSidebar()` hace `page.goto(baseURL + '/dashboard')` — hereda el bug de RC-1
 
-These patterns from the community have been validated by other developers in similar setups:
+**Evidencia de `trips.page.ts`** (SHA: `55b569f7bfd03076ac70390f674442ceecb45039`):
 
-| Source | Pattern | Applicability |
-|--------|---------|--------------|
-| `rianadon/hass-taste-test` | Uses real browser + full login flow for all panel interactions. No `page.goto()` to panel URLs directly. | Directly applicable — this project uses `hass-taste-test`. |
-| Playwright docs — `page.evaluate()` serialization | Functions passed to `evaluate` are serialized as strings. No closure access. All external values must be passed as JSON-serializable arguments. | F2 confirms this is already handled correctly in current code. |
-| Playwright community — `storageState` timing | `storageState` must be saved AFTER the full authenticated session is established, including any post-login redirects. Saving too early causes "second test asks for login" flakiness. | F3 confirms this is already handled correctly. |
-| HA Community — Shadow DOM inputs | `page.locator('input[name="..."]').click()` + `.type({ delay: 50 })` is the reliable pattern for Shadow DOM form fields inside HA config flows. `getByRole('textbox')` may not work inside Shadow DOM. | Already applied in `auth.setup.ts`. |
+```typescript
+// trips.page.ts — líneas ~187-193
+async navigateViaSidebar(): Promise<void> {
+  await this.page.goto(`${baseUrl}/dashboard`, { waitUntil: 'domcontentloaded' });
+  await this.sidebar.waitFor({ state: 'visible', timeout: 10000 });
+  await this.evTripPlannerMenuItem.click();
+}
+```
 
----
-
-## Investigation Steps
-
-Execute in order. Each step produces evidence that feeds the next.
-
-### Step 1 — Get the actual current error (FIRST PRIORITY)
-**Goal:** Confirm or invalidate H1. Determine the real current failure mode.
-**Action:** Run `npx playwright test tests/e2e/trips.spec.ts` (after `auth.setup.ts`) and capture full output including stack traces.
-**Expected outputs:**
-- If still `ReferenceError: TripsPage is not defined` → F2 is wrong, refactor is incomplete somewhere
-- If `Cannot call service: panel or hass not available` → H3 confirmed, H2 likely confirmed
-- If 404 errors → H2 confirmed directly
-- If different error → new hypothesis needed
-**Success criterion:** We know the exact error type and which test/method triggers it.
-
-### Step 2 — Verify auth.setup.ts output artifacts
-**Goal:** Confirm H5 — that Config Flow completed and panel was registered.
-**Action:** After running `auth.setup.ts`, check:
-- Does `playwright/.auth/panel-url.txt` exist?
-- Does `playwright/.auth/user.json` exist and contain valid cookies?
-- Does `playwright/.auth/server-info.json` exist?
-- Is the URL in `panel-url.txt` lowercase and matching `DEFAULT_PANEL_URL`?
-**Success criterion:** All three files exist with valid content. F4 confirmed or refuted.
-
-### Step 3 — Trace navigation strategy per US suite
-**Goal:** Confirm H2 — identify which suites use `navigateDirect()` vs `navigateViaSidebar()`.
-**Action:** Read `trips.spec.ts` `beforeEach` blocks for each `describe` block (US-1 through US-6).
-**Expected output:** A table showing which US uses which navigation method.
-**Success criterion:** We know exactly which tests are affected by direct-URL navigation.
-
-### Step 4 — Verify auth.setup.ts stability
-**Goal:** Confirm or invalidate H4 — flakiness from hardcoded timeouts.
-**Action:** Run `auth.setup.ts` three times in sequence. Check if it passes consistently.
-**Success criterion:** 3/3 passes = stable. Any failure = investigate which `waitForTimeout` step failed.
-
-### Step 5 — Formulate fixes based on Steps 1-4 evidence
-**Goal:** With confirmed data, propose concrete diffs.
-**Action:** Write the minimal set of changes to `trips.spec.ts` (and possibly `trips.page.ts`) needed to fix the confirmed issues.
-**Important:** Do NOT change `auth.setup.ts` unless Step 4 reveals a concrete failure there.
-**Success criterion:** Proposed diffs reviewed and approved before applying.
-
-### Step 6 — Apply fixes and run full test suite
-**Goal:** Confirm that the fixes work.
-**Action:** Apply approved diffs, run `npx playwright test` (full suite including `auth.setup.ts` as dependency).
-**Success criterion:** 32/32 tests pass. Or if partial: understand which tests still fail and why.
+Donde `baseUrl` viene del `baseURL` del config — que es `localhost:8123` por RC-1.
+Por esto **TODOS los tests fallan** en `navigateViaSidebar()`, incluyendo los de US-1 que antes pasaban.
 
 ---
 
-## Key Files Reference
+## Hechos Confirmados
 
-| File | SHA (current) | Notes |
-|------|--------------|-------|
-| `tests/e2e/auth.setup.ts` | 60a774dcd6fdebb208a8518867a318397dcfc421 | Pre-existing. Do not modify unless Step 4 shows concrete failure. |
-| `tests/global.setup.ts` | 5f11a856095e8075dd74e4252c9b5096427ff0a9 | Pre-existing. Starts ephemeral HA server. |
-| `tests/e2e/pages/trips.page.ts` | 55b569f7bfd03076ac70390f674442ceecb45039 | Created by agent. Already has correct `evaluate` argument passing. |
-| `tests/e2e/trips.spec.ts` | efd4f1e195d44af9102270246fcc8e8943cee40e | Created by agent. `beforeEach` navigation strategy is the primary suspect. |
-| `playwright.config.ts` | 03f470f75460aa7b9ffd53c6b1c7c700fa1a83c9 | Pre-existing. Do not modify. |
+| ID | Hecho | Fuente |
+|----|-------|--------|
+| F1 | `baseURL` es una IIFE que corre al cargar el config, antes de `globalSetup` | `playwright.config.ts` SHA `03f470f7` |
+| F2 | `global.setup.ts` crea el servidor en un puerto aleatorio y guarda `server-info.json` | `global.setup.ts` SHA `5f11a856` |
+| F3 | `globalTeardown` limpia el servidor al final de toda la sesión | Output de tests: `[GlobalTeardown] Cleaning up server at: http://127.0.0.1:8528/` |
+| F4 | `baseURL` reportó `Could not read server-info.json, using default localhost:8123` | Output de tests: primera línea del log |
+| F5 | El servidor real corría en el puerto `8528` | GlobalTeardown log |
+| F6 | 31 tests fallaron en `navigateViaSidebar()` por 404 en `localhost:8123/dashboard` | Stack trace: `trips.page.ts:190` |
+| F7 | `global.setup.ts` es global y diseñado para correr UNA vez (no hay un `globalSetup` por proyecto) | `playwright.config.ts`: `globalSetup: './tests/global.setup.ts'` (campo global, no por proyecto) |
+| F8 | La hipótesis de "dos instancias HA" del agente era INCORRECTA | F7 lo desmiente: hay un solo `globalSetup`. El problema es de timing de lectura del fichero. |
+| F9 | `navigateViaSidebar()` usa `${baseUrl}/dashboard` que hereda el `baseURL` roto | `trips.page.ts` SHA `55b569f7`, línea 188 |
 
 ---
 
-## Previous Research (preserved)
+## Hipótesis Descartadas
 
-The following sections from the original `research.md` are preserved as historical context. The conclusions have been reclassified above as confirmed facts (F5) or hypotheses pending re-verification (H2, H3).
+| ID | Hipótesis | Por qué descartada |
+|----|-----------|-------------------|
+| H-old-1 | Dos instancias HA creadas (una por proyecto) | F7: `globalSetup` es global, corre una sola vez. El agente se confundió analizando los puertos. |
+| H-old-2 | URL case mismatch `Coche2` vs `coche2` | F4: el error es anterior a cualquier navegación al panel, ocurre en `/dashboard`. |
+| H-old-3 | `ReferenceError: TripsPage is not defined` como causa actual | Los tests ni llegan a ejecutar lógica — fallan en la navegación. |
 
-### Original: Two Routing Systems Discovery
+---
 
-Home Assistant uses **two separate frontend systems** with different authentication handling:
+## Hipótesis Activas (pendientes de confirmar)
 
-| System | URLs | Unauthenticated Behavior |
-|--------|------|--------------------------|
-| React Router | `/`, `/config`, etc. | Redirects to `/auth/authorize` |
-| Custom Panels | `/ev-trip-planner-{vehicle_id}` | Returns **404** (not redirect) |
+### H1 — El 1 test que pasa (US-1 empty state) usa una ruta diferente o no navega
+**Teoría:** En la última ejecución `31 failed, 1 passed`. El test que pasa probablemente no llama a `navigateViaSidebar()` o tiene una guarda que lo hace pasar aunque el panel no cargue.
+**Paso de confirmación:** Paso 2 — leer el test en `trips.spec.ts` que corresponde al único passed.
 
-Custom panels are registered via `panel_custom.async_register_panel()` as static file paths that bypass React Router's authentication middleware. This is **confirmed fact F5**.
+### H2 — La fix más limpia es leer `server-info.json` en `navigateViaSidebar()` en runtime, no en config load time
+**Teoría:** En lugar de arreglar el `baseURL` del config (que se evalúa demasiado pronto), `navigateViaSidebar()` puede leer `server-info.json` directamente en runtime para obtener el puerto correcto. Esto funcionaría porque cuando los tests corren, `globalSetup` ya ha escrito ese fichero.
+**Alternativa:** Pasar el `baseURL` como variable de entorno desde `globalSetup` usando `process.env`.
+**Paso de confirmación:** Paso 3 — evaluar y elegir la estrategia de fix.
 
-### Original: storageState Alone is Insufficient
+### H3 — `auth.setup.ts` guarda `panel-url.txt` con el puerto correcto y podría usarse como fuente de verdad
+**Teoría:** `auth.setup.ts` ya guarda `panel-url.txt` con la URL completa incluyendo el puerto real. Si `navigateViaSidebar()` leyera ese fichero en lugar de usar `baseURL`, tendría el puerto correcto.
+**Paso de confirmación:** Paso 2 — verificar que `auth.setup.ts` escribe `panel-url.txt` correctamente.
 
-The panel's JavaScript needs a valid `hass` object from an authenticated WebSocket connection. StorageState cookies allow the browser to load the page and JS files, but without proper login flow, the panel initializes with an invalid `hass` context. This explains why `callXxxService()` fails with `panel.hass` null — see H3.
+---
 
-### Original: Panel Registration Flow
+## Pasos de Investigación
 
-1. User completes Config Flow UI
-2. `setup_entry()` calls `panel_module.async_register_panel()`
-3. Panel registers at `/ev-trip-planner-{vehicle_id}`
-4. Sidebar link appears in HA sidebar
+Los pasos originales 1-4 quedan **reemplazados** por estos, más focalizados en el root cause confirmado.
+
+### Paso 1 — COMPLETADO ✔ʻ
+Identificar el error real en la última ejecución.
+**Resultado:** RC-1 y RC-2 confirmados. La causa es `baseURL` evaluado antes de `globalSetup`.
+
+### Paso 2 — Verificar los artefactos de `auth.setup.ts`
+**Objetivo:** Confirmar H3 — que `panel-url.txt` existe y tiene el puerto correcto.
+**Acción:** Leer `auth.setup.ts` completo y verificar qué escribe en `playwright/.auth/`.
+**Criterio de éxito:** Sabemos exactamente qué ficheros escribe `auth.setup.ts` y qué contienen.
+
+### Paso 3 — Elegir la estrategia de fix
+**Objetivo:** Decidir cómo hacer que los tests usen el puerto correcto en runtime.
+
+**Opción A — `process.env` desde `globalSetup` (recomendada):**
+```typescript
+// global.setup.ts — añadir al final
+process.env.HA_BASE_URL = new URL(hassInstance.link).origin;
+```
+```typescript
+// playwright.config.ts — cambiar la IIFE por:
+baseURL: process.env.HA_BASE_URL || 'http://localhost:8123',
+```
+Ventaja: un cambio mínimo en 2 ficheros. Funciona porque `globalSetup` escribe `process.env` antes de que el config se use para los tests.
+⚠️ **Riesgo:** En Playwright, `globalSetup` corre en el mismo proceso Node.js que el runner, pero `use.baseURL` se evalúa al cargar el config (antes del globalSetup). `process.env` podria no llegar a tiempo. Necesita verificación.
+
+**Opción B — Leer `server-info.json` en runtime dentro de `navigateViaSidebar()`:**
+```typescript
+// trips.page.ts — navigateViaSidebar()
+async navigateViaSidebar(): Promise<void> {
+  const serverInfo = JSON.parse(fs.readFileSync('playwright/.auth/server-info.json', 'utf-8'));
+  const baseUrl = new URL(serverInfo.link).origin;
+  await this.page.goto(`${baseUrl}/dashboard`, ...);
+}
+```
+Ventaja: no toca `playwright.config.ts`. Lee el fichero cuando ya existe.
+Desventaja: acopla la Page Object al sistema de ficheros.
+
+**Opción C — Usar `panel-url.txt` (si H3 se confirma en Paso 2):**
+```typescript
+// trips.page.ts — navigateViaSidebar()
+async navigateViaSidebar(): Promise<void> {
+  const panelUrl = fs.readFileSync('playwright/.auth/panel-url.txt', 'utf-8').trim();
+  const baseUrl = new URL(panelUrl).origin;
+  await this.page.goto(`${baseUrl}/dashboard`, ...);
+}
+```
+Ventaja: reutiliza infraestructura ya existente de `auth.setup.ts`.
+
+**Criterio de éxito:** Una opción elegida y aprobada antes de tocar código.
+
+### Paso 4 — Aplicar el fix mínimo
+**Objetivo:** Implementar la opción elegida en Paso 3.
+**Ficheros a modificar:** Máximo 2 (probablemente solo `trips.page.ts` con Opción B o C).
+**Regla:** NO modificar `playwright.config.ts`, `global.setup.ts`, ni `auth.setup.ts` a menos que el Paso 3 indique explicitamente que es necesario.
+**Criterio de éxito:** Los diffs están aprobados antes de aplicarse.
+
+### Paso 5 — Correr el suite completo y verificar
+**Objetivo:** Confirmar que el fix funciona.
+**Acción:** `npx playwright test --project=setup --project=chromium`
+**Criterio de éxito:** 32/32 tests pasan. O si falla alguno, identificar cuál y por qué (podria ser un problema distinto ya resuelto RC-1).
+
+---
+
+## Ficheros Clave
+
+| Fichero | SHA actual | Tocar? |
+|---------|-----------|--------|
+| `playwright.config.ts` | `03f470f7` | Solo si Opción A elegida en Paso 3 |
+| `tests/global.setup.ts` | `5f11a856` | Solo si Opción A elegida en Paso 3 |
+| `tests/e2e/auth.setup.ts` | `60a774dc` | NO |
+| `tests/e2e/pages/trips.page.ts` | `55b569f7` | SÍ — `navigateViaSidebar()` necesita usar el puerto real |
+| `tests/e2e/trips.spec.ts` | `efd4f1e1` | Solo si Paso 2 revela que algún `beforeEach` también usa `baseURL` directamente |
+
+---
+
+## Contexto Previo (preservado)
+
+### Por qué los paneles custom devuelven 404 sin sesión WebSocket
+`panel_custom.async_register_panel()` registra paneles como paths de ficheros estáticos que evitan el middleware de autenticación del React Router de HA. Este sigue siendo un hecho válido (F5 de la versión anterior) pero es **secundario** al RC-1 actual: los tests ni siquiera llegan a navegar al panel, fallan antes en `/dashboard`.
+
+### Patrón storageState
+El patrón de guardar `storageState` después del Config Flow es correcto. Los tokens están ligados al puerto del servidor HA (`8528` en la última ejecución). El problema no está en la autenticación sino en que los tests no navegan al servidor correcto.
