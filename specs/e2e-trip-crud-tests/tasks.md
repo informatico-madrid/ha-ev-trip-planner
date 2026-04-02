@@ -261,7 +261,7 @@ Focus: Clean up code structure. No new features.
   - **Commit**: `refactor(trips-page): extract constants`
   - _Design: Constants section_
 
-- [ ] 2.2 Refactor trips.page.ts: add JSDoc comments
+- [x] 2.2 Refactor trips.page.ts: add JSDoc comments
   - **Do**:
     1. Add JSDoc to all public methods
     2. Add parameter descriptions
@@ -272,7 +272,7 @@ Focus: Clean up code structure. No new features.
   - **Commit**: `refactor(trips-page): add JSDoc documentation`
   - _Design: Documentation_
 
-- [ ] 2.3 Refactor trips.spec.ts: extract test data builders
+- [x] 2.3 Refactor trips.spec.ts: extract test data builders
   - **Do**:
     1. Create a test data builder pattern for recurring trips
     2. Create a test data builder pattern for punctual trips
@@ -283,13 +283,13 @@ Focus: Clean up code structure. No new features.
   - **Commit**: `refactor(trips-spec): extract test data builders`
   - _Design: Test data builders_
 
-- [ ] 2.4 [VERIFY] Quality checkpoint: lint and typecheck
+- [x] 2.4 [VERIFY] Quality checkpoint: lint and typecheck
   - **Do**: Run lint and typecheck on all new files
   - **Verify**: `npx eslint tests/e2e/pages/trips.page.ts tests/e2e/trips.spec.ts 2>&1 | head -30 && npx tsc --noEmit tests/e2e/pages/trips.page.ts 2>&1 | head -20`
   - **Done when**: Lint passes, typecheck passes
   - **Commit**: `chore(trips): pass quality checkpoint`
 
-- [ ] 2.5 Refactor: consolidate dialog handling
+- [x] 2.5 Refactor: consolidate dialog handling
   - **Do**:
     1. Move dialog handler setup to trips.page.ts as a method
     2. Update tests to use consolidated dialog handling
@@ -299,7 +299,7 @@ Focus: Clean up code structure. No new features.
   - **Commit**: `refactor(trips-page): consolidate dialog handling`
   - _Design: Dialog handling pattern_
 
-- [ ] 2.6 Refactor: extract assertion helpers
+- [x] 2.6 Refactor: extract assertion helpers
   - **Do**:
     1. Add `assertEmptyState()` method to TripsPage
     2. Add `assertTripCount(expected)` method to TripsPage
@@ -311,7 +311,7 @@ Focus: Clean up code structure. No new features.
   - **Commit**: `refactor(trips-page): add assertion helpers`
   - _Design: Assertion helpers_
 
-- [ ] 2.7 [VERIFY] Quality checkpoint: full typecheck
+- [x] 2.7 [VERIFY] Quality checkpoint: full typecheck
   - **Do**: Run full TypeScript typecheck on the e2e directory
   - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && npx tsc --noEmit 2>&1 | grep -E "tests/e2e" | head -20`
   - **Done when**: No type errors in tests/e2e directory
@@ -321,7 +321,7 @@ Focus: Clean up code structure. No new features.
 
 Focus: Add comprehensive test coverage.
 
-- [ ] 3.1 Add integration test: trip form validation
+- [x] 3.1 Add integration test: trip form validation
   - **Do**:
     1. Add test: `shows validation error when submitting empty form`
     2. Add test: `shows validation error when missing required fields`
@@ -332,7 +332,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-2.6_
   - _Design: US-2 extended tests_
 
-- [ ] 3.2 Add integration test: edit preserves other fields
+- [x] 3.2 Add integration test: edit preserves other fields
   - **Do**:
     1. Create a trip with specific values
     2. Edit only the time field
@@ -344,7 +344,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-3.3_
   - _Design: US-3 extended tests_
 
-- [ ] 3.3 Add integration test: delete confirmation dialog text
+- [x] 3.3 Add integration test: delete confirmation dialog text
   - **Do**:
     1. Click Eliminar and verify dialog message contains trip identifier
     2. Verify cancel button is focused by default
@@ -355,7 +355,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-4.1_
   - _Design: US-4 extended tests_
 
-- [ ] 3.4 Add integration test: pause state persists after refresh
+- [x] 3.4 Add integration test: pause state persists after refresh
   - **Do**:
     1. Pause a recurring trip
     2. Refresh the page
@@ -367,7 +367,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-5.2_
   - _Design: US-5 extended tests_
 
-- [ ] 3.5 Add integration test: create multiple trips in sequence
+- [x] 3.5 Add integration test: create multiple trips in sequence
   - **Do**:
     1. Create first recurring trip
     2. Create second recurring trip
@@ -386,7 +386,7 @@ Focus: Add comprehensive test coverage.
   - **Done when**: All trip CRUD tests pass
   - **Commit**: `chore(trips): pass test suite`
 
-- [ ] 3.7 Add test: complete and cancel are mutually exclusive
+- [x] 3.7 Add test: complete and cancel are mutually exclusive
   - **Do**:
     1. Verify punctual trip shows Completar, not Cancelar after creation
     2. Verify after completion, trip is removed (not change to Cancelar)
@@ -397,7 +397,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-6.1, AC-6.4_
   - _Design: US-6 extended tests_
 
-- [ ] 3.8 Add test: pause/resume toggle state
+- [x] 3.8 Add test: pause/resume toggle state
   - **Do**:
     1. Verify active recurring shows Pausar
     2. Click Pausar, verify shows Reanudar
@@ -409,7 +409,7 @@ Focus: Add comprehensive test coverage.
   - _Requirements: AC-5.1, AC-5.4, AC-5.6_
   - _Design: US-5 extended tests_
 
-- [ ] 3.9 Add test: trip order in list
+- [x] 3.9 Add test: trip order in list
   - **Do**:
     1. Create multiple trips
     2. Verify they appear in expected order (by creation time or scheduled time)

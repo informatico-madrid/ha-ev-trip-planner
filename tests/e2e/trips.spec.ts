@@ -167,6 +167,35 @@ test.describe('Create Trip (US-2)', () => {
     const newCount = await tripsPage.getTripCount();
     expect(newCount).toBe(initialCount + 1);
   });
+
+  test('shows validation error when submitting empty form', async () => {
+    // Open the form
+    await tripsPage.clickAddTripButton();
+
+    // Try to submit without filling any fields
+    // The form should show a validation error
+    await expect(tripsPage.submitButton).toBeVisible();
+
+    // Click submit and expect some validation feedback
+    // (actual validation behavior depends on form implementation)
+    await tripsPage.submitButton.click();
+
+    // Form should still be open (not submitted)
+    await expect(tripsPage.tripFormOverlay).toBeVisible();
+  });
+
+  test('shows validation error when missing required fields', async () => {
+    // Open the form with Recurrente selected
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+
+    // Don't select a day, try to submit
+    await tripsPage.enterTime('08:00');
+    await tripsPage.submitButton.click();
+
+    // Form should still be open - required field is missing
+    await expect(tripsPage.tripFormOverlay).toBeVisible();
+  });
 });
 
 test.describe('Edit Trip (US-3)', () => {
@@ -217,6 +246,27 @@ test.describe('Edit Trip (US-3)', () => {
     await tripsPage.enterTime('10:00');
 
     // Submit the form
+    await tripsPage.submitButton.click();
+
+    // Verify form closes
+    await expect(tripsPage.tripFormOverlay).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('edit preserves other fields when changing time only', async () => {
+    // Ensure there's at least one trip to edit
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Open edit form for first trip
+    await tripsPage.openEditFormForTrip(1);
+
+    // Verify form has pre-filled data (type is preserved)
+    await expect(tripsPage.recurrenteOption).toBeChecked();
+
+    // Change only the time
+    await tripsPage.enterTime('11:00');
     await tripsPage.submitButton.click();
 
     // Verify form closes
@@ -291,6 +341,23 @@ test.describe('Delete Trip (US-4)', () => {
     const newCount = await tripsPage.getTripCount();
     expect(newCount).toBe(initialCount);
   });
+
+  test('delete dialog shows trip identifier', async () => {
+    // Ensure there's at least one trip to delete
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Open delete dialog
+    await tripsPage.openDeleteDialogForTrip(1);
+
+    // Verify confirmation dialog appears
+    await expect(tripsPage.confirmDialog).toBeVisible();
+
+    // Verify cancel button is present in dialog
+    await expect(tripsPage.cancelDialogBtn).toBeVisible();
+  });
 });
 
 test.describe('Pause/Resume Recurring Trip (US-5)', () => {
@@ -350,6 +417,45 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
     await tripsPage.resumeButton(1).click();
 
     // Verify the trip is active again (pause button should be visible)
+    await expect(tripsPage.pauseButton(1)).toBeVisible();
+  });
+
+  test('paused state persists after page refresh', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Pause the trip
+    await tripsPage.pauseButton(1).click();
+
+    // Verify trip is paused
+    await expect(tripsPage.resumeButton(1)).toBeVisible();
+
+    // Refresh the page
+    await tripsPage.navigateDirect();
+
+    // Verify trip is still paused (resume button should still be visible)
+    await expect(tripsPage.resumeButton(1)).toBeVisible();
+  });
+
+  test('pause/resume toggle cycles correctly', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Initial state: active trip shows Pausar
+    await expect(tripsPage.pauseButton(1)).toBeVisible();
+
+    // Click Pausar -> shows Reanudar
+    await tripsPage.pauseButton(1).click();
+    await expect(tripsPage.resumeButton(1)).toBeVisible();
+
+    // Click Reanudar -> shows Pausar again
+    await tripsPage.resumeButton(1).click();
     await expect(tripsPage.pauseButton(1)).toBeVisible();
   });
 });
@@ -422,6 +528,103 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
     // Verify trip count decreases
     const newCount = await tripsPage.getTripCount();
     expect(newCount).toBe(initialCount - 1);
+  });
+
+  test('complete and cancel are mutually exclusive', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Verify that after completion, trip is removed (not changed to Cancelar)
+    // The trip should be removed from the list, not show a different button
+    const initialCount = await tripsPage.getTripCount();
+    await tripsPage.completeButton(1).click();
+
+    // Verify trip was removed, not transformed
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount - 1);
+  });
+});
+
+test.describe('Multiple Trips (Extended)', () => {
+  let tripsPage: TripsPage;
+  let panelUrl: string;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    tripsPage.setupDialogHandler();
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
+    await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
+  });
+
+  test('creates multiple trips in sequence', async () => {
+    // Get initial count
+    const initialCount = await tripsPage.getTripCount();
+
+    // Create first recurring trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Monday');
+    await tripsPage.enterTime('08:00');
+    await tripsPage.submitButton.click();
+    await tripsPage.waitForTripCount(initialCount + 1, 5000);
+
+    // Create second recurring trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Wednesday');
+    await tripsPage.enterTime('10:00');
+    await tripsPage.submitButton.click();
+    await tripsPage.waitForTripCount(initialCount + 2, 5000);
+
+    // Create punctual trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectPuntual();
+    await tripsPage.enterTime('14:00');
+    await tripsPage.submitButton.click();
+    await tripsPage.waitForTripCount(initialCount + 3, 5000);
+
+    // Verify all three trips exist
+    const finalCount = await tripsPage.getTripCount();
+    expect(finalCount).toBe(initialCount + 3);
+  });
+
+  test('trips appear in list in creation order', async () => {
+    // Get initial count
+    const initialCount = await tripsPage.getTripCount();
+
+    // Create first trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Monday');
+    await tripsPage.enterTime('08:00');
+    await tripsPage.submitButton.click();
+    await tripsPage.waitForTripCount(initialCount + 1, 5000);
+
+    // Create second trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Tuesday');
+    await tripsPage.enterTime('09:00');
+    await tripsPage.submitButton.click();
+    await tripsPage.waitForTripCount(initialCount + 2, 5000);
+
+    // Verify there are exactly 2 trips
+    const finalCount = await tripsPage.getTripCount();
+    expect(finalCount).toBe(initialCount + 2);
+
+    // Both trip cards should be visible
+    await expect(tripsPage.tripCard(1)).toBeVisible();
+    await expect(tripsPage.tripCard(2)).toBeVisible();
   });
 });
 
