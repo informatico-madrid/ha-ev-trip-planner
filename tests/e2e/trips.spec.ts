@@ -438,14 +438,35 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
 });
 
 /**
- * Test Data Helpers
- * These helpers create and clean up test trips for isolation
+ * Test Data Builders
+ * Builder pattern for creating test trips with a fluent API
  */
 
 /**
- * Creates a recurring trip via the UI and returns the trip index for cleanup
+ * Options for building a recurring trip
  */
-async function createTestRecurringTrip(tripsPage: TripsPage, day: string = 'Monday', time: string = '08:00'): Promise<number> {
+interface RecurringTripOptions {
+  day?: string;
+  time?: string;
+}
+
+/**
+ * Options for building a punctual trip
+ */
+interface PunctualTripOptions {
+  time?: string;
+}
+
+/**
+ * Builder for creating recurring trips via UI
+ * Usage:
+ *   const index = await buildRecurringTrip(tripsPage, { day: 'Monday', time: '08:00' });
+ */
+async function buildRecurringTrip(
+  tripsPage: TripsPage,
+  options: RecurringTripOptions = {}
+): Promise<number> {
+  const { day = 'Monday', time = '08:00' } = options;
   const initialCount = await tripsPage.getTripCount();
 
   await tripsPage.clickAddTripButton();
@@ -462,9 +483,15 @@ async function createTestRecurringTrip(tripsPage: TripsPage, day: string = 'Mond
 }
 
 /**
- * Creates a punctual trip via the UI and returns the trip index for cleanup
+ * Builder for creating punctual trips via UI
+ * Usage:
+ *   const index = await buildPunctualTrip(tripsPage, { time: '14:00' });
  */
-async function createTestPunctualTrip(tripsPage: TripsPage, time: string = '14:00'): Promise<number> {
+async function buildPunctualTrip(
+  tripsPage: TripsPage,
+  options: PunctualTripOptions = {}
+): Promise<number> {
+  const { time = '14:00' } = options;
   const initialCount = await tripsPage.getTripCount();
 
   await tripsPage.clickAddTripButton();
@@ -493,3 +520,7 @@ async function cleanupTestTrip(tripsPage: TripsPage, tripIndex: number): Promise
     // Trip may already be deleted, ignore errors
   }
 }
+
+// Backward compatibility aliases
+const createTestRecurringTrip = buildRecurringTrip;
+const createTestPunctualTrip = buildPunctualTrip;
