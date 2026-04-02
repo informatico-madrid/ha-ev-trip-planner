@@ -178,3 +178,62 @@ test.describe('Edit Trip (US-3)', () => {
     await expect(tripsPage.tripFormOverlay).not.toBeVisible({ timeout: 5000 });
   });
 });
+
+test.describe('Delete Trip (US-4)', () => {
+  let tripsPage: TripsPage;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    await tripsPage.navigateDirect();
+  });
+
+  test('shows confirmation dialog on Eliminar', async () => {
+    // Ensure there's at least one trip to delete
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Click delete button on first trip
+    await tripsPage.openDeleteDialogForTrip(1);
+
+    // Verify confirmation dialog appears
+    await expect(tripsPage.confirmDialog).toBeVisible();
+  });
+
+  test('removes trip on confirm', async () => {
+    // Ensure there's at least one trip to delete
+    const initialCount = await tripsPage.getTripCount();
+    if (initialCount === 0) {
+      test.skip();
+    }
+
+    // Open delete dialog
+    await tripsPage.openDeleteDialogForTrip(1);
+
+    // Confirm deletion
+    await tripsPage.confirmDelete();
+
+    // Verify trip count decreases
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount - 1);
+  });
+
+  test('keeps trip on cancel', async () => {
+    // Ensure there's at least one trip to delete
+    const initialCount = await tripsPage.getTripCount();
+    if (initialCount === 0) {
+      test.skip();
+    }
+
+    // Open delete dialog
+    await tripsPage.openDeleteDialogForTrip(1);
+
+    // Cancel deletion
+    await tripsPage.cancelDelete();
+
+    // Verify trip count remains the same
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount);
+  });
+});
