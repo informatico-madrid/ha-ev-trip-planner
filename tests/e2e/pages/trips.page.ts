@@ -6,8 +6,6 @@
  */
 
 import { Page, Locator } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export class TripsPage {
   readonly page: Page;
@@ -119,24 +117,32 @@ export class TripsPage {
   }
 
   /**
-   * Get panel URL from stored auth state
+   * Get panel URL - reads from environment or uses default
+   * Panel URL should be set via constructor or environment variable HA_PANEL_URL
    */
   async getPanelUrl(): Promise<string> {
     if (this.panelUrl) {
       return this.panelUrl;
     }
 
-    const authDir = path.join(__dirname, '..', '..', '..', 'playwright', '.auth');
-    const panelUrlPath = path.join(authDir, 'panel-url.txt');
-
-    try {
-      this.panelUrl = fs.readFileSync(panelUrlPath, 'utf-8').trim();
-      return this.panelUrl;
-    } catch {
-      // Fallback to default URL pattern
-      this.panelUrl = 'http://127.0.0.1:8477/ev-trip-planner-Coche2';
+    // Try environment variable first
+    const envUrl = process.env.HA_PANEL_URL;
+    if (envUrl) {
+      this.panelUrl = envUrl;
       return this.panelUrl;
     }
+
+    // Fallback to default - this should be overridden by test setup
+    // The test should call setPanelUrl before navigation if using direct navigation
+    this.panelUrl = 'http://127.0.0.1:8123/ev-trip-planner-Coche2';
+    return this.panelUrl;
+  }
+
+  /**
+   * Set panel URL explicitly (recommended approach)
+   */
+  setPanelUrl(url: string): void {
+    this.panelUrl = url;
   }
 
   /**

@@ -12,9 +12,25 @@
 
 import { test, expect } from '@playwright/test';
 import { TripsPage } from './pages/trips.page';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * Get panel URL from stored auth state - runs in Node.js context
+ */
+function getPanelUrlFromStorage(): string {
+  const panelUrlPath = path.join(process.cwd(), 'playwright/.auth/panel-url.txt');
+  try {
+    return fs.readFileSync(panelUrlPath, 'utf-8').trim();
+  } catch {
+    // Fallback - should not happen in normal runs
+    return 'http://127.0.0.1:8123/ev-trip-planner-Coche2';
+  }
+}
 
 test.describe('Trip List Loading (US-1)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -22,6 +38,9 @@ test.describe('Trip List Loading (US-1)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
@@ -71,6 +90,7 @@ test.describe('Trip List Loading (US-1)', () => {
 
 test.describe('Create Trip (US-2)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -78,6 +98,9 @@ test.describe('Create Trip (US-2)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
@@ -152,6 +175,7 @@ test.describe('Create Trip (US-2)', () => {
 
 test.describe('Edit Trip (US-3)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -159,6 +183,9 @@ test.describe('Edit Trip (US-3)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
@@ -205,6 +232,7 @@ test.describe('Edit Trip (US-3)', () => {
 
 test.describe('Delete Trip (US-4)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -212,6 +240,9 @@ test.describe('Delete Trip (US-4)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
@@ -272,6 +303,7 @@ test.describe('Delete Trip (US-4)', () => {
 
 test.describe('Pause/Resume Recurring Trip (US-5)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -279,6 +311,9 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
@@ -331,6 +366,7 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
 
 test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
   let tripsPage: TripsPage;
+  let panelUrl: string;
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
@@ -338,6 +374,9 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
     page.on('dialog', async dialog => {
       await dialog.accept();
     });
+    // Read panel URL from storage (Node.js context)
+    panelUrl = getPanelUrlFromStorage();
+    tripsPage.setPanelUrl(panelUrl);
     await tripsPage.navigateDirect();
   });
 
