@@ -5,7 +5,7 @@
  * Uses web-first locators (getByRole, getByText, getByLabel) for Shadow DOM compatibility.
  */
 
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export class TripsPage {
   readonly page: Page;
@@ -407,6 +407,54 @@ export class TripsPage {
         await dialog.dismiss();
       }
     });
+  }
+
+  // ============================================================
+  // ASSERTION HELPERS
+  // ============================================================
+
+  /**
+   * Assert that empty state is visible.
+   * Uses Playwright's expect for auto-retrying assertions.
+   *
+   * @returns Promise that resolves when assertion passes
+   */
+  async assertEmptyState(): Promise<void> {
+    await expect(this.emptyState).toBeVisible();
+  }
+
+  /**
+   * Assert that a specific number of trips are displayed.
+   * Uses Playwright's expect for auto-retrying assertions.
+   *
+   * @param expected - Expected trip count
+   * @returns Promise that resolves when assertion passes
+   */
+  async assertTripCount(expected: number): Promise<void> {
+    const actual = await this.getTripCount();
+    expect(actual).toBe(expected);
+  }
+
+  /**
+   * Assert that a trip at given index is in active state.
+   *
+   * @param tripIndex - 1-based index of the trip card
+   * @returns Promise that resolves when assertion passes
+   */
+  async assertTripActive(tripIndex: number): Promise<void> {
+    const isActive = await this.isTripActive(tripIndex);
+    expect(isActive).toBe(true);
+  }
+
+  /**
+   * Assert that a trip at given index is in paused state.
+   *
+   * @param tripIndex - 1-based index of the trip card
+   * @returns Promise that resolves when assertion passes
+   */
+  async assertTripPaused(tripIndex: number): Promise<void> {
+    const isPaused = await this.isTripPaused(tripIndex);
+    expect(isPaused).toBe(true);
   }
 
   /**
