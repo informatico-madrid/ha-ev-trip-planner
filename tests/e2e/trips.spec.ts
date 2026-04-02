@@ -35,9 +35,7 @@ test.describe('Trip List Loading (US-1)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
@@ -95,9 +93,7 @@ test.describe('Create Trip (US-2)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
@@ -180,9 +176,7 @@ test.describe('Edit Trip (US-3)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
@@ -237,9 +231,7 @@ test.describe('Delete Trip (US-4)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
@@ -308,9 +300,7 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
@@ -371,9 +361,7 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
     // Set up dialog handler to auto-accept any dialogs
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-    });
+    tripsPage.setupDialogHandler();
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);

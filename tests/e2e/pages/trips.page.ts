@@ -394,6 +394,22 @@ export class TripsPage {
   }
 
   /**
+   * Set up automatic dialog handling.
+   * Call this in test beforeEach to auto-accept all dialogs.
+   *
+   * @param action - Dialog action to take ('accept' | 'dismiss'), defaults to 'accept'
+   */
+  setupDialogHandler(action: 'accept' | 'dismiss' = 'accept'): void {
+    this.page.on('dialog', async dialog => {
+      if (action === 'accept') {
+        await dialog.accept();
+      } else {
+        await dialog.dismiss();
+      }
+    });
+  }
+
+  /**
    * Call trip_create service via Home Assistant API.
    * Used for test setup to create trips directly without UI.
    *
