@@ -1,259 +1,562 @@
 # Tasks: E2E Trip CRUD Tests
 
-## Phase 1: Red-Green-Yellow Cycles
+## Phase 1: Make It Work (POC)
 
-Focus: Test-driven implementation. Each trip CRUD operation follows RED-GREEN-YELLOW triplet pattern.
+Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcoded values.
 
-### US-1: Create Recurring Trip
-
-- [ ] 1.1 [RED] Failing test: should create recurring trip with all fields
-  - **Do**: Write test that calls createRecurringTrip() with day, time, km, kwh, description and verifies trip appears in .trips-list with correct values
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Test exists and fails with "TripsPage not defined" error
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create recurring" 2>&1 | grep -E "FAIL|error"`
-  - **Commit**: `test(trips): red - failing test for create recurring trip`
-  - _Requirements: US-1, AC-1.1-AC-1.11_
-  - _Design: TripsPage class structure_
-
-- [ ] 1.2 [GREEN] Pass test: implement createRecurringTrip in TripsPage
-  - **Do**: Create TripsPage class with constructor taking page and vehicleId, implement createRecurringTrip method using Shadow DOM traversal pattern (ev-trip-planner-panel >> #selector)
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Test passes (TripsPage.createRecurringTrip opens form, fills fields, submits, returns tripId)
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create recurring"`
-  - **Commit**: `feat(trips): implement createRecurringTrip`
-  - _Requirements: US-1, AC-1.1-AC-1.11_
-  - _Design: Shadow DOM traversal, form fill sequence_
-
-- [ ] 1.3 [YELLOW] Refactor: extract TripData interfaces to top of file
-  - **Do**: Move RecurringTripData and PunctualTripData interfaces to top-level exports, add JSDoc comments
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Code is organized, interfaces are reusable, tests still pass
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create recurring"`
-  - **Commit**: `refactor(trips): extract TripData interfaces`
-
-- [ ] V1 [VERIFY] Quality checkpoint: lint and typecheck
-  - **Do**: Run typecheck on trips.page.ts
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts 2>&1; echo "TC_EXIT:$?"`
-  - **Done when**: No type errors, no lint errors
-  - **Commit**: `chore(trips): pass quality checkpoint`
-
-### US-2: Create Punctual Trip
-
-- [ ] 1.4 [RED] Failing test: should create punctual trip with datetime
-  - **Do**: Write test that calls createPunctualTrip() with datetime, km, kwh, description and verifies trip appears with correct datetime values
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Test exists and fails with "createPunctualTrip not defined"
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create punctual" 2>&1 | grep -E "FAIL|error"`
-  - **Commit**: `test(trips): red - failing test for create punctual trip`
-  - _Requirements: US-2, AC-2.1-AC-2.8_
-  - _Design: TripsPage.createPunctualTrip method_
-
-- [ ] 1.5 [GREEN] Pass test: implement createPunctualTrip in TripsPage
-  - **Do**: Implement createPunctualTrip method that selects "puntual" type, fills datetime-local input, km, kwh, description and submits form
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Test passes (form opens, punctual type selected, datetime filled, trip created)
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create punctual"`
-  - **Commit**: `feat(trips): implement createPunctualTrip`
-  - _Requirements: US-2, AC-2.1-AC-2.8_
-  - _Design: datetime-local input handling_
-
-- [ ] 1.6 [YELLOW] Refactor: share form-open logic between createRecurring and createPunctual
-  - **Do**: Extract common _openForm method that handles add-trip-btn click and form overlay visibility
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Code duplication reduced, tests still pass
-  - **Verify**: `npx playwright test trips.spec.ts --grep "create"`
-  - **Commit**: `refactor(trips): extract _openForm helper`
-
-- [ ] V2 [VERIFY] Quality checkpoint: verify both create tests pass
-  - **Do**: Run typecheck and both create tests
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts && npx playwright test trips.spec.ts --grep "create"`
-  - **Done when**: All commands pass
-  - **Commit**: `chore(trips): pass quality checkpoint`
-
-### US-3: Edit Trip
-
-- [ ] 1.7 [RED] Failing test: should edit existing trip
-  - **Do**: Write test that creates a recurring trip, clicks edit button, verifies form pre-fills with "Guardar Cambios" button text, modifies km/time, saves and verifies updated values
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Test exists and fails with "editTrip not defined"
-  - **Verify**: `npx playwright test trips.spec.ts --grep "edit" 2>&1 | grep -E "FAIL|error"`
-  - **Commit**: `test(trips): red - failing test for edit trip`
-  - _Requirements: US-3, AC-3.1-AC-3.6_
-  - _Design: TripsPage.editTrip method_
-
-- [ ] 1.8 [GREEN] Pass test: implement editTrip in TripsPage
-  - **Do**: Implement editTrip method that locates trip card by data-trip-id, clicks edit button, fills updated fields, clicks submit
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Test passes (edit form opens, updates saved, card reflects new values)
-  - **Verify**: `npx playwright test trips.spec.ts --grep "edit"`
-  - **Commit**: `feat(trips): implement editTrip`
-  - _Requirements: US-3, AC-3.1-AC-3.6_
-  - _Design: data-trip-id based trip card lookup_
-
-- [ ] 1.9 [YELLOW] Refactor: add cancel edit test coverage
-  - **Do**: Add test for cancel button (.btn-secondary) discards changes
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Cancel test passes, edit test still passes
-  - **Verify**: `npx playwright test trips.spec.ts --grep "edit|cancel"`
-  - **Commit**: `test(trips): add cancel edit test`
-
-- [ ] V3 [VERIFY] Quality checkpoint: verify edit tests pass
-  - **Do**: Run typecheck and edit tests
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts && npx playwright test trips.spec.ts --grep "edit"`
-  - **Done when**: All commands pass
-  - **Commit**: `chore(trips): pass quality checkpoint`
-
-### US-4: Delete Trip
-
-- [ ] 1.10 [RED] Failing test: should delete trip with dialog acceptance
-  - **Do**: Write test that creates a trip, sets up dialog handler to accept, clicks delete button, verifies trip removed from list
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Test exists and fails with "deleteTrip not defined"
-  - **Verify**: `npx playwright test trips.spec.ts --grep "delete" 2>&1 | grep -E "FAIL|error"`
-  - **Commit**: `test(trips): red - failing test for delete trip`
-  - _Requirements: US-4, AC-4.1-AC-4.5_
-  - _Design: TripsPage.deleteTrip method_
-
-- [ ] 1.11 [GREEN] Pass test: implement deleteTrip in TripsPage
-  - **Do**: Implement deleteTrip method that registers page.on('dialog') handler before clicking delete button, accepts/dismisses dialog, removes trip
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Test passes (dialog handled, trip removed from .trips-list)
-  - **Verify**: `npx playwright test trips.spec.ts --grep "delete"`
-  - **Commit**: `feat(trips): implement deleteTrip`
-  - _Requirements: US-4, AC-4.1-AC-4.5_
-  - _Design: dialog handling pattern_
-
-- [ ] 1.12 [YELLOW] Refactor: add dismiss dialog test
-  - **Do**: Add test that dismisses confirmation dialog and verifies trip remains
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Dismiss test passes, delete test still passes
-  - **Verify**: `npx playwright test trips.spec.ts --grep "delete"`
-  - **Commit**: `test(trips): add dismiss dialog test`
-
-- [ ] V4 [VERIFY] Quality checkpoint: verify all CRUD tests pass
-  - **Do**: Run typecheck and all CRUD tests
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts && npx playwright test trips.spec.ts`
-  - **Done when**: All commands pass
-  - **Commit**: `chore(trips): pass quality checkpoint`
-
-### Helper Methods and Cleanup
-
-- [ ] 1.13 [GREEN] Implement getTripCount and waitForTrip helpers
-  - **Do**: Implement getTripCount() returning count of .trip-card elements, waitForTrip(tripId) that waits for card with specific data-trip-id
-  - **Files**: tests/e2e/pages/trips.page.ts
-  - **Done when**: Helper methods work correctly
-  - **Verify**: `npx playwright test trips.spec.ts`
-  - **Commit**: `feat(trips): add getTripCount and waitForTrip helpers`
-
-- [ ] 1.14 [GREEN] Implement cleanupTrips for test independence
-  - **Do**: Implement cleanupTrips() that gets all tripIds and deletes them, call in test.afterEach()
-  - **Files**: tests/e2e/trips.spec.ts, tests/e2e/pages/trips.page.ts
-  - **Done when**: Each test cleans up its own trips, tests can run in any order
-  - **Verify**: `npx playwright test trips.spec.ts --grep "cleanup" || npx playwright test trips.spec.ts`
-  - **Commit**: `feat(trips): add cleanupTrips for test independence`
-
-- [ ] 1.15 [GREEN] Export TripsPage from pages/index.ts
-  - **Do**: Add TripsPage export to tests/e2e/pages/index.ts
-  - **Files**: tests/e2e/pages/index.ts
-  - **Done when**: TripsPage is importable from pages index
-  - **Verify**: `grep "TripsPage" tests/e2e/pages/index.ts`
-  - **Commit**: `feat(trips): export TripsPage from pages index`
-
-- [ ] V5 [VERIFY] Quality checkpoint: full CRUD suite passes
-  - **Do**: Run typecheck and all tests
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts && npx playwright test trips.spec.ts`
-  - **Done when**: All tests pass
-  - **Commit**: `chore(trips): pass full CRUD suite`
-
-## Phase 2: Additional Testing
-
-Focus: Edge cases and integration scenarios beyond the happy path.
-
-- [ ] 2.1 Add empty state verification test
-  - **Do**: Test that .no-trips element shows when last trip is deleted
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Empty state test passes
-  - **Verify**: `npx playwright test trips.spec.ts --grep "empty"`
-  - **Commit**: `test(trips): verify empty state after last delete`
-  - _Requirements: AC-4.5_
-
-- [ ] 2.2 Add form validation test (submit empty form)
-  - **Do**: Test that submitting form without required fields shows validation errors or prevents submission
-  - **Files**: tests/e2e/trips.spec.ts
-  - **Done when**: Validation test passes
-  - **Verify**: `npx playwright test trips.spec.ts --grep "validation"`
-  - **Commit**: `test(trips): add form validation test`
-  - _Requirements: FR-7_
-
-- [ ] 2.3 [VERIFY] Quality checkpoint: additional tests pass
-  - **Do**: Run all tests including new edge case tests
-  - **Verify**: `npx playwright test trips.spec.ts`
-  - **Done when**: All tests pass
-  - **Commit**: `chore(trips): pass edge case tests`
-
-## Phase 3: Quality Gates
-
-- [ ] 3.1 [VERIFY] Full local CI: lint, typecheck, test
-  - **Do**: Run complete local CI suite: typecheck + all tests
-  - **Verify**: `npx tsc --noEmit tests/e2e/pages/trips.page.ts && npx playwright test trips.spec.ts`
-  - **Done when**: Build succeeds, all tests pass
-  - **Commit**: `chore(trips): pass local CI`
-
-- [ ] 3.2 [VERIFY] CI pipeline passes
-  - **Do**: Push branch and verify GitHub Actions passes
-  - **Verify**: `gh pr checks --watch` or `gh pr checks`
-  - **Done when**: CI pipeline passes
-  - **Commit**: None (CI verifies)
-
-- [ ] 3.3 [VERIFY] AC checklist: verify all acceptance criteria satisfied
-  - **Do**: Read requirements.md and grep codebase for AC implementation evidence
-  - **Verify**: Grep for data-trip-id, trip-card, trip-form-overlay, btn-primary, trip-type selectors in trips.page.ts and trips.spec.ts
-  - **Done when**: All ACs have corresponding test code
-  - **Commit**: None
-
-## Phase 4: PR Lifecycle
-
-- [ ] 4.1 Create PR and verify CI
+- [ ] 1.1 [P] Create trips.page.ts with basic navigation and locators
   - **Do**:
-    1. Verify current branch is feature branch: `git branch --show-current`
-    2. Push branch: `git push -u origin <branch-name>`
+    1. Create `tests/e2e/pages/trips.page.ts`
+    2. Add constructor with Page dependency
+    3. Add sidebar navigation locator (`evTripPlannerMenuItem`)
+    4. Add `navigateViaSidebar()` method
+    5. Add `getPanelUrl()` method to read from `playwright/.auth/panel-url.txt`
+    6. Add empty trip list locator (`emptyState`)
+    7. Add add trip button locator (`addTripButton`)
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: TripsPage class has navigation methods and locators for basic panel access
+  - **Verify**: `grep -c "navigateViaSidebar\|getPanelUrl" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `feat(trips-page): add basic navigation and sidebar locators`
+  - _Requirements: FR-1_
+  - _Design: Component Architecture - TripsPage_
+
+- [ ] 1.2 [P] Add trip form locators to trips.page.ts
+  - **Do**:
+    1. Add trip form overlay locator (`tripFormOverlay`)
+    2. Add Recurrente/Puntual radio button locators
+    3. Add day selector locator (`daySelector`)
+    4. Add time input locator (`timeInput`)
+    5. Add submit button locator (`submitButton`)
+    6. Add helper methods: `clickAddTripButton()`, `selectRecurrente()`, `selectPuntual()`, `enterTime()`
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: TripsPage has all form-related locators and helper methods
+  - **Verify**: `grep -c "Recurrente\|Puntual\|daySelector\|submitButton" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `feat(trips-page): add trip form locators and helper methods`
+  - _Requirements: FR-4, FR-5_
+  - _Design: Form locators section_
+
+- [ ] 1.3 [P] Add trip action locators to trips.page.ts
+  - **Do**:
+    1. Add trip card locators (indexed by position)
+    2. Add action button locators: editButton(n), deleteButton(n), pauseButton(n), resumeButton(n), completeButton(n), cancelButton(n)
+    3. Add confirmation dialog locators: `confirmDialog`, `confirmDeleteBtn`, `cancelDialogBtn`
+    4. Add helper methods: `openEditFormForTrip(n)`, `openDeleteDialogForTrip(n)`, `confirmDelete()`, `cancelDelete()`
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: TripsPage has all trip CRUD action locators and methods
+  - **Verify**: `grep -c "editButton\|deleteButton\|pauseButton\|confirmDialog" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `feat(trips-page): add trip action locators and helper methods`
+  - _Requirements: FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15_
+  - _Design: Trip card actions section_
+
+- [ ] 1.4 [P] Add state query methods to trips.page.ts
+  - **Do**:
+    1. Add `isEmptyStateVisible()` method checking "No hay viajes" text
+    2. Add `getTripCount()` method using Shadow DOM traversal
+    3. Add `waitForTripCount(expected, timeout)` method
+    4. Add `isTripPaused(tripIndex)` helper method
+    5. Add `isTripActive(tripIndex)` helper method
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: TripsPage has state inspection methods
+  - **Verify**: `grep -c "isEmptyStateVisible\|getTripCount\|waitForTripCount" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `feat(trips-page): add state query methods`
+  - _Requirements: FR-2, FR-3_
+  - _Design: State query methods_
+
+- [ ] 1.5 [P] Add service call methods to trips.page.ts
+  - **Do**:
+    1. Add `callTripCreateService(data)` method for direct HA service calls
+    2. Add `callTripUpdateService(tripId, data)` method
+    3. Add `callDeleteTripService(tripId)` method
+    4. Add `callPauseRecurringTripService(tripId)` method
+    5. Add `callResumeRecurringTripService(tripId)` method
+    6. Add `callCompletePunctualTripService(tripId)` method
+    7. Add `callCancelPunctualTripService(tripId)` method
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: TripsPage has all service call methods for test setup/teardown
+  - **Verify**: `grep -c "trip_create\|trip_update\|delete_trip\|pause_recurring" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `feat(trips-page): add HA service call methods`
+  - _Requirements: FR-6, FR-8, FR-10, FR-12, FR-13, FR-14, FR-15_
+  - _Design: Service call methods_
+
+- [ ] 1.6 [P] Create trips.spec.ts with US-1 test skeleton
+  - **Do**:
+    1. Create `tests/e2e/trips.spec.ts`
+    2. Import TripsPage from pages index
+    3. Import test fixtures from test-helpers
+    4. Add test.describe block for US-1: Trip List Loading
+    5. Add first test: `displays empty state when no trips exist`
+    6. Add test.beforeEach to navigate to panel
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: trips.spec.ts exists with US-1 test skeleton
+  - **Verify**: `grep -c "US-1\|Trip List Loading" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-1 test skeleton`
+  - _Requirements: AC-1.1, FR-2_
+
+- [ ] 1.7 [P] Add US-1 empty state and trip list tests
+  - **Do**:
+    1. Add test: `displays empty state when no trips exist` - verify "No hay viajes" visible when trip count is 0
+    2. Add test: `displays recurring trips with correct format` - verify day/time format for recurring trips
+    3. Add test: `displays punctual trips with correct format` - verify date/time format for punctual trips
+    4. Add test: `shows correct trip count badge` - verify count updates when trips exist
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-1 tests implemented with web-first locators
+  - **Verify**: `grep -c "displays.*empty state\|displays.*recurring\|displays.*punctual\|trip count" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-1 trip list loading tests`
+  - _Requirements: AC-1.1, AC-1.2, AC-1.3, AC-1.4_
+  - _Design: US-1 test structure_
+
+- [ ] 1.8 [P] Add US-2 Create Trip tests
+  - **Do**:
+    1. Add test.describe block for US-2: Create Trip
+    2. Add test: `opens form modal when clicking + Agregar Viaje`
+    3. Add test: `shows Recurrente option with day selector`
+    4. Add test: `shows Puntual option without day selector`
+    5. Add test: `creates recurring trip successfully`
+    6. Add test: `creates punctual trip successfully`
+    7. Add test: `new trip appears immediately in list`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-2 Create Trip tests implemented
+  - **Verify**: `grep -c "Agregar Viaje\|Recurrente\|Puntual\|creates.*trip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-2 create trip tests`
+  - _Requirements: AC-2.1 through AC-2.8_
+  - _Design: US-2 test structure_
+
+- [ ] 1.9 [P] Add US-3 Edit Trip tests
+  - **Do**:
+    1. Add test.describe block for US-3: Edit Trip
+    2. Add test: `opens edit form with pre-filled data`
+    3. Add test: `updates trip successfully`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-3 Edit Trip tests implemented
+  - **Verify**: `grep -c "Edit.*form\|pre-filled\|updates.*trip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-3 edit trip tests`
+  - _Requirements: AC-3.1 through AC-3.4_
+  - _Design: US-3 test structure_
+
+- [ ] 1.10 [P] Add US-4 Delete Trip tests
+  - **Do**:
+    1. Add test.describe block for US-4: Delete Trip
+    2. Add test: `shows confirmation dialog on Eliminar`
+    3. Add test: `removes trip on confirm`
+    4. Add test: `keeps trip on cancel`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-4 Delete Trip tests implemented with dialog handling
+  - **Verify**: `grep -c "Eliminar\|confirmation.*dialog\|removes.*trip\|keeps.*trip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-4 delete trip tests`
+  - _Requirements: AC-4.1 through AC-4.4_
+  - _Design: US-4 test structure_
+
+- [ ] 1.11 [P] Add US-5 Pause/Resume Recurring Trip tests
+  - **Do**:
+    1. Add test.describe block for US-5: Pause/Resume Recurring
+    2. Add test: `shows Pausar for active recurring trip`
+    3. Add test: `pauses trip and shows Reanudar`
+    4. Add test: `resumes trip and shows Pausar again`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-5 Pause/Resume tests implemented
+  - **Verify**: `grep -c "Pausar\|Reanudar\|pauses.*trip\|resumes.*trip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-5 pause/resume tests`
+  - _Requirements: AC-5.1 through AC-5.6_
+  - _Design: US-5 test structure_
+
+- [ ] 1.12 [P] Add US-6 Complete/Cancel Punctual Trip tests
+  - **Do**:
+    1. Add test.describe block for US-6: Complete/Cancel Punctual
+    2. Add test: `shows Completar for active punctual trip`
+    3. Add test: `completes trip and removes from list`
+    4. Add test: `shows Cancelar for active punctual trip`
+    5. Add test: `cancels trip and removes from list`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: All US-6 Complete/Cancel tests implemented
+  - **Verify**: `grep -c "Completar\|Cancelar\|completes.*trip\|cancels.*trip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add US-6 complete/cancel tests`
+  - _Requirements: AC-6.1 through AC-6.6_
+  - _Design: US-6 test structure_
+
+- [ ] 1.13 [VERIFY] Quality checkpoint: typecheck trips.page.ts
+  - **Do**: Run TypeScript type checking on the new page object
+  - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && npx tsc --noEmit tests/e2e/pages/trips.page.ts 2>&1 | head -50`
+  - **Done when**: No type errors in trips.page.ts
+  - **Commit**: `chore(trips-page): pass typecheck`
+  - _Requirements: NFR-4_
+
+- [ ] 1.14 [P] Update pages/index.ts to export TripsPage
+  - **Do**:
+    1. Open `tests/e2e/pages/index.ts`
+    2. Add export for TripsPage class
+  - **Files**: `tests/e2e/pages/index.ts`
+  - **Done when**: TripsPage is exported from pages index
+  - **Verify**: `grep "TripsPage" tests/e2e/pages/index.ts`
+  - **Commit**: `feat(pages): export TripsPage`
+  - _Requirements: FR-1_
+  - _Design: File Structure_
+
+- [ ] 1.15 [VERIFY] Run auth setup to verify storageState works
+  - **Do**:
+    1. Run auth.setup.ts to ensure it still works
+    2. Verify storageState is created at `playwright/.auth/user.json`
+    3. Verify panel URL is saved at `playwright/.auth/panel-url.txt`
+  - **Verify**: `npx playwright test auth.setup.ts --reporter=list 2>&1 | tail -20`
+  - **Done when**: auth.setup passes and storageState files exist
+  - **Commit**: `chore(auth): verify setup still works`
+
+- [ ] 1.16 [P] Add test setup and teardown helpers
+  - **Do**:
+    1. Add `beforeEach` hook to navigate to trips panel
+    2. Add `afterEach` hook to clean up created trips via service calls
+    3. Add dialog handler setup in test.beforeEach
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Tests have proper setup/teardown for isolation
+  - **Verify**: `grep -c "beforeEach\|afterEach\|dialog" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add test setup and teardown`
+  - _Requirements: NFR-2_
+  - _Design: Test isolation pattern_
+
+- [ ] 1.17 [P] Add test data creation helpers
+  - **Do**:
+    1. Add `createTestRecurringTrip()` helper that creates a recurring trip via UI and returns trip ID
+    2. Add `createTestPunctualTrip()` helper that creates a punctual trip via UI and returns trip ID
+    3. Add `cleanupTestTrip(tripId)` helper to remove test trips via service call
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Test helpers for trip creation and cleanup exist
+  - **Verify**: `grep -c "createTestRecurringTrip\|createTestPunctualTrip\|cleanupTestTrip" tests/e2e/trips.spec.ts`
+  - **Commit**: `feat(trips-spec): add test data helpers`
+  - _Requirements: NFR-2_
+  - _Design: Test data helpers_
+
+- [ ] 1.18 [VERIFY] Quality checkpoint: run first US-1 test
+  - **Do**: Run the first US-1 test to verify the test framework works
+  - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --grep "empty state" --reporter=list 2>&1 | tail -30`
+  - **Done when**: First test runs without import/type errors
+  - **Commit**: `chore(trips-spec): verify first test runs`
+
+- [ ] 1.19 [P] Add Playwright config entries if needed
+  - **Do**:
+    1. Check if trips.spec.ts needs any special configuration
+    2. Ensure tests use correct project (chromium with storageState)
+  - **Files**: `playwright.config.ts`
+  - **Done when**: Playwright config supports trips.spec.ts
+  - **Verify**: `grep "trips.spec" playwright.config.ts || echo "No config changes needed"`
+  - **Commit**: `chore(config): verify playwright config`
+
+- [ ] 1.20 POC Checkpoint: First end-to-end test passes
+  - **Do**: Run a single trip CRUD test end-to-end to verify the full stack works
+  - **Done when**: Test can navigate to panel, create a trip, and verify it appears in list
+  - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --grep "creates recurring" --reporter=list 2>&1 | tail -30`
+  - **Commit**: `feat(trips-spec): complete POC - first CRUD test passes`
+  - _Requirements: FR-6, AC-2.6_
+
+## Phase 2: Refactoring
+
+Focus: Clean up code structure. No new features.
+
+- [ ] 2.1 Refactor trips.page.ts: extract constants
+  - **Do**:
+    1. Extract selector strings to class constants
+    2. Extract service names to constants
+    3. Extract button labels to constants
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: All magic strings are class constants
+  - **Verify**: `grep -c "readonly.*=" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `refactor(trips-page): extract constants`
+  - _Design: Constants section_
+
+- [ ] 2.2 Refactor trips.page.ts: add JSDoc comments
+  - **Do**:
+    1. Add JSDoc to all public methods
+    2. Add parameter descriptions
+    3. Add return type documentation
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: All public methods have JSDoc
+  - **Verify**: `grep -c "/\*\*" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `refactor(trips-page): add JSDoc documentation`
+  - _Design: Documentation_
+
+- [ ] 2.3 Refactor trips.spec.ts: extract test data builders
+  - **Do**:
+    1. Create a test data builder pattern for recurring trips
+    2. Create a test data builder pattern for punctual trips
+    3. Extract common test assertions to helper methods
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Test data creation is reusable and consistent
+  - **Verify**: `grep -c "buildRecurringTrip\|buildPunctualTrip" tests/e2e/trips.spec.ts`
+  - **Commit**: `refactor(trips-spec): extract test data builders`
+  - _Design: Test data builders_
+
+- [ ] 2.4 [VERIFY] Quality checkpoint: lint and typecheck
+  - **Do**: Run lint and typecheck on all new files
+  - **Verify**: `npx eslint tests/e2e/pages/trips.page.ts tests/e2e/trips.spec.ts 2>&1 | head -30 && npx tsc --noEmit tests/e2e/pages/trips.page.ts 2>&1 | head -20`
+  - **Done when**: Lint passes, typecheck passes
+  - **Commit**: `chore(trips): pass quality checkpoint`
+
+- [ ] 2.5 Refactor: consolidate dialog handling
+  - **Do**:
+    1. Move dialog handler setup to trips.page.ts as a method
+    2. Update tests to use consolidated dialog handling
+  - **Files**: `tests/e2e/pages/trips.page.ts`, `tests/e2e/trips.spec.ts`
+  - **Done when**: Dialog handling is in one place
+  - **Verify**: `grep "setupDialogHandler" tests/e2e/trips.spec.ts`
+  - **Commit**: `refactor(trips-page): consolidate dialog handling`
+  - _Design: Dialog handling pattern_
+
+- [ ] 2.6 Refactor: extract assertion helpers
+  - **Do**:
+    1. Add `assertEmptyState()` method to TripsPage
+    2. Add `assertTripCount(expected)` method to TripsPage
+    3. Add `assertTripActive(tripIndex)` method to TripsPage
+    4. Add `assertTripPaused(tripIndex)` method to TripsPage
+  - **Files**: `tests/e2e/pages/trips.page.ts`
+  - **Done when**: Common assertions are reusable methods
+  - **Verify**: `grep -c "assertEmptyState\|assertTripCount\|assertTripActive" tests/e2e/pages/trips.page.ts`
+  - **Commit**: `refactor(trips-page): add assertion helpers`
+  - _Design: Assertion helpers_
+
+- [ ] 2.7 [VERIFY] Quality checkpoint: full typecheck
+  - **Do**: Run full TypeScript typecheck on the e2e directory
+  - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && npx tsc --noEmit 2>&1 | grep -E "tests/e2e" | head -20`
+  - **Done when**: No type errors in tests/e2e directory
+  - **Commit**: `chore(trips): pass full typecheck`
+
+## Phase 3: Testing
+
+Focus: Add comprehensive test coverage.
+
+- [ ] 3.1 Add integration test: trip form validation
+  - **Do**:
+    1. Add test: `shows validation error when submitting empty form`
+    2. Add test: `shows validation error when missing required fields`
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Form validation is tested
+  - **Verify**: `grep -c "validation.*error\|required.*fields" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add form validation tests`
+  - _Requirements: AC-2.6_
+  - _Design: US-2 extended tests_
+
+- [ ] 3.2 Add integration test: edit preserves other fields
+  - **Do**:
+    1. Create a trip with specific values
+    2. Edit only the time field
+    3. Verify other fields remain unchanged
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Partial edit is tested
+  - **Verify**: `grep -c "preserves.*fields\|partial.*edit" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add partial edit test`
+  - _Requirements: AC-3.3_
+  - _Design: US-3 extended tests_
+
+- [ ] 3.3 Add integration test: delete confirmation dialog text
+  - **Do**:
+    1. Click Eliminar and verify dialog message contains trip identifier
+    2. Verify cancel button is focused by default
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Delete dialog behavior is tested
+  - **Verify**: `grep -c "dialog.*message\|cancel.*focused" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add delete dialog tests`
+  - _Requirements: AC-4.1_
+  - _Design: US-4 extended tests_
+
+- [ ] 3.4 Add integration test: pause state persists after refresh
+  - **Do**:
+    1. Pause a recurring trip
+    2. Refresh the page
+    3. Verify trip is still paused
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Pause state persistence is tested
+  - **Verify**: `grep -c "pause.*refresh\|state.*persists" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add pause persistence test`
+  - _Requirements: AC-5.2_
+  - _Design: US-5 extended tests_
+
+- [ ] 3.5 Add integration test: create multiple trips in sequence
+  - **Do**:
+    1. Create first recurring trip
+    2. Create second recurring trip
+    3. Create punctual trip
+    4. Verify all three appear in list with correct count
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Multiple trip creation is tested
+  - **Verify**: `grep -c "multiple.*trips\|sequence" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add multiple trips test`
+  - _Requirements: AC-2.8_
+  - _Design: US-2 extended tests_
+
+- [ ] 3.6 [VERIFY] Quality checkpoint: run all tests
+  - **Do**: Run the complete trip CRUD test suite
+  - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --reporter=list 2>&1 | tail -40`
+  - **Done when**: All trip CRUD tests pass
+  - **Commit**: `chore(trips): pass test suite`
+
+- [ ] 3.7 Add test: complete and cancel are mutually exclusive
+  - **Do**:
+    1. Verify punctual trip shows Completar, not Cancelar after creation
+    2. Verify after completion, trip is removed (not change to Cancelar)
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Mutual exclusivity is tested
+  - **Verify**: `grep -c "mutually exclusive\|Completar.*Cancelar" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add mutual exclusivity test`
+  - _Requirements: AC-6.1, AC-6.4_
+  - _Design: US-6 extended tests_
+
+- [ ] 3.8 Add test: pause/resume toggle state
+  - **Do**:
+    1. Verify active recurring shows Pausar
+    2. Click Pausar, verify shows Reanudar
+    3. Click Reanudar, verify shows Pausar again
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Toggle state is fully tested
+  - **Verify**: `grep -c "toggle.*state\|Pausar.*Reanudar.*Pausar" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add pause/resume toggle test`
+  - _Requirements: AC-5.1, AC-5.4, AC-5.6_
+  - _Design: US-5 extended tests_
+
+- [ ] 3.9 Add test: trip order in list
+  - **Do**:
+    1. Create multiple trips
+    2. Verify they appear in expected order (by creation time or scheduled time)
+  - **Files**: `tests/e2e/trips.spec.ts`
+  - **Done when**: Trip ordering is tested
+  - **Verify**: `grep -c "trip.*order\|ordering" tests/e2e/trips.spec.ts`
+  - **Commit**: `test(trips-spec): add trip ordering test`
+  - _Requirements: AC-1.2, AC-1.3_
+  - _Design: US-1 extended tests_
+
+- [ ] 3.10 [VERIFY] Quality checkpoint: full test suite
+  - **Do**: Run complete trip CRUD test suite with all extended tests
+  - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --reporter=list 2>&1 | tail -50`
+  - **Done when**: All tests pass including extended coverage
+  - **Commit**: `chore(trips): pass full test suite`
+
+## Phase 4: Quality Gates
+
+Goal: All local checks pass. Create PR and verify CI.
+
+- [ ] 4.1 Local quality check
+  - **Do**: Run ALL quality checks locally
+  - **Verify**: All commands must pass:
+    - Type check: `npx tsc --noEmit 2>&1 | grep -E "tests/e2e" | head -10`
+    - Lint: `npx eslint tests/e2e/**/*.ts 2>&1 | head -20`
+    - Tests: `npx playwright test tests/e2e/trips.spec.ts --reporter=list 2>&1 | tail -30`
+  - **Done when**: All commands pass with no errors
+  - **Commit**: `fix(trips): address lint/type issues` (if fixes needed)
+
+- [ ] 4.2 Create PR and verify CI
+  - **Do**:
+    1. Verify current branch is a feature branch: `git branch --show-current`
+    2. Push branch: `git push -u origin e2e-trip-crud-tests`
     3. Create PR using gh CLI: `gh pr create --title "feat(e2e): add trip CRUD tests" --body "$(cat <<'EOF'
 ## Summary
-- Add Playwright E2E tests for trip CRUD operations (Create, Edit, Delete)
-- Create TripsPage Page Object with Shadow DOM traversal
-- Tests use independent cleanup via test.afterEach()
+- Add E2E Playwright tests for trip CRUD operations
+- US-1: Trip list loading (empty state, recurring/punctual display)
+- US-2: Create trip (+ Agregar Viaje, Recurrente/Puntual toggle)
+- US-3: Edit trip (Editar with pre-filled form)
+- US-4: Delete trip (Eliminar + confirmation dialog)
+- US-5: Pause/Resume recurring trip
+- US-6: Complete/Cancel punctual trip
 
 ## Test plan
-- [ ] US-1: Create recurring trip - AC-1.1 through AC-1.11
-- [ ] US-2: Create punctual trip - AC-2.1 through AC-2.8
-- [ ] US-3: Edit trip - AC-3.1 through AC-3.6
-- [ ] US-4: Delete trip - AC-4.1 through AC-4.5
-- [ ] All tests pass in CI pipeline
+- [ ] All 6 user stories implemented
+- [ ] Tests use storageState from auth.setup.ts
+- [ ] All locators use web-first APIs (getByRole, getByText, getByLabel)
+- [ ] No waitForTimeout calls
+- [ ] Tests navigate via sidebar
+- [ ] All tests pass in Chrome
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"`
-  - **Verify**: `gh pr checks --watch` shows all green
-  - **Done when**: PR created, CI passes
+  - **Verify**: `gh pr checks --watch 2>&1 | tail -30`
+  - **Done when**: All CI checks green, PR ready for review
   - **If CI fails**:
     1. Read failure details: `gh pr checks`
     2. Fix issues locally
     3. Push fixes: `git push`
     4. Re-verify: `gh pr checks --watch`
 
-- [ ] 4.2 Address code review feedback
-  - **Do**: Respond to review comments, make necessary changes, push updates
-  - **Files**: tests/e2e/trips.spec.ts, tests/e2e/pages/trips.page.ts
-  - **Done when**: All review comments addressed, CI still green
-  - **Verify**: `npx playwright test trips.spec.ts && gh pr checks`
-  - **Commit**: `fix(trips): address review feedback` (as needed)
+## Phase 5: PR Lifecycle
+
+Goal: Autonomous PR management loop until all criteria met.
+
+- [ ] 5.1 Monitor CI and fix issues
+  - **Do**:
+    1. Check CI status: `gh pr checks`
+    2. If any checks fail, analyze the failure
+    3. Fix the issue locally
+    4. Commit and push: `git add -A && git commit -m "fix(<spec>): <issue>" && git push`
+    5. Wait for CI to rerun
+  - **Verify**: `gh pr checks 2>&1 | grep -E "pass|fail|error"`
+  - **Done when**: All CI checks pass
+  - **Commit**: `fix(<spec>): <CI issue description>`
+
+- [ ] 5.2 Address code review comments
+  - **Do**:
+    1. List PR comments: `gh pr view 1234/comments`
+    2. Address each comment with a fix or explanation
+    3. Push updates: `git push`
+  - **Verify**: `gh pr view --comments 2>&1 | head -50`
+  - **Done when**: All comments addressed or resolved
+
+- [ ] 5.3 Final verification
+  - **Do**:
+    1. Verify all tests pass locally: `npx playwright test tests/e2e/trips.spec.ts --reporter=list 2>&1 | tail -30`
+    2. Verify CI is green: `gh pr checks`
+    3. Verify code coverage is acceptable
+  - **Verify**: Exit code 0 for all verification commands
+  - **Done when**: PR is approved and mergeable
+  - **Commit**: `chore(<spec>): final verification`
+
+## VE Tasks (E2E Verification)
+
+VE0: UI Map Init (build selector map once)
+VE1: E2E startup (launch ephemeral HA if needed)
+VE2: E2E check (run trip CRUD tests against live HA)
+VE3: E2E cleanup (stop ephemeral HA)
+
+- [ ] VE0 [VERIFY] UI Map Init: build selector map for trips panel
+  - **Do**:
+    1. Check if `ui-map.local.md` already exists: `[ -f specs/e2e-trip-crud-tests/ui-map.local.md ] && echo EXISTS`
+    2. If it exists, skip remaining steps - map is already built
+    3. If not, load skill and run exploration: `<agent loads skills/e2e/ui-map-init.skill.md and follows its instructions>`
+  - **Skills**: `skills/e2e/ui-map-init.skill.md`
+  - **Files**: `specs/e2e-trip-crud-tests/ui-map.local.md` (created by skill if absent)
+  - **Done when**: `ui-map.local.md` exists in basePath with at least one selector
+  - **Verify**: `[ -f specs/e2e-trip-crud-tests/ui-map.local.md ] && echo VE0_PASS`
+  - **Commit**: None
+
+- [ ] VE1 [VERIFY] E2E startup: launch ephemeral HA and wait for ready
+  - **Do**:
+    1. Start ephemeral HA via global setup in background
+    2. Record PID: `echo $! > /tmp/ve-pids.txt`
+    3. Wait for server ready with 60s timeout: check `curl -s http://127.0.0.1:8123/manifest.json` every 5s
+    4. Verify auth.setup.ts can run: `npx playwright test auth.setup.ts --reporter=list 2>&1 | tail -10`
+  - **Verify**: `curl -sf http://127.0.0.1:8123/manifest.json && echo VE1_PASS`
+  - **Done when**: Ephemeral HA running and responding, auth.setup passes
+  - **Commit**: None
+
+- [ ] VE2 [VERIFY] E2E check: run trip CRUD tests end-to-end
+  - **Do**:
+    1. Load selectors from `ui-map.local.md` for trips panel elements
+    2. Run trip CRUD tests: `npx playwright test tests/e2e/trips.spec.ts --reporter=list`
+    3. Verify all tests pass
+    4. Check for console errors
+  - **Verify**: `npx playwright test tests/e2e/trips.spec.ts 2>&1 | grep -E "passed|failed|error" | tail -5`
+  - **Done when**: Trip CRUD tests pass against live ephemeral HA
+  - **Commit**: None
+
+- [ ] VE3 [VERIFY] E2E cleanup: stop ephemeral HA and free ports
+  - **Do**:
+    1. Kill by PID: `kill $(cat /tmp/ve-pids.txt) 2>/dev/null; sleep 2; kill -9 $(cat /tmp/ve-pids.txt) 2>/dev/null || true`
+    2. Kill by port fallback: `lsof -ti :8123 | xargs -r kill 2>/dev/null || true`
+    3. Remove PID file: `rm -f /tmp/ve-pids.txt`
+    4. Verify port free: `! lsof -ti :8123`
+  - **Verify**: `! lsof -ti :8123 && echo VE3_PASS`
+  - **Done when**: No process listening on port 8123, PID file removed
+  - **Commit**: None
 
 ## Notes
 
-- **TDD approach**: All implementation driven by failing tests first
-- **POC shortcuts taken**: None - full TDD workflow
-- **Production TODOs**: None - full implementation in Phase 1
-- **Shadow DOM pattern**: Always use `page.locator('ev-trip-planner-panel').locator('#selector')`
-- **Dialog handling**: Use `page.on('dialog')` registered before action that triggers dialog
-- **Test independence**: Each test creates its own trips, cleanup in test.afterEach()
-- **Vehicle ID**: Hardcoded as "Coche2" per requirements (auth.setup.ts config flow)
+- **POC shortcuts taken**: Hardcoded vehicle name "Coche2", single browser (Chrome only)
+- **Production TODOs**:
+  - Add Firefox/Safari browser testing (NFR-3)
+  - Parameterize vehicle name for multi-vehicle testing
+  - Add test retry logic for HA frontend hydration issues
+  - Consider parallel test execution optimization
