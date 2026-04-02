@@ -173,14 +173,14 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-6.1 through AC-6.6_
   - _Design: US-6 test structure_
 
-- [ ] 1.13 [VERIFY] Quality checkpoint: typecheck trips.page.ts
+- [x] 1.13 [VERIFY] Quality checkpoint: typecheck trips.page.ts
   - **Do**: Run TypeScript type checking on the new page object
   - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && npx tsc --noEmit tests/e2e/pages/trips.page.ts 2>&1 | head -50`
   - **Done when**: No type errors in trips.page.ts
   - **Commit**: `chore(trips-page): pass typecheck`
   - _Requirements: NFR-4_
 
-- [ ] 1.14 [P] Update pages/index.ts to export TripsPage
+- [x] 1.14 [P] Update pages/index.ts to export TripsPage
   - **Do**:
     1. Open `tests/e2e/pages/index.ts`
     2. Add export for TripsPage class
@@ -191,7 +191,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-1_
   - _Design: File Structure_
 
-- [ ] 1.15 [VERIFY] Run auth setup to verify storageState works
+- [x] 1.15 [VERIFY] Run auth setup to verify storageState works
   - **Do**:
     1. Run auth.setup.ts to ensure it still works
     2. Verify storageState is created at `playwright/.auth/user.json`
@@ -200,7 +200,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - **Done when**: auth.setup passes and storageState files exist
   - **Commit**: `chore(auth): verify setup still works`
 
-- [ ] 1.16 [P] Add test setup and teardown helpers
+- [x] 1.16 [P] Add test setup and teardown helpers
   - **Do**:
     1. Add `beforeEach` hook to navigate to trips panel
     2. Add `afterEach` hook to clean up created trips via service calls
@@ -212,7 +212,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: NFR-2_
   - _Design: Test isolation pattern_
 
-- [ ] 1.17 [P] Add test data creation helpers
+- [x] 1.17 [P] Add test data creation helpers
   - **Do**:
     1. Add `createTestRecurringTrip()` helper that creates a recurring trip via UI and returns trip ID
     2. Add `createTestPunctualTrip()` helper that creates a punctual trip via UI and returns trip ID
@@ -224,13 +224,13 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: NFR-2_
   - _Design: Test data helpers_
 
-- [ ] 1.18 [VERIFY] Quality checkpoint: run first US-1 test
+- [x] 1.18 [VERIFY] Quality checkpoint: run first US-1 test
   - **Do**: Run the first US-1 test to verify the test framework works
   - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --grep "empty state" --reporter=list 2>&1 | tail -30`
   - **Done when**: First test runs without import/type errors
   - **Commit**: `chore(trips-spec): verify first test runs`
 
-- [ ] 1.19 [P] Add Playwright config entries if needed
+- [x] 1.19 [P] Add Playwright config entries if needed
   - **Do**:
     1. Check if trips.spec.ts needs any special configuration
     2. Ensure tests use correct project (chromium with storageState)
@@ -239,7 +239,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - **Verify**: `grep "trips.spec" playwright.config.ts || echo "No config changes needed"`
   - **Commit**: `chore(config): verify playwright config`
 
-- [ ] 1.20 POC Checkpoint: First end-to-end test passes
+- [x] 1.20 POC Checkpoint: First end-to-end test passes
   - **Do**: Run a single trip CRUD test end-to-end to verify the full stack works
   - **Done when**: Test can navigate to panel, create a trip, and verify it appears in list
   - **Verify**: `npx playwright test tests/e2e/trips.spec.ts --grep "creates recurring" --reporter=list 2>&1 | tail -30`
