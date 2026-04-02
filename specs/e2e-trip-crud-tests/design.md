@@ -161,7 +161,7 @@ test.describe('US-6: Complete/Cancel Punctual', () => {
 | `tests/e2e/pages/trips.page.ts` | **Create** | Page object for trip panel interactions |
 | `tests/e2e/trips.spec.ts` | **Create** | All 6 user story test suites |
 | `tests/e2e/pages/index.ts` | **Modify** | Export new TripsPage |
-| `tests/e2e/auth.setup.ts` | **No touch** | Working authentication - off limits |
+| `tests/e2e/auth.setup.ts` | **Modify** | Fix URL case mismatch (line 282: use lowercase vehicle_id) |
 
 ## Data Flow
 

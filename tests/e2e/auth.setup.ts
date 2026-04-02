@@ -279,7 +279,8 @@ setup.describe('Authentication Setup', () => {
 
 
     console.log('\n[Navigating] al panel');
-    await page.goto(`${baseUrl}/ev-trip-planner-${vehicleName}`, {
+    const vehicleId = vehicleName.toLowerCase().replace(/ /g, '_');
+    await page.goto(`${baseUrl}/ev-trip-planner-${vehicleId}`, {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
@@ -288,7 +289,6 @@ setup.describe('Authentication Setup', () => {
     // 14. Verificar que la integración se configuró correctamente
     // Nota: El panel webcomponent puede no renderizarse inmediatamente en entornos ephemeral
     // pero la integración debe aparecer en la lista de configuradas
-    const vehicleId = 'Coche2';
     const panelUrl = `${baseUrl}/ev-trip-planner-${vehicleId}`;
 
     console.log(`[Config] Integration configured successfully for ${vehicleName}`);
@@ -299,6 +299,11 @@ setup.describe('Authentication Setup', () => {
     fs.writeFileSync(panelUrlPath, panelUrl);
     console.log(`[AuthSetup] Panel URL saved to: ${panelUrlPath}`);
     console.log(`[AuthSetup] Panel URL: ${panelUrl}`);
+
+    // Guardar estado de autenticación para reutilizar en tests
+    const userJsonPath = path.join(AUTH_DIR, 'user.json');
+    await page.context().storageState({ path: userJsonPath });
+    console.log(`[AuthSetup] Storage state saved to: ${userJsonPath}`);
 
     console.log('\n' + '='.repeat(60));
     console.log('[AuthSetup] Authentication and config flow complete!');

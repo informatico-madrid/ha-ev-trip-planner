@@ -2,7 +2,7 @@
   "source": "spec",
   "name": "e2e-trip-crud-tests",
   "basePath": "specs/e2e-trip-crud-tests",
-  "phase": "execution",
+  "phase": "research",
   "taskIndex": 37,
   "totalTasks": 52,
   "taskIteration": 1,
@@ -25,7 +25,7 @@
       "invoked": true
     }
   ],
-  "awaitingApproval": false,
+  "awaitingApproval": true,
   "relatedSpecs": [
     {
       "name": "021-e2e-trip-crud-panel-tests",

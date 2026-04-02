@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-02T18:07:54Z
+**Last updated:** 2026-04-02T22:52:12Z
 
 ## Directories (1)
 
@@ -39,7 +39,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | automation-template | ./specs | completed | done |
 | emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
-| e2e-trip-crud-tests | ./specs | tasks | awaiting approval |
+| e2e-trip-crud-tests | ./specs | research | awaiting approval |
 
 ---
 

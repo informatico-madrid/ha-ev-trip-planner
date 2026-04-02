@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-02T18:07:54Z",
+  "updated": "2026-04-02T22:52:12Z",
   "directories": [
     {
       "path": "./specs",
@@ -167,8 +167,8 @@
     {
       "name": "e2e-trip-crud-tests",
       "path": "./specs/e2e-trip-crud-tests",
-      "phase": "tasks",
-      "taskIndex": 0,
+      "phase": "research",
+      "taskIndex": 37,
       "totalTasks": 52,
       "awaitingApproval": true
     }

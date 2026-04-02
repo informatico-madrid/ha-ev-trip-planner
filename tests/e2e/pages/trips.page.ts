@@ -38,10 +38,10 @@ export class TripsPage {
   // Text patterns for UI elements (i18n-aware)
   static readonly TEXT_PATTERNS = {
     // Navigation
-    EV_TRIP_PLANNER: /ev trip planner|planificador de viajes ev/i,
+    EV_TRIP_PLANNER: /ev trip planner|planificador de viajes ev|coche2/i,
 
     // Empty state
-    NO_TRIPS: /no hay viajes|there are no trips/i,
+    NO_TRIPS: /no hay viajesprogramados|no hay viajes|there are no trips/i,
 
     // Buttons
     AGREGAR_VIAJE: /\+ Agregar Viaje|Add Trip/i,
@@ -66,7 +66,7 @@ export class TripsPage {
   } as const;
 
   // Default configuration
-  static readonly DEFAULT_PANEL_URL = 'http://127.0.0.1:8123/ev-trip-planner-Coche2';
+  static readonly DEFAULT_PANEL_URL = 'http://127.0.0.1:8123/ev-trip-planner-coche2';
   static readonly DEFAULT_TIMEOUT_MS = 5000;
   static readonly DEFAULT_WAIT_MS = 100;
 

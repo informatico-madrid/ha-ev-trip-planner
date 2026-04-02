@@ -39,7 +39,7 @@ test.describe('Trip List Loading (US-1)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -97,7 +97,7 @@ test.describe('Create Trip (US-2)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -209,7 +209,7 @@ test.describe('Edit Trip (US-3)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -285,7 +285,7 @@ test.describe('Delete Trip (US-4)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -371,7 +371,7 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -434,7 +434,7 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
     await expect(tripsPage.resumeButton(1)).toBeVisible();
 
     // Refresh the page
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
 
     // Verify trip is still paused (resume button should still be visible)
     await expect(tripsPage.resumeButton(1)).toBeVisible();
@@ -471,7 +471,7 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
@@ -559,7 +559,7 @@ test.describe('Multiple Trips (Extended)', () => {
     // Read panel URL from storage (Node.js context)
     panelUrl = getPanelUrlFromStorage();
     tripsPage.setPanelUrl(panelUrl);
-    await tripsPage.navigateDirect();
+    await tripsPage.navigateViaSidebar();
   });
 
   test.afterEach(async () => {
