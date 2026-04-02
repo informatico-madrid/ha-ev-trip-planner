@@ -1,160 +1,198 @@
 # Requirements: E2E Trip CRUD Tests
 
 ## Goal
-
-Create end-to-end Playwright tests that verify the CRUD functionality (Create, Edit, Delete) for trips in the EV Trip Planner Home Assistant integration. Production code exists and works; only tests are created.
+Create browser-based E2E Playwright tests that verify CRUD functionality for trips in the EV Trip Planner panel. The existing `auth.setup.ts` provides authentication and Config Flow setup that tests reuse via `storageState`.
 
 ## User Stories
 
-### US-1: Create Recurring Trip
-
-**As a** user  
-**I want to** create a recurring weekly trip for my vehicle  
-**So that** the system can plan charging schedules around my regular commute
-
-**Acceptance Criteria:**
-- [ ] AC-1.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
-- [ ] AC-1.2: Click "Add Trip" button and verify form opens
-- [ ] AC-1.3: Select trip type "Recurrente" (recurring)
-- [ ] AC-1.4: Select a day of the week (e.g., "Lunes")
-- [ ] AC-1.5: Enter time (e.g., "08:00")
-- [ ] AC-1.6: Enter distance in km (e.g., "25.5")
-- [ ] AC-1.7: Enter energy in kWh (e.g., "5.2")
-- [ ] AC-1.8: Submit form and verify trip appears in trip list
-- [ ] AC-1.9: Verify trip count increases by 1
-- [ ] AC-1.10: Trip persists after page reload
-
-### US-2: Create Punctual Trip
-
-**As a** user  
-**I want to** create a one-time trip for my vehicle  
-**So that** the system can account for an irregular journey
+### US-1: Trip List Loading Test
+**As a** test engineer
+**I want** to verify trips load correctly from the trip_list service
+**So that** I can confirm the panel displays existing trips properly
 
 **Acceptance Criteria:**
-- [ ] AC-2.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
-- [ ] AC-2.2: Click "Add Trip" button and verify form opens
-- [ ] AC-2.3: Select trip type "Puntual" (one-time)
-- [ ] AC-2.4: Verify day-of-week selector is hidden for punctual trips
-- [ ] AC-2.5: Enter date and time via datetime-local input
-- [ ] AC-2.6: Enter distance in km (e.g., "50.0")
-- [ ] AC-2.7: Enter energy in kWh (e.g., "10.0")
-- [ ] AC-2.8: Submit form and verify trip appears in trip list
-- [ ] AC-2.9: Verify trip count increases by 1
-- [ ] AC-2.10: Trip persists after page reload
+- [ ] AC-1.1: Panel shows "No hay viajes" when no trips exist
+- [ ] AC-1.2: Panel displays recurring trips with correct format (day, time)
+- [ ] AC-1.3: Panel displays punctual trips with correct format (date, time)
+- [ ] AC-1.4: Trip count badge updates when trips exist
 
-### US-3: Edit Trip
-
-**As a** user  
-**I want to** edit an existing trip  
-**So that** I can update my travel plans when they change
+### US-2: Create Trip Test
+**As a** test engineer
+**I want** to verify trip creation via the "+ Agregar Viaje" button
+**So that** I can confirm trip_create service integration works
 
 **Acceptance Criteria:**
-- [ ] AC-3.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
-- [ ] AC-3.2: Verify at least one trip exists (create one if needed)
-- [ ] AC-3.3: Click edit button on a trip card
-- [ ] AC-3.4: Verify edit form opens with pre-filled values
-- [ ] AC-3.5: Modify time (e.g., change from "08:00" to "09:00")
-- [ ] AC-3.6: Modify distance (e.g., change from "25.5" to "30.0")
-- [ ] AC-3.7: Submit changes and verify form closes
-- [ ] AC-3.8: Verify trip card reflects updated values
-- [ ] AC-3.9: Changes persist after page reload
+- [ ] AC-2.1: Clicking "+ Agregar Viaje" opens trip form modal
+- [ ] AC-2.2: Form shows "Recurrente" option with day selector
+- [ ] AC-2.3: Form shows "Puntual" option without day selector
+- [ ] AC-2.4: Selecting "Recurrente" reveals day selection UI
+- [ ] AC-2.5: Selecting "Puntual" hides day selection UI
+- [ ] AC-2.6: Filling form and clicking submit calls trip_create service
+- [ ] AC-2.7: Form closes after successful creation
+- [ ] AC-2.8: New trip appears in trip list immediately
 
-### US-4: Delete Trip
-
-**As a** user  
-**I want to** delete a trip  
-**So that** I can remove trips that are no longer needed
+### US-3: Edit Trip Test
+**As a** test engineer
+**I want** to verify trip editing via the "Editar" button
+**So that** I can confirm trip_update service integration works
 
 **Acceptance Criteria:**
-- [ ] AC-4.1: Navigate to EV Trip Planner panel for vehicle "Coche2"
-- [ ] AC-4.2: Verify at least one trip exists (create one if needed)
-- [ ] AC-4.3: Record current trip count
-- [ ] AC-4.4: Click delete button on a trip card
-- [ ] AC-4.5: Handle browser confirmation dialog (accept)
-- [ ] AC-4.6: Verify trip is removed from trip list
-- [ ] AC-4.7: Verify trip count decreases by 1
-- [ ] AC-4.8: Deletion persists after page reload
+- [ ] AC-3.1: Clicking "Editar" on a trip opens edit form
+- [ ] AC-3.2: Form is pre-filled with existing trip data (type, day/time)
+- [ ] AC-3.3: Modifying fields and submitting calls trip_update service
+- [ ] AC-3.4: Updated trip displays new values in trip list
+
+### US-4: Delete Trip Test
+**As a** test engineer
+**I want** to verify trip deletion via the "Eliminar" button
+**So that** I can confirm delete_trip service integration works
+
+**Acceptance Criteria:**
+- [ ] AC-4.1: Clicking "Eliminar" shows confirmation dialog
+- [ ] AC-4.2: Confirming deletion calls delete_trip service
+- [ ] AC-4.3: Confirmed deletion removes trip from list
+- [ ] AC-4.4: Canceling deletion keeps trip in list
+
+### US-5: Pause/Resume Recurring Trip Test
+**As a** test engineer
+**I want** to verify pause/resume actions on recurring trips
+**So that** I can confirm pause_recurring_trip and resume_recurring_trip services work
+
+**Acceptance Criteria:**
+- [ ] AC-5.1: Active recurring trip shows "Pausar" button
+- [ ] AC-5.2: Clicking "Pausar" calls pause_recurring_trip service
+- [ ] AC-5.3: Paused trip shows as inactive (visual indicator changes)
+- [ ] AC-5.4: Paused trip shows "Reanudar" button
+- [ ] AC-5.5: Clicking "Reanudar" calls resume_recurring_trip service
+- [ ] AC-5.6: Resumed trip shows as active again
+
+### US-6: Complete/Cancel Punctual Trip Test
+**As a** test engineer
+**I want** to verify complete/cancel actions on punctual trips
+**So that** I can confirm complete_punctual_trip and cancel_punctual_trip services work
+
+**Acceptance Criteria:**
+- [ ] AC-6.1: Active punctual trip shows "Completar" button
+- [ ] AC-6.2: Clicking "Completar" calls complete_punctual_trip service
+- [ ] AC-6.3: Completed trip is removed from active list
+- [ ] AC-6.4: Active punctual trip shows "Cancelar" button
+- [ ] AC-6.5: Clicking "Cancelar" calls cancel_punctual_trip service
+- [ ] AC-6.6: Cancelled trip is removed from active list
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Acceptance Criteria |
 |----|-------------|----------|---------------------|
-| FR-1 | Navigate to EV Trip Planner panel | High | Panel loads with `ev-trip-planner-panel` custom element visible |
-| FR-2 | Open Add Trip form | High | Form overlay appears with all fields visible |
-| FR-3 | Shadow DOM selector traversal | High | All form fields accessible via `ev-trip-planner-panel >> #selector` |
-| FR-4 | Create recurring trip | High | Trip saved to backend and appears in UI |
-| FR-5 | Create punctual trip | High | Trip saved with datetime and appears in UI |
-| FR-6 | Form field validation | Medium | Required fields enforced before submit |
-| FR-7 | Open edit form | High | Edit form pre-populated with trip data |
-| FR-8 | Update trip | High | Changes saved and reflected in UI |
-| FR-9 | Delete trip with confirmation | High | Dialog handled, trip removed from list |
-| FR-10 | Trip persistence | High | All CRUD operations survive page reload |
-| FR-11 | Test independence | High | Each test cleans up created data |
-| FR-12 | Trip count tracking | Medium | `getTripCount()` returns accurate count via Shadow DOM evaluation |
+| FR-1 | Navigate to EV Trip Planner panel via sidebar | High | Click EV Trip Planner in sidebar, panel loads |
+| FR-2 | Display "No hay viajes" when no trips exist | High | Empty state message visible |
+| FR-3 | Display existing trips with correct format | High | Recurring shows day/time, punctual shows date/time |
+| FR-4 | Open create trip modal via "+ Agregar Viaje" button | High | Modal appears with form fields |
+| FR-5 | Recurring/Puntual type toggle shows/hides day selector | High | Day selector visible only for Recurrente |
+| FR-6 | Submit trip form calls trip_create service | High | Service called with form data, trip created |
+| FR-7 | Open edit form via "Editar" button with pre-filled data | High | Form opens with existing trip values |
+| FR-8 | Submit edit form calls trip_update service | High | Service called with updated data |
+| FR-9 | "Eliminar" shows confirmation dialog | High | Dialog with Confirm/Cancel options |
+| FR-10 | Confirm delete calls delete_trip service | High | Service called, trip removed |
+| FR-11 | Cancel delete keeps trip in list | High | Dialog closes, trip unchanged |
+| FR-12 | "Pausar" calls pause_recurring_trip service | High | Service called, trip shows inactive |
+| FR-13 | "Reanudar" calls resume_recurring_trip service | High | Service called, trip shows active |
+| FR-14 | "Completar" calls complete_punctual_trip service | High | Service called, trip removed from list |
+| FR-15 | "Cancelar" calls cancel_punctual_trip service | High | Service called, trip removed from list |
 
 ## Non-Functional Requirements
 
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
-| NFR-1 | Test execution time | seconds per test | < 60s per test |
-| NFR-2 | Selector reliability | Shadow DOM access | 100% - no flaky selectors |
-| NFR-3 | Dialog handling | page.on('dialog') | Must register before action triggers dialog |
-| NFR-4 | Cleanup | Trips removed | All test-created trips deleted in afterEach |
-| NFR-5 | Auth state | storageState | Reused across tests via auth.setup.ts |
+| NFR-1 | Test execution time | Total test suite | < 5 minutes |
+| NFR-2 | Test reliability | Pass rate | 100% (no flaky tests) |
+| NFR-3 | Browser support | Browsers | Chrome (primary), Firefox (verify) |
+| NFR-4 | Selector robustness | Shadow DOM traversal | All locators use web-first APIs |
+| NFR-5 | Test isolation | State between tests | Each test cleans up created data |
 
 ## Glossary
 
-- **Shadow DOM**: Web Component encapsulated DOM - requires `>>` combinator in Playwright to pierce
-- **Ephemeral container**: Temporary Home Assistant instance created by hass-taste-test for testing
-- **Config Flow**: Home Assistant integration configuration wizard UI
-- **Coche2**: Test vehicle name configured via Config Flow
-- **Recurring trip**: Weekly repeating trip with day-of-week and time
-- **Punctual trip**: One-time trip with specific date and time
-- **storageState**: Playwright authenticated state file for reusing login across tests
+- **Shadow DOM**: Web Components encapsulation - elements inside `shadow-root` require web-first locators (`getByRole`, `getByText`, `getByLabel`) instead of CSS/XPath
+- **storageState**: Playwright mechanism to persist authenticated session - tests reuse login state without re-authenticating
+- **Config Flow**: Home Assistant UI flow for configuring integrations (vehicle name, sensors, etc.)
+- **web-first locators**: Playwright locators that auto-wait and traverse Shadow DOM (`getByRole`, `getByText`, `getByLabel`)
+- **Recurring trip**: Trip that repeats on specified days (e.g., every Monday at 8:00)
+- **Punctual trip**: One-time trip on a specific date and time
+- **trip_create/trip_update/delete_trip**: Home Assistant service calls for trip management
+- **pause_recurring_trip/resume_recurring_trip**: Services to pause/resume recurring trips
+- **complete_punctual_trip/cancel_punctual_trip**: Services to complete/cancel punctual trips
 
 ## Out of Scope
 
-- Listing/reading trips (implicit - tests verify CRUD but don't explicitly test list pagination)
-- Pause/Resume trip functionality
-- Trip completion marking
-- Multiple vehicle support (tests use only "Coche2")
-- Backend API testing (only UI E2E tests)
-- Production code changes
+- Panel loading tests (URL validation, vehicle ID extraction) - covered by 021 spec
+- Backend EV Trip Planner integration logic
+- Home Assistant core functionality
+- Performance testing beyond basic execution time
+- Load testing
+- Static code analysis / unit tests
+- Firefox/Safari browser compatibility (Chrome primary only)
 
 ## Dependencies
 
-- **auth.setup.ts**: Provides authenticated storageState with "Coche2" configured
-- **test-helpers.ts**: TripPanel base class with `navigateToPanel`, `fillTripForm`, `submitTripForm`, `setupDialogHandler`, `getTripCount`
-- **global.setup.ts**: Creates ephemeral HA container (handled by hass-taste-test)
-- **hass-taste-test**: Ephemeral HA instance management
+- Home Assistant instance running with EV Trip Planner integration installed
+- Vehicle "Coche2" configured with sensors via Config Flow
+- `auth.setup.ts` completing successfully and saving `storageState` to `playwright/.auth/user.json`
+- `playwright/.auth/panel-url.txt` containing panel URL (e.g., `http://localhost:8123/ev-trip-planner-Coche2`)
+- Server info at `playwright/.auth/server-info.json`
+- Playwright test runner with `@playwright/test` framework
+
+## Success Criteria
+
+- [ ] All 6 user stories implemented as Playwright E2E tests
+- [ ] Tests use `storageState` from `auth.setup.ts` (no login code in tests)
+- [ ] All locators use web-first APIs (getByRole, getByText, getByLabel)
+- [ ] No `waitForTimeout` calls - all waits use `expect()` with auto-waiting
+- [ ] Tests navigate via sidebar, not hardcoded URLs
+- [ ] Tests pass in Chrome with 100% reliability
+- [ ] Tests run in < 5 minutes total
+- [ ] Created trips are cleaned up after each test
 
 ## Verification Contract
 
-**Project type**: greenfield (new test files only, no production code changes)
+**Project type**: `fullstack` (HA frontend + HTTP API services)
 
 **Entry points**:
-- `tests/e2e/trip-crud.spec.ts` - main test file
-- `tests/e2e/pages/trips.page.ts` - Page Object for trips
-- `tests/e2e/auth.setup.ts` - existing authentication setup (no changes)
+- `GET /ev-trip-planner-{vehicle_id}` - EV Trip Planner panel
+- `POST` services: `trip_create`, `trip_update`, `delete_trip`, `pause_recurring_trip`, `resume_recurring_trip`, `complete_punctual_trip`, `cancel_punctual_trip`
+- UI buttons: "+ Agregar Viaje", "Editar", "Eliminar", "Pausar", "Reanudar", "Completar", "Cancelar"
 
 **Observable signals**:
-- PASS: Trip card appears in `.trips-list` with correct values, trip count changes
-- FAIL: Form stays open, trip not visible, console errors, wrong data displayed
+- PASS looks like: Trip appears/disappears from list, form modal opens/closes, button state changes (Pausar -> Reanudar), confirmation dialog appears
+- FAIL looks like: Service call error toast, form validation error, trip not appearing in list after create, element not found timeout
 
 **Hard invariants**:
-- Auth state must be valid - storageState from auth.setup.ts
-- Vehicle "Coche2" must be configured
-- Dialog must be accepted for delete to proceed
+- Authentication state must remain valid (storageState reused from auth.setup.ts)
+- Tests must not modify auth.setup.ts or authentication flow
+- Other users' data must not be affected (isolated to configured vehicle "Coche2")
 
 **Seed data**:
-- Vehicle "Coche2" configured via Config Flow in auth.setup.ts
-- Authenticated session via storageState
+- Vehicle "Coche2" configured via Config Flow
+- At least one recurring trip and one punctual trip pre-created for edit/delete/pause tests, OR tests create them first
 
 **Dependency map**:
-- `tests/e2e/auth.setup.ts` - sets up Coche2 vehicle
-- `tests/e2e/test-helpers.ts` - TripPanel base class
+- `auth.setup.ts` - provides authenticated session and panel URL
+- Trip panel frontend - renders trip list and forms
+- Home Assistant trip services - backend service calls
 
 **Escalate if**:
-- Config Flow fails during auth.setup.ts (integration not configured)
-- Shadow DOM selectors fail to find elements (panel.js version mismatch)
-- Dialog not triggered on delete click (frontend regression)
+- Shadow DOM structure changes and web-first locators break
+- Service names change (trip_create, etc.)
+- Button labels change ("Pausar", "Reanudar", etc.)
+- Config Flow vehicle name changes from "Coche2"
+
+## Unresolved Questions
+
+- Should tests create trips as setup (before each test) or reuse existing trips?
+- Is trip data cleanup required between tests, or does each test create isolated data?
+- Should parameterized vehicle names be supported for multi-vehicle testing?
+
+## Next Steps
+
+1. Review requirements with stakeholders for approval
+2. Create technical design document with page object structure
+3. Implement tests following the design
+4. Verify tests pass in Chrome

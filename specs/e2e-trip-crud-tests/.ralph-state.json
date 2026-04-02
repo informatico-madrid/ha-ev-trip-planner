@@ -2,7 +2,7 @@
   "source": "spec",
   "name": "e2e-trip-crud-tests",
   "basePath": "specs/e2e-trip-crud-tests",
-  "phase": "research",
+  "phase": "requirements",
   "taskIndex": 0,
   "totalTasks": 0,
   "taskIteration": 1,
@@ -12,10 +12,20 @@
   "commitSpec": true,
   "quickMode": false,
   "discoveredSkills": [
-    {"name": "e2e-testing", "source": "system", "matchedAt": "start", "invoked": true},
-    {"name": "ha-e2e-testing", "source": "system", "matchedAt": "start", "invoked": true}
+    {
+      "name": "e2e-testing",
+      "source": "system",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "ha-e2e-testing",
+      "source": "system",
+      "matchedAt": "start",
+      "invoked": true
+    }
   ],
-  "awaitingApproval": true,
+  "awaitingApproval": false,
   "relatedSpecs": [
     {
       "name": "021-e2e-trip-crud-panel-tests",
