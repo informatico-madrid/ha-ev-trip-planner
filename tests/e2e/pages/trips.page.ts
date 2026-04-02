@@ -41,6 +41,22 @@ export class TripsPage {
   // Submit button
   readonly submitButton: Locator;
 
+  // Trip card locators (indexed by position)
+  readonly tripCard: (index: number) => Locator;
+
+  // Action buttons for trips
+  readonly editButton: (index: number) => Locator;
+  readonly deleteButton: (index: number) => Locator;
+  readonly pauseButton: (index: number) => Locator;
+  readonly resumeButton: (index: number) => Locator;
+  readonly completeButton: (index: number) => Locator;
+  readonly cancelButton: (index: number) => Locator;
+
+  // Confirmation dialog
+  readonly confirmDialog: Locator;
+  readonly confirmDeleteBtn: Locator;
+  readonly cancelDialogBtn: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -69,6 +85,29 @@ export class TripsPage {
 
     // Submit button in form
     this.submitButton = page.getByRole('button', { name: /guardar|save|crear|create/i });
+
+    // Trip card locators (indexed by position - 1-based for user friendliness)
+    this.tripCard = (index: number) =>
+      page.locator('.trip-card').nth(index - 1);
+
+    // Action buttons
+    this.editButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /editar|edit/i });
+    this.deleteButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /eliminar|delete/i });
+    this.pauseButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /pausar|pause/i });
+    this.resumeButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /reanudar|resume/i });
+    this.completeButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /completar|complete/i });
+    this.cancelButton = (index: number) =>
+      this.tripCard(index).getByRole('button', { name: /cancelar|cancel/i });
+
+    // Confirmation dialog
+    this.confirmDialog = page.getByRole('dialog', { name: /confirm|confirmar|eliminar|delete/i });
+    this.confirmDeleteBtn = page.getByRole('button', { name: /eliminar|delete|confirm|confirmar/i });
+    this.cancelDialogBtn = page.getByRole('button', { name: /cancelar|cancel|volver|back/i });
   }
 
   /**
@@ -136,5 +175,37 @@ export class TripsPage {
    */
   async enterTime(time: string): Promise<void> {
     await this.timeInput.fill(time);
+  }
+
+  /**
+   * Open edit form for a specific trip
+   */
+  async openEditFormForTrip(index: number): Promise<void> {
+    await this.editButton(index).click();
+    await this.tripFormOverlay.waitFor({ state: 'visible', timeout: 5000 });
+  }
+
+  /**
+   * Open delete confirmation dialog for a specific trip
+   */
+  async openDeleteDialogForTrip(index: number): Promise<void> {
+    await this.deleteButton(index).click();
+    await this.confirmDialog.waitFor({ state: 'visible', timeout: 5000 });
+  }
+
+  /**
+   * Confirm the delete action
+   */
+  async confirmDelete(): Promise<void> {
+    await this.confirmDeleteBtn.click();
+    await this.confirmDialog.waitFor({ state: 'hidden', timeout: 5000 });
+  }
+
+  /**
+   * Cancel the delete action
+   */
+  async cancelDelete(): Promise<void> {
+    await this.cancelDialogBtn.click();
+    await this.confirmDialog.waitFor({ state: 'hidden', timeout: 5000 });
   }
 }
