@@ -173,7 +173,10 @@ export class TripsPage {
   }
 
   /**
-   * Navigate to trips panel via sidebar
+   * Navigate to trips panel via sidebar.
+   * Clicks the EV Trip Planner menu item in the Home Assistant sidebar.
+   *
+   * @returns Promise that resolves when navigation is complete
    */
   async navigateViaSidebar(): Promise<void> {
     await this.evTripPlannerMenuItem.click();
@@ -181,8 +184,10 @@ export class TripsPage {
   }
 
   /**
-   * Get panel URL - reads from environment or uses default
-   * Panel URL should be set via constructor or environment variable HA_PANEL_URL
+   * Get the panel URL for direct navigation.
+   * Reads from cached value, environment variable HA_PANEL_URL, or falls back to DEFAULT_PANEL_URL.
+   *
+   * @returns Promise resolving to the panel URL string
    */
   async getPanelUrl(): Promise<string> {
     if (this.panelUrl) {
@@ -203,14 +208,20 @@ export class TripsPage {
   }
 
   /**
-   * Set panel URL explicitly (recommended approach)
+   * Set panel URL explicitly.
+   * Recommended approach when using direct navigation instead of sidebar.
+   *
+   * @param url - The full URL to the EV Trip Planner panel
    */
   setPanelUrl(url: string): void {
     this.panelUrl = url;
   }
 
   /**
-   * Navigate directly to trips panel
+   * Navigate directly to trips panel using stored URL.
+   * Use this for direct navigation instead of navigateViaSidebar().
+   *
+   * @returns Promise that resolves when navigation is complete
    */
   async navigateDirect(): Promise<void> {
     const url = await this.getPanelUrl();
@@ -219,7 +230,9 @@ export class TripsPage {
   }
 
   /**
-   * Click the add trip button to open the form
+   * Click the add trip button to open the trip form modal.
+   *
+   * @returns Promise that resolves when form is visible
    */
   async clickAddTripButton(): Promise<void> {
     await this.addTripButton.click();
@@ -227,28 +240,38 @@ export class TripsPage {
   }
 
   /**
-   * Select Recurrente (recurring) trip type
+   * Select Recurrente (recurring) trip type in the form.
+   *
+   * @returns Promise that resolves when selection is complete
    */
   async selectRecurrente(): Promise<void> {
     await this.recurrenteOption.click();
   }
 
   /**
-   * Select Puntual (one-time) trip type
+   * Select Puntual (one-time) trip type in the form.
+   *
+   * @returns Promise that resolves when selection is complete
    */
   async selectPuntual(): Promise<void> {
     await this.puntualOption.click();
   }
 
   /**
-   * Enter time in the form
+   * Enter time in the form time input field.
+   *
+   * @param time - Time string in HH:MM format (e.g., "08:30")
+   * @returns Promise that resolves when time is entered
    */
   async enterTime(time: string): Promise<void> {
     await this.timeInput.fill(time);
   }
 
   /**
-   * Open edit form for a specific trip
+   * Open the edit form for a specific trip by index.
+   *
+   * @param index - 1-based index of the trip card (1 = first trip)
+   * @returns Promise that resolves when edit form is visible
    */
   async openEditFormForTrip(index: number): Promise<void> {
     await this.editButton(index).click();
@@ -256,7 +279,10 @@ export class TripsPage {
   }
 
   /**
-   * Open delete confirmation dialog for a specific trip
+   * Open the delete confirmation dialog for a specific trip by index.
+   *
+   * @param index - 1-based index of the trip card (1 = first trip)
+   * @returns Promise that resolves when delete dialog is visible
    */
   async openDeleteDialogForTrip(index: number): Promise<void> {
     await this.deleteButton(index).click();
@@ -264,7 +290,9 @@ export class TripsPage {
   }
 
   /**
-   * Confirm the delete action
+   * Confirm the delete action by clicking the confirm button.
+   *
+   * @returns Promise that resolves when dialog is dismissed
    */
   async confirmDelete(): Promise<void> {
     await this.confirmDeleteBtn.click();
@@ -272,7 +300,9 @@ export class TripsPage {
   }
 
   /**
-   * Cancel the delete action
+   * Cancel the delete action by clicking the cancel button.
+   *
+   * @returns Promise that resolves when dialog is dismissed
    */
   async cancelDelete(): Promise<void> {
     await this.cancelDialogBtn.click();
@@ -280,7 +310,9 @@ export class TripsPage {
   }
 
   /**
-   * Check if empty state is visible (no trips message)
+   * Check if the empty state message is visible (shown when no trips exist).
+   *
+   * @returns Promise resolving to true if empty state is visible, false otherwise
    */
   async isEmptyStateVisible(): Promise<boolean> {
     try {
@@ -291,8 +323,10 @@ export class TripsPage {
   }
 
   /**
-   * Get the number of trips in the list
-   * Uses Shadow DOM traversal via evaluate
+   * Get the current number of trips displayed in the panel.
+   * Uses Shadow DOM traversal to count .trip-card elements.
+   *
+   * @returns Promise resolving to the trip count
    */
   async getTripCount(): Promise<number> {
     return await this.page.evaluate(() => {
@@ -305,7 +339,13 @@ export class TripsPage {
   }
 
   /**
-   * Wait for trip count to reach expected value
+   * Wait for the trip count to reach the expected value.
+   * Polls every 100ms until timeout is reached.
+   *
+   * @param expected - Expected trip count
+   * @param timeout - Maximum wait time in milliseconds (default: 5000)
+   * @returns Promise that resolves when count matches expected
+   * @throws Error if count doesn't match within timeout
    */
   async waitForTripCount(expected: number, timeout: number = 5000): Promise<void> {
     const startTime = Date.now();
@@ -320,7 +360,10 @@ export class TripsPage {
   }
 
   /**
-   * Check if a trip is paused
+   * Check if a trip is in paused state.
+   *
+   * @param tripIndex - 1-based index of the trip card
+   * @returns Promise resolving to true if trip is paused, false otherwise
    */
   async isTripPaused(tripIndex: number): Promise<boolean> {
     return await this.page.evaluate((index) => {
@@ -340,7 +383,10 @@ export class TripsPage {
   }
 
   /**
-   * Check if a trip is active
+   * Check if a trip is in active state (not paused).
+   *
+   * @param tripIndex - 1-based index of the trip card
+   * @returns Promise resolving to true if trip is active, false if paused
    */
   async isTripActive(tripIndex: number): Promise<boolean> {
     const isPaused = await this.isTripPaused(tripIndex);
@@ -348,7 +394,16 @@ export class TripsPage {
   }
 
   /**
-   * Call trip_create service via Home Assistant API
+   * Call trip_create service via Home Assistant API.
+   * Used for test setup to create trips directly without UI.
+   *
+   * @param data - Trip creation data
+   * @param data.vehicle_id - The vehicle identifier
+   * @param data.trip_type - Either 'recurrente' (recurring) or 'puntual' (one-time)
+   * @param data.day - Day of week for recurring trips (e.g., 'Lunes')
+   * @param data.time - Time in HH:MM format (e.g., '08:30')
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callTripCreateService(data: {
     vehicle_id: string;
@@ -366,7 +421,16 @@ export class TripsPage {
   }
 
   /**
-   * Call trip_update service via Home Assistant API
+   * Call trip_update service via Home Assistant API.
+   * Used to modify an existing trip's properties.
+   *
+   * @param tripId - The unique identifier of the trip to update
+   * @param data - Fields to update
+   * @param data.time - New time in HH:MM format (optional)
+   * @param data.day - New day for recurring trips (optional)
+   * @param data.enabled - Enable/disable the trip (optional)
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callTripUpdateService(tripId: string, data: {
     time?: string;
@@ -386,7 +450,12 @@ export class TripsPage {
   }
 
   /**
-   * Call delete_trip service via Home Assistant API
+   * Call delete_trip service via Home Assistant API.
+   * Permanently removes a trip.
+   *
+   * @param tripId - The unique identifier of the trip to delete
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callDeleteTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
@@ -399,7 +468,12 @@ export class TripsPage {
   }
 
   /**
-   * Call pause_recurring_trip service via Home Assistant API
+   * Call pause_recurring_trip service via Home Assistant API.
+   * Pauses a recurring trip (shows Reanudar button instead of Pausar).
+   *
+   * @param tripId - The unique identifier of the recurring trip to pause
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callPauseRecurringTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
@@ -412,7 +486,12 @@ export class TripsPage {
   }
 
   /**
-   * Call resume_recurring_trip service via Home Assistant API
+   * Call resume_recurring_trip service via Home Assistant API.
+   * Resumes a paused recurring trip (shows Pausar button again).
+   *
+   * @param tripId - The unique identifier of the paused recurring trip to resume
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callResumeRecurringTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
@@ -425,7 +504,12 @@ export class TripsPage {
   }
 
   /**
-   * Call complete_punctual_trip service via Home Assistant API
+   * Call complete_punctual_trip service via Home Assistant API.
+   * Marks a punctual trip as completed and removes it from the active list.
+   *
+   * @param tripId - The unique identifier of the punctual trip to complete
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callCompletePunctualTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
@@ -438,7 +522,12 @@ export class TripsPage {
   }
 
   /**
-   * Call cancel_punctual_trip service via Home Assistant API
+   * Call cancel_punctual_trip service via Home Assistant API.
+   * Cancels a punctual trip and removes it from the active list.
+   *
+   * @param tripId - The unique identifier of the punctual trip to cancel
+   * @returns Promise that resolves when service call completes
+   * @throws Error if panel or hass is not available
    */
   async callCancelPunctualTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
