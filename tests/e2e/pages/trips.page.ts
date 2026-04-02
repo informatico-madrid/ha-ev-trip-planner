@@ -329,13 +329,13 @@ export class TripsPage {
    * @returns Promise resolving to the trip count
    */
   async getTripCount(): Promise<number> {
-    return await this.page.evaluate(() => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR);
+    return await this.page.evaluate(({ PANEL_SELECTOR, TRIP_CARD_CLASS }) => {
+      const panel = document.querySelector(PANEL_SELECTOR);
       if (!panel || !panel.shadowRoot) {
         return 0;
       }
-      return panel.shadowRoot.querySelectorAll(TripsPage.TRIP_CARD_CLASS).length;
-    });
+      return panel.shadowRoot.querySelectorAll(TRIP_CARD_CLASS).length;
+    }, { PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, TRIP_CARD_CLASS: TripsPage.TRIP_CARD_CLASS });
   }
 
   /**
@@ -366,12 +366,12 @@ export class TripsPage {
    * @returns Promise resolving to true if trip is paused, false otherwise
    */
   async isTripPaused(tripIndex: number): Promise<boolean> {
-    return await this.page.evaluate((index) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR);
+    return await this.page.evaluate(({ index, PANEL_SELECTOR, TRIP_CARD_CLASS }) => {
+      const panel = document.querySelector(PANEL_SELECTOR);
       if (!panel || !panel.shadowRoot) {
         return false;
       }
-      const cards = panel.shadowRoot.querySelectorAll(TripsPage.TRIP_CARD_CLASS);
+      const cards = panel.shadowRoot.querySelectorAll(TRIP_CARD_CLASS);
       if (index < 0 || index >= cards.length) {
         return false;
       }
@@ -379,7 +379,7 @@ export class TripsPage {
       return card.classList.contains('paused') ||
              card.getAttribute('data-state') === 'paused' ||
              card.textContent?.toLowerCase().includes('pausado') === true;
-    }, tripIndex - 1); // 1-based to 0-based
+    }, { index: tripIndex - 1, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, TRIP_CARD_CLASS: TripsPage.TRIP_CARD_CLASS }); // 1-based to 0-based
   }
 
   /**
@@ -475,13 +475,13 @@ export class TripsPage {
     day?: string;
     time: string;
   }): Promise<void> {
-    await this.page.evaluate(async (serviceData) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ serviceData, PANEL_SELECTOR, SERVICE_DOMAIN, CREATE_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.CREATE, serviceData);
-    }, data);
+      await panel.hass.callService(SERVICE_DOMAIN, CREATE_SERVICE, serviceData);
+    }, { serviceData: data, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, CREATE_SERVICE: TripsPage.SERVICES.CREATE });
   }
 
   /**
@@ -501,16 +501,16 @@ export class TripsPage {
     day?: string;
     enabled?: boolean;
   }): Promise<void> {
-    await this.page.evaluate(async ({ id, updateData }) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, updateData, PANEL_SELECTOR, SERVICE_DOMAIN, UPDATE_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.UPDATE, {
+      await panel.hass.callService(SERVICE_DOMAIN, UPDATE_SERVICE, {
         trip_id: id,
         ...updateData,
       });
-    }, { id: tripId, updateData: data });
+    }, { id: tripId, updateData: data, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, UPDATE_SERVICE: TripsPage.SERVICES.UPDATE });
   }
 
   /**
@@ -522,13 +522,13 @@ export class TripsPage {
    * @throws Error if panel or hass is not available
    */
   async callDeleteTripService(tripId: string): Promise<void> {
-    await this.page.evaluate(async (id) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, PANEL_SELECTOR, SERVICE_DOMAIN, DELETE_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.DELETE, { trip_id: id });
-    }, tripId);
+      await panel.hass.callService(SERVICE_DOMAIN, DELETE_SERVICE, { trip_id: id });
+    }, { id: tripId, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, DELETE_SERVICE: TripsPage.SERVICES.DELETE });
   }
 
   /**
@@ -540,13 +540,13 @@ export class TripsPage {
    * @throws Error if panel or hass is not available
    */
   async callPauseRecurringTripService(tripId: string): Promise<void> {
-    await this.page.evaluate(async (id) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, PANEL_SELECTOR, SERVICE_DOMAIN, PAUSE_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.PAUSE_RECURRING, { trip_id: id });
-    }, tripId);
+      await panel.hass.callService(SERVICE_DOMAIN, PAUSE_SERVICE, { trip_id: id });
+    }, { id: tripId, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, PAUSE_SERVICE: TripsPage.SERVICES.PAUSE_RECURRING });
   }
 
   /**
@@ -558,13 +558,13 @@ export class TripsPage {
    * @throws Error if panel or hass is not available
    */
   async callResumeRecurringTripService(tripId: string): Promise<void> {
-    await this.page.evaluate(async (id) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, PANEL_SELECTOR, SERVICE_DOMAIN, RESUME_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.RESUME_RECURRING, { trip_id: id });
-    }, tripId);
+      await panel.hass.callService(SERVICE_DOMAIN, RESUME_SERVICE, { trip_id: id });
+    }, { id: tripId, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, RESUME_SERVICE: TripsPage.SERVICES.RESUME_RECURRING });
   }
 
   /**
@@ -576,13 +576,13 @@ export class TripsPage {
    * @throws Error if panel or hass is not available
    */
   async callCompletePunctualTripService(tripId: string): Promise<void> {
-    await this.page.evaluate(async (id) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, PANEL_SELECTOR, SERVICE_DOMAIN, COMPLETE_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.COMPLETE_PUNCTUAL, { trip_id: id });
-    }, tripId);
+      await panel.hass.callService(SERVICE_DOMAIN, COMPLETE_SERVICE, { trip_id: id });
+    }, { id: tripId, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, COMPLETE_SERVICE: TripsPage.SERVICES.COMPLETE_PUNCTUAL });
   }
 
   /**
@@ -594,12 +594,12 @@ export class TripsPage {
    * @throws Error if panel or hass is not available
    */
   async callCancelPunctualTripService(tripId: string): Promise<void> {
-    await this.page.evaluate(async (id) => {
-      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
+    await this.page.evaluate(async ({ id, PANEL_SELECTOR, SERVICE_DOMAIN, CANCEL_SERVICE }) => {
+      const panel = document.querySelector(PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.CANCEL_PUNCTUAL, { trip_id: id });
-    }, tripId);
+      await panel.hass.callService(SERVICE_DOMAIN, CANCEL_SERVICE, { trip_id: id });
+    }, { id: tripId, PANEL_SELECTOR: TripsPage.PANEL_SELECTOR, SERVICE_DOMAIN: TripsPage.SERVICE_DOMAIN, CANCEL_SERVICE: TripsPage.SERVICES.CANCEL_PUNCTUAL });
   }
 }
