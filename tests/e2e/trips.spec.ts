@@ -18,7 +18,15 @@ test.describe('Trip List Loading (US-1)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('displays empty state when no trips exist', async () => {
@@ -66,7 +74,15 @@ test.describe('Create Trip (US-2)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('opens form modal when clicking + Agregar Viaje', async () => {
@@ -139,7 +155,15 @@ test.describe('Edit Trip (US-3)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('opens edit form with pre-filled data', async () => {
@@ -184,7 +208,15 @@ test.describe('Delete Trip (US-4)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('shows confirmation dialog on Eliminar', async () => {
@@ -243,7 +275,15 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('shows Pausar for active recurring trip', async () => {
@@ -294,7 +334,15 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
 
   test.beforeEach(async ({ page }) => {
     tripsPage = new TripsPage(page);
+    // Set up dialog handler to auto-accept any dialogs
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
     await tripsPage.navigateDirect();
+  });
+
+  test.afterEach(async () => {
+    // Cleanup handled by individual tests
   });
 
   test('shows Completar for active punctual trip', async () => {
