@@ -288,3 +288,64 @@ test.describe('Pause/Resume Recurring Trip (US-5)', () => {
     await expect(tripsPage.pauseButton(1)).toBeVisible();
   });
 });
+
+test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
+  let tripsPage: TripsPage;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    await tripsPage.navigateDirect();
+  });
+
+  test('shows Completar for active punctual trip', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Verify the complete button is visible for punctual trips
+    await expect(tripsPage.completeButton(1)).toBeVisible();
+  });
+
+  test('completes trip and removes from list', async () => {
+    // Ensure there's at least one trip
+    const initialCount = await tripsPage.getTripCount();
+    if (initialCount === 0) {
+      test.skip();
+    }
+
+    // Click complete button
+    await tripsPage.completeButton(1).click();
+
+    // Verify trip count decreases
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount - 1);
+  });
+
+  test('shows Cancelar for active punctual trip', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Verify the cancel button is visible
+    await expect(tripsPage.cancelButton(1)).toBeVisible();
+  });
+
+  test('cancels trip and removes from list', async () => {
+    // Ensure there's at least one trip
+    const initialCount = await tripsPage.getTripCount();
+    if (initialCount === 0) {
+      test.skip();
+    }
+
+    // Click cancel button
+    await tripsPage.cancelButton(1).click();
+
+    // Verify trip count decreases
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount - 1);
+  });
+});
