@@ -276,4 +276,107 @@ export class TripsPage {
     const isPaused = await this.isTripPaused(tripIndex);
     return !isPaused;
   }
+
+  /**
+   * Call trip_create service via Home Assistant API
+   */
+  async callTripCreateService(data: {
+    vehicle_id: string;
+    trip_type: 'recurrente' | 'puntual';
+    day?: string;
+    time: string;
+  }): Promise<void> {
+    await this.page.evaluate(async (serviceData) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'trip_create', serviceData);
+    }, data);
+  }
+
+  /**
+   * Call trip_update service via Home Assistant API
+   */
+  async callTripUpdateService(tripId: string, data: {
+    time?: string;
+    day?: string;
+    enabled?: boolean;
+  }): Promise<void> {
+    await this.page.evaluate(async ({ id, updateData }) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'trip_update', {
+        trip_id: id,
+        ...updateData,
+      });
+    }, { id: tripId, updateData: data });
+  }
+
+  /**
+   * Call delete_trip service via Home Assistant API
+   */
+  async callDeleteTripService(tripId: string): Promise<void> {
+    await this.page.evaluate(async (id) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'delete_trip', { trip_id: id });
+    }, tripId);
+  }
+
+  /**
+   * Call pause_recurring_trip service via Home Assistant API
+   */
+  async callPauseRecurringTripService(tripId: string): Promise<void> {
+    await this.page.evaluate(async (id) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'pause_recurring_trip', { trip_id: id });
+    }, tripId);
+  }
+
+  /**
+   * Call resume_recurring_trip service via Home Assistant API
+   */
+  async callResumeRecurringTripService(tripId: string): Promise<void> {
+    await this.page.evaluate(async (id) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'resume_recurring_trip', { trip_id: id });
+    }, tripId);
+  }
+
+  /**
+   * Call complete_punctual_trip service via Home Assistant API
+   */
+  async callCompletePunctualTripService(tripId: string): Promise<void> {
+    await this.page.evaluate(async (id) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'complete_punctual_trip', { trip_id: id });
+    }, tripId);
+  }
+
+  /**
+   * Call cancel_punctual_trip service via Home Assistant API
+   */
+  async callCancelPunctualTripService(tripId: string): Promise<void> {
+    await this.page.evaluate(async (id) => {
+      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      if (!panel || !panel.hass) {
+        throw new Error('Cannot call service: panel or hass not available');
+      }
+      await panel.hass.callService('ev_trip_planner', 'cancel_punctual_trip', { trip_id: id });
+    }, tripId);
+  }
 }

@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-01T15:50:00Z
+**Last updated:** 2026-04-02T18:07:54Z
 
 ## Directories (1)
 
@@ -13,35 +13,35 @@ See [index-state.json](./index-state.json) for machine-readable data.
 
 ## All Specs (23)
 
-| Spec | Phase | Status | Files |
-|------|-------|--------|-------|
-| 001-milestone-3-2-complete | new |  | T |
-| 007-complete-milestone-3-verify-1-2 | new |  | RT |
-| 008-fix-config-flow-dashboard-sensors | new |  | T |
-| 009-fix-vehicle-creation-dashboard-notifications | new |  | T |
-| 010-fix-sensor-errors-dashboard-issues | new |  | T |
-| 011-fix-production-errors | new |  | T |
-| 012-dashboard-crud-verify | new |  | T |
-| 013-fix-emhass-attribute-size | new |  | T |
-| 017-native-panel-core | new |  | RT |
-| 018-e2e-playwright-testing | new |  | RT |
-| 019-panel-vehicle-crud | tasks |  | RT |
-| 020-fix-panel-trips-sensors | tasks |  | RQDT |
-| 021-e2e-trip-crud-panel-tests | completed | done | QDT |
-| _epics | new |  |  |
-| automation-template | completed | done | T |
-| charging-window-calculation [ACTIVE] | completed | done | T |
-| emhass-integration-with-fixes | completed | done | T |
-| emhass-sensor-enhancement | completed | done | T |
-| ev-trip-planner-integration-fixes | completed | done | RQDT |
-| soc-integration-baseline | completed | done | T |
-| soc-milestone-algorithm | completed | done | T |
-| trip-card-enhancement | completed | done | T |
-| trip-creation | completed | done | RQDT |
+| Spec | Directory | Phase | Status |
+|------|-----------|-------|--------|
+| 001-milestone-3-2-complete | ./specs | completed | done |
+| 007-complete-milestone-3-verify-1-2 | ./specs | completed | done |
+| 008-fix-config-flow-dashboard-sensors | ./specs | completed | done |
+| 009-fix-vehicle-creation-dashboard-notifications | ./specs | tasks | 0
+0/158 tasks |
+| 010-fix-sensor-errors-dashboard-issues | ./specs | completed | done |
+| 011-fix-production-errors | ./specs | completed | done |
+| 012-dashboard-crud-verify | ./specs | completed | done |
+| 017-native-panel-core | ./specs | tasks | 0
+0/73 tasks |
+| 019-panel-vehicle-crud | ./specs | tasks | 31/32 tasks |
+| 020-fix-panel-trips-sensors | ./specs | tasks |  |
+| 021-e2e-trip-crud-panel-tests | ./specs | tasks | 70/75 tasks |
+| trip-creation | ./specs | tasks | 6/59 tasks |
+| ev-trip-planner-integration-fixes | ./specs | execution | 30/30 tasks |
+| _epics | ./specs | new |  |
+| soc-integration-baseline | ./specs | completed | done |
+| charging-window-calculation | ./specs | completed | done |
+| soc-milestone-algorithm | ./specs | tasks | 34/50 tasks |
+| emhass-sensor-enhancement | ./specs | completed | done |
+| trip-card-enhancement | ./specs | execution | 5/21 tasks |
+| automation-template | ./specs | completed | done |
+| emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
+| 013-fix-emhass-attribute-size | ./specs | completed | done |
+| e2e-trip-crud-tests | ./specs | tasks | awaiting approval |
 
 ---
-
-**Legend:** R=research, Q=requirements, D=design, T=tasks
 
 **Commands:**
 - `/ralph-specum:status` - Show detailed status
