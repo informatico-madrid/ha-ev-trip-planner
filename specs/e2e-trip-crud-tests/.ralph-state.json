@@ -1,0 +1,39 @@
+{
+  "source": "spec",
+  "name": "e2e-trip-crud-tests",
+  "basePath": "specs/e2e-trip-crud-tests",
+  "phase": "research",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [
+    {"name": "e2e-testing", "source": "system", "matchedAt": "start", "invoked": true},
+    {"name": "ha-e2e-testing", "source": "system", "matchedAt": "start", "invoked": true}
+  ],
+  "awaitingApproval": true,
+  "relatedSpecs": [
+    {
+      "name": "021-e2e-trip-crud-panel-tests",
+      "relevance": "High",
+      "relationship": "Same goal, broader scope (full panel loading + CRUD)",
+      "mayNeedUpdate": "021 test strategy mentions static code analysis - current spec should focus only on browser-based E2E"
+    },
+    {
+      "name": "019-panel-vehicle-crud",
+      "relevance": "Medium",
+      "relationship": "Vehicle CRUD patterns",
+      "mayNeedUpdate": null
+    },
+    {
+      "name": "020-fix-panel-trips-sensors",
+      "relevance": "Low",
+      "relationship": "Trip panel fixes",
+      "mayNeedUpdate": null
+    }
+  ]
+}
