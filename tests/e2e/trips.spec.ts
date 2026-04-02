@@ -237,3 +237,54 @@ test.describe('Delete Trip (US-4)', () => {
     expect(newCount).toBe(initialCount);
   });
 });
+
+test.describe('Pause/Resume Recurring Trip (US-5)', () => {
+  let tripsPage: TripsPage;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    await tripsPage.navigateDirect();
+  });
+
+  test('shows Pausar for active recurring trip', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Verify the pause button is visible for active trips
+    await expect(tripsPage.pauseButton(1)).toBeVisible();
+  });
+
+  test('pauses trip and shows Reanudar', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // Click pause button
+    await tripsPage.pauseButton(1).click();
+
+    // Verify the trip is now paused (resume button should be visible)
+    await expect(tripsPage.resumeButton(1)).toBeVisible();
+  });
+
+  test('resumes trip and shows Pausar again', async () => {
+    // Ensure there's at least one trip
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      test.skip();
+    }
+
+    // First pause the trip
+    await tripsPage.pauseButton(1).click();
+
+    // Then resume it
+    await tripsPage.resumeButton(1).click();
+
+    // Verify the trip is active again (pause button should be visible)
+    await expect(tripsPage.pauseButton(1)).toBeVisible();
+  });
+});
