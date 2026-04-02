@@ -397,3 +397,60 @@ test.describe('Complete/Cancel Punctual Trip (US-6)', () => {
     expect(newCount).toBe(initialCount - 1);
   });
 });
+
+/**
+ * Test Data Helpers
+ * These helpers create and clean up test trips for isolation
+ */
+
+/**
+ * Creates a recurring trip via the UI and returns the trip index for cleanup
+ */
+async function createTestRecurringTrip(tripsPage: TripsPage, day: string = 'Monday', time: string = '08:00'): Promise<number> {
+  const initialCount = await tripsPage.getTripCount();
+
+  await tripsPage.clickAddTripButton();
+  await tripsPage.selectRecurrente();
+  await tripsPage.daySelector.selectOption(day);
+  await tripsPage.enterTime(time);
+  await tripsPage.submitButton.click();
+
+  // Wait for trip to appear
+  await tripsPage.waitForTripCount(initialCount + 1, 5000);
+
+  // Return the index of the newly created trip (1-based)
+  return initialCount + 1;
+}
+
+/**
+ * Creates a punctual trip via the UI and returns the trip index for cleanup
+ */
+async function createTestPunctualTrip(tripsPage: TripsPage, time: string = '14:00'): Promise<number> {
+  const initialCount = await tripsPage.getTripCount();
+
+  await tripsPage.clickAddTripButton();
+  await tripsPage.selectPuntual();
+  await tripsPage.enterTime(time);
+  await tripsPage.submitButton.click();
+
+  // Wait for trip to appear
+  await tripsPage.waitForTripCount(initialCount + 1, 5000);
+
+  // Return the index of the newly created trip (1-based)
+  return initialCount + 1;
+}
+
+/**
+ * Cleans up a test trip by index via the delete flow
+ */
+async function cleanupTestTrip(tripsPage: TripsPage, tripIndex: number): Promise<void> {
+  try {
+    const count = await tripsPage.getTripCount();
+    if (count >= tripIndex) {
+      await tripsPage.openDeleteDialogForTrip(tripIndex);
+      await tripsPage.confirmDelete();
+    }
+  } catch {
+    // Trip may already be deleted, ignore errors
+  }
+}
