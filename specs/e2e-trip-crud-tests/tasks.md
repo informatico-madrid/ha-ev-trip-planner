@@ -4,7 +4,7 @@
 
 Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcoded values.
 
-- [ ] 1.1 [P] Create trips.page.ts with basic navigation and locators
+- [x] 1.1 [P] Create trips.page.ts with basic navigation and locators
   - **Do**:
     1. Create `tests/e2e/pages/trips.page.ts`
     2. Add constructor with Page dependency
@@ -20,7 +20,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-1_
   - _Design: Component Architecture - TripsPage_
 
-- [ ] 1.2 [P] Add trip form locators to trips.page.ts
+- [x] 1.2 [P] Add trip form locators to trips.page.ts
   - **Do**:
     1. Add trip form overlay locator (`tripFormOverlay`)
     2. Add Recurrente/Puntual radio button locators
@@ -35,7 +35,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-4, FR-5_
   - _Design: Form locators section_
 
-- [ ] 1.3 [P] Add trip action locators to trips.page.ts
+- [x] 1.3 [P] Add trip action locators to trips.page.ts
   - **Do**:
     1. Add trip card locators (indexed by position)
     2. Add action button locators: editButton(n), deleteButton(n), pauseButton(n), resumeButton(n), completeButton(n), cancelButton(n)
@@ -48,7 +48,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15_
   - _Design: Trip card actions section_
 
-- [ ] 1.4 [P] Add state query methods to trips.page.ts
+- [x] 1.4 [P] Add state query methods to trips.page.ts
   - **Do**:
     1. Add `isEmptyStateVisible()` method checking "No hay viajes" text
     2. Add `getTripCount()` method using Shadow DOM traversal
@@ -62,7 +62,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-2, FR-3_
   - _Design: State query methods_
 
-- [ ] 1.5 [P] Add service call methods to trips.page.ts
+- [x] 1.5 [P] Add service call methods to trips.page.ts
   - **Do**:
     1. Add `callTripCreateService(data)` method for direct HA service calls
     2. Add `callTripUpdateService(tripId, data)` method
@@ -78,7 +78,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: FR-6, FR-8, FR-10, FR-12, FR-13, FR-14, FR-15_
   - _Design: Service call methods_
 
-- [ ] 1.6 [P] Create trips.spec.ts with US-1 test skeleton
+- [x] 1.6 [P] Create trips.spec.ts with US-1 test skeleton
   - **Do**:
     1. Create `tests/e2e/trips.spec.ts`
     2. Import TripsPage from pages index
@@ -92,7 +92,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - **Commit**: `feat(trips-spec): add US-1 test skeleton`
   - _Requirements: AC-1.1, FR-2_
 
-- [ ] 1.7 [P] Add US-1 empty state and trip list tests
+- [x] 1.7 [P] Add US-1 empty state and trip list tests
   - **Do**:
     1. Add test: `displays empty state when no trips exist` - verify "No hay viajes" visible when trip count is 0
     2. Add test: `displays recurring trips with correct format` - verify day/time format for recurring trips
@@ -105,7 +105,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-1.1, AC-1.2, AC-1.3, AC-1.4_
   - _Design: US-1 test structure_
 
-- [ ] 1.8 [P] Add US-2 Create Trip tests
+- [x] 1.8 [P] Add US-2 Create Trip tests
   - **Do**:
     1. Add test.describe block for US-2: Create Trip
     2. Add test: `opens form modal when clicking + Agregar Viaje`
@@ -121,7 +121,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-2.1 through AC-2.8_
   - _Design: US-2 test structure_
 
-- [ ] 1.9 [P] Add US-3 Edit Trip tests
+- [x] 1.9 [P] Add US-3 Edit Trip tests
   - **Do**:
     1. Add test.describe block for US-3: Edit Trip
     2. Add test: `opens edit form with pre-filled data`
@@ -133,7 +133,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-3.1 through AC-3.4_
   - _Design: US-3 test structure_
 
-- [ ] 1.10 [P] Add US-4 Delete Trip tests
+- [x] 1.10 [P] Add US-4 Delete Trip tests
   - **Do**:
     1. Add test.describe block for US-4: Delete Trip
     2. Add test: `shows confirmation dialog on Eliminar`
@@ -146,7 +146,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-4.1 through AC-4.4_
   - _Design: US-4 test structure_
 
-- [ ] 1.11 [P] Add US-5 Pause/Resume Recurring Trip tests
+- [x] 1.11 [P] Add US-5 Pause/Resume Recurring Trip tests
   - **Do**:
     1. Add test.describe block for US-5: Pause/Resume Recurring
     2. Add test: `shows Pausar for active recurring trip`
@@ -159,7 +159,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
   - _Requirements: AC-5.1 through AC-5.6_
   - _Design: US-5 test structure_
 
-- [ ] 1.12 [P] Add US-6 Complete/Cancel Punctual Trip tests
+- [x] 1.12 [P] Add US-6 Complete/Cancel Punctual Trip tests
   - **Do**:
     1. Add test.describe block for US-6: Complete/Cancel Punctual
     2. Add test: `shows Completar for active punctual trip`
