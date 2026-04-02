@@ -25,6 +25,22 @@ export class TripsPage {
   // Add trip button
   readonly addTripButton: Locator;
 
+  // Trip form overlay
+  readonly tripFormOverlay: Locator;
+
+  // Trip type radio buttons
+  readonly recurrenteOption: Locator;
+  readonly puntualOption: Locator;
+
+  // Day selector (for recurring trips)
+  readonly daySelector: Locator;
+
+  // Time input
+  readonly timeInput: Locator;
+
+  // Submit button
+  readonly submitButton: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -37,6 +53,22 @@ export class TripsPage {
 
     // Add trip button
     this.addTripButton = page.getByRole('button', { name: /\+ Agregar Viaje|Add Trip/i });
+
+    // Trip form overlay
+    this.tripFormOverlay = page.getByRole('dialog', { name: /viaje|trip/i });
+
+    // Trip type options
+    this.recurrenteOption = page.getByRole('radio', { name: /recurrente|recurring/i });
+    this.puntualOption = page.getByRole('radio', { name: /puntual|one-time|single/i });
+
+    // Day selector for recurring trips
+    this.daySelector = page.getByLabel(/día|day/i);
+
+    // Time input
+    this.timeInput = page.getByLabel(/hora|time/i);
+
+    // Submit button in form
+    this.submitButton = page.getByRole('button', { name: /guardar|save|crear|create/i });
   }
 
   /**
@@ -75,5 +107,34 @@ export class TripsPage {
     const url = await this.getPanelUrl();
     await this.page.goto(url, { waitUntil: 'domcontentloaded' });
     await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Click the add trip button to open the form
+   */
+  async clickAddTripButton(): Promise<void> {
+    await this.addTripButton.click();
+    await this.tripFormOverlay.waitFor({ state: 'visible', timeout: 5000 });
+  }
+
+  /**
+   * Select Recurrente (recurring) trip type
+   */
+  async selectRecurrente(): Promise<void> {
+    await this.recurrenteOption.click();
+  }
+
+  /**
+   * Select Puntual (one-time) trip type
+   */
+  async selectPuntual(): Promise<void> {
+    await this.puntualOption.click();
+  }
+
+  /**
+   * Enter time in the form
+   */
+  async enterTime(time: string): Promise<void> {
+    await this.timeInput.fill(time);
   }
 }
