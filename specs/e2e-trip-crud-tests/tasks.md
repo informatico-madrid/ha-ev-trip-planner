@@ -250,7 +250,7 @@ Focus: Validate the idea works end-to-end. Move fast. Skip tests, accept hardcod
 
 Focus: Clean up code structure. No new features.
 
-- [ ] 2.1 Refactor trips.page.ts: extract constants
+- [x] 2.1 Refactor trips.page.ts: extract constants
   - **Do**:
     1. Extract selector strings to class constants
     2. Extract service names to constants

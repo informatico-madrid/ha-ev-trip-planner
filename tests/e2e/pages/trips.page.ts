@@ -10,6 +10,70 @@ import { Page, Locator } from '@playwright/test';
 export class TripsPage {
   readonly page: Page;
 
+  // ============================================================
+  // CONSTANTS - Selector patterns and configuration
+  // ============================================================
+
+  // Panel element selector
+  static readonly PANEL_SELECTOR = 'ev-trip-planner-panel';
+
+  // CSS class for trip cards
+  static readonly TRIP_CARD_CLASS = '.trip-card';
+
+  // Sidebar selectors
+  static readonly SIDEBAR_SELECTOR = 'ha-sidebar, aside';
+
+  // Service configuration
+  static readonly SERVICE_DOMAIN = 'ev_trip_planner';
+  static readonly SERVICES = {
+    CREATE: 'trip_create',
+    UPDATE: 'trip_update',
+    DELETE: 'delete_trip',
+    PAUSE_RECURRING: 'pause_recurring_trip',
+    RESUME_RECURRING: 'resume_recurring_trip',
+    COMPLETE_PUNCTUAL: 'complete_punctual_trip',
+    CANCEL_PUNCTUAL: 'cancel_punctual_trip',
+  } as const;
+
+  // Text patterns for UI elements (i18n-aware)
+  static readonly TEXT_PATTERNS = {
+    // Navigation
+    EV_TRIP_PLANNER: /ev trip planner|planificador de viajes ev/i,
+
+    // Empty state
+    NO_TRIPS: /no hay viajes|there are no trips/i,
+
+    // Buttons
+    AGREGAR_VIAJE: /\+ Agregar Viaje|Add Trip/i,
+    GUARDAR: /guardar|save|crear|create/i,
+    EDITAR: /editar|edit/i,
+    ELIMINAR: /eliminar|delete/i,
+    PAUSAR: /pausar|pause/i,
+    REANUDAR: /reanudar|resume/i,
+    COMPLETAR: /completar|complete/i,
+    CANCELAR: /cancelar|cancel/i,
+
+    // Form elements
+    VIAJE_TRIP: /viaje|trip/i,
+    RECURRENTE: /recurrente|recurring/i,
+    PUNTUAL: /puntual|one-time|single/i,
+    DIA_DAY: /día|day/i,
+    HORA_TIME: /hora|time/i,
+
+    // Dialog
+    CONFIRM_DIALOG: /confirm|confirmar|eliminar|delete/i,
+    CANCEL_DIALOG: /cancelar|cancel|volver|back/i,
+  } as const;
+
+  // Default configuration
+  static readonly DEFAULT_PANEL_URL = 'http://127.0.0.1:8123/ev-trip-planner-Coche2';
+  static readonly DEFAULT_TIMEOUT_MS = 5000;
+  static readonly DEFAULT_WAIT_MS = 100;
+
+  // ============================================================
+  // LOCATORS
+  // ============================================================
+
   // Sidebar navigation
   readonly sidebar: Locator;
   readonly evTripPlannerMenuItem: Locator;
@@ -59,53 +123,53 @@ export class TripsPage {
     this.page = page;
 
     // Sidebar navigation
-    this.sidebar = page.locator('ha-sidebar, aside');
-    this.evTripPlannerMenuItem = page.getByText(/ev trip planner|planificador de viajes ev/i);
+    this.sidebar = page.locator(TripsPage.SIDEBAR_SELECTOR);
+    this.evTripPlannerMenuItem = page.getByText(TripsPage.TEXT_PATTERNS.EV_TRIP_PLANNER);
 
     // Empty state - shown when no trips exist
-    this.emptyState = page.getByText(/no hay viajes|there are no trips/i);
+    this.emptyState = page.getByText(TripsPage.TEXT_PATTERNS.NO_TRIPS);
 
     // Add trip button
-    this.addTripButton = page.getByRole('button', { name: /\+ Agregar Viaje|Add Trip/i });
+    this.addTripButton = page.getByRole('button', { name: TripsPage.TEXT_PATTERNS.AGREGAR_VIAJE });
 
     // Trip form overlay
-    this.tripFormOverlay = page.getByRole('dialog', { name: /viaje|trip/i });
+    this.tripFormOverlay = page.getByRole('dialog', { name: TripsPage.TEXT_PATTERNS.VIAJE_TRIP });
 
     // Trip type options
-    this.recurrenteOption = page.getByRole('radio', { name: /recurrente|recurring/i });
-    this.puntualOption = page.getByRole('radio', { name: /puntual|one-time|single/i });
+    this.recurrenteOption = page.getByRole('radio', { name: TripsPage.TEXT_PATTERNS.RECURRENTE });
+    this.puntualOption = page.getByRole('radio', { name: TripsPage.TEXT_PATTERNS.PUNTUAL });
 
     // Day selector for recurring trips
-    this.daySelector = page.getByLabel(/día|day/i);
+    this.daySelector = page.getByLabel(TripsPage.TEXT_PATTERNS.DIA_DAY);
 
     // Time input
-    this.timeInput = page.getByLabel(/hora|time/i);
+    this.timeInput = page.getByLabel(TripsPage.TEXT_PATTERNS.HORA_TIME);
 
     // Submit button in form
-    this.submitButton = page.getByRole('button', { name: /guardar|save|crear|create/i });
+    this.submitButton = page.getByRole('button', { name: TripsPage.TEXT_PATTERNS.GUARDAR });
 
     // Trip card locators (indexed by position - 1-based for user friendliness)
     this.tripCard = (index: number) =>
-      page.locator('.trip-card').nth(index - 1);
+      page.locator(TripsPage.TRIP_CARD_CLASS).nth(index - 1);
 
     // Action buttons
     this.editButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /editar|edit/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.EDITAR });
     this.deleteButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /eliminar|delete/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.ELIMINAR });
     this.pauseButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /pausar|pause/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.PAUSAR });
     this.resumeButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /reanudar|resume/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.REANUDAR });
     this.completeButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /completar|complete/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.COMPLETAR });
     this.cancelButton = (index: number) =>
-      this.tripCard(index).getByRole('button', { name: /cancelar|cancel/i });
+      this.tripCard(index).getByRole('button', { name: TripsPage.TEXT_PATTERNS.CANCELAR });
 
     // Confirmation dialog
-    this.confirmDialog = page.getByRole('dialog', { name: /confirm|confirmar|eliminar|delete/i });
-    this.confirmDeleteBtn = page.getByRole('button', { name: /eliminar|delete|confirm|confirmar/i });
-    this.cancelDialogBtn = page.getByRole('button', { name: /cancelar|cancel|volver|back/i });
+    this.confirmDialog = page.getByRole('dialog', { name: TripsPage.TEXT_PATTERNS.CONFIRM_DIALOG });
+    this.confirmDeleteBtn = page.getByRole('button', { name: TripsPage.TEXT_PATTERNS.ELIMINAR });
+    this.cancelDialogBtn = page.getByRole('button', { name: TripsPage.TEXT_PATTERNS.CANCEL_DIALOG });
   }
 
   /**
@@ -134,7 +198,7 @@ export class TripsPage {
 
     // Fallback to default - this should be overridden by test setup
     // The test should call setPanelUrl before navigation if using direct navigation
-    this.panelUrl = 'http://127.0.0.1:8123/ev-trip-planner-Coche2';
+    this.panelUrl = TripsPage.DEFAULT_PANEL_URL;
     return this.panelUrl;
   }
 
@@ -232,11 +296,11 @@ export class TripsPage {
    */
   async getTripCount(): Promise<number> {
     return await this.page.evaluate(() => {
-      const panel = document.querySelector('ev-trip-planner-panel');
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR);
       if (!panel || !panel.shadowRoot) {
         return 0;
       }
-      return panel.shadowRoot.querySelectorAll('.trip-card').length;
+      return panel.shadowRoot.querySelectorAll(TripsPage.TRIP_CARD_CLASS).length;
     });
   }
 
@@ -260,11 +324,11 @@ export class TripsPage {
    */
   async isTripPaused(tripIndex: number): Promise<boolean> {
     return await this.page.evaluate((index) => {
-      const panel = document.querySelector('ev-trip-planner-panel');
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR);
       if (!panel || !panel.shadowRoot) {
         return false;
       }
-      const cards = panel.shadowRoot.querySelectorAll('.trip-card');
+      const cards = panel.shadowRoot.querySelectorAll(TripsPage.TRIP_CARD_CLASS);
       if (index < 0 || index >= cards.length) {
         return false;
       }
@@ -293,11 +357,11 @@ export class TripsPage {
     time: string;
   }): Promise<void> {
     await this.page.evaluate(async (serviceData) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'trip_create', serviceData);
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.CREATE, serviceData);
     }, data);
   }
 
@@ -310,11 +374,11 @@ export class TripsPage {
     enabled?: boolean;
   }): Promise<void> {
     await this.page.evaluate(async ({ id, updateData }) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'trip_update', {
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.UPDATE, {
         trip_id: id,
         ...updateData,
       });
@@ -326,11 +390,11 @@ export class TripsPage {
    */
   async callDeleteTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'delete_trip', { trip_id: id });
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.DELETE, { trip_id: id });
     }, tripId);
   }
 
@@ -339,11 +403,11 @@ export class TripsPage {
    */
   async callPauseRecurringTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'pause_recurring_trip', { trip_id: id });
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.PAUSE_RECURRING, { trip_id: id });
     }, tripId);
   }
 
@@ -352,11 +416,11 @@ export class TripsPage {
    */
   async callResumeRecurringTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'resume_recurring_trip', { trip_id: id });
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.RESUME_RECURRING, { trip_id: id });
     }, tripId);
   }
 
@@ -365,11 +429,11 @@ export class TripsPage {
    */
   async callCompletePunctualTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'complete_punctual_trip', { trip_id: id });
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.COMPLETE_PUNCTUAL, { trip_id: id });
     }, tripId);
   }
 
@@ -378,11 +442,11 @@ export class TripsPage {
    */
   async callCancelPunctualTripService(tripId: string): Promise<void> {
     await this.page.evaluate(async (id) => {
-      const panel = document.querySelector('ev-trip-planner-panel') as any;
+      const panel = document.querySelector(TripsPage.PANEL_SELECTOR) as any;
       if (!panel || !panel.hass) {
         throw new Error('Cannot call service: panel or hass not available');
       }
-      await panel.hass.callService('ev_trip_planner', 'cancel_punctual_trip', { trip_id: id });
+      await panel.hass.callService(TripsPage.SERVICE_DOMAIN, TripsPage.SERVICES.CANCEL_PUNCTUAL, { trip_id: id });
     }, tripId);
   }
 }
