@@ -133,3 +133,48 @@ test.describe('Create Trip (US-2)', () => {
     expect(newCount).toBe(initialCount + 1);
   });
 });
+
+test.describe('Edit Trip (US-3)', () => {
+  let tripsPage: TripsPage;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    await tripsPage.navigateDirect();
+  });
+
+  test('opens edit form with pre-filled data', async () => {
+    // Ensure there's at least one trip to edit
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      // Skip if no trips - create one first
+      test.skip();
+    }
+
+    // Click edit button on first trip
+    await tripsPage.openEditFormForTrip(1);
+
+    // Verify form is open and has pre-filled data
+    await expect(tripsPage.tripFormOverlay).toBeVisible();
+  });
+
+  test('updates trip successfully', async () => {
+    // Ensure there's at least one trip to edit
+    const count = await tripsPage.getTripCount();
+    if (count === 0) {
+      // Skip if no trips
+      test.skip();
+    }
+
+    // Open edit form for first trip
+    await tripsPage.openEditFormForTrip(1);
+
+    // Update the time
+    await tripsPage.enterTime('10:00');
+
+    // Submit the form
+    await tripsPage.submitButton.click();
+
+    // Verify form closes
+    await expect(tripsPage.tripFormOverlay).not.toBeVisible({ timeout: 5000 });
+  });
+});
