@@ -208,4 +208,72 @@ export class TripsPage {
     await this.cancelDialogBtn.click();
     await this.confirmDialog.waitFor({ state: 'hidden', timeout: 5000 });
   }
+
+  /**
+   * Check if empty state is visible (no trips message)
+   */
+  async isEmptyStateVisible(): Promise<boolean> {
+    try {
+      return await this.emptyState.isVisible({ timeout: 3000 });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get the number of trips in the list
+   * Uses Shadow DOM traversal via evaluate
+   */
+  async getTripCount(): Promise<number> {
+    return await this.page.evaluate(() => {
+      const panel = document.querySelector('ev-trip-planner-panel');
+      if (!panel || !panel.shadowRoot) {
+        return 0;
+      }
+      return panel.shadowRoot.querySelectorAll('.trip-card').length;
+    });
+  }
+
+  /**
+   * Wait for trip count to reach expected value
+   */
+  async waitForTripCount(expected: number, timeout: number = 5000): Promise<void> {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const count = await this.getTripCount();
+      if (count === expected) {
+        return;
+      }
+      await this.page.waitForTimeout(100);
+    }
+    throw new Error(`Expected ${expected} trips but found ${await this.getTripCount()}`);
+  }
+
+  /**
+   * Check if a trip is paused
+   */
+  async isTripPaused(tripIndex: number): Promise<boolean> {
+    return await this.page.evaluate((index) => {
+      const panel = document.querySelector('ev-trip-planner-panel');
+      if (!panel || !panel.shadowRoot) {
+        return false;
+      }
+      const cards = panel.shadowRoot.querySelectorAll('.trip-card');
+      if (index < 0 || index >= cards.length) {
+        return false;
+      }
+      const card = cards[index];
+      return card.classList.contains('paused') ||
+             card.getAttribute('data-state') === 'paused' ||
+             card.textContent?.toLowerCase().includes('pausado') === true;
+    }, tripIndex - 1); // 1-based to 0-based
+  }
+
+  /**
+   * Check if a trip is active
+   */
+  async isTripActive(tripIndex: number): Promise<boolean> {
+    const isPaused = await this.isTripPaused(tripIndex);
+    return !isPaused;
+  }
 }
