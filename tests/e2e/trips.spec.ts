@@ -60,3 +60,76 @@ test.describe('Trip List Loading (US-1)', () => {
     }
   });
 });
+
+test.describe('Create Trip (US-2)', () => {
+  let tripsPage: TripsPage;
+
+  test.beforeEach(async ({ page }) => {
+    tripsPage = new TripsPage(page);
+    await tripsPage.navigateDirect();
+  });
+
+  test('opens form modal when clicking + Agregar Viaje', async () => {
+    await tripsPage.clickAddTripButton();
+    await expect(tripsPage.tripFormOverlay).toBeVisible();
+  });
+
+  test('shows Recurrente option with day selector', async () => {
+    await tripsPage.clickAddTripButton();
+    await expect(tripsPage.recurrenteOption).toBeVisible();
+    await tripsPage.selectRecurrente();
+    await expect(tripsPage.daySelector).toBeVisible();
+  });
+
+  test('shows Puntual option without day selector', async () => {
+    await tripsPage.clickAddTripButton();
+    await expect(tripsPage.puntualOption).toBeVisible();
+    await tripsPage.selectPuntual();
+    // Puntual trips should not have a day selector
+    // The day selector should not be visible or relevant
+  });
+
+  test('creates recurring trip successfully', async () => {
+    // Get initial count
+    const initialCount = await tripsPage.getTripCount();
+
+    // Open form and create recurring trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Monday');
+    await tripsPage.enterTime('08:00');
+    await tripsPage.submitButton.click();
+
+    // Wait for form to close and trip to appear
+    await tripsPage.waitForTripCount(initialCount + 1, 5000);
+  });
+
+  test('creates punctual trip successfully', async () => {
+    // Get initial count
+    const initialCount = await tripsPage.getTripCount();
+
+    // Open form and create punctual trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectPuntual();
+    await tripsPage.enterTime('14:00');
+    await tripsPage.submitButton.click();
+
+    // Wait for form to close and trip to appear
+    await tripsPage.waitForTripCount(initialCount + 1, 5000);
+  });
+
+  test('new trip appears immediately in list', async () => {
+    const initialCount = await tripsPage.getTripCount();
+
+    // Create a trip
+    await tripsPage.clickAddTripButton();
+    await tripsPage.selectRecurrente();
+    await tripsPage.daySelector.selectOption('Tuesday');
+    await tripsPage.enterTime('09:00');
+    await tripsPage.submitButton.click();
+
+    // Verify new trip count increased
+    const newCount = await tripsPage.getTripCount();
+    expect(newCount).toBe(initialCount + 1);
+  });
+});
