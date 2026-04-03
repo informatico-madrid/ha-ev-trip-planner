@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
-import { createTestTrip, navigateToPanel, deleteTestTrip } from './trips-helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { createTestTrip, deleteTestTrip, type TripData } from './trips-helpers';
 
 test.describe('Edit Trip', () => {
-  test('should edit an existing recurrente trip', async ({ page }) => {
+  test('should edit an existing recurrente trip', async ({ page }: { page: Page }) => {
     // T025: Implement navigation and setup
     // Step 1: Navigate to Home Assistant home
     await page.goto('/');
