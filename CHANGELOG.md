@@ -212,7 +212,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `sensor.{vehicle}_charging_readiness`: Combined home+plugged status
 - **Comprehensive Testing**: 156 tests with 93.6% pass rate
   - Unit tests for all new components
-  - Integration tests for E2E flows
   - TDD methodology applied throughout
 
 ### Changed
@@ -237,7 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `presence_monitor.py` (93 lines) - Home/plugged detection
 - **New Constants**: `CONF_MAX_DEFERRABLE_LOADS`, `CONF_PLANNING_HORIZON`, `CONF_HOME_SENSOR`, `CONF_PLUGGED_SENSOR`, `CONF_HOME_COORDINATES`, `CONF_VEHICLE_COORDINATES_SENSOR`
 - **Safety Features**: Presence verification before any charging action with intelligent notifications
-- **Testing**: 3-level testing strategy (unit, integration, E2E) with 146/156 tests passing
+- **Testing**: 3-level testing strategy (unit, integration) with 146/156 tests passing
 
 ### Known Limitations
 - Manual EMHASS configuration required (user must add config snippet for each potential index up to max_deferrable_loads)
