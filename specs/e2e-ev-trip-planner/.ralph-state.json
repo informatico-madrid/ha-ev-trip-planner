@@ -2,9 +2,9 @@
   "source": "spec",
   "name": "e2e-ev-trip-planner",
   "basePath": "./specs/e2e-ev-trip-planner",
-  "phase": "design",
+  "phase": "execution",
   "taskIndex": 0,
-  "totalTasks": 0,
+  "totalTasks": 18,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
@@ -31,5 +31,19 @@
       "invoked": false
     }
   ],
-  "awaitingApproval": true
+  "awaitingApproval": false,
+  "granularity": "coarse",
+  "repairIteration": 0,
+  "failedStory": null,
+  "originTaskIndex": null,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0
 }

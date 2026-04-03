@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-02T22:52:12Z
+**Last updated:** 2026-04-03T02:24:15Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 23 | Yes |
+| ./specs | 22 | Yes |
 
-## All Specs (23)
+## All Specs (22)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -27,7 +27,6 @@ See [index-state.json](./index-state.json) for machine-readable data.
 0/73 tasks |
 | 019-panel-vehicle-crud | ./specs | tasks | 31/32 tasks |
 | 020-fix-panel-trips-sensors | ./specs | tasks |  |
-| 021-e2e-trip-crud-panel-tests | ./specs | tasks | 70/75 tasks |
 | trip-creation | ./specs | tasks | 6/59 tasks |
 | ev-trip-planner-integration-fixes | ./specs | execution | 30/30 tasks |
 | _epics | ./specs | new |  |
@@ -39,7 +38,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | automation-template | ./specs | completed | done |
 | emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
-| e2e-trip-crud-tests | ./specs | research | awaiting approval |
+| e2e-ev-trip-planner | ./specs | tasks | awaiting approval |
 
 ---
 
