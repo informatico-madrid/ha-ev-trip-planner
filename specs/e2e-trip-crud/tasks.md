@@ -480,7 +480,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for TypeScript integration
 
-- [ ] T034 [P] [US-3] Add TypeScript types to delete-trip.spec.ts
+- [x] T034 [P] [US-3] Add TypeScript types to delete-trip.spec.ts
   - **Do**:
     1. Add explicit Page type import
     2. Add type annotations to test function parameters
