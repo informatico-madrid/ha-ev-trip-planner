@@ -87,6 +87,23 @@ async function globalSetup(config: FullConfig): Promise<void> {
   console.log("[auth.setup] Submitting Config Flow Step 1...");
   await page.getByRole("button", { name: /next|submit/i }).click();
 
+  // Wait for Step 2 form (async_step_sensors) to appear
+  console.log("[auth.setup] Waiting for Config Flow Step 2 form (sensors)...");
+  await page.getByRole("textbox", { name: /battery_capacity_kwh/i }).waitFor({ state: "visible", timeout: 30_000 });
+  console.log("[auth.setup] Config Flow Step 2 form appeared");
+
+  // Fill sensor fields
+  console.log("[auth.setup] Filling sensor fields...");
+  await page.getByRole("textbox", { name: /battery_capacity_kwh/i }).fill("60");
+  await page.getByRole("textbox", { name: /charging_power_kw/i }).fill("11");
+  await page.getByRole("textbox", { name: /kwh_per_km/i }).fill("0.17");
+  await page.getByRole("textbox", { name: /safety_margin_percent/i }).fill("20");
+  console.log("[auth.setup] Sensor fields filled: battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20");
+
+  // Submit Step 2 via Next/Submit button
+  console.log("[auth.setup] Submitting Config Flow Step 2...");
+  await page.getByRole("button", { name: /next|submit/i }).click();
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);

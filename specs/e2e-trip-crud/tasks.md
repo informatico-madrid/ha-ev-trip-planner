@@ -146,7 +146,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for form field patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA Config Flow selectors
 
-- [ ] T011 [P] [US-0] Config Flow Step 2: sensors fields
+- [x] T011 [P] [US-0] Config Flow Step 2: sensors fields
   - **Do**:
     1. Wait for Step 2 form (async_step_sensors)
     2. Fill battery_capacity_kwh: "60"
