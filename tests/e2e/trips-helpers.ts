@@ -61,3 +61,32 @@ export async function createTestTrip(
 
   return tripIdentifier;
 }
+
+/**
+ * Deletes a test trip from the EV Trip Planner panel by its trip identifier.
+ * Finds the trip card by its description text, clicks delete, handles confirmation dialog.
+ * @param page - Playwright Page object
+ * @param tripId - The trip identifier returned by createTestTrip (datetime-description format)
+ */
+export async function deleteTestTrip(page: Page, tripId: string): Promise<void> {
+  // Extract description from tripId (format: "datetime-description")
+  const parts = tripId.split('-');
+  const description = parts.slice(2).join('-'); // Description may contain hyphens
+
+  // Find the trip card by looking for the description text
+  const tripCard = page.locator('div').filter({ hasText: description }).last();
+
+  // Wait for the trip card to be visible
+  await tripCard.waitFor({ state: 'visible' });
+
+  // Set up dialog handler before clicking delete
+  page.on('dialog', async dialog => {
+    await dialog.accept();
+  });
+
+  // Click the delete button (trash icon) within the trip card
+  await tripCard.getByRole('button', { name: /delete|eliminar|trash/i }).click();
+
+  // Verify trip is removed from list by waiting for it to be detached
+  await tripCard.waitFor({ state: 'detached', timeout: 5000 });
+}
