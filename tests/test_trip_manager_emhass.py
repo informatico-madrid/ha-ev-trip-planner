@@ -314,7 +314,7 @@ class TestTripManagerHelperMethods:
         """Test _get_day_index handles invalid day."""
         manager = TripManager(mock_hass, vehicle_id)
 
-        # Invalid day defaults to Monday (index 1)
+        # Invalid day defaults to Monday (index 0 in DAYS_OF_WEEK)
         result = manager._get_day_index("invalid_day")
-        assert result == 1  # Monday
+        assert result == 0  # Monday (index 0)
 

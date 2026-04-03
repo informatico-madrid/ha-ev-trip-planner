@@ -549,8 +549,13 @@ class TestAsyncUnloadEntry:
 
     @pytest.mark.asyncio
     async def test_unload_entry_no_vehicle_id(self, mock_hass):
-        """Test that async_unload_entry handles missing vehicle_id gracefully."""
-        # Create a mock config entry without vehicle_id
+        """Test that async_unload_entry derives vehicle_id from vehicle_name.
+
+        Even without an explicit vehicle_id key, the code computes it
+        from vehicle_name via .lower().replace(' ', '_'), so the panel
+        unregister should still be called with the derived vehicle_id.
+        """
+        # Create a mock config entry without vehicle_id (only vehicle_name)
         entry = Mock()
         entry.data = {
             "vehicle_name": "Test Vehicle",
@@ -573,8 +578,8 @@ class TestAsyncUnloadEntry:
 
             result = await async_unload_entry(mock_hass, entry)
 
-            # Verify async_unregister_panel was NOT called (no vehicle_id)
-            mock_unregister.assert_not_called()
+            # Verify async_unregister_panel WAS called with derived vehicle_id
+            mock_unregister.assert_called_once_with(mock_hass, "test_vehicle")
             assert result is True
 
     @pytest.mark.asyncio
