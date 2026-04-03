@@ -104,6 +104,19 @@ async function globalSetup(config: FullConfig): Promise<void> {
   console.log("[auth.setup] Submitting Config Flow Step 2...");
   await page.getByRole("button", { name: /next|submit/i }).click();
 
+  // Wait for Step 3 form (async_step_emhass) to appear
+  console.log("[auth.setup] Waiting for Config Flow Step 3 form (emhass)...");
+  await page.getByRole("textbox", { name: /planning_horizon_days/i }).waitFor({ state: "visible", timeout: 30_000 });
+  console.log("[auth.setup] Config Flow Step 3 form appeared");
+
+  // Step 3 emhass fields: accept defaults (planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24)
+  // planning_sensor is optional, leave empty
+  console.log("[auth.setup] Accepting Step 3 default values: planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24");
+
+  // Submit Step 3 via Next/Submit button
+  console.log("[auth.setup] Submitting Config Flow Step 3...");
+  await page.getByRole("button", { name: /next|submit/i }).click();
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
