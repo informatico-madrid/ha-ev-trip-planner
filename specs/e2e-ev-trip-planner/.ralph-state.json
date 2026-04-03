@@ -1,0 +1,35 @@
+{
+  "source": "spec",
+  "name": "e2e-ev-trip-planner",
+  "basePath": "./specs/e2e-ev-trip-planner",
+  "phase": "design",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [
+    {
+      "name": "e2e-testing-patterns",
+      "source": ".agents/skills/e2e-testing-patterns",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "playwright-best-practices",
+      "source": ".agents/skills/playwright-best-practices",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "home-assistant-best-practices",
+      "source": ".agents/skills/home-assistant-best-practices",
+      "matchedAt": "start",
+      "invoked": false
+    }
+  ],
+  "awaitingApproval": true
+}
