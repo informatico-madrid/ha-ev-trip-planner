@@ -40,6 +40,12 @@ test.describe('Edit Trip', () => {
     // Step 5: Click "Guardar Cambios" button to submit
     await page.getByRole('button', { name: 'Guardar Cambios' }).click();
 
+    // T027: Assert trip card shows updated km=35 after save
+    await expect(tripCard.getByText(/35/)).toBeVisible();
+
+    // T027: Assert trip card shows updated description="Updated Test Route"
+    await expect(tripCard.getByText('Updated Test Route')).toBeVisible();
+
     // Clean up: delete the test trip after test
     await deleteTestTrip(page, tripId);
   });
