@@ -72,6 +72,21 @@ async function globalSetup(config: FullConfig): Promise<void> {
   await page.getByText("EV Trip Planner").first().waitFor({ state: "visible", timeout: 30_000 });
   console.log("[auth.setup] EV Trip Planner integration found in search results");
 
+  // Click on EV Trip Planner integration result to start Config Flow Step 1
+  console.log("[auth.setup] Clicking EV Trip Planner integration result...");
+  await page.getByText("EV Trip Planner").first().click();
+  // Wait for Step 1 form (async_step_user) to appear
+  await page.getByRole("textbox", { name: /vehicle_name/i }).waitFor({ state: "visible", timeout: 30_000 });
+  console.log("[auth.setup] Config Flow Step 1 form appeared");
+
+  // Fill vehicle_name field
+  console.log("[auth.setup] Filling vehicle_name field with 'test_vehicle'...");
+  await page.getByRole("textbox", { name: /vehicle_name/i }).fill("test_vehicle");
+
+  // Submit Step 1 via Next/Submit button
+  console.log("[auth.setup] Submitting Config Flow Step 1...");
+  await page.getByRole("button", { name: /next|submit/i }).click();
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);

@@ -104,7 +104,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for sidebar navigation
 
-- [ ] T008 [P] [US-0] Click Add Integration button
+- [x] T008 [P] [US-0] Click Add Integration button
   - **Do**:
     1. Click "+ Add Integration" button
     2. Use web-first locator: getByRole('button', { name: /Add Integration/i })
@@ -117,7 +117,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for button interaction patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA UI selectors
 
-- [ ] T009 [P] [US-0] Search for EV Trip Planner integration
+- [x] T009 [P] [US-0] Search for EV Trip Planner integration
   - **Do**:
     1. Find integration search textbox
     2. Use web-first locator: getByRole('textbox', { name: /search/i })
@@ -131,7 +131,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for text input patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA form selectors
 
-- [ ] T010 [P] [US-0] Config Flow Step 1: vehicle_name field
+- [x] T010 [P] [US-0] Config Flow Step 1: vehicle_name field
   - **Do**:
     1. Click on EV Trip Planner integration result
     2. Wait for Step 1 form (async_step_user)
