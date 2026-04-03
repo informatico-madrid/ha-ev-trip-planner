@@ -66,7 +66,7 @@ test.describe('Trip Creation', () => {
     }
   });
 
-  test('US-3 + US-4: create recurring trip and verify it appears', async () => {
+  test('US-3 + US-4: create recurring trip and verify it appears', async ({ page }) => {
     // Open panel
     await panel.openFromSidebar();
 
@@ -92,7 +92,7 @@ test.describe('Trip Creation', () => {
     await expect(page.locator('ev-trip-planner-panel >> .trip-card')).toContainText('25.5');
   });
 
-  test('US-3 + US-4: create punctual trip and verify it appears', async () => {
+  test('US-3 + US-4: create punctual trip and verify it appears', async ({ page }) => {
     await panel.openFromSidebar();
     await panel.openAddTripForm();
 
