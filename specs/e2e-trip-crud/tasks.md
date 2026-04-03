@@ -162,7 +162,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for form filling patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA Config Flow field selectors
 
-- [ ] T012 [P] [US-0] Config Flow Step 3: emhass fields
+- [x] T012 [P] [US-0] Config Flow Step 3: emhass fields
   - **Do**:
     1. Wait for Step 3 form (async_step_emhass)
     2. Accept defaults: planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24
@@ -176,7 +176,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for accepting default values
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA Config Flow selectors
 
-- [ ] T013 [P] [US-0] Config Flow Step 4: presence fields
+- [x] T013 [P] [US-0] Config Flow Step 4: presence fields
   - **Do**:
     1. Wait for Step 4 form (async_step_presence)
     2. Wait for entity selector to appear (charging_sensor)

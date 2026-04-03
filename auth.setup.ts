@@ -117,6 +117,47 @@ async function globalSetup(config: FullConfig): Promise<void> {
   console.log("[auth.setup] Submitting Config Flow Step 3...");
   await page.getByRole("button", { name: /next|submit/i }).click();
 
+  // Wait for Step 4 form (async_step_presence) to appear
+  console.log("[auth.setup] Waiting for Config Flow Step 4 form (presence)...");
+  // The presence step has a charging_sensor entity selector
+  // Wait for either the entity selector or a text field related to presence
+  await page.waitForSelector("input, ha-entity-picker, ha-select", { timeout: 30_000 });
+  console.log("[auth.setup] Config Flow Step 4 form appeared");
+
+  // Step 4 presence fields: charging_sensor entity selector
+  // Try to select an entity from the charging_sensor picker if available
+  console.log("[auth.setup] Attempting to select charging_sensor entity...");
+  const entityPicker = page.locator("ha-entity-picker").first();
+  const entityPickerVisible = await entityPicker.isVisible().catch(() => false);
+
+  if (entityPickerVisible) {
+    // Open the entity picker dropdown
+    await entityPicker.click();
+    await page.waitForSelector("ha-list-item, .mdc-list-item, [data-entity]", { timeout: 10_000 }).catch(() => null);
+
+    // Try to find and select a charging-related entity
+    const listItems = page.locator("ha-list-item, .mdc-list-item, [data-entity]").first();
+    if (await listItems.isVisible().catch(() => false)) {
+      await listItems.click();
+      console.log("[auth.setup] Charging sensor entity selected");
+    } else {
+      console.log("[auth.setup] No charging sensor entities available - proceeding without selection (server-side auto-select)");
+    }
+  } else {
+    // If no entity picker found, check if there's a text input for charging_sensor
+    const textInput = page.getByRole("textbox", { name: /charging_sensor/i });
+    if (await textInput.isVisible().catch(() => false)) {
+      // Leave empty for server-side auto-select
+      console.log("[auth.setup] Charging sensor input found but empty - server will auto-select");
+    } else {
+      console.log("[auth.setup] No charging sensor field found - proceeding");
+    }
+  }
+
+  // Submit Step 4 via Next/Finish button
+  console.log("[auth.setup] Submitting Config Flow Step 4...");
+  await page.getByRole("button", { name: /next|finish|submit/i }).click();
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
