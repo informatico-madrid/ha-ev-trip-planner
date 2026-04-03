@@ -3,9 +3,9 @@
  * Cleans up state files and performs final cleanup after all tests complete.
  */
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
  * Cleanup state files created during test execution.
  */
 function cleanupStateFiles() {
-  const stateFiles = ["server-info.json"];
+  const stateFiles = ['server-info.json'];
 
   for (const file of stateFiles) {
     const filePath = path.join(__dirname, file);
@@ -34,11 +34,11 @@ function cleanupStateFiles() {
  * Called after all Playwright tests have completed.
  */
 async function globalTeardown() {
-  console.log("[globalTeardown] Starting global teardown...");
+  console.log('[globalTeardown] Starting global teardown...');
 
   cleanupStateFiles();
 
-  console.log("[globalTeardown] Global teardown complete.");
+  console.log('[globalTeardown] Global teardown complete.');
 }
 
 export default globalTeardown;

@@ -638,7 +638,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Quality Checkpoints
 
-- [ ] T046 [VERIFY] V1 Quality checkpoint: lint and typecheck
+- [x] T046 [VERIFY] V1 Quality checkpoint: lint and typecheck
   - **Do**: Run lint and typecheck on all E2E files
   - **Verify**: `npx eslint playwright.config.ts auth.setup.ts globalTeardown.ts tests/e2e/*.ts && npx tsc --noEmit`
   - **Done when**: Both lint and typecheck pass
