@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
-import { createTestTrip, navigateToPanel, deleteTestTrip } from './trips-helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { createTestTrip, navigateToPanel, deleteTestTrip, type TripType, type TripData } from './trips-helpers';
 
 test.describe('Delete Trip', () => {
-  test('should delete an existing trip', async ({ page }) => {
+  test('should delete an existing trip', async ({ page }: { page: Page }) => {
     // T029: Navigate to EV Trip Planner panel
     await navigateToPanel(page);
 
@@ -22,7 +22,7 @@ test.describe('Delete Trip', () => {
 
     // T030: Implement delete flow with dialog
     // Step 1: Set up dialog handler before clicking delete
-    let dialogMessage = '';
+    let dialogMessage: string = '';
     page.on('dialog', async (dialog) => {
       dialogMessage = dialog.message();
       // Step 2: Assert dialog message contains confirmation text
