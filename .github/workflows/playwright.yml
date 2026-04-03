@@ -17,6 +17,7 @@ jobs:
           - 8123:8123
         volumes:
           - ./tests/ha-manual/custom_components:/config/custom_components:ro
+          - ./tests/ha-manual/configuration.yaml:/config/configuration.yaml:ro
         env:
           - HAPPY_PATH: "true"
     steps:
