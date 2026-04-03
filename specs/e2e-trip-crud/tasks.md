@@ -612,7 +612,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### GitHub Actions Configuration
 
-- [ ] T044 [US-0] Create trusted_networks configuration.yaml for HA service
+- [x] T044 [US-0] Create trusted_networks configuration.yaml for HA service
   - **Do**:
     1. Create `tests/ha-manual/configuration.yaml` with trusted_networks auth provider
     2. Add auth_providers section with trusted_networks type
@@ -625,7 +625,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for trusted_networks configuration
 
-- [ ] T045 [US-0] Update GitHub Actions workflow to mount configuration.yaml
+- [x] T045 [US-0] Update GitHub Actions workflow to mount configuration.yaml
   - **Do**:
     1. Update `.github/workflows/playwright.yml`
     2. Add volume mount for configuration.yaml
