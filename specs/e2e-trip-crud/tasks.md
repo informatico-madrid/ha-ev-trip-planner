@@ -222,7 +222,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for navigation patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for SPA navigation with sidebar
 
-- [ ] T016 [P] [US-1] Create trips-helpers.ts with createTestTrip function
+- [x] T016 [P] [US-1] Create trips-helpers.ts with createTestTrip function
   - **Do**:
     1. Add createTestTrip(page, tripType, datetime, km, kwh, description) function
     2. Click "+ Agregar Viaje" button with getByRole
@@ -270,7 +270,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for test file structure
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for E2E test structure
 
-- [ ] T019 [P] [US-1] Implement create-trip.spec.ts navigation flow
+- [x] T019 [P] [US-1] Implement create-trip.spec.ts navigation flow
   - **Do**:
     1. Implement page.goto('/') in test
     2. Implement page.waitForURL('/home')
@@ -300,7 +300,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for form interaction patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for form field selectors
 
-- [ ] T021 [P] [US-1] Implement create-trip.spec.ts assertions and cleanup
+- [x] T021 [P] [US-1] Implement create-trip.spec.ts assertions and cleanup
   - **Do**:
     1. Assert trip appears in trips list after creation
     2. Assert trip values match: km=50, kwh=15, description="Test Commute"
@@ -314,7 +314,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for assertion patterns
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for E2E assertions
 
-- [ ] T022 [P] [US-1] Add TypeScript types to trips-helpers.ts
+- [x] T022 [P] [US-1] Add TypeScript types to trips-helpers.ts
   - **Do**:
     1. Add TripData interface definition
     2. Add TripType enum or type
