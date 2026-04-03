@@ -23,9 +23,12 @@ test.describe('Vehicle Creation and Panel', () => {
   });
 
   test.afterEach(async ({ page }) => {
+    // Handle HA delete confirmation dialog
+    page.on('dialog', dialog => dialog.accept());
+
     // Remove integration via Config Flow "Delete" option
     await page.goto('/config/integrations');
-    const integrationRow = page.locator(' hass-integration-card', { hasText: vehicleName });
+    const integrationRow = page.locator('hass-integration-card', { hasText: vehicleName });
     const row = integrationRow.first();
     if (await row.isVisible()) {
       await row.getByRole('button', { name: 'Delete' }).click();
