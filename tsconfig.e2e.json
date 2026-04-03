@@ -1,0 +1,15 @@
+{
+  "extends": "@tsconfig/node16/tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "specs/e2e-trip-crud/playwright.config.ts",
+    "auth.setup.ts",
+    "globalTeardown.ts",
+    "tests/e2e/*.ts"
+  ]
+}

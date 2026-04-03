@@ -284,7 +284,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for navigation implementation
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for sidebar navigation
 
-- [ ] T020 [P] [US-1] Implement create-trip.spec.ts form interaction
+- [x] T020 [P] [US-1] Implement create-trip.spec.ts form interaction
   - **Do**:
     1. Click "+ Agregar Viaje" button with getByRole
     2. Select trip type "puntual" with getByRole('combobox')
@@ -329,7 +329,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Phase 1 Quality Checkpoint
 
-- [ ] T023 [VERIFY] Phase 1 Quality checkpoint: TypeScript compilation
+- [x] T023 [VERIFY] Phase 1 Quality checkpoint: TypeScript compilation
   - **Do**: Run TypeScript compilation check on all created files
   - **Verify**: `npx tsc --noEmit playwright.config.ts auth.setup.ts globalTeardown.ts tests/e2e/*.ts 2>&1 | head -20`
   - **Done when**: All TypeScript files compile without errors
