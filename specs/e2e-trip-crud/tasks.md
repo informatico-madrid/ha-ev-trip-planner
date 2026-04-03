@@ -341,7 +341,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Edit Trip Test
 
-- [ ] T024 [P] [US-2] Create edit-trip.spec.ts with test skeleton
+- [x] T024 [P] [US-2] Create edit-trip.spec.ts with test skeleton
   - **Do**:
     1. Create `tests/e2e/edit-trip.spec.ts`
     2. Import from @playwright/test
@@ -356,7 +356,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for test file structure
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for E2E test structure
 
-- [ ] T025 [P] [US-2] Implement edit-trip.spec.ts navigation and setup
+- [x] T025 [P] [US-2] Implement edit-trip.spec.ts navigation and setup
   - **Do**:
     1. Implement page.goto('/') then waitForURL('/home')
     2. Navigate to EV Trip Planner panel via sidebar
@@ -369,7 +369,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for setup patterns
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for test data setup
 
-- [ ] T026 [P] [US-2] Implement edit-trip.spec.ts edit flow
+- [x] T026 [P] [US-2] Implement edit-trip.spec.ts edit flow
   - **Do**:
     1. Click edit button (pencil icon) on trip card
     2. Use getByRole('button', { name: /edit/i })
@@ -385,7 +385,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for button interaction patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for edit button selectors
 
-- [ ] T027 [P] [US-2] Implement edit-trip.spec.ts assertions and cleanup
+- [x] T027 [P] [US-2] Implement edit-trip.spec.ts assertions and cleanup
   - **Do**:
     1. Assert trip card shows updated km=35 after save
     2. Assert trip card shows updated description="Updated Test Route"
