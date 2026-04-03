@@ -456,7 +456,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### TypeScript Type Checking
 
-- [ ] T032 [P] [US-1] Add TypeScript types to create-trip.spec.ts
+- [x] T032 [P] [US-1] Add TypeScript types to create-trip.spec.ts
   - **Do**:
     1. Add explicit Page type import
     2. Add type annotations to test function parameters
@@ -468,7 +468,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for TypeScript integration
 
-- [ ] T033 [P] [US-2] Add TypeScript types to edit-trip.spec.ts
+- [x] T033 [P] [US-2] Add TypeScript types to edit-trip.spec.ts
   - **Do**:
     1. Add explicit Page type import
     2. Add type annotations to test function parameters
@@ -494,7 +494,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Phase 2 Quality Checkpoint
 
-- [ ] T035 [VERIFY] Phase 2 Quality checkpoint: TypeScript compilation
+- [x] T035 [VERIFY] Phase 2 Quality checkpoint: TypeScript compilation
   - **Do**: Run TypeScript compilation check on all test files
   - **Verify**: `npx tsc --noEmit playwright.config.ts auth.setup.ts globalTeardown.ts tests/e2e/*.ts 2>&1 | head -30`
   - **Done when**: All TypeScript files compile without errors
