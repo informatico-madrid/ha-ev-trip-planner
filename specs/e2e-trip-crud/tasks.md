@@ -191,7 +191,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for entity selector patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA entity selector handling
 
-- [ ] T014 [P] [US-0] Config Flow Step 5: notifications fields
+- [x] T014 [P] [US-0] Config Flow Step 5: notifications fields
   - **Do**:
     1. Wait for Step 5 form (async_step_notifications)
     2. Leave notification_service empty (optional)
@@ -207,7 +207,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Trip Helpers
 
-- [ ] T015 [P] [US-1] Create trips-helpers.ts with navigateToPanel function
+- [x] T015 [P] [US-1] Create trips-helpers.ts with navigateToPanel function
   - **Do**:
     1. Create `tests/e2e/trips-helpers.ts`
     2. Add navigateToPanel(page) using page.goto('/') then waitForURL('/home')
@@ -255,7 +255,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Create Trip Test
 
-- [ ] T018 [P] [US-1] Create create-trip.spec.ts with test skeleton
+- [x] T018 [P] [US-1] Create create-trip.spec.ts with test skeleton
   - **Do**:
     1. Create `tests/e2e/create-trip.spec.ts`
     2. Import from @playwright/test
