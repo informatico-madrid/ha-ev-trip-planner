@@ -519,7 +519,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for code documentation patterns
 
-- [ ] T037 [P] [US-1] Add comments to create-trip.spec.ts explaining flow
+- [x] T037 [P] [US-1] Add comments to create-trip.spec.ts explaining flow
   - **Do**:
     1. Add header comment explaining test purpose
     2. Add inline comments for each step
@@ -531,7 +531,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for code documentation
 
-- [ ] T038 [P] [US-2] Add comments to edit-trip.spec.ts explaining flow
+- [x] T038 [P] [US-2] Add comments to edit-trip.spec.ts explaining flow
   - **Do**:
     1. Add header comment explaining test purpose
     2. Add inline comments for each step
@@ -555,7 +555,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for code documentation
 
-- [ ] T040 [P] [US-0] Add comments to auth.setup.ts explaining Config Flow
+- [x] T040 [P] [US-0] Add comments to auth.setup.ts explaining Config Flow
   - **Do**:
     1. Add header comment explaining auth.setup.ts purpose
     2. Add comments for each Config Flow step (1-5)
@@ -582,7 +582,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for selector hierarchy
 
-- [ ] T042 [P] [US-1] Verify navigation patterns follow SPA rules
+- [x] T042 [P] [US-1] Verify navigation patterns follow SPA rules
   - **Do**:
     1. Review all navigation in trips-helpers.ts and test files
     2. Ensure ONLY page.goto('/') is used as entry point
