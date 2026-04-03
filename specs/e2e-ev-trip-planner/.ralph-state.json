@@ -3,8 +3,8 @@
   "name": "e2e-ev-trip-planner",
   "basePath": "./specs/e2e-ev-trip-planner",
   "phase": "execution",
-  "taskIndex": 0,
-  "totalTasks": 18,
+  "taskIndex": 6,
+  "totalTasks": 22,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
@@ -39,7 +39,39 @@
   "recoveryMode": false,
   "maxFixTasksPerOriginal": 3,
   "maxFixTaskDepth": 3,
-  "fixTaskMap": {},
+  "fixTaskMap": {
+    "1.1": {
+      "attempts": 1,
+      "fixTaskIds": [
+        "1.1.1"
+      ],
+      "lastError": "auth.setup.ts never invoked by playwright.config.ts"
+    },
+    "1.4": {
+      "attempts": 0,
+      "fixTaskIds": [],
+      "lastError": "trip.spec.ts uses undefined browserPage fixture"
+    },
+    "1.6": {
+      "attempts": 1,
+      "fixTaskIds": [
+        "1.6.1"
+      ],
+      "lastError": "trip.spec.ts afterEach references undefined variable tripId and has dialog handler in loop"
+    },
+    "1.3": {
+      "attempts": 1,
+      "fixTaskIds": [
+        "1.3.1"
+      ]
+    },
+    "1.5": {
+      "attempts": 1,
+      "fixTaskIds": [
+        "1.5.1"
+      ]
+    }
+  },
   "modificationMap": {},
   "maxModificationsPerTask": 3,
   "maxModificationDepth": 2,

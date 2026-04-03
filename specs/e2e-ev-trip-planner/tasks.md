@@ -43,7 +43,7 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - _Requirements: FR-4, FR-5_
   - _Design: EVTripPlannerPage.ts section_
 
-- [ ] 1.4 [P] Create tests/e2e/auth.setup.ts
+- [x] 1.4 [P] Create tests/e2e/auth.setup.ts
   - **Do**:
     1. Create `tests/e2e/auth.setup.ts` as a Playwright `setup` file (not globalSetup)
     2. Read server info from `playwright/.auth/server-info.json`
@@ -70,7 +70,7 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - _Requirements: FR-6, AC-1.1-AC-1.6, AC-2.1-AC-2.4_
   - _Design: vehicle.spec.ts section_
 
-- [ ] 1.6 [P] Create tests/e2e/trip.spec.ts
+- [x] 1.6 [P] Create tests/e2e/trip.spec.ts
   - **Do**:
     1. Create `tests/e2e/trip.spec.ts` with `test.describe('Trip Creation')`
     2. `beforeEach`: load storageState, create vehicle via Config Flow (same flow as vehicle.spec.ts), navigate to panel
@@ -83,6 +83,43 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - **Commit**: `feat(e2e): add trip.spec.ts for US-3, US-4, and US-5`
   - _Requirements: FR-7, FR-8, AC-3.1-AC-3.7, AC-4.1-AC-4.4, AC-5.1-AC-5.4_
   - _Design: trip.spec.ts section_
+
+- [x] 1.1.1 [FIX 1.1] Fix: auth.setup.ts never invoked by playwright.config.ts
+  - **Do**: Address the error: auth.setup.ts is a project-level setup file that must be referenced via `setupProject` in playwright.config.ts, or by changing it to use `globalSetup` pattern.
+    1. Read the current playwright.config.ts and auth.setup.ts
+    2. Add `setupProject: [{ testMatch: /.*\\/auth\\.setup\.ts/ }]` to invoke auth.setup.ts as a project setup before tests run
+    3. Verify auth.setup.ts runs and saves storageState before vehicle.spec.ts and trip.spec.ts
+  - **Files**: `playwright.config.ts`, `tests/e2e/auth.setup.ts`
+  - **Done when**: auth.setup.ts is invoked by Playwright test runner
+  - **Verify**: `grep -l 'setupProject\|auth.setup' playwright.config.ts && echo PASS`
+  - **Commit**: `fix(e2e): wire auth.setup.ts into playwright.config.ts via setupProject`
+
+- [x] 1.3.1 [FIX 1.3] Fix: deleteTrip dialog handler registered inside method body
+  - **Do**: Address the error: page.on('dialog') registers a persistent listener. Calling deleteTrip multiple times registers multiple handlers.
+    1. Move dialog handler to beforeEach in EVTripPlannerPage context, or use page.context().once('dialog') pattern
+    2. Ensure dialog is handled correctly per deletion call
+  - **Files**: `tests/e2e/pages/EVTripPlannerPage.ts`
+  - **Done when**: Dialog handler is not registered inside deleteTrip method
+  - **Verify**: `grep -c 'this\\.page\\.on.*dialog' tests/e2e/pages/EVTripPlannerPage.ts | grep -q '^0$' && echo PASS`
+  - **Commit**: `fix(e2e): move dialog handler out of deleteTrip method`
+
+- [x] 1.5.1 [FIX 1.5] Fix: vehicle.spec.ts integration row locator has leading space
+  - **Do**: Address the error: locator `' hass-integration-card'` has a leading space which is likely a typo.
+    1. Remove the leading space from the locator in vehicle.spec.ts afterEach
+  - **Files**: `tests/e2e/vehicle.spec.ts`
+  - **Done when**: Integration row locator does not have leading space
+  - **Verify**: `grep -c "' hass-integration-card" tests/e2e/vehicle.spec.ts | grep -q '^0$' && echo PASS`
+  - **Commit**: `fix(e2e): remove leading space from integration row locator`
+
+- [x] 1.6.1 [FIX 1.6] Fix: trip.spec.ts uses undefined browserPage fixture and undefined tripId in afterEach
+  - **Do**: Address the error: browserPage is not a Playwright fixture (should be `page`), and afterEach references undefined tripId variable.
+    1. Replace `{ browserPage }` with `{ page }` in beforeEach and remove separate `let page: Page` declaration
+    2. Fix afterEach to properly delete trips without relying on undefined tripId variable - use API-based deletion or iterate over visible delete buttons
+    3. Move dialog handler outside the deletion loop
+  - **Files**: `tests/e2e/trip.spec.ts`
+  - **Done when**: trip.spec.ts uses valid `page` fixture and afterEach deletes trips correctly
+  - **Verify**: `grep -c 'browserPage' tests/e2e/trip.spec.ts | grep -q '^0$' && echo PASS`
+  - **Commit**: `fix(e2e): fix page fixture and afterEach trip deletion in trip.spec.ts`
 
 - [ ] 1.7 [VERIFY] Quality checkpoint: TypeScript compiles
   - **Do**: Run `npx tsc --noEmit --project tsconfig.json` to verify TypeScript types

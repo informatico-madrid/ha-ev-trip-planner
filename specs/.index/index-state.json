@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-02T22:52:12Z",
+  "updated": "2026-04-03T02:39:33Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 23,
+      "specsCount": 22,
       "isDefault": true
     }
   ],
@@ -80,13 +80,6 @@
       "phase": "tasks",
       "taskIndex": 0,
       "totalTasks": 5
-    },
-    {
-      "name": "021-e2e-trip-crud-panel-tests",
-      "path": "./specs/021-e2e-trip-crud-panel-tests",
-      "phase": "tasks",
-      "taskIndex": 70,
-      "totalTasks": 75
     },
     {
       "name": "trip-creation",
@@ -165,12 +158,11 @@
       "totalTasks": 6
     },
     {
-      "name": "e2e-trip-crud-tests",
-      "path": "./specs/e2e-trip-crud-tests",
-      "phase": "research",
-      "taskIndex": 37,
-      "totalTasks": 52,
-      "awaitingApproval": true
+      "name": "e2e-ev-trip-planner",
+      "path": "./specs/e2e-ev-trip-planner",
+      "phase": "execution",
+      "taskIndex": 0,
+      "totalTasks": 18
     }
   ]
 }

@@ -1,14 +1,17 @@
 /**
- * Global Setup - Server Lifecycle
+ * Global Setup - Server Lifecycle + Auth
  *
  * This file is executed once before all tests.
- * It only starts the ephemeral HA server - NO browser interactions.
+ * 1. Starts the ephemeral HA server
+ * 2. Runs Config Flow UI to authenticate (via auth.setup.ts)
+ * 3. Saves storageState for test projects
  */
 
-import { chromium, FullConfig } from '@playwright/test';
+import { FullConfig } from '@playwright/test';
 import { HomeAssistant, PlaywrightBrowser } from 'hass-taste-test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { runAuthSetup } from './e2e/auth.setup';
 
 async function globalSetup(config: FullConfig) {
   console.log('[GlobalSetup] Starting ephemeral HA server...');
@@ -55,15 +58,11 @@ lovelace:
   fs.copyFileSync(panelJsPath, path.join(wwwPath, 'panel.js'));
   console.log('[GlobalSetup] Copied panel.js to:', path.join(wwwPath, 'panel.js'));
 
-  // NOTE: global.setup.ts NO LONGER creates config entry via API.
-  // The auth.setup.ts test handles the FULL UI Config Flow - this IS the E2E test.
-  // This follows test-automator and ha-e2e-testing skills: Test Isolation, No API bypass.
-
   // Wait for HA to be fully ready
   console.log('[GlobalSetup] Waiting for HA to be ready...');
   await new Promise(resolve => setTimeout(resolve, 10000));
 
-  // Save server info to a file for other setups to use
+  // Save server info to a file for auth.setup.ts
   const authDir = path.join(rootDir, 'playwright', '.auth');
   fs.mkdirSync(authDir, { recursive: true });
   const serverInfoPath = path.join(authDir, 'server-info.json');
@@ -74,16 +73,16 @@ lovelace:
   console.log('[GlobalSetup] Server URL:', hassInstance.link);
   console.log('[GlobalSetup] Server info saved to:', serverInfoPath);
 
+  // Run Config Flow UI authentication
+  // This creates the storageState used by test projects
+  console.log('[GlobalSetup] Running Config Flow authentication...');
+  await runAuthSetup();
+
   // Store the instance reference globally for cleanup
   (global as any).__hassInstance = hassInstance;
   (global as any).__serverInfoPath = serverInfoPath;
 
-  console.log('[GlobalSetup] Ephemeral HA server started successfully!');
-
-  // Wait for entities to fully register
-  console.log('[GlobalSetup] Waiting for binary_sensor entities to register...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  console.log('[GlobalSetup] Entities registration wait complete');
+  console.log('[GlobalSetup] All setup complete!');
 }
 
 export default globalSetup;
