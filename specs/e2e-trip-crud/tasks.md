@@ -77,7 +77,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for global setup patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for HA startup patterns
 
-- [ ] T006 [P] [US-0] Implement trusted_networks bypass in auth.setup.ts
+- [x] T006 [P] [US-0] Implement trusted_networks bypass in auth.setup.ts
   - **Do**:
     1. Add page.goto('/') navigation (only allowed entry point per HA SPA pattern)
     2. Add waitForURL('/home') after trusted_networks bypass
@@ -92,7 +92,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Auth Setup - Config Flow Steps
 
-- [ ] T007 [P] [US-0] Navigate to integrations page via sidebar
+- [x] T007 [P] [US-0] Navigate to integrations page via sidebar
   - **Do**:
     1. Click sidebar link to integrations page
     2. Use web-first locator: getByRole('link', { name: 'Integrations' })

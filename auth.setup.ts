@@ -50,6 +50,12 @@ async function globalSetup(config: FullConfig): Promise<void> {
     throw new Error("Login form appeared — trusted_networks bypass failed");
   }
 
+  // Navigate to integrations page via sidebar
+  console.log("[auth.setup] Navigating to integrations page via sidebar...");
+  await page.getByRole("link", { name: "Integrations" }).click();
+  await page.waitForURL("**/config/integrations**", { timeout: 30_000 });
+  console.log("[auth.setup] Successfully navigated to integrations page");
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
