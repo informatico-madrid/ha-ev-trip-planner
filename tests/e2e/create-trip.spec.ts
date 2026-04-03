@@ -56,7 +56,7 @@ test.describe('Create Trip', () => {
     await page.getByRole('button', { name: 'Crear Viaje' }).click();
 
     // Step 7: Verify the trip appears in the trips list after creation
-    const tripCard = page.locator('.trip-card').filter({ hasText: testTripData.description });
+    const tripCard = page.getByText(testTripData.description);
     await expect(tripCard).toBeVisible();
 
     // Step 8: Verify the trip values match expected values (km=50, kwh=15)

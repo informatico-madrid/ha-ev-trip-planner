@@ -85,7 +85,7 @@ export async function deleteTestTrip(page: Page, tripId: string): Promise<void> 
   const description = parts.slice(2).join('-'); // Description may contain hyphens
 
   // Find the trip card by looking for the description text
-  const tripCard = page.locator('div').filter({ hasText: description }).last();
+  const tripCard = page.getByText(description).last();
 
   // Wait for the trip card to be visible
   await tripCard.waitFor({ state: 'visible' });

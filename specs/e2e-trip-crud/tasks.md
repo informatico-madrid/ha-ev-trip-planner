@@ -569,7 +569,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Selector Verification
 
-- [ ] T041 [P] [US-1] Verify selector patterns follow homeassistant-selector-map rules
+- [x] T041 [P] [US-1] Verify selector patterns follow homeassistant-selector-map rules
   - **Do**:
     1. Review all selectors in trips-helpers.ts and test files
     2. Ensure NO use of >> pierce syntax
@@ -595,7 +595,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for SPA navigation rules
 
-- [ ] T043 [P] [US-1] Add README.md to tests/e2e with test documentation
+- [x] T043 [P] [US-1] Add README.md to tests/e2e with test documentation
   - **Do**:
     1. Create `tests/e2e/README.md`
     2. Document test structure and purpose

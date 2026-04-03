@@ -40,7 +40,7 @@ test.describe('Edit Trip', () => {
     );
 
     // Step 4: Locate the trip card and click the edit (pencil) button
-    const tripCard = page.locator('div').filter({ hasText: 'Recurrente Test Trip' }).last();
+    const tripCard = page.getByText('Recurrente Test Trip').last();
     await tripCard.waitFor({ state: 'visible' });
     await tripCard.getByRole('button', { name: /edit/i }).click();
 

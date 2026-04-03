@@ -36,7 +36,7 @@ test.describe('Delete Trip', () => {
     );
 
     // Verify the newly created trip appears in the UI before attempting deletion
-    const tripCard = page.locator('div').filter({ hasText: 'Delete Test Trip' }).last();
+    const tripCard = page.getByText('Delete Test Trip').last();
     await expect(tripCard).toBeVisible();
 
     // Set up dialog handler BEFORE clicking delete to catch the confirmation dialog
@@ -59,7 +59,7 @@ test.describe('Delete Trip', () => {
 
     // Additional verification: confirm no elements matching "Delete Test Trip" remain
     // Using toHaveCount(0) ensures the trip was completely removed from the list
-    const tripListItems = page.locator('div').filter({ hasText: 'Delete Test Trip' });
+    const tripListItems = page.getByText('Delete Test Trip');
     await expect(tripListItems).toHaveCount(0);
   });
 });
