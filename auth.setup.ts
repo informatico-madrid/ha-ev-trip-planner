@@ -63,6 +63,15 @@ async function globalSetup(config: FullConfig): Promise<void> {
   await page.getByRole("dialog").waitFor({ state: "visible", timeout: 30_000 });
   console.log("[auth.setup] Add Integration dialog opened successfully");
 
+  // Search for EV Trip Planner integration
+  console.log("[auth.setup] Searching for EV Trip Planner integration...");
+  const searchTextbox = page.getByRole("textbox", { name: /search/i });
+  await searchTextbox.waitFor({ state: "visible", timeout: 30_000 });
+  await searchTextbox.fill("EV Trip Planner");
+  // Wait for search results to appear
+  await page.getByText("EV Trip Planner").first().waitFor({ state: "visible", timeout: 30_000 });
+  console.log("[auth.setup] EV Trip Planner integration found in search results");
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
