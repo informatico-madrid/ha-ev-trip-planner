@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-03T02:39:33Z",
+  "updated": "2026-04-03T18:54:10Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 22,
+      "specsCount": 20,
       "isDefault": true
     }
   ],
@@ -56,8 +56,8 @@
       "name": "012-dashboard-crud-verify",
       "path": "./specs/012-dashboard-crud-verify",
       "phase": "completed",
-      "taskIndex": 53,
-      "totalTasks": 53
+      "taskIndex": 50,
+      "totalTasks": 50
     },
     {
       "name": "017-native-panel-core",
@@ -65,14 +65,7 @@
       "phase": "tasks",
       "taskIndex": 0
 0,
-      "totalTasks": 73
-    },
-    {
-      "name": "019-panel-vehicle-crud",
-      "path": "./specs/019-panel-vehicle-crud",
-      "phase": "tasks",
-      "taskIndex": 31,
-      "totalTasks": 32
+      "totalTasks": 68
     },
     {
       "name": "020-fix-panel-trips-sensors",
@@ -86,14 +79,7 @@
       "path": "./specs/trip-creation",
       "phase": "tasks",
       "taskIndex": 6,
-      "totalTasks": 59
-    },
-    {
-      "name": "ev-trip-planner-integration-fixes",
-      "path": "./specs/ev-trip-planner-integration-fixes",
-      "phase": "execution",
-      "taskIndex": 30,
-      "totalTasks": 30
+      "totalTasks": 47
     },
     {
       "name": "_epics",
@@ -119,14 +105,14 @@
       "path": "./specs/soc-milestone-algorithm",
       "phase": "tasks",
       "taskIndex": 34,
-      "totalTasks": 50
+      "totalTasks": 47
     },
     {
       "name": "emhass-sensor-enhancement",
       "path": "./specs/emhass-sensor-enhancement",
       "phase": "completed",
-      "taskIndex": 26,
-      "totalTasks": 26
+      "taskIndex": 24,
+      "totalTasks": 24
     },
     {
       "name": "trip-card-enhancement",
@@ -156,6 +142,14 @@
       "phase": "completed",
       "taskIndex": 6,
       "totalTasks": 6
+    },
+    {
+      "name": "e2e-trip-crud",
+      "path": "./specs/e2e-trip-crud",
+      "phase": "tasks",
+      "taskIndex": 0,
+      "totalTasks": 52,
+      "awaitingApproval": true
     }
   ]
 }

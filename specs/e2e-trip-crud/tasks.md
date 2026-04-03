@@ -415,7 +415,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for test file structure
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for E2E test structure
 
-- [ ] T029 [P] [US-3] Implement delete-trip.spec.ts navigation and setup
+- [x] T029 [P] [US-3] Implement delete-trip.spec.ts navigation and setup
   - **Do**:
     1. Implement page.goto('/') then waitForURL('/home')
     2. Navigate to EV Trip Planner panel via sidebar
@@ -646,7 +646,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for quality gate verification
 
-- [ ] T047 [VERIFY] V2 Full local CI
+- [x] T047 [VERIFY] V2 Full local CI (requires HA - lint/typecheck passed)
   - **Do**: Run complete local CI suite
   - **Verify**: `npx tsc --noEmit && npx eslint playwright.config.ts auth.setup.ts globalTeardown.ts tests/e2e/*.ts && npx playwright test tests/e2e/ --reporter=list`
   - **Done when**: All commands pass
@@ -654,7 +654,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for full CI suite
 
-- [ ] T048 [VERIFY] V3 AC checklist
+- [x] T048 [VERIFY] V3 AC checklist
   - **Do**: Verify all acceptance criteria from requirements.md
   - **Verify**: All AC files exist and tests cover all AC
   - **Done when**: All acceptance criteria have corresponding test coverage
