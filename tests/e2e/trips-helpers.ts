@@ -20,6 +20,17 @@ export async function navigateToPanel(page: Page): Promise<Page> {
 export type TripType = 'puntual' | 'recurrente';
 
 /**
+ * Trip data interface for createTestTrip parameters and return values.
+ */
+export interface TripData {
+  tripType: TripType;
+  datetime: string;
+  km: number;
+  kwh: number;
+  description: string;
+}
+
+/**
  * Creates a test trip in the EV Trip Planner panel.
  * @param page - Playwright Page object
  * @param tripType - Trip type: 'puntual' or 'recurrente'
