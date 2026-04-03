@@ -19,6 +19,15 @@ export default defineConfig({
   globalSetup: path.join(__dirname, 'tests', 'global.setup.ts'),
   globalTeardown: path.join(__dirname, 'tests', 'global.teardown.ts'),
 
+  // Project-level setup: run auth.setup.ts before test projects to establish storageState
+  setupProject: [
+    {
+      name: 'auth',
+      testMatch: /.*\/auth\.setup\.ts/,
+      timeout: 120000,
+    },
+  ],
+
   projects: [
     {
       name: 'chromium',
