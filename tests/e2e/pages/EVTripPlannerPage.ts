@@ -90,7 +90,6 @@ export class EVTripPlannerPage {
   async deleteTrip(tripId: string) {
     const card = await this.tripCardLocator(tripId);
     const deleteBtn = card.locator('.delete-btn');
-    this.page.on('dialog', dialog => dialog.accept());  // Confirm dialog
     await deleteBtn.click();
     await card.waitFor({ state: 'detached', timeout: 5000 });
   }
