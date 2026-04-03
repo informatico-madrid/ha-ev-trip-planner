@@ -2,7 +2,7 @@
 
 ## Goal
 
-Implement complete trip creation, edit, and delete functionality for the EV Trip Planner panel with proper error handling, form validation, and full E2E test coverage.
+Implement complete trip creation, edit, and delete functionality for the EV Trip Planner panel with proper error handling, form validation, and full test coverage.
 
 ---
 
@@ -175,26 +175,6 @@ Implement complete trip creation, edit, and delete functionality for the EV Trip
 
 ---
 
-### US-10: E2E Test Coverage
-
-**As a** Developer
-**I want to** have comprehensive E2E tests
-**So that** I can verify the complete user experience works correctly
-
-**Acceptance Criteria:**
-- [ ] Test creates a recurring trip and verifies backend state
-- [ ] Test creates a punctual trip and verifies backend state
-- [ ] Test validates required field enforcement
-- [ ] Test verifies special character handling
-- [ ] Test verifies long description handling
-- [ ] Test verifies edit functionality
-- [ ] Test verifies delete functionality with confirmation
-- [ ] Tests use Playwright with page object pattern
-- [ ] Tests verify actual backend state, not just UI behavior
-- [ ] Tests are deterministic and reliable
-
----
-
 ## Functional Requirements
 
 ### Form Handling (FR-1 to FR-5)
@@ -291,8 +271,6 @@ Implement complete trip creation, edit, and delete functionality for the EV Trip
 
 ### Testability (NFR-9 to NFR-10)
 
-**NFR-9:** Form handling must be testable via Playwright E2E tests
-
 **NFR-10:** Service calls must be verifiable via backend state checks
 
 ### Accessibility (NFR-11 to NFR-12)
@@ -352,7 +330,6 @@ Implement complete trip creation, edit, and delete functionality for the EV Trip
 
 ### Testing Dependencies
 
-- **Playwright**: E2E test framework
 - **Home Assistant Test Framework**: Test container setup
 - **Vehicle ID**: Environment variable for test targeting
 
@@ -371,15 +348,13 @@ The implementation is complete when:
 7. ✅ Success/error notifications are displayed appropriately
 8. ✅ Trip list refreshes immediately after CRUD operations
 9. ✅ Special characters and long descriptions are handled safely
-10. ✅ E2E tests verify complete user flow and backend state
-11. ✅ All tests pass successfully
+10. ✅ All tests pass successfully
 
 ---
 
 ## Success Metrics
 
 - **Functional Coverage**: 100% of user stories implemented
-- **Test Coverage**: All critical paths covered by E2E tests
 - **Error Handling**: All error scenarios have appropriate feedback
 - **User Experience**: Form completes in <3 steps (open, fill, submit)
 - **Reliability**: No data loss on network failures

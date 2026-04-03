@@ -389,7 +389,6 @@ Focus: Verify all acceptance criteria, ensure CI passes.
     - `make lint` - ruff and pylint
     - `make mypy` - type checking
     - `python3 -m pytest tests/test_soc_milestone.py -v` - new tests
-    - `python3 -m pytest tests/ -v --ignore=tests/e2e` - existing tests (regression)
   - **Done when**: All commands pass with no errors
   - **Commit**: `fix(soc-milestone): address any lint/type/test issues`
 
@@ -446,31 +445,6 @@ Focus: Continuous validation until all completion criteria met.
     - AC-4: No deficit = only standard 10% buffer
   - **Verify**: `grep -r "60%" tests/test_soc_milestone.py` to confirm AC-1 verification
   - **Done when**: All ACs confirmed via test results
-  - **Commit**: None
-
-- [ ] 5.4 VE1 [VERIFY] E2E startup: verify component loads
-  - **Do**:
-    1. For HA custom component, verify component loads correctly
-    2. Check for import errors
-  - **Verify**: `python3 -c "from custom_components.ev_trip_planner.trip_manager import TripManager; print('OK')"`
-  - **Done when**: Component loads without errors
-  - **Commit**: None
-
-- [ ] 5.5 VE2 [VERIFY] E2E check: verify SOC milestone integration
-  - **Do**:
-    1. Run the test suite to verify SOC milestone calculation end-to-end
-    2. Create test trips and verify deficit propagation backward
-    3. Verify results match expected AC values
-  - **Verify**: `python3 -m pytest tests/test_soc_milestone.py -v`
-  - **Done when**: SOC milestone works in full environment
-  - **Commit**: None
-
-- [ ] 5.6 VE3 [VERIFY] E2E cleanup: remove test artifacts
-  - **Do**:
-    1. Clean up any test data created
-    2. Verify no residual state
-  - **Verify**: Cleanup complete
-  - **Done when**: Clean state
   - **Commit**: None
 
 ## Notes

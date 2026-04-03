@@ -38,7 +38,6 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | automation-template | ./specs | completed | done |
 | emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
-| e2e-ev-trip-planner | ./specs | execution | 0/18 tasks |
 
 ---
 

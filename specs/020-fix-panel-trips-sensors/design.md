@@ -256,11 +256,6 @@ sequenceDiagram
 - **State subscription**: Verify state updates trigger value refresh
 - **CRUD operations**: Verify service calls complete successfully
 
-### E2E Tests
-- **Panel load**: Verify panel renders within 3 seconds
-- **Trip management**: Create, edit, delete trip end-to-end
-- **Sensor updates**: Modify sensor value, verify UI updates
-
 ## Performance Considerations
 
 - **Polling**: Max 10 attempts, 500ms intervals = 5 second timeout

@@ -6,7 +6,6 @@ This document contains the implementation tasks for the trip creation feature. T
 
 - **Phase 1 (POC)**: Core functionality works
 - **Phase 2 (Refactor)**: Code quality improvements
-- **Phase 3 (Testing)**: Unit and E2E tests
 - **Phase 4 (Quality)**: CI/CD and final polish
 
 ---
@@ -506,187 +505,11 @@ finally {
 
 ---
 
-## Phase 3: Testing - Unit and E2E
-
-### Task 3.1: Add E2E Tests for Create Trip
-
-**Description:** Create E2E tests for complete trip creation flow.
-
-**Do:**
-```typescript
-// tests/e2e/test-create-trip.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('EV Trip Planner - Create Trip', () => {
-  const vehicleId = process.env.VEHICLE_ID || 'Coche2';
-
-  test('should create a recurring trip and verify backend', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to be ready
-    await page.waitForSelector('.add-trip-btn', { timeout: 10000 });
-
-    // Click add trip button
-    await page.click('.add-trip-btn');
-
-    // Fill form
-    await page.selectOption('#trip-type', 'recurrente');
-    await page.selectOption('#trip-day', '1');
-    await page.fill('#trip-time', '09:30');
-    await page.fill('#trip-km', '25.5');
-    await page.fill('#trip-kwh', '5.2');
-    await page.fill('#trip-description', 'Test trip');
-
-    // Submit
-    await page.click('button[type="submit"]');
-
-    // Verify success
-    await expect(page.locator('.trip-form-overlay')).toBeHidden({ timeout: 10000 });
-
-    // Verify trip appears in list
-    const tripCards = page.locator('.trip-card');
-    await expect(tripCards).toHaveCount(1);
-  });
-});
-```
-
-**Files:**
-- `tests/e2e/test-create-trip.spec.ts`
-
-**Done when:**
-- [ ] E2E tests created
-- [ ] Recurring trip test
-- [ ] Punctual trip test
-- [ ] Backend state verification
-
-**Verify:**
-```bash
-npx playwright test tests/e2e/test-create-trip.spec.ts -v
-```
-
-**Commit:** `test: add E2E tests for trip creation`
-
----
-
-### Task 3.2: Add E2E Tests for Edit Trip
-
-**Description:** Create E2E tests for edit functionality.
-
-**Do:**
-```typescript
-// tests/e2e/test-edit-trip.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('EV Trip Planner - Edit Trip', () => {
-  const vehicleId = process.env.VEHICLE_ID || 'Coche2';
-
-  test('should edit a trip', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to be ready
-    await page.waitForSelector('.trip-card', { timeout: 10000 });
-
-    // Click edit button
-    await page.click('.trip-card .edit-btn');
-
-    // Verify form is pre-filled
-    await expect(page.locator('#trip-km')).toHaveValue('25.5');
-
-    // Modify and save
-    await page.fill('#trip-km', '30.0');
-    await page.click('button[type="submit"]');
-
-    // Verify update
-    await expect(page.locator('.trip-form-overlay')).toBeHidden({ timeout: 10000 });
-
-    // Verify trip list updated
-    const tripCards = page.locator('.trip-card');
-    await expect(tripCards).toHaveCount(1);
-  });
-});
-```
-
-**Files:**
-- `tests/e2e/test-edit-trip.spec.ts`
-
-**Done when:**
-- [ ] Edit E2E test created
-- [ ] Pre-fill form verified
-- [ ] Update functionality tested
-- [ ] Backend state verified
-
-**Verify:**
-```bash
-npx playwright test tests/e2e/test-edit-trip.spec.ts -v
-```
-
-**Commit:** `test: add E2E tests for trip edit`
-
----
-
-### Task 3.3: Add E2E Tests for Delete Trip
-
-**Status:** [x] Complete
-
-**Description:** Create E2E tests for delete functionality.
-
-**Do:**
-```typescript
-// tests/e2e/test-delete-trip.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('EV Trip Planner - Delete Trip', () => {
-  const vehicleId = process.env.VEHICLE_ID || 'Coche2';
-
-  test('should delete a trip', async ({ page }) => {
-    // Navigate to panel
-    await page.goto(`/panel/ev-trip-planner-${vehicleId}`, { timeout: 60000 });
-
-    // Wait for panel to be ready
-    await page.waitForSelector('.trip-card', { timeout: 10000 });
-
-    // Get initial count
-    const initialCount = await page.locator('.trip-card').count();
-
-    // Click delete button
-    await page.click('.trip-card .delete-btn');
-
-    // Confirm
-    await page.click('button:has-text("OK")');
-
-    // Verify deletion
-    const finalCount = await page.locator('.trip-card').count();
-    await expect(finalCount).toBe(initialCount - 1);
-  });
-});
-```
-
-**Files:**
-- `tests/e2e/test-delete-trip.spec.ts`
-
-**Done when:**
-- [ ] Delete E2E test created
-- [ ] Confirmation tested
-- [ ] Backend state verified
-- [ ] Trip count verified
-
-**Verify:**
-```bash
-npx playwright test tests/e2e/test-delete-trip.spec.ts -v
-```
-
-**Commit:** `test: add E2E tests for trip delete`
-
----
+## Phase 3: Testing - Unit
 
 ### Phase 3 Testing Milestone
 
 **What's Tested:**
-- ✅ E2E tests for create flow
-- ✅ E2E tests for edit flow
-- ✅ E2E tests for delete flow
 - ✅ Backend state verification
 - ✅ Form validation tested
 
@@ -784,9 +607,6 @@ npm run lint
 
 **Do:**
 ```bash
-# Run all E2E tests
-npx playwright test tests/e2e/ -v
-
 # Check for linting issues
 npm run lint
 
@@ -806,8 +626,6 @@ pytest tests/ --cov=custom_components.ev_trip_planner
 **Verify:**
 ```bash
 # Final verification
-echo "=== E2E Tests ==="
-npx playwright test tests/e2e/ -v
 
 echo "=== Linting ==="
 npm run lint
@@ -852,11 +670,9 @@ npm run lint
 - Complete implementation in one session
 
 ### Verification
-- E2E tests run automatically
 - Backend state verified in tests
 - No manual intervention needed
 
 ### Dependencies
 - Home Assistant Core
 - Lit web components
-- Playwright for E2E testing

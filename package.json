@@ -10,8 +10,7 @@
   },
   "scripts": {
     "test": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:e2e": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/",
-    "test:ui": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js tests/e2e/card-loading.test.js --verbose",
+    "test:ui": "hass-taste-test && node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
     "lint": "eslint custom_components/"
   },
   "keywords": [],

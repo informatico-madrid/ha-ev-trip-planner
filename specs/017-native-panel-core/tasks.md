@@ -20,9 +20,7 @@
 
 | Tag | When to Use | Verification Method | Available Tools |
 |-----|-------------|---------------------|----------------|
-| `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns, e2e-testing-patterns |
 | `[VERIFY:API]` | REST API verification (HA entities) | Use homeassistant-ops skill (no hardcoded curl) | homeassistant-ops, homeassistant-skill |
-| `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
 
 **Task Assignment Rule**: For each task, determine which verification type applies, then select the most appropriate tool from the available skills/MCPs listed in plan.md.
 
@@ -67,7 +65,6 @@
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T010 [P] [US1] [VERIFY:TEST] Test panel registration in tests/test_panel_registration.py (use: python-testing-patterns)
-- [ ] [P] T011 [P] [US1] [VERIFY:TEST] Test sidebar appearance in tests/test_panel_sidebar.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 1
 
@@ -94,7 +91,6 @@
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
 - [ ] T018 [P] [US2] [VERIFY:TEST] Test vehicle state display in tests/test_vehicle_state_display.py (use: python-testing-patterns)
-- [ ] [P] T019 [P] [US2] [VERIFY:BROWSER] Test SOC and autonomy display in tests/test_soc_display.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 2
 
@@ -118,11 +114,6 @@
 - [ ] Editar un viaje existente
 - [ ] Eliminar un viaje
 - [ ] Verificar que los cambios se reflejan en los sensores de HA
-
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
-
-- [ ] T026 [P] [US3] [VERIFY:BROWSER] Test trip CRUD operations in tests/test_trip_crud.py (use: e2e-testing-patterns)
-- [ ] [P] T027 [P] [US3] [VERIFY:BROWSER] Test trip form validation in tests/test_trip_form.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 3
 
@@ -148,8 +139,6 @@
 - [ ] Los datos deben coincidir con el sensor EMHASS
 
 ### Tests for User Story 4 (OPTIONAL - only if tests requested) ⚠️
-
-- [ ] T035 [P] [US4] [VERIFY:BROWSER] Test EMHASS chart display in tests/test_emhass_display.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 4
 
@@ -301,7 +290,6 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - [VERIFY:TEST] = unit/integration tests (pytest)
 - [VERIFY:API] = REST API verification (curl to HA)
-- [VERIFY:BROWSER] = Playwright E2E tests
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
 - Commit after each task or logical group
@@ -338,4 +326,3 @@ With multiple developers:
 **Suggested MVP Scope**: User Story 1 (Panel Creation) + User Story 2 (Vehicle State Display)
 - These deliver immediate value: automatic panel creation + basic vehicle information
 - Can be deployed independently as MVP
-- Validate with Playwright E2E tests before adding US3+

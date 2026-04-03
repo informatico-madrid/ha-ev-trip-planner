@@ -16,7 +16,6 @@ Implementar dashboard CRUD completo para EV Trip Planner en Home Assistant. Basa
 - Dashboard auto-deploy en Lovelace
 - CRUD operations: create, read, update, delete trips
 - Tests unitarios e integración con >=80% coverage
-- Playwright E2E tests para flujo web completo
 - Validación: 100% tests passing, 0 critical errors
 
 **CRÍTICO**: Todo el CRUD está en una sola User Story (US1). No hay stories separadas para create/read/update/delete.
@@ -94,7 +93,6 @@ Implementar dashboard CRUD completo para EV Trip Planner en Home Assistant. Basa
 | homeassistant-dashboard-designer | skill | installed | Design y refactor de Lovelace dashboards (YAML views/partials) |
 | homeassistant-skill | skill | installed | Control de dispositivos y automations via REST API |
 | python-testing-patterns | skill | installed | Testing con pytest, fixtures, mocking, TDD |
-| e2e-testing-patterns | skill | installed | E2E testing con Playwright y Cypress |
 | python-performance-optimization | skill | installed | Profile y optimizar Python code con cProfile, memory profilers |
 | python-security-scanner | skill | installed | Detectar vulnerabilidades Python (SQL injection, unsafe deserialization, hardcoded secrets) |
 | gis | skill | installed | CRS reference, data formats, Blender/QGIS integration |

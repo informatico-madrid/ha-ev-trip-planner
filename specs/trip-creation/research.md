@@ -498,7 +498,6 @@ async _handleDeleteTrip(e) {
 
 **Medium (M):** Complete with tests
 - Unit tests: 2-3 hours
-- E2E tests: 3-4 hours
 - Documentation: 1-2 hours
 
 **Total:** M (Medium) - 10-15 hours for complete implementation

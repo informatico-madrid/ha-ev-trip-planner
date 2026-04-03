@@ -5,7 +5,6 @@ help:
 	@echo "  make test            - Ejecutar todos los tests Python"
 	@echo "  make test-cover      - Ejecutar tests Python con reporte de cobertura"
 	@echo "  make test-verbose    - Ejecutar tests Python con salida detallada"
-	@echo "  make test-e2e        - Ejecutar tests E2E con Playwright"
 	@echo "  make test-dashboard  - Ejecutar tests y abrir dashboard de cobertura"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
@@ -15,10 +14,10 @@ help:
 	@echo "  make htmlcov         - Generar reporte HTML de cobertura"
 
 test:
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80 --ignore=tests/ha-manual/
 
 test-verbose:
 	python3 -m pytest tests -vv -s --tb=long
@@ -26,9 +25,6 @@ test-verbose:
 test-dashboard:
 	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
 	@echo "Dashboard de cobertura generado en htmlcov/index.html"
-
-test-e2e:
-	npx playwright test tests/e2e/ --reporter=line --timeout=60000
 
 lint:
 	ruff check .

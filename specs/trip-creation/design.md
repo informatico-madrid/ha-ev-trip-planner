@@ -244,14 +244,6 @@ try {
 |------|---------|
 | `custom_components/ev_trip_planner/frontend/panel.js` | Enhance `_handleTripCreate`, `_handleTripUpdate`, `_handleDeleteTrip` |
 
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `tests/e2e/test-create-trip.spec.ts` | E2E tests for trip creation |
-| `tests/e2e/test-edit-trip.spec.ts` | E2E tests for trip editing |
-| `tests/e2e/test-delete-trip.spec.ts` | E2E tests for trip deletion |
-
 ---
 
 ## Implementation Details
@@ -495,22 +487,6 @@ try {
 
 ## Test Strategy
 
-### E2E Tests (Playwright)
-
-**Coverage:**
-- Complete user flow from form to backend
-- Backend state verification
-- Error scenarios
-
-**Test Cases:**
-- `test_create_recurring_trip` - Create recurring trip, verify backend
-- `test_create_punctual_trip` - Create punctual trip, verify backend
-- `test_form_validation` - Verify required field enforcement
-- `test_edit_trip` - Verify edit functionality
-- `test_delete_trip` - Verify delete with confirmation
-- `test_special_characters` - Verify XSS protection
-- `test_long_descriptions` - Verify long text handling
-
 ### Test Verification Pattern
 
 ```typescript
@@ -559,7 +535,6 @@ expect(trips).toBe(initialCount + 1, 'Backend should have created new trip');
 
 - Home Assistant Core (service framework)
 - Lit (web component framework)
-- Home Assistant Test Framework (E2E testing)
 
 ### Internal
 
@@ -577,7 +552,6 @@ expect(trips).toBe(initialCount + 1, 'Backend should have created new trip');
 - [ ] Implement `_handleDeleteTrip` with confirmation
 - [ ] Add loading states on submit buttons
 - [ ] Add `_showAlert` for success/error feedback
-- [ ] Write E2E tests for complete flow
 - [ ] Verify backend state in tests
 - [ ] Test special characters and long descriptions
 

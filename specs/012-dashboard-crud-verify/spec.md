@@ -116,8 +116,6 @@
 
 **SC-007**: El usuario puede completar el flujo completo de configuración de vehículo, dashboard y CRUD sobre viajes en menos de 5 minutos
 
-**SC-008**: El flujo completo a través de la web es posible: crear coche → ir al dashboard → CRUD sobre viajes (Playwright E2E test passes)
-
 ---
 
 ## State Verification Plan

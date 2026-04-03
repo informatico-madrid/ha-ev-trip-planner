@@ -219,6 +219,5 @@ Focus: Handle edge cases and document required HA entities.
   - Single sensor pattern first, added second pattern support in Phase 2
 
 - **Production TODOs**:
-  - Add E2E test for real charging scenario (requires physical vehicle)
   - Add simulation mode for testing without real EMHASS data
   - Consider adding REST API trigger option alongside time_pattern

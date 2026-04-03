@@ -317,11 +317,6 @@ views:
 - Services con config entries reales
 - Dashboard con mocks de Lovelace
 
-#### E2E Tests
-- Config flow completo
-- CRUD operations en dashboard
-- Notification flow completo
-
 ---
 
 ## Risk Assessment

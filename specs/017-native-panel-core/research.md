@@ -109,4 +109,3 @@ hass.http.register_static_path(
 
 - Unit tests con MagicMock para hass
 - Tests de integración simulando config flow
-- Tests E2E con Playwright verificando sidebar

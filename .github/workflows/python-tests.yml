@@ -25,6 +25,6 @@ jobs:
 
     - name: Run Python tests
       run: |
-        python3 -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/
+        python3 -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/
       env:
         PYTHONPATH: .

@@ -156,13 +156,6 @@
       "phase": "completed",
       "taskIndex": 6,
       "totalTasks": 6
-    },
-    {
-      "name": "e2e-ev-trip-planner",
-      "path": "./specs/e2e-ev-trip-planner",
-      "phase": "execution",
-      "taskIndex": 0,
-      "totalTasks": 18
     }
   ]
 }

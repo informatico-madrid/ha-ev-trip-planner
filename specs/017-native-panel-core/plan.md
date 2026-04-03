@@ -43,7 +43,6 @@ El panel personalizado:
 | homeassistant-best-practices | skill | installed | HA automation best practices |
 | homeassistant-dashboard-designer | skill | installed | Dashboard design patterns |
 | python-testing-patterns | skill | installed | pytest patterns |
-| e2e-testing-patterns | skill | installed | Playwright E2E testing |
 
 ## Project Structure
 

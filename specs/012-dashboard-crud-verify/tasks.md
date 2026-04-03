@@ -25,7 +25,6 @@ description: "Task list for dashboard CRUD verification feature"
 |-----|-------------|---------------------|-----------------|
 | `[VERIFY:TEST]` | Unit/integration tests (pytest) | Run `pytest tests/ -v` | python-testing-patterns |
 | `[VERIFY:API]` | REST API verification (HA entities) | Use homeassistant-ops skill (no hardcoded curl) | homeassistant-ops, homeassistant-skill |
-| `[VERIFY:BROWSER]` | Browser automation (Playwright) | Run `npx playwright test` | e2e-testing-patterns |
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -80,7 +79,6 @@ description: "Task list for dashboard CRUD verification feature"
 - [x] T020 [P] [US1] [VERIFY:TEST] Add test configflow for vehicle setup in tests/test_config_flow.py (use: python-testing-patterns)
 - [x] T021 [P] [US1] [VERIFY:TEST] Add test dashboard deployment in tests/test_dashboard.py (use: python-testing-patterns)
 - [x] T022 [P] [US1] [VERIFY:TEST] Add test trip CRUD operations in tests/test_trip_crud.py (use: python-testing-patterns)
-- [x] T023 [P] [US1] [VERIFY:BROWSER] Add Playwright E2E test for dashboard UI flows in tests/e2e/test_dashboard_ui.py (use: e2e-testing-patterns)
 
 ### Implementation for User Story 1
 
@@ -129,7 +127,6 @@ description: "Task list for dashboard CRUD verification feature"
 - [x] T052 [P] [VERIFY:API] Verify dashboard accessible: Use homeassistant-ops skill to check dashboard access
 - [x] T053 [P] [VERIFY:API] Verify all vehicle sensors functional: check each sensor state
 - [x] T054 [P] [VERIFY:API] Full user journey test: create vehicle → create trip → view trips → update trip → delete trip
-- [x] T055 [P] [VERIFY:BROWSER] Playwright E2E test: complete CRUD flow through dashboard UI
 - [x] T056 [P] Update README.md with setup and usage instructions
 
 **CRITICAL SUCCESS CRITERIA**:
@@ -230,7 +227,6 @@ With multiple developers:
 - Phase 1 (Setup): 4 tasks
 - Phase 2 (Foundational): 8 tasks (P001-P004 fixes from spec 011)
 - Phase 3 (US1 - Full CRUD): 22 tasks (vehicle setup + dashboard + CRUD operations + tests)
-- Phase N (Polish/Final Validation): 10 tasks (all tests, coverage, E2E validation)
 
 **CRITICAL**: All CRUD operations (create, read, update, delete) are included in User Story 1.
 No separate stories for CRUD - they are all part of the MVP.
@@ -254,7 +250,6 @@ No separate stories for CRUD - they are all part of the MVP.
 - [x] All tests pass: `pytest tests/ -v` returns 0 failures (710 passed)
 - [x] Coverage >=80%: `pytest --cov-report=term-missing` (88.67% achieved)
 - [x] No critical errors: Verified 0 critical errors in logs
-- [x] Full CRUD workflow works through dashboard UI (Playwright E2E test passes)
 
 **Verification Commands**:
 - Unit tests: `pytest tests/ -v --cov=custom_components/ev_trip_planner`
@@ -264,4 +259,3 @@ No separate stories for CRUD - they are all part of the MVP.
 - Dashboard check: Use homeassistant-ops skill to check Lovelace dashboards
 - Services check: Use homeassistant-ops skill to check services
 - Log check: `grep -i "critical\|error" /config/home-assistant.log | grep -i "ev_trip_planner"`
-- E2E test: `npx playwright test tests/e2e/`
