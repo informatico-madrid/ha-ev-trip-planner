@@ -1,17 +1,33 @@
 # E2E Tests for EV Trip Planner
 
-End-to-end smoke tests for the EV Trip Planner Home Assistant custom component. Tests verify the complete CRUD workflow (Create, Edit, Delete) by simulating real user interactions with the panel UI.
+End-to-end smoke tests for the EV Trip Planner Home Assistant custom component. Tests verify the complete CRUD workflow (Create, Edit, Delete) and lifecycle operations (Pause, Resume, Complete, Cancel) by simulating real user interactions with the panel UI.
 
 ## Test Structure
 
 ```
 tests/e2e/
-  README.md              # This file
-  trips-helpers.ts       # Shared helper functions (createTestTrip, deleteTestTrip, navigateToPanel)
-  create-trip.spec.ts    # US-1: Smoke test for puntual trip creation
-  edit-trip.spec.ts      # US-2: Smoke test for editing existing recurrente trip
-  delete-trip.spec.ts    # US-3: Smoke test for deleting trip with confirmation dialog
+  README.md                       # This file
+  trips-helpers.ts                # Shared helper functions (createTestTrip, deleteTestTrip, navigateToPanel, etc.)
+  create-trip.spec.ts             # US-1: Create puntual and recurrente trips
+  edit-trip.spec.ts               # US-2: Edit existing trips (recurrente and puntual)
+  delete-trip.spec.ts             # US-3: Delete trip with confirmation dialog + cancel deletion
+  pause-resume-trip.spec.ts       # US-4: Pause and resume recurring trips
+  complete-cancel-trip.spec.ts    # US-5: Complete and cancel punctual trips
+  trip-list-view.spec.ts          # US-6: Panel view, trip details, action buttons
+  form-validation.spec.ts         # US-7: Form fields, trip type switching, day options
 ```
+
+## User Story Coverage
+
+| User Story | Test File | Scenarios |
+|------------|-----------|-----------|
+| US-1: Create Trip | `create-trip.spec.ts` | Create puntual trip, Create recurrente trip |
+| US-2: Edit Trip | `edit-trip.spec.ts` | Edit recurrente trip, Edit puntual trip |
+| US-3: Delete Trip | `delete-trip.spec.ts` | Delete trip (confirm), Cancel deletion (dismiss) |
+| US-4: Pause/Resume | `pause-resume-trip.spec.ts` | Pause recurring, Resume paused |
+| US-5: Complete/Cancel | `complete-cancel-trip.spec.ts` | Complete puntual, Cancel puntual, Dismiss complete |
+| US-6: View Trips | `trip-list-view.spec.ts` | Panel header, Agregar button, Trip details, Type badges, Action buttons per type |
+| US-7: Form Validation | `form-validation.spec.ts` | Default fields, Puntual fields, Type switching, Close form, Day options, Type options |
 
 ## Test Files
 
