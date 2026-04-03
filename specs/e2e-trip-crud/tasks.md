@@ -506,7 +506,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### JSDoc and Comments
 
-- [ ] T036 [P] [US-1] Add JSDoc comments to trips-helpers.ts functions
+- [x] T036 [P] [US-1] Add JSDoc comments to trips-helpers.ts functions
   - **Do**:
     1. Add JSDoc to navigateToPanel: describes navigation to EV Trip Planner panel
     2. Add JSDoc to createTestTrip: describes parameters
@@ -543,7 +543,7 @@ Constitution: POC-first workflow (GREENFIELD)
   - **Skills**:
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for code documentation
 
-- [ ] T039 [P] [US-3] Add comments to delete-trip.spec.ts explaining flow
+- [x] T039 [P] [US-3] Add comments to delete-trip.spec.ts explaining flow
   - **Do**:
     1. Add header comment explaining test purpose
     2. Add inline comments for each step
