@@ -442,7 +442,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for dialog handling patterns
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for delete button selectors
 
-- [ ] T031 [P] [US-3] Implement delete-trip.spec.ts assertions
+- [x] T031 [P] [US-3] Implement delete-trip.spec.ts assertions
   - **Do**:
     1. Assert trip no longer appears in trips list after deletion
     2. Use expect(tripCard).toBeHidden() or toHaveCount(0) for list verification
