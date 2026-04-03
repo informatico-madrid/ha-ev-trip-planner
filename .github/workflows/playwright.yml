@@ -10,6 +10,15 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    services:
+      homeassistant:
+        image: homeassistant/home-assistant:stable
+        ports:
+          - 8123:8123
+        volumes:
+          - ./tests/ha-manual/custom_components:/config/custom_components:ro
+        env:
+          - HAPPY_PATH: "true"
     steps:
     - uses: actions/checkout@v4
 
