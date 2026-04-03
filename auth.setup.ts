@@ -56,6 +56,13 @@ async function globalSetup(config: FullConfig): Promise<void> {
   await page.waitForURL("**/config/integrations**", { timeout: 30_000 });
   console.log("[auth.setup] Successfully navigated to integrations page");
 
+  // Click "+ Add Integration" button to open integration search dialog
+  console.log("[auth.setup] Clicking Add Integration button...");
+  await page.getByRole("button", { name: /Add Integration/i }).click();
+  // Wait for integration search dialog to appear
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 30_000 });
+  console.log("[auth.setup] Add Integration dialog opened successfully");
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
