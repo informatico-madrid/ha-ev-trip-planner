@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import * as path from 'path';
 import { ConfigFlowPage } from './pages/ConfigFlowPage';
 import { EVTripPlannerPage } from './pages/EVTripPlannerPage';
@@ -9,10 +9,8 @@ test.describe('Trip Creation', () => {
   let configFlow: ConfigFlowPage;
   let panel: EVTripPlannerPage;
   let vehicleName: string;
-  let page: Page;
 
-  test.beforeEach(async ({ browserPage }) => {
-    page = browserPage;
+  test.beforeEach(async ({ page }) => {
     await page.context().storageState({ path: authFile });
 
     configFlow = new ConfigFlowPage(page);
@@ -32,22 +30,31 @@ test.describe('Trip Creation', () => {
     await configFlow.waitForPanelInSidebar();
   });
 
-  test.afterEach(async () => {
-    // Delete all trips via API
-    // DELETE /api/states/sensor.ev_trip_planner_{vehicle_id}_trips
-    // OR: open panel and delete each trip card via UI
+  test.afterEach(async ({ page }) => {
+    // Delete all trips via UI
     const vehicleId = vehicleName.toLowerCase().replace(/\s+/g, '_');
-    await page.goto(`/ev-trip-planner-${vehicleId}`);
+    await page.goto(`/ev-trip-planner-${vehicleId}`).catch(() => {});
     await panel.addTripBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+
+    // Handle dialog once before any deletion
+    let dialogHandled = false;
+    const dialogHandler = () => { dialogHandled = true; };
+    page.on('dialog', dialogHandler);
 
     // Delete any visible trip cards
     const deleteButtons = page.locator('ev-trip-planner-panel >> .delete-btn');
     const count = await deleteButtons.count();
     for (let i = 0; i < count; i++) {
-      page.on('dialog', dialog => dialog.accept());
-      await deleteButtons.first().click();
-      await page.waitForTimeout(500);
+      if (dialogHandled) break;
+      try {
+        await deleteButtons.first().click({ timeout: 2000 });
+        await page.waitForTimeout(500);
+      } catch {
+        break;
+      }
     }
+
+    page.off('dialog', dialogHandler);
 
     // Remove integration
     await page.goto('/config/integrations');
