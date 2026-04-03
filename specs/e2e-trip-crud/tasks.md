@@ -238,7 +238,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for form interaction patterns
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for test data fixtures
 
-- [ ] T017 [P] [US-1] Create trips-helpers.ts with deleteTestTrip function
+- [x] T017 [P] [US-1] Create trips-helpers.ts with deleteTestTrip function
   - **Do**:
     1. Add deleteTestTrip(page, tripId) function
     2. Find trip by ID in the list
