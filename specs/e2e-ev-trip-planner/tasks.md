@@ -4,7 +4,7 @@
 
 Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
 
-- [ ] 1.1 [P] Create playwright.config.ts
+- [x] 1.1 [P] Create playwright.config.ts
   - **Do**:
     1. Create `playwright.config.ts` at repo root with: `testDir: './tests/e2e'`, `workers: 1`, `retries: 0`, `fullyParallel: false`
     2. Reference `globalSetup: 'tests/global.setup.ts'` and `globalTeardown: 'tests/global.teardown.ts'`
@@ -19,7 +19,7 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - _Requirements: FR-1_
   - _Design: playwright.config.ts section_
 
-- [ ] 1.2 [P] Create tests/e2e/pages/ConfigFlowPage.ts
+- [x] 1.2 [P] Create tests/e2e/pages/ConfigFlowPage.ts
   - **Do**:
     1. Create `tests/e2e/pages/` directory
     2. Create `ConfigFlowPage` class with: `page: Page`, locators for `addIntegrationBtn`, `searchInput`, `vehicleNameInput`, `submitBtn`
@@ -31,7 +31,7 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - _Requirements: FR-3_
   - _Design: ConfigFlowPage.ts section_
 
-- [ ] 1.3 [P] Create tests/e2e/pages/EVTripPlannerPage.ts
+- [x] 1.3 [P] Create tests/e2e/pages/EVTripPlannerPage.ts
   - **Do**:
     1. Create `EVTripPlannerPage` class with Shadow DOM pierce combinator selectors
     2. Locators via pierce: `addTripBtn`, `tripsList`, `tripFormOverlay`, `tripTypeSelect`, `tripDaySelect`, `tripTimeInput`, `tripKmInput`, `tripKwhInput`, `tripDescriptionInput`, `tripSubmitBtn`
@@ -57,7 +57,7 @@ Focus: Validate the E2E test infrastructure works end-to-end with ephemeral HA.
   - _Requirements: FR-2, AC-1.1-AC-1.6_
   - _Design: auth.setup.ts section_
 
-- [ ] 1.5 [P] Create tests/e2e/vehicle.spec.ts
+- [x] 1.5 [P] Create tests/e2e/vehicle.spec.ts
   - **Do**:
     1. Create `tests/e2e/vehicle.spec.ts` with `test.describe('Vehicle Creation and Panel')`
     2. `beforeEach`: load storageState from auth file, instantiate POMs
