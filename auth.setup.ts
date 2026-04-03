@@ -158,6 +158,27 @@ async function globalSetup(config: FullConfig): Promise<void> {
   console.log("[auth.setup] Submitting Config Flow Step 4...");
   await page.getByRole("button", { name: /next|finish|submit/i }).click();
 
+  // Wait for Step 5 form (async_step_notifications) to appear
+  console.log("[auth.setup] Waiting for Config Flow Step 5 form (notifications)...");
+  // The notifications step has optional fields: notification_service, notification_devices
+  // Wait for either a textbox or the form to be visible
+  await page.waitForSelector("textbox, ha-select, form", { timeout: 30_000 });
+  console.log("[auth.setup] Config Flow Step 5 form appeared");
+
+  // Step 5 notification fields: all are optional, leave empty
+  // notification_service - optional, leave empty
+  // notification_devices - optional, leave empty
+  console.log("[auth.setup] Leaving notification fields empty (optional)");
+
+  // Submit Step 5 via Finish button to complete Config Flow
+  console.log("[auth.setup] Submitting Config Flow Step 5 (Finish)...");
+  await page.getByRole("button", { name: /finish/i }).click();
+
+  // Wait for redirect after Config Flow completes (integration installed)
+  console.log("[auth.setup] Waiting for Config Flow to complete and redirect...");
+  await page.waitForURL("**/config/integrations**", { timeout: 30_000 });
+  console.log("[auth.setup] Config Flow completed successfully - integration installed");
+
   // Save authenticated state for reuse in tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
