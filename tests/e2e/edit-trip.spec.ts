@@ -1,52 +1,68 @@
+/**
+ * Edit Trip E2E Test
+ *
+ * Purpose: Verifies the edit flow for an existing recurrente trip.
+ * Flow:
+ *   1. Navigate to Home Assistant and open EV Trip Planner panel
+ *   2. Create a recurrente trip with initial values: km=30, kwh=10
+ *   3. Open the edit form and modify km from 30 -> 35 and description
+ *   4. Save changes and assert the trip card reflects the updated values
+ *   5. Clean up: delete the test trip
+ *
+ * Expected values:
+ *   - Initial km: 30, Final km: 35 (km changes from 30 to 35)
+ *   - Initial description: 'Recurrente Test Trip'
+ *   - Updated description: 'Updated Test Route'
+ */
+
 import { test, expect, type Page } from '@playwright/test';
 import { createTestTrip, deleteTestTrip, type TripData } from './trips-helpers';
 
 test.describe('Edit Trip', () => {
   test('should edit an existing recurrente trip', async ({ page }: { page: Page }) => {
-    // T025: Implement navigation and setup
-    // Step 1: Navigate to Home Assistant home
+    // Step 1: Navigate to Home Assistant home page (HA SPA entry point)
     await page.goto('/');
     await page.waitForURL('/home');
 
-    // Step 2: Navigate to EV Trip Planner panel via sidebar
+    // Step 2: Open EV Trip Planner panel via sidebar navigation
     await page.getByRole('link', { name: 'EV Trip Planner' }).click();
     await page.waitForURL(/\/ev_trip_planner\//);
 
-    // Step 3: Create a recurrente trip first (day: Tuesday, time: 09:00, km: 30, kwh: 10)
+    // Step 3: Create a recurrente trip with initial km=30, kwh=10
+    // This trip will be edited in the subsequent steps
     const tripId = await createTestTrip(
       page,
       'recurrente',
       '2026-04-07T09:00', // Tuesday April 7, 2026 at 09:00
-      30,
-      10,
+      30,                  // initial km value (will be changed to 35)
+      10,                  // initial kwh value
       'Recurrente Test Trip',
     );
 
-    // T026: Implement edit flow
-    // Step 1: Click edit button (pencil icon) on trip card
+    // Step 4: Locate the trip card and click the edit (pencil) button
     const tripCard = page.locator('div').filter({ hasText: 'Recurrente Test Trip' }).last();
     await tripCard.waitFor({ state: 'visible' });
     await tripCard.getByRole('button', { name: /edit/i }).click();
 
-    // Step 2: Wait for edit form to appear
+    // Step 5: Wait for the edit form to appear (form contains 'km' label)
     await page.waitForSelector('text=km');
 
-    // Step 3: Modify km to 35
+    // Step 6: Modify km from 30 -> 35 (expected value change)
     await page.getByLabel(/km/i).fill('35');
 
-    // Step 4: Modify description to "Updated Test Route"
+    // Step 7: Modify description to 'Updated Test Route'
     await page.getByLabel(/descripci/i).fill('Updated Test Route');
 
-    // Step 5: Click "Guardar Cambios" button to submit
+    // Step 8: Submit the edit form via 'Guardar Cambios' button
     await page.getByRole('button', { name: 'Guardar Cambios' }).click();
 
-    // T027: Assert trip card shows updated km=35 after save
+    // Step 9: Assert the trip card shows the updated km value (35 instead of 30)
     await expect(tripCard.getByText(/35/)).toBeVisible();
 
-    // T027: Assert trip card shows updated description="Updated Test Route"
+    // Step 10: Assert the trip card shows the updated description
     await expect(tripCard.getByText('Updated Test Route')).toBeVisible();
 
-    // Clean up: delete the test trip after test
+    // Step 11: Clean up - delete the test trip after the test completes
     await deleteTestTrip(page, tripId);
   });
 });
