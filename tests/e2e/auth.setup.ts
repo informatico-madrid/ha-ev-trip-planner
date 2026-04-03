@@ -36,9 +36,44 @@ export async function runAuthSetup(): Promise<void> {
   try {
     await page.goto(serverInfo.link);
 
-    // Step 1: Integrations page — click "Add Integration"
+    // Wait for the URL to leave the auth callback and show the main UI
+    console.log('[AuthSetup] Waiting for auth callback to complete...');
+    await page.waitForURL((url) => !url.toString().includes('auth_callback'), { timeout: 30000 });
+
+    // Wait for the sidebar to be visible
+    console.log('[AuthSetup] Waiting for sidebar to load...');
+    await page.waitForSelector('home-assistant-main', { state: 'visible', timeout: 30000 });
+
+    // Wait a bit for the page to stabilize
+    await page.waitForLoadState('networkidle');
+
+    // Debug: Check current URL
+    const currentUrl = page.url();
+    console.log('[AuthSetup] Current URL after callback:', currentUrl);
+
+    // Take a snapshot of the page to understand what's there
+    const snapshot = await page.evaluate(() => {
+      const body = document.body ? document.body.innerHTML.substring(0, 2000) : 'no body';
+      const haMain = document.querySelector('home-assistant-main');
+      const haSidebar = document.querySelector('ha-sidebar');
+      return {
+        url: window.location.href,
+        bodyLength: document.body ? document.body.innerHTML.length : 0,
+        hasHaMain: !!haMain,
+        hasHaSidebar: !!haSidebar,
+        haSidebarHTML: haSidebar ? haSidebar.innerHTML.substring(0, 500) : 'none',
+        allLinks: Array.from(document.querySelectorAll('a')).slice(0, 10).map(a => ({
+          text: a.textContent?.trim().substring(0, 50),
+          href: a.getAttribute('href')
+        }))
+      };
+    });
+    console.log('[AuthSetup] Page snapshot:', JSON.stringify(snapshot, null, 2));
+
+    // Step 1: Navigate directly to integrations page
     console.log('[AuthSetup] Step 1: Navigate to integrations...');
-    await page.getByRole('link', { name: 'Integrations' }).click();
+    await page.goto(serverInfo.link + '/config/integrations');
+    await page.waitForURL(/\/config\/integrations/, { timeout: 30000 });
     await page.waitForURL(/\/config\/integrations/);
     await page.getByRole('button', { name: 'Add Integration' }).click();
 
@@ -90,9 +125,5 @@ export async function runAuthSetup(): Promise<void> {
   }
 }
 
-// Allow running as standalone script: npx ts-node tests/e2e/auth.setup.ts
-if (require.main === module) {
-  runAuthSetup()
-    .then(() => { console.log('[AuthSetup] Done'); process.exit(0); })
-    .catch(err => { console.error('[AuthSetup] Error:', err); process.exit(1); });
-}
+// Note: This module is invoked from global.setup.ts via runAuthSetup()
+// The standalone script capability was removed to avoid ESM/CJS conflicts
