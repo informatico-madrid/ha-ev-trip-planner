@@ -400,7 +400,7 @@ Constitution: POC-first workflow (GREENFIELD)
 
 ### Delete Trip Test
 
-- [ ] T028 [P] [US-3] Create delete-trip.spec.ts with test skeleton
+- [x] T028 [P] [US-3] Create delete-trip.spec.ts with test skeleton
   - **Do**:
     1. Create `tests/e2e/delete-trip.spec.ts`
     2. Import from @playwright/test
@@ -428,7 +428,7 @@ Constitution: POC-first workflow (GREENFIELD)
     - **playwright-best-practices** - Read `.claude/skills/playwright-best-practices/SKILL.md` for setup patterns
     - **e2e-testing-patterns** - Read `.claude/skills/e2e-testing-patterns/SKILL.md` for test data setup
 
-- [ ] T030 [P] [US-3] Implement delete-trip.spec.ts delete flow with dialog
+- [x] T030 [P] [US-3] Implement delete-trip.spec.ts delete flow with dialog
   - **Do**:
     1. Set up dialog handler before clicking delete: page.on('dialog', async dialog => ...)
     2. Assert dialog message contains "¿Estás seguro de que quieres eliminar este viaje?"
