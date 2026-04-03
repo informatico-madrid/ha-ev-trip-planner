@@ -59,26 +59,27 @@ export default defineConfig({
 ```
 
 ### auth.setup.ts (globalSetup)
-**Purpose**: Authenticate with HA and install EV Trip Planner integration via Config Flow.
+**Purpose**: Authenticate with HA via trusted_networks bypass and install EV Trip Planner integration via Config Flow.
 
 **Responsibilities**:
 1. Wait for HA to be ready (HTTP 200 on `http://localhost:8123/`)
-2. Navigate to `/login`
-3. Fill login form with `dev/dev`
+2. Navigate to root URL `page.goto('/')` — HA auto-redirects to `/home` via trusted_networks bypass (no login form)
+3. Navigate to panel via sidebar click (NOT direct URL — HA is SPA)
 4. Execute Config Flow (4 steps) to install EV Trip Planner with test vehicle
 5. Save `storageState` to `playwright/.auth/user.json`
+
+**IMPORTANT**: Per homeassistant-selector-map skill, `page.goto()` to internal URLs or `/login` is FORBIDDEN. HA is a SPA — only `page.goto('/')` is allowed as entry point. trusted_networks auth provider with `allow_bypass_login: true` bypasses the login form entirely.
 
 **Selector patterns for auth flow**:
 
 | Step | Selector | Pattern |
 |------|----------|---------|
-| Login username | `page.getByRole('textbox', { name: /username/i })` | Auto-pierces shadow DOM |
-| Login password | `page.getByLabel(/password/i)` | Associated label |
-| Login submit | `page.getByRole('button', { name: /login/i })` | By role + name |
-| Add Integration | `page.getByRole('button', { name: /Add Integration/i })` | By role + name |
+| Root navigation | `page.goto('/')` then `page.waitForURL('/home')` | Only allowed entry point |
+| Sidebar link | `page.getByRole('link', { name: 'EV Trip Planner' })` | Navigate to panel |
+| Add Integration | `page.getByRole('button', { name: /Add Integration/i })` | From integrations page |
 | Integration search | `page.getByRole('textbox', { name: /search/i })` | Search field |
 | Config Flow form fields | `page.getByRole('textbox', { name: /field_name/i })` | By name |
-| Config Flow submit | `page.getByRole('button', { name: /Next|Submit|Finish/i })` | By name |
+| Config Flow submit | `page.getByRole('button', { name: /Next\|Submit\|Finish/i })` | By name |
 
 **Config Flow Implementation Details**:
 
@@ -114,8 +115,10 @@ The Config Flow has 4 sequential steps, each requiring form submission:
 
 **Critical paths**:
 - HA startup: handled by GitHub Actions services directive (~30-60s for container init)
+- trusted_networks auth: `allow_bypass_login: true` in configuration.yaml — no login form needed
 - Config Flow: requires UI interaction via Playwright, 4 sequential steps
 - storageState must include cookies + localStorage for HA session
+- SPA navigation: NEVER use `page.goto('/ev_trip_planner')` — use sidebar click instead
 
 ### globalTeardown.ts
 **Purpose**: Cleanup after test run.
@@ -128,12 +131,16 @@ The Config Flow has 4 sequential steps, each requiring form submission:
 **Purpose**: Smoke test for puntual trip creation.
 
 **Test flow**:
-1. Navigate to panel via `page.goto('/ev-trip-planner-test_vehicle')`
-2. Click `+ Agregar Viaje` button
-3. Select trip type "puntual"
-4. Fill form: datetime-local, km, kwh, description (NOTE: no "Trip name" field - only `description` textarea)
-5. Submit via "Crear Viaje" button
-6. Assert trip appears in trips list with submitted values
+1. Navigate to root: `page.goto('/')` then `page.waitForURL('/home')`
+2. Navigate to panel via sidebar: `page.getByRole('link', { name: 'EV Trip Planner' }).click()`
+3. Wait for panel URL: `page.waitForURL(/\/ev_trip_planner\/)`
+4. Click `+ Agregar Viaje` button
+5. Select trip type "puntual"
+6. Fill form: datetime-local, km, kwh, description (NOTE: no "Trip name" field - only `description` textarea)
+7. Submit via "Crear Viaje" button
+8. Assert trip appears in trips list with submitted values
+
+**IMPORTANT**: Per homeassistant-selector-map skill, `page.goto('/ev-trip-planner-test_vehicle')` is FORBIDDEN. HA is a SPA — only `page.goto('/')` followed by sidebar navigation is allowed.
 
 **Selector patterns for panel** (Playwright auto-pierces shadow DOM with web-first locators):
 
@@ -168,11 +175,14 @@ await panel.getByRole('button', { name: /Agregar Viaje/i }).click();
 **Purpose**: Smoke test for editing existing trip.
 
 **Test flow**:
-1. Create a recurrente trip first (setup for edit test)
-2. Click edit button (pencil icon) on trip card
-3. Modify km to new value and description
-4. Submit via "Guardar Cambios" button
-5. Assert trip card shows updated values
+1. Navigate to root: `page.goto('/')` then `page.waitForURL('/home')`
+2. Navigate to panel via sidebar: `page.getByRole('link', { name: 'EV Trip Planner' }).click()`
+3. Wait for panel URL: `page.waitForURL(/\/ev_trip_planner\/)`
+4. Create a recurrente trip first (setup for edit test)
+5. Click edit button (pencil icon) on trip card
+6. Modify km to new value and description
+7. Submit via "Guardar Cambios" button
+8. Assert trip card shows updated values
 
 **Selector patterns for edit flow**:
 
@@ -188,10 +198,13 @@ await panel.getByRole('button', { name: /Agregar Viaje/i }).click();
 **Purpose**: Smoke test for deleting trip with confirmation dialog.
 
 **Test flow**:
-1. Create a puntual trip first (setup for delete test)
-2. Click delete button (trash icon) on trip card
-3. Handle `window.confirm()` dialog via Playwright dialog handler
-4. Assert trip no longer appears in list
+1. Navigate to root: `page.goto('/')` then `page.waitForURL('/home')`
+2. Navigate to panel via sidebar: `page.getByRole('link', { name: 'EV Trip Planner' }).click()`
+3. Wait for panel URL: `page.waitForURL(/\/ev_trip_planner\/)`
+4. Create a puntual trip first (setup for delete test)
+5. Click delete button (trash icon) on trip card
+6. Handle `window.confirm()` dialog via Playwright dialog handler
+7. Assert trip no longer appears in list
 
 **Selector patterns for delete flow**:
 
@@ -221,7 +234,8 @@ await page.getByRole('button', { name: /delete/i }).click();
 | Shadow DOM selector | Web-first (getByRole/getByText) vs CSS pierce (>>) | Web-first locators | Per homeassistant-selector-map skill; Playwright auto-pierces shadow DOM with getByRole, getByText; >> is forbidden anti-pattern |
 | Dialog handling | Playwright dialog handler vs `page.evaluate` | Playwright dialog handler | Native Playwright support; `page.on('dialog')` handles `window.confirm()` automatically |
 | Test data isolation | Each test creates+deletes own data | Each test creates+deletes | Implicit in all US; prevents cross-test contamination |
-| Auth flow | Config Flow via Playwright vs storageState injection | Config Flow | Required by ha-e2e-testing skill; integration must be installed or panel gives 404 |
+| Auth flow | trusted_networks bypass + Config Flow vs login form | trusted_networks bypass | Per homeassistant-selector-map skill; `allow_bypass_login: true` skips login form entirely; only `page.goto('/')` is allowed as entry point |
+| Navigation | Sidebar click vs direct URL (forbidden) | Sidebar click only | HA is SPA; `page.goto('/ev_trip_planner')` is forbidden anti-pattern per skill |
 | Vehicle ID for CI | Hardcoded "test_vehicle" vs config | Hardcoded "test_vehicle" | Consistent across tests; URL becomes `/ev-trip-planner-test_vehicle` |
 | Docker image | ghcr.io vs homeassistant/* | homeassistant/home-assistant:stable | Official stable image; well-tested with Config Flow |
 | HA service URL | localhost:8123 vs service name | http://localhost:8123 | GitHub Actions services exposed on localhost |
@@ -251,18 +265,20 @@ sequenceDiagram
     participant Panel as EV Trip Planner Panel
 
     Note over CI: GitHub Actions starts HA container via services: directive
+    Note over HA: trusted_networks auth provider with allow_bypass_login: true
     CI->>Playwright: npx playwright test
     Playwright->>auth.setup: globalSetup
     auth.setup->>HA: Wait for HTTP 200 on /
-    auth.setup->>HA: Login dev/dev at /login
-    auth.setup->>HA: Navigate to /config/integrations
+    auth.setup->>HA: page.goto('/') — trusted_networks bypasses login
+    HA->>Playwright: Auto-redirect to /home (no login form)
+    auth.setup->>HA: Navigate to /config/integrations via sidebar
     auth.setup->>HA: Config Flow Step 1: vehicle_name=test_vehicle
     auth.setup->>HA: Config Flow Step 2: battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20
     auth.setup->>HA: Config Flow Step 3: planning_horizon_days=7, max_deferrable_loads=50
     auth.setup->>HA: Config Flow Step 4: charging_sensor (entity selector)
     auth.setup->>Playwright: storageState saved
 
-    Playwright->>HA: Navigate to /ev-trip-planner-test_vehicle
+    Playwright->>HA: Navigate to panel via sidebar click (NOT direct URL)
     HA->>Panel: Render panel component
     Panel->>Playwright: Panel loaded
 
@@ -296,7 +312,7 @@ sequenceDiagram
 | Error Scenario | Handling Strategy | User Impact |
 |----------------|-------------------|-------------|
 | HA service fails to start | Fail globalSetup with diagnostic | Test suite fails, no partial runs |
-| Auth fails (wrong credentials) | Fail globalSetup, no test execution | Clear error message, check dev/dev |
+| trusted_networks misconfigured | Fail globalSetup, redirect to /auth/authorize | Check configuration.yaml has allow_bypass_login: true |
 | Config Flow fails (any step) | Fail globalSetup, integration not installed | 404 on panel URL |
 | Panel gives 404 | Fail test, check integration installed | Panel URL correct? Config Flow completed? |
 | Trip create service fails | Test fails, trip not in list | HA service error in logs |
@@ -338,13 +354,14 @@ Based on homeassistant-selector-map skill patterns:
 - Test runner: `@playwright/test` v1.58.2
 - Test file location: `tests/e2e/*.spec.ts`
 - Test config location: `playwright.config.ts` in project root
-- Auth setup: `auth.setup.ts` (globalSetup)
+- Auth setup: `auth.setup.ts` (globalSetup) — uses trusted_networks bypass, NOT login form
 - Teardown: `globalTeardown.ts` (globalTeardown)
 - Auth state: `playwright/.auth/user.json` (gitignored)
 - Test isolation: 1 worker, each test creates and cleans its own data
 - **Selector priority**: getByRole > getByLabel > getByTestId > getByText > locator('css')
 - Playwright auto-pierces shadow DOM with web-first locators (getByRole, getByTestId)
-- **FORBIDDEN**: `>>` pierce syntax, XPath, CSS classes from Lit/Polymer, hardcoded shadow DOM depth
+- **FORBIDDEN**: `>>` pierce syntax, XPath, CSS classes from Lit/Polymer, hardcoded shadow DOM depth, `page.goto('/login')`, `page.goto('/ev_trip_planner')`
+- **Navigation pattern**: `page.goto('/')` → `page.waitForURL('/home')` → sidebar click → `page.waitForURL(/\/ev_trip_planner\/)`
 
 ### Skip Policy
 
@@ -354,7 +371,7 @@ Tests marked `.skip` are FORBIDDEN unless:
 
 ## GitHub Actions Workflow Update
 
-The `.github/workflows/playwright.yml` must add the HA service container. This change is **mandatory** - the workflow file has already been updated to include the `services:` directive.
+The `.github/workflows/playwright.yml` must add the HA service container with trusted_networks configuration. This change is **mandatory**.
 
 ```yaml
 jobs:
@@ -366,11 +383,27 @@ jobs:
           - 8123:8123
         volumes:
           - ./tests/ha-manual/custom_components:/config/custom_components:ro
+          - ./tests/ha-manual/configuration.yaml:/config/configuration.yaml:ro
         env:
           - HAPPY_PATH: "true"
     steps:
       # ... existing steps ...
 ```
+
+**Required `configuration.yaml` for trusted_networks auth** (mounted at `/config/configuration.yaml`):
+
+```yaml
+homeassistant:
+  auth_providers:
+    - type: trusted_networks
+      trusted_networks:
+        - 127.0.0.1
+        - 172.17.0.0/16
+      allow_bypass_login: true
+    - type: homeassistant
+```
+
+This configuration allows Playwright to bypass the login form entirely — `page.goto('/')` automatically redirects to `/home` when accessed from a trusted network.
 
 ## Unresolved Questions
 
@@ -381,6 +414,8 @@ All questions resolved:
 4. **Container cleanup**: GitHub Actions services directive handles lifecycle automatically
 5. **Config Flow steps**: 4 steps documented (user, sensors, emhass, presence)
 6. **Selector syntax**: Web-first locators (getByRole/getByText) per homeassistant-selector-map skill
+7. **Auth method**: trusted_networks bypass — NO login form, `page.goto('/')` auto-redirects to `/home`
+8. **Navigation**: Only sidebar click to panel — NEVER `page.goto('/ev_trip_planner')` (forbidden SPA pattern)
 
 ## Implementation Steps
 

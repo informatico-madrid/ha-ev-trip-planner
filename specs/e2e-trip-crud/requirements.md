@@ -78,7 +78,7 @@ Create smoke tests for EV Trip Planner CRUD operations (Create, Edit, Delete) in
 |----|-------------|--------|--------|
 | NFR-1 | CI execution | Timeout | 60 min max (GitHub Actions job timeout) |
 | NFR-2 | Test isolation | Environment | Docker HA container per test run |
-| NFR-3 | Selector stability | Shadow DOM | Use `>>` pierce syntax for shadow root traversal |
+| NFR-3 | Selector stability | Shadow DOM | Use web-first locators (getByRole, getByLabel, getByTestId) — `>>` pierce syntax is FORBIDDEN anti-pattern |
 | NFR-4 | Browser | Engine | Chromium (Playwright default in CI) |
 | NFR-5 | Parallel execution | Workers | 1 worker in CI (--workers=1) to avoid HA conflicts |
 
@@ -93,7 +93,7 @@ Create smoke tests for EV Trip Planner CRUD operations (Create, Edit, Delete) in
 | **globalSetup** | Playwright hook that runs once before all tests; used to start ephemeral HA |
 | **globalTeardown** | Playwright hook that runs once after all tests; used to stop ephemeral HA |
 | **Ephemeral HA** | Temporary Home Assistant instance started by globalSetup for isolated testing |
-| **Pierce selector** | Playwright syntax (`>>`) to select elements inside Shadow DOM |
+| **Pierce selector** | Playwright `>>` syntax — **FORBIDDEN** anti-pattern per homeassistant-selector-map skill; use web-first locators instead |
 | **HA service** | Backend API called via `hass.callService('ev_trip_planner', service_name, data)` |
 
 ## Out of Scope
