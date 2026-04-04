@@ -1,7 +1,8 @@
 """Tests for EV Trip Planner integration __init__.py."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, mock_open
+from pathlib import Path
+from unittest.mock import Mock, AsyncMock, MagicMock, PropertyMock, patch, mock_open
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.dashboard import (
@@ -22,6 +23,7 @@ def mock_hass():
     """Create mock Home Assistant instance."""
     hass = Mock(spec=HomeAssistant)
     hass.config = Mock()
+    hass.config.config_dir = Path("/config")
     hass.config.components = []
     hass.services = Mock()
     hass.services.has_service = Mock(return_value=False)
@@ -32,6 +34,7 @@ def mock_hass():
         """Mock executor job that runs function synchronously."""
         return func(*args)
     hass.async_add_executor_job = mock_executor_job
+    hass.loop = Mock()
 
     return hass
 
@@ -610,3 +613,199 @@ class TestAsyncUnloadEntry:
             # Should handle the error and return True (platforms unloaded successfully)
             result = await async_unload_entry(mock_hass, entry)
             assert result is True
+
+    @pytest.mark.asyncio
+    async def test_unload_entry_calls_cleanup_before_platforms_unload(self, mock_hass):
+        """Test that async_unload_entry calls emhass_adapter.async_cleanup_vehicle_indices before unloading platforms.
+
+        This is a RED test that documents the expected behavior: emhass_adapter cleanup
+        MUST be called before async_unload_platforms to ensure entity state still exists
+        when async_remove is called.
+        """
+        # Create a mock config entry with vehicle info
+        entry = Mock()
+        entry.data = {
+            "vehicle_id": "test_vehicle",
+            "vehicle_name": "Test Vehicle",
+        }
+        entry.entry_id = "test_entry_id"
+
+        # Track call order
+        call_order = []
+
+        # Mock the platforms unload
+        async def mock_unload_platforms(entry, platforms):
+            call_order.append("unload_platforms")
+            return True
+
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Create mock TripManager
+        trip_manager = Mock()
+        trip_manager.vehicle_id = "test_vehicle"
+        trip_manager.async_delete_all_trips = AsyncMock()
+        trip_manager._recurring_trips = {}
+        trip_manager._punctual_trips = {}
+
+        # Create mock EMHASS adapter with async_cleanup_vehicle_indices
+        emhass_adapter = Mock()
+        emhass_adapter.vehicle_id = "test_vehicle"
+        emhass_adapter._index_map = {}
+        emhass_adapter._released_indices = []
+
+        async def mock_cleanup():
+            call_order.append("cleanup_vehicle_indices")
+
+        emhass_adapter.async_cleanup_vehicle_indices = mock_cleanup
+
+        # Set up runtime data
+        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        mock_hass.data[DATA_RUNTIME] = {
+            namespace: {
+                "config": entry.data,
+                "trip_manager": trip_manager,
+                "emhass_adapter": emhass_adapter,
+            }
+        }
+
+        # Mock async_unregister_panel
+        with patch(
+            "custom_components.ev_trip_planner.async_unregister_panel",
+            new_callable=AsyncMock,
+        ) as mock_unregister:
+            mock_unregister.return_value = True
+
+            # Import and call async_unload_entry
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            result = await async_unload_entry(mock_hass, entry)
+
+            # Verify unload succeeded
+            assert result is True
+
+            # CRITICAL: cleanup MUST be called before platforms are unloaded
+            # This asserts the ORDER: cleanup should appear BEFORE unload_platforms in call_order
+            assert "cleanup_vehicle_indices" in call_order, (
+                "emhass_adapter.async_cleanup_vehicle_indices must be called during unload"
+            )
+            assert "unload_platforms" in call_order, (
+                "platforms must be unloaded"
+            )
+            assert call_order.index("cleanup_vehicle_indices") < call_order.index("unload_platforms"), (
+                "async_cleanup_vehicle_indices must be called BEFORE async_unload_platforms"
+            )
+
+            # Also verify the cleanup method was actually called
+            assert call_order.count("cleanup_vehicle_indices") == 1, (
+                "async_cleanup_vehicle_indices should be called exactly once"
+            )
+
+
+class TestStartupOrphanCleanup:
+    """Tests for startup orphan cleanup via async_cleanup_orphaned_emhass_sensors()."""
+
+    @pytest.mark.asyncio
+    async def test_orphan_cleanup_removes_sensors_with_stale_entry_id(self, mock_hass):
+        """Test that orphaned sensors (entry_id not in active entries) are removed.
+
+        FR-4: Startup orphan cleanup must safely remove sensors from deleted integrations.
+        FR-5: Safe cleanup - only remove if entry_id attribute exists AND is not in active entries.
+        """
+        # Create a mock config entry for active entry
+        entry = Mock()
+        entry.entry_id = "active_entry_id"
+
+        # Mock config_entries.async_entries to return only the active entry
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_entries = Mock(return_value=[entry])
+
+        # Create orphaned sensor states (entry_id not in active entries)
+        orphaned_sensor = Mock()
+        orphaned_sensor.entity_id = "sensor.emhass_perfil_diferible_stale_vehicle"
+        orphaned_sensor.attributes = {"entry_id": "deleted_entry_id"}
+
+        # Create active sensor states (entry_id in active entries)
+        active_sensor = Mock()
+        active_sensor.entity_id = "sensor.emhass_perfil_diferible_test_vehicle"
+        active_sensor.attributes = {"entry_id": "active_entry_id"}
+
+        # Create sensor without entry_id attribute (should be preserved)
+        no_entry_id_sensor = Mock()
+        no_entry_id_sensor.entity_id = "sensor.other_sensor"
+        no_entry_id_sensor.attributes = {}
+
+        # Mock hass.states.async_all to return all sensors
+        mock_hass.states = Mock()
+        mock_hass.states.async_all = AsyncMock(
+            return_value=[orphaned_sensor, active_sensor, no_entry_id_sensor]
+        )
+
+        # Track which entities were removed
+        removed_entities = []
+
+        async def mock_async_remove(entity_id):
+            removed_entities.append(entity_id)
+
+        mock_hass.states.async_remove = mock_async_remove
+
+        # Call the standalone cleanup function directly
+        from custom_components.ev_trip_planner import async_cleanup_orphaned_emhass_sensors
+        await async_cleanup_orphaned_emhass_sensors(mock_hass)
+
+        # CRITICAL: orphaned sensor MUST be removed (FR-4, FR-5)
+        assert "sensor.emhass_perfil_diferible_stale_vehicle" in removed_entities, (
+            "Orphaned sensors with stale entry_id must be removed during startup cleanup"
+        )
+
+        # Active sensor should NOT be removed (FR-5)
+        assert "sensor.emhass_perfil_diferible_test_vehicle" not in removed_entities, (
+            "Sensors with active entry_id must NOT be removed during startup cleanup"
+        )
+
+        # Sensor without entry_id attribute should NOT be removed (FR-5)
+        assert "sensor.other_sensor" not in removed_entities, (
+            "Sensors without entry_id attribute must NOT be removed"
+        )
+
+    @pytest.mark.asyncio
+    async def test_orphan_cleanup_preserves_active_sensors(self, mock_hass):
+        """Test that async_setup_entry does not remove sensors with valid active entry_ids.
+
+        This complements test_orphan_cleanup_removes_sensors_with_stale_entry_id to
+        ensure the positive case is also covered.
+        """
+        # Create a mock config entry for active entry
+        entry = Mock()
+        entry.entry_id = "test_entry_id"
+
+        # Mock config_entries.async_entries to return the active entry
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_entries = Mock(return_value=[entry])
+
+        # Create sensor with matching entry_id
+        active_sensor = Mock()
+        active_sensor.entity_id = "sensor.emhass_perfil_diferible_test_vehicle"
+        active_sensor.attributes = {"entry_id": "test_entry_id"}
+
+        # Mock hass.states.async_all to return the active sensor
+        mock_hass.states = Mock()
+        mock_hass.states.async_all = AsyncMock(return_value=[active_sensor])
+
+        # Track removed entities
+        removed_entities = []
+
+        async def mock_async_remove(entity_id):
+            removed_entities.append(entity_id)
+
+        mock_hass.states.async_remove = mock_async_remove
+
+        # Call the standalone cleanup function directly
+        from custom_components.ev_trip_planner import async_cleanup_orphaned_emhass_sensors
+        await async_cleanup_orphaned_emhass_sensors(mock_hass)
+
+        # Active sensor should NOT be removed
+        assert "sensor.emhass_perfil_diferible_test_vehicle" not in removed_entities, (
+            "Sensors with entry_id matching an active entry must NOT be removed"
+        )
