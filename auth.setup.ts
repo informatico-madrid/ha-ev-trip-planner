@@ -175,51 +175,94 @@ async function setupIntegration(token: string): Promise<void> {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
-  const post = async (url: string, body: object) => {
+
+  /**
+   * POST helper that throws on non-2xx HTTP responses with a descriptive message.
+   */
+  const post = async (url: string, body: object): Promise<Record<string, unknown>> => {
     const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-    return r.json();
+    const data = await r.json() as Record<string, unknown>;
+    if (!r.ok) {
+      throw new Error(`[auth.setup] HTTP ${r.status} from ${url}: ${JSON.stringify(data)}`);
+    }
+    return data;
   };
 
-  // Start flow
-  const flow = await post(`${HA_URL}/api/config/config_entries/flow`, {
-    handler: 'ev_trip_planner',
-    show_advanced_options: false,
-  }) as { flow_id: string };
-  const flowId = flow.flow_id;
+  // HA loads integrations asynchronously after the HTTP server becomes available.
+  // Retry the flow creation until ev_trip_planner is registered (up to 30 s).
+  const FLOW_CREATE_RETRIES = 15;
+  const FLOW_CREATE_DELAY_MS = 2000;
+
+  let flow: Record<string, unknown> | undefined;
+  for (let attempt = 1; attempt <= FLOW_CREATE_RETRIES; attempt++) {
+    try {
+      flow = await post(`${HA_URL}/api/config/config_entries/flow`, {
+        handler: 'ev_trip_planner',
+        show_advanced_options: false,
+      });
+      if (typeof flow.flow_id === 'string') {
+        console.log(`[auth.setup] Config flow created (attempt ${attempt}), flow_id=${flow.flow_id}`);
+        break;
+      }
+      // HA returned 200 but without a flow_id — treat as not-yet-ready
+      throw new Error(`flow_id missing in response: ${JSON.stringify(flow)}`);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (attempt === FLOW_CREATE_RETRIES) {
+        throw new Error(`[auth.setup] Could not create config flow after ${FLOW_CREATE_RETRIES} attempts: ${errMsg}`);
+      }
+      console.log(`[auth.setup] Flow creation attempt ${attempt} failed (${errMsg}), retrying in ${FLOW_CREATE_DELAY_MS}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, FLOW_CREATE_DELAY_MS));
+    }
+  }
+
+  const flowId = flow?.flow_id;
+  if (typeof flowId !== 'string') {
+    throw new Error(`[auth.setup] Unexpected state: flow_id is not a string after retry loop`);
+  }
 
   // Step 1: vehicle_name
-  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+  const step1 = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
     vehicle_name: 'test_vehicle',
   });
+  if (step1.type !== 'form' || step1.step_id !== 'sensors') {
+    throw new Error(`[auth.setup] Step 1 unexpected response: ${JSON.stringify(step1)}`);
+  }
 
   // Step 2: sensors
-  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+  const step2 = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
     battery_capacity_kwh: 60,
     charging_power_kw: 11,
     kwh_per_km: 0.17,
     safety_margin_percent: 20,
   });
+  if (step2.type !== 'form' || step2.step_id !== 'emhass') {
+    throw new Error(`[auth.setup] Step 2 unexpected response: ${JSON.stringify(step2)}`);
+  }
 
   // Step 3: EMHASS (accept defaults)
-  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+  const step3 = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
     planning_horizon_days: 7,
     max_deferrable_loads: 50,
     index_cooldown_hours: 24,
   });
+  if (step3.type !== 'form' || step3.step_id !== 'presence') {
+    throw new Error(`[auth.setup] Step 3 unexpected response: ${JSON.stringify(step3)}`);
+  }
 
   // Step 4: Presence — use input_boolean.test_ev_charging (always available in test env)
-  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+  const step4 = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
     charging_sensor: 'input_boolean.test_ev_charging',
   });
+  if (step4.type !== 'form' || step4.step_id !== 'notifications') {
+    throw new Error(`[auth.setup] Step 4 unexpected response: ${JSON.stringify(step4)}`);
+  }
 
   // Step 5: Notifications (optional — submit empty)
-  const result = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {}) as {
-    type: string;
-    title: string;
-  };
+  const result = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {});
 
   if (result.type !== 'create_entry') {
-    throw new Error(`[auth.setup] Integration setup failed: unexpected result type "${result.type}"`);
+    throw new Error(`[auth.setup] Integration setup failed: unexpected result type "${result.type}" — ${JSON.stringify(result)}`);
   }
 
   console.log(`[auth.setup] Integration "${result.title}" created successfully`);
