@@ -570,6 +570,7 @@ class TestTripStateChangeUpdatesSensor:
         sensor = EmhassDeferrableLoadSensor(
             hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
+        sensor.async_schedule_update_ha_state = Mock()
 
         # Set up mock config entry
         mock_entry = MagicMock(spec=ConfigEntry)
