@@ -80,19 +80,11 @@ jobs:
         path: test-results/
         retention-days: 7
 
-    - name: Upload HA logs on failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: ha-logs
-        path: /tmp/ha-e2e.log
-        retention-days: 7
-
-    - name: Upload HA logs (always for debugging)
+    - name: Upload HA logs
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
-        name: ha-logs-full
+        name: ha-logs
         path: /tmp/ha-e2e.log
         retention-days: 7
 

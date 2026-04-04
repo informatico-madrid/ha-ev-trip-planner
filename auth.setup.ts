@@ -304,7 +304,7 @@ async function setupIntegration(token: string): Promise<void> {
  * flow creates the entry. In CI, there can be a race between the REST API
  * response ("create_entry") and the actual static-path registration.
  */
-async function waitForPanelAssets(_token: string, timeoutMs = 30_000): Promise<void> {
+async function waitForPanelAssets(timeoutMs = 30_000): Promise<void> {
   const assets = [
     '/ev-trip-planner/panel.js',
     '/ev-trip-planner/lit-bundle.js',
@@ -363,7 +363,7 @@ async function globalSetup(): Promise<void> {
   // async_setup_entry registers static paths asynchronously after the config
   // flow completes. In CI, there can be a short delay before the JS module
   // is served. Poll until the panel.js returns 200 (up to 30 s).
-  await waitForPanelAssets(token);
+  await waitForPanelAssets();
 
   // ---------------------------------------------------------------------------
   // TRUSTED_NETWORKS BYPASS — acquire browser session
