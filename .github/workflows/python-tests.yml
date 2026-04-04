@@ -36,11 +36,3 @@ jobs:
         name: python-test-results
         path: test-results/junit.xml
         retention-days: 30
-
-    - name: Publish test results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Python Unit Tests
-        path: test-results/junit.xml
-        reporter: java-junit
