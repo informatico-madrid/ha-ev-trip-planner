@@ -14,7 +14,8 @@ const PANEL_URL = '/ev-trip-planner-test_vehicle';
 export async function navigateToPanel(page: Page): Promise<Page> {
   await page.goto(PANEL_URL);
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
-  await page.getByRole('button', { name: '+ Agregar Viaje' }).waitFor({ state: 'visible', timeout: 30_000 });
+  // In CI, the panel may take longer to render the button. Use 60s timeout.
+  await page.getByRole('button', { name: '+ Agregar Viaje' }).waitFor({ state: 'visible', timeout: 60_000 });
   return page;
 }
 
