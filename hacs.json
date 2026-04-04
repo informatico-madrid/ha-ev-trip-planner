@@ -2,7 +2,7 @@
   "name": "EV Trip Planner",
   "content_in_root": false,
   "filename": "ev_trip_planner",
-  "country": ["ES", "EN"],
+  "country": ["ES", "IN"],
   "render_readme": true,
   "homeassistant": "2026.3.3"
 }
