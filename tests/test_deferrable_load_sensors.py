@@ -44,6 +44,9 @@ def mock_hass():
 
     hass.config_entries.async_entries = _async_entries
 
+    # Mock async_schedule_update_ha_state (called by async_update)
+    hass.async_schedule_update_ha_state = Mock()
+
     return hass
 
 
@@ -60,11 +63,14 @@ def mock_trip_manager():
 @pytest.fixture
 def sensor(mock_hass, mock_trip_manager):
     """Create EmhassDeferrableLoadSensor instance."""
-    return EmhassDeferrableLoadSensor(
+    s = EmhassDeferrableLoadSensor(
         hass=mock_hass,
         trip_manager=mock_trip_manager,
         entry_id="test_entry_id",
     )
+    # Mock async_schedule_update_ha_state to prevent real HA infrastructure calls
+    s.async_schedule_update_ha_state = Mock()
+    return s
 
 
 class TestPowerProfileWattsCalculation:
