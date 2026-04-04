@@ -16,9 +16,8 @@ export async function navigateToPanel(page: Page): Promise<Page> {
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
 
   // Wait for the custom element to upgrade and render (CI may be slow)
-  // Use both the CSS class locator (more specific) and scroll it into view first
+  // Use the CSS class locator and wait for it to be visible
   const addButton = page.locator('.add-trip-btn');
-  await addButton.scrollIntoViewIfNeeded();
   await addButton.waitFor({ state: 'attached', timeout: 30_000 });
   await addButton.waitFor({ state: 'visible', timeout: 60_000 });
 

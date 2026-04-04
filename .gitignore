@@ -90,3 +90,4 @@ playwright-results.xml
 .playwright-mcp/*
 ui-map.local.md
 .claude/playwright-env.local.md
+playwright-env.local.md
