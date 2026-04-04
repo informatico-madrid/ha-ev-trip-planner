@@ -107,6 +107,16 @@ async def async_register_panel(
         except Exception as ex:
             _LOGGER.warning("Failed to register static path for panel.js: %s", ex)
 
+        # Register bundled Lit library for offline use (avoids CDN dependency)
+        try:
+            hass.http.register_static_path(
+                f"/{DOMAIN.replace('_', '-')}/lit-bundle.js",
+                f"{_MODULE_PATH}/frontend/lit-bundle.js",
+            )
+            _LOGGER.debug("Registered static path for lit-bundle.js")
+        except Exception as ex:
+            _LOGGER.warning("Failed to register static path for lit-bundle.js: %s", ex)
+
         # Store vehicle-to-panel mapping
         _store_vehicle_panel_mapping(hass, vehicle_id, frontend_url_path)
 

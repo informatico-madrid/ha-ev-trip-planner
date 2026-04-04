@@ -1,16 +1,20 @@
 import { type Page } from '@playwright/test';
 
+/** Panel URL for the test vehicle (matches panel registration: PANEL_URL_PREFIX-vehicle_id) */
+const PANEL_URL = '/ev-trip-planner-test_vehicle';
+
 /**
- * Navigates to the EV Trip Planner panel via sidebar navigation.
- * Uses the SPA entry point pattern: goto('/') -> waitForURL('/home') -> sidebar click -> waitForURL
+ * Navigates to the EV Trip Planner panel using direct URL navigation.
+ * Auth state is pre-loaded from storageState (playwright/.auth/user.json), so
+ * direct navigation to any HA panel URL works without re-authenticating.
+ * Waits for the panel's "+ Agregar Viaje" button to confirm the component rendered.
  * @param page - Playwright Page object
  * @returns The page object for chaining
  */
 export async function navigateToPanel(page: Page): Promise<Page> {
-  await page.goto('/');
-  await page.waitForURL('/home');
-  await page.getByRole('link', { name: 'EV Trip Planner' }).click();
-  await page.waitForURL(/\/ev_trip_planner\//);
+  await page.goto(PANEL_URL);
+  await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
+  await page.getByRole('button', { name: '+ Agregar Viaje' }).waitFor({ state: 'visible', timeout: 30_000 });
   return page;
 }
 
