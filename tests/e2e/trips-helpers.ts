@@ -187,3 +187,59 @@ export function setupAlertHandler(page: Page): Promise<string> {
     });
   });
 }
+
+/**
+ * Cleans up ALL visible trip cards from the panel by deleting them.
+ * This is used in beforeEach to ensure a clean state before each test.
+ * WARNING: Do NOT call this before tests that expect existing trips to be present.
+ * @param page - Playwright Page object
+ */
+export async function cleanupTestTrips(page: Page): Promise<void> {
+  // Wait for trip cards to be loaded
+  await page.waitForSelector('.trip-card', { timeout: 5_000 }).catch(() => {
+    // No trips exist, nothing to clean
+    return;
+  });
+
+  // Check if any trip cards are visible
+  const tripCards = page.locator('.trip-card');
+  const count = await tripCards.count();
+
+  if (count === 0) {
+    return; // Nothing to clean
+  }
+
+  // Delete each trip card
+  for (let i = 0; i < count; i++) {
+    const cards = page.locator('.trip-card');
+    const currentCount = await cards.count();
+    if (currentCount === 0) break;
+
+    const tripCard = cards.first();
+    const isVisible = await tripCard.isVisible().catch(() => false);
+    if (!isVisible) break;
+
+    // Set up dialog handler for confirm dialog
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+
+    // Try to click delete button
+    const deleteBtn = tripCard.locator('.delete-btn').first();
+    const deleteBtnVisible = await deleteBtn.isVisible().catch(() => false);
+    if (deleteBtnVisible) {
+      await deleteBtn.click();
+      // Wait for deletion to process
+      await page.waitForTimeout(500);
+    } else {
+      // Fallback: find delete by text in parent
+      const parent = tripCard.locator('..');
+      const deleteInParent = parent.getByText('Eliminar').first();
+      const deleteVisible = await deleteInParent.isVisible().catch(() => false);
+      if (deleteVisible) {
+        await deleteInParent.click();
+        await page.waitForTimeout(500);
+      }
+    }
+  }
+}

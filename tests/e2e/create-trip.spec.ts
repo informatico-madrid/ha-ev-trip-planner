@@ -9,11 +9,12 @@
  * form interaction, and validation of the created trip in the list.
  */
 import { test, expect, type Page } from '@playwright/test';
-import { navigateToPanel, deleteTestTrip, setupAlertHandler } from './trips-helpers';
+import { navigateToPanel, deleteTestTrip, setupAlertHandler, cleanupTestTrips } from './trips-helpers';
 
 test.describe('Create Trip', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await navigateToPanel(page);
+    await cleanupTestTrips(page);
   });
 
   test('should create a new puntual trip with valid data', async ({ page }: { page: Page }) => {
@@ -39,8 +40,8 @@ test.describe('Create Trip', () => {
 
     // Step 6: Verify the trip appears in the trips list
     await expect(page.getByText('Test Commute Puntual')).toBeVisible();
-    await expect(page.getByText('50')).toBeVisible();
-    await expect(page.getByText('15')).toBeVisible();
+    await expect(page.getByText('50 km')).toBeVisible();
+    await expect(page.getByText('15 kWh')).toBeVisible();
 
     // Step 7: Verify trip type badge shows "Puntual"
     await expect(page.getByText('Puntual').first()).toBeVisible();
@@ -78,7 +79,8 @@ test.describe('Create Trip', () => {
 
     // Step 8: Verify the trip appears in the trips list
     await expect(page.getByText('Test Commute Recurrente')).toBeVisible();
-    await expect(page.getByText('25')).toBeVisible();
+    await expect(page.getByText('25 km')).toBeVisible();
+    await expect(page.getByText('5 kWh')).toBeVisible();
 
     // Step 9: Verify trip type badge shows "Recurrente"
     await expect(page.getByText('Recurrente').first()).toBeVisible();

@@ -13,11 +13,12 @@
  * Expected success alert: "✅ Viaje eliminado"
  */
 import { test, expect, type Page } from '@playwright/test';
-import { createTestTrip, navigateToPanel, setupDialogHandler } from './trips-helpers';
+import { createTestTrip, navigateToPanel, setupDialogHandler, cleanupTestTrips } from './trips-helpers';
 
 test.describe('Delete Trip', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await navigateToPanel(page);
+    await cleanupTestTrips(page);
   });
 
   test('should delete an existing puntual trip', async ({ page }: { page: Page }) => {

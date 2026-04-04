@@ -11,11 +11,12 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { createTestTrip, navigateToPanel, deleteTestTrip, setupAlertHandler } from './trips-helpers';
+import { createTestTrip, navigateToPanel, deleteTestTrip, setupAlertHandler, cleanupTestTrips } from './trips-helpers';
 
 test.describe('Edit Trip', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await navigateToPanel(page);
+    await cleanupTestTrips(page);
   });
 
   test('should edit an existing recurrente trip', async ({ page }: { page: Page }) => {
@@ -56,7 +57,7 @@ test.describe('Edit Trip', () => {
 
     // Step 9: Verify the trip card shows updated values
     await expect(page.getByText('Updated Recurrente Route')).toBeVisible();
-    await expect(page.getByText('35')).toBeVisible();
+    await expect(page.getByText('35 km')).toBeVisible();
 
     // Step 10: Clean up
     await deleteTestTrip(page, '2026-04-07T09:00-Updated Recurrente Route');
@@ -96,8 +97,8 @@ test.describe('Edit Trip', () => {
     expect(alertMsg).toContain('Viaje actualizado exitosamente');
 
     // Step 8: Verify updated values
-    await expect(page.getByText('45')).toBeVisible();
-    await expect(page.getByText('14')).toBeVisible();
+    await expect(page.getByText('45 km')).toBeVisible();
+    await expect(page.getByText('14 kWh')).toBeVisible();
 
     // Step 9: Clean up
     await deleteTestTrip(page, '2026-04-20T14:00-Puntual Edit Test');
