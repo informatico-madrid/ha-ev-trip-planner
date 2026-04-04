@@ -131,14 +131,14 @@
 
 ## Phase 2: Additional Testing
 
-- [ ] 2.1 [TEST] Integration test: full unload cycle cleans all entities
+- [x] 2.1 [TEST] Integration test: full unload cycle cleans all entities
   - **Do**: Write integration test in `tests/test_integration_uninstall.py` that creates an EMHASSAdapter with published sensors, calls `async_unload_entry`, and verifies `hass.states.async_remove` was called for all published entity ids
   - **Files**: `tests/test_integration_uninstall.py`
   - **Done when**: Test passes
   - **Verify**: `.venv/bin/pytest tests/test_integration_uninstall.py -v -k "full_unload"`
   - **Commit**: `test(integration): add full unload cycle test`
 
-- [ ] 2.2 [TEST] Test: multiple vehicles - deleting one does not affect another
+- [x] 2.2 [TEST] Test: multiple vehicles - deleting one does not affect another
   - **Do**: Write test in `tests/test_emhass_adapter.py` with two EMHASSAdapter instances, cleanup one, verify the other's entities are not removed
   - **Files**: `tests/test_emhass_adapter.py`
   - **Done when**: Test passes
