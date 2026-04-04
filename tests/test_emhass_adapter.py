@@ -1868,3 +1868,73 @@ async def test_async_cleanup_vehicle_indices_calls_async_remove(hass: HomeAssist
 
     # FR-1: _published_entity_ids should be cleared after cleanup
     assert len(adapter._published_entity_ids) == 0
+
+
+@pytest.mark.asyncio
+async def test_multiple_vehicles_cleanup_isolation(hass: HomeAssistant, mock_store):
+    """Test that cleaning up one vehicle does not affect another vehicle's entities.
+
+    When async_cleanup_vehicle_indices is called on vehicle A's adapter,
+    vehicle B's adapter's entities must NOT be removed.
+    This verifies the duplicate EMHASS sensor bug is fixed.
+    """
+    # Create adapter for vehicle A
+    config_a = {
+        CONF_VEHICLE_NAME: "vehicle_a",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create adapter for vehicle B
+    config_b = {
+        CONF_VEHICLE_NAME: "vehicle_b",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter_a = EMHASSAdapter(hass, config_a)
+        adapter_b = EMHASSAdapter(hass, config_b)
+        await adapter_a.async_load()
+        await adapter_b.async_load()
+
+    # Pre-populate vehicle A's published entities
+    adapter_a._published_entity_ids = {
+        f"sensor.emhass_perfil_diferible_{adapter_a.entry_id}",
+        "sensor.emhass_deferrable_load_config_0",
+    }
+    adapter_a._index_map = {"trip_a001": 0}
+
+    # Pre-populate vehicle B's published entities
+    adapter_b._published_entity_ids = {
+        f"sensor.emhass_perfil_diferible_{adapter_b.entry_id}",
+        "sensor.emhass_deferrable_load_config_10",
+    }
+    adapter_b._index_map = {"trip_b001": 10}
+
+    # Spy on async_remove to track which entities are removed
+    async_remove_spy = AsyncMock()
+    hass.states.async_remove = async_remove_spy
+
+    # Clean up vehicle A only
+    await adapter_a.async_cleanup_vehicle_indices()
+
+    # Vehicle A's entities should be removed (main + 1 config)
+    assert async_remove_spy.call_count == 2
+
+    # Vehicle B's entities should NOT have been removed
+    # Check that async_remove was NOT called with vehicle B's main sensor
+    vehicle_b_main_sensor = f"sensor.emhass_perfil_diferible_{adapter_b.entry_id}"
+    vehicle_b_config_sensor = "sensor.emhass_deferrable_load_config_10"
+
+    # Verify vehicle B's main sensor was NOT called
+    for call in async_remove_spy.call_args_list:
+        assert call[0][0] != vehicle_b_main_sensor, \
+            f"Vehicle B's main sensor {vehicle_b_main_sensor} should NOT be removed when cleaning up vehicle A"
+        assert call[0][0] != vehicle_b_config_sensor, \
+            f"Vehicle B's config sensor {vehicle_b_config_sensor} should NOT be removed when cleaning up vehicle A"
+
+    # Verify vehicle A was cleaned up
+    assert len(adapter_a._published_entity_ids) == 0
+    # Verify vehicle B was NOT touched
+    assert len(adapter_b._published_entity_ids) == 2
