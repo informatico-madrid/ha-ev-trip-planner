@@ -47,7 +47,7 @@ jobs:
       run: |
         echo "Waiting for HA API..."
         for i in $(seq 1 40); do
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null) || STATUS=""
           if [ "$STATUS" = "401" ] || [ "$STATUS" = "200" ]; then
             echo "HA API ready (status $STATUS) after ${i}x3s"
             exit 0
