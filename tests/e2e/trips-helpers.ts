@@ -14,8 +14,14 @@ const PANEL_URL = '/ev-trip-planner-test_vehicle';
 export async function navigateToPanel(page: Page): Promise<Page> {
   await page.goto(PANEL_URL);
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
-  // In CI, the panel may take longer to render the button. Use 60s timeout.
-  await page.getByRole('button', { name: '+ Agregar Viaje' }).waitFor({ state: 'visible', timeout: 60_000 });
+
+  // Wait for the custom element to upgrade and render (CI may be slow)
+  // Use both the CSS class locator (more specific) and scroll it into view first
+  const addButton = page.locator('.add-trip-btn');
+  await addButton.scrollIntoViewIfNeeded();
+  await addButton.waitFor({ state: 'attached', timeout: 30_000 });
+  await addButton.waitFor({ state: 'visible', timeout: 60_000 });
+
   return page;
 }
 
