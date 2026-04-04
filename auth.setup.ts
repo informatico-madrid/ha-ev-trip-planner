@@ -53,6 +53,36 @@ async function waitForHA(): Promise<void> {
 }
 
 /**
+ * Wait for a specific entity to appear in HA's state machine.
+ * This is needed because input_booleans defined in configuration.yaml may take
+ * some time to register after HA starts, especially in CI environments.
+ */
+async function waitForEntity(entityId: string, timeoutMs = 30_000): Promise<void> {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const response = await fetch(`${HA_URL}/api/states`, {
+        headers: { Authorization: `Bearer ${await getAccessToken()}` },
+      });
+      if (response.ok) {
+        const states = await response.json() as Array<{ entity_id: string }>;
+        if (states.some((s) => s.entity_id === entityId)) {
+          console.log(`[auth.setup] Entity "${entityId}" is available in HA`);
+          return;
+        }
+      }
+    } catch {
+      // Entity check failed, keep polling
+    }
+    console.log(`[auth.setup] Entity "${entityId}" not yet available, waiting...`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  throw new Error(`[auth.setup] Timeout waiting for entity "${entityId}" to appear in HA`);
+}
+
+/**
  * Complete HA first-run onboarding if needed (creates dev/dev user).
  * Safe to call when already onboarded — detects and skips.
  */
@@ -282,6 +312,10 @@ async function globalSetup(): Promise<void> {
 
   // Get REST token to manage integration setup
   const token = await getAccessToken();
+
+  // Wait for input_boolean.test_ev_charging to be available in HA
+  // (it may take a few seconds after HA starts to register)
+  await waitForEntity('input_boolean.test_ev_charging', 30_000);
 
   // Set up the integration only if not already done
   if (await isIntegrationSetUp(token)) {
