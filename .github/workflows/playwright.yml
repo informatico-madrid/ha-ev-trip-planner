@@ -24,6 +24,11 @@ jobs:
     - name: Install Playwright Chromium
       run: npx playwright install chromium --with-deps
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
     - name: Install Python & Home Assistant
       run: |
         python3 -m pip install --upgrade pip
