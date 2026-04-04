@@ -403,6 +403,30 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
 
+async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
+    """Clean up orphaned EMHASS state-based sensors from deleted integrations.
+
+    This scans for sensors whose entry_id attribute is not in the current
+    active config entries and removes them to prevent orphaned sensors.
+    """
+    try:
+        all_entries = hass.config_entries.async_entries(DOMAIN)
+        active_entry_ids = {e.entry_id for e in all_entries}
+        # Scan for orphaned sensors
+        for state in await hass.states.async_all():
+            if state.entity_id.startswith("sensor.emhass_perfil_diferible_"):
+                sensor_entry_id = state.attributes.get("entry_id")
+                if sensor_entry_id and sensor_entry_id not in active_entry_ids:
+                    await hass.states.async_remove(state.entity_id)
+                    _LOGGER.warning(
+                        "Removed orphaned EMHASS sensor %s (stale entry_id %s)",
+                        state.entity_id,
+                        sensor_entry_id,
+                    )
+    except Exception as ex:
+        _LOGGER.warning("Startup orphan cleanup failed: %s", ex)
+
+
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the EV Trip Planner component."""
     return True
@@ -518,22 +542,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     # Clean up orphaned EMHASS state-based sensors from deleted integrations
-    try:
-        all_entries = hass.config_entries.async_entries(DOMAIN)
-        active_entry_ids = {e.entry_id for e in all_entries}
-        # Scan for orphaned sensors
-        for state in await hass.states.async_all():
-            if state.entity_id.startswith("sensor.emhass_perfil_diferible_"):
-                sensor_entry_id = state.attributes.get("entry_id")
-                if sensor_entry_id and sensor_entry_id not in active_entry_ids:
-                    await hass.states.async_remove(state.entity_id)
-                    _LOGGER.warning(
-                        "Removed orphaned EMHASS sensor %s (stale entry_id %s)",
-                        state.entity_id,
-                        sensor_entry_id,
-                    )
-    except Exception as ex:
-        _LOGGER.warning("Startup orphan cleanup failed: %s", ex)
+    await async_cleanup_orphaned_emhass_sensors(hass)
 
     # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
