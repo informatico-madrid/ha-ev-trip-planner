@@ -517,6 +517,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             cleanup_err,
         )
 
+    # Clean up orphaned EMHASS state-based sensors from deleted integrations
+    try:
+        all_entries = hass.config_entries.async_entries(DOMAIN)
+        active_entry_ids = {e.entry_id for e in all_entries}
+        # Scan for orphaned sensors
+        for state in await hass.states.async_all():
+            if state.entity_id.startswith("sensor.emhass_perfil_diferible_"):
+                sensor_entry_id = state.attributes.get("entry_id")
+                if sensor_entry_id and sensor_entry_id not in active_entry_ids:
+                    await hass.states.async_remove(state.entity_id)
+                    _LOGGER.warning(
+                        "Removed orphaned EMHASS sensor %s (stale entry_id %s)",
+                        state.entity_id,
+                        sensor_entry_id,
+                    )
+    except Exception as ex:
+        _LOGGER.warning("Startup orphan cleanup failed: %s", ex)
+
     # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
     hass.data.setdefault(DATA_RUNTIME, {})

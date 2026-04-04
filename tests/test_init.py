@@ -1,7 +1,8 @@
 """Tests for EV Trip Planner integration __init__.py."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, mock_open
+from pathlib import Path
+from unittest.mock import Mock, AsyncMock, MagicMock, PropertyMock, patch, mock_open
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.dashboard import (
@@ -22,6 +23,7 @@ def mock_hass():
     """Create mock Home Assistant instance."""
     hass = Mock(spec=HomeAssistant)
     hass.config = Mock()
+    hass.config.config_dir = Path("/config")
     hass.config.components = []
     hass.services = Mock()
     hass.services.has_service = Mock(return_value=False)
@@ -32,6 +34,7 @@ def mock_hass():
         """Mock executor job that runs function synchronously."""
         return func(*args)
     hass.async_add_executor_job = mock_executor_job
+    hass.loop = Mock()
 
     return hass
 
@@ -718,6 +721,7 @@ class TestStartupOrphanCleanup:
             "vehicle_name": "Test Vehicle",
         }
         entry.entry_id = "active_entry_id"
+        entry.config_entry = entry
 
         # Mock config_entries.async_entries to return only the active entry
         active_entries = [entry]
@@ -727,17 +731,17 @@ class TestStartupOrphanCleanup:
         # Create orphaned sensor states (entry_id not in active entries)
         orphaned_sensor = Mock()
         orphaned_sensor.entity_id = "sensor.emhass_perfil_diferible_stale_vehicle"
-        orphaned_sensor.extra_state_attributes = {"entry_id": "deleted_entry_id"}
+        orphaned_sensor.attributes = {"entry_id": "deleted_entry_id"}
 
         # Create active sensor states (entry_id in active entries)
         active_sensor = Mock()
         active_sensor.entity_id = "sensor.emhass_perfil_diferible_test_vehicle"
-        active_sensor.extra_state_attributes = {"entry_id": "active_entry_id"}
+        active_sensor.attributes = {"entry_id": "active_entry_id"}
 
         # Create sensor without entry_id attribute (should be preserved)
         no_entry_id_sensor = Mock()
         no_entry_id_sensor.entity_id = "sensor.other_sensor"
-        no_entry_id_sensor.extra_state_attributes = {}
+        no_entry_id_sensor.attributes = {}
 
         # Mock hass.states.async_all to return all sensors
         mock_hass.states = Mock()
@@ -762,10 +766,22 @@ class TestStartupOrphanCleanup:
         with patch(
             "custom_components.ev_trip_planner.async_unregister_panel",
             new_callable=AsyncMock,
-        ) as mock_unregister:
+        ) as mock_unregister, \
+        patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator.async_config_entry_first_refresh",
+            new_callable=AsyncMock,
+        ) as mock_refresh, \
+        patch("custom_components.ev_trip_planner.TripManager") as mock_tm:
             mock_unregister.return_value = True
+            mock_refresh.return_value = None
+            mock_tm_instance = MagicMock()
+            mock_tm_instance.async_setup = AsyncMock(return_value=True)
+            mock_tm.side_effect = lambda *args, **kwargs: mock_tm_instance
 
-            # Import and call async_setup_entry
+            # Re-import to get patched version
+            import importlib
+            import custom_components.ev_trip_planner
+            importlib.reload(custom_components.ev_trip_planner)
             from custom_components.ev_trip_planner import async_setup_entry
 
             result = await async_setup_entry(mock_hass, entry)
@@ -802,6 +818,7 @@ class TestStartupOrphanCleanup:
             "vehicle_name": "Test Vehicle",
         }
         entry.entry_id = "test_entry_id"
+        entry.config_entry = entry
 
         # Mock config_entries.async_entries to return the active entry
         mock_hass.config_entries = Mock()
@@ -810,7 +827,7 @@ class TestStartupOrphanCleanup:
         # Create sensor with matching entry_id
         active_sensor = Mock()
         active_sensor.entity_id = "sensor.emhass_perfil_diferible_test_vehicle"
-        active_sensor.extra_state_attributes = {"entry_id": "test_entry_id"}
+        active_sensor.attributes = {"entry_id": "test_entry_id"}
 
         # Mock hass.states.async_all to return the active sensor
         mock_hass.states = Mock()
@@ -833,8 +850,19 @@ class TestStartupOrphanCleanup:
         with patch(
             "custom_components.ev_trip_planner.async_unregister_panel",
             new_callable=AsyncMock,
-        ) as mock_unregister:
+        ) as mock_unregister, \
+        patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator.async_config_entry_first_refresh",
+            new_callable=AsyncMock,
+        ) as mock_refresh, \
+        patch("homeassistant.helpers.storage.Store") as mock_store:
             mock_unregister.return_value = True
+            mock_refresh.return_value = None
+            # Patch Store at class level to set async_load
+            mock_store.async_load = AsyncMock(return_value={})
+            mock_store_instance = MagicMock()
+            mock_store_instance.path = Path("/config/.storage/ev_trip_planner_test_vehicle")
+            mock_store.return_value = mock_store_instance
 
             # Import and call async_setup_entry
             from custom_components.ev_trip_planner import async_setup_entry
