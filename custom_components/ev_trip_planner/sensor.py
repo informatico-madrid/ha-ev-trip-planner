@@ -216,6 +216,7 @@ class RecurringTripsCountSensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             trip_manager = MagicMock()
             trip_manager.hass = MagicMock()
@@ -254,6 +255,7 @@ class PunctualTripsCountSensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             trip_manager = MagicMock()
             trip_manager.hass = MagicMock()
@@ -289,7 +291,7 @@ class TripsListSensor(TripPlannerSensor):
     def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
         """Initialize sensor."""
         self._coordinator = coordinator
-        trip_manager = getattr(coordinator, "trip_manager", coordinator)
+        trip_manager: Any = getattr(coordinator, "trip_manager", coordinator)
         super().__init__(trip_manager.hass, trip_manager, "trips_list")
         self._attr_name = f"{vehicle_id} trips list"
         self._vehicle_id = vehicle_id
@@ -325,6 +327,7 @@ class KwhTodaySensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             # Create a minimal trip_manager stub for initialization
             trip_manager = MagicMock()
@@ -366,6 +369,7 @@ class HoursTodaySensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             trip_manager = MagicMock()
             trip_manager.hass = MagicMock()
@@ -405,6 +409,7 @@ class NextTripSensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             trip_manager = MagicMock()
             trip_manager.hass = MagicMock()
@@ -455,6 +460,7 @@ class NextDeadlineSensor(TripPlannerSensor):
         self._vehicle_id = vehicle_id
 
         # Handle coordinator=None gracefully
+        trip_manager: Any = None
         if coordinator is None:
             trip_manager = MagicMock()
             trip_manager.hass = MagicMock()
@@ -1025,7 +1031,8 @@ async def async_create_trip_sensor(
     Returns:
         True if sensor was created successfully.
     """
-    from . import DATA_RUNTIME, DOMAIN
+    from . import DATA_RUNTIME
+    from .const import DOMAIN
 
     trip_id = trip_data.get("id")
     trip_type = trip_data.get("tipo", "recurrente")
@@ -1071,7 +1078,8 @@ async def async_update_trip_sensor(
     Returns:
         True if sensor was updated successfully.
     """
-    from . import DATA_RUNTIME, DOMAIN
+    from . import DATA_RUNTIME
+    from .const import DOMAIN
 
     trip_id = trip_data.get("id")
 
@@ -1136,7 +1144,8 @@ async def async_remove_trip_sensor(
     Returns:
         True if sensor was removed successfully.
     """
-    from . import DATA_RUNTIME, DOMAIN
+    from . import DATA_RUNTIME
+    from .const import DOMAIN
 
     _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
 

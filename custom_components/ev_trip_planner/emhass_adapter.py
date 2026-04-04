@@ -563,7 +563,7 @@ class EMHASSAdapter:
             - emhass_response_sensors: List of available EMHASS response sensors
             - errors: List of any issues found
         """
-        result = {
+        result: Dict[str, Any] = {
             "is_configured": False,
             "deferrable_sensor_exists": False,
             "deferrable_sensor_has_data": False,
@@ -657,7 +657,7 @@ class EMHASSAdapter:
             - missing_trips: List of trip IDs not found
             - sensor_values: Current values from EMHASS sensors
         """
-        result = {
+        result: Dict[str, Any] = {
             "all_trips_verified": False,
             "verified_trips": [],
             "missing_trips": [],

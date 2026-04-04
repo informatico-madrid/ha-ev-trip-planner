@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-03T18:54:10Z",
+  "updated": "2026-04-04T17:46:23Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 20,
+      "specsCount": 21,
       "isDefault": true
     }
   ],
@@ -147,8 +147,15 @@
       "name": "e2e-trip-crud",
       "path": "./specs/e2e-trip-crud",
       "phase": "tasks",
+      "taskIndex": 48,
+      "totalTasks": 52
+    },
+    {
+      "name": "duplicate-emhass-sensor-fix",
+      "path": "./specs/duplicate-emhass-sensor-fix",
+      "phase": "tasks",
       "taskIndex": 0,
-      "totalTasks": 52,
+      "totalTasks": 11,
       "awaitingApproval": true
     }
   ]

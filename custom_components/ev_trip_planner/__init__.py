@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -25,7 +25,7 @@ from .panel import async_unregister_panel
 from .trip_manager import TripManager
 
 # Type aliases for cleaner signatures
-CoordinatorType = DataUpdateCoordinator
+CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -568,7 +568,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     panel_css_path = component_dir / "frontend" / "panel.css"
     lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
 
-    static_paths: list = []
+    static_paths: list[Any] = []
     if panel_js_path.exists():
         static_paths.append(
             StaticPathConfig(
@@ -1084,9 +1084,8 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        await async_create_trip_sensor(
-                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
-                        )
+                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)
                     break
@@ -1100,9 +1099,8 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        await async_create_trip_sensor(
-                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
-                        )
+                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)
                     break
@@ -1184,7 +1182,8 @@ def register_services(hass: HomeAssistant) -> None:
 
             for trip in trips:
                 if str(trip.get("id")) == trip_id:
-                    await async_update_trip_sensor(hass, entry.entry_id, trip_id, trip)
+                    trip_data = {**trip, "id": trip_id}
+                    await async_update_trip_sensor(hass, entry.entry_id, trip_data)
                     break
         except Exception as err:  # pragma: no cover
             _LOGGER.warning("Failed to update trip sensor: %s", err)
@@ -1440,7 +1439,7 @@ def register_services(hass: HomeAssistant) -> None:
         await _ensure_setup(mgr)
 
         clear_existing = bool(data.get("clear_existing", True))
-        pattern: dict = dict(data["pattern"])  # type: ignore[assignment]
+        pattern: dict[str, Any] = dict(data["pattern"])
 
         if clear_existing:
             try:
@@ -1463,7 +1462,7 @@ def register_services(hass: HomeAssistant) -> None:
                     descripcion=str(item.get("descripcion", "")),
                 )
 
-    async def handle_trip_list(call: ServiceCall) -> dict:
+    async def handle_trip_list(call: ServiceCall) -> dict[str, Any]:
         """Handle listing all trips for a vehicle.
 
         Returns both recurring and punctual trips in a single list.
@@ -1592,7 +1591,7 @@ def register_services(hass: HomeAssistant) -> None:
         }
     )
 
-    async def handle_trip_get(call: ServiceCall) -> dict:
+    async def handle_trip_get(call: ServiceCall) -> dict[str, Any]:
         """Handle getting a single trip by ID.
 
         Returns the trip data for a specific trip_id.

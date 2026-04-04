@@ -120,7 +120,7 @@
   - **Commit**: `feat(init): green - add startup orphan cleanup`
   - _Requirements: FR-4, FR-5, AC-3.1, AC-3.2, AC-3.3, AC-3.4_
 
-- [ ] V1 [VERIFY] Quality check: lint and type check pass
+- [x] V1 [VERIFY] Quality check: lint and type check pass
   - **Do**: Run `pylint custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/__init__.py --disable=all --enable=E,F` and `mypy custom_components/ev_trip_planner` (or project equivalents)
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`, `custom_components/ev_trip_planner/sensor.py`, `custom_components/ev_trip_planner/__init__.py`
   - **Verify**: Commands exit 0
@@ -149,14 +149,14 @@
 
 ## Phase 3: Quality Gates
 
-- [ ] V2 [VERIFY] Full test suite: all existing tests pass
+- [x] V2 [VERIFY] Full test suite: all existing tests pass
   - **Do**: Run `.venv/bin/pytest tests/test_emhass_adapter.py tests/test_sensor.py tests/test_init.py tests/test_integration_uninstall.py -v`
   - **Files**: `tests/test_emhass_adapter.py`, `tests/test_sensor.py`, `tests/test_init.py`, `tests/test_integration_uninstall.py`
   - **Verify**: All tests pass with exit code 0
   - **Done when**: Full test suite green
   - **Commit**: `chore(duplicate-emhass-sensor-fix): pass full test suite`
 
-- [ ] V3 [VERIFY] Smoke test passes
+- [x] V3 [VERIFY] Smoke test passes
   - **Do**: Run `npm test` (if available) or verify project-specific smoke test
   - **Files**: N/A (verification only)
   - **Verify**: Exit code 0
@@ -167,7 +167,7 @@
 
 ## Phase 4: PR Lifecycle
 
-- [ ] VF [VERIFY] Goal verification: original bug is fixed
+- [x] VF [VERIFY] Goal verification: original bug is fixed
   - **Do**:
     1. Read BEFORE state from .progress.md
     2. Re-run test_integration_uninstall.py to confirm cleanup is now called
