@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug lint mypy format check clean htmlcov
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug lint mypy format check clean htmlcov
 
 help:
 	@echo "Comandos disponibles:"
@@ -9,6 +9,9 @@ help:
 	@echo "  make test-e2e        - Ejecutar tests E2E (requiere HA en localhost:8123)"
 	@echo "  make test-e2e-headed - Ejecutar tests E2E con navegador visible"
 	@echo "  make test-e2e-debug  - Ejecutar tests E2E en modo debug (inspector Playwright)"
+	@echo "  make e2e             - Arrancar HA si es necesario y ejecutar E2E (automático)"
+	@echo "  make e2e-headed      - Igual que e2e pero con navegador visible"
+	@echo "  make e2e-debug       - Igual que e2e pero en modo debug"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
 	@echo "  make format          - Formatear código con black e isort"
@@ -39,6 +42,16 @@ test-e2e-headed:
 
 test-e2e-debug:
 	npx playwright test tests/e2e/ --workers=1 --debug
+
+# e2e targets: auto-setup HA if needed, then run tests
+e2e:
+	./scripts/run-e2e.sh
+
+e2e-headed:
+	./scripts/run-e2e.sh --headed
+
+e2e-debug:
+	./scripts/run-e2e.sh --debug
 
 lint:
 	ruff check .
