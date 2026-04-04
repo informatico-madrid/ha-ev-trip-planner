@@ -2,17 +2,24 @@
 # Loads default set of integrations. Do not remove.
 default_config:
 
-# Load frontend themes from the themes folder
-frontend:
-  themes: !include_dir_merge_named themes
+http:
+  server_host: 0.0.0.0
+  server_port: 8123
 
-automation: !include automations.yaml
-script: !include scripts.yaml
-scene: !include scenes.yaml
+homeassistant:
+  auth_providers:
+    - type: trusted_networks
+      trusted_networks:
+        - 127.0.0.1
+        - 172.17.0.0/16
+        - 192.168.1.0/24
+        - ::1
+      allow_bypass_login: true
+    - type: homeassistant
 
-auth_providers:
-  - type: trusted_networks
-    trusted_networks:
-      - 127.0.0.1
-      - 172.17.0.0/16
-    allow_bypass_login: true
+# Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
+input_boolean:
+  test_ev_charging:
+    name: "EV Charging Test"
+    initial: false
+

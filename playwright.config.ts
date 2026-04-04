@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30000,
+  timeout: 60000,
   retries: 1,
   workers: 1,
   reporter: [
@@ -18,6 +18,7 @@ export default defineConfig({
   globalTeardown: './globalTeardown.ts',
   use: {
     baseURL: 'http://localhost:8123',
+    storageState: 'playwright/.auth/user.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

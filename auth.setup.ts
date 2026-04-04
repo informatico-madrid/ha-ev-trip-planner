@@ -7,46 +7,44 @@
  *
  * WHAT IT DOES:
  * 1. Waits for Home Assistant to be fully started and reachable at http://localhost:8123
- * 2. Bypasses authentication using the trusted_networks auth provider (no login form needed)
- * 3. Runs the EV Trip Planner Config Flow to set up the integration with default test values
+ * 2. Sets up the EV Trip Planner integration via REST API (if not already present)
+ * 3. Authenticates via trusted_networks auth provider (no login form needed)
  * 4. Saves the authenticated browser state to playwright/.auth/user.json so tests reuse it
  *
  * TRUSTED_NETWORKS BYPASS MECHANISM:
- * Home Assistant supports a trusted_networks auth provider that allows login without credentials
- * when the requesting IP is in the trusted_networks list (e.g., 127.0.0.1, 172.17.0.0/16 in Docker).
- * When the browser navigates to the HA root URL, HA automatically redirects to /home if the
- * incoming IP is trusted — no login form is presented. This is the ONLY permitted entry point
- * per the HA SPA routing pattern (never use page.goto() to navigate directly to internal panels).
+ * HA trusted_networks auto-logs-in requests from 127.0.0.1 / 172.17.0.0/16.
+ * After navigating to the HA root, HA auto-redirects through the auth flow and lands
+ * on /lovelace/0 (the default dashboard). Tests can then navigate to any panel.
  *
- * CONFIG FLOW STEPS (5 steps total):
- * - Step 1 (async_step_user): Vehicle name configuration
- * - Step 2 (async_step_sensors): Battery and charging sensor parameters
- * - Step 3 (async_step_emhass): EMHASS energy management settings
- * - Step 4 (async_step_presence): Presence detection sensor selection
- * - Step 5 (async_step_notifications): Optional notification configuration
+ * CONFIG FLOW (5 steps via REST API):
+ * - Step 1 (user): vehicle_name = "test_vehicle"
+ * - Step 2 (sensors): battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20
+ * - Step 3 (emhass): planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24
+ * - Step 4 (presence): charging_sensor = "input_boolean.test_ev_charging"
+ * - Step 5 (notifications): empty (optional)
  */
 
-import { FullConfig, chromium } from '@playwright/test';
+import { chromium } from '@playwright/test';
 import * as fs from 'fs';
-import * as path from 'path';
 
 const HA_URL = 'http://localhost:8123';
 const HA_STARTUP_TIMEOUT_MS = 120_000;
 const AUTH_DIR = 'playwright/.auth';
 const AUTH_FILE = 'playwright/.auth/user.json';
 
+/** Wait for HA API to respond with 401 (authenticated) or 200 (public) */
 async function waitForHA(): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < HA_STARTUP_TIMEOUT_MS) {
     try {
-      const response = await fetch(HA_URL);
-      if (response.ok) {
-        console.log(`Home Assistant is ready at ${HA_URL}`);
+      const response = await fetch(`${HA_URL}/api/`);
+      if (response.status === 401 || response.status === 200) {
+        console.log(`[auth.setup] Home Assistant is ready (status ${response.status})`);
         return;
       }
-    } catch (error) {
-      console.error(`[auth.setup] HA connection failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch {
+      // HA not yet up, keep polling
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
@@ -54,7 +52,180 @@ async function waitForHA(): Promise<void> {
   throw new Error(`Home Assistant did not start within ${HA_STARTUP_TIMEOUT_MS}ms`);
 }
 
-async function globalSetup(config: FullConfig): Promise<void> {
+/**
+ * Complete HA first-run onboarding if needed (creates dev/dev user).
+ * Safe to call when already onboarded — detects and skips.
+ */
+async function ensureOnboarded(): Promise<void> {
+  const clientId = `${HA_URL}/`;
+
+  // Check if onboarding is needed
+  const resp = await fetch(`${HA_URL}/api/onboarding`);
+  if (!resp.ok) return; // If endpoint doesn't exist, already onboarded or not applicable
+
+  const steps = await resp.json() as Array<{ step: string; done: boolean }>;
+  const undone = steps.filter((s) => !s.done);
+  if (undone.length === 0) {
+    console.log('[auth.setup] HA already onboarded');
+    return;
+  }
+
+  console.log('[auth.setup] Completing HA first-run onboarding (user=dev, password=dev)...');
+
+  // Step 1: Create user
+  const userResp = await fetch(`${HA_URL}/api/onboarding/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      language: 'en',
+      name: 'Developer',
+      username: 'dev',
+      password: 'dev',
+    }),
+  });
+  const userData = await userResp.json() as { auth_code?: string };
+  if (!userData.auth_code) {
+    console.log('[auth.setup] Onboarding user step failed or already done');
+    return;
+  }
+
+  // Exchange auth code for token
+  const params = new URLSearchParams({
+    client_id: clientId,
+    code: userData.auth_code,
+    grant_type: 'authorization_code',
+  });
+  const tokenResp = await fetch(`${HA_URL}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  const tokenData = await tokenResp.json() as { access_token?: string };
+  if (!tokenData.access_token) return;
+
+  const token = tokenData.access_token;
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  const body = JSON.stringify({ client_id: clientId });
+
+  // Complete remaining onboarding steps
+  await fetch(`${HA_URL}/api/onboarding/core_config`, { method: 'POST', headers, body }).catch(() => {});
+  await fetch(`${HA_URL}/api/onboarding/analytics`, { method: 'POST', headers, body }).catch(() => {});
+  await fetch(`${HA_URL}/api/onboarding/integration`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ client_id: clientId, redirect_uri: `${HA_URL}/?auth_callback=1` }),
+  }).catch(() => {});
+
+  console.log('[auth.setup] Onboarding complete');
+}
+
+/** Get an access token using the homeassistant auth provider (dev/dev) */
+async function getAccessToken(): Promise<string> {
+  const clientId = `${HA_URL}/`;
+
+  // Start login flow
+  const flowResp = await fetch(`${HA_URL}/auth/login_flow`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      handler: ['homeassistant', null],
+      redirect_uri: `${HA_URL}/?auth_callback=1`,
+    }),
+  });
+  const flow = await flowResp.json() as { flow_id: string };
+
+  // Submit credentials
+  const credResp = await fetch(`${HA_URL}/auth/login_flow/${flow.flow_id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, username: 'dev', password: 'dev' }),
+  });
+  const cred = await credResp.json() as { result: string };
+
+  // Exchange code for token
+  const params = new URLSearchParams({
+    client_id: clientId,
+    code: cred.result,
+    grant_type: 'authorization_code',
+  });
+  const tokenResp = await fetch(`${HA_URL}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  const tokenData = await tokenResp.json() as { access_token: string };
+  return tokenData.access_token;
+}
+
+/** Check if ev_trip_planner integration is already configured */
+async function isIntegrationSetUp(token: string): Promise<boolean> {
+  const resp = await fetch(`${HA_URL}/api/config/config_entries/entry`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const entries = await resp.json() as Array<{ domain: string; title: string }>;
+  return entries.some((e) => e.domain === 'ev_trip_planner' && e.title === 'test_vehicle');
+}
+
+/** Set up the EV Trip Planner integration via config flow API */
+async function setupIntegration(token: string): Promise<void> {
+  console.log('[auth.setup] Setting up ev_trip_planner integration via REST API...');
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+  const post = async (url: string, body: object) => {
+    const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    return r.json();
+  };
+
+  // Start flow
+  const flow = await post(`${HA_URL}/api/config/config_entries/flow`, {
+    handler: 'ev_trip_planner',
+    show_advanced_options: false,
+  }) as { flow_id: string };
+  const flowId = flow.flow_id;
+
+  // Step 1: vehicle_name
+  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+    vehicle_name: 'test_vehicle',
+  });
+
+  // Step 2: sensors
+  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+    battery_capacity_kwh: 60,
+    charging_power_kw: 11,
+    kwh_per_km: 0.17,
+    safety_margin_percent: 20,
+  });
+
+  // Step 3: EMHASS (accept defaults)
+  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+    planning_horizon_days: 7,
+    max_deferrable_loads: 50,
+    index_cooldown_hours: 24,
+  });
+
+  // Step 4: Presence — use input_boolean.test_ev_charging (always available in test env)
+  await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
+    charging_sensor: 'input_boolean.test_ev_charging',
+  });
+
+  // Step 5: Notifications (optional — submit empty)
+  const result = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {}) as {
+    type: string;
+    title: string;
+  };
+
+  if (result.type !== 'create_entry') {
+    throw new Error(`[auth.setup] Integration setup failed: unexpected result type "${result.type}"`);
+  }
+
+  console.log(`[auth.setup] Integration "${result.title}" created successfully`);
+}
+
+async function globalSetup(): Promise<void> {
   console.log('[auth.setup] Waiting for Home Assistant to be ready...');
   await waitForHA();
 
@@ -63,191 +234,46 @@ async function globalSetup(config: FullConfig): Promise<void> {
     fs.mkdirSync(AUTH_DIR, { recursive: true });
   }
 
+  // Complete first-run onboarding if needed (creates dev/dev user)
+  await ensureOnboarded();
+
+  // Get REST token to manage integration setup
+  const token = await getAccessToken();
+
+  // Set up the integration only if not already done
+  if (await isIntegrationSetUp(token)) {
+    console.log('[auth.setup] ev_trip_planner integration already set up, skipping');
+  } else {
+    await setupIntegration(token);
+  }
+
   // ---------------------------------------------------------------------------
-  // TRUSTED_NETWORKS BYPASS
+  // TRUSTED_NETWORKS BYPASS — acquire browser session
   // ---------------------------------------------------------------------------
-  // Home Assistant's trusted_networks auth provider automatically logs in users
-  // from whitelisted IP ranges without presenting a login form. Since Playwright
-  // runs from localhost (127.0.0.1) or within the Docker network (172.17.0.0/16),
-  // HA recognizes the request as trusted and redirects directly to /home.
-  // This eliminates the need to handle OAuth or username/password credentials.
+  // Navigate to HA root from 127.0.0.1. Trusted_networks auto-logs in and
+  // redirects through the OAuth callback, landing on /lovelace/0.
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  // Navigate to HA root — this is the only allowed entry point per HA SPA pattern
-  // HA SPA routing requires going through the root URL; direct navigation to
-  // internal panels (e.g., /config/integrations) is not permitted by the router.
+  console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
   await page.goto(HA_URL);
-  await page.waitForURL('**/home/**', { timeout: 30_000 });
 
-  // Verify trusted_networks bypass worked: no login form should appear
-  const loginForm = page.getByRole('form').filter({ hasText: /login|sign in/i }).first();
-  if (await loginForm.isVisible().catch(() => false)) {
-    throw new Error('Login form appeared — trusted_networks bypass failed');
+  // HA redirects through auth and lands on lovelace or home — wait for either
+  await page.waitForURL(/\/(lovelace|home)/, { timeout: 30_000 });
+  console.log(`[auth.setup] Authenticated: URL is ${page.url()}`);
+
+  // Verify no login form appeared (trusted_networks bypassed it)
+  const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();
+  if (await loginForm.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
   }
 
-  // Navigate to integrations page via sidebar
-  console.log('[auth.setup] Navigating to integrations page via sidebar...');
-  await page.getByRole('link', { name: 'Integrations' }).click();
-  await page.waitForURL('**/config/integrations**', { timeout: 30_000 });
-  console.log('[auth.setup] Successfully navigated to integrations page');
+  // Wait for HA frontend to fully load (sidebar visible)
+  await page.locator('ha-sidebar, app-drawer-layout').first().waitFor({ state: 'visible', timeout: 30_000 });
+  console.log('[auth.setup] HA frontend loaded');
 
-  // Click "+ Add Integration" button to open integration search dialog
-  console.log('[auth.setup] Clicking Add Integration button...');
-  await page.getByRole('button', { name: /Add Integration/i }).click();
-  // Wait for integration search dialog to appear
-  await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 30_000 });
-  console.log('[auth.setup] Add Integration dialog opened successfully');
-
-  // Search for EV Trip Planner integration
-  console.log('[auth.setup] Searching for EV Trip Planner integration...');
-  const searchTextbox = page.getByRole('textbox', { name: /search/i });
-  await searchTextbox.waitFor({ state: 'visible', timeout: 30_000 });
-  await searchTextbox.fill('EV Trip Planner');
-  // Wait for search results to appear
-  await page.getByText('EV Trip Planner').first().waitFor({ state: 'visible', timeout: 30_000 });
-  console.log('[auth.setup] EV Trip Planner integration found in search results');
-
-  // Click on EV Trip Planner integration result to start Config Flow Step 1
-  console.log('[auth.setup] Clicking EV Trip Planner integration result...');
-  await page.getByText('EV Trip Planner').first().click();
-  // Wait for Step 1 form (async_step_user) to appear
-  await page.getByRole('textbox', { name: /vehicle_name/i }).waitFor({ state: 'visible', timeout: 30_000 });
-  console.log('[auth.setup] Config Flow Step 1 form appeared');
-
-  // ---------------------------------------------------------------------------
-  // CONFIG FLOW STEP 1: vehicle_name (async_step_user)
-  // ---------------------------------------------------------------------------
-  // The first step collects the vehicle identifier. This name is used throughout
-  // Home Assistant to identify the vehicle entity (e.g., sensor.ev_trip_planner_test_vehicle).
-  // Test value: "test_vehicle" — hardcoded for CI consistency across runs.
-  console.log('[auth.setup] Filling vehicle_name field with \'test_vehicle\'...');
-  await page.getByRole('textbox', { name: /vehicle_name/i }).fill('test_vehicle');
-
-  // Submit Step 1 via Next/Submit button
-  console.log('[auth.setup] Submitting Config Flow Step 1...');
-  await page.getByRole('button', { name: /next|submit/i }).click();
-
-  // Wait for Step 2 form (async_step_sensors) to appear
-  console.log('[auth.setup] Waiting for Config Flow Step 2 form (sensors)...');
-  await page.getByRole('textbox', { name: /battery_capacity_kwh/i }).waitFor({ state: 'visible', timeout: 30_000 });
-  console.log('[auth.setup] Config Flow Step 2 form appeared');
-
-  // ---------------------------------------------------------------------------
-  // CONFIG FLOW STEP 2: sensors (async_step_sensors)
-  // ---------------------------------------------------------------------------
-  // The second step configures battery and energy consumption parameters used for
-  // trip range calculations and charging planning.
-  // - battery_capacity_kwh: Total battery capacity in kilowatt-hours (test: 60 kWh)
-  // - charging_power_kw: Maximum charging power in kilowatts (test: 11 kW)
-  // - kwh_per_km: Energy consumption per kilometer (test: 0.17 kWh/km)
-  // - safety_margin_percent: Reserved battery buffer to avoid full depletion (test: 20%)
-  console.log('[auth.setup] Filling sensor fields...');
-  await page.getByRole('textbox', { name: /battery_capacity_kwh/i }).fill('60');
-  await page.getByRole('textbox', { name: /charging_power_kw/i }).fill('11');
-  await page.getByRole('textbox', { name: /kwh_per_km/i }).fill('0.17');
-  await page.getByRole('textbox', { name: /safety_margin_percent/i }).fill('20');
-  console.log('[auth.setup] Sensor fields filled: battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20');
-
-  // Submit Step 2 via Next/Submit button
-  console.log('[auth.setup] Submitting Config Flow Step 2...');
-  await page.getByRole('button', { name: /next|submit/i }).click();
-
-  // Wait for Step 3 form (async_step_emhass) to appear
-  console.log('[auth.setup] Waiting for Config Flow Step 3 form (emhass)...');
-  await page.getByRole('textbox', { name: /planning_horizon_days/i }).waitFor({ state: 'visible', timeout: 30_000 });
-  console.log('[auth.setup] Config Flow Step 3 form appeared');
-
-  // ---------------------------------------------------------------------------
-  // CONFIG FLOW STEP 3: emhass (async_step_emhass)
-  // ---------------------------------------------------------------------------
-  // The third step configures EMHASS (Energy Management Home Assistant System) settings
-  // for day-ahead energy planning and load deferral. All fields accept defaults.
-  // - planning_horizon_days: Days ahead to plan energy usage (default: 7)
-  // - max_deferrable_loads: Maximum number of deferrable loads (default: 50)
-  // - index_cooldown_hours: Cooldown period between deferrals in hours (default: 24)
-  // - planning_sensor: Optional sensor for external planning data (left empty)
-  console.log('[auth.setup] Accepting Step 3 default values: planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24');
-
-  // Submit Step 3 via Next/Submit button
-  console.log('[auth.setup] Submitting Config Flow Step 3...');
-  await page.getByRole('button', { name: /next|submit/i }).click();
-
-  // Wait for Step 4 form (async_step_presence) to appear
-  console.log('[auth.setup] Waiting for Config Flow Step 4 form (presence)...');
-  // The presence step has a charging_sensor entity selector
-  // Wait for either the entity selector or a text field related to presence
-  await page.waitForSelector('input, ha-entity-picker, ha-select', { timeout: 30_000 });
-  console.log('[auth.setup] Config Flow Step 4 form appeared');
-
-  // ---------------------------------------------------------------------------
-  // CONFIG FLOW STEP 4: presence (async_step_presence)
-  // ---------------------------------------------------------------------------
-  // The fourth step configures presence detection for home/away awareness.
-  // - charging_sensor: Entity that indicates whether the vehicle is charging.
-  //   This sensor is used to detect vehicle presence at home for load planning.
-  //   If no entity is selected, the server will auto-select based on entity naming conventions.
-  console.log('[auth.setup] Attempting to select charging_sensor entity...');
-  const entityPicker = page.locator('ha-entity-picker').first();
-  const entityPickerVisible = await entityPicker.isVisible().catch(() => false);
-
-  if (entityPickerVisible) {
-    // Open the entity picker dropdown
-    await entityPicker.click();
-    await page.waitForSelector('ha-list-item, .mdc-list-item, [data-entity]', { timeout: 10_000 }).catch(() => null);
-
-    // Try to find and select a charging-related entity
-    const listItems = page.locator('ha-list-item, .mdc-list-item, [data-entity]').first();
-    if (await listItems.isVisible().catch(() => false)) {
-      await listItems.click();
-      console.log('[auth.setup] Charging sensor entity selected');
-    } else {
-      console.log('[auth.setup] No charging sensor entities available - proceeding without selection (server-side auto-select)');
-    }
-  } else {
-    // If no entity picker found, check if there's a text input for charging_sensor
-    const textInput = page.getByRole('textbox', { name: /charging_sensor/i });
-    if (await textInput.isVisible().catch(() => false)) {
-      // Leave empty for server-side auto-select
-      console.log('[auth.setup] Charging sensor input found but empty - server will auto-select');
-    } else {
-      console.log('[auth.setup] No charging sensor field found - proceeding');
-    }
-  }
-
-  // Submit Step 4 via Next/Finish button
-  console.log('[auth.setup] Submitting Config Flow Step 4...');
-  await page.getByRole('button', { name: /next|finish|submit/i }).click();
-
-  // Wait for Step 5 form (async_step_notifications) to appear
-  console.log('[auth.setup] Waiting for Config Flow Step 5 form (notifications)...');
-  // The notifications step has optional fields: notification_service, notification_devices
-  // Wait for either a textbox or the form to be visible
-  await page.waitForSelector('textbox, ha-select, form', { timeout: 30_000 });
-  console.log('[auth.setup] Config Flow Step 5 form appeared');
-
-  // ---------------------------------------------------------------------------
-  // CONFIG FLOW STEP 5: notifications (async_step_notifications)
-  // ---------------------------------------------------------------------------
-  // The fifth and final step configures optional notifications for trip events.
-  // All fields are optional — if left empty, no notifications are sent.
-  // - notification_service: MQTT service to use for notifications (optional)
-  // - notification_devices: Device IDs to notify (optional)
-  console.log('[auth.setup] Leaving notification fields empty (optional)');
-
-  // Submit Step 5 via Finish button to complete Config Flow
-  console.log('[auth.setup] Submitting Config Flow Step 5 (Finish)...');
-  await page.getByRole('button', { name: /finish/i }).click();
-
-  // Wait for redirect after Config Flow completes (integration installed)
-  console.log('[auth.setup] Waiting for Config Flow to complete and redirect...');
-  await page.waitForURL('**/config/integrations**', { timeout: 30_000 });
-  console.log('[auth.setup] Config Flow completed successfully - integration installed');
-
-  // Save authenticated state for reuse in tests
-  // After storageState is saved, tests can use the authenticated session without
-  // re-running globalSetup, dramatically reducing test execution time.
+  // Save authenticated state for reuse in all tests
   await context.storageState({ path: AUTH_FILE });
   console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
 

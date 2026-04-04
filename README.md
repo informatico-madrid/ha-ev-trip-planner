@@ -23,11 +23,6 @@
 - [🗑️ Desinstalación](#️-desinstalación)
 - [🔧 Solución de Problemas](#-solución-de-problemas)
 - [📊 Desarrollo](#-desarrollo)
-  - [🤖 Agente ha-e2e-test-architect](#-agente-ha-e2e-test-architect)
-  - [🧩 Skills Externas (Opcionales)](#-skills-externas-opcionales)
-  - [📊 Valor de la Ventaja](#-valor-de-la-ventaja)
-  - [Documentación de Testing E2E](#documentación-de-testing-e2e)
-  - [Estructura del proyecto](#estructura-del-proyecto)
 
 ---
 
@@ -470,158 +465,7 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 
 ## 📊 Desarrollo
 
-### 🤖 Agente ha-e2e-test-architect
-
-Tu agente de testing E2E personal que **aprende y mejora continuamente**.
-
-#### ¿Qué hace tu agente?
-
-| Función | Cómo te ayuda | Ejemplo real |
-|---------|---------------|--------------|
-| **Detecta anti-patrones** | Identifica automáticamente código frágil | `waitForTimeout` → `expect().toBeVisible()` |
-| **Sugiere correcciones** | Aplica patterns conocidos sin que pidas | XPath → `getByRole` |
-| **Documenta lecciones** | Guarda automáticamente lo aprendido | `feedback_selectors.md` |
-| **Recuerra contextos** | No pierdes conocimiento entre sesiones | "getByRole('listitem') no funciona en HA" |
-
-#### Lo que tu agente ya sabe
-
-**Lecciones aprendidas (guardadas automáticamente):**
-- `feedback_verification.md` - Regla de verificación obligatoria
-- `feedback_selectors.md` - Lecciones sobre selectores
-- `scripts_location.md` - Dónde están los scripts
-- `skill_path.md` - Ruta correcta del SKILL.md
-
-#### Cómo usar tu agente de testing ha-e2e-test-architect
-
-**Cuando un test falla:**
-
-```typescript
-// ❌ Test falla con "locator timeout"
-await expect(page.getByRole('listitem', { name: /EV Trip Planner/i }))
-  .toBeVisible()
-
-// ✅ Tu agente detecta el problema y sugiere:
-// "getByRole('listitem') no funciona en Shadow DOM"
-// "Usar getByText en vez de getByRole('listitem')"
-
-// ✅ Tu agente aplica la corrección automáticamente:
-await expect(page.getByText('EV Trip Planner'))
-  .toBeVisible()
-```
-
-**Cuando necesitas debugging:**
-
-```bash
-# Tu agente sabe qué script usar
-# (solo pídeselo y te lo ejecuta)
-node ~/.agents/skills/ha-e2e-testing/scripts/inspect_dom.js http://127.0.0.1:8271/config/integrations
-
-# OUTPUT:
-# 🔒 Elementos con Shadow DOM (150):
-#    • <ha-list-item> role="listitem"
-#    • <generic> role="generic" (no listitem!)
-```
-
-**Cuando escribes tests nuevos:**
-
-```typescript
-// Tu agente recuerda patrones exitosos
-// y te sugiere correcciones automáticamente
-
-// ❌ Anti-patrón detectado
-await page.waitForTimeout(1000)
-
-// ✅ Tu agente sugiere:
-await expect(page.getByRole('button', { name: /Save/i }))
-  .toBeVisible({ timeout: 10000 })
-```
-
-## 📊 Valor Real
-
-**Antes del agente:**
-- Agente detecta y corrige anti-patrones
-- Autenticación configurada automáticamente
-- Patrones aplicados sin pensar
-
-**Lo más importante:** Tu agente **nunca olvida** las lecciones aprendidas. Cada test fallido se convierte en conocimiento persistente.
-
-## 🧩 Plugins y Skills Necesarias
-
-### 🤖 Agente Incluido en el Repositorio
-
-**Listo para usar !** Este proyecto incluye tu agente de testing E2E directamente en el repositorio:
-
-**Agente incluido:**
-- `.claude/agents/ha-e2e-test-architect.md` - Agente especializado en E2E testing para Home Assistant
-
-**Memorias incluidas (local):**
-- `.claude/agent-memory-local/ha-e2e-test-architect/MEMORY.md` - Índice de memorias
-- `.claude/agent-memory-local/ha-e2e-test-architect/feedback_selectors.md` - Lecciones sobre selectores
-- `.claude/agent-memory-local/ha-e2e-test-architect/feedback_verification.md` - Regla de verificación
-- `.claude/agent-memory-local/ha-e2e-test-architect/scripts_location.md` - Ubicación de scripts
-- `.claude/agent-memory-local/ha-e2e-test-architect/skill_path.md` - Ruta del SKILL.md
-
-**Nota sobre Engram:**
-El agente menciona herramientas Engram (`engram_*`), pero Engram es un plugin local instalado en `~/.claude/plugins/`. Las memorias en `.claude/agent-memory-local/` son archivos markdown locales que el agente puede leer, pero no usan el sistema Engram MCP.
-
-**Configuración incluida:**
-- `.claude/commands/*.md` - Comandos disponibles (speckit workflows)
-- `.claude/settings.local.json` - Configuración local (NO en git, se genera automáticamente)
-
-**Nota sobre settings.json:**
-`.claude/settings.json` contiene credenciales y configuración personal, por lo tanto ha sido eliminado del repositorio. Se genera automáticamente cuando configuras el agente localmente.
-
-### 🧩 Skills Externas (Opcionales)
-
-Las skills adicionales se instalan en tu configuración personal de Claude:
-
-**Skills recomendadas:**
-
-| Skill | Comando de instalación |
-|-------|----------------------|
-| **playwright-best-practices** | `git clone https://github.com/tu-usuario/playwright-best-practices.git ~/.agents/skills/` |
-| **home-assistant-best-practices** | `git clone https://github.com/tu-usuario/home-assistant-best-practices.git ~/.agents/skills/` |
-
-**Activar en settings.json:**
-
-```json
-{
-  "skills": {
-    "playwright-best-practices": true,
-    "home-assistant-best-practices": true
-  }
-}
-```
-
-**Nota:** Las skills son opcionales. El agente ha-e2e-test-architect.md incluido en el repositorio funciona con o sin ellas.
-
-### 📊 Valor de la Ventaja
-
-**¿Qué obtienes al clonar este repositorio?**
-
-1. ✅ **Agente ha-e2e-test-architect.md** - Especializado en E2E testing para Home Assistant
-2. ✅ **Memorias locales** - Lecciones aprendidas guardadas en archivos markdown
-3. ✅ **Comandos speckit** - workflows disponibles en `.claude/commands/`
-4. ✅ **Documentación técnica** - docs/ con patrones, debugging y guía completa
-5. ✅ **Lecciones aprendidas** - feedback_selectors.md, feedback_verification.md, etc.
-
-**Nota:** `.claude/settings.json` contiene credenciales personales y NO está en git. Se genera automáticamente cuando configuras el agente localmente.
-
-**¿Qué necesitas instalar adicionalmente (opcional)?**
-
-- Engram plugin - `npx skillhub@latest install engram` (opcional, para memoria MCP)
-- Skills externas (playwright-best-practices, home-assistant-best-practices) - opcionales
-- Scripts de testing (opcionalmente, disponibles en ~/.agents/skills/)
-
-**Resultado profesional:** Clona el repositorio y tu agente ya funciona con:
-- ✅ Conocimiento encapsulado en el agente
-- ✅ Memoria local (archivos markdown) - puedes ver y editar las lecciones
-- ✅ Patrones documentados - puedes replicar el workflow
-- ✅ Debugging especializado - scripts y herramientas incluidas
-
-**Diferencia clave:** A diferencia de otros proyectos que solo tienen código, este incluye tu **agente de testing especializado** y su **conocimiento acumulado**. Es como tener un QA senior documentado en el repositorio.
-
-**Nota sobre Engram:** Las herramientas Engram (`engram_*`) mencionadas en el agente requieren instalar el plugin Engram localmente. Si no lo instalas, el agente funcionará sin memoria persistente MCP, pero las memorias en `.claude/agent-memory-local/` seguirán siendo accesibles como archivos markdown.
+La guía completa de testing E2E está en [docs/TESTING_E2E.md](docs/TESTING_E2E.md).
 
 ### Estructura del proyecto
 
@@ -639,7 +483,6 @@ ha-ev-trip-planner/
 │   ├── test_sensors.py      # Tests sensores
 │   └── test_trip_manager.py # Tests manager
 ├── .github/workflows/
-│   ├── playwright.yml        # Playwright E2E tests
 │   └── python-tests.yml     # Python pytest tests
 ├── hacs.json                # Metadata HACS
 ├── manifest.json            # Metadata HA

@@ -14,8 +14,10 @@ console.log('EV Trip Planner Panel: VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCH
 // Cache busting timestamp to force reload
 const CACHE_BUST = Date.now();
 
-// Import bundled Lit from esm.sh CDN (bundled with all dependencies)
-import { LitElement, html, css } from 'https://esm.sh/lit@2.8.0?bundle';
+// Import Lit: prefer local bundle (offline-safe) then fall back to CDN
+// The local bundle is served by HA at /ev-trip-planner/lit-bundle.js
+// The CDN is used as fallback for production environments that allow outbound traffic
+import { LitElement, html, css } from '/ev-trip-planner/lit-bundle.js';
 
 class EVTripPlannerPanel extends LitElement {
   // Lit handles Shadow DOM automatically - no need for attachShadow

@@ -1092,25 +1092,19 @@ async def test_config_entry_lookup_with_vehicle_id():
     Expected: FAIL before fix - async_get_entry returns None when given vehicle_id
     After fix: Should use correct entry_id from config entry setup
     """
-    from homeassistant.config_entries import ConfigEntry
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
     from unittest.mock import AsyncMock
 
     # Create a mock hass with config_entries
     hass = MagicMock()
 
     # Create a config entry with proper entry_id
-    mock_entry = ConfigEntry(
-        version=1,
-        minor_version=1,
+    mock_entry = MockConfigEntry(
         domain="ev_trip_planner",
         title="chispitas",
         data={"charging_power_kw": 7.4},
-        source="user",
         entry_id="abc123def456",  # This is the entry_id, NOT the vehicle name
         unique_id="vehicle_chispitas",
-        discovery_keys={},
-        options={},
-        subentries_data=[],  # Required in HA 2026.3+
     )
 
     # Setup async_get_entry to return entry only for correct entry_id

@@ -81,31 +81,11 @@ async def async_register_panel(
         )
         _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
 
-        # Register additional static resource for panel.css with cache control
-        # This ensures the CSS file is served correctly
-        try:
-            hass.http.register_static_path(
-                f"/{DOMAIN.replace('_', '-')}/panel.css",
-                f"{_MODULE_PATH}/frontend/panel.css",
-            )
-            _LOGGER.debug("Registered static path for panel.css")
-        except Exception as ex:
-            _LOGGER.warning("Failed to register static path for panel.css: %s", ex)
-
-        # Register panel.js with dynamic cache-busting to bypass browser cache
-        # Use a dynamic URL that includes a timestamp to force reload
-        try:
-            # Add cache-busting to the panel.js URL
-            cache_param = f"cb={int(time.time())}"
-            hass.http.register_static_path(
-                f"/{DOMAIN.replace('_', '-')}/panel.js",
-                f"{_MODULE_PATH}/frontend/panel.js",
-            )
-            _LOGGER.debug(
-                "Registered static path for panel.js with cache param: %s", cache_param
-            )
-        except Exception as ex:
-            _LOGGER.warning("Failed to register static path for panel.js: %s", ex)
+        # Static files (panel.js, lit-bundle.js, panel.css) are registered in
+        # async_setup_entry via async_register_static_paths (HA 2024.7+ API).
+        # Do NOT use the legacy hass.http.register_static_path here — it was
+        # removed in HA 2024.7+ and silently failing caused "Unable to load
+        # custom panel" errors because lit-bundle.js returned 404.
 
         # Store vehicle-to-panel mapping
         _store_vehicle_panel_mapping(hass, vehicle_id, frontend_url_path)

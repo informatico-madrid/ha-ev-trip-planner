@@ -1,17 +1,135 @@
-# E2E Tests for EV Trip Planner
+# E2E Tests — EV Trip Planner
 
-End-to-end smoke tests for the EV Trip Planner Home Assistant custom component. Tests verify the complete CRUD workflow (Create, Edit, Delete) by simulating real user interactions with the panel UI.
+> 📖 **Guía completa:** [`docs/TESTING_E2E.md`](../../docs/TESTING_E2E.md)
+
+Tests end-to-end con Playwright que verifican el flujo completo de CRUD de viajes
+(crear, editar, eliminar) y operaciones de ciclo de vida (pausar, reanudar, completar, cancelar).
+
+## Ejecución rápida
+
+```bash
+# 1. Arrancar Home Assistant (con Docker)
+docker compose up -d
+
+# 2. Onboarding (solo la primera vez)
+./scripts/ha-onboard.sh
+
+# 3. Ejecutar los tests
+npx playwright test tests/e2e/ --workers=1
+# o
+make test-e2e
+```
+
+Ver [`docs/TESTING_E2E.md`](../../docs/TESTING_E2E.md) para instrucciones completas, troubleshooting y detalles de configuración.
+
+## Estructura
+
+```
+tests/e2e/
+  trips-helpers.ts              # Helpers compartidos: createTestTrip, deleteTestTrip, navigateToPanel
+  create-trip.spec.ts           # US-1: Crear viaje puntual y recurrente
+  edit-trip.spec.ts             # US-2: Editar viaje existente
+  delete-trip.spec.ts           # US-3: Eliminar viaje (confirmar / cancelar)
+  pause-resume-trip.spec.ts     # US-4: Pausar y reanudar viaje recurrente
+  complete-cancel-trip.spec.ts  # US-5: Completar y cancelar viaje puntual
+  trip-list-view.spec.ts        # US-6: Vista lista, detalles, botones por tipo
+  form-validation.spec.ts       # US-7: Campos del formulario, cambio de tipo, opciones
+```
+
+## Cobertura de User Stories
+
+| User Story | Fichero | Escenarios |
+|------------|---------|-----------|
+| US-1: Crear viaje | `create-trip.spec.ts` | Puntual, Recurrente |
+| US-2: Editar viaje | `edit-trip.spec.ts` | Recurrente, Puntual |
+| US-3: Eliminar viaje | `delete-trip.spec.ts` | Confirmar, Cancelar diálogo |
+| US-4: Pausar/Reanudar | `pause-resume-trip.spec.ts` | Pausar, Reanudar |
+| US-5: Completar/Cancelar | `complete-cancel-trip.spec.ts` | Completar, Cancelar, Descartar diálogo |
+| US-6: Vista lista | `trip-list-view.spec.ts` | Cabecera, botón Agregar, detalles, botones por tipo |
+| US-7: Validación formulario | `form-validation.spec.ts` | Campos por tipo, cambio tipo, opciones día |
+
+## Patrón de navegación
+
+El panel se accede directamente por URL (la sesión autenticada se carga desde `storageState`):
+
+```typescript
+// navigateToPanel() en trips-helpers.ts
+await page.goto('/ev-trip-planner-test_vehicle');
+await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
+await page.getByRole('button', { name: '+ Agregar Viaje' }).waitFor({ state: 'visible' });
+```
+
+## Selectores
+
+Los tests usan IDs de elemento (auto-piercing de Shadow DOM):
+
+```typescript
+page.locator('#trip-type')       // selector tipo viaje
+page.locator('#trip-km')         // distancia km
+page.locator('#trip-kwh')        // energía kWh
+page.locator('#trip-description') // descripción
+page.locator('#trip-datetime')   // fecha/hora (puntual)
+page.locator('#trip-day')        // día semana (recurrente, 0=Domingo..6=Sábado)
+page.locator('#trip-time')       // hora (recurrente)
+```
+
+## Diálogos nativos
+
+Las acciones destructivas usan `confirm()` y `alert()` del navegador:
+
+```typescript
+// SIEMPRE registrar el handler ANTES de la acción
+const dialogPromise = setupDialogHandler(page, true); // true = aceptar
+await tripCard.getByText('Eliminar').click();
+const msg = await dialogPromise;
+```
+
+## Configuración HA requerida
+
+`tests/ha-manual/configuration.yaml` debe incluir:
+
+```yaml
+homeassistant:
+  auth_providers:
+    - type: trusted_networks
+      trusted_networks: [127.0.0.1, 172.17.0.0/16]
+      allow_bypass_login: true
+    - type: homeassistant
+
+input_boolean:
+  test_ev_charging:         # Requerido por el Config Flow (paso de presencia)
+    name: "EV Charging Test"
+```
+
+
+End-to-end smoke tests for the EV Trip Planner Home Assistant custom component. Tests verify the complete CRUD workflow (Create, Edit, Delete) and lifecycle operations (Pause, Resume, Complete, Cancel) by simulating real user interactions with the panel UI.
 
 ## Test Structure
 
 ```
 tests/e2e/
-  README.md              # This file
-  trips-helpers.ts       # Shared helper functions (createTestTrip, deleteTestTrip, navigateToPanel)
-  create-trip.spec.ts    # US-1: Smoke test for puntual trip creation
-  edit-trip.spec.ts      # US-2: Smoke test for editing existing recurrente trip
-  delete-trip.spec.ts    # US-3: Smoke test for deleting trip with confirmation dialog
+  README.md                       # This file
+  trips-helpers.ts                # Shared helper functions (createTestTrip, deleteTestTrip, navigateToPanel, etc.)
+  create-trip.spec.ts             # US-1: Create puntual and recurrente trips
+  edit-trip.spec.ts               # US-2: Edit existing trips (recurrente and puntual)
+  delete-trip.spec.ts             # US-3: Delete trip with confirmation dialog + cancel deletion
+  pause-resume-trip.spec.ts       # US-4: Pause and resume recurring trips
+  complete-cancel-trip.spec.ts    # US-5: Complete and cancel punctual trips
+  trip-list-view.spec.ts          # US-6: Panel view, trip details, action buttons
+  form-validation.spec.ts         # US-7: Form fields, trip type switching, day options
 ```
+
+## User Story Coverage
+
+| User Story | Test File | Scenarios |
+|------------|-----------|-----------|
+| US-1: Create Trip | `create-trip.spec.ts` | Create puntual trip, Create recurrente trip |
+| US-2: Edit Trip | `edit-trip.spec.ts` | Edit recurrente trip, Edit puntual trip |
+| US-3: Delete Trip | `delete-trip.spec.ts` | Delete trip (confirm), Cancel deletion (dismiss) |
+| US-4: Pause/Resume | `pause-resume-trip.spec.ts` | Pause recurring, Resume paused |
+| US-5: Complete/Cancel | `complete-cancel-trip.spec.ts` | Complete puntual, Cancel puntual, Dismiss complete |
+| US-6: View Trips | `trip-list-view.spec.ts` | Panel header, Agregar button, Trip details, Type badges, Action buttons per type |
+| US-7: Form Validation | `form-validation.spec.ts` | Default fields, Puntual fields, Type switching, Close form, Day options, Type options |
 
 ## Test Files
 
