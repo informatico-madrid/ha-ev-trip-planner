@@ -40,7 +40,7 @@
   - **Commit**: `test(emhass): red - failing test for _published_entity_ids tracking`
   - _Requirements: FR-1, AC-1.4_
 
-- [ ] 1.2 [GREEN] Pass test: add `_published_entity_ids` tracking to `EMHASSAdapter`
+- [x] 1.2 [GREEN] Pass test: add `_published_entity_ids` tracking to `EMHASSAdapter`
   - **Do**: In `emhass_adapter.py` `__init__`, add `self._published_entity_ids: Set[str] = set()`. In `publish_deferrable_loads()`, after successful `async_set` for the main sensor, add `self._published_entity_ids.add(sensor_id)`
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Previously failing test now passes
@@ -50,7 +50,7 @@
 
 ### Component 2: async_cleanup_vehicle_indices - Use async_remove instead of async_set(idle)
 
-- [ ] 1.3 [RED] Failing test: `async_cleanup_vehicle_indices` calls `async_remove` not `async_set(idle)`
+- [x] 1.3 [RED] Failing test: `async_cleanup_vehicle_indices` calls `async_remove` not `async_set(idle)`
   - **Do**: Write test in `tests/test_emhass_adapter.py` asserting that `hass.states.async_remove` is called for each tracked entity (config sensors and main sensor) and `_published_entity_ids` is cleared after cleanup
   - **Files**: `tests/test_emhass_adapter.py`
   - **Done when**: Test exists AND fails (async_remove not called, async_set(idle) called instead)
@@ -58,7 +58,7 @@
   - **Commit**: `test(emhass): red - failing test for async_remove in cleanup`
   - _Requirements: FR-2, AC-1.2_
 
-- [ ] 1.4 [GREEN] Pass test: replace `async_set(idle)` with `async_remove` in `async_cleanup_vehicle_indices`
+- [x] 1.4 [GREEN] Pass test: replace `async_set(idle)` with `async_remove` in `async_cleanup_vehicle_indices`
   - **Do**: In `emhass_adapter.py` `async_cleanup_vehicle_indices()`, replace two `hass.states.async_set(config_sensor_id, "idle", {})` and `hass.states.async_set(sensor_id, "idle", {...})` calls with `hass.states.async_remove(config_sensor_id)` and `hass.states.async_remove(sensor_id)`. Add `self._published_entity_ids.clear()` after the cleanup loop
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Previously failing test now passes
