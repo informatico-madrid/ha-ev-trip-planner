@@ -10,16 +10,7 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    services:
-      homeassistant:
-        image: homeassistant/home-assistant:stable
-        ports:
-          - 8123:8123
-        volumes:
-          - ./tests/ha-manual/custom_components:/config/custom_components:ro
-          - ./tests/ha-manual/configuration.yaml:/config/configuration.yaml:ro
-        env:
-          - HAPPY_PATH: "true"
+
     steps:
     - uses: actions/checkout@v4
 
@@ -27,29 +18,52 @@ jobs:
       with:
         node-version: lts/*
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.14'
-
-    - name: Get Python path for hass-taste-test
-      run: echo "PYTHON_PATH=$(which python3)" >> $GITHUB_ENV
-
-    - name: Install dependencies
+    - name: Install Node dependencies
       run: npm install
 
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+    - name: Install Playwright Chromium
+      run: npx playwright install chromium --with-deps
 
-    - name: Create playwright auth directory
-      run: mkdir -p playwright/.auth
+    - name: Install Python & Home Assistant
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install homeassistant
+
+    - name: Create HA config directory
+      run: |
+        mkdir -p /tmp/ha-e2e-config/custom_components
+        cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
+        ln -sf ${{ github.workspace }}/custom_components/ev_trip_planner \
+               /tmp/ha-e2e-config/custom_components/ev_trip_planner
+        mkdir -p playwright/.auth
+
+    - name: Start Home Assistant
+      run: |
+        nohup hass -c /tmp/ha-e2e-config > /tmp/ha-e2e.log 2>&1 &
+        echo $! > /tmp/ha-pid.txt
+        echo "HA started with PID $(cat /tmp/ha-pid.txt)"
+
+    - name: Wait for Home Assistant to be ready
+      run: |
+        echo "Waiting for HA API..."
+        for i in $(seq 1 40); do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null)
+          if [ "$STATUS" = "401" ] || [ "$STATUS" = "200" ]; then
+            echo "HA API ready (status $STATUS) after ${i}x3s"
+            exit 0
+          fi
+          echo "  attempt $i: status=$STATUS"
+          sleep 3
+        done
+        echo "HA did not become ready in time. Log tail:"
+        tail -30 /tmp/ha-e2e.log
+        exit 1
 
     - name: Run Playwright E2E tests
-      # Tests use globalSetup which starts ephemeral HA and writes server-info.json
-      # auth.setup.ts reads server-info.json to get the HA URL
-      # DO NOT set HA_URL here - tests use ephemeral HA from globalSetup
-      run: npx playwright test tests/e2e/
+      # auth.setup.ts handles onboarding (dev/dev user) and integration setup automatically
+      run: npx playwright test tests/e2e/ --workers=1
       env:
-        CI: ${{ github.event_name == 'push' && 'true' || '' }}
+        CI: "true"
 
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
@@ -57,3 +71,19 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: test-results
+        path: test-results/
+        retention-days: 7
+
+    - name: Upload HA logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ha-logs
+        path: /tmp/ha-e2e.log
+        retention-days: 7
+

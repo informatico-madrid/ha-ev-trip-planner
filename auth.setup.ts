@@ -52,6 +52,73 @@ async function waitForHA(): Promise<void> {
   throw new Error(`Home Assistant did not start within ${HA_STARTUP_TIMEOUT_MS}ms`);
 }
 
+/**
+ * Complete HA first-run onboarding if needed (creates dev/dev user).
+ * Safe to call when already onboarded — detects and skips.
+ */
+async function ensureOnboarded(): Promise<void> {
+  const clientId = `${HA_URL}/`;
+
+  // Check if onboarding is needed
+  const resp = await fetch(`${HA_URL}/api/onboarding`);
+  if (!resp.ok) return; // If endpoint doesn't exist, already onboarded or not applicable
+
+  const steps = await resp.json() as Array<{ step: string; done: boolean }>;
+  const undone = steps.filter((s) => !s.done);
+  if (undone.length === 0) {
+    console.log('[auth.setup] HA already onboarded');
+    return;
+  }
+
+  console.log('[auth.setup] Completing HA first-run onboarding (user=dev, password=dev)...');
+
+  // Step 1: Create user
+  const userResp = await fetch(`${HA_URL}/api/onboarding/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      language: 'en',
+      name: 'Developer',
+      username: 'dev',
+      password: 'dev',
+    }),
+  });
+  const userData = await userResp.json() as { auth_code?: string };
+  if (!userData.auth_code) {
+    console.log('[auth.setup] Onboarding user step failed or already done');
+    return;
+  }
+
+  // Exchange auth code for token
+  const params = new URLSearchParams({
+    client_id: clientId,
+    code: userData.auth_code,
+    grant_type: 'authorization_code',
+  });
+  const tokenResp = await fetch(`${HA_URL}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  const tokenData = await tokenResp.json() as { access_token?: string };
+  if (!tokenData.access_token) return;
+
+  const token = tokenData.access_token;
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  const body = JSON.stringify({ client_id: clientId });
+
+  // Complete remaining onboarding steps
+  await fetch(`${HA_URL}/api/onboarding/core_config`, { method: 'POST', headers, body }).catch(() => {});
+  await fetch(`${HA_URL}/api/onboarding/analytics`, { method: 'POST', headers, body }).catch(() => {});
+  await fetch(`${HA_URL}/api/onboarding/integration`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ client_id: clientId, redirect_uri: `${HA_URL}/?auth_callback=1` }),
+  }).catch(() => {});
+
+  console.log('[auth.setup] Onboarding complete');
+}
+
 /** Get an access token using the homeassistant auth provider (dev/dev) */
 async function getAccessToken(): Promise<string> {
   const clientId = `${HA_URL}/`;
@@ -166,6 +233,9 @@ async function globalSetup(): Promise<void> {
   if (!fs.existsSync(AUTH_DIR)) {
     fs.mkdirSync(AUTH_DIR, { recursive: true });
   }
+
+  // Complete first-run onboarding if needed (creates dev/dev user)
+  await ensureOnboarded();
 
   // Get REST token to manage integration setup
   const token = await getAccessToken();
