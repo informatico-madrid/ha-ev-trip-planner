@@ -592,6 +592,46 @@ async def test_publish_deferrable_loads(hass: HomeAssistant, mock_store):
 
 
 @pytest.mark.asyncio
+async def test_published_entity_ids_tracked_after_publish_deferrable_loads(hass: HomeAssistant, mock_store):
+    """Test that _published_entity_ids is populated after publish_deferrable_loads().
+
+    FR-1, AC-1.4: EMHASSAdapter should track all published entity IDs for cleanup.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 3.6,
+                "datetime": (datetime.now() + timedelta(hours=8)).isoformat(),
+                "descripcion": "Morning trip",
+            },
+            {
+                "id": "trip_002",
+                "kwh": 5.0,
+                "datetime": (datetime.now() + timedelta(hours=12)).isoformat(),
+                "descripcion": "Evening trip",
+            },
+        ]
+
+        result = await adapter.publish_deferrable_loads(trips, 7.4)
+
+        assert result is True
+
+        # FR-1, AC-1.4: The main sensor ID should be tracked in _published_entity_ids
+        main_sensor_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
+        assert main_sensor_id in adapter._published_entity_ids
+
+
+@pytest.mark.asyncio
 async def test_publish_deferrable_loads_default_power(hass: HomeAssistant, mock_store):
     """Test publishing with default charging power."""
     config = {
