@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -25,7 +25,7 @@ from .panel import async_unregister_panel
 from .trip_manager import TripManager
 
 # Type aliases for cleaner signatures
-CoordinatorType = DataUpdateCoordinator
+CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -403,6 +403,30 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
 
+async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
+    """Clean up orphaned EMHASS state-based sensors from deleted integrations.
+
+    This scans for sensors whose entry_id attribute is not in the current
+    active config entries and removes them to prevent orphaned sensors.
+    """
+    try:
+        all_entries = hass.config_entries.async_entries(DOMAIN)
+        active_entry_ids = {e.entry_id for e in all_entries}
+        # Scan for orphaned sensors
+        for state in await hass.states.async_all():
+            if state.entity_id.startswith("sensor.emhass_perfil_diferible_"):
+                sensor_entry_id = state.attributes.get("entry_id")
+                if sensor_entry_id and sensor_entry_id not in active_entry_ids:
+                    await hass.states.async_remove(state.entity_id)
+                    _LOGGER.warning(
+                        "Removed orphaned EMHASS sensor %s (stale entry_id %s)",
+                        state.entity_id,
+                        sensor_entry_id,
+                    )
+    except Exception as ex:
+        _LOGGER.warning("Startup orphan cleanup failed: %s", ex)
+
+
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the EV Trip Planner component."""
     return True
@@ -517,6 +541,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             cleanup_err,
         )
 
+    # Clean up orphaned EMHASS state-based sensors from deleted integrations
+    await async_cleanup_orphaned_emhass_sensors(hass)
+
     # Use hass.data for runtime storage (compatible with all HA versions)
     namespace = f"{DOMAIN}_{entry.entry_id}"
     hass.data.setdefault(DATA_RUNTIME, {})
@@ -541,7 +568,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     panel_css_path = component_dir / "frontend" / "panel.css"
     lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
 
-    static_paths: list = []
+    static_paths: list[Any] = []
     if panel_js_path.exists():
         static_paths.append(
             StaticPathConfig(
@@ -794,6 +821,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning(
             "Cascade delete completed for vehicle %s during unload", vehicle_name
         )
+
+    # Cleanup EMHASS vehicle indices before unload
+    emhass_adapter = None
+    if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
+        emhass_adapter = hass.data[DATA_RUNTIME][namespace].get("emhass_adapter")
+    if emhass_adapter:
+        await emhass_adapter.async_cleanup_vehicle_indices()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
@@ -1050,9 +1084,8 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        await async_create_trip_sensor(
-                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
-                        )
+                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)
                     break
@@ -1066,9 +1099,8 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        await async_create_trip_sensor(
-                            hass, entry.entry_id, str(trip.get("id")), trip_type, trip
-                        )
+                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)
                     break
@@ -1150,7 +1182,8 @@ def register_services(hass: HomeAssistant) -> None:
 
             for trip in trips:
                 if str(trip.get("id")) == trip_id:
-                    await async_update_trip_sensor(hass, entry.entry_id, trip_id, trip)
+                    trip_data = {**trip, "id": trip_id}
+                    await async_update_trip_sensor(hass, entry.entry_id, trip_data)
                     break
         except Exception as err:  # pragma: no cover
             _LOGGER.warning("Failed to update trip sensor: %s", err)
@@ -1406,7 +1439,7 @@ def register_services(hass: HomeAssistant) -> None:
         await _ensure_setup(mgr)
 
         clear_existing = bool(data.get("clear_existing", True))
-        pattern: dict = dict(data["pattern"])  # type: ignore[assignment]
+        pattern: dict[str, Any] = dict(data["pattern"])
 
         if clear_existing:
             try:
@@ -1429,7 +1462,7 @@ def register_services(hass: HomeAssistant) -> None:
                     descripcion=str(item.get("descripcion", "")),
                 )
 
-    async def handle_trip_list(call: ServiceCall) -> dict:
+    async def handle_trip_list(call: ServiceCall) -> dict[str, Any]:
         """Handle listing all trips for a vehicle.
 
         Returns both recurring and punctual trips in a single list.
@@ -1558,7 +1591,7 @@ def register_services(hass: HomeAssistant) -> None:
         }
     )
 
-    async def handle_trip_get(call: ServiceCall) -> dict:
+    async def handle_trip_get(call: ServiceCall) -> dict[str, Any]:
         """Handle getting a single trip by ID.
 
         Returns the trip data for a specific trip_id.

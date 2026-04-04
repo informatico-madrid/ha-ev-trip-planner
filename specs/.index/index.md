@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-03T18:54:10Z
+**Last updated:** 2026-04-04T17:46:23Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 20 | Yes |
+| ./specs | 21 | Yes |
 
-## All Specs (20)
+## All Specs (21)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -36,7 +36,8 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | automation-template | ./specs | completed | done |
 | emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
-| e2e-trip-crud | ./specs | tasks | awaiting approval |
+| e2e-trip-crud | ./specs | tasks | 48/52 tasks |
+| duplicate-emhass-sensor-fix | ./specs | tasks | awaiting approval |
 
 ---
 

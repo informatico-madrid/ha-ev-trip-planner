@@ -1,7 +1,7 @@
 """Additional tests for sensor coverage - EmhassDeferrableLoadSensor and error paths."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, Mock
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
@@ -82,6 +82,7 @@ class TestEmhassDeferrableLoadSensor:
         sensor = EmhassDeferrableLoadSensor(
             hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
+        sensor.async_schedule_update_ha_state = Mock()
         await sensor.async_update()
 
         assert sensor.native_value == "ready"
@@ -569,6 +570,7 @@ class TestTripStateChangeUpdatesSensor:
         sensor = EmhassDeferrableLoadSensor(
             hass, mock_trip_manager_for_sensor, "test_entry_id"
         )
+        sensor.async_schedule_update_ha_state = Mock()
 
         # Set up mock config entry
         mock_entry = MagicMock(spec=ConfigEntry)

@@ -1187,3 +1187,96 @@ async def test_sensor_coordinator_none_returns_default():
     assert result == 0.0, (
         "Sensor should return 0.0 as default when coordinator is None"
     )
+
+
+# Tests for EmhassDeferrableLoadSensor.async_update - async_schedule_update_ha_state call (FR-3, AC-2.1)
+
+@pytest.fixture
+def mock_hass_for_emhass_sensor():
+    """Create a mock hass instance for EmhassDeferrableLoadSensor tests."""
+    from homeassistant.config_entries import ConfigEntry
+    hass = MagicMock()
+    mock_entry = MagicMock(spec=ConfigEntry)
+    mock_entry.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power": 7.0,
+        "planning_horizon_days": 7,
+    }
+    mock_entry.entry_id = "test_entry_id"
+    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    return hass
+
+
+@pytest.fixture
+def mock_trip_manager_for_emhass_sensor():
+    """Create a mock TripManager for EmhassDeferrableLoadSensor tests."""
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+    manager = MagicMock(spec=TripManager)
+    manager.vehicle_id = "test_vehicle"
+    manager.async_generate_power_profile = AsyncMock(return_value=[1000, 2000, 3000])
+    manager.async_generate_deferrables_schedule = AsyncMock(
+        return_value=[{"hour": 0, "power": 1000}, {"hour": 1, "power": 2000}]
+    )
+    manager.async_get_recurring_trips = AsyncMock(return_value=[])
+    manager.async_get_punctual_trips = AsyncMock(return_value=[])
+    return manager
+
+
+@pytest.mark.asyncio
+async def test_emhass_deferrable_load_sensor_async_update_schedules_ha_state(
+    mock_hass_for_emhass_sensor, mock_trip_manager_for_emhass_sensor
+):
+    """Test EmhassDeferrableLoadSensor.async_update calls async_schedule_update_ha_state on success.
+
+    This test verifies FR-3/AC-2.1:
+    - async_update() should call async_schedule_update_ha_state() when update succeeds
+    - async_update() should NOT call async_schedule_update_ha_state() when it raises an exception
+    """
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    sensor = EmhassDeferrableLoadSensor(
+        mock_hass_for_emhass_sensor,
+        mock_trip_manager_for_emhass_sensor,
+        "test_entry_id",
+    )
+
+    # Spy on async_schedule_update_ha_state
+    sensor.async_schedule_update_ha_state = AsyncMock()
+
+    # Call async_update - should succeed
+    await sensor.async_update()
+
+    # Verify async_schedule_update_ha_state was called exactly once on success
+    sensor.async_schedule_update_ha_state.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_emhass_deferrable_load_sensor_async_update_does_not_schedule_ha_state_on_exception(
+    mock_hass_for_emhass_sensor, mock_trip_manager_for_emhass_sensor
+):
+    """Test EmhassDeferrableLoadSensor.async_update does NOT call async_schedule_update_ha_state on exception.
+
+    This test verifies FR-3/AC-2.1:
+    - async_update() should NOT call async_schedule_update_ha_state() when it raises an exception
+    """
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    # Make the async_update raise an exception
+    mock_trip_manager_for_emhass_sensor.async_generate_power_profile = AsyncMock(
+        side_effect=Exception("Test error")
+    )
+
+    sensor = EmhassDeferrableLoadSensor(
+        mock_hass_for_emhass_sensor,
+        mock_trip_manager_for_emhass_sensor,
+        "test_entry_id",
+    )
+
+    # Spy on async_schedule_update_ha_state
+    sensor.async_schedule_update_ha_state = AsyncMock()
+
+    # Call async_update - should NOT raise, but should handle exception internally
+    await sensor.async_update()
+
+    # Verify async_schedule_update_ha_state was NOT called when exception occurred
+    sensor.async_schedule_update_ha_state.assert_not_called()
