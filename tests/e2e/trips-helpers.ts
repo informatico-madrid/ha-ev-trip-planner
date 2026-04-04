@@ -3,23 +3,92 @@ import { type Page } from '@playwright/test';
 /** Panel URL for the test vehicle (matches panel registration: PANEL_URL_PREFIX-vehicle_id) */
 const PANEL_URL = '/ev-trip-planner-test_vehicle';
 
+/** Maximum number of page reload attempts when the panel doesn't render */
+const MAX_RELOAD_ATTEMPTS = 2;
+
 /**
  * Navigates to the EV Trip Planner panel using direct URL navigation.
  * Auth state is pre-loaded from storageState (playwright/.auth/user.json), so
  * direct navigation to any HA panel URL works without re-authenticating.
- * Waits for the panel's "+ Agregar Viaje" button to confirm the component rendered.
+ *
+ * Waits for the custom element to be defined and the panel to render.
+ * In CI environments, the panel JS module may take longer to load because
+ * HA registers static paths asynchronously during async_setup_entry. This
+ * function retries with a page reload if the custom element isn't defined
+ * on the first attempt.
+ *
  * @param page - Playwright Page object
  * @returns The page object for chaining
  */
 export async function navigateToPanel(page: Page): Promise<Page> {
-  await page.goto(PANEL_URL);
+  // Collect diagnostics for CI debugging
+  const jsErrors: string[] = [];
+  const failedRequests: string[] = [];
+
+  page.on('pageerror', (err) => {
+    jsErrors.push(err.message);
+  });
+
+  page.on('response', (response) => {
+    const url = response.url();
+    if (url.includes('ev-trip-planner') && response.status() >= 400) {
+      failedRequests.push(`${response.status()} ${url}`);
+    }
+  });
+
+  await page.goto(PANEL_URL, { waitUntil: 'load' });
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
 
-  // Wait for the custom element to upgrade and render (CI may be slow)
-  // Use the CSS class locator and wait for it to be visible
+  // Wait for the HA custom element to be defined (panel.js loaded & executed).
+  // In CI, the first page load may fail if the static paths for
+  // panel.js / lit-bundle.js aren't registered yet. A reload fixes this.
+  let elementDefined = false;
+  for (let attempt = 0; attempt <= MAX_RELOAD_ATTEMPTS; attempt++) {
+    try {
+      await page.waitForFunction(
+        'customElements.get("ev-trip-planner-panel") !== undefined',
+        undefined,
+        { timeout: 15_000 },
+      );
+      elementDefined = true;
+      break;
+    } catch {
+      // Log diagnostics to help debug CI failures
+      // eslint-disable-next-line no-console
+      console.log(
+        `[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
+        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join('; ')}` : '') +
+        (failedRequests.length > 0 ? ` Failed requests: ${failedRequests.join('; ')}` : ''),
+      );
+
+      if (attempt < MAX_RELOAD_ATTEMPTS) {
+        // Clear error lists before retry
+        jsErrors.length = 0;
+        failedRequests.length = 0;
+        await page.reload({ waitUntil: 'load' });
+      }
+    }
+  }
+
+  if (!elementDefined) {
+    // Capture page HTML snapshot for debugging
+    const bodyText = await page.evaluate(
+      'document.body?.innerText?.substring(0, 500) ?? "(empty)"',
+    );
+    const errParts = [
+      '[navigateToPanel] ev-trip-planner-panel custom element never defined after',
+      String(MAX_RELOAD_ATTEMPTS + 1),
+      'attempts. JS errors: [' + jsErrors.join('; ') + '].',
+      'Failed requests: [' + failedRequests.join('; ') + '].',
+      'Page text: ' + String(bodyText),
+    ];
+    throw new Error(errParts.join(' '));
+  }
+
+  // Wait for the "+ Agregar Viaje" button to appear in shadow DOM
   const addButton = page.locator('.add-trip-btn');
-  await addButton.waitFor({ state: 'attached', timeout: 30_000 });
-  await addButton.waitFor({ state: 'visible', timeout: 60_000 });
+  await addButton.waitFor({ state: 'visible', timeout: 30_000 });
+  await addButton.scrollIntoViewIfNeeded();
 
   return page;
 }

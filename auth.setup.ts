@@ -298,6 +298,41 @@ async function setupIntegration(token: string): Promise<void> {
   console.log(`[auth.setup] Integration "${result.title}" created successfully`);
 }
 
+/**
+ * Wait for the panel's static assets (panel.js, lit-bundle.js) to be served.
+ * async_setup_entry registers the static paths asynchronously after the config
+ * flow creates the entry. In CI, there can be a race between the REST API
+ * response ("create_entry") and the actual static-path registration.
+ */
+async function waitForPanelAssets(timeoutMs = 30_000): Promise<void> {
+  const assets = [
+    '/ev-trip-planner/panel.js',
+    '/ev-trip-planner/lit-bundle.js',
+  ];
+  const start = Date.now();
+
+  for (const asset of assets) {
+    let ready = false;
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const resp = await fetch(`${HA_URL}${asset}`);
+        if (resp.ok) {
+          console.log(`[auth.setup] Asset "${asset}" is accessible (${resp.status})`);
+          ready = true;
+          break;
+        }
+        console.log(`[auth.setup] Asset "${asset}" returned ${resp.status}, retrying...`);
+      } catch {
+        // Not yet available
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    if (!ready) {
+      console.warn(`[auth.setup] WARNING: Asset "${asset}" not accessible after ${timeoutMs}ms — tests may fail`);
+    }
+  }
+}
+
 async function globalSetup(): Promise<void> {
   console.log('[auth.setup] Waiting for Home Assistant to be ready...');
   await waitForHA();
@@ -323,6 +358,12 @@ async function globalSetup(): Promise<void> {
   } else {
     await setupIntegration(token);
   }
+
+  // Wait for the panel's static assets to become available.
+  // async_setup_entry registers static paths asynchronously after the config
+  // flow completes. In CI, there can be a short delay before the JS module
+  // is served. Poll until the panel.js returns 200 (up to 30 s).
+  await waitForPanelAssets();
 
   // ---------------------------------------------------------------------------
   // TRUSTED_NETWORKS BYPASS — acquire browser session
