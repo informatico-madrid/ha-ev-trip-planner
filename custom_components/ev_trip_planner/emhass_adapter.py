@@ -1126,15 +1126,16 @@ class EMHASSAdapter:
             if emhass_index is not None:
                 config_sensor_id = self._get_config_sensor_id(emhass_index)
                 try:
-                    await self.hass.states.async_set(config_sensor_id, "idle", {})
+                    await self.hass.states.async_remove(config_sensor_id)
                 except HomeAssistantError as err:
                     _LOGGER.warning(
-                        "Failed to clear sensor %s during vehicle cleanup: %s",
+                        "Failed to remove sensor %s during vehicle cleanup: %s",
                         config_sensor_id,
                         err,
                     )
 
         # Hard reset: clear all mappings and released indices
+        self._published_entity_ids.clear()
         self._index_map.clear()
         self._released_indices.clear()
         self._available_indices = list(range(self.max_deferrable_loads))
@@ -1142,19 +1143,10 @@ class EMHASSAdapter:
         # Clear the main vehicle sensor
         try:
             sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-            await self.hass.states.async_set(
-                sensor_id,
-                "idle",
-                {
-                    "power_profile_watts": [0.0] * 168,
-                    "deferrables_schedule": [],
-                    "vehicle_id": self.vehicle_id,
-                    "trips_count": 0,
-                },
-            )
+            await self.hass.states.async_remove(sensor_id)
         except HomeAssistantError as err:
             _LOGGER.warning(
-                "Failed to clear vehicle sensor %s during cleanup: %s",
+                "Failed to remove vehicle sensor %s during cleanup: %s",
                 sensor_id,
                 err,
             )
