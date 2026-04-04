@@ -603,6 +603,7 @@ class EmhassDeferrableLoadSensor(SensorEntity):
                 "vehicle_id": vehicle_id,
             }
             self._attr_native_value = EMHASS_STATE_READY
+            self.async_schedule_update_ha_state()
             _LOGGER.debug(
                 "EmhassDeferrableLoadSensor update for %s: ready, profile_len=%d, schedule_len=%d",
                 self._entry_id,
