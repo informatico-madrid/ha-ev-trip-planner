@@ -1,6 +1,6 @@
 {
   "name": "ha-ev-trip-planner",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "**Planifica viajes eléctricos y optimiza el consumo energético de tu vehículo**",
   "type": "module",
   "main": "index.js",
