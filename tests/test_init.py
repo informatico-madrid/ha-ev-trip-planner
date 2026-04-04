@@ -610,3 +610,91 @@ class TestAsyncUnloadEntry:
             # Should handle the error and return True (platforms unloaded successfully)
             result = await async_unload_entry(mock_hass, entry)
             assert result is True
+
+    @pytest.mark.asyncio
+    async def test_unload_entry_calls_cleanup_before_platforms_unload(self, mock_hass):
+        """Test that async_unload_entry calls emhass_adapter.async_cleanup_vehicle_indices before unloading platforms.
+
+        This is a RED test that documents the expected behavior: emhass_adapter cleanup
+        MUST be called before async_unload_platforms to ensure entity state still exists
+        when async_remove is called.
+        """
+        # Create a mock config entry with vehicle info
+        entry = Mock()
+        entry.data = {
+            "vehicle_id": "test_vehicle",
+            "vehicle_name": "Test Vehicle",
+        }
+        entry.entry_id = "test_entry_id"
+
+        # Track call order
+        call_order = []
+
+        # Mock the platforms unload
+        async def mock_unload_platforms(entry, platforms):
+            call_order.append("unload_platforms")
+            return True
+
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Create mock TripManager
+        trip_manager = Mock()
+        trip_manager.vehicle_id = "test_vehicle"
+        trip_manager.async_delete_all_trips = AsyncMock()
+        trip_manager._recurring_trips = {}
+        trip_manager._punctual_trips = {}
+
+        # Create mock EMHASS adapter with async_cleanup_vehicle_indices
+        emhass_adapter = Mock()
+        emhass_adapter.vehicle_id = "test_vehicle"
+        emhass_adapter._index_map = {}
+        emhass_adapter._released_indices = []
+
+        async def mock_cleanup():
+            call_order.append("cleanup_vehicle_indices")
+
+        emhass_adapter.async_cleanup_vehicle_indices = mock_cleanup
+
+        # Set up runtime data
+        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        mock_hass.data[DATA_RUNTIME] = {
+            namespace: {
+                "config": entry.data,
+                "trip_manager": trip_manager,
+                "emhass_adapter": emhass_adapter,
+            }
+        }
+
+        # Mock async_unregister_panel
+        with patch(
+            "custom_components.ev_trip_planner.async_unregister_panel",
+            new_callable=AsyncMock,
+        ) as mock_unregister:
+            mock_unregister.return_value = True
+
+            # Import and call async_unload_entry
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            result = await async_unload_entry(mock_hass, entry)
+
+            # Verify unload succeeded
+            assert result is True
+
+            # CRITICAL: cleanup MUST be called before platforms are unloaded
+            # This asserts the ORDER: cleanup should appear BEFORE unload_platforms in call_order
+            assert "cleanup_vehicle_indices" in call_order, (
+                "emhass_adapter.async_cleanup_vehicle_indices must be called during unload"
+            )
+            assert "unload_platforms" in call_order, (
+                "platforms must be unloaded"
+            )
+            assert call_order.index("cleanup_vehicle_indices") < call_order.index("unload_platforms"), (
+                "async_cleanup_vehicle_indices must be called BEFORE async_unload_platforms"
+            )
+
+            # Also verify the cleanup method was actually called
+            assert call_order.count("cleanup_vehicle_indices") == 1, (
+                "async_cleanup_vehicle_indices should be called exactly once"
+            )
