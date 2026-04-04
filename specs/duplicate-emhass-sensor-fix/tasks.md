@@ -178,12 +178,13 @@
   - **Done when**: All verification commands pass
   - **Commit**: `chore(duplicate-emhass-sensor-fix): verify fix resolves original issue`
 
-- [ ] V4 [VERIFY] PR ready: code reviewed and all checks green
+- [x] V4 [VERIFY] PR ready: code reviewed and all checks green
   - **Do**: Create PR, verify CI pipeline passes, ensure no regressions
   - **Files**: N/A (verification only)
   - **Verify**: `gh pr checks` shows all green
   - **Done when**: PR merged or approved
   - **Commit**: None
+  - **Note**: PR #19 merged - fix is on main branch. All tests pass.
 
 ---
 
