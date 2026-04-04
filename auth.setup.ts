@@ -333,6 +333,13 @@ async function globalSetup(): Promise<void> {
   const context = await browser.newContext();
   const page = await context.newPage();
 
+  // Log any console errors from the page for debugging
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      console.log(`[auth.setup] Browser console error: ${msg.text()}`);
+    }
+  });
+
   console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
   await page.goto(HA_URL);
 
@@ -347,7 +354,7 @@ async function globalSetup(): Promise<void> {
   }
 
   // Wait for HA frontend to fully load (sidebar visible)
-  await page.locator('ha-sidebar, app-drawer-layout').first().waitFor({ state: 'visible', timeout: 30_000 });
+  await page.locator('ha-sidebar, app-drawer-layout').first().waitFor({ state: 'visible', timeout: 60_000 });
   console.log('[auth.setup] HA frontend loaded');
 
   // Save authenticated state for reuse in all tests
