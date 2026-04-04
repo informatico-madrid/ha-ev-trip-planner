@@ -795,6 +795,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Cascade delete completed for vehicle %s during unload", vehicle_name
         )
 
+    # Cleanup EMHASS vehicle indices before unload
+    emhass_adapter = None
+    if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
+        emhass_adapter = hass.data[DATA_RUNTIME][namespace].get("emhass_adapter")
+    if emhass_adapter:
+        await emhass_adapter.async_cleanup_vehicle_indices()
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     # Clean up runtime data AFTER platforms are unloaded
