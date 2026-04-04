@@ -522,6 +522,94 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DATA_RUNTIME, {})
     hass.data[DATA_RUNTIME].setdefault(namespace, {})
 
+    # ── Register static paths EARLY ──────────────────────────────────────
+    # Static paths for the native panel JS/CSS must be available before any
+    # browser tries to load the panel.  Register them as the very first I/O
+    # step so that even if later steps (coordinator, EMHASS, dashboard) are
+    # slow or fail, the panel can still load its JS module.
+    from pathlib import Path
+
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        HAS_STATIC_PATH_CONFIG = True
+    except ImportError:
+        HAS_STATIC_PATH_CONFIG = False
+
+    component_dir = Path(__file__).parent
+    panel_js_path = component_dir / "frontend" / "panel.js"
+    panel_css_path = component_dir / "frontend" / "panel.css"
+    lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
+
+    static_paths: list = []
+    if panel_js_path.exists():
+        static_paths.append(
+            StaticPathConfig(
+                "/ev-trip-planner/panel.js",
+                str(panel_js_path),
+                cache_headers=False,
+            )
+            if HAS_STATIC_PATH_CONFIG
+            else ("/ev-trip-planner/panel.js", str(panel_js_path), False)
+        )
+    if lit_bundle_path.exists():
+        static_paths.append(
+            StaticPathConfig(
+                "/ev-trip-planner/lit-bundle.js",
+                str(lit_bundle_path),
+                cache_headers=False,
+            )
+            if HAS_STATIC_PATH_CONFIG
+            else ("/ev-trip-planner/lit-bundle.js", str(lit_bundle_path), False)
+        )
+    if panel_css_path.exists():
+        static_paths.append(
+            StaticPathConfig(
+                "/ev-trip-planner/panel.css",
+                str(panel_css_path),
+                cache_headers=False,
+            )
+            if HAS_STATIC_PATH_CONFIG
+            else ("/ev-trip-planner/panel.css", str(panel_css_path), False)
+        )
+
+    if static_paths and hass.http is not None:
+        try:
+            await hass.http.async_register_static_paths(static_paths)
+            _LOGGER.info(
+                "Registered %d static path(s) for EV Trip Planner panel (early)",
+                len(static_paths),
+            )
+        except (TypeError, AttributeError, RuntimeError) as err:
+            _LOGGER.warning(
+                "async_register_static_paths (early) error: %s, trying legacy",
+                err,
+            )
+            try:
+                for path_spec in static_paths:
+                    try:
+                        if isinstance(path_spec, tuple):
+                            url_path, file_path, _ = path_spec
+                            hass.http.register_static_path(url_path, file_path)
+                        else:
+                            hass.http.register_static_path(
+                                path_spec.path, path_spec.url_path
+                            )
+                    except RuntimeError as path_err:
+                        if "already registered" in str(path_err).lower():
+                            continue
+                        raise
+                _LOGGER.info("Registered static paths using legacy method (early)")
+            except Exception as legacy_err:
+                _LOGGER.error(
+                    "Failed to register static paths (early): %s", legacy_err
+                )
+    elif static_paths:
+        _LOGGER.warning(
+            "hass.http is None - static paths cannot be registered early"
+        )
+    # ── End early static paths ───────────────────────────────────────────
+
     # Build presence_config from entry.data for PresenceMonitor (SOC listener)
     from .const import (
         CONF_CHARGING_SENSOR,
@@ -591,118 +679,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.entry_id,
     )
 
-    # Register static paths for the native panel (must be done in async_setup_entry)
-    from pathlib import Path
-
-    # Try to import StaticPathConfig for HA 2024.7+
-    try:
-        from homeassistant.components.http import StaticPathConfig
-
-        HAS_STATIC_PATH_CONFIG = True
-    except ImportError:
-        HAS_STATIC_PATH_CONFIG = False
-
-    component_dir = Path(__file__).parent
-    # Use frontend folder for panel files
-    panel_js_path = component_dir / "frontend" / "panel.js"
-    panel_css_path = component_dir / "frontend" / "panel.css"
-    lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
-
-    # Build list of static paths to register
-    static_paths = []
-
-    # Register the JavaScript file
-    if panel_js_path.exists():
-        static_paths.append(
-            StaticPathConfig(
-                "/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=False
-            )
-            if HAS_STATIC_PATH_CONFIG
-            else ("/ev-trip-planner/panel.js", str(panel_js_path), False)
-        )
-        _LOGGER.info(
-            "Registering panel.js at /ev-trip-planner/panel.js from %s (cache_headers=False)",
-            panel_js_path,
-        )
-
-    # Register the bundled Lit library — panel.js imports this at module load time.
-    # Must be registered here (not in panel.py) so the modern async_register_static_paths
-    # API is used. Legacy hass.http.register_static_path was removed in HA 2024.7+.
-    if lit_bundle_path.exists():
-        static_paths.append(
-            StaticPathConfig(
-                "/ev-trip-planner/lit-bundle.js",
-                str(lit_bundle_path),
-                cache_headers=False,
-            )
-            if HAS_STATIC_PATH_CONFIG
-            else ("/ev-trip-planner/lit-bundle.js", str(lit_bundle_path), False)
-        )
-        _LOGGER.info(
-            "Registering lit-bundle.js at /ev-trip-planner/lit-bundle.js from %s",
-            lit_bundle_path,
-        )
-
-    # Register the CSS file
-    if panel_css_path.exists():
-        static_paths.append(
-            StaticPathConfig(
-                "/ev-trip-planner/panel.css", str(panel_css_path), cache_headers=False
-            )
-            if HAS_STATIC_PATH_CONFIG
-            else ("/ev-trip-planner/panel.css", str(panel_css_path), False)
-        )
-        _LOGGER.info(
-            "Registering panel.css at /ev-trip-planner/panel.css from %s (cache_headers=False)",
-            panel_css_path,
-        )
-
-    # Register all static paths
-    if static_paths and hass.http is not None:
-        try:
-            await hass.http.async_register_static_paths(static_paths)
-            _LOGGER.info(
-                "Registered %d static path(s) for EV Trip Planner panel",
-                len(static_paths),
-            )
-        except (TypeError, AttributeError, RuntimeError) as err:
-            # Fallback for different HA versions - use legacy register_static_path
-            # RuntimeError can occur when route is already registered (e.g., from previous setup)
-            _LOGGER.warning(
-                "async_register_static_paths not available or error: %s, trying legacy method",
-                err,
-            )
-            try:
-                for path_spec in static_paths:
-                    try:
-                        if isinstance(path_spec, tuple):
-                            url_path, file_path, _ = path_spec
-                            hass.http.register_static_path(url_path, file_path)
-                        else:
-                            # StaticPathConfig - try to extract values
-                            hass.http.register_static_path(
-                                path_spec.path, path_spec.url_path
-                            )
-                    except RuntimeError as path_err:
-                        # Route already exists - this is OK if panel was registered before
-                        if "already registered" in str(path_err).lower():
-                            _LOGGER.info(
-                                "Static path already registered, skipping: %s", url_path
-                            )
-                            continue
-                        raise
-                _LOGGER.info("Registered static paths using legacy method")
-            except Exception as legacy_err:
-                _LOGGER.error(
-                    "Failed to register static paths with legacy method: %s",
-                    legacy_err,
-                )
-                # Don't fail setup - panel will still work via panel_custom registration
-                pass
-    elif static_paths:
-        _LOGGER.warning(
-            "hass.http is None - static paths will be served via panel_custom"
-        )
+    # Static paths were already registered at the top of async_setup_entry.
+    # No need to register them again here.
 
     # Register native panel for this vehicle
     # This creates a sidebar entry in HA without requiring Lovelace

@@ -88,3 +88,11 @@ jobs:
         path: /tmp/ha-e2e.log
         retention-days: 7
 
+    - name: Upload HA logs (always for debugging)
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ha-logs-full
+        path: /tmp/ha-e2e.log
+        retention-days: 7
+
