@@ -606,6 +606,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Use frontend folder for panel files
     panel_js_path = component_dir / "frontend" / "panel.js"
     panel_css_path = component_dir / "frontend" / "panel.css"
+    lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
 
     # Build list of static paths to register
     static_paths = []
@@ -617,24 +618,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "/ev-trip-planner/panel.js", str(panel_js_path), cache_headers=False
             )
             if HAS_STATIC_PATH_CONFIG
-            else ("ev-trip-planner/panel.js", str(panel_js_path), False)
+            else ("/ev-trip-planner/panel.js", str(panel_js_path), False)
         )
         _LOGGER.info(
             "Registering panel.js at /ev-trip-planner/panel.js from %s (cache_headers=False)",
             panel_js_path,
         )
 
+    # Register the bundled Lit library — panel.js imports this at module load time.
+    # Must be registered here (not in panel.py) so the modern async_register_static_paths
+    # API is used. Legacy hass.http.register_static_path was removed in HA 2024.7+.
+    if lit_bundle_path.exists():
+        static_paths.append(
+            StaticPathConfig(
+                "/ev-trip-planner/lit-bundle.js",
+                str(lit_bundle_path),
+                cache_headers=False,
+            )
+            if HAS_STATIC_PATH_CONFIG
+            else ("/ev-trip-planner/lit-bundle.js", str(lit_bundle_path), False)
+        )
+        _LOGGER.info(
+            "Registering lit-bundle.js at /ev-trip-planner/lit-bundle.js from %s",
+            lit_bundle_path,
+        )
+
     # Register the CSS file
     if panel_css_path.exists():
         static_paths.append(
             StaticPathConfig(
-                "/ev_trip_planner/panel.css", str(panel_css_path), cache_headers=False
+                "/ev-trip-planner/panel.css", str(panel_css_path), cache_headers=False
             )
             if HAS_STATIC_PATH_CONFIG
-            else ("ev_trip_planner/panel.css", str(panel_css_path), False)
+            else ("/ev-trip-planner/panel.css", str(panel_css_path), False)
         )
         _LOGGER.info(
-            "Registering panel.css at ev_trip_planner/panel.css from %s (cache_headers=False)",
+            "Registering panel.css at /ev-trip-planner/panel.css from %s (cache_headers=False)",
             panel_css_path,
         )
 
