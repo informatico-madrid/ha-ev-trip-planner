@@ -28,6 +28,7 @@ jobs:
       run: |
         python3 -m pip install --upgrade pip
         pip install homeassistant
+        pip install home-assistant-frontend
 
     - name: Create HA config directory
       run: |
