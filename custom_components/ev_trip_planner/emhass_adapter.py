@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, HomeAssistantError
@@ -60,6 +60,9 @@ class EMHASSAdapter:
         # Error tracking
         self._last_error: Optional[str] = None
         self._last_error_time: Optional[datetime] = None
+
+        # Entity tracking for cleanup (FR-1, AC-1.4)
+        self._published_entity_ids: Set[str] = set()
 
         _LOGGER.debug(
             "Created EMHASSAdapter for %s, %d indices, notification_service=%s",
@@ -525,6 +528,9 @@ class EMHASSAdapter:
                 message=f"Failed to publish deferrable loads: {err}",
             )
             return False
+
+        # Track published entity (FR-1, AC-1.4)
+        self._published_entity_ids.add(sensor_id)
 
         _LOGGER.info(
             "Published deferrable loads for %s: %d trips, profile length: %d",
