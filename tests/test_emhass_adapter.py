@@ -1816,3 +1816,55 @@ async def test_trip_crud_full_integration(hass: HomeAssistant, mock_store):
     assert len(calls["publish"]) == 1   # CREATE
     assert len(calls["update"]) == 1    # UPDATE
     assert len(calls["remove"]) == 1    # DELETE
+
+
+@pytest.mark.asyncio
+async def test_async_cleanup_vehicle_indices_calls_async_remove(hass: HomeAssistant, mock_store):
+    """Test that async_cleanup_vehicle_indices calls async_remove for each tracked entity.
+
+    FR-2, AC-1.2: async_cleanup_vehicle_indices() must call hass.states.async_remove()
+    for each tracked entity (config sensors and main sensor), not async_set(idle).
+    Also verifies _published_entity_ids is cleared after cleanup.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Pre-populate _published_entity_ids with entity IDs (simulating publish_deferrable_loads)
+    # This attribute should exist and be tracked
+    adapter._published_entity_ids = {
+        f"sensor.emhass_perfil_diferible_{adapter.entry_id}",
+        "sensor.emhass_deferrable_load_config_0",
+        "sensor.emhass_deferrable_load_config_1",
+    }
+
+    # Pre-populate index_map with some assigned trips
+    adapter._index_map = {"trip_001": 0, "trip_002": 1}
+
+    # Spy on async_remove
+    async_remove_spy = AsyncMock()
+    hass.states.async_remove = async_remove_spy
+
+    # Call cleanup
+    await adapter.async_cleanup_vehicle_indices()
+
+    # FR-2, AC-1.2: async_remove should be called for each tracked entity
+    # The main sensor
+    main_sensor_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
+    async_remove_spy.assert_any_call(main_sensor_id)
+
+    # Config sensors for each assigned index
+    async_remove_spy.assert_any_call("sensor.emhass_deferrable_load_config_0")
+    async_remove_spy.assert_any_call("sensor.emhass_deferrable_load_config_1")
+
+    # Verify async_remove was called 3 times total (1 main + 2 config)
+    assert async_remove_spy.call_count == 3
+
+    # FR-1: _published_entity_ids should be cleared after cleanup
+    assert len(adapter._published_entity_ids) == 0
