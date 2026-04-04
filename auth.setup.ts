@@ -353,9 +353,22 @@ async function globalSetup(): Promise<void> {
     throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
   }
 
+  // Wait for any pending redirects to complete before checking for sidebar
+  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {
+    console.log('[auth.setup] networkidle timeout - continuing anyway');
+  });
+
   // Wait for HA frontend to fully load (sidebar visible)
-  await page.locator('ha-sidebar, app-drawer-layout').first().waitFor({ state: 'visible', timeout: 60_000 });
-  console.log('[auth.setup] HA frontend loaded');
+  // Use a longer timeout since HA frontend may take time to render in CI
+  try {
+    await page.locator('ha-sidebar, app-drawer-layout').first().waitFor({ state: 'visible', timeout: 90_000 });
+    console.log('[auth.setup] HA frontend loaded');
+  } catch (err) {
+    // Log current URL and take a screenshot for debugging
+    console.log(`[auth.setup] Sidebar wait failed, current URL: ${page.url()}`);
+    await page.screenshot({ path: '/tmp/ha-sidebar-debug.png' }).catch(() => {});
+    throw err;
+  }
 
   // Save authenticated state for reuse in all tests
   await context.storageState({ path: AUTH_FILE });
