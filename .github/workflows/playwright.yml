@@ -32,8 +32,8 @@ jobs:
     - name: Install Python & Home Assistant
       run: |
         python3 -m pip install --upgrade pip
-        pip install homeassistant
-        pip install home-assistant-frontend
+        pip install homeassistant==2026.3.0
+        pip install home-assistant-frontend==2026.3.0
 
     - name: Create HA config directory
       run: |
