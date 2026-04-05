@@ -384,9 +384,8 @@ async function globalSetup(): Promise<void> {
   console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
   await page.goto(HA_URL);
 
-  // HA redirects through auth and lands on /, lovelace or home — wait for any of these
-  // HA 2026.3.x redirects to "/" after OAuth, not "/lovelace" or "/home"
-  await page.waitForURL(/\/(lovelace|home)?$/, { timeout: 30_000 });
+  // HA redirects through auth and lands on lovelace or home — wait for either
+  await page.waitForURL(/\/(lovelace|home)/, { timeout: 60_000 });
 
   // Verify no login form appeared (trusted_networks bypassed it)
   const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();
