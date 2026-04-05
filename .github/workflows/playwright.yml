@@ -2,8 +2,10 @@ name: Playwright E2E Tests
 
 on:
   push:
-    branches: [ main, master, copilot/fix-e2e-tests-pipeline ]
+    branches: [ main, master, copilot/* ]
   pull_request:
+    branches: [ main, master ]
+  pull_request_target:
     branches: [ main, master ]
 
 # Permisos de escritura para auto-approve de PRs
