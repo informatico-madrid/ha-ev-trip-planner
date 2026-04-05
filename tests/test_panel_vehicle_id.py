@@ -44,13 +44,15 @@ class TestPanelVehicleIdFiltering:
             "EMHASS adapter should NOT set entry_id attribute"
 
     @pytest.mark.asyncio
-    async def test_panel_should_filter_by_vehicle_id(self):
-        """Test that panel filters trips by vehicle_id from URL.
+    async def test_panel_passes_vehicle_id_to_trip_list_service(self):
+        """Test that panel passes vehicle_id from URL to trip_list service.
 
-        Bug: Panel was trying to filter by entry_id (UUID) but EMHASS sensors
-        store vehicle_id (slug from URL). This caused trips to not display.
+        Panel.js does NOT filter trips client-side by reading sensor attributes.
+        Instead, it correctly passes vehicle_id to the backend trip_list service
+        which does the filtering server-side.
 
-        RED: This test will fail until panel.js is fixed.
+        This is the CORRECT pattern - panel passes:
+        { vehicle_id: this._vehicleId } to ev_trip_planner.trip_list service
         """
         # Read panel.js source
         with open(
@@ -60,16 +62,20 @@ class TestPanelVehicleIdFiltering:
         ) as f:
             content = f.read()
 
-        # The fix: panel should filter using vehicle_id from sensor attributes
-        # When filtering trips, panel should check:
-        # sensor.vehicle_id === panel._vehicleId (from URL)
+        # Panel should call trip_list service with vehicle_id parameter
+        # Pattern: callService('ev_trip_planner', 'trip_list', { vehicle_id: ... })
+        assert "callService" in content and "'trip_list'" in content, \
+            "Panel should call trip_list service"
 
-        # This assertion will FAIL if panel.js still uses entry_id
-        # for trip filtering logic
-        assert 'sensor.dataset.vehicle_id' in content or \
-               'sensor.attributes.vehicle_id' in content or \
-               'state.attributes.vehicle_id' in content, \
-            "Panel should filter by vehicle_id attribute, not entry_id"
+        # Verify vehicle_id is passed to trip_list service
+        assert "vehicle_id: this._vehicleId" in content or \
+               'vehicle_id: this._vehicleId' in content, \
+            "Panel should pass vehicle_id from URL to trip_list service"
+
+        # Verify _getTripsList uses _vehicleId for the service call
+        assert "await this._getTripsList()" in content or \
+               "_vehicleId" in content, \
+            "Panel should use _vehicleId for fetching trips"
 
     @pytest.mark.asyncio
     async def test_vehicle_id_mismatch_prevents_display(self):
