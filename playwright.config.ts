@@ -21,7 +21,7 @@ export default defineConfig({
     command: 'hass -c /tmp/ha-e2e-config --log-no-color',
     url: 'http://localhost:8123/api/',
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000, // 10 min for HA startup in CI (can take 5-10 min with Python 3.14)
+    timeout: 600_000, // 10 min for HA startup in CI (can take 5-10 min with Python 3.14)
     stdout: 'pipe',
     stderr: 'pipe',
   },
