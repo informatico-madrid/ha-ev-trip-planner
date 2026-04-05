@@ -1,5 +1,3 @@
-MANDATORY OPEN AND APPLY .github/copilot-instructions.md# GitHub Copilot Instructions - EV Trip Planner
-
 ## 🎯 PROJECT CONTEXT
 This is a **Home Assistant custom integration** for managing Electric Vehicle trip planning and charging optimization.
 - **Repository**: https://github.com/informatico-madrid/ha-ev-trip-planner
@@ -25,11 +23,6 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
   - Constants: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_CONSUMPTION`)
   - Private methods/vars: Must have a leading underscore (e.g., `_calculate_internal`)
 
-## 🧪 TESTING REQUIREMENTS
-- Write tests for EVERY new feature with >80% coverage target.
-- **Mandatory HA Tools:** Always use the `pytest-homeassistant-custom-component` library.
-- **Fixtures:** You MUST include the `enable_custom_integrations` fixture in the test suite to prevent core blocking.
-- **API Mocking:** Never make real network requests. Use `aioclient_mock` to simulate and mocking all HTTP/API responses (both 200 successes and errors like 401/404).
 
 ## 📝 COMMIT MESSAGES
 When asked to generate a commit message, strictly use Conventional Commits format:
