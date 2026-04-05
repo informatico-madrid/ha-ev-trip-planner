@@ -21,114 +21,97 @@ const MAX_RELOAD_ATTEMPTS = 2;
  * @returns The page object for chaining
  */
 export async function navigateToPanel(page: Page): Promise<Page> {
-  // Collect diagnostics for CI debugging
-  const jsErrors: string[] = [];
-  const allResponses: string[] = [];
-
+  // Log JS errors immediately when they occur
   page.on('pageerror', (err) => {
-    // Stringify the full error with stack trace
-    try {
-      jsErrors.push(`${err.name}: ${err.message}\n${err.stack}`);
-    } catch {
-      jsErrors.push(JSON.stringify(err, Object.getOwnPropertyNames(err)));
+    // eslint-disable-next-line no-console
+    console.log(`[navigateToPanel] JS ERROR: ${err.name}: ${err.message}`);
+    if (err.stack) {
+      // eslint-disable-next-line no-console
+      console.log(`[navigateToPanel] Stack: ${err.stack.substring(0, 300)}`);
     }
   });
 
-  // Capture ALL network responses to see what's loading/failing
-  page.on('response', (response) => {
-    const url = response.url();
-    const status = response.status();
-    // Only log non-200 responses or critical resources
-    if (status >= 400 || url.includes('frontend') || url.includes('panel') || url.includes('ev-trip-planner') || url.includes('.js')) {
-      allResponses.push(`${status} ${url.substring(0, 200)}`);
-    }
+  // Log key network requests
+  page.on('requestfailed', (request) => {
+    // eslint-disable-next-line no-console
+    console.log(`[navigateToPanel] REQUEST FAILED: ${request.url()} - ${request.failure()?.errorText}`);
   });
 
-  const gotoResp = await page.goto(PANEL_URL, { waitUntil: 'load' });
+  // Navigate to the panel URL
+  await page.goto(PANEL_URL, { waitUntil: 'domcontentloaded' });
   // eslint-disable-next-line no-console
-  console.log(`[navigateToPanel] goto response status: ${gotoResp?.status()}, URL: ${page.url()}`);
+  console.log(`[navigateToPanel] Navigated to ${page.url()}`);
 
-  await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
-
-  // Comprehensive page diagnostics
-  const diag = await page.evaluate(() => {
-    const allScripts = Array.from(document.querySelectorAll('script'));
-    const scriptInfo = allScripts.map(s => {
-      const el = s as HTMLScriptElement;
+  // Wait for the HA frontend to fully initialize. The launch screen disappears
+  // when the main HA web component tree is rendered. We wait for either:
+  // - partial-panel-resolver (normal panel routing)
+  // - ha-panel-custom (direct custom panel)
+  // - the launch screen to be removed
+  // Give the frontend plenty of time - it needs to establish a WebSocket
+  // connection to the backend, which can be slow in CI.
+  try {
+    await page.waitForFunction(
+      () => {
+        // The launch screen is removed when HA frontend finishes loading
+        const launchScreen = document.getElementById('ha-launch-screen');
+        return !launchScreen;
+      },
+      { timeout: 45_000 },
+    );
+    // eslint-disable-next-line no-console
+    console.log('[navigateToPanel] HA frontend past launch screen');
+  } catch {
+    // eslint-disable-next-line no-console
+    console.log('[navigateToPanel] WARNING: Launch screen still visible after 45s');
+    // Try to capture what's happening with the WebSocket
+    const wsState = await page.evaluate(() => {
+      const tokensStr = localStorage.getItem('hassTokens');
+      let tokenInfo = 'no tokens';
+      if (tokensStr) {
+        try {
+          const tokens = JSON.parse(tokensStr);
+          const expiresAt = new Date(tokens.expires);
+          tokenInfo = `expires=${expiresAt.toISOString()}, expired=${Date.now() > tokens.expires}`;
+        } catch {
+          tokenInfo = 'parse error';
+        }
+      }
       return {
-        src: el.src || '(inline)',
-        type: el.type || 'text/javascript',
-        module: el.type === 'module',
+        url: window.location.href,
+        tokenInfo,
+        haElementDefined: !!customElements.get('home-assistant'),
+        launchScreen: !!document.getElementById('ha-launch-screen'),
+        bodyText: document.body?.innerText?.substring(0, 200) ?? '(none)',
+        bodyLen: document.body?.innerHTML?.length ?? 0,
       };
-    });
+    }).catch(() => ({ error: 'page closed' }));
+    // eslint-disable-next-line no-console
+    console.log(`[navigateToPanel] State: ${JSON.stringify(wsState)}`);
+  }
 
-    return {
-      url: window.location.href,
-      bodyLength: document.body?.innerHTML?.length ?? -1,
-      bodyText: document.body?.innerText?.substring(0, 200) ?? '(no body)',
-      title: document.title,
-      haTokens: !!localStorage.getItem('hassTokens'),
-      localStorageKeys: Object.keys(localStorage).join(', '),
-      allScripts: scriptInfo,
-      homeAssistantTag: !!document.querySelector('home-assistant'),
-      homeAssistantDefined: !!customElements.get('home-assistant'),
-      haAppDefined: !!customElements.get('ha-app'),
-      panelResolverDefined: !!customElements.get('partial-panel-resolver'),
-      panelCustomDefined: !!customElements.get('ha-panel-custom'),
-      evPanelDefined: !!customElements.get('ev-trip-planner-panel'),
-      totalElements: document.querySelectorAll('*').length,
-      docType: document.doctype?.name ?? '(no doctype)',
-    };
-  });
-  // eslint-disable-next-line no-console
-  console.log(`[navigateToPanel] Page diag: ${JSON.stringify(diag)}`);
-  // eslint-disable-next-line no-console
-  console.log(`[navigateToPanel] Network responses: ${allResponses.join(' | ')}`);
-
-  // Wait for the HA custom element to be defined
+  // Now wait for the custom panel element
   let elementDefined = false;
   for (let attempt = 0; attempt <= MAX_RELOAD_ATTEMPTS; attempt++) {
     try {
-      // First wait for the HA frontend shell to fully initialize
-      await page.waitForFunction(
-        () => !!customElements.get('home-assistant') && !!document.querySelector('partial-panel-resolver, ha-panel-custom'),
-        { timeout: 20_000 },
-      );
-      // Then wait for our custom panel element
       await page.waitForFunction(
         'customElements.get("ev-trip-planner-panel") !== undefined',
         undefined,
-        { timeout: 15_000 },
+        { timeout: 10_000 },
       );
       elementDefined = true;
+      // eslint-disable-next-line no-console
+      console.log('[navigateToPanel] Custom element defined ✓');
       break;
     } catch {
-      const failDiag = await page.evaluate(() => ({
-        url: window.location.href,
-        bodyLen: document.body?.innerHTML?.length ?? -1,
-        bodyText: document.body?.innerText?.substring(0, 300) ?? '(no body)',
-        haTokens: !!localStorage.getItem('hassTokens'),
-        homeAssistantDefined: !!customElements.get('home-assistant'),
-        panelResolverTag: !!document.querySelector('partial-panel-resolver'),
-        haPanelTag: !!document.querySelector('ha-panel-custom'),
-        evPanelDefined: !!customElements.get('ev-trip-planner-panel'),
-        totalElements: document.querySelectorAll('*').length,
-        // Check if HA frontend is in an error/loading state
-        launchScreen: !!document.querySelector('#ha-launch-screen'),
-        errorScreen: !!document.querySelector('.error'),
-      }));
       // eslint-disable-next-line no-console
-      console.log(
-        `[navigateToPanel] Element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
-        ` Diag: ${JSON.stringify(failDiag)}` +
-        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join(' ||| ')}` : '') +
-        ` Responses: ${allResponses.slice(-10).join(' | ')}`,
-      );
-
+      console.log(`[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1})`);
       if (attempt < MAX_RELOAD_ATTEMPTS) {
-        jsErrors.length = 0;
-        allResponses.length = 0;
-        await page.reload({ waitUntil: 'load' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        // Wait for launch screen to clear again
+        await page.waitForFunction(
+          () => !document.getElementById('ha-launch-screen'),
+          { timeout: 45_000 },
+        ).catch(() => {});
       }
     }
   }
@@ -136,16 +119,10 @@ export async function navigateToPanel(page: Page): Promise<Page> {
   if (!elementDefined) {
     const bodyHtml = await page.evaluate(
       'document.body?.innerHTML?.substring(0, 2000) ?? "(empty)"',
+    ).catch(() => '(page closed)');
+    throw new Error(
+      `[navigateToPanel] ev-trip-planner-panel never defined after ${MAX_RELOAD_ATTEMPTS + 1} attempts. Body: ${bodyHtml}`,
     );
-    const errParts = [
-      '[navigateToPanel] ev-trip-planner-panel custom element never defined after',
-      String(MAX_RELOAD_ATTEMPTS + 1),
-      'attempts.',
-      'JS errors: [' + jsErrors.join(' ||| ') + '].',
-      'Responses: [' + allResponses.join(' | ') + '].',
-      'Body HTML: ' + String(bodyHtml),
-    ];
-    throw new Error(errParts.join(' '));
   }
 
   // Wait for the "+ Agregar Viaje" button to appear in shadow DOM

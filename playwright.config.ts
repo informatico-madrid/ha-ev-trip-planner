@@ -10,7 +10,7 @@ export default defineConfig({
   // CI_SINGLE_TEST: temporarily run only trip-list-view for fast CI debugging.
   // Restore to `undefined` (all tests) once CI is green.
   testMatch: process.env.CI ? 'trip-list-view.spec.ts' : undefined,
-  timeout: 60000,
+  timeout: 120000,
   retries: 1,
   workers: 1,
   reporter: [
