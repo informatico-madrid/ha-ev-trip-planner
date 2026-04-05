@@ -435,10 +435,58 @@ async function globalSetup(): Promise<void> {
     throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
   }
 
-  // 4. Wait for the frontend to settle
+  // 4. Navigate to /lovelace to force the HA frontend shell to fully initialize.
+  //    In CI the auth flow ends at "/" which may not load the full frontend JS.
+  //    The storageState must include the fully-initialized frontend state
+  //    (indexed-db caches, service-worker registration, etc.) so that tests
+  //    loading the panel get a complete HA shell.
+  console.log('[auth.setup] Navigating to /lovelace to initialize HA frontend shell...');
+  await page.goto(`${HA_URL}/lovelace`, { waitUntil: 'load', timeout: 30_000 }).catch(() => {});
+
+  // Wait for the frontend to actually render something (sidebar, dashboard, etc.)
+  // Even if /lovelace doesn't exist as a dashboard, the frontend shell should load.
+  try {
+    await page.waitForFunction(
+      () => {
+        // Check if the home-assistant main element is present, OR if we have
+        // a ha-panel-* element, OR if the sidebar loaded. Any of these proves
+        // the HA frontend JS bundle is initialized.
+        return !!(
+          document.querySelector('home-assistant') ||
+          document.querySelector('ha-panel-lovelace') ||
+          document.querySelector('ha-panel-custom') ||
+          document.querySelector('ha-sidebar')
+        );
+      },
+      { timeout: 30_000 },
+    );
+    console.log('[auth.setup] HA frontend shell initialized');
+  } catch {
+    console.log('[auth.setup] WARNING: HA frontend shell did not initialize at /lovelace');
+    // Log what's on the page for debugging
+    const pageContent = await page.evaluate(() => document.body?.innerHTML?.substring(0, 500) ?? '(empty)');
+    console.log('[auth.setup] Page content:', pageContent);
+  }
+
+  // 5. Navigate to the panel URL to verify it loads (warm up the panel)
+  console.log('[auth.setup] Verifying panel URL loads...');
+  await page.goto(`${HA_URL}/ev-trip-planner-test_vehicle`, { waitUntil: 'load', timeout: 30_000 }).catch(() => {});
+  try {
+    await page.waitForFunction(
+      'customElements.get("ev-trip-planner-panel") !== undefined',
+      { timeout: 20_000 },
+    );
+    console.log('[auth.setup] Panel custom element is defined ✓');
+  } catch {
+    // Not fatal — the test retries will handle this
+    const bodyText = await page.evaluate(() => document.body?.innerText?.substring(0, 300) ?? '(empty)');
+    console.log('[auth.setup] WARNING: Panel custom element not defined during setup. Body:', bodyText);
+  }
+
+  // 6. Wait for everything to settle
   console.log('[auth.setup] Waiting for HA frontend to settle...');
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
   console.log('[auth.setup] HA frontend settled. Final URL:', page.url());
 
   // Save authenticated state for reuse in all tests
