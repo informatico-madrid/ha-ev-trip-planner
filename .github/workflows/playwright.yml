@@ -2,7 +2,7 @@ name: Playwright E2E Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, copilot/fix-e2e-tests-pipeline ]
   pull_request:
     branches: [ main, master ]
 
