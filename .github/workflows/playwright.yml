@@ -5,18 +5,15 @@ on:
     branches: [ main, master, copilot/* ]
   pull_request:
     branches: [ main, master ]
-  pull_request_target:
-    branches: [ main, master ]
+  # NOTE: pull_request_target removed — it caused duplicate runs for same-repo PRs.
+  # Only needed for fork PRs that require secrets access.
 
-# Permisos de escritura para auto-approve de PRs
 permissions:
-  contents: write
-  pull-requests: write
-  statuses: write
+  contents: read
 
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: 30
     runs-on: ubuntu-latest
 
     steps:
@@ -36,6 +33,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-ha2026.3.4-py3.14
+        restore-keys: |
+          ${{ runner.os }}-pip-ha2026.3.4-
 
     - name: Install Python & Home Assistant
       run: |
@@ -60,7 +65,7 @@ jobs:
     - name: Wait for Home Assistant to be ready
       run: |
         echo "Waiting for HA API..."
-        for i in $(seq 1 40); do
+        for i in $(seq 1 60); do
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null) || STATUS=""
           if [ "$STATUS" = "401" ] || [ "$STATUS" = "200" ]; then
             echo "HA API ready (status $STATUS) after ${i}x3s"
@@ -70,7 +75,7 @@ jobs:
           sleep 3
         done
         echo "HA did not become ready in time. Log tail:"
-        tail -30 /tmp/ha-e2e.log
+        tail -50 /tmp/ha-e2e.log
         exit 1
 
     - name: Run Playwright E2E tests

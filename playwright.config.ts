@@ -21,9 +21,7 @@ export default defineConfig({
   globalTeardown: './globalTeardown.ts',
   use: {
     baseURL: 'http://localhost:8123',
-    // In CI, don't use storageState - let trusted_networks auth handle each
-    // test context via navigateToPanel(). Locally, use the saved auth state.
-    storageState: process.env.CI ? undefined : 'playwright/.auth/user.json',
+    storageState: 'playwright/.auth/user.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

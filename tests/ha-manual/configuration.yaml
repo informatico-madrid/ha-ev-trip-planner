@@ -1,6 +1,11 @@
 
-# Loads default set of integrations. Do not remove.
-default_config:
+# Minimal HA configuration for E2E tests.
+# NOTE: default_config is intentionally NOT included — it loads 40+ integrations
+# that are unnecessary for testing the EV Trip Planner panel and increase HA
+# startup time from ~20s to 60-90s in CI (GitHub Actions runners).
+
+# The frontend integration is required for HA to serve the web UI and custom panels.
+frontend:
 
 http:
   server_host: 0.0.0.0
@@ -16,6 +21,11 @@ homeassistant:
         - ::1
       allow_bypass_login: true
     - type: homeassistant
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.ev_trip_planner: debug
 
 # Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
 input_boolean:

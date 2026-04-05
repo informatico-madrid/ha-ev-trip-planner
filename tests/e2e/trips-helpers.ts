@@ -36,44 +36,6 @@ export async function navigateToPanel(page: Page): Promise<Page> {
     }
   });
 
-  // In CI (no storageState), we need to navigate to "/" first to trigger
-  // the trusted_networks auth flow. This acquires fresh tokens via the
-  // OAuth flow from 127.0.0.1 and lets the HA frontend fully initialize.
-  // In local dev, storageState provides tokens so we skip this step.
-  if (process.env.CI) {
-    // eslint-disable-next-line no-console
-    console.log('[navigateToPanel] CI mode: navigating to / for trusted_networks auth...');
-    await page.goto('/', { waitUntil: 'load', timeout: 30_000 });
-
-    // Wait for auth callback to be processed (trusted_networks redirects through OAuth)
-    try {
-      await page.waitForURL(
-        (url: URL) => !url.searchParams.has('auth_callback') && !url.pathname.startsWith('/auth/'),
-        { timeout: 30_000 },
-      );
-    } catch {
-      // eslint-disable-next-line no-console
-      console.log('[navigateToPanel] Auth callback wait timeout, continuing...');
-    }
-
-    // Wait for tokens to be stored in localStorage
-    try {
-      await page.waitForFunction(
-        () => {
-          const tokens = localStorage.getItem('hassTokens');
-          return tokens !== null && tokens.length > 10;
-        },
-        { timeout: 15_000 },
-      );
-      // eslint-disable-next-line no-console
-      console.log('[navigateToPanel] Auth tokens acquired via trusted_networks');
-    } catch {
-      // eslint-disable-next-line no-console
-      console.log('[navigateToPanel] WARNING: Could not get auth tokens');
-    }
-  }
-
-  // Navigate to the panel URL
   await page.goto(PANEL_URL, { waitUntil: 'load' });
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
 
