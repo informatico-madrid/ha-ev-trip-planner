@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-05T07:08:13Z",
+  "updated": "2026-04-05T18:45:21Z",
   "directories": [
     {
       "path": "./specs",
@@ -153,9 +153,9 @@
     {
       "name": "duplicate-emhass-sensor-fix",
       "path": "./specs/duplicate-emhass-sensor-fix",
-      "phase": "execution",
-      "taskIndex": 17,
-      "totalTasks": 19
+      "phase": "tasks",
+      "taskIndex": 19,
+      "totalTasks": 25
     }
   ]
 }
