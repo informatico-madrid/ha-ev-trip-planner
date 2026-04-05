@@ -472,6 +472,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             new_data.get("vehicle_name"),
         )
 
+        # FR-3.1/FR-3.2: Trigger republish if charging power changed
+        vehicle_id = new_data.get("vehicle_name", "").lower().replace(" ", "_")
+        data_component = hass.data.get(DOMAIN, {})
+        vehicle_data = data_component.get(vehicle_id, {})
+        trip_manager = vehicle_data.get("trip_manager")
+        if trip_manager and trip_manager._emhass_adapter:
+            await trip_manager._emhass_adapter.update_charging_power()
+
     return True
 
 
@@ -837,15 +845,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Remove the native panel from sidebar
     # Use vehicle_id computed from vehicle_name (not entry.data["vehicle_id"] which doesn't exist)
-    if unload_ok:
-        try:
-            await async_unregister_panel(hass, vehicle_id)
-        except Exception as ex:  # pragma: no cover
-            _LOGGER.warning(
-                "Failed to unregister panel for vehicle %s: %s",
-                vehicle_id,
-                ex,
-            )
+    try:
+        await async_unregister_panel(hass, vehicle_id)
+        _LOGGER.info(
+            "Unregistered panel for vehicle %s",
+            vehicle_id,
+        )
+    except Exception as ex:  # pragma: no cover
+        _LOGGER.warning(
+            "Failed to unregister panel for vehicle %s: %s",
+            vehicle_id,
+            ex,
+        )
 
     _LOGGER.info(
         "Unload completed for vehicle %s, unload_ok=%s", vehicle_name, unload_ok
