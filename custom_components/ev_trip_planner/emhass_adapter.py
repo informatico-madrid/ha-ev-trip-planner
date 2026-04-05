@@ -1133,6 +1133,7 @@ class EMHASSAdapter:
         FR-1.1: Cleans up both state entities AND entity registry entries.
         """
         from homeassistant.helpers import entity_registry as er
+        from homeassistant.helpers import entity_registry as er
 
         # Clear all trip-to-index mappings immediately
         assigned_trips = list(self._index_map.keys())
@@ -1247,7 +1248,7 @@ class EMHASSAdapter:
             self._on_config_entry_updated,
         )
 
-    async def _on_config_entry_updated(self, event: dict) -> None:
+    async def _on_config_entry_updated(self, event: Dict[str, Any]) -> None:
         """
         Handle config entry update events.
 
