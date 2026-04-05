@@ -1194,6 +1194,46 @@ class EMHASSAdapter:
             len(assigned_trips),
         )
 
+    def verify_cleanup(self) -> dict[str, Any]:
+        """Verify cleanup state for testing.
+
+        Returns dict with cleanup status:
+        - state_clean: True if no EMHASS sensors in state machine
+        - registry_clean: True if no EMHASS sensors in entity registry
+        - mappings_cleared: True if _index_map is empty
+        - published_ids_count: Number of published entity IDs (should be 0)
+
+        Used in tests to verify cleanup completed successfully.
+        """
+        from homeassistant.helpers import entity_registry as er
+
+        registry = er.async_get(self.hass)
+
+        # Check state machine for EMHASS sensors
+        state_clean = True
+        for state in self.hass.states.async_all("sensor.emhass_perfil_diferible"):
+            if state.attributes and state.attributes.get("entry_id") == self.entry_id:
+                state_clean = False
+                break
+
+        # Check entity registry for EMHASS sensors
+        registry_clean = True
+        for entity_entry in registry.entities.values():
+            if (
+                entity_entry.domain == "sensor"
+                and entity_entry.unique_id
+                and entity_entry.unique_id.startswith(f"emhass_perfil_diferible_{self.entry_id}")
+            ):
+                registry_clean = False
+                break
+
+        return {
+            "state_clean": state_clean,
+            "registry_clean": registry_clean,
+            "mappings_cleared": len(self._index_map) == 0,
+            "published_ids_count": len(self._published_entity_ids),
+        }
+
     def setup_config_entry_listener(self) -> None:
         """
         Subscribe to config entry updates to trigger republish when charging power changes.
