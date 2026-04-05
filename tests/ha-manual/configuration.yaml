@@ -1,4 +1,3 @@
-
 # Minimal configuration for E2E tests - NO default_config to ensure fast startup
 # default_config loads 40+ integrations and slows HA startup from 20s to 90s in CI
 
@@ -15,11 +14,10 @@ homeassistant:
         - ::1
       allow_bypass_login: true
     - type: homeassistant
-
-logger:
-  default: warning
-  logs:
-    homeassistant.components.ev_trip_planner: debug
+  logger:
+    default: warning
+    logs:
+      homeassistant.components.ev_trip_planner: debug
 
 # Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
 input_boolean:
@@ -29,6 +27,3 @@ input_boolean:
 
 # Only load frontend (required for panel serving) - NO other integrations
 frontend:
-logger:
-  default: warning
-

@@ -36,7 +36,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: pip-homeassistant-2026.3.4-py3.14
+        key: pip-ha-2026.3.4-py3.14-${{ hashFiles('**/requirements*.txt', '**/setup.py') }}
+        restore-keys: |
+          pip-ha-2026.3.4-py3.14-
 
     - name: Install Python and Home Assistant
       run: |
