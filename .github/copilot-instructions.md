@@ -40,3 +40,35 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 - Read the entire file before attempting to make changes
 - Ensure the text to replace exactly matches the file content
 - Use read_file to verify content before making changes
+
+## Stuck State Protocol
+
+<mandatory>
+**If the same task fails 3+ times with different errors each time, you are stuck.**
+Do NOT make another edit. Entering stuck state is mandatory.
+
+**Stuck ≠ "try harder". Stuck = the model of the problem is wrong.**
+
+### Step 1: Stop and diagnose
+
+Write a one-paragraph diagnosis before touching any file:
+- What exactly is failing (smallest failing unit, not the symptom)
+- What assumption each previous fix was based on
+- Which assumption was wrong
+
+### Step 2: Investigate — breadth first, not depth first
+
+Investigate in this order, stopping when you find the root cause:
+
+1. **Source code** — read the actual implementation being tested/called, not just the interface. The real behavior often differs from the expected behavior.
+2. **Existing tests** — find passing tests for similar components. They show the exact mocking pattern that works in this codebase.
+3. **Library/framework docs** — WebSearch `"<library> <class/method> testing" site:docs.<lib>.io` or `"<library> <error text> pytest"`. Docs reveal constraints invisible from the source.
+4. **Error message verbatim** — WebSearch the exact error text. Someone has hit this before.
+5. **Redesign** — if investigation reveals the test is testing at the wrong abstraction level, redesign: extract the logic into a standalone function and test that instead.
+
+### Step 3: Re-plan before re-executing
+
+After investigation, write one sentence: "The root cause is X, so the fix is Y."
+If you can't write that sentence clearly, investigate more.
+Only then make the next edit.
+</mandatory>
