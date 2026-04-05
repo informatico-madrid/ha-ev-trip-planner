@@ -16,6 +16,11 @@ homeassistant:
       allow_bypass_login: true
     - type: homeassistant
 
+logger:
+  default: warning
+  logs:
+    homeassistant.components.ev_trip_planner: debug
+
 # Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
 input_boolean:
   test_ev_charging:
