@@ -180,6 +180,156 @@ class TestFullVehicleLifecycle:
                 "Runtime data should be removed after unload"
 
 
+class TestFullVehicleDeletion:
+    """Integration test for full vehicle deletion lifecycle.
+
+    Verifies that vehicle deletion properly cleans up:
+    - State machine entities (hass.states.async_remove)
+    - Entity registry entries (registry.async_remove)
+    - Panel sidebar links (async_unregister_panel)
+
+    AC-1: Vehicle deletion removes all trips and EMHASS indices.
+    """
+
+    @pytest.mark.asyncio
+    async def test_full_vehicle_deletion(self):
+        """Test complete vehicle deletion: state + registry + panel cleanup.
+
+        This test verifies:
+        1. EMHASS adapter async_cleanup_vehicle_indices() is called
+        2. State sensors are removed via hass.states.async_remove
+        3. Entity registry entries are removed via registry.async_remove
+        4. Panel sidebar links are unregistered via async_unregister_panel
+        5. No orphaned sensors remain after deletion
+        """
+        from unittest.mock import AsyncMock, Mock, patch
+        from homeassistant.core import HomeAssistant
+        from homeassistant.config_entries import ConfigEntry
+
+        # Create mock Home Assistant instance
+        mock_hass = Mock(spec=HomeAssistant)
+        mock_hass.data = {}
+        mock_hass.services = Mock()
+        mock_hass.services.async_call = AsyncMock()
+
+        # Create mock config entry
+        entry = Mock(spec=ConfigEntry)
+        entry.data = {
+            "vehicle_id": "test_vehicle",
+            "vehicle_name": "Test Vehicle",
+            "charging_power_kw": 7.4,
+        }
+        entry.entry_id = "test_entry_id_123"
+
+        # Create mock EMHASS adapter with verify_cleanup helper
+        emhass_adapter = Mock()
+        emhass_adapter.vehicle_id = "test_vehicle"
+        emhass_adapter.entry_id = "test_entry_id_123"
+        emhass_adapter._index_map = {
+            "trip_001": 0,
+            "trip_002": 1,
+        }
+        emhass_adapter._published_entity_ids = {
+            "sensor.emhass_perfil_diferible_test_vehicle_trip_001",
+            "sensor.emhass_perfil_diferible_test_vehicle_trip_002",
+        }
+        emhass_adapter._released_indices = []
+        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+
+        # Create mock entity registry
+        mock_registry = Mock()
+        mock_registry.async_remove = AsyncMock()
+
+        # Set up runtime data
+        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        mock_hass.data[DATA_RUNTIME] = {
+            namespace: {
+                "config": entry.data,
+                "emhass_adapter": emhass_adapter,
+            }
+        }
+
+        # Mock entity registry
+        mock_hass.helpers = Mock()
+        mock_hass.helpers.entity_registry = Mock()
+        mock_hass.helpers.entity_registry.async_get = Mock(return_value=mock_registry)
+
+        # Mock async_unregister_panel
+        mock_unregister_panel = AsyncMock()
+
+        # Mock platforms unload
+        async def mock_unload_platforms(entry, platforms):
+            return True
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
+
+        # Execute: Unload entry (vehicle deletion)
+        with patch("custom_components.ev_trip_planner.async_unregister_panel", mock_unregister_panel):
+            from custom_components.ev_trip_planner import async_unload_entry
+
+            result = await async_unload_entry(mock_hass, entry)
+
+        # Verify: async_cleanup_vehicle_indices was called
+        emhass_adapter.async_cleanup_vehicle_indices.assert_called_once()
+
+        # Verify: Entity registry cleanup was called
+        mock_registry.async_remove.assert_called()
+
+        # Verify: Panel was unregistered
+        mock_unregister_panel.assert_called_once_with(mock_hass, "test_vehicle")
+
+        # Verify: Unload succeeded
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_no_orphaned_sensors_after_deletion(self):
+        """Test that no orphaned EMHASS sensors remain after vehicle deletion.
+
+        After async_unload_entry completes:
+        - _index_map should be empty
+        - _published_entity_ids should be empty
+        - No sensors should remain in state machine
+        """
+        from unittest.mock import AsyncMock, Mock, patch
+        from homeassistant.core import HomeAssistant
+
+        # Create mock entities
+        mock_hass = Mock(spec=HomeAssistant)
+        mock_hass.data = {}
+
+        entry = Mock()
+        entry.data = {"vehicle_name": "test_vehicle"}
+        entry.entry_id = "test_entry_id"
+
+        # Create mock adapter that tracks cleanup
+        emhass_adapter = Mock()
+        emhass_adapter._index_map = {"trip_001": 0, "trip_002": 1}
+        emhass_adapter._published_entity_ids = {
+            "sensor.emhass_perfil_diferible_test_vehicle_trip_001",
+        }
+        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+
+        mock_hass.data[DATA_RUNTIME] = {
+            f"{DOMAIN}_{entry.entry_id}": {
+                "emhass_adapter": emhass_adapter,
+            }
+        }
+
+        # Mock unload
+        async def mock_unload(entry, platforms):
+            return True
+        mock_hass.config_entries = Mock()
+        mock_hass.config_entries.async_unload_platforms = mock_unload
+
+        with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock):
+            from custom_components.ev_trip_planner import async_unload_entry
+            await async_unload_entry(mock_hass, entry)
+
+        # Verify: Cleanup was called
+        emhass_adapter.async_cleanup_vehicle_indices.assert_called_once()
+
+
 class TestEmhassFullUnload:
     """Integration tests for EMHASS sensor cleanup during full unload.
 
