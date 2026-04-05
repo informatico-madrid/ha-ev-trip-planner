@@ -98,7 +98,7 @@ async function getTokens(): Promise<{ access_token: string; refresh_token: strin
  * This is needed because input_booleans defined in configuration.yaml may take
  * some time to register after HA starts, especially in CI environments.
  */
-async function waitForEntity(entityId: string, timeoutMs = 30_000): Promise<void> {
+async function waitForEntity(entityId: string, timeoutMs = 60_000): Promise<void> {
   const { access_token } = await getTokens();
   const start = Date.now();
 
@@ -385,7 +385,7 @@ async function globalSetup(): Promise<void> {
 
   // Wait for input_boolean.test_ev_charging to be available in HA
   // (it may take a few seconds after HA starts to register)
-  await waitForEntity('input_boolean.test_ev_charging', 30_000);
+  await waitForEntity('input_boolean.test_ev_charging', 60_000);
 
   // Set up the integration only if not already done
   if (await isIntegrationSetUp(token)) {
