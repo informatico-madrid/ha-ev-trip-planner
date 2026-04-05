@@ -226,7 +226,7 @@
 
 ### Bug 2: Event handler - use event.data.get() instead of event.get()
 
-- [ ] 5.3 [RED] Failing test: _on_config_entry_updated extracts vehicle_id from event.data.get()
+- [x] 5.3 [RED] Failing test: _on_config_entry_updated extracts vehicle_id from event.data.get()
   - **Do**: Write test in `tests/test_vehicle_controller.py` asserting that `_on_config_entry_updated()` correctly extracts vehicle_id from `event.data.get('vehicle_id')` when called with a Home Assistant Event object
   - **Files**: `tests/test_vehicle_controller.py`, `custom_components/ev_trip_planner/vehicle_controller.py`
   - **Done when**: Test exists AND fails (vehicle_id undefined due to event.get() instead of event.data.get())
