@@ -68,7 +68,7 @@ class EMHASSAdapter:
         self._config_entry_listener: Optional[Callable] = None
 
         # FR-3.1: Store charging power for reactive updates
-        self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER_KW, 3.6)
+        self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
 
         _LOGGER.debug(
             "Created EMHASSAdapter for %s, %d indices, notification_service=%s, charging_power_kw=%.2f",
