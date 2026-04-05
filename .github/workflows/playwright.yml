@@ -2,9 +2,9 @@ name: Playwright E2E Tests
 
 on:
   push:
-    branches: [ main, master, copilot/* ]
-  pull_request:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master, copilot/* ]
 
 permissions:
   contents: read
@@ -36,15 +36,14 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: pip-ha-2026.3.4-py3.14-${{ hashFiles('**/requirements*.txt', '**/setup.py') }}
+        key: pip-ha-2026.3.4-py3.14-x64-${{ hashFiles('**/requirements*.txt', '**/setup.py') }}
         restore-keys: |
-          pip-ha-2026.3.4-py3.14-
+          pip-ha-2026.3.4-py3.14-x64-
 
     - name: Install Python and Home Assistant
       run: |
         python3 -m pip install --upgrade pip
-        pip install homeassistant==2026.3.4
-        pip install home-assistant-frontend==20260304
+        pip install --no-cache-dir homeassistant==2026.3.4
 
     - name: Create HA config directory
       run: |

@@ -2,9 +2,9 @@ name: Python Tests
 
 on:
   push:
-    branches: [ main, master, copilot/* ]
-  pull_request:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master, copilot/* ]
 
 permissions:
   contents: write
@@ -27,7 +27,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: pip-pytest-2026.3.4
+        key: pip-pytest-2026.3.4-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          pip-pytest-2026.3.4-
 
     - name: Install dependencies
       run: |
