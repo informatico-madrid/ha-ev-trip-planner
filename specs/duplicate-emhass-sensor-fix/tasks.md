@@ -252,7 +252,7 @@
   - **Commit**: `test(emhass): red - failing test for async_all domain filter`
   - _Requirements: AC-1.5_
 
-- [ ] 5.6 [GREEN] Pass test: fix async_all() to use correct domain argument
+- [x] 5.6 [GREEN] Pass test: fix async_all() to use correct domain argument
   - **Do**: In `custom_components/ev_trip_planner/emhass_adapter.py` `verify_cleanup()` method, replace `hass.states.async_all("sensor.emhass_perfil_diferible")` with `hass.states.async_all("sensor")` and add filter logic to check entity_id.startsWith('sensor.emhass_perfil_diferible_')
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Previously failing test now passes
