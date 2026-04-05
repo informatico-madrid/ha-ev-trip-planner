@@ -21,108 +21,106 @@ const MAX_RELOAD_ATTEMPTS = 2;
  * @returns The page object for chaining
  */
 export async function navigateToPanel(page: Page): Promise<Page> {
-  // Log JS errors immediately when they occur
+  // Collect diagnostics for CI debugging
+  const jsErrors: string[] = [];
+  const failedRequests: string[] = [];
+
   page.on('pageerror', (err) => {
-    // eslint-disable-next-line no-console
-    console.log(`[navigateToPanel] JS ERROR: ${err.name}: ${err.message}`);
-    if (err.stack) {
-      // eslint-disable-next-line no-console
-      console.log(`[navigateToPanel] Stack: ${err.stack.substring(0, 300)}`);
+    jsErrors.push(err.message);
+  });
+
+  page.on('response', (response) => {
+    const url = response.url();
+    if (url.includes('ev-trip-planner') && response.status() >= 400) {
+      failedRequests.push(`${response.status()} ${url}`);
     }
   });
 
-  // Log key network requests
-  page.on('requestfailed', (request) => {
+  // In CI (no storageState), we need to navigate to "/" first to trigger
+  // the trusted_networks auth flow. This acquires fresh tokens via the
+  // OAuth flow from 127.0.0.1 and lets the HA frontend fully initialize.
+  // In local dev, storageState provides tokens so we skip this step.
+  if (process.env.CI) {
     // eslint-disable-next-line no-console
-    console.log(`[navigateToPanel] REQUEST FAILED: ${request.url()} - ${request.failure()?.errorText}`);
-  });
+    console.log('[navigateToPanel] CI mode: navigating to / for trusted_networks auth...');
+    await page.goto('/', { waitUntil: 'load', timeout: 30_000 });
 
-  // Navigate to the panel URL
-  await page.goto(PANEL_URL, { waitUntil: 'domcontentloaded' });
-  // eslint-disable-next-line no-console
-  console.log(`[navigateToPanel] Navigated to ${page.url()}`);
+    // Wait for auth callback to be processed (trusted_networks redirects through OAuth)
+    try {
+      await page.waitForURL(
+        (url: URL) => !url.searchParams.has('auth_callback') && !url.pathname.startsWith('/auth/'),
+        { timeout: 30_000 },
+      );
+    } catch {
+      // eslint-disable-next-line no-console
+      console.log('[navigateToPanel] Auth callback wait timeout, continuing...');
+    }
 
-  // Wait for the HA frontend to fully initialize. The launch screen disappears
-  // when the main HA web component tree is rendered. We wait for either:
-  // - partial-panel-resolver (normal panel routing)
-  // - ha-panel-custom (direct custom panel)
-  // - the launch screen to be removed
-  // Give the frontend plenty of time - it needs to establish a WebSocket
-  // connection to the backend, which can be slow in CI.
-  try {
-    await page.waitForFunction(
-      () => {
-        // The launch screen is removed when HA frontend finishes loading
-        const launchScreen = document.getElementById('ha-launch-screen');
-        return !launchScreen;
-      },
-      { timeout: 45_000 },
-    );
-    // eslint-disable-next-line no-console
-    console.log('[navigateToPanel] HA frontend past launch screen');
-  } catch {
-    // eslint-disable-next-line no-console
-    console.log('[navigateToPanel] WARNING: Launch screen still visible after 45s');
-    // Try to capture what's happening with the WebSocket
-    const wsState = await page.evaluate(() => {
-      const tokensStr = localStorage.getItem('hassTokens');
-      let tokenInfo = 'no tokens';
-      if (tokensStr) {
-        try {
-          const tokens = JSON.parse(tokensStr);
-          const expiresAt = new Date(tokens.expires);
-          tokenInfo = `expires=${expiresAt.toISOString()}, expired=${Date.now() > tokens.expires}`;
-        } catch {
-          tokenInfo = 'parse error';
-        }
-      }
-      return {
-        url: window.location.href,
-        tokenInfo,
-        haElementDefined: !!customElements.get('home-assistant'),
-        launchScreen: !!document.getElementById('ha-launch-screen'),
-        bodyText: document.body?.innerText?.substring(0, 200) ?? '(none)',
-        bodyLen: document.body?.innerHTML?.length ?? 0,
-      };
-    }).catch(() => ({ error: 'page closed' }));
-    // eslint-disable-next-line no-console
-    console.log(`[navigateToPanel] State: ${JSON.stringify(wsState)}`);
+    // Wait for tokens to be stored in localStorage
+    try {
+      await page.waitForFunction(
+        () => {
+          const tokens = localStorage.getItem('hassTokens');
+          return tokens !== null && tokens.length > 10;
+        },
+        { timeout: 15_000 },
+      );
+      // eslint-disable-next-line no-console
+      console.log('[navigateToPanel] Auth tokens acquired via trusted_networks');
+    } catch {
+      // eslint-disable-next-line no-console
+      console.log('[navigateToPanel] WARNING: Could not get auth tokens');
+    }
   }
 
-  // Now wait for the custom panel element
+  // Navigate to the panel URL
+  await page.goto(PANEL_URL, { waitUntil: 'load' });
+  await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
+
+  // Wait for the HA custom element to be defined (panel.js loaded & executed).
+  // In CI, the first page load may fail if the static paths for
+  // panel.js / lit-bundle.js aren't registered yet. A reload fixes this.
   let elementDefined = false;
   for (let attempt = 0; attempt <= MAX_RELOAD_ATTEMPTS; attempt++) {
     try {
       await page.waitForFunction(
         'customElements.get("ev-trip-planner-panel") !== undefined',
         undefined,
-        { timeout: 10_000 },
+        { timeout: 15_000 },
       );
       elementDefined = true;
-      // eslint-disable-next-line no-console
-      console.log('[navigateToPanel] Custom element defined ✓');
       break;
     } catch {
+      // Log diagnostics to help debug CI failures
       // eslint-disable-next-line no-console
-      console.log(`[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1})`);
+      console.log(
+        `[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
+        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join('; ')}` : '') +
+        (failedRequests.length > 0 ? ` Failed requests: ${failedRequests.join('; ')}` : ''),
+      );
+
       if (attempt < MAX_RELOAD_ATTEMPTS) {
-        await page.reload({ waitUntil: 'domcontentloaded' });
-        // Wait for launch screen to clear again
-        await page.waitForFunction(
-          () => !document.getElementById('ha-launch-screen'),
-          { timeout: 45_000 },
-        ).catch(() => {});
+        // Clear error lists before retry
+        jsErrors.length = 0;
+        failedRequests.length = 0;
+        await page.reload({ waitUntil: 'load' });
       }
     }
   }
 
   if (!elementDefined) {
-    const bodyHtml = await page.evaluate(
-      'document.body?.innerHTML?.substring(0, 2000) ?? "(empty)"',
-    ).catch(() => '(page closed)');
-    throw new Error(
-      `[navigateToPanel] ev-trip-planner-panel never defined after ${MAX_RELOAD_ATTEMPTS + 1} attempts. Body: ${bodyHtml}`,
+    // Capture page HTML snapshot for debugging
+    const bodyText = await page.evaluate(
+      'document.body?.innerText?.substring(0, 500) ?? "(empty)"',
     );
+    const errParts = [
+      '[navigateToPanel] ev-trip-planner-panel custom element never defined after',
+      String(MAX_RELOAD_ATTEMPTS + 1),
+      'attempts. JS errors: [' + jsErrors.join('; ') + '].',
+      'Failed requests: [' + failedRequests.join('; ') + '].',
+      'Page text: ' + String(bodyText),
+    ];
+    throw new Error(errParts.join(' '));
   }
 
   // Wait for the "+ Agregar Viaje" button to appear in shadow DOM

@@ -8,9 +8,9 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   testDir: './tests/e2e',
   // CI_SINGLE_TEST: temporarily run only trip-list-view for fast CI debugging.
-  // Restore to `undefined` (all tests) once CI is green.
+  // TODO: Remove testMatch once CI is green to restore all tests.
   testMatch: process.env.CI ? 'trip-list-view.spec.ts' : undefined,
-  timeout: 120000,
+  timeout: 60000,
   retries: 1,
   workers: 1,
   reporter: [
@@ -21,7 +21,9 @@ export default defineConfig({
   globalTeardown: './globalTeardown.ts',
   use: {
     baseURL: 'http://localhost:8123',
-    storageState: 'playwright/.auth/user.json',
+    // In CI, don't use storageState - let trusted_networks auth handle each
+    // test context via navigateToPanel(). Locally, use the saved auth state.
+    storageState: process.env.CI ? undefined : 'playwright/.auth/user.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
