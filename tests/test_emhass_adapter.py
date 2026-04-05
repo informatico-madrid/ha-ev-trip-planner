@@ -1938,3 +1938,36 @@ async def test_multiple_vehicles_cleanup_isolation(hass: HomeAssistant, mock_sto
     assert len(adapter_a._published_entity_ids) == 0
     # Verify vehicle B was NOT touched
     assert len(adapter_b._published_entity_ids) == 2
+
+
+@pytest.mark.asyncio
+async def test_verify_cleanup_uses_async_all_sensor_domain(hass: HomeAssistant, mock_store):
+    """Test that verify_cleanup calls hass.states.async_all('sensor') and filters by entity_id prefix.
+
+    AC-1.5: verify_cleanup() must call hass.states.async_all("sensor") (not
+    "sensor.emhass_perfil_diferible") and then filter results by entity_id prefix
+    to find EMHASS sensors belonging to this vehicle.
+
+    The bug is that the current code calls async_all("sensor.emhass_perfil_diferible")
+    which is INVALID - async_all takes a domain string like "sensor", not an entity_id pattern.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+    # Track what domain async_all is called with
+    async_all_spy = AsyncMock(return_value=[])
+    hass.states.async_all = async_all_spy
+
+    # Call verify_cleanup - it should call async_all("sensor") and filter by entity_id prefix
+    adapter.verify_cleanup()
+
+    # AC-1.5: async_all must be called with "sensor" (domain), NOT "sensor.emhass_perfil_diferible"
+    # The current buggy code calls async_all("sensor.emhass_perfil_diferible") which is invalid
+    async_all_spy.assert_called_once_with("sensor")

@@ -3,7 +3,7 @@
   "name": "duplicate-emhass-sensor-fix",
   "basePath": "specs/duplicate-emhass-sensor-fix",
   "phase": "tasks",
-  "taskIndex": 19,
+  "taskIndex": 24,
   "totalTasks": 25,
   "taskIteration": 1,
   "repairIteration": 0,
