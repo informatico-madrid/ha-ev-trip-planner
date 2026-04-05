@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, HomeAssistantError
@@ -64,11 +64,18 @@ class EMHASSAdapter:
         # Entity tracking for cleanup (FR-1, AC-1.4)
         self._published_entity_ids: Set[str] = set()
 
+        # FR-3.1: Config entry listener handle for cleanup
+        self._config_entry_listener: Optional[Callable] = None
+
+        # FR-3.1: Store charging power for reactive updates
+        self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER_KW, 3.6)
+
         _LOGGER.debug(
-            "Created EMHASSAdapter for %s, %d indices, notification_service=%s",
+            "Created EMHASSAdapter for %s, %d indices, notification_service=%s, charging_power_kw=%.2f",
             self.vehicle_id,
             len(self._available_indices),
             self.notification_service,
+            self._charging_power_kw,
         )
 
     async def async_load(self):
@@ -519,6 +526,7 @@ class EMHASSAdapter:
                     "deferrables_schedule": deferrables_schedule,
                     "vehicle_id": self.vehicle_id,
                     "trips_count": len(trips),
+                    "entry_id": self.entry_id,  # FR-1.2: Add entry_id for orphan detection
                 },
             )
         except HomeAssistantError as err:
@@ -1116,15 +1124,24 @@ class EMHASSAdapter:
         since the vehicle is being deleted. Clears all deferrable load sensors.
 
         Called during vehicle deletion cascade to ensure no orphaned indices remain.
+
+        FR-1.1: Cleans up both state entities AND entity registry entries.
         """
+        from homeassistant.helpers import entity_registry as er
+
         # Clear all trip-to-index mappings immediately
         assigned_trips = list(self._index_map.keys())
 
-        # Clear all deferrable load config sensors for this vehicle
+        # Get registry for cleanup
+        registry = er.async_get(self.hass)
+
+        # FR-1.1: Consolidated cleanup - remove both state and registry entries together
+        # Iterate through all trip indices and clean up both state machine and entity registry
         for trip_id in assigned_trips:
             emhass_index = self._index_map.get(trip_id)
             if emhass_index is not None:
                 config_sensor_id = self._get_config_sensor_id(emhass_index)
+                # Remove from state machine
                 try:
                     await self.hass.states.async_remove(config_sensor_id)
                 except HomeAssistantError as err:
@@ -1133,6 +1150,18 @@ class EMHASSAdapter:
                         config_sensor_id,
                         err,
                     )
+                # Remove from entity registry
+                try:
+                    registry.async_remove(config_sensor_id)
+                except Exception:  # Entity may not exist or already removed
+                    pass
+
+        # Clear the main vehicle sensor from registry
+        try:
+            main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
+            registry.async_remove(main_sensor_id)
+        except Exception:  # Entity may not exist or already removed
+            pass
 
         # Hard reset: clear all mappings and released indices
         self._published_entity_ids.clear()
@@ -1140,7 +1169,7 @@ class EMHASSAdapter:
         self._released_indices.clear()
         self._available_indices = list(range(self.max_deferrable_loads))
 
-        # Clear the main vehicle sensor
+        # Clear the main vehicle sensor from state
         try:
             sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             await self.hass.states.async_remove(sensor_id)
@@ -1159,6 +1188,70 @@ class EMHASSAdapter:
             self.vehicle_id,
             len(assigned_trips),
         )
+
+    def setup_config_entry_listener(self) -> None:
+        """
+        Subscribe to config entry updates to trigger republish when charging power changes.
+
+        FR-3.1: When entry.data changes (e.g., charging_power_kw), we need to republish
+        sensor attributes with the new values.
+        """
+        # Store listener handle for cleanup
+        self._config_entry_listener = self.hass.bus.async_listen(
+            "config_entries",
+            self._on_config_entry_updated,
+        )
+
+    async def _on_config_entry_updated(self, event: dict) -> None:
+        """
+        Handle config entry update events.
+
+        When charging_power_kw changes, we need to recalculate power_profile_watts.
+        """
+        if event.get("action") != "updated":
+            return
+
+        entry_id = event.get("entry_id")
+        if entry_id != self.entry_id:
+            return
+
+        _LOGGER.info("Config entry updated for vehicle %s, checking charging power", self.vehicle_id)
+        await self.update_charging_power()
+
+    async def update_charging_power(self) -> None:
+        """
+        Update charging power and republish sensor attributes if changed.
+
+        FR-3.1/FR-3.2: Called when config entry is updated. Compares new power with
+        stored value and republishes only if power actually changed.
+        """
+        # Get current entry to fetch updated charging_power_kw
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if not entry:
+            _LOGGER.warning("Config entry %s not found", self.entry_id)
+            return
+
+        new_power = entry.data.get("charging_power_kw")
+        if new_power is None:
+            _LOGGER.warning("charging_power_kw not found in config entry")
+            return
+
+        # Only republish if power actually changed
+        if new_power == self._charging_power_kw:
+            _LOGGER.debug("Charging power unchanged, skipping republish")
+            return
+
+        _LOGGER.info(
+            "Charging power changed from %s to %s kW, republishing sensor attributes",
+            self._charging_power_kw,
+            new_power,
+        )
+
+        # Update internal power value
+        self._charging_power_kw = new_power
+
+        # Republish with new power profile
+        await self.publish_deferrable_loads()
 
     def _calculate_power_profile_from_trips(
         self,
