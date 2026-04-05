@@ -4,10 +4,11 @@
 
 This spec implements fixes for EMHASS sensor entity lifecycle issues using a POC-first approach across 5 phases.
 
-**Total Tasks**: 19 across 4 phases
+**Total Tasks**: 20 across 4 phases (19 implementation + 1 baseline checkpoint)
 
 ## Phase Breakdown
 
+- **Phase 0 (Baseline)**: 1 task - verify all existing tests pass before changes
 - **Phase 1 (POC)**: 5 tasks - proves the core fixes work
 - **Phase 2 (Refactor)**: 5 tasks - clean up and consolidate
 - **Phase 3 (Testing)**: 5 tasks - add comprehensive test coverage
@@ -15,7 +16,61 @@ This spec implements fixes for EMHASS sensor entity lifecycle issues using a POC
 
 ---
 
+## Verification Tooling
+
+**Testing Commands** (from `Makefile`):
+- `make test` - Run all Python unit tests (ignores e2e)
+- `make test-cover` - Run tests with coverage report
+- `make e2e` - Run E2E tests (auto-starts HA via `scripts/run-e2e.sh`)
+- `make lint` - Run ruff and pylint
+- `make mypy` - Run type checking
+- `make check` - Run all checks (test + lint + mypy)
+
+**E2E Environment** (from `scripts/run-e2e.sh`):
+- Config directory: `/tmp/ha-e2e-config`
+- HA starts: `hass -c /tmp/ha-e2e-config`
+- HA URL: `http://localhost:8123`
+- E2E tests: `npx playwright test tests/e2e/`
+- Script handles: kill existing HA, clean config, start HA, run onboarding
+
+**Development**:
+- Python: 3.11+ (pyproject.toml)
+- Virtualenv: `.venv/bin/python`
+- Test framework: pytest with asyncio support
+- Coverage threshold: 80%
+
+---
+
 ## Tasks
+
+### Phase 0: Baseline - Verify Tests Pass First
+
+#### Task 0.0: Baseline Verification - All Tests Green
+
+**Do**: Verify all existing tests pass BEFORE starting implementation
+
+**Files**:
+- All test files
+- Use `make test` command
+
+**Done When**:
+- [ ] Run `make test` and all tests pass
+- [ ] Document test count and any failures
+- [ ] Create baseline snapshot for regression comparison
+- [ ] Ensure `.venv` is activated/available
+
+**Verify**:
+```bash
+cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
+make test
+# Expected: All tests pass before any changes
+```
+
+**Commit**: `baseline: verify all tests pass before implementation`
+
+**Important**: If tests fail, fix them first before proceeding. Do not implement new features with failing baseline.
+
+---
 
 ### Phase 1: POC - Core Fixes
 
@@ -497,35 +552,47 @@ head -20 CHANGELOG.md
 
 ---
 
-#### Task 4.4: Final verification
+#### Task 4.4: Final E2E Verification
 
-**Do**: Final end-to-end verification
+**Do**: Run full E2E test suite to verify all changes work end-to-end
 
 **Files**:
-- N/A (manual verification)
+- Use `make e2e` command (auto-starts HA via `scripts/run-e2e.sh`)
 
 **Done When**:
-- [ ] Dev server starts without errors
-- [ ] Vehicle can be added with EMHASS integration
-- [ ] Sensors show correct attributes
-- [ ] Config changes reflect in sensors
-- [ ] Vehicle deletion cleans up all entities
-- [ ] No stale panel links remain
+- [ ] Run `make e2e` and all E2E tests pass
+- [ ] Verify EMHASS sensor lifecycle works end-to-end
+- [ ] Vehicle deletion cleans all entities
+- [ ] Panel filtering shows correct sensors
+- [ ] Config updates reflect in sensors
+- [ ] No regression in existing functionality
 
 **Verify**:
 ```bash
-# Start dev server in background
-python -m homeassistant --config /tmp/ha-config &
-sleep 5
+cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 
-# Check health
-curl http://localhost:8123/api/healthcheck
+# Run E2E tests (auto-starts HA, runs onboarding, executes Playwright tests)
+make e2e
 
-# Cleanup
-pkill -f "homeassistant --config"
+# Expected: All E2E tests pass
+# Script: ./scripts/run-e2e.sh
+# Config: /tmp/ha-e2e-config
+# HA URL: http://localhost:8123
 ```
 
-**Commit**: `verify: final end-to-end verification`
+**Alternative (manual)**:
+```bash
+# Start HA manually if needed
+./scripts/run-e2e.sh
+
+# Wait for HA to be ready
+curl http://localhost:8123/api/healthcheck
+
+# Run Playwright tests
+npx playwright test tests/e2e/
+```
+
+**Commit**: `verify: run full E2E test suite`
 
 ---
 
@@ -549,12 +616,24 @@ After Task 1.5, you can:
 
 | Phase | Tasks | Purpose |
 |-------|-------|---------|
+| Phase 0 | 0.0 | Baseline - Verify tests pass |
 | Phase 1 | 1.1-1.8 | POC - Core fixes |
 | Phase 2 | 2.1-2.5 | Refactor - Clean up |
 | Phase 3 | 3.1-3.5 | Testing - Add coverage |
 | Phase 4 | 4.1-4.4 | Quality - CI/PR |
 
-**Total**: 19 tasks
+**Total**: 20 tasks (1 baseline + 19 implementation)
 
 **Files to modify**: 7
 **Files to create**: 4 test files
+
+**POC Milestone**: Task 1.5 completes the POC. At this point:
+- State sensors include `entry_id` attribute
+- Entity registry cleanup works
+- Config updates trigger republish
+- Basic attribute propagation is working
+
+After Task 1.5, you can:
+1. Run `make test` to verify no regressions
+2. Test changes in dev environment if needed
+3. Proceed to Phase 2 if POC is successful
