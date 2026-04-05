@@ -414,11 +414,11 @@ async function globalSetup(): Promise<void> {
   try {
     await page.waitForFunction(
       () => {
-        // HA frontend stores tokens under "hassTokens" in localStorage
+        // HA frontend stores tokens under "hassTokens" in localStorage.
+        // A valid JSON token object is always longer than a trivial string.
         const tokens = localStorage.getItem('hassTokens');
         return tokens !== null && tokens.length > 10;
       },
-      undefined,
       { timeout: 30_000 },
     );
     console.log('[auth.setup] Auth tokens found in localStorage');
