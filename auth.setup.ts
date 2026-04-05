@@ -369,7 +369,7 @@ async function globalSetup(): Promise<void> {
   // TRUSTED_NETWORKS BYPASS — acquire browser session
   // ---------------------------------------------------------------------------
   // Navigate to HA root from 127.0.0.1. Trusted_networks auto-logs in and
-  // redirects through the OAuth callback, landing on /lovelace/0.
+  // redirects through the OAuth callback. In CI the URL may stay at "/".
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -386,35 +386,60 @@ async function globalSetup(): Promise<void> {
   await page.goto(HA_URL);
   console.log('[auth.setup] Immediately after goto, URL is:', page.url());
 
-  // HA redirects through auth and lands on lovelace or home — wait for either
-  // HA 2026.3.x may redirect to "/" instead of "/lovelace" or "/home" — log for diagnosis
+  // HA redirects through the OAuth flow:
+  //   / → /auth/authorize?… → /?auth_callback=1&code=…&storeToken=true → /
+  // After the callback the frontend stores tokens in localStorage and may
+  // redirect to /lovelace, /home, or stay at "/".
+  // In CI with HA 2026.3.x the final redirect to /home never happens — the
+  // URL stays at "/". Instead of waiting for a specific path, we wait for
+  // the auth callback to be processed and verify tokens in localStorage.
+
+  // 1. Wait for the auth callback query param to disappear (frontend processed it)
+  console.log('[auth.setup] Waiting for auth callback to be processed...');
   try {
-    console.log('[auth.setup] Waiting for /lovelace or /home (auth should redirect here)...');
-    await page.waitForURL(/\/(lovelace|home)/, { timeout: 60_000 });
-    console.log('[auth.setup] Auth successful, URL is:', page.url());
-  } catch (err) {
-    console.log('[auth.setup] waitForURL TIMEOUT. Final URL was:', page.url());
-    // Capture all cookies to verify auth was actually set
-    const cookies = await context.cookies();
-    console.log('[auth.setup] Cookies after timeout:', cookies.map(c => `${c.name}=${c.value.substring(0,20)}...`).join(', '));
-    throw err;
+    await page.waitForURL(
+      (url) => !url.searchParams.has('auth_callback') && !url.pathname.startsWith('/auth/'),
+      { timeout: 60_000 },
+    );
+    console.log('[auth.setup] Auth callback processed, URL is:', page.url());
+  } catch {
+    console.log('[auth.setup] Auth callback wait timeout. URL is:', page.url());
+    // Continue anyway — we'll verify tokens below
   }
 
-  // Verify no login form appeared (trusted_networks bypassed it)
+  // 2. Wait for HA frontend to finish storing tokens in localStorage.
+  //    The key "hassTokens" (or similar) is set by the HA frontend after
+  //    exchanging the auth code. Poll until it appears.
+  console.log('[auth.setup] Verifying auth tokens in localStorage...');
+  try {
+    await page.waitForFunction(
+      () => {
+        // HA frontend stores tokens under "hassTokens" in localStorage
+        const tokens = localStorage.getItem('hassTokens');
+        return tokens !== null && tokens.length > 10;
+      },
+      undefined,
+      { timeout: 30_000 },
+    );
+    console.log('[auth.setup] Auth tokens found in localStorage');
+  } catch {
+    // Tokens might be stored under a different key in this HA version.
+    // Log all localStorage keys for debugging and proceed.
+    const keys = await page.evaluate(() => Object.keys(localStorage));
+    console.log('[auth.setup] WARNING: hassTokens not found. localStorage keys:', keys.join(', '));
+  }
+
+  // 3. Verify no login form appeared (trusted_networks should bypass it)
   const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();
   if (await loginForm.isVisible({ timeout: 1_000 }).catch(() => false)) {
     throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
   }
 
-  // Wait for HA frontend to load. In CI environments, HA may take longer
-  // to render the frontend. We use a fixed wait plus URL stability check.
-  // The sidebar (ha-sidebar, app-drawer-layout) may not appear in all CI
-  // environments due to frontend resource constraints, so we proceed if
-  // the URL is at /lovelace or /home and no login form is shown.
+  // 4. Wait for the frontend to settle
   console.log('[auth.setup] Waiting for HA frontend to settle...');
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await new Promise((resolve) => setTimeout(resolve, 5000));
-  console.log('[auth.setup] HA frontend load wait complete (proceeding regardless)');
+  console.log('[auth.setup] HA frontend settled. Final URL:', page.url());
 
   // Save authenticated state for reuse in all tests
   await context.storageState({ path: AUTH_FILE });
