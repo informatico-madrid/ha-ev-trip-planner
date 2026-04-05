@@ -382,10 +382,23 @@ async function globalSetup(): Promise<void> {
   });
 
   console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
+  console.log('[auth.setup] Starting URL:', page.url());
   await page.goto(HA_URL);
+  console.log('[auth.setup] Immediately after goto, URL is:', page.url());
 
   // HA redirects through auth and lands on lovelace or home — wait for either
-  await page.waitForURL(/\/(lovelace|home)/, { timeout: 60_000 });
+  // HA 2026.3.x may redirect to "/" instead of "/lovelace" or "/home" — log for diagnosis
+  try {
+    console.log('[auth.setup] Waiting for /lovelace or /home (auth should redirect here)...');
+    await page.waitForURL(/\/(lovelace|home)/, { timeout: 60_000 });
+    console.log('[auth.setup] Auth successful, URL is:', page.url());
+  } catch (err) {
+    console.log('[auth.setup] waitForURL TIMEOUT. Final URL was:', page.url());
+    // Capture all cookies to verify auth was actually set
+    const cookies = await context.cookies();
+    console.log('[auth.setup] Cookies after timeout:', cookies.map(c => `${c.name}=${c.value.substring(0,20)}...`).join(', '));
+    throw err;
+  }
 
   // Verify no login form appeared (trusted_networks bypassed it)
   const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();
