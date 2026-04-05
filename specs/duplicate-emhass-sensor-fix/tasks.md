@@ -197,6 +197,81 @@
 | Phase 2 | 2.1-2.2 | Additional integration tests |
 | Phase 3 | V2-V3 | Quality gates - full test suite + smoke test |
 | Phase 4 | VF, V4 | Final verification and PR lifecycle |
-| **Total** | **17 tasks** | |
+| Phase 5 | 5.1-5.6 | Bug fixes from PR #21 review comments |
+| **Total** | **23 tasks** | |
+
+**Checkbox count**: `grep -c '- \[.\]' /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/specs/duplicate-emhass-sensor-fix/tasks.md`
+
+---
+
+## Phase 5: PR #21 Review Bug Fixes
+
+### Bug 1: Panel filtering mismatch - vehicle_id vs entry_id
+
+- [x] 5.1 [RED] Failing test: panel.js filters trips by `entry_id` but sensor uses `vehicle_id`
+  - **Do**: Write test in `tests/test_panel.js` asserting that when a trip is added, the panel correctly filters and displays it by matching `vehicle_id` attribute from sensor with `vehicle_id` from URL params
+  - **Files**: `tests/test_panel.js`, `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Test exists AND fails (trips not displayed due to UUID vs slug mismatch)
+  - **Verify**: `npm test 2>&1 | grep -q "FAIL" && echo "RED_PASS"`
+  - **Commit**: `test(panel): red - failing test for vehicle_id filtering`
+  - _Requirements: AC-2.2_
+
+- [ ] 5.2 [GREEN] Pass test: change panel.js to use `vehicle_id` instead of `entry_id`
+  - **Do**: In `custom_components/ev_trip_planner/frontend/panel.js`, replace all references to `sensor.dataset.entry_id` with `sensor.dataset.vehicle_id` for trip filtering logic
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Previously failing test now passes
+  - **Verify**: `npm test -k "vehicle_id"`
+  - **Commit**: `fix(panel): green - use vehicle_id for trip filtering`
+  - _Requirements: AC-2.2_
+
+### Bug 2: Event handler - use event.data.get() instead of event.get()
+
+- [x] 5.3 [RED] Failing test: _on_config_entry_updated extracts vehicle_id from event.data.get()
+  - **Do**: Write test in `tests/test_vehicle_controller.py` asserting that `_on_config_entry_updated()` correctly extracts vehicle_id from `event.data.get('vehicle_id')` when called with a Home Assistant Event object
+  - **Files**: `tests/test_vehicle_controller.py`, `custom_components/ev_trip_planner/vehicle_controller.py`
+  - **Done when**: Test exists AND fails (vehicle_id undefined due to event.get() instead of event.data.get())
+  - **Verify**: `npm test -k "event_data" 2>&1 | grep -q "FAIL" && echo "RED_PASS"`
+  - **Commit**: `test(VC): red - failing test for event.data extraction`
+  - _Requirements: AC-1.1_
+
+- [ ] 5.4 [GREEN] Pass test: change event.get() to event.data.get()
+  - **Do**: In `custom_components/ev_trip_planner/vehicle_controller.py` `_on_config_entry_updated()` method, replace `event.get('vehicle_id')` with `event.data.get('vehicle_id')`
+  - **Files**: `custom_components/ev_trip_planner/vehicle_controller.py`
+  - **Done when**: Previously failing test now passes
+  - **Verify**: `npm test -k "event_data"`
+  - **Commit**: `fix(VC): green - use event.data.get() for vehicle_id`
+  - _Requirements: AC-1.1_
+
+### Bug 3: verify_cleanup - use correct domain filter for async_all()
+
+- [ ] 5.5 [RED] Failing test: verify_cleanup uses async_all("sensor") and filters by entity_id prefix
+  - **Do**: Write test in `tests/test_emhass_adapter.py` asserting that `verify_cleanup()` calls `hass.states.async_all("sensor")` (not "sensor.emhass_perfil_diferible") and filters results by entity_id prefix
+  - **Files**: `tests/test_emhass_adapter.py`, `custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: Test exists AND fails (async_all called with wrong domain argument)
+  - **Verify**: `npm test -k "verify_cleanup" 2>&1 | grep -q "FAIL" && echo "RED_PASS"`
+  - **Commit**: `test(emhass): red - failing test for async_all domain filter`
+  - _Requirements: AC-1.5_
+
+- [ ] 5.6 [GREEN] Pass test: fix async_all() to use correct domain argument
+  - **Do**: In `custom_components/ev_trip_planner/emhass_adapter.py` `verify_cleanup()` method, replace `hass.states.async_all("sensor.emhass_perfil_diferible")` with `hass.states.async_all("sensor")` and add filter logic to check entity_id.startsWith('sensor.emhass_perfil_diferible_')
+  - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: Previously failing test now passes
+  - **Verify**: `npm test -k "verify_cleanup"`
+  - **Commit**: `fix(emhass): green - use async_all("sensor") with entity_id prefix filter`
+  - _Requirements: AC-1.5_
+
+---
+
+## Summary (Updated)
+
+| Phase | Tasks | Description |
+|-------|-------|-------------|
+| Phase 0 | 0.1-0.2 | Reproduce bug - verify gap exists in existing tests |
+| Phase 1 | 1.1-1.10 + V1 | TDD cycles for 5 components (10 RED/GREEN pairs + quality gate) |
+| Phase 2 | 2.1-2.2 | Additional integration tests |
+| Phase 3 | V2-V3 | Quality gates - full test suite + smoke test |
+| Phase 4 | VF, V4 | Final verification and PR lifecycle |
+| Phase 5 | 5.1-5.6 | Bug fixes from PR #21 review comments |
+| **Total** | **23 tasks** | |
 
 **Checkbox count**: `grep -c '- \[.\]' /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/specs/duplicate-emhass-sensor-fix/tasks.md`

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-05T18:09:41Z",
+  "updated": "2026-04-05T18:45:21Z",
   "directories": [
     {
       "path": "./specs",
@@ -153,16 +153,9 @@
     {
       "name": "duplicate-emhass-sensor-fix",
       "path": "./specs/duplicate-emhass-sensor-fix",
-      "phase": "completed",
+      "phase": "tasks",
       "taskIndex": 19,
-      "totalTasks": 19
-    },
-    {
-      "name": "emhass-sensor-entity-lifecycle",
-      "path": "./specs/emhass-sensor-entity-lifecycle",
-      "phase": "execution",
-      "taskIndex": 4,
-      "totalTasks": 23
+      "totalTasks": 25
     }
   ]
 }
