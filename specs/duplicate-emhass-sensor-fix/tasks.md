@@ -208,7 +208,7 @@
 
 ### Bug 1: Panel filtering mismatch - vehicle_id vs entry_id
 
-- [ ] 5.1 [RED] Failing test: panel.js filters trips by `entry_id` but sensor uses `vehicle_id`
+- [x] 5.1 [RED] Failing test: panel.js filters trips by `entry_id` but sensor uses `vehicle_id`
   - **Do**: Write test in `tests/test_panel.js` asserting that when a trip is added, the panel correctly filters and displays it by matching `vehicle_id` attribute from sensor with `vehicle_id` from URL params
   - **Files**: `tests/test_panel.js`, `custom_components/ev_trip_planner/frontend/panel.js`
   - **Done when**: Test exists AND fails (trips not displayed due to UUID vs slug mismatch)
