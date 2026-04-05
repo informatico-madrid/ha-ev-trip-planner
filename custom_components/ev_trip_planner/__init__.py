@@ -834,8 +834,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     emhass_adapter = None
     if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
         emhass_adapter = hass.data[DATA_RUNTIME][namespace].get("emhass_adapter")
-    if emhass_adapter:
-        await emhass_adapter.async_cleanup_vehicle_indices()
+        # Clean up config entry listener to prevent memory leaks
+        if emhass_adapter and hasattr(emhass_adapter, "_config_entry_listener"):
+            if emhass_adapter._config_entry_listener:
+                emhass_adapter._config_entry_listener()
+                emhass_adapter._config_entry_listener = None
+                _LOGGER.debug("Cleaned up config entry listener for %s", vehicle_name)
+        if emhass_adapter:
+            await emhass_adapter.async_cleanup_vehicle_indices()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
