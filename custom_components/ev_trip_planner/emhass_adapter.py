@@ -1117,13 +1117,18 @@ class EMHASSAdapter:
             _LOGGER.error("Failed to clear error status: %s", err)
 
     async def async_cleanup_vehicle_indices(self) -> None:
-        """
-        Clean up all EMHASS indices for this vehicle when it is deleted.
+        """Clean up all EMHASS indices for this vehicle when it is deleted.
 
         This is a HARD cleanup - immediately releases all indices without cooldown
         since the vehicle is being deleted. Clears all deferrable load sensors.
 
         Called during vehicle deletion cascade to ensure no orphaned indices remain.
+
+        Cleanup process:
+        - Iterates through all trip indices and removes both state machine entities
+          AND entity registry entries in a single loop for efficiency.
+        - Removes the main vehicle sensor (emhass_perfil_diferible_{entry_id}).
+        - Clears all internal mappings (_index_map, _published_entity_ids, etc.).
 
         FR-1.1: Cleans up both state entities AND entity registry entries.
         """
