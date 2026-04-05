@@ -83,19 +83,17 @@ async def test_config_update_triggers_republish(mock_hass: HomeAssistant, mock_s
         # Mock async_get_entry to return new entry
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
 
-        # Track if republish was called
-        republish_called = []
-
-        async def mock_publish():
-            republish_called.append(True)
+        # Mock publish_deferrable_loads to avoid needing real trips
+        adapter.publish_deferrable_loads = AsyncMock(return_value=True)
 
         # Execute: Call update_charging_power
         # This simulates what happens when config entry is updated
         await adapter.update_charging_power()
 
-        # Verify: Republish was called because power changed
-        assert len(republish_called) == 0  # publish_deferrable_loads not directly mocked
+        # Verify: Power was updated
         assert adapter._charging_power_kw == 7.4  # Power was updated
+        # Verify: publish_deferrable_loads was called because power changed
+        adapter.publish_deferrable_loads.assert_called_once()
 
 
 @pytest.mark.asyncio

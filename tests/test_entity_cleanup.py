@@ -73,13 +73,17 @@ async def test_entity_registry_cleanup(mock_hass: HomeAssistant, mock_store):
         mock_registry.async_remove = MagicMock(return_value=None)
 
         # Patch entity_registry.async_get to return our mock registry
-        with patch('custom_components.ev_trip_planner.emhass_adapter.er.async_get', return_value=mock_registry):
+        with patch('homeassistant.helpers.entity_registry.async_get', return_value=mock_registry):
             # Execute: Clean up vehicle indices
             await adapter.async_cleanup_vehicle_indices()
 
-            # Verify: registry.async_remove was called for the config sensor
-            config_sensor_id = "sensor.emhass_perfil_diferible_test_vehicle_trip_001"
-            mock_registry.async_remove.assert_called_once_with(config_sensor_id)
+            # Verify: registry.async_remove was called for config sensor and main sensor
+            # The config sensor is named sensor.emhass_deferrable_load_config_{index}
+            config_sensor_id = "sensor.emhass_deferrable_load_config_0"
+            main_sensor_id = "sensor.emhass_perfil_diferible_test_entry_id_123"
+            calls = [call[0][0] for call in mock_registry.async_remove.call_args_list]
+            assert config_sensor_id in calls
+            assert main_sensor_id in calls
 
 
 @pytest.mark.asyncio
