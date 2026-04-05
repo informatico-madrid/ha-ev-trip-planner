@@ -26,7 +26,12 @@ export async function navigateToPanel(page: Page): Promise<Page> {
   const failedRequests: string[] = [];
 
   page.on('pageerror', (err) => {
-    jsErrors.push(err.message);
+    // Stringify the full error, not just .message (which can be "[object Object]")
+    try {
+      jsErrors.push(String(err.stack || err.message || err));
+    } catch {
+      jsErrors.push(String(err));
+    }
   });
 
   page.on('response', (response) => {
@@ -36,8 +41,39 @@ export async function navigateToPanel(page: Page): Promise<Page> {
     }
   });
 
-  await page.goto(PANEL_URL, { waitUntil: 'load' });
+  // Log all network responses related to the panel for debugging
+  const panelResponses: string[] = [];
+  page.on('response', (response) => {
+    const url = response.url();
+    if (url.includes('ev-trip-planner') || url.includes('panel')) {
+      panelResponses.push(`${response.status()} ${url.substring(0, 150)}`);
+    }
+  });
+
+  const gotoResp = await page.goto(PANEL_URL, { waitUntil: 'load' });
+  // eslint-disable-next-line no-console
+  console.log(`[navigateToPanel] goto response status: ${gotoResp?.status()}, URL: ${page.url()}`);
+
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
+  // eslint-disable-next-line no-console
+  console.log(`[navigateToPanel] After waitForURL, URL: ${page.url()}`);
+
+  // Dump page diagnostics
+  const diag = await page.evaluate(() => {
+    return {
+      url: window.location.href,
+      bodyLength: document.body?.innerHTML?.length ?? -1,
+      bodyText: document.body?.innerText?.substring(0, 200) ?? '(no body)',
+      title: document.title,
+      haTokens: !!localStorage.getItem('hassTokens'),
+      localStorageKeys: Object.keys(localStorage).join(', '),
+      scripts: Array.from(document.querySelectorAll('script[src]')).map(s => (s as HTMLScriptElement).src).slice(0, 5),
+      homeAssistant: !!document.querySelector('home-assistant'),
+      customElements: typeof customElements !== 'undefined',
+    };
+  });
+  // eslint-disable-next-line no-console
+  console.log(`[navigateToPanel] Page diag: ${JSON.stringify(diag)}`);
 
   // Wait for the HA custom element to be defined (panel.js loaded & executed).
   // In CI, the first page load may fail if the static paths for
@@ -53,18 +89,32 @@ export async function navigateToPanel(page: Page): Promise<Page> {
       elementDefined = true;
       break;
     } catch {
-      // Log diagnostics to help debug CI failures
+      // Dump more diagnostics on failure
+      const failDiag = await page.evaluate(() => ({
+        url: window.location.href,
+        bodyLen: document.body?.innerHTML?.length ?? -1,
+        bodyText: document.body?.innerText?.substring(0, 300) ?? '(no body)',
+        haTokens: !!localStorage.getItem('hassTokens'),
+        homeAssistant: !!document.querySelector('home-assistant'),
+        panelResolver: !!document.querySelector('partial-panel-resolver'),
+        haPanel: !!document.querySelector('ha-panel-custom'),
+        customElDefined: typeof customElements !== 'undefined' ? !!customElements.get('ev-trip-planner-panel') : false,
+        allCustomEls: document.querySelectorAll('*').length,
+      }));
       // eslint-disable-next-line no-console
       console.log(
         `[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
-        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join('; ')}` : '') +
-        (failedRequests.length > 0 ? ` Failed requests: ${failedRequests.join('; ')}` : ''),
+        ` Diag: ${JSON.stringify(failDiag)}` +
+        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join(' | ')}` : '') +
+        (failedRequests.length > 0 ? ` Failed requests: ${failedRequests.join('; ')}` : '') +
+        ` Panel responses: ${panelResponses.join('; ')}`,
       );
 
       if (attempt < MAX_RELOAD_ATTEMPTS) {
         // Clear error lists before retry
         jsErrors.length = 0;
         failedRequests.length = 0;
+        panelResponses.length = 0;
         await page.reload({ waitUntil: 'load' });
       }
     }
@@ -72,15 +122,17 @@ export async function navigateToPanel(page: Page): Promise<Page> {
 
   if (!elementDefined) {
     // Capture page HTML snapshot for debugging
-    const bodyText = await page.evaluate(
-      'document.body?.innerText?.substring(0, 500) ?? "(empty)"',
+    const bodyHtml = await page.evaluate(
+      'document.body?.innerHTML?.substring(0, 1000) ?? "(empty)"',
     );
     const errParts = [
       '[navigateToPanel] ev-trip-planner-panel custom element never defined after',
       String(MAX_RELOAD_ATTEMPTS + 1),
-      'attempts. JS errors: [' + jsErrors.join('; ') + '].',
+      'attempts.',
+      'JS errors: [' + jsErrors.join(' | ') + '].',
       'Failed requests: [' + failedRequests.join('; ') + '].',
-      'Page text: ' + String(bodyText),
+      'Panel responses: [' + panelResponses.join('; ') + '].',
+      'Body HTML: ' + String(bodyHtml),
     ];
     throw new Error(errParts.join(' '));
   }
