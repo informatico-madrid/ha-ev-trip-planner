@@ -49,7 +49,7 @@ jobs:
       run: |
         mkdir -p /tmp/ha-e2e-config/custom_components
         cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
-        ln -sf "$GITHUB_WORKSPACE/custom_components/ev_trip_planner" /tmp/ha-e2e-config/custom_components/ev_trip_planner
+        cp -r "$GITHUB_WORKSPACE/custom_components/ev_trip_planner" /tmp/ha-e2e-config/custom_components/ev_trip_planner
         mkdir -p playwright/.auth
 
     - name: Run Playwright E2E tests

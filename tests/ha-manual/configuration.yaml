@@ -14,6 +14,8 @@ homeassistant:
         - ::1
       allow_bypass_login: true
     - type: homeassistant
+  components:
+    - input_boolean
 
 # Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
 input_boolean:
