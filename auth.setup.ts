@@ -384,10 +384,8 @@ async function globalSetup(): Promise<void> {
   console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
   await page.goto(HA_URL);
 
-  // HA redirects through auth and lands on /, lovelace or home — wait for any of these
-  // The redirect chain may end at "/" briefly before reaching the final dashboard URL
-  await page.waitForURL(/\/(lovelace|home)?/?$/, { timeout: 30_000 });
-  console.log(`[auth.setup] Authenticated: URL is ${page.url()}`);
+  // HA redirects through auth and lands on lovelace or home — wait for either
+  await page.waitForURL(/\/(lovelace|home)/, { timeout: 30_000 });
 
   // Verify no login form appeared (trusted_networks bypassed it)
   const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();

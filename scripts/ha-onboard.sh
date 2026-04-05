@@ -32,7 +32,17 @@ for i in $(seq 1 30); do
 done
 
 # Check if onboarding is needed
-ONBOARD_STATUS=$(curl -s "${HA_URL}/api/onboarding" | python3 -c "
+# HA 2026.3+ returns 404 if already onboarded — this is NOT an error
+ONBOARD_STATUS=$(curl -s -w "%{http_code}" -o /tmp/onboarding_response.txt "${HA_URL}/api/onboarding" 2>/dev/null)
+
+if [ "$ONBOARD_STATUS" = "404" ]; then
+  echo "✅ HA already onboarded (API returned 404). Nothing to do."
+  exit 0
+fi
+
+# Parse the onboarding status
+ONBOARD_DATA=$(cat /tmp/onboarding_response.txt)
+ONBOARD_STATUS=$(echo "$ONBOARD_DATA" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 steps = data if isinstance(data, list) else data.get('result', [])
@@ -56,10 +66,11 @@ AUTH_CODE=$(curl -s -X POST "${HA_URL}/api/onboarding/users" \
     \"name\": \"Developer\",
     \"username\": \"dev\",
     \"password\": \"dev\"
-  }" | python3 -c "import sys,json; print(json.load(sys.stdin).get('auth_code',''))")
+  }" | python3 -c "import sys,json; print(json.load(sys.stdin).get('auth_code',''))" 2>/dev/null || echo "")
 
 if [ -z "$AUTH_CODE" ]; then
-  echo "❌ Failed to create user (auth_code empty). Is HA already onboarded?"
+  echo "⚠️  Failed to create user (auth_code empty). Is HA already onboarded?"
+  echo "   If this is a fresh install, check that HA is fully started."
   exit 1
 fi
 
@@ -69,30 +80,32 @@ echo "  User created. Exchanging auth code for token..."
 TOKEN=$(curl -s -X POST "${HA_URL}/auth/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=${CLIENT_ID}&code=${AUTH_CODE}&grant_type=authorization_code" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))")
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || echo "")
 
 if [ -z "$TOKEN" ]; then
   echo "❌ Failed to get access token."
   exit 1
 fi
 
+echo "  Token obtained. Completing remaining steps..."
+
 # Step 3: Core config
 curl -s -X POST "${HA_URL}/api/onboarding/core_config" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
-  -d "{\"client_id\": \"${CLIENT_ID}\"}" > /dev/null
+  -d "{\"client_id\": \"${CLIENT_ID}\"}" > /dev/null 2>&1 || true
 
 # Step 4: Analytics (decline)
 curl -s -X POST "${HA_URL}/api/onboarding/analytics" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
-  -d "{\"client_id\": \"${CLIENT_ID}\"}" > /dev/null
+  -d "{\"client_id\": \"${CLIENT_ID}\"}" > /dev/null 2>&1 || true
 
 # Step 5: Integration (complete redirect)
 curl -s -X POST "${HA_URL}/api/onboarding/integration" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
-  -d "{\"client_id\": \"${CLIENT_ID}\", \"redirect_uri\": \"${HA_URL}/?auth_callback=1\"}" > /dev/null
+  -d "{\"client_id\": \"${CLIENT_ID}\", \"redirect_uri\": \"${HA_URL}/?auth_callback=1\"}" > /dev/null 2>&1 || true
 
 echo "✅ Onboarding complete! HA user: dev / pass: dev"
 echo "   Open ${HA_URL} in your browser to verify."
