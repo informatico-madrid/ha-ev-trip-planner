@@ -1,6 +1,6 @@
 
-# Loads default set of integrations. Do not remove.
-default_config:
+# Minimal configuration for E2E tests - NO default_config to ensure fast startup
+# default_config loads 40+ integrations and slows HA startup from 20s to 90s in CI
 
 http:
   server_host: 0.0.0.0
@@ -12,7 +12,6 @@ homeassistant:
       trusted_networks:
         - 127.0.0.1
         - 172.17.0.0/16
-        - 192.168.1.0/24
         - ::1
       allow_bypass_login: true
     - type: homeassistant
@@ -22,4 +21,9 @@ input_boolean:
   test_ev_charging:
     name: "EV Charging Test"
     initial: false
+
+# Only load frontend (required for panel serving) - NO other integrations
+frontend:
+logger:
+  default: warning
 

@@ -8,13 +8,13 @@
  * WHAT IT DOES:
  * 1. Waits for Home Assistant to be fully started and reachable at http://localhost:8123
  * 2. Sets up the EV Trip Planner integration via REST API (if not already present)
- * 3. Authenticates via trusted_networks auth provider (no login form needed)
+ * 3. Builds storageState directly from REST API tokens (NO browser navigation)
  * 4. Saves the authenticated browser state to playwright/.auth/user.json so tests reuse it
  *
- * TRUSTED_NETWORKS BYPASS MECHANISM:
- * HA trusted_networks auto-logs-in requests from 127.0.0.1 / 172.17.0.0/16.
- * After navigating to the HA root, HA auto-redirects through the auth flow and lands
- * on /lovelace/0 (the default dashboard). Tests can then navigate to any panel.
+ * AUTHENTICATION STRATEGY:
+ * Instead of navigating the browser through the OAuth callback (fragile in CI due to
+ * WebSocket timing issues), we obtain tokens via REST API and inject storageState directly.
+ * This is deterministic and CI-independent.
  *
  * CONFIG FLOW (5 steps via REST API):
  * - Step 1 (user): vehicle_name = "test_vehicle"
@@ -24,7 +24,6 @@
  * - Step 5 (notifications): empty (optional)
  */
 
-import { chromium } from '@playwright/test';
 import * as fs from 'fs';
 
 const HA_URL = 'http://localhost:8123';
@@ -53,17 +52,60 @@ async function waitForHA(): Promise<void> {
 }
 
 /**
+ * Get access and refresh tokens using the homeassistant auth provider (dev/dev).
+ * Returns the complete token response including refresh_token needed for storageState.
+ */
+async function getTokens(): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+  const clientId = `${HA_URL}/`;
+
+  // Start login flow
+  const flowResp = await fetch(`${HA_URL}/auth/login_flow`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      handler: ['homeassistant', null],
+      redirect_uri: `${HA_URL}/?auth_callback=1`,
+    }),
+  });
+  const flow = await flowResp.json() as { flow_id: string };
+
+  // Submit credentials
+  const credResp = await fetch(`${HA_URL}/auth/login_flow/${flow.flow_id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, username: 'dev', password: 'dev' }),
+  });
+  const cred = await credResp.json() as { result: string };
+
+  // Exchange code for token
+  const params = new URLSearchParams({
+    client_id: clientId,
+    code: cred.result,
+    grant_type: 'authorization_code',
+  });
+  const tokenResp = await fetch(`${HA_URL}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  const tokenData = await tokenResp.json() as { access_token: string; refresh_token: string; expires_in: number };
+  return tokenData;
+}
+
+/**
  * Wait for a specific entity to appear in HA's state machine.
  * This is needed because input_booleans defined in configuration.yaml may take
  * some time to register after HA starts, especially in CI environments.
  */
 async function waitForEntity(entityId: string, timeoutMs = 30_000): Promise<void> {
+  const { access_token } = await getTokens();
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
     try {
       const response = await fetch(`${HA_URL}/api/states`, {
-        headers: { Authorization: `Bearer ${await getAccessToken()}` },
+        headers: { Authorization: `Bearer ${access_token}` },
       });
       if (response.ok) {
         const states = await response.json() as Array<{ entity_id: string }>;
@@ -147,45 +189,6 @@ async function ensureOnboarded(): Promise<void> {
   }).catch(() => {});
 
   console.log('[auth.setup] Onboarding complete');
-}
-
-/** Get an access token using the homeassistant auth provider (dev/dev) */
-async function getAccessToken(): Promise<string> {
-  const clientId = `${HA_URL}/`;
-
-  // Start login flow
-  const flowResp = await fetch(`${HA_URL}/auth/login_flow`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: clientId,
-      handler: ['homeassistant', null],
-      redirect_uri: `${HA_URL}/?auth_callback=1`,
-    }),
-  });
-  const flow = await flowResp.json() as { flow_id: string };
-
-  // Submit credentials
-  const credResp = await fetch(`${HA_URL}/auth/login_flow/${flow.flow_id}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_id: clientId, username: 'dev', password: 'dev' }),
-  });
-  const cred = await credResp.json() as { result: string };
-
-  // Exchange code for token
-  const params = new URLSearchParams({
-    client_id: clientId,
-    code: cred.result,
-    grant_type: 'authorization_code',
-  });
-  const tokenResp = await fetch(`${HA_URL}/auth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
-  const tokenData = await tokenResp.json() as { access_token: string };
-  return tokenData.access_token;
 }
 
 /** Check if ev_trip_planner integration is already configured */
@@ -333,6 +336,37 @@ async function waitForPanelAssets(timeoutMs = 30_000): Promise<void> {
   }
 }
 
+/**
+ * Build storageState directly from REST API tokens.
+ * This avoids browser navigation and WebSocket handshake timing issues in CI.
+ * The hassTokens JSON structure matches exactly what the HA frontend stores in localStorage.
+ */
+async function buildStorageState(tokens: { access_token: string; refresh_token: string; expires_in: number }): Promise<void> {
+  const hassTokens = {
+    access_token: tokens.access_token,
+    token_type: 'Bearer',
+    expires_in: tokens.expires_in,
+    expires: Date.now() + tokens.expires_in * 1000,
+    hassUrl: HA_URL,
+    clientId: `${HA_URL}/`,
+    refresh_token: tokens.refresh_token,
+  };
+
+  const storageState = {
+    cookies: [],
+    origins: [{
+      origin: HA_URL,
+      localStorage: [
+        { name: 'hassTokens', value: JSON.stringify(hassTokens) },
+        { name: 'selectedTheme', value: JSON.stringify({ dark: false }) },
+      ],
+    }],
+  };
+
+  fs.writeFileSync(AUTH_FILE, JSON.stringify(storageState, null, 2));
+  console.log('[auth.setup] storageState written directly (no browser needed)');
+}
+
 async function globalSetup(): Promise<void> {
   console.log('[auth.setup] Waiting for Home Assistant to be ready...');
   await waitForHA();
@@ -345,8 +379,9 @@ async function globalSetup(): Promise<void> {
   // Complete first-run onboarding if needed (creates dev/dev user)
   await ensureOnboarded();
 
-  // Get REST token to manage integration setup
-  const token = await getAccessToken();
+  // Get tokens for integration setup
+  const tokens = await getTokens();
+  const token = tokens.access_token;
 
   // Wait for input_boolean.test_ev_charging to be available in HA
   // (it may take a few seconds after HA starts to register)
@@ -360,137 +395,15 @@ async function globalSetup(): Promise<void> {
   }
 
   // Wait for the panel's static assets to become available.
-  // async_setup_entry registers static paths asynchronously after the config
-  // flow completes. In CI, there can be a short delay before the JS module
-  // is served. Poll until the panel.js returns 200 (up to 30 s).
   await waitForPanelAssets();
 
   // ---------------------------------------------------------------------------
-  // TRUSTED_NETWORKS BYPASS — acquire browser session
+  // DIRECT STORAGESTATE INJECTION — no browser navigation needed
   // ---------------------------------------------------------------------------
-  // Navigate to HA root from 127.0.0.1. Trusted_networks auto-logs in and
-  // redirects through the OAuth callback. In CI the URL may stay at "/".
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  // Build storageState directly from REST API tokens. This is deterministic
+  // and works in CI where WebSocket timing is unreliable.
+  await buildStorageState(tokens);
 
-  // Log any console errors from the page for debugging
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      console.log(`[auth.setup] Browser console error: ${msg.text()}`);
-    }
-  });
-
-  console.log('[auth.setup] Navigating to HA root for trusted_networks auth...');
-  console.log('[auth.setup] Starting URL:', page.url());
-  await page.goto(HA_URL);
-  console.log('[auth.setup] Immediately after goto, URL is:', page.url());
-
-  // HA redirects through the OAuth flow:
-  //   / → /auth/authorize?… → /?auth_callback=1&code=…&storeToken=true → /
-  // After the callback the frontend stores tokens in localStorage and may
-  // redirect to /lovelace, /home, or stay at "/".
-  // In CI with HA 2026.3.x the final redirect to /home never happens — the
-  // URL stays at "/". Instead of waiting for a specific path, we wait for
-  // the auth callback to be processed and verify tokens in localStorage.
-
-  // 1. Wait for the auth callback query param to disappear (frontend processed it)
-  console.log('[auth.setup] Waiting for auth callback to be processed...');
-  try {
-    await page.waitForURL(
-      (url) => !url.searchParams.has('auth_callback') && !url.pathname.startsWith('/auth/'),
-      { timeout: 60_000 },
-    );
-    console.log('[auth.setup] Auth callback processed, URL is:', page.url());
-  } catch {
-    console.log('[auth.setup] Auth callback wait timeout. URL is:', page.url());
-    // Continue anyway — we'll verify tokens below
-  }
-
-  // 2. Wait for HA frontend to finish storing tokens in localStorage.
-  //    The key "hassTokens" (or similar) is set by the HA frontend after
-  //    exchanging the auth code. Poll until it appears.
-  console.log('[auth.setup] Verifying auth tokens in localStorage...');
-  try {
-    await page.waitForFunction(
-      () => {
-        // HA frontend stores tokens under "hassTokens" in localStorage.
-        // A valid JSON token object is always longer than a trivial string.
-        const tokens = localStorage.getItem('hassTokens');
-        return tokens !== null && tokens.length > 10;
-      },
-      { timeout: 30_000 },
-    );
-    console.log('[auth.setup] Auth tokens found in localStorage');
-  } catch {
-    // Tokens might be stored under a different key in this HA version.
-    // Log all localStorage keys for debugging and proceed.
-    const keys = await page.evaluate(() => Object.keys(localStorage));
-    console.log('[auth.setup] WARNING: hassTokens not found. localStorage keys:', keys.join(', '));
-  }
-
-  // 3. Verify no login form appeared (trusted_networks should bypass it)
-  const loginForm = page.locator('ha-auth-flow, [data-testid="login-form"]').first();
-  if (await loginForm.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
-  }
-
-  // 4. Wait for the frontend to fully settle and verify it actually initialized
-  console.log('[auth.setup] Waiting for HA frontend to settle...');
-  await page.waitForLoadState('domcontentloaded').catch(() => {});
-  // Wait for the HA frontend JS to actually execute and define the home-assistant element
-  try {
-    await page.waitForFunction(
-      () => {
-        // Check if HA's main JS bundle has loaded and defined the web component
-        const haEl = customElements.get('home-assistant');
-        return !!haEl;
-      },
-      { timeout: 30_000 },
-    );
-    console.log('[auth.setup] HA frontend JS bundle loaded (home-assistant element defined)');
-  } catch {
-    // Log diagnostic info
-    const setupDiag = await page.evaluate(() => ({
-      url: window.location.href,
-      bodyLen: document.body?.innerHTML?.length ?? 0,
-      launchScreen: !!document.querySelector('#ha-launch-screen'),
-      haTag: !!document.querySelector('home-assistant'),
-      haDefined: !!customElements.get('home-assistant'),
-      scriptTags: Array.from(document.querySelectorAll('script')).map(s => ({
-        src: (s as HTMLScriptElement).src || '(inline)',
-        type: (s as HTMLScriptElement).type || 'classic',
-      })),
-    }));
-    console.log('[auth.setup] WARNING: HA frontend JS did NOT load. Diag:', JSON.stringify(setupDiag));
-  }
-  console.log('[auth.setup] HA frontend settled. Final URL:', page.url());
-
-  // 5. Dump the storageState for debugging
-  const tokensInfo = await page.evaluate(() => {
-    const tokens = localStorage.getItem('hassTokens');
-    if (!tokens) return 'NO hassTokens';
-    try {
-      const parsed = JSON.parse(tokens);
-      return `hassTokens found: access_token=${!!parsed.access_token}, refresh_token=${!!parsed.refresh_token}, expires=${parsed.expires}`;
-    } catch {
-      return `hassTokens exists but parse failed, length=${tokens.length}`;
-    }
-  });
-  console.log(`[auth.setup] Token info: ${tokensInfo}`);
-
-  // 6. Save authenticated state for reuse in all tests
-  const state = await context.storageState({ path: AUTH_FILE });
-  console.log(`[auth.setup] Auth state saved to ${AUTH_FILE}`);
-  console.log(`[auth.setup] StorageState has ${state.cookies?.length ?? 0} cookies, ${state.origins?.length ?? 0} origins`);
-  for (const origin of state.origins ?? []) {
-    console.log(`[auth.setup] Origin ${origin.origin}: ${origin.localStorage?.length ?? 0} localStorage entries`);
-    for (const item of origin.localStorage ?? []) {
-      console.log(`[auth.setup]   - ${item.name}: ${String(item.value).substring(0, 80)}...`);
-    }
-  }
-
-  await browser.close();
   console.log('[auth.setup] Global setup complete');
 }
 

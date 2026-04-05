@@ -5,10 +5,7 @@ on:
     branches: [ main, master, copilot/* ]
   pull_request:
     branches: [ main, master ]
-  pull_request_target:
-    branches: [ main, master ]
 
-# Permisos de escritura para auto-approve de PRs
 permissions:
   contents: write
   pull-requests: write
@@ -37,7 +34,13 @@ jobs:
       with:
         python-version: '3.14'
 
-    - name: Install Python & Home Assistant
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: pip-homeassistant-2026.3.4-py3.14
+
+    - name: Install Python and Home Assistant
       run: |
         python3 -m pip install --upgrade pip
         pip install homeassistant==2026.3.4
@@ -47,40 +50,16 @@ jobs:
       run: |
         mkdir -p /tmp/ha-e2e-config/custom_components
         cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
-        ln -sf ${{ github.workspace }}/custom_components/ev_trip_planner \
-               /tmp/ha-e2e-config/custom_components/ev_trip_planner
+        ln -sf "$GITHUB_WORKSPACE/custom_components/ev_trip_planner" /tmp/ha-e2e-config/custom_components/ev_trip_planner
         mkdir -p playwright/.auth
 
-    - name: Start Home Assistant
-      run: |
-        nohup hass -c /tmp/ha-e2e-config > /tmp/ha-e2e.log 2>&1 &
-        echo $! > /tmp/ha-pid.txt
-        echo "HA started with PID $(cat /tmp/ha-pid.txt)"
-
-    - name: Wait for Home Assistant to be ready
-      run: |
-        echo "Waiting for HA API..."
-        for i in $(seq 1 40); do
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null) || STATUS=""
-          if [ "$STATUS" = "401" ] || [ "$STATUS" = "200" ]; then
-            echo "HA API ready (status $STATUS) after ${i}x3s"
-            exit 0
-          fi
-          echo "  attempt $i: status=$STATUS"
-          sleep 3
-        done
-        echo "HA did not become ready in time. Log tail:"
-        tail -30 /tmp/ha-e2e.log
-        exit 1
-
     - name: Run Playwright E2E tests
-      # auth.setup.ts handles onboarding (dev/dev user) and integration setup automatically
       run: npx playwright test tests/e2e/ --workers=1
       env:
         CI: "true"
 
     - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
+      if: always()
       with:
         name: playwright-report
         path: playwright-report/
@@ -92,12 +71,3 @@ jobs:
         name: test-results
         path: test-results/
         retention-days: 7
-
-    - name: Upload HA logs
-      if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ha-logs
-        path: /tmp/ha-e2e.log
-        retention-days: 7
-

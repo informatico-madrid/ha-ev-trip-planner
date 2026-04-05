@@ -2,9 +2,14 @@ name: Python Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, copilot/* ]
   pull_request:
     branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
 
 jobs:
   test:
@@ -18,6 +23,12 @@ jobs:
       with:
         python-version: '3.14'
 
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: pip-pytest-2026.3.4
+
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
@@ -28,6 +39,42 @@ jobs:
         python3 -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/ --junitxml=test-results/junit.xml
       env:
         PYTHONPATH: .
+
+    # E2E tests are MANDATORY - all UI tests must pass
+    - name: Install Node and Playwright for E2E tests
+      run: |
+        npm install
+        npx playwright install chromium --with-deps
+
+    - name: Set up HA for E2E tests
+      run: |
+        mkdir -p /tmp/ha-e2e-config/custom_components
+        cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
+        ln -sf "$GITHUB_WORKSPACE/custom_components/ev_trip_planner" /tmp/ha-e2e-config/custom_components/ev_trip_planner
+        mkdir -p playwright/.auth
+
+    - name: Start Home Assistant for E2E tests
+      run: |
+        nohup hass -c /tmp/ha-e2e-config > /tmp/ha-e2e.log 2>&1 &
+        echo "$!" > /tmp/ha-pid.txt
+        for i in $(seq 1 40); do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null) || STATUS=""
+          if [ "$STATUS" = "401" ] || [ "$STATUS" = "200" ]; then
+            echo "HA API ready after ${i}x3s"
+            exit 0
+          fi
+          sleep 3
+        done
+        echo "HA did not become ready. Log:"
+        tail -20 /tmp/ha-e2e.log
+        exit 1
+
+    - name: Run E2E tests
+      run: npx playwright test tests/e2e/ --workers=1
+      env:
+        CI: "true"
+        PYTHONPATH: .
+        HA_URL: "http://localhost:8123"
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
