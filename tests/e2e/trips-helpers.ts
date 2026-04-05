@@ -23,30 +23,24 @@ const MAX_RELOAD_ATTEMPTS = 2;
 export async function navigateToPanel(page: Page): Promise<Page> {
   // Collect diagnostics for CI debugging
   const jsErrors: string[] = [];
-  const failedRequests: string[] = [];
+  const allResponses: string[] = [];
 
   page.on('pageerror', (err) => {
-    // Stringify the full error, not just .message (which can be "[object Object]")
+    // Stringify the full error with stack trace
     try {
-      jsErrors.push(String(err.stack || err.message || err));
+      jsErrors.push(`${err.name}: ${err.message}\n${err.stack}`);
     } catch {
-      jsErrors.push(String(err));
+      jsErrors.push(JSON.stringify(err, Object.getOwnPropertyNames(err)));
     }
   });
 
+  // Capture ALL network responses to see what's loading/failing
   page.on('response', (response) => {
     const url = response.url();
-    if (url.includes('ev-trip-planner') && response.status() >= 400) {
-      failedRequests.push(`${response.status()} ${url}`);
-    }
-  });
-
-  // Log all network responses related to the panel for debugging
-  const panelResponses: string[] = [];
-  page.on('response', (response) => {
-    const url = response.url();
-    if (url.includes('ev-trip-planner') || url.includes('panel')) {
-      panelResponses.push(`${response.status()} ${url.substring(0, 150)}`);
+    const status = response.status();
+    // Only log non-200 responses or critical resources
+    if (status >= 400 || url.includes('frontend') || url.includes('panel') || url.includes('ev-trip-planner') || url.includes('.js')) {
+      allResponses.push(`${status} ${url.substring(0, 200)}`);
     }
   });
 
@@ -55,11 +49,19 @@ export async function navigateToPanel(page: Page): Promise<Page> {
   console.log(`[navigateToPanel] goto response status: ${gotoResp?.status()}, URL: ${page.url()}`);
 
   await page.waitForURL(/\/ev-trip-planner-/, { timeout: 30_000 });
-  // eslint-disable-next-line no-console
-  console.log(`[navigateToPanel] After waitForURL, URL: ${page.url()}`);
 
-  // Dump page diagnostics
+  // Comprehensive page diagnostics
   const diag = await page.evaluate(() => {
+    const allScripts = Array.from(document.querySelectorAll('script'));
+    const scriptInfo = allScripts.map(s => {
+      const el = s as HTMLScriptElement;
+      return {
+        src: el.src || '(inline)',
+        type: el.type || 'text/javascript',
+        module: el.type === 'module',
+      };
+    });
+
     return {
       url: window.location.href,
       bodyLength: document.body?.innerHTML?.length ?? -1,
@@ -67,20 +69,32 @@ export async function navigateToPanel(page: Page): Promise<Page> {
       title: document.title,
       haTokens: !!localStorage.getItem('hassTokens'),
       localStorageKeys: Object.keys(localStorage).join(', '),
-      scripts: Array.from(document.querySelectorAll('script[src]')).map(s => (s as HTMLScriptElement).src).slice(0, 5),
-      homeAssistant: !!document.querySelector('home-assistant'),
-      customElements: typeof customElements !== 'undefined',
+      allScripts: scriptInfo,
+      homeAssistantTag: !!document.querySelector('home-assistant'),
+      homeAssistantDefined: !!customElements.get('home-assistant'),
+      haAppDefined: !!customElements.get('ha-app'),
+      panelResolverDefined: !!customElements.get('partial-panel-resolver'),
+      panelCustomDefined: !!customElements.get('ha-panel-custom'),
+      evPanelDefined: !!customElements.get('ev-trip-planner-panel'),
+      totalElements: document.querySelectorAll('*').length,
+      docType: document.doctype?.name ?? '(no doctype)',
     };
   });
   // eslint-disable-next-line no-console
   console.log(`[navigateToPanel] Page diag: ${JSON.stringify(diag)}`);
+  // eslint-disable-next-line no-console
+  console.log(`[navigateToPanel] Network responses: ${allResponses.join(' | ')}`);
 
-  // Wait for the HA custom element to be defined (panel.js loaded & executed).
-  // In CI, the first page load may fail if the static paths for
-  // panel.js / lit-bundle.js aren't registered yet. A reload fixes this.
+  // Wait for the HA custom element to be defined
   let elementDefined = false;
   for (let attempt = 0; attempt <= MAX_RELOAD_ATTEMPTS; attempt++) {
     try {
+      // First wait for the HA frontend shell to fully initialize
+      await page.waitForFunction(
+        () => !!customElements.get('home-assistant') && !!document.querySelector('partial-panel-resolver, ha-panel-custom'),
+        { timeout: 20_000 },
+      );
+      // Then wait for our custom panel element
       await page.waitForFunction(
         'customElements.get("ev-trip-planner-panel") !== undefined',
         undefined,
@@ -89,49 +103,46 @@ export async function navigateToPanel(page: Page): Promise<Page> {
       elementDefined = true;
       break;
     } catch {
-      // Dump more diagnostics on failure
       const failDiag = await page.evaluate(() => ({
         url: window.location.href,
         bodyLen: document.body?.innerHTML?.length ?? -1,
         bodyText: document.body?.innerText?.substring(0, 300) ?? '(no body)',
         haTokens: !!localStorage.getItem('hassTokens'),
-        homeAssistant: !!document.querySelector('home-assistant'),
-        panelResolver: !!document.querySelector('partial-panel-resolver'),
-        haPanel: !!document.querySelector('ha-panel-custom'),
-        customElDefined: typeof customElements !== 'undefined' ? !!customElements.get('ev-trip-planner-panel') : false,
-        allCustomEls: document.querySelectorAll('*').length,
+        homeAssistantDefined: !!customElements.get('home-assistant'),
+        panelResolverTag: !!document.querySelector('partial-panel-resolver'),
+        haPanelTag: !!document.querySelector('ha-panel-custom'),
+        evPanelDefined: !!customElements.get('ev-trip-planner-panel'),
+        totalElements: document.querySelectorAll('*').length,
+        // Check if HA frontend is in an error/loading state
+        launchScreen: !!document.querySelector('#ha-launch-screen'),
+        errorScreen: !!document.querySelector('.error'),
       }));
       // eslint-disable-next-line no-console
       console.log(
-        `[navigateToPanel] Custom element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
+        `[navigateToPanel] Element not defined (attempt ${attempt + 1}/${MAX_RELOAD_ATTEMPTS + 1}).` +
         ` Diag: ${JSON.stringify(failDiag)}` +
-        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join(' | ')}` : '') +
-        (failedRequests.length > 0 ? ` Failed requests: ${failedRequests.join('; ')}` : '') +
-        ` Panel responses: ${panelResponses.join('; ')}`,
+        (jsErrors.length > 0 ? ` JS errors: ${jsErrors.join(' ||| ')}` : '') +
+        ` Responses: ${allResponses.slice(-10).join(' | ')}`,
       );
 
       if (attempt < MAX_RELOAD_ATTEMPTS) {
-        // Clear error lists before retry
         jsErrors.length = 0;
-        failedRequests.length = 0;
-        panelResponses.length = 0;
+        allResponses.length = 0;
         await page.reload({ waitUntil: 'load' });
       }
     }
   }
 
   if (!elementDefined) {
-    // Capture page HTML snapshot for debugging
     const bodyHtml = await page.evaluate(
-      'document.body?.innerHTML?.substring(0, 1000) ?? "(empty)"',
+      'document.body?.innerHTML?.substring(0, 2000) ?? "(empty)"',
     );
     const errParts = [
       '[navigateToPanel] ev-trip-planner-panel custom element never defined after',
       String(MAX_RELOAD_ATTEMPTS + 1),
       'attempts.',
-      'JS errors: [' + jsErrors.join(' | ') + '].',
-      'Failed requests: [' + failedRequests.join('; ') + '].',
-      'Panel responses: [' + panelResponses.join('; ') + '].',
+      'JS errors: [' + jsErrors.join(' ||| ') + '].',
+      'Responses: [' + allResponses.join(' | ') + '].',
       'Body HTML: ' + String(bodyHtml),
     ];
     throw new Error(errParts.join(' '));

@@ -435,10 +435,35 @@ async function globalSetup(): Promise<void> {
     throw new Error('[auth.setup] Login form appeared — trusted_networks bypass failed');
   }
 
-  // 4. Wait for the frontend to fully settle
+  // 4. Wait for the frontend to fully settle and verify it actually initialized
   console.log('[auth.setup] Waiting for HA frontend to settle...');
   await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Wait for the HA frontend JS to actually execute and define the home-assistant element
+  try {
+    await page.waitForFunction(
+      () => {
+        // Check if HA's main JS bundle has loaded and defined the web component
+        const haEl = customElements.get('home-assistant');
+        return !!haEl;
+      },
+      { timeout: 30_000 },
+    );
+    console.log('[auth.setup] HA frontend JS bundle loaded (home-assistant element defined)');
+  } catch {
+    // Log diagnostic info
+    const setupDiag = await page.evaluate(() => ({
+      url: window.location.href,
+      bodyLen: document.body?.innerHTML?.length ?? 0,
+      launchScreen: !!document.querySelector('#ha-launch-screen'),
+      haTag: !!document.querySelector('home-assistant'),
+      haDefined: !!customElements.get('home-assistant'),
+      scriptTags: Array.from(document.querySelectorAll('script')).map(s => ({
+        src: (s as HTMLScriptElement).src || '(inline)',
+        type: (s as HTMLScriptElement).type || 'classic',
+      })),
+    }));
+    console.log('[auth.setup] WARNING: HA frontend JS did NOT load. Diag:', JSON.stringify(setupDiag));
+  }
   console.log('[auth.setup] HA frontend settled. Final URL:', page.url());
 
   // 5. Dump the storageState for debugging
