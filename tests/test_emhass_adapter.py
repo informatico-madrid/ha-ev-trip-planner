@@ -1962,7 +1962,9 @@ async def test_verify_cleanup_uses_async_all_sensor_domain(hass: HomeAssistant, 
         await adapter.async_load()
 
     # Track what domain async_all is called with
-    async_all_spy = AsyncMock(return_value=[])
+    # Note: async_all is NOT an async method - it returns list[State] directly
+    # (the async_ prefix is just a HomeAssistant naming convention)
+    async_all_spy = MagicMock(return_value=[])
     hass.states.async_all = async_all_spy
 
     # Call verify_cleanup - it should call async_all("sensor") and filter by entity_id prefix

@@ -465,7 +465,7 @@ class PresenceMonitor:
             return
 
         # Get new SOC value from event
-        new_state = event.get("data", {}).get("new_state")
+        new_state = event.data.get("new_state")
         if not new_state:
             _LOGGER.debug(
                 "SOC change event for %s has no new_state, skipping",

@@ -14,17 +14,18 @@ class TestPanelVehicleIdFiltering:
     """Tests for panel vehicle_id filtering behavior."""
 
     @pytest.mark.asyncio
-    async def test_sensor_stores_vehicle_id_not_entry_id(self):
-        """Test that EMHASS sensors store vehicle_id, not entry_id.
+    async def test_sensor_stores_vehicle_id_and_entry_id(self):
+        """Test that EMHASS sensors store both vehicle_id and entry_id.
 
         EMHASSAdapter.publish_deferrable_loads() sets sensor attributes:
-        - vehicle_id: self.vehicle_id (the slug from config)
-        - NOT entry_id: self.entry_id (HA's internal UUID)
+        - vehicle_id: self.vehicle_id (the slug from config) - for panel filtering
+        - entry_id: self.entry_id (HA's internal UUID) - for orphan detection at startup
 
-        This is the root cause of the bug - panel was looking for entry_id
-        but sensor only stores vehicle_id.
+        Both attributes are intentionally set for different purposes:
+        - vehicle_id: Used by panel to identify which vehicle's trips to display
+        - entry_id: Used by startup orphan cleanup to identify orphaned sensors
 
-        This test passes to verify the sensor attribute structure.
+        This test verifies the sensor attribute structure is correct.
         """
         # Read the actual source code to verify sensor attributes
         with open(
@@ -38,10 +39,10 @@ class TestPanelVehicleIdFiltering:
         assert '"vehicle_id": self.vehicle_id' in content, \
             "EMHASS adapter should set vehicle_id attribute on sensor"
 
-        # Verify it does NOT set entry_id attribute
-        # (entry_id is the internal HA UUID, should not be exposed to panel)
-        assert '"entry_id": self.entry_id' not in content, \
-            "EMHASS adapter should NOT set entry_id attribute"
+        # Verify entry_id IS set (for orphan detection - FR-1.2)
+        # This is intentional and necessary for startup orphan cleanup
+        assert '"entry_id": self.entry_id' in content, \
+            "EMHASS adapter should set entry_id attribute for orphan detection"
 
     @pytest.mark.asyncio
     async def test_panel_passes_vehicle_id_to_trip_list_service(self):

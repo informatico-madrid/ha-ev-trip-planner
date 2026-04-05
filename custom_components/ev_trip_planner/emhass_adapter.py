@@ -1220,10 +1220,12 @@ class EMHASSAdapter:
 
         # Check state machine for EMHASS sensors
         state_clean = True
-        for state in self.hass.states.async_all("sensor.emhass_perfil_diferible"):
-            if state.attributes and state.attributes.get("entry_id") == self.entry_id:
-                state_clean = False
-                break
+        for state in self.hass.states.async_all("sensor"):
+            entity_id = state.entity_id
+            if entity_id.startswith("sensor.emhass_perfil_diferible_"):
+                if state.attributes and state.attributes.get("entry_id") == self.entry_id:
+                    state_clean = False
+                    break
 
         # Check entity registry for EMHASS sensors
         registry_clean = True
