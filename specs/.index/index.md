@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-05T16:58:09Z
+**Last updated:** 2026-04-05T18:09:41Z
 
 ## Directories (1)
 
@@ -38,7 +38,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
 | e2e-trip-crud | ./specs | tasks | 48/52 tasks |
 | duplicate-emhass-sensor-fix | ./specs | completed | done |
-| emhass-sensor-entity-lifecycle | ./specs | research | awaiting approval |
+| emhass-sensor-entity-lifecycle | ./specs | execution | 4/23 tasks |
 
 ---
 

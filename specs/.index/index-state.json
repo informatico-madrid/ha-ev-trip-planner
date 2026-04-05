@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-05T16:58:09Z",
+  "updated": "2026-04-05T18:09:41Z",
   "directories": [
     {
       "path": "./specs",
@@ -160,8 +160,9 @@
     {
       "name": "emhass-sensor-entity-lifecycle",
       "path": "./specs/emhass-sensor-entity-lifecycle",
-      "phase": "research",
-      "awaitingApproval": true
+      "phase": "execution",
+      "taskIndex": 4,
+      "totalTasks": 23
     }
   ]
 }
