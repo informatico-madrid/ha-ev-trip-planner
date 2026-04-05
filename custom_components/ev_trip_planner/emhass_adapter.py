@@ -71,7 +71,8 @@ class EMHASSAdapter:
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
 
         _LOGGER.debug(
-            "Created EMHASSAdapter for %s, %d indices, notification_service=%s, charging_power_kw=%.2f",
+            "Created EMHASSAdapter for %s, %d indices, "
+            "notification_service=%s, charging_power_kw=%.2f",
             self.vehicle_id,
             len(self._available_indices),
             self.notification_service,
@@ -105,11 +106,13 @@ class EMHASSAdapter:
                 used_indices = set(self._index_map.values())
                 released_in_cooldown = set(self._released_indices.keys())
                 self._available_indices = [
-                    i for i in range(self.max_deferrable_loads)
+                    i
+                    for i in range(self.max_deferrable_loads)
                     if i not in used_indices and i not in released_in_cooldown
                 ]
                 _LOGGER.info(
-                    "Loaded %d trip-index mappings for %s, %d indices available, %d in cooldown",
+                    "Loaded %d trip-index mappings for %s, "
+                    "%d indices available, %d in cooldown",
                     len(self._index_map),
                     self.vehicle_id,
                     len(self._available_indices),
@@ -197,7 +200,8 @@ class EMHASSAdapter:
             return False
 
         released_index = self._index_map.pop(trip_id)
-        # Soft delete: store in released_indices with timestamp instead of returning to available
+        # Soft delete: store in released_indices with timestamp
+        # instead of returning to available
         self._released_indices[released_index] = datetime.now()
 
         await self.async_save()
@@ -283,7 +287,9 @@ class EMHASSAdapter:
 
             # Set state
             config_sensor_id = self._get_config_sensor_id(emhass_index)
-            await self.hass.states.async_set(config_sensor_id, EMHASS_STATE_ACTIVE, attributes)
+            await self.hass.states.async_set(
+                config_sensor_id, EMHASS_STATE_ACTIVE, attributes
+            )
 
             _LOGGER.info(
                 "Published deferrable load for trip %s (index %d): %s hours, %s W",
@@ -386,7 +392,8 @@ class EMHASSAdapter:
         expired = [
             idx
             for idx, released_time in self._released_indices.items()
-            if (now - released_time).total_seconds() >= self._index_cooldown_hours * 3600
+            if (now - released_time).total_seconds()
+            >= self._index_cooldown_hours * 3600
         ]
         for idx in expired:
             del self._released_indices[idx]
@@ -526,7 +533,8 @@ class EMHASSAdapter:
                     "deferrables_schedule": deferrables_schedule,
                     "vehicle_id": self.vehicle_id,
                     "trips_count": len(trips),
-                    "entry_id": self.entry_id,  # FR-1.2: Add entry_id for orphan detection
+                    # FR-1.2: Add entry_id for orphan detection
+                    "entry_id": self.entry_id,
                 },
             )
         except HomeAssistantError as err:
@@ -1133,7 +1141,6 @@ class EMHASSAdapter:
         FR-1.1: Cleans up both state entities AND entity registry entries.
         """
         from homeassistant.helpers import entity_registry as er
-        from homeassistant.helpers import entity_registry as er
 
         # Clear all trip-to-index mappings immediately
         assigned_trips = list(self._index_map.keys())
@@ -1141,8 +1148,9 @@ class EMHASSAdapter:
         # Get registry for cleanup
         registry = er.async_get(self.hass)
 
-        # FR-1.1: Consolidated cleanup - remove both state and registry entries together
-        # Iterate through all trip indices and clean up both state machine and entity registry
+        # FR-1.1: Consolidated cleanup - remove both state and registry entries
+        # together. Iterate through all trip indices and clean up state machine
+        # and entity registry
         for trip_id in assigned_trips:
             emhass_index = self._index_map.get(trip_id)
             if emhass_index is not None:
@@ -1223,7 +1231,9 @@ class EMHASSAdapter:
             if (
                 entity_entry.domain == "sensor"
                 and entity_entry.unique_id
-                and entity_entry.unique_id.startswith(f"emhass_perfil_diferible_{self.entry_id}")
+                and entity_entry.unique_id.startswith(
+                    f"emhass_perfil_diferible_{self.entry_id}"
+                )
             ):
                 registry_clean = False
                 break
@@ -1232,6 +1242,7 @@ class EMHASSAdapter:
             "state_clean": state_clean,
             "registry_clean": registry_clean,
             "mappings_cleared": len(self._index_map) == 0,
+            # Track how many entity IDs were published (for monitoring)
             "published_ids_count": len(self._published_entity_ids),
         }
 
@@ -1261,7 +1272,10 @@ class EMHASSAdapter:
         if entry_id != self.entry_id:
             return
 
-        _LOGGER.info("Config entry updated for vehicle %s, checking charging power", self.vehicle_id)
+        _LOGGER.info(
+            "Config entry updated for vehicle %s, checking charging power",
+            self.vehicle_id,
+        )
         await self.update_charging_power()
 
     async def update_charging_power(self) -> None:
@@ -1296,8 +1310,9 @@ class EMHASSAdapter:
         # Update internal power value
         self._charging_power_kw = new_power
 
-        # Republish with new power profile
-        await self.publish_deferrable_loads()
+        # Republish with new power profile (pass empty trips list)
+        # The actual power profile will be recalculated when trips are available
+        await self.publish_deferrable_loads([])
 
     def _calculate_power_profile_from_trips(
         self,

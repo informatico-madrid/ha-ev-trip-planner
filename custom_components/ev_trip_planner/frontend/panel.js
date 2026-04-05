@@ -1044,19 +1044,36 @@ class EVTripPlannerPanel extends LitElement {
       `fan.ev_trip_planner_${lowerVehicleId}`, `fan.ev_trip_planner_${lowerVehicleId}_`,
       'sensor.trip_',
       'sensor.ev_trip_planner_',
-      'sensor.ev_trip_planner',
+      // FR-2.1: Filter EMHASS sensors by entry_id attribute (not pattern matching)
+      'sensor.emhass_perfil_diferible_',
     ];
 
     if (states instanceof Map) {
       for (const [entityId, state] of states) {
         if (patterns.some(pattern => entityId.startsWith(pattern))) {
-          result[entityId] = state;
+          // FR-2.1: For EMHASS sensors, verify entry_id attribute matches current vehicle
+          if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+            const entryId = state.attributes?.entry_id;
+            if (entryId === this._vehicleId) {
+              result[entityId] = state;
+            }
+          } else {
+            result[entityId] = state;
+          }
         }
       }
     } else {
       for (const [entityId, state] of Object.entries(states)) {
         if (patterns.some(pattern => entityId.startsWith(pattern))) {
-          result[entityId] = state;
+          // FR-2.1: For EMHASS sensors, verify entry_id attribute matches current vehicle
+          if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+            const entryId = state.attributes?.entry_id;
+            if (entryId === this._vehicleId) {
+              result[entityId] = state;
+            }
+          } else {
+            result[entityId] = state;
+          }
         }
       }
     }
