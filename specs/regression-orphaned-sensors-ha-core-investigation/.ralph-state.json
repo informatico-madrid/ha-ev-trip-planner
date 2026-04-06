@@ -2,9 +2,9 @@
   "source": "spec",
   "name": "regression-orphaned-sensors-ha-core-investigation",
   "basePath": "specs/regression-orphaned-sensors-ha-core-investigation",
-  "phase": "design",
+  "phase": "tasks",
   "taskIndex": 0,
-  "totalTasks": 0,
+  "totalTasks": 36,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
@@ -12,6 +12,6 @@
   "commitSpec": true,
   "quickMode": false,
   "discoveredSkills": [],
-  "awaitingApproval": false,
+  "awaitingApproval": true,
   "granularity": "fine"
 }
