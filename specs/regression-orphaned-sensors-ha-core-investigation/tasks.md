@@ -18,15 +18,15 @@
   - **Commit**: `test(phase-0): red - failing test for sensor cleanup after unload`
   - _Requirements: Phase 0 characterization_
 
-- [ ] 0.3 [RED] Failing test: test_trip_sensor_created_in_registry_after_add
+- [x] 0.3 [RED] Failing test: test_trip_sensor_created_in_registry_after_add
   - **Do**: Write characterization test asserting that after calling the add_trip service, a TripSensor appears in the entity registry. Documents broken behavior: `async_create_trip_sensor()` creates orphan Python objects (stored in `hass.data`) but never calls `async_add_entities()`.
   - **Files**: `tests/test_entity_registry.py`
   - **Done when**: Test exists, runs, and fails (TripSensor not in registry, only in `hass.data`)
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py::test_trip_sensor_created_in_registry_after_add -v 2>&1 | grep -q "FAILED\|AssertionError" && echo RED_PASS`
-  - **Commit**: `test(phase-0): red - failing test for trip sensor in registry after add`
+  - **Commit**: `test(phase-0): red - failing test for trip sensor in registry after add` (eba50a0)
   - _Requirements: Phase 0 characterization_
 
-- [ ] 0.4 [RED] Failing test: test_trip_sensor_removed_from_registry_after_delete
+- [x] 0.4 [RED] Failing test: test_trip_sensor_removed_from_registry_after_delete
   - **Do**: Write characterization test asserting that after delete_trip service, the registry entry is gone. Documents broken behavior: `async_remove_trip_sensor()` only deletes from dict, never calls `entity_registry.async_remove()`.
   - **Files**: `tests/test_entity_registry.py`
   - **Done when**: Test exists, runs, and fails (zombie entries remain)
