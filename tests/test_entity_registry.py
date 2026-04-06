@@ -542,3 +542,45 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
         f"zombie entries. async_remove_trip_sensor() only deletes from trip_sensors dict, "
         f"never calls entity_registry.async_remove()."
     )
+
+
+@pytest.mark.asyncio
+async def test_no_duplicate_sensors_after_reload(mock_hass, config_entry):
+    """Test that reloading the config entry does not create duplicate sensors.
+
+    This test FAILS today because sensors do not have unique_id set, so when
+    the config entry is reloaded, Home Assistant creates new entity entries
+    instead of recognizing the existing ones. Entity count doubles on reload.
+
+    After Phase 1-5 refactoring, sensors should have unique_id and reload
+    should not create duplicates.
+    """
+    from custom_components.ev_trip_planner.sensor import async_setup_entry
+
+    created_entities = []
+    def capture_async_add_entities(entities, update_before_add=True):
+        created_entities.extend(entities)
+
+    # Initial setup
+    result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
+    assert result is True, "async_setup_entry should succeed"
+
+    # Verify we have 8 sensors
+    initial_count = len(created_entities)
+    assert initial_count >= 8, f"Expected >= 8 sensors after setup, got {initial_count}"
+
+    # Pre-requisite check: all sensors must have unique_id for reload to work correctly
+    # Without unique_id, HA will create duplicates on reload (the bug we're documenting)
+    missing_unique_id = []
+    for entity in created_entities:
+        uid = getattr(entity, "_attr_unique_id", None)
+        if uid is None:
+            missing_unique_id.append(type(entity).__name__)
+
+    # This FAILS: sensors lack unique_id, so HA cannot recognize them on reload
+    # and will create duplicate entities instead
+    assert not missing_unique_id, (
+        f"The following sensor types lack unique_id: {missing_unique_id}. "
+        f"Without unique_id, reloading the config entry will create duplicate sensors. "
+        f"Each reload doubles the entity count because HA cannot recognize existing entities."
+    )
