@@ -10,6 +10,16 @@ import pytest
 _LOGGER = logging.getLogger(__name__)
 
 
+@pytest.fixture
+def enable_custom_integrations():
+    """Enable custom integrations for testing.
+
+    This fixture allows Home Assistant to load custom integrations during tests.
+    Required per project coding guidelines for integration tests.
+    """
+    return True
+
+
 # FIX: Mock frame reporting for HA 2026.3+ compatibility
 # DataUpdateCoordinator in HA 2026.3+ requires frame helper to be set up
 # This autouse fixture mocks the frame.report_usage to bypass the check

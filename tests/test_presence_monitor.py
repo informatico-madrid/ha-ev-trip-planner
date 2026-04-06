@@ -844,11 +844,10 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -900,11 +899,10 @@ async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
     new_soc_state = Mock()
     new_soc_state.state = "53"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Set _last_processed_soc to simulate previous trigger
@@ -959,11 +957,10 @@ async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -1013,11 +1010,10 @@ async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -1067,11 +1063,10 @@ async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass)
     new_soc_state = Mock()
     new_soc_state.state = "unavailable"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
