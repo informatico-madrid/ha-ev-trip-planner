@@ -64,6 +64,9 @@ class EMHASSAdapter:
         # Entity tracking for cleanup (FR-1, AC-1.4)
         self._published_entity_ids: Set[str] = set()
 
+        # FR-3.1: Store last published trips for reactive republish when charging power changes
+        self._published_trips: List[Dict[str, Any]] = []
+
         # FR-3.1: Config entry listener handle for cleanup
         self._config_entry_listener: Optional[Callable] = None
 
@@ -503,6 +506,9 @@ class EMHASSAdapter:
         """
         if charging_power_kw is None:
             charging_power_kw = self.charging_power
+
+        # FR-3.1: Store trips for reactive republish when charging power changes
+        self._published_trips = list(trips)
 
         _LOGGER.info(
             "Publishing %d deferrable loads for vehicle %s with %s kW charging power",
@@ -1318,9 +1324,9 @@ class EMHASSAdapter:
         # Update internal power value
         self._charging_power_kw = new_power
 
-        # Republish with new power profile (pass empty trips list)
-        # The actual power profile will be recalculated when trips are available
-        await self.publish_deferrable_loads([])
+        # FR-3.1: Republish with stored trips and new charging power
+        # This recalculates power_profile_watts with the updated charging power
+        await self.publish_deferrable_loads(self._published_trips, new_power)
 
     def _calculate_power_profile_from_trips(
         self,

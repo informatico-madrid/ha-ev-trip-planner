@@ -121,8 +121,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consolidated cleanup loops for state and registry cleanup
   - Added cleanup verification helper method
   - 4 new test files: entity cleanup, config updates, panel filtering, integration tests
-
-### Fixed
 - **Validación de formato de hora**: Se añadió validación estricta en `async_add_recurring_trip()` para rechazar formatos de hora inválidos (ej: "16:400") antes de almacenarlos. Implementado con TDD: 3 tests añadidos y pasando, previniendo datos corruptos en el storage.
 
 ---

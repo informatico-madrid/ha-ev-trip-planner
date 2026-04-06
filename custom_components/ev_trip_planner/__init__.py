@@ -472,11 +472,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         # FR-3.1/FR-3.2: Trigger republish if charging power changed
-        vehicle_id = new_data.get("vehicle_name", "").lower().replace(" ", "_")
-        data_component = hass.data.get(DOMAIN, {})
-        vehicle_data = data_component.get(vehicle_id, {})
+        # Use correct DATA_RUNTIME path: hass.data[DATA_RUNTIME][namespace]
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        runtime_data = hass.data.get(DATA_RUNTIME, {})
+        vehicle_data = runtime_data.get(namespace, {})
         trip_manager = vehicle_data.get("trip_manager")
-        if trip_manager and trip_manager._emhass_adapter:
+        if trip_manager and hasattr(trip_manager, '_emhass_adapter') and trip_manager._emhass_adapter:
             await trip_manager._emhass_adapter.update_charging_power()
 
     return True

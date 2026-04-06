@@ -138,9 +138,8 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
     """Test that config entry listener is properly set up.
 
     setup_config_entry_listener() should:
-    1. Store listener handle on adapter
-    2. Listen for "config_entries" bus events
-    3. Call _on_config_entry_updated when action == "updated"
+    1. Store listener handle on adapter via config_entry.add_update_listener
+    2. Register _handle_config_entry_update callback
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -148,31 +147,41 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
         CONF_CHARGING_POWER: 7.4,
     }
 
-    # Create adapter
+    # Create mock unsubscribe function
+    mock_unsubscribe = MagicMock()
+
+    # Create adapter with mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_id_123"
+    mock_entry.data = config
+    mock_entry.async_on_unload = MagicMock(return_value=mock_unsubscribe)
+    # add_update_listener returns the unsubscribe function
+    mock_entry.add_update_listener = MagicMock(return_value=mock_unsubscribe)
+
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
+        adapter.config_entry = mock_entry
 
         # Set up listener
         adapter.setup_config_entry_listener()
 
-        # Verify: Listener handle stored
+        # Verify: Listener handle stored (returned by async_on_unload)
         assert hasattr(adapter, '_config_entry_listener')
-        assert adapter._config_entry_listener is not None
+        assert adapter._config_entry_listener is mock_unsubscribe
 
-        # Verify: Listener registered with bus
-        mock_hass.bus.async_listen.assert_called_once_with(
-            "config_entries",
-            adapter._on_config_entry_updated,
-        )
+        # Verify: add_update_listener was called with the handler
+        mock_entry.add_update_listener.assert_called_once()
+        # Verify: async_on_unload was called with the unsubscribe function
+        mock_entry.async_on_unload.assert_called_once_with(mock_unsubscribe)
 
 
 @pytest.mark.asyncio
-async def test_on_config_entry_updated_filters_by_entry_id(mock_hass: HomeAssistant, mock_store):
-    """Test that _on_config_entry_updated only processes matching entry IDs.
+async def test_handle_config_entry_update_triggers_republish(mock_hass: HomeAssistant, mock_store):
+    """Test that _handle_config_entry_update calls update_charging_power.
 
-    The adapter should only respond to updates for its own config entry,
-    not all config entries in the system.
+    The new pattern uses ConfigEntry.add_update_listener which passes
+    (hass, config_entry) to the handler, so no entry_id filtering is needed.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -189,29 +198,16 @@ async def test_on_config_entry_updated_filters_by_entry_id(mock_hass: HomeAssist
         # Mock update_charging_power to track calls
         adapter.update_charging_power = AsyncMock()
 
-        # Event for different entry ID (should be ignored)
-        different_entry_event = {
-            "action": "updated",
-            "entry_id": "different_entry_id",
-        }
+        # Create mock config entry (passed by HA's add_update_listener)
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_id_123"
 
-        # Execute: Handle event for different entry
-        await adapter._on_config_entry_updated(different_entry_event)
+        # Execute: Handle config entry update
+        await adapter._handle_config_entry_update(mock_hass, mock_entry)
 
-        # Verify: update_charging_power NOT called for different entry
-        adapter.update_charging_power.assert_not_called()
-
-        # Event for matching entry ID (should trigger)
-        matching_entry_event = {
-            "action": "updated",
-            "entry_id": "test_entry_id_123",
-        }
-
-        # Execute: Handle event for matching entry
-        await adapter._on_config_entry_updated(matching_entry_event)
-
-        # Verify: update_charging_power called for matching entry
+        # Verify: update_charging_power was called
         adapter.update_charging_power.assert_called_once()
+
 
 
 @pytest.mark.asyncio

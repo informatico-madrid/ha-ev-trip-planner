@@ -1051,10 +1051,11 @@ class EVTripPlannerPanel extends LitElement {
     if (states instanceof Map) {
       for (const [entityId, state] of states) {
         if (patterns.some(pattern => entityId.startsWith(pattern))) {
-          // FR-2.1: For EMHASS sensors, verify entry_id attribute matches current vehicle
+          // FR-2.1: For EMHASS sensors, verify vehicle_id attribute matches current vehicle
+          // Compare vehicle_id (the vehicle name slug) with this._vehicleId from URL
           if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
-            const entryId = state.attributes?.entry_id;
-            if (entryId === this._vehicleId) {
+            const vehicleId = state.attributes?.vehicle_id;
+            if (vehicleId === this._vehicleId) {
               result[entityId] = state;
             }
           } else {
@@ -1065,10 +1066,11 @@ class EVTripPlannerPanel extends LitElement {
     } else {
       for (const [entityId, state] of Object.entries(states)) {
         if (patterns.some(pattern => entityId.startsWith(pattern))) {
-          // FR-2.1: For EMHASS sensors, verify entry_id attribute matches current vehicle
+          // FR-2.1: For EMHASS sensors, verify vehicle_id attribute matches current vehicle
+          // Compare vehicle_id (the vehicle name slug) with this._vehicleId from URL
           if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
-            const entryId = state.attributes?.entry_id;
-            if (entryId === this._vehicleId) {
+            const vehicleId = state.attributes?.vehicle_id;
+            if (vehicleId === this._vehicleId) {
               result[entityId] = state;
             }
           } else {
