@@ -268,7 +268,7 @@ HA UI updated via async_write_ha_state()
 
 - `sensor.py:65` — TripPlannerSensor base (no unique_id)
 - `sensor.py:210-482` — 7 TripPlannerSensor subclasses (no unique_id)
-- `sensor.py:494-634` — EmhassDeferrableLoadSensor (unique_id correct, missing async_schedule_update_ha_state)
+- `sensor.py:494-634` — EmhassDeferrableLoadSensor (has unique_id, calls async_schedule_update_ha_state; dual-writing conflict with publish_deferrable_loads)
 - `sensor.py:637-674` — TripSensor (3-layer creation bug)
 - `emhass_adapter.py:509-548` — publish_deferrable_loads() (async_set bypass)
 - `emhass_adapter.py:1111-1161` — async_cleanup_vehicle_indices() (state-only cleanup)
