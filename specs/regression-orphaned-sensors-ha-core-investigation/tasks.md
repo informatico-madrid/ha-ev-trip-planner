@@ -299,7 +299,7 @@
   - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent committed `9c86497` claiming "737 tests pass, 39 legacy tests fail" but 39 tests STILL FAILING. Task unmarked. Must fix all 39 before marking complete.
   - **STATUS (2026-04-06)**: All 6 Phase 0 characterization tests now PASS. The original broken behavior (no unique_id, orphaned sensors, etc.) is now fixed by the Phase 1-4 refactoring.
 
-- [ ] V5 [VERIFY] Final quality checkpoint: full test suite
+- [x] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20`
   - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥79%
