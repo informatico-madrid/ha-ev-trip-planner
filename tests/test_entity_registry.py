@@ -45,34 +45,53 @@ def config_entry():
 @pytest.fixture
 def mock_hass(config_entry):
     """Create a mock HomeAssistant with entity registry."""
+    from custom_components.ev_trip_planner.const import DOMAIN
+
     hass = MagicMock()
 
-    # Mock the entity registry
-    registry_entries: list = []
-    registry = MagicMock()
-    registry_entries_for_config_entry = []
+    # Track registered entities - this is what should be cleared on unload
+    registered_entities: dict[str, dict] = {}
 
-    def async_entries_for_config_entry(entry_id):
-        return [e for e in registry_entries if e.config_entry_id == entry_id]
+    class MockRegistry:
+        """Mock entity registry that tracks entities."""
 
-    registry.async_entries_for_config_entry = async_entries_for_config_entry
-    registry.async_get = MagicMock(return_value=registry)
-    registry.entries = {}
+        def __init__(self):
+            self.entries = {}
 
-    def mock_async_get(hass_instance):
-        return registry
+        def async_get(self, hass_instance=None):
+            return self
 
-    # Patch entity_registry.async_get at module level
-    hass.entity_registry = MagicMock()
-    hass.entity_registry.async_get = mock_async_get
-    hass.entity_registry.async_entries_for_config_entry = async_entries_for_config_entry
-    hass.config_entries = MagicMock()
-    hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
+        def async_get_or_create(self, *args, **kwargs):
+            # Create a mock entry and store it
+            suggested_object_id = kwargs.get('suggested_object_id', 'unknown')
+            unique_id = kwargs.get('unique_id', '')
+            entity_id = f"sensor.{suggested_object_id}"
+            entry = MockRegistryEntry(entity_id, unique_id, config_entry.entry_id)
+            self.entries[entity_id] = entry
+            return entry
 
-    # Seed trip_manager and coordinator in hass.data
+        def async_entries_for_config_entry(self, entry_id):
+            return [e for e in self.entries.values() if e.config_entry_id == entry_id]
+
+        def async_remove(self, entity_id):
+            if entity_id in self.entries:
+                del self.entries[entity_id]
+
+    class MockRegistryEntry:
+        def __init__(self, entity_id, unique_id, config_entry_id):
+            self.entity_id = entity_id
+            self.unique_id = unique_id
+            self.config_entry_id = config_entry_id
+
+    # Create mock registry
+    mock_registry = MockRegistry()
+    hass.entity_registry = mock_registry
+
+    # Mock hass.data for runtime storage
     tm = MagicMock()
     tm.async_get_recurring_trips = AsyncMock(return_value=[])
     tm.async_get_punctual_trips = AsyncMock(return_value=[])
+    tm.async_delete_all_trips = AsyncMock()
     tm._recurring_trips = []
     tm._punctual_trips = []
 
@@ -80,9 +99,6 @@ def mock_hass(config_entry):
     coordinator.data = {}
     coordinator.trip_manager = tm
     coordinator.async_config_entry_first_refresh = AsyncMock()
-
-    # Mirror the namespace pattern used in __init__.py: f"{DOMAIN}_{entry_id}"
-    from custom_components.ev_trip_planner.const import DOMAIN
 
     namespace = f"{DOMAIN}_{config_entry.entry_id}"
     hass.data = {
@@ -94,6 +110,11 @@ def mock_hass(config_entry):
             }
         }
     }
+
+    # Make async_unload_entry work
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
 
     return hass
 
@@ -138,7 +159,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     )
 
     # Verify the entity registry also has entries with unique_id
-    registry = er.async_get(mock_hass)
+    registry = mock_hass.entity_registry
     entries = registry.async_entries_for_config_entry(config_entry.entry_id)
 
     # At least 8 registry entries should exist
@@ -154,4 +175,52 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
 
     assert not registry_missing_uid, (
         f"The following registry entries lack unique_id: {registry_missing_uid}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_sensor_removed_after_unload(mock_hass, config_entry):
+    """Test that all sensors are removed from entity registry after async_unload_entry.
+
+    This test FAILS today because async_unload_entry does NOT clean up the entity
+    registry. Sensors become orphaned zombies - they remain in the registry after
+    the entry is unloaded.
+
+    After Phase 2 fix, the entity registry should have 0 entries for this config
+    entry after unload.
+    """
+    from custom_components.ev_trip_planner import async_unload_entry
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    # Manually register 8 sensors in the entity registry before the test
+    # (simulating what async_setup_entry does)
+    registry = mock_hass.entity_registry
+    for i in range(8):
+        entity_id = f"sensor.test_entity_{i}"
+        registry.async_get_or_create(
+            domain="sensor",
+            platform="ev_trip_planner",
+            unique_id=f"test_unique_id_{i}",
+            suggested_object_id=f"test_entity_{i}",
+            config_entry=config_entry,
+        )
+
+    # Verify 8 entities are registered before unload
+    entries_before = registry.async_entries_for_config_entry(config_entry.entry_id)
+    assert len(entries_before) == 8, (
+        f"Expected 8 sensors registered before unload, got {len(entries_before)}"
+    )
+
+    # Now unload the entry via the integration's unload function
+    unload_ok = await async_unload_entry(mock_hass, config_entry)
+    assert unload_ok is True, "async_unload_entry should succeed"
+
+    # Get entries for this config entry AFTER unload
+    entries_after = registry.async_entries_for_config_entry(config_entry.entry_id)
+
+    # This FAILS: orphaned sensors remain in the registry after unload
+    # because async_unload_entry does NOT call entity_registry.async_clear_config_entry()
+    assert len(entries_after) == 0, (
+        f"Expected 0 registry entries after unload, but found {len(entries_after)} "
+        f"orphaned sensors still in registry. Sensors should be cleaned up during unload."
     )
