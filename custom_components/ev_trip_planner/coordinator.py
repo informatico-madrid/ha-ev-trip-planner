@@ -8,7 +8,6 @@ Phase 1: Defines full data contract with EMHASS keys as None placeholders.
 Phase 3: EMHASS keys are populated from emhass_adapter computation results.
 """
 
-from collections.abc import Awaitable
 from datetime import timedelta
 from typing import Any
 
@@ -68,19 +67,29 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         with all keys defined in the contract.
 
         Returns:
-            dict with full data contract including EMHASS keys (None in Phase 1).
+            Full data dict with EMHASS keys as None (Phase 1).
         """
         # Get recurring trips as list, convert to dict keyed by trip_id
         recurring_list = await self._trip_manager.async_get_recurring_trips()
-        recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
+        recurring_trips = {
+            trip["id"]: trip
+            for trip in recurring_list
+            if "id" in trip
+        }
 
         # Get punctual trips as list, convert to dict keyed by trip_id
         punctual_list = await self._trip_manager.async_get_punctual_trips()
-        punctual_trips = {trip["id"]: trip for trip in punctual_list if "id" in trip}
+        punctual_trips = {
+            trip["id"]: trip
+            for trip in punctual_list
+            if "id" in trip
+        }
 
         # Get today's energy and hours needs
         kwh_today = await self._trip_manager.async_get_kwh_needed_today()
-        hours_today = float(await self._trip_manager.async_get_hours_needed_today())
+        hours_today = float(
+            await self._trip_manager.async_get_hours_needed_today()
+        )
 
         # Get next scheduled trip
         next_trip = await self._trip_manager.async_get_next_trip()
@@ -93,7 +102,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "kwh_today": kwh_today,
             "hours_today": hours_today,
             "next_trip": next_trip,
-            # EMHASS keys - populated in Phase 3 when emhass_adapter is integrated
+            # EMHASS keys - Phase 3: emhass_adapter populates these
             "emhass_power_profile": None,
             "emhass_deferrables_schedule": None,
             "emhass_status": None,

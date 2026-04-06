@@ -1,7 +1,7 @@
 """Sensores para el componente EV Trip Planner.
 
 Implementa entidades de sensores para mostrar información de viajes y carga.
-Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data.
+Cumple con las reglas de HA 2026 para tipado estricto y runtime_data.
 """
 
 from __future__ import annotations
@@ -9,19 +9,18 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, Dict, List
-from unittest.mock import MagicMock
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
-    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import DATA_RUNTIME
+from .definitions import TripSensorEntityDescription, TRIP_SENSORS
 from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
@@ -30,6 +29,7 @@ from .const import (
     EMHASS_STATE_READY,
     TRIP_TYPE_PUNCTUAL,
 )
+from .coordinator import TripPlannerCoordinator
 from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,437 +58,61 @@ def _format_window_time(value: Any) -> str | None:
         return None
 
 
-# Type alias for coordinator pattern used in tests
-TripPlannerCoordinator = Any
+class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
+    """Sensor base for EV Trip Planner using CoordinatorEntity pattern.
 
-
-class TripPlannerSensor(SensorEntity):
-    """Sensor base para el componente EV Trip Planner.
-
-    Implementa la lógica común para todos los sensores del componente.
-    Cumple con las reglas de Home Assistant 2026 para tipado estricto y runtime_data.
+    Reads from coordinator.data via entity_description.value_fn().
+    Sets _attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}".
     """
 
     def __init__(
         self,
-        hass: HomeAssistant,
-        trip_manager: TripManager,
-        sensor_type: str,
+        coordinator: TripPlannerCoordinator,
+        vehicle_id: str,
+        entity_description: TripSensorEntityDescription,
     ) -> None:
-        """Inicializa el sensor base."""
-        self.hass = hass
-        self.trip_manager = trip_manager
-        self._sensor_type = sensor_type
+        """Initialize the sensor.
+
+        Args:
+            coordinator: TripPlannerCoordinator instance.
+            vehicle_id: Vehicle identifier.
+            entity_description: Description with value_fn and attrs_fn.
+        """
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self._vehicle_id = vehicle_id
+        self.entity_description = entity_description
+        self._attr_unique_id = f"{DOMAIN}_{vehicle_id}_{entity_description.key}"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_has_entity_name = True
-        self._attr_name = f"EV Trip Planner {sensor_type}"
+        self._attr_name = f"EV Trip Planner {entity_description.key}"
         # Store cached attributes for synchronous access
         self._cached_attrs: Dict[str, Any] = {}
 
-    async def async_update(self) -> None:
-        """Actualiza el estado del sensor."""
-        vehicle_id = getattr(self.trip_manager, "vehicle_id", "unknown")
-        try:
-            if self._sensor_type == "kwh_needed_today":
-                _LOGGER.debug(  # noqa: E501
-                    "Sensor update kwh_needed_today for %s: fetching trips data",
-                    vehicle_id,
-                )
-                self._attr_native_value = (
-                    await self.trip_manager.async_get_kwh_needed_today()
-                )
-                # Cache attributes for synchronous access
-                recurring = await self.trip_manager.async_get_recurring_trips()
-                punctual = await self.trip_manager.async_get_punctual_trips()
-                self._cached_attrs["viajes_hoy"] = len(recurring)
-                self._cached_attrs["viajes_puntuales"] = len(punctual)
-                _LOGGER.debug(  # noqa: E501
-                    "Sensor update kwh_needed_today for %s: value=%s, recurring=%d, punctual=%d",
-                    vehicle_id,
-                    self._attr_native_value,
-                    len(recurring),
-                    len(punctual),
-                )
-            elif self._sensor_type == "hours_needed_today":
-                _LOGGER.debug(  # noqa: E501
-                    "Sensor update hours_needed_today for %s: fetching hours data",
-                    vehicle_id,
-                )
-                self._attr_native_value = (
-                    await self.trip_manager.async_get_hours_needed_today()
-                )
-                charging_power = self.trip_manager.get_charging_power()
-                self._cached_attrs["potencia_carga"] = charging_power
-                _LOGGER.debug(  # noqa: E501
-                    "Sensor update hours_needed_today for %s: value=%s, charging_power=%s",
-                    vehicle_id,
-                    self._attr_native_value,
-                    charging_power,
-                )
-            elif self._sensor_type == "next_trip":
-                _LOGGER.debug(  # noqa: E501
-                    "Sensor update next_trip for %s: fetching next trip data",
-                    vehicle_id,
-                )
-                next_trip = await self.trip_manager.async_get_next_trip()
-                self._attr_native_value = (
-                    next_trip["descripcion"] if next_trip else "N/A"
-                )
-                if next_trip:
-                    self._cached_attrs["fecha_hora"] = (
-                        next_trip["datetime"]
-                        if next_trip["tipo"] == TRIP_TYPE_PUNCTUAL
-                        else next_trip["dia_semana"]
-                    )
-                    self._cached_attrs["distancia"] = next_trip["km"]
-                    self._cached_attrs["energia"] = next_trip["kwh"]
-                    _LOGGER.debug(  # noqa: E501
-                        "Sensor update next_trip for %s: next_trip=%s, datetime=%s, km=%s",
-                        vehicle_id,
-                        next_trip["descripcion"],
-                        self._cached_attrs.get("fecha_hora"),
-                        next_trip["km"],
-                    )
-                else:
-                    self._cached_attrs.clear()
-                    _LOGGER.debug(
-                        "Sensor update next_trip for %s: no trips available", vehicle_id
-                    )
-        except Exception as err:
-            _LOGGER.error(
-                "Error actualizando sensor %s (vehicle=%s): %s",
-                self._sensor_type,
-                vehicle_id,
-                err,
-            )
-            self._attr_native_value = None
+    @property
+    def native_value(self) -> Any:
+        """Return sensor value via entity_description.value_fn."""
+        if self.coordinator.data is None:
+            return None
+        return self.entity_description.value_fn(self.coordinator.data)
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Devuelve atributos adicionales para el sensor."""
-        # Return default empty arrays for dashboard compatibility
-        if not self._cached_attrs:
-            return {"recurring_trips": [], "punctual_trips": []}
-        return self._cached_attrs.copy()
+        """Return attributes from coordinator.data via entity_description.attrs_fn."""
+        if self.coordinator.data is None:
+            return {}
+        return self.entity_description.attrs_fn(self.coordinator.data)
 
     @property
     def device_info(self) -> Dict[str, Any]:
-        """Devuelve información del dispositivo.
-
-        Returns device info with the vehicle_name from the config entry,
-        ensuring the device name uses the slug-based identifier and
-        displays the human-readable vehicle name.
-        """
-        vehicle_id = self.trip_manager.vehicle_id
-        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
-
-        try:
-            # Find the config entry for this specific vehicle_id
-            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if (
-                    config_entry.data
-                    and config_entry.data.get("vehicle_name") == vehicle_id
-                ):
-                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
-                    break
-        except Exception:
-            pass
-
+        """Return device info for the vehicle."""
         return {
-            "identifiers": {(DOMAIN, vehicle_id)},
-            "name": f"EV Trip Planner {vehicle_name}",
+            "identifiers": {(DOMAIN, self._vehicle_id)},
+            "name": f"EV Trip Planner {self._vehicle_id}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
             "sw_version": "2026.3.0",
         }
-
-
-# Backward compatibility aliases for tests
-# These map test expectations to the actual TripPlannerSensor implementation
-
-
-class RecurringTripsCountSensor(TripPlannerSensor):
-    """Sensor for counting recurring trips (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "recurring_trips_count")
-        self._attr_name = f"{vehicle_id} recurring trips count"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "RecurringTripsCountSensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "recurring_trips" in data:
-                return len(data.get("recurring_trips", []))
-        _LOGGER.debug(
-            "RecurringTripsCountSensor(%s) returning default value 0", self._vehicle_id
-        )
-        return 0
-
-
-class PunctualTripsCountSensor(TripPlannerSensor):
-    """Sensor for counting punctual trips (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "punctual_trips_count")
-        self._attr_name = f"{vehicle_id} punctual trips count"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "PunctualTripsCountSensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "punctual_trips" in data:
-                return len(data.get("punctual_trips", []))
-        _LOGGER.debug(
-            "PunctualTripsCountSensor(%s) returning default value 0", self._vehicle_id
-        )
-        return 0
-
-
-class TripsListSensor(TripPlannerSensor):
-    """Sensor for combined trips list (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        trip_manager: Any = getattr(coordinator, "trip_manager", coordinator)
-        super().__init__(trip_manager.hass, trip_manager, "trips_list")
-        self._attr_name = f"{vehicle_id} trips list"
-        self._vehicle_id = vehicle_id
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "TripsListSensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data:
-                recurring = data.get("recurring_trips", [])
-                punctual = data.get("punctual_trips", [])
-                self._cached_attrs["recurring_trips"] = recurring
-                self._cached_attrs["punctual_trips"] = punctual
-                self._cached_attrs["trips"] = recurring + punctual
-                return len(recurring) + len(punctual)
-        _LOGGER.debug("TripsListSensor(%s) returning default value 0", self._vehicle_id)
-        return 0
-
-
-# Additional sensor aliases for test compatibility
-class KwhTodaySensor(TripPlannerSensor):
-    """Sensor for kWh needed today (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            # Create a minimal trip_manager stub for initialization
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "kwh_needed_today")
-        self._attr_name = f"{vehicle_id} kwh today"
-        self._attr_device_class = SensorDeviceClass.ENERGY
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "KwhTodaySensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "kwh_today" in data:
-                return data.get("kwh_today", 0.0)
-        _LOGGER.debug(
-            "KwhTodaySensor(%s) returning default value 0.0", self._vehicle_id
-        )
-        return 0.0
-
-
-class HoursTodaySensor(TripPlannerSensor):
-    """Sensor for hours needed today (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "hours_needed_today")
-        self._attr_name = f"{vehicle_id} hours today"
-        self._attr_native_unit_of_measurement = UnitOfTime.HOURS
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "HoursTodaySensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "hours_today" in data:
-                return data.get("hours_today", 0)
-        _LOGGER.debug(
-            "HoursTodaySensor(%s) returning default value 0", self._vehicle_id
-        )
-        return 0
-
-
-class NextTripSensor(TripPlannerSensor):
-    """Sensor for next trip (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "next_trip")
-        self._attr_name = f"{vehicle_id} next trip"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-
-    @property
-    def device_class(self) -> None:
-        """Return device class (None for text sensor)."""
-        return None
-
-    @property
-    def state_class(self) -> None:
-        """Return state class (None for text sensor)."""
-        return None
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "NextTripSensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "next_trip" in data:
-                next_trip = data.get("next_trip")
-                if next_trip:
-                    return next_trip.get("descripcion", "No trips")
-        _LOGGER.debug(
-            "NextTripSensor(%s) returning default value 'No trips'", self._vehicle_id
-        )
-        return "No trips"
-
-
-class NextDeadlineSensor(TripPlannerSensor):
-    """Sensor for next deadline (alias for backward compatibility)."""
-
-    def __init__(self, vehicle_id: str, coordinator: TripPlannerCoordinator) -> None:
-        """Initialize sensor."""
-        self._coordinator = coordinator
-        self._vehicle_id = vehicle_id
-
-        # Handle coordinator=None gracefully
-        trip_manager: Any = None
-        if coordinator is None:
-            trip_manager = MagicMock()
-            trip_manager.hass = MagicMock()
-            trip_manager.vehicle_id = vehicle_id
-        else:
-            trip_manager = getattr(coordinator, "trip_manager", coordinator)
-
-        super().__init__(trip_manager.hass, trip_manager, "next_deadline")
-        self._attr_name = f"{vehicle_id} next deadline"
-
-    @property
-    def native_value(self) -> Any:
-        """Return sensor value - read directly from coordinator.data."""
-        if hasattr(self, "_coordinator") and hasattr(self._coordinator, "data"):
-            data = self._coordinator.data
-            _LOGGER.debug(
-                "NextDeadlineSensor(%s) reading from coordinator.data: %s",
-                self._vehicle_id,
-                data,
-            )
-            if data and "next_trip" in data:
-                next_trip = data.get("next_trip")
-                if next_trip:
-                    return next_trip.get("datetime")
-        _LOGGER.debug(
-            "NextDeadlineSensor(%s) returning default value None", self._vehicle_id
-        )
-        return None
 
 
 class EmhassDeferrableLoadSensor(SensorEntity):
@@ -910,15 +534,10 @@ async def async_setup_entry(
     )
 
     entities = [
-        TripsListSensor(vehicle_id, coordinator),
-        RecurringTripsCountSensor(vehicle_id, coordinator),
-        PunctualTripsCountSensor(vehicle_id, coordinator),
-        KwhTodaySensor(vehicle_id, coordinator),
-        HoursTodaySensor(vehicle_id, coordinator),
-        NextTripSensor(vehicle_id, coordinator),
-        NextDeadlineSensor(vehicle_id, coordinator),
-        EmhassDeferrableLoadSensor(hass, trip_manager, entry_id),
+        TripPlannerSensor(coordinator, vehicle_id, desc)
+        for desc in TRIP_SENSORS
     ]
+    entities.append(EmhassDeferrableLoadSensor(hass, trip_manager, entry_id))
 
     # Create trip sensors for existing trips
     trip_sensors = await _async_create_trip_sensors(
