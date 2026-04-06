@@ -146,3 +146,20 @@
 - **~10:47** (3min): coordinator.py linter cleanup (dict comprehensions, unused import removal).
 - **~10:54** (3min): ✅ Commit `80536f4` — **device_class bug FIXED!** `device_class=SensorDeviceClass.ENERGY` correcto. definitions.py + coordinator.py commiteados. Agent responsive to feedback.
 - **~10:58** (3min): ✅ Commit `7272732` — TripSensor CoordinatorEntity. TaskIndex 13→14 (**Phase 2**). **TripSensor excelente**: lee de `coordinator.data["recurring_trips"][trip_id]`, NO de trip_manager directo.
+- **~11:03** (3min): Still on task 14. Agent working on Phase 2.
+- **~11:07** (3min): Commit `4e39ecb` — entity_registry.async_remove on trip delete. TaskIndex 14→15.
+- **~11:12** (3min): Agent modifying __init__.py + sensor.py + tests. Task 15 (2.3: async_add_entities capture).
+- **~11:18** (3min): Still task 15. Agent working on platform setup changes.
+- **~11:22** (3min): ✅ Commit `fa76803` — async_add_entities capture + dynamic TripSensor creation. Tasks 2.3-2.4 done.
+- **~11:26** (3min): 🚀🚀 **TASK 15→20! PHASE 3 STARTED!** Commit `38144e8` — V2 + 0.6 complete. Agent en EMHASS. `emhass_adapter.py` dirty (tarea 3.1: eliminar async_set).
+- **~11:29→12:18**: Agent stuck on task 3.1 — commented out async_set lines but didn't delete them. Added help note to tasks.md. Eventually deleted them.
+- **~12:18→16:21** (~4h): Agent working massive refactoring across Phases 3-5 without committing. Dirty files accumulated: __init__.py, coordinator.py, sensor.py, emhass_adapter.py, services.py (NEW), const.py, tests.
+- **~16:21** (3min): 🎉🎉🎉 **MASSIVE COMMIT `15a6dae`** — Phase 4+5 complete in one shot:
+  - `__init__.py`: **1865 → 129 lines** ✅ R-10 (target <150)
+  - `services.py`: **1576 lines** — all service handlers extracted ✅ FR-12
+  - `diagnostics.py`: **72 lines new** ✅ R-07
+  - `DATA_RUNTIME` removed ✅ R-03
+  - `CONFIG_VERSION = 2` ✅
+  - `emhass_adapter` added to EVTripRuntimeData ✅
+  - Net: -1854 lines removed, +1735 added
+  - Still dirty: coordinator.py, sensor.py, emhass_adapter.py — Phase 3 work continues

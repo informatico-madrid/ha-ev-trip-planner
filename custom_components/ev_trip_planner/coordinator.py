@@ -43,6 +43,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         entry: ConfigEntry,
         trip_manager: Any,
+        emhass_adapter: Any = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -50,6 +51,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass: HomeAssistant instance.
             entry: ConfigEntry for this vehicle/device.
             trip_manager: TripManager instance for this vehicle.
+            emhass_adapter: Optional EMHASSAdapter instance for EMHASS data.
         """
         super().__init__(
             hass,
@@ -58,6 +60,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         )
         self._trip_manager = trip_manager
         self._entry = entry
+        self._emhass_adapter = emhass_adapter
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch latest data from TripManager and build coordinator.data dict.
@@ -94,16 +97,23 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         # Get next scheduled trip
         next_trip = await self._trip_manager.async_get_next_trip()
 
-        # Phase 1: EMHASS keys are None placeholders (populated in Phase 3)
-        # These will be populated by emhass_adapter after Phase 3 changes
+        # PHASE 3 (3.4): Get EMHASS data from emhass_adapter if available
+        if self._emhass_adapter is not None:
+            emhass_data = (
+                self._emhass_adapter.get_cached_optimization_results()
+            )
+        else:
+            emhass_data = {
+                "emhass_power_profile": None,
+                "emhass_deferrables_schedule": None,
+                "emhass_status": None,
+            }
+
         return {
             "recurring_trips": recurring_trips,
             "punctual_trips": punctual_trips,
             "kwh_today": kwh_today,
             "hours_today": hours_today,
             "next_trip": next_trip,
-            # EMHASS keys - Phase 3: emhass_adapter populates these
-            "emhass_power_profile": None,
-            "emhass_deferrables_schedule": None,
-            "emhass_status": None,
+            **emhass_data,
         }

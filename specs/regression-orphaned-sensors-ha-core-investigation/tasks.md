@@ -2,7 +2,7 @@
 
 ## Phase 0: Characterization Tests (6 tests - all FAIL today)
 
-- [ ] 0.1 [RED] Failing test: test_sensor_unique_id_exists_after_setup
+- [x] 0.1 [RED] Failing test: test_sensor_unique_id_exists_after_setup
   - **Do**: Write characterization test in `tests/test_entity_registry.py` asserting that after `async_setup_entry`, all 8 sensors (7 TripPlanner + 1 Emhass) have `unique_id` set in the entity registry. This test documents the broken behavior: sensors currently lack unique_id.
   - **Files**: `tests/test_entity_registry.py` (CREATE)
   - **Done when**: Test exists, runs, and fails with AssertionError (no unique_id set on sensors)
@@ -10,7 +10,7 @@
   - **Commit**: `test(phase-0): red - failing test for sensor unique_id after setup`
   - _Requirements: Phase 0 characterization_
 
-- [ ] 0.2 [RED] Failing test: test_sensor_removed_after_unload
+- [x] 0.2 [RED] Failing test: test_sensor_removed_after_unload
   - **Do**: Write characterization test asserting that after `async_unload_entry`, the entity registry has 0 entries for this config entry. Documents broken behavior: sensors become orphaned zombies.
   - **Files**: `tests/test_entity_registry.py`
   - **Done when**: Test exists, runs, and fails (orphaned sensors remain)
@@ -167,7 +167,7 @@
 
 ## Phase 3: EMHASS Single Path
 
-- [ ] 3.1 [GREEN] Remove hass.states.async_set() from emhass_adapter.py
+- [x] 3.1 [GREEN] Remove hass.states.async_set() from emhass_adapter.py
   - **Do**: Remove all `hass.states.async_set()` calls from `emhass_adapter.py`. These include the main `publish_deferrable_loads()` call at line ~534 and all other `async_set` calls in the file. The EMHASS data should flow through coordinator instead.
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: Zero `async_set` calls remain in emhass_adapter.py
@@ -176,7 +176,7 @@
   - _Requirements: FR-8_
   - **[P]**
 
-- [ ] 3.2 [GREEN] Make publish_deferrable_loads call coordinator.async_request_refresh()
+- [x] 3.2 [GREEN] Make publish_deferrable_loads call coordinator.async_request_refresh()
   - **Do**: In `emhass_adapter.py`, replace `hass.states.async_set()` with `entry.runtime_data.coordinator.async_request_refresh()`. Store computed EMHASS data so coordinator.data includes it for EmhassDeferrableLoadSensor to read.
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: publish_deferrable_loads triggers coordinator refresh instead of direct state set
@@ -185,7 +185,7 @@
   - _Requirements: FR-9_
   - **[P]**
 
-- [ ] 3.3 [GREEN] Make EmhassDeferrableLoadSensor inherit from CoordinatorEntity
+- [x] 3.3 [GREEN] Make EmhassDeferrableLoadSensor inherit from CoordinatorEntity
   - **Do**: In `sensor.py`, change `class EmhassDeferrableLoadSensor(SensorEntity)` to `class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)`. Read EMHASS data from `coordinator.data` instead of calling `trip_manager` directly. Keep `_attr_unique_id = f"emhass_perfil_diferible_{entry_id}"`.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: EmhassDeferrableLoadSensor inherits CoordinatorEntity, reads from coordinator.data
@@ -193,7 +193,7 @@
   - **Commit**: `fix(phase-3): EmhassDeferrableLoadSensor inherits CoordinatorEntity`
   - _Requirements: FR-10_
 
-- [ ] 3.4 [GREEN] Populate EMHASS fields in coordinator.data (keys defined in Phase 1)
+- [x] 3.4 [GREEN] Populate EMHASS fields in coordinator.data (keys defined in Phase 1)
   - **Do**: Update `TripPlannerCoordinator._async_update_data()` to POPULATE the EMHASS fields that were defined as None in Phase 1: `coordinator.data["emhass_power_profile"]`, `coordinator.data["emhass_deferrables_schedule"]`, `coordinator.data["emhass_status"]`. These are populated from emhass_adapter computation results.
   - **Files**: `custom_components/ev_trip_planner/coordinator.py`
   - **Done when**: EMHASS fields in coordinator.data populated from emhass_adapter
@@ -201,7 +201,7 @@
   - **Commit**: `feat(phase-3): populate EMHASS fields in coordinator.data (keys from Phase 1)`
   - _Requirements: FR-10_
 
-- [ ] V3 [VERIFY] Quality checkpoint: Phase 3 lint + type check + EMHASS tests
+- [ ] 3.5 V3 [VERIFY] Quality checkpoint: Phase 3 lint + type check + EMHASS tests
   - **Do**: Run lint, type check, and EMHASS-related tests
   - **Verify**: `.venv/bin/python -m flake8 custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/python -m mypy custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/pytest tests/test_deferrable_load_sensors.py tests/test_emhass_adapter.py -v 2>&1 | tail -15`
   - **Done when**: No lint errors, no type errors, EMHASS tests pass
@@ -209,7 +209,7 @@
 
 ## Phase 4: __init__.py Extraction
 
-- [ ] 4.1 [GREEN] Extract service handlers to services.py
+- [x] 4.1 [GREEN] Extract service handlers to services.py
   - **Do**: Create `custom_components/ev_trip_planner/services.py`. Move all service handler functions (handle_add_trip, handle_delete_trip, etc.) from `__init__.py` to this new file. Register services in `__init__.py` by importing from services.py.
   - **Files**: `custom_components/ev_trip_planner/services.py` (CREATE), `custom_components/ev_trip_planner/__init__.py` (MODIFY)
   - **Done when**: Service handlers in services.py, __init__.py imports and registers them
@@ -218,7 +218,7 @@
   - _Requirements: FR-12_
   - **[P]**
 
-- [ ] 4.2 [GREEN] Reduce __init__.py to under 150 lines
+- [x] 4.2 [GREEN] Reduce __init__.py to under 150 lines
   - **Do**: In `__init__.py`, keep only: `PLATFORMS` constant, `EVTripRuntimeData` dataclass, `async_setup_entry`, `async_unload_entry`, `async_remove_entry`, `async_migrate_entry`. Move everything else to services.py or coordinator.py. Ensure total line count is under 150.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: __init__.py < 150 lines, contains only lifecycle code
@@ -251,7 +251,7 @@
   - _Requirements: FR-14_
   - **[P]**
 
-- [ ] 5.2 [GREEN] Verify zero MagicMock imports in production code
+- [x] 5.2 [GREEN] Verify zero MagicMock imports in production code
   - **Do**: Confirm no `from unittest.mock import MagicMock` in any `custom_components/ev_trip_planner/*.py` files (excluding tests/). If found, remove or replace with proper typing.
   - **Files**: `custom_components/ev_trip_planner/*.py`
   - **Done when**: Zero MagicMock imports in custom_components/
@@ -260,7 +260,7 @@
   - _Requirements: FR-15_
   - **[P]**
 
-- [ ] 5.3 [GREEN] Replace WARNING debug spam with DEBUG level
+- [x] 5.3 [GREEN] Replace WARNING debug spam with DEBUG level
   - **Do**: Replace `_LOGGER.warning("=== async_setup_entry START ===")` and similar debug-only WARNING logs with `_LOGGER.debug()`. Keep WARNING for recoverable anomalies (retries, missing optional config) and ERROR for critical failures.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: Debug flow logs use DEBUG level, not WARNING

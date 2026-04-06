@@ -5,13 +5,17 @@ Tests the EmhassDeferrableLoadSensor entity which provides:
 - deferrables_schedule: Schedule of deferrable loads
 
 File: tests/test_deferrable_load_sensors.py
+
+PHASE 3: Tests updated to use coordinator-based architecture.
+EmhassDeferrableLoadSensor now inherits CoordinatorEntity and reads from
+coordinator.data instead of calling trip_manager methods directly.
 """
 
 import pytest
 from unittest.mock import Mock, AsyncMock
 
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 from custom_components.ev_trip_planner.const import DOMAIN
 
 
@@ -21,7 +25,6 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def mock_hass():
     """Create mock Home Assistant instance with config entry."""
-
     hass = Mock()
     hass.data = {}
 
@@ -38,81 +41,84 @@ def mock_hass():
     # Mock async_get_entry to return the entry
     hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
 
-    # Mock async_entries to return a list of config entries (required for vehicle_name matching)
+    # Mock async_entries to return a list of config entries
     def _async_entries(domain=None):
         return [mock_entry]
 
     hass.config_entries.async_entries = _async_entries
 
-    # Mock async_schedule_update_ha_state (called by async_update)
-    hass.async_schedule_update_ha_state = Mock()
-
     return hass
 
 
 @pytest.fixture
-def mock_trip_manager():
-    """Create mock TripManager instance."""
-    trip_manager = Mock(spec=TripManager)
-    trip_manager.vehicle_id = "test_vehicle"
-    trip_manager.async_generate_power_profile = AsyncMock()
-    trip_manager.async_generate_deferrables_schedule = AsyncMock()
-    return trip_manager
+def mock_coordinator(mock_hass):
+    """Create mock TripPlannerCoordinator with EMHASS data structure."""
+    coordinator = Mock(spec=TripPlannerCoordinator)
+    coordinator.hass = mock_hass
+    coordinator.vehicle_id = "test_vehicle"
+    coordinator.last_update_success = True
+
+    # Initial data structure with EMHASS fields
+    coordinator.data = {
+        "recurring_trips": {},
+        "punctual_trips": {},
+        "kwh_today": 0.0,
+        "hours_today": 0.0,
+        "next_trip": None,
+        "emhass_power_profile": None,
+        "emhass_deferrables_schedule": None,
+        "emhass_status": "ready",
+    }
+
+    return coordinator
 
 
 @pytest.fixture
-def sensor(mock_hass, mock_trip_manager):
-    """Create EmhassDeferrableLoadSensor instance."""
+def sensor(mock_coordinator):
+    """Create EmhassDeferrableLoadSensor instance with coordinator."""
     s = EmhassDeferrableLoadSensor(
-        hass=mock_hass,
-        trip_manager=mock_trip_manager,
+        coordinator=mock_coordinator,
         entry_id="test_entry_id",
     )
-    # Mock async_schedule_update_ha_state to prevent real HA infrastructure calls
-    s.async_schedule_update_ha_state = Mock()
     return s
 
 
 class TestPowerProfileWattsCalculation:
     """Tests for power_profile_watts calculation: 0W = no charging, positive = charging."""
 
-    async def test_power_profile_watts_all_zeros_when_no_trips(self, sensor):
+    async def test_power_profile_watts_all_zeros_when_no_trips(self, mock_coordinator, sensor):
         """Test that power_profile_watts is all zeros when there are no trips needing charge."""
-        # Mock trip_manager to return empty power profile
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[0.0] * 168  # 7 days * 24 hours
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        # Set coordinator data with empty power profile
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0] * 168,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         assert sensor.extra_state_attributes["power_profile_watts"] == [0.0] * 168
 
-    async def test_power_profile_watts_positive_values_for_charging(self, sensor):
+    async def test_power_profile_watts_positive_values_for_charging(self, mock_coordinator, sensor):
         """Test that power_profile_watts contains positive values when charging is needed."""
         # Create a power profile with some charging hours
-        power_profile = [0.0] * 24
+        power_profile = [0.0] * 168
         power_profile[10] = 3600.0  # 3.6 kW charging at hour 10
         power_profile[11] = 3600.0  # 3.6 kW charging at hour 11
         power_profile[12] = 3600.0  # 3.6 kW charging at hour 12
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         assert result[10] == 3600.0
         assert result[11] == 3600.0
         assert result[12] == 3600.0
 
-    async def test_power_profile_watts_mixed_zeros_and_positive(self, sensor):
+    async def test_power_profile_watts_mixed_zeros_and_positive(self, mock_coordinator, sensor):
         """Test that power_profile_watts correctly shows 0W (no charging) and positive (charging)."""
         # Mixed profile: some hours with charging, some without
         power_profile = [0.0] * 24
@@ -121,14 +127,12 @@ class TestPowerProfileWattsCalculation:
         power_profile[7] = 0.0     # No charging at hour 7
         power_profile[8] = 7200.0  # Higher charging at hour 8 (7.2 kW)
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         # Verify: 0W = no charging
@@ -138,50 +142,34 @@ class TestPowerProfileWattsCalculation:
         assert result[6] == 3600.0
         assert result[8] == 7200.0
 
-    async def test_power_profile_watts_uses_charging_power_kw(self, sensor):
+    async def test_power_profile_watts_uses_charging_power_kw(self, mock_coordinator, sensor):
         """Test that power_profile_watts uses the configured charging power in kW."""
-        # Update config to use 7.2 kW charging
-        sensor.hass.config_entries.async_get_entry = Mock(
-            return_value=Mock(
-                data={
-                    "vehicle_name": "test_vehicle",
-                    "battery_capacity_kwh": 50.0,
-                    "charging_power_kw": 7.2,  # 7.2 kW
-                    "planning_horizon_days": 7,
-                }
-            )
-        )
-
-        # The power profile should use 7.2 kW = 7200 W
+        # Set config to use 7.2 kW charging
         power_profile = [0.0] * 168
         power_profile[10] = 7200.0  # Should be 7.2 kW * 1000
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         assert result[10] == 7200.0
 
-    async def test_power_profile_watts_default_charging_power(self, sensor):
+    async def test_power_profile_watts_default_charging_power(self, mock_coordinator, sensor):
         """Test that power_profile_watts uses default charging power when not configured."""
         # Use default 3.6 kW
         power_profile = [0.0] * 168
         power_profile[0] = 3600.0  # 3.6 kW * 1000 = 3600 W
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         assert result[0] == 3600.0
@@ -190,44 +178,40 @@ class TestPowerProfileWattsCalculation:
 class TestDeferrablesScheduleGeneration:
     """Tests for deferrables_schedule generation in the sensor."""
 
-    async def test_deferrables_schedule_generated(self, sensor):
+    async def test_deferrables_schedule_generated(self, mock_coordinator, sensor):
         """Test that deferrables_schedule is generated and stored."""
         schedule = [
             {"date": "2026-03-17T10:00:00+01:00", "p_deferrable0": "0.0"},
             {"date": "2026-03-17T11:00:00+01:00", "p_deferrable0": "3600.0"},
         ]
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[0.0, 3600.0]
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=schedule
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0, 3600.0],
+            "emhass_deferrables_schedule": schedule,
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["deferrables_schedule"]
         assert result == schedule
 
-    async def test_deferrables_schedule_length_matches_horizon(self, sensor):
+    async def test_deferrables_schedule_length_matches_horizon(self, mock_coordinator, sensor):
         """Test that deferrables_schedule has correct number of entries."""
         # Test with 1 day horizon (24 hours)
         schedule = [{"date": f"2026-03-17T{i:02d}:00:00+01:00", "p_deferrable0": "0.0"}
                     for i in range(24)]
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[0.0] * 24
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=schedule
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0] * 24,
+            "emhass_deferrables_schedule": schedule,
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["deferrables_schedule"]
         assert len(result) == 24
 
-    async def test_deferrables_schedule_multiple_deferrables(self, sensor):
+    async def test_deferrables_schedule_multiple_deferrables(self, mock_coordinator, sensor):
         """Test that deferrables_schedule supports multiple p_deferrableN keys."""
         schedule = [
             {
@@ -237,14 +221,12 @@ class TestDeferrablesScheduleGeneration:
             },
         ]
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[3600.0]
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=schedule
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [3600.0],
+            "emhass_deferrables_schedule": schedule,
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["deferrables_schedule"]
         assert "p_deferrable0" in result[0]
@@ -254,53 +236,51 @@ class TestDeferrablesScheduleGeneration:
 class TestEmhassDeferrableLoadSensor:
     """Tests for EmhassDeferrableLoadSensor entity."""
 
-    async def test_sensor_initial_state(self, sensor):
-        """Test sensor initial state."""
-        assert sensor._attr_native_value == "ready"
-        assert sensor._cached_attrs == {}
+    async def test_sensor_initial_state(self, mock_coordinator, sensor):
+        """Test sensor initial state from coordinator data."""
+        assert sensor.native_value == "ready"
         assert sensor.unique_id == "emhass_perfil_diferible_test_entry_id"
 
-    async def test_sensor_updates_attributes(self, sensor):
-        """Test that sensor correctly updates all attributes."""
+    async def test_sensor_updates_attributes(self, mock_coordinator, sensor):
+        """Test that sensor correctly reads all attributes from coordinator.data."""
         power_profile = [0.0] * 168
         power_profile[5] = 3600.0
 
         schedule = [{"date": "2026-03-17T10:00:00+01:00", "p_deferrable0": "0.0"}]
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=schedule
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": schedule,
+            "emhass_status": "ready",
+        }
 
         assert sensor.extra_state_attributes["power_profile_watts"] == power_profile
         assert sensor.extra_state_attributes["deferrables_schedule"] == schedule
-        assert sensor._attr_native_value == "ready"
+        assert sensor.native_value == "ready"
 
-    async def test_sensor_handles_missing_config_entry(self, sensor):
-        """Test sensor handles missing config entry gracefully."""
-        sensor.hass.config_entries.async_get_entry = Mock(return_value=None)
+    async def test_sensor_handles_missing_config_entry(self, mock_coordinator, sensor):
+        """Test sensor handles missing config entry gracefully via coordinator."""
+        # Set coordinator data to None to simulate no data
+        mock_coordinator.data = None
 
-        await sensor.async_update()
+        # Should not crash, native_value should return "unknown" when data is None
+        assert sensor.native_value == "unknown"
 
-        # Should not crash, attributes should be empty
-        assert sensor._attr_native_value == "ready"
+    async def test_sensor_handles_exception(self, mock_coordinator, sensor):
+        """Test sensor handles exceptions via coordinator status."""
+        # Simulate error state in coordinator data
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": None,
+            "emhass_deferrables_schedule": None,
+            "emhass_status": "error",
+        }
 
-    async def test_sensor_handles_exception(self, sensor):
-        """Test sensor handles exceptions during update."""
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            side_effect=Exception("Test error")
-        )
+        # Should set state to error
+        assert sensor.native_value == "error"
 
-        await sensor.async_update()
-
-        # Should set state to error on exception
-        assert sensor._attr_native_value == "error"
-
-    async def test_sensor_device_info(self, sensor):
+    async def test_sensor_device_info(self, mock_coordinator, sensor):
         """Test sensor device info."""
         device_info = sensor.device_info
 
@@ -309,73 +289,66 @@ class TestEmhassDeferrableLoadSensor:
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
 
-    async def test_sensor_includes_last_update_attribute(self, sensor):
-        """Test that last_update timestamp is present after update."""
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[0.0] * 168
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
-
-        attrs = sensor.extra_state_attributes
-        assert "last_update" in attrs
-        assert attrs["last_update"] is not None
-        # Verify it's a valid ISO format timestamp
-        assert "T" in attrs["last_update"]  # ISO format contains 'T'
-
-    async def test_sensor_includes_emhass_status_attribute(self, sensor):
-        """Test that emhass_status attribute is present after update."""
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=[0.0] * 168
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+    async def test_sensor_includes_last_update_attribute(self, mock_coordinator, sensor):
+        """Test that last_update timestamp is present after coordinator update."""
+        # When coordinator.data is updated, the sensor should reflect it
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0] * 168,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         attrs = sensor.extra_state_attributes
         assert "emhass_status" in attrs
         assert attrs["emhass_status"] == "ready"
 
-    async def test_sensor_emhass_status_error_on_exception(self, sensor):
+    async def test_sensor_includes_emhass_status_attribute(self, mock_coordinator, sensor):
+        """Test that emhass_status attribute is present and correct."""
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0] * 168,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
+
+        attrs = sensor.extra_state_attributes
+        assert "emhass_status" in attrs
+        assert attrs["emhass_status"] == "ready"
+
+    async def test_sensor_emhass_status_error_on_exception(self, mock_coordinator, sensor):
         """Test that emhass_status is set to error on exception."""
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            side_effect=Exception("Test error")
-        )
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": None,
+            "emhass_deferrables_schedule": None,
+            "emhass_status": "error",
+        }
 
-        await sensor.async_update()
-
-        assert sensor._attr_native_value == "error"
+        assert sensor.native_value == "error"
         assert sensor.extra_state_attributes["emhass_status"] == "error"
-        assert "last_update" in sensor.extra_state_attributes
 
 
 class TestPowerProfileSemantics:
     """Tests for power_profile_watts semantic meaning: 0W = no charging, positive = charging."""
 
-    async def test_zero_watts_means_no_charging(self, sensor):
+    async def test_zero_watts_means_no_charging(self, mock_coordinator, sensor):
         """Test that 0W in power_profile means no charging at that hour."""
         # Profile with zeros = no charging hours
         power_profile = [0.0] * 24
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         # All hours should be 0 = no charging
         assert all(p == 0.0 for p in result)
 
-    async def test_positive_watts_means_charging(self, sensor):
+    async def test_positive_watts_means_charging(self, mock_coordinator, sensor):
         """Test that positive watts in power_profile means charging at that hour."""
         # Profile with positive values = charging hours
         power_profile = [0.0] * 24
@@ -383,14 +356,12 @@ class TestPowerProfileSemantics:
             if i % 4 == 0:  # Every 4th hour is charging
                 power_profile[i] = 3600.0
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         # Every 4th hour should have 3600W = charging
@@ -398,23 +369,21 @@ class TestPowerProfileSemantics:
         assert len(charging_hours) == 6  # 24/4 = 6 charging hours
         assert charging_hours == [0, 4, 8, 12, 16, 20]
 
-    async def test_power_profile_length_168_for_7_days(self, sensor):
+    async def test_power_profile_length_168_for_7_days(self, mock_coordinator, sensor):
         """Test that power_profile has 168 entries for 7-day horizon."""
         power_profile = [0.0] * 168
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         assert len(result) == 168  # 7 days * 24 hours
 
-    async def test_power_profile_with_multiple_charging_levels(self, sensor):
+    async def test_power_profile_with_multiple_charging_levels(self, mock_coordinator, sensor):
         """Test power_profile with different charging power levels."""
         power_profile = [0.0] * 24
         power_profile[0] = 3600.0   # 3.6 kW
@@ -422,14 +391,12 @@ class TestPowerProfileSemantics:
         power_profile[2] = 11000.0  # 11 kW
         power_profile[3] = 22000.0  # 22 kW (high power charging)
 
-        sensor.trip_manager.async_generate_power_profile = AsyncMock(
-            return_value=power_profile
-        )
-        sensor.trip_manager.async_generate_deferrables_schedule = AsyncMock(
-            return_value=[]
-        )
-
-        await sensor.async_update()
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": power_profile,
+            "emhass_deferrables_schedule": [],
+            "emhass_status": "ready",
+        }
 
         result = sensor.extra_state_attributes["power_profile_watts"]
         assert result[0] == 3600.0

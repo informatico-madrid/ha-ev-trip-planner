@@ -12,6 +12,7 @@ class FakeEntry:
     def __init__(self, entry_id: str, data: dict[str, Any]) -> None:
         self.entry_id = entry_id
         self.data = data
+        self.runtime_data = None  # Set later in test
 
 
 @pytest.mark.asyncio
@@ -38,6 +39,14 @@ async def test_async_setup_entry_creates_three_sensors():
         entry_id="eid123",
         data={"vehicle_name": "Chispitas"},
     )
+
+    # Set up runtime_data like __init__.py::async_setup_entry does
+    class FakeRuntimeData:
+        def __init__(self, tm, coordinator):
+            self.trip_manager = tm
+            self.coordinator = coordinator
+            self.sensor_async_add_entities = None
+    entry.runtime_data = FakeRuntimeData(tm, coordinator)
 
     created: List[Any] = []
 

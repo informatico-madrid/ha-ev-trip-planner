@@ -1481,6 +1481,22 @@ async def async_unload_entry_cleanup(
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
+    # Clean up entity registry for this config entry
+    # This removes all sensor entities from the registry when the entry is unloaded
+    try:
+        from homeassistant.helpers import entity_registry as er
+
+        # Try hass.entity_registry first (some test mocks set this directly)
+        # Fall back to er.async_get(hass) for real HA
+        entity_registry = getattr(hass, "entity_registry", None)
+        if entity_registry is None:
+            entity_registry = er.async_get(hass)
+        # Use the registry's async_entries_for_config_entry method directly
+        for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):
+            entity_registry.async_remove(entity_entry.entity_id)
+    except Exception as ex:  # pragma: no cover
+        _LOGGER.warning("Failed to clean up entity registry: %s", ex)
+
     # Remove the native panel from sidebar
     try:
         from .panel import async_unregister_panel
