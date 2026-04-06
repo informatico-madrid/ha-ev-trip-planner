@@ -67,12 +67,12 @@
   - _Requirements: FR-1_
   - **[P]**
 
-- [ ] 1.2 [GREEN] Create coordinator.py with TripPlannerCoordinator
-  - **Do**: Create `custom_components/ev_trip_planner/coordinator.py` with `TripPlannerCoordinator(DataUpdateCoordinator)`. The coordinator holds `coordinator.data` shape: `{"recurring_trips": {}, "punctual_trips": {}, "kwh_today": float, "hours_today": float, "next_trip": {}}`. `_async_update_data()` reads from trip_manager and builds this dict.
+- [ ] 1.2 [GREEN] Create coordinator.py with TripPlannerCoordinator (full data contract)
+  - **Do**: Create `custom_components/ev_trip_planner/coordinator.py` with `TripPlannerCoordinator(DataUpdateCoordinator)`. The coordinator holds `coordinator.data` shape with ALL keys defined upfront: `{"recurring_trips": {}, "punctual_trips": {}, "kwh_today": float, "hours_today": float, "next_trip": {}, "emhass_power_profile": None, "emhass_deferrables_schedule": None, "emhass_status": None}`. EMHASS keys start as None (Phase 3 populates them). `_async_update_data()` reads from trip_manager and builds this dict.
   - **Files**: `custom_components/ev_trip_planner/coordinator.py` (CREATE)
-  - **Done when**: TripPlannerCoordinator class created, DataUpdateCoordinator subclass, correct data shape
+  - **Done when**: TripPlannerCoordinator class created with full data contract including EMHASS keys
   - **Verify**: `.venv/bin/python -c "from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator; print('ok')"`
-  - **Commit**: `feat(phase-1): add coordinator.py with TripPlannerCoordinator`
+  - **Commit**: `feat(phase-1): add coordinator.py with TripPlannerCoordinator and full data contract`
   - _Requirements: FR-3_
   - **[P]**
 
@@ -135,28 +135,28 @@
   - **Commit**: `fix(phase-2): add entity_registry.async_remove on trip delete`
   - _Requirements: FR-7_
 
-- [ ] 2.3 [GREEN] TripSensor created via platform setup using async_add_entities
-  - **Do**: In sensor.py `async_setup_entry`, create TripSensor instances for existing trips using the `async_add_entities` callback passed by HA. HA passes `async_add_entities` ONLY to platform setup. Do NOT store it in entry.runtime_data.
+- [ ] 2.3 [GREEN] Capture async_add_entities in platform setup for service use
+  - **Do**: In sensor.py `async_setup_entry`, after creating all TripSensors and calling `async_add_entities(entities, True)`, assign `runtime_data.sensor_async_add_entities = async_add_entities` so service handlers can use it for dynamic entity creation.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
-  - **Done when**: TripSensors created during platform setup via async_add_entities
-  - **Verify**: `.venv/bin/pytest tests/test_sensor.py -v -k "trip_sensor" 2>&1 | tail -10`
-  - **Commit**: `feat(phase-2): create TripSensors via platform setup async_add_entities`
+  - **Done when**: `runtime_data.sensor_async_add_entities` is set from platform setup
+  - **Verify**: `.venv/bin/python -c "from custom_components.ev_trip_planner import EVTripRuntimeData; rt = EVTripRuntimeData(coordinator=None, trip_manager=None); print(rt.sensor_async_add_entities is None)"`
+  - **Commit**: `feat(phase-2): capture async_add_entities in platform setup for service use`
   - _Requirements: FR-6_
 
-- [ ] 2.4 [GREEN] Fix async_create_trip_sensor to use async_add_entities
-  - **Do**: Refactor `async_create_trip_sensor` to call `async_add_entities([sensor])` instead of storing in `hass.data[...]` dict. Store a reference to the async_add_entities callable so service handlers can use it.
-  - **Files**: `custom_components/ev_trip_planner/sensor.py`
+- [ ] 2.4 [GREEN] Dynamic TripSensor creation via sensor_async_add_entities
+  - **Do**: Update `async_create_trip_sensor` (or create new service handler) to use `entry.runtime_data.sensor_async_add_entities` for dynamic TripSensor creation instead of storing in `hass.data[...]` dict. Call `async_add_entities([new_sensor], True)` to properly register the entity.
+  - **Files**: `custom_components/ev_trip_planner/sensor.py`, `custom_components/ev_trip_planner/services.py`
   - **Done when**: TripSensors created via service are registered in entity registry
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py::test_trip_sensor_created_in_registry_after_add -v 2>&1 | tail -5`
-  - **Commit**: `fix(phase-2): async_create_trip_sensor uses async_add_entities not dict storage`
+  - **Commit**: `fix(phase-2): dynamic TripSensor creation via sensor_async_add_entities callback`
   - _Requirements: FR-6_
 
-- [ ] 2.5 [GREEN] Update __init__.py EVTripRuntimeData dataclass
-  - **Do**: Create `@dataclass class EVTripRuntimeData` in `__init__.py` with fields: `coordinator: TripPlannerCoordinator`, `trip_manager: TripManager`. Replace all `hass.data[DATA_RUNTIME][namespace]` accesses with `entry.runtime_data`.
+- [ ] 2.5 [GREEN] Update __init__.py EVTripRuntimeData dataclass with sensor_async_add_entities
+  - **Do**: Create `@dataclass class EVTripRuntimeData` in `__init__.py` with fields: `coordinator: TripPlannerCoordinator`, `trip_manager: TripManager`, `sensor_async_add_entities: Callable[[list[SensorEntity], bool], None] | None = None`. Replace all `hass.data[DATA_RUNTIME][namespace]` accesses with `entry.runtime_data`.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
-  - **Done when**: EVTripRuntimeData dataclass exists, used for all runtime data access
+  - **Done when**: EVTripRuntimeData dataclass with sensor_async_add_entities exists, used for all runtime data access
   - **Verify**: `.venv/bin/python -c "from custom_components.ev_trip_planner import EVTripRuntimeData; print('ok')"`
-  - **Commit**: `refactor(phase-2): add EVTripRuntimeData dataclass to __init__.py`
+  - **Commit**: `refactor(phase-2): add EVTripRuntimeData dataclass with sensor_async_add_entities`
   - _Requirements: FR-6_
 
 - [ ] V2 [VERIFY] Quality checkpoint: Phase 2 type check + entity registry tests
@@ -193,12 +193,12 @@
   - **Commit**: `fix(phase-3): EmhassDeferrableLoadSensor inherits CoordinatorEntity`
   - _Requirements: FR-10_
 
-- [ ] 3.4 [GREEN] Update coordinator.data to include EMHASS fields
-  - **Do**: Update `TripPlannerCoordinator._async_update_data()` to include EMHASS data: `coordinator.data["emhass_power_profile"]` and `coordinator.data["emhass_deferrables_schedule"]`. This data comes from emhass_adapter computation.
+- [ ] 3.4 [GREEN] Populate EMHASS fields in coordinator.data (keys defined in Phase 1)
+  - **Do**: Update `TripPlannerCoordinator._async_update_data()` to POPULATE the EMHASS fields that were defined as None in Phase 1: `coordinator.data["emhass_power_profile"]`, `coordinator.data["emhass_deferrables_schedule"]`, `coordinator.data["emhass_status"]`. These are populated from emhass_adapter computation results.
   - **Files**: `custom_components/ev_trip_planner/coordinator.py`
-  - **Done when**: coordinator.data includes EMHASS fields read by EmhassDeferrableLoadSensor
+  - **Done when**: EMHASS fields in coordinator.data populated from emhass_adapter
   - **Verify**: `.venv/bin/python -c "from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator; print('ok')"`
-  - **Commit**: `feat(phase-3): coordinator.data includes EMHASS fields`
+  - **Commit**: `feat(phase-3): populate EMHASS fields in coordinator.data (keys from Phase 1)`
   - _Requirements: FR-10_
 
 - [ ] V3 [VERIFY] Quality checkpoint: Phase 3 lint + type check + EMHASS tests
@@ -299,8 +299,9 @@
 ## Learnings
 
 - Phase 0 characterization tests define "done" — they FAIL today documenting broken behavior, PASS after fix
-- async_add_entities is passed by HA ONLY to platform async_setup_entry, cannot be stored in entry.runtime_data
-- Phase 2 TripSensor creation must happen via platform setup using the async_add_entities callback directly
+- `sensor_async_add_entities` is CAPTURED from platform setup and stored in EVTripRuntimeData — this is the correct way to make async_add_entities available to service handlers
+- coordinator.data EMHASS keys defined in Phase 1 (as None), populated in Phase 3 — Phase 3 does NOT introduce new keys
 - Phase 3 EmhassDeferrableLoadSensor must inherit CoordinatorEntity to receive coordinator refresh updates
 - __init__.py extraction is Phase 4 because it depends on services.py being stable first
+- ConfigSubentry pattern is out of scope — future follow-up spec only
 - Bug TDD workflow: Phase 0 (reproduce) + Phase 1-4 (TDD cycles) + Phase 5 (cleanup)
