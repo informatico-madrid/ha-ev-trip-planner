@@ -7,7 +7,7 @@ Approved 5-phase plan from design interview. Design approved with 3 user adjustm
 ### User Adjustments (incorporated)
 
 1. **Phase 2 coordinator.data shape**: TripSensor reads SU trip by `trip_id` from `coordinator.data["recurring_trips"][trip_id]` or `coordinator.data["punctual_trips"][trip_id]`, NOT directly from trip_manager
-2. **Phase 2 async_add_entities platform-only**: HA passes `async_add_entities` ONLY to `sensor.py`'s platform `async_setup_entry()` — it CANNOT be stored in `entry.runtime_data` from `__init__.py`. TripSensors are created during platform setup.
+2. **Phase 2 sensor_async_add_entities in EVTripRuntimeData**: HA passes `async_add_entities` to `sensor.py`'s platform `async_setup_entry()`. The callback is captured as `sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]]` in `EVTripRuntimeData`, enabling service handlers to create TripSensors dynamically.
 3. **Phase 0 adds 2 more tests**: `test_no_duplicate_sensors_after_reload` + `test_two_vehicles_no_unique_id_collision`
 
 ---
@@ -128,11 +128,14 @@ def native_value(self):
 
 **EVTripRuntimeData**:
 ```python
+from collections.abc import Awaitable
+from dataclasses import dataclass
+
 @dataclass
 class EVTripRuntimeData:
     coordinator: TripPlannerCoordinator
     trip_manager: TripManager
-    sensor_async_add_entities: Callable[[list[SensorEntity], bool], None] | None = None
+    sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None
 ```
 
 **Platform setup — captures callback**:

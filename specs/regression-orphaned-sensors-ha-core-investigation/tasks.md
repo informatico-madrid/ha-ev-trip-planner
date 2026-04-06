@@ -152,7 +152,7 @@
   - _Requirements: FR-6_
 
 - [ ] 2.5 [GREEN] Update __init__.py EVTripRuntimeData dataclass with sensor_async_add_entities
-  - **Do**: Create `@dataclass class EVTripRuntimeData` in `__init__.py` with fields: `coordinator: TripPlannerCoordinator`, `trip_manager: TripManager`, `sensor_async_add_entities: Callable[[list[SensorEntity], bool], None] | None = None`. Replace all `hass.data[DATA_RUNTIME][namespace]` accesses with `entry.runtime_data`.
+  - **Do**: Create `@dataclass class EVTripRuntimeData` in `__init__.py` with fields: `coordinator: TripPlannerCoordinator`, `trip_manager: TripManager`, `sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None`. Replace all `hass.data[DATA_RUNTIME][namespace]` accesses with `entry.runtime_data`.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: EVTripRuntimeData dataclass with sensor_async_add_entities exists, used for all runtime data access
   - **Verify**: `.venv/bin/python -c "from custom_components.ev_trip_planner import EVTripRuntimeData; print('ok')"`

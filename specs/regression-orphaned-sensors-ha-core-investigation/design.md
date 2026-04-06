@@ -100,7 +100,7 @@ async def test_sensor_unique_id_exists_after_setup(hass, config_entry):
 # custom_components/ev_trip_planner/definitions.py
 from dataclasses import dataclass
 from homeassistant.components.sensor import SensorEntityDescription, SensorStateClass
-from typing import Callable
+from typing import Any, Awaitable, Callable
 
 @dataclass(frozen=True)
 class TripSensorEntityDescription(SensorEntityDescription):
@@ -246,11 +246,14 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
 
 ```python
 # __init__.py
+from collections.abc import Awaitable
+from dataclasses import dataclass
+
 @dataclass
 class EVTripRuntimeData:
     coordinator: TripPlannerCoordinator
     trip_manager: TripManager
-    sensor_async_add_entities: Callable[[list[SensorEntity], bool], None] | None = None
+    sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None
 ```
 
 ### Component: TripSensor Platform Setup — captures async_add_entities
@@ -301,23 +304,6 @@ async def handle_add_trip(hass, entry, trip_data):
 ```
 
 ### Component: TripSensor delete with registry cleanup
-
-```python
-async def async_remove_trip(hass, entry, trip_id):
-    # 1. Delete from trip_manager
-    await entry.runtime_data.trip_manager.async_delete_trip(trip_id)
-
-    # 2. Clean Entity Registry
-    entity_registry = er.async_get(hass)
-    for entity_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
-        if trip_id in entity_entry.unique_id:
-            entity_registry.async_remove(entity_entry.entity_id)
-
-    # 3. Trigger refresh
-    entry.runtime_data.coordinator.async_request_refresh()
-```
-
-### Component: Delete with Registry Cleanup
 
 ```python
 async def async_remove_trip(hass, entry, trip_id):
@@ -395,13 +381,15 @@ And `coordinator.data` must include EMHASS data from `emhass_adapter`. The `publ
 
 ```python
 # __init__.py — FINAL STATE
+from collections.abc import Awaitable
+from dataclasses import dataclass
 PLATFORMS: list[Platform] = [Platform.SENSOR]  # Only sensor platform — per actual code
 
 @dataclass
 class EVTripRuntimeData:
     coordinator: TripPlannerCoordinator
     trip_manager: TripManager
-    sensor_async_add_entities: Callable[[list[SensorEntity], bool], None] | None = None
+    sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None
 
 type EVTripConfigEntry = ConfigEntry[EVTripRuntimeData]
 
