@@ -78,7 +78,7 @@ TRIP_SENSORS = (
     ),
     TripSensorEntityDescription(
         key="next_trip",
-        value_fn=lambda data: data.get("next_trip", {}).get("id") if data else None,
+        value_fn=lambda data: (data.get("next_trip") or {}).get("id") if data else None,
         attrs_fn=lambda data: {
             "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
             "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
@@ -87,7 +87,7 @@ TRIP_SENSORS = (
     ),
     TripSensorEntityDescription(
         key="next_deadline",
-        value_fn=lambda data: data.get("next_trip", {}).get("_deadline") if data else None,
+        value_fn=lambda data: (data.get("next_trip") or {}).get("_deadline") if data else None,
         attrs_fn=lambda data: {
             "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
             "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],

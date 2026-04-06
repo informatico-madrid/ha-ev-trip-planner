@@ -222,3 +222,10 @@
 - **Ralph state reset**: taskIndex=35 (V5 first, then E2E), taskIteration=1, globalIteration=6
 - **V1 note cleaned**: Old "39 tests still fail" note removed (all 39 now fixed)
 - **VF note cleaned**: Marked complete correctly with updated status
+
+## 🔴 REVIEW CYCLE (22:16)
+- **Agent activity**: Working on V5 (coverage + E2E debug). Dirty files:
+  - `services.py`: Adding debug logging + try/except to handle_delete_trip. Debug acceptable during diagnosis (R-11).
+  - `definitions.py`: Fixing None-safe lambda: `data.get("next_trip", {}).get("id")` → `(data.get("next_trip") or {}).get("id")` — handles case where next_trip is explicitly None. ✅ Correct fix.
+- **⚠️ PROACTIVE INTERVENTION**: Agent is debugging E2E by adding logs to services.py. Root cause: service registration moved from __init__.py → services.py during refactor. E2E files are IDENTICAL to main where they pass. If E2E fails now, the refactor broke service registration or _get_manager/_get_coordinator return wrong objects.
+- **Added task V5.FIX.1** to tasks.md: Service registration integration test. This reproduces E2E failure as unit test for faster debug cycle. Must verify: service registration, _get_manager returns entry.runtime_data.trip_manager, _get_coordinator returns entry.runtime_data.coordinator.

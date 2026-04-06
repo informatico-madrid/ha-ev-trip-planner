@@ -272,21 +272,45 @@ def register_services(hass: HomeAssistant) -> None:
 
     async def handle_delete_trip(call: ServiceCall) -> None:
         """Handle deleting a trip."""
-        data = call.data
-        vehicle_id = data["vehicle_id"]
-        trip_id = str(data["trip_id"])
+        try:
+            _LOGGER.debug("handle_delete_trip: call.data=%s", call.data)
+            data = call.data
+            if data is None:
+                _LOGGER.error("handle_delete_trip: call.data is None!")
+                raise ValueError("call.data is None")
+            vehicle_id = data["vehicle_id"]
+            trip_id = str(data["trip_id"])
+            _LOGGER.debug("handle_delete_trip: vehicle_id=%s, trip_id=%s", vehicle_id, trip_id)
 
-        # Find config entry to get entry_id
-        entry = _find_entry_by_vehicle(hass, vehicle_id)
-        if not entry:
-            _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
-            return
+            # Find config entry to get entry_id
+            entry = _find_entry_by_vehicle(hass, vehicle_id)
+            if not entry:
+                _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
+                raise ValueError(f"Config entry not found for vehicle {vehicle_id}")
 
-        mgr = _get_manager(hass, vehicle_id)
-        await _ensure_setup(mgr)
+            mgr = _get_manager(hass, vehicle_id)
+            await _ensure_setup(mgr)
 
-        # Delete the trip
-        await mgr.async_delete_trip(trip_id)
+            # Delete the trip
+            _LOGGER.debug("handle_delete_trip: calling mgr.async_delete_trip(%s)", trip_id)
+            await mgr.async_delete_trip(trip_id)
+
+            # Remove trip sensor
+            try:
+                from .sensor import async_remove_trip_sensor
+
+                await async_remove_trip_sensor(hass, entry.entry_id, trip_id)
+            except Exception as err:  # pragma: no cover
+                _LOGGER.warning("Failed to remove trip sensor: %s", err)
+
+            # Refresh coordinator using vehicle_id
+            coordinator = _get_coordinator(hass, vehicle_id)
+            if coordinator:
+                _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
+                await coordinator.async_refresh_trips()
+        except Exception as e:
+            _LOGGER.error("handle_delete_trip EXCEPTION: %s - %s", type(e).__name__, e)
+            raise
 
         # Remove trip sensor
         try:
@@ -743,15 +767,25 @@ def register_services(hass: HomeAssistant) -> None:
 
 # Helper functions with proper type hints
 def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
-    """Find config entry by vehicle name (case-insensitive)."""
-    return next(
-        (
-            e
-            for e in hass.config_entries.async_entries(DOMAIN)
-            if e.data.get("vehicle_name", "").lower() == vehicle_id.lower()
-        ),
-        None,
-    )
+    """Find config entry by vehicle name (case-insensitive).
+
+    Matches by comparing vehicle_name (normalized with underscores) against vehicle_id.
+    Handles both 'Test Vehicle' -> 'test_vehicle' and 'test_vehicle' -> 'test_vehicle' formats.
+    """
+    normalized_vehicle_id = vehicle_id.lower()
+    for e in hass.config_entries.async_entries(DOMAIN):
+        if e.data is None:
+            _LOGGER.warning(
+                "Entry %s has None data, skipping in _find_entry_by_vehicle",
+                e.entry_id,
+            )
+            continue
+        entry_vehicle_name = e.data.get("vehicle_name", "")
+        # Normalize entry_vehicle_name the same way as in async_setup_entry
+        normalized_entry_name = entry_vehicle_name.lower().replace(" ", "_")
+        if normalized_entry_name == normalized_vehicle_id:
+            return e
+    return None
 
 
 def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:

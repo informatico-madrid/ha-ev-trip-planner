@@ -37,6 +37,8 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 ## Stuck State Protocol
 
 <mandatory>
+
+Los tests e2e se ejecutan con make e2e. tiene un script de lipmieza de carpetas y procesos antes de cada ejecución. 
 **If the same task fails 3+ times with different errors each time, you are stuck.**
 Do NOT make another edit. Entering stuck state is mandatory.
 
