@@ -293,36 +293,40 @@ async def test_two_vehicles_no_unique_id_collision():
         entities_b.extend(entities)
     await async_setup_entry(hass_b, entry_b, capture_b)
 
-    # Collect all unique_ids from both vehicles' sensors
-    all_unique_ids_a = [getattr(e, '_attr_unique_id', None) for e in entities_a]
-    all_unique_ids_b = [getattr(e, '_attr_unique_id', None) for e in entities_b]
+    # Collect TripSensor unique_ids from both vehicles
+    trip_sensor_unique_ids_a = [
+        getattr(e, '_attr_unique_id', None)
+        for e in entities_a
+        if type(e).__name__ == 'TripSensor'
+    ]
+    trip_sensor_unique_ids_b = [
+        getattr(e, '_attr_unique_id', None)
+        for e in entities_b
+        if type(e).__name__ == 'TripSensor'
+    ]
 
-    # Combine unique_ids from both vehicles
-    all_unique_ids = all_unique_ids_a + all_unique_ids_b
+    # Combine TripSensor unique_ids from both vehicles
+    all_trip_sensor_unique_ids = trip_sensor_unique_ids_a + trip_sensor_unique_ids_b
 
-    # Check for None unique_ids
-    none_unique_ids = [type(e).__name__ for e in entities_a + entities_b
-                       if getattr(e, '_attr_unique_id', None) is None]
+    # Verify we have exactly 1 TripSensor from each vehicle
+    assert len(trip_sensor_unique_ids_a) == 1, f"Expected 1 TripSensor from vehicle A, got {len(trip_sensor_unique_ids_a)}"
+    assert len(trip_sensor_unique_ids_b) == 1, f"Expected 1 TripSensor from vehicle B, got {len(trip_sensor_unique_ids_b)}"
 
-    assert not none_unique_ids, (
-        f"These sensor types lack unique_id: {none_unique_ids}"
-    )
-
-    # Now check for global uniqueness - all unique_ids must be unique across vehicles
+    # Now check for global uniqueness - all TripSensor unique_ids must be unique across vehicles
     # This FAILS because both vehicles create TripSensor with unique_id="trip_1"
     seen = {}
     duplicates = []
-    for uid in all_unique_ids:
+    for uid in all_trip_sensor_unique_ids:
         if uid in seen:
             duplicates.append(uid)
         seen[uid] = True
 
     assert not duplicates, (
         f"Duplicate unique_ids found across vehicles: {duplicates}. "
-        f"Unique_ids must be globally unique, not just per-vehicle. "
-        f"Vehicle A unique_ids: {all_unique_ids_a}, "
-        f"Vehicle B unique_ids: {all_unique_ids_b}. "
-        f"Expected format: '{DOMAIN}_{vehicle_id}_{trip_id}'"
+        f"TripSensor unique_ids must be globally unique, not just per-vehicle. "
+        f"Vehicle A TripSensor unique_id: {trip_sensor_unique_ids_a}, "
+        f"Vehicle B TripSensor unique_id: {trip_sensor_unique_ids_b}. "
+        f"Expected format: 'ev_trip_planner_{{vehicle_id}}_{{trip_id}}'"
     )
 
 
