@@ -19,7 +19,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN
 from .dashboard import DashboardImportResult
 from .dashboard import import_dashboard as import_dashboard
-from .dashboard import is_lovelace_available as is_lovelace_available
 from .emhass_adapter import EMHASSAdapter
 from .panel import async_unregister_panel
 from .trip_manager import TripManager
@@ -472,6 +471,15 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             new_data.get("vehicle_name"),
         )
 
+        # FR-3.1/FR-3.2: Trigger republish if charging power changed
+        # Use correct DATA_RUNTIME path: hass.data[DATA_RUNTIME][namespace]
+        namespace = f"{DOMAIN}_{entry.entry_id}"
+        runtime_data = hass.data.get(DATA_RUNTIME, {})
+        vehicle_data = runtime_data.get(namespace, {})
+        emhass_adapter = vehicle_data.get("emhass_adapter")
+        if emhass_adapter:
+            await emhass_adapter.update_charging_power()
+
     return True
 
 
@@ -505,6 +513,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from homeassistant.helpers import storage as ha_storage
         import os
         from pathlib import Path
+
         cleanup_key = f"{DOMAIN}_{vehicle_id}"
         _LOGGER.warning(
             "=== async_setup_entry - Checking for stale storage: %s ===", cleanup_key
@@ -525,7 +534,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "=== async_setup_entry - No stale storage found for %s ===", vehicle_id
             )
         # Also check for YAML fallback storage and remove it
-        yaml_path = Path(hass.config.config_dir or "/config") / "ev_trip_planner" / f"{cleanup_key}.yaml"
+        yaml_path = (
+            Path(hass.config.config_dir or "/config")
+            / "ev_trip_planner"
+            / f"{cleanup_key}.yaml"
+        )
         if yaml_path.exists():
             _LOGGER.warning(
                 "=== async_setup_entry - Found stale YAML storage for %s, cleaning up ===",
@@ -628,13 +641,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         raise
                 _LOGGER.info("Registered static paths using legacy method (early)")
             except Exception as legacy_err:
-                _LOGGER.error(
-                    "Failed to register static paths (early): %s", legacy_err
-                )
+                _LOGGER.error("Failed to register static paths (early): %s", legacy_err)
     elif static_paths:
-        _LOGGER.warning(
-            "hass.http is None - static paths cannot be registered early"
-        )
+        _LOGGER.warning("hass.http is None - static paths cannot be registered early")
     # ── End early static paths ───────────────────────────────────────────
 
     # Build presence_config from entry.data for PresenceMonitor (SOC listener)
@@ -826,8 +835,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     emhass_adapter = None
     if DATA_RUNTIME in hass.data and namespace in hass.data[DATA_RUNTIME]:
         emhass_adapter = hass.data[DATA_RUNTIME][namespace].get("emhass_adapter")
-    if emhass_adapter:
-        await emhass_adapter.async_cleanup_vehicle_indices()
+        # Clean up config entry listener to prevent memory leaks
+        if emhass_adapter and hasattr(emhass_adapter, "_config_entry_listener"):
+            if emhass_adapter._config_entry_listener:
+                emhass_adapter._config_entry_listener()
+                emhass_adapter._config_entry_listener = None
+                _LOGGER.debug("Cleaned up config entry listener for %s", vehicle_name)
+        if emhass_adapter:
+            await emhass_adapter.async_cleanup_vehicle_indices()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
@@ -837,15 +852,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Remove the native panel from sidebar
     # Use vehicle_id computed from vehicle_name (not entry.data["vehicle_id"] which doesn't exist)
-    if unload_ok:
-        try:
-            await async_unregister_panel(hass, vehicle_id)
-        except Exception as ex:  # pragma: no cover
-            _LOGGER.warning(
-                "Failed to unregister panel for vehicle %s: %s",
-                vehicle_id,
-                ex,
-            )
+    try:
+        await async_unregister_panel(hass, vehicle_id)
+        _LOGGER.info(
+            "Unregistered panel for vehicle %s",
+            vehicle_id,
+        )
+    except Exception as ex:  # pragma: no cover
+        _LOGGER.warning(
+            "Failed to unregister panel for vehicle %s: %s",
+            vehicle_id,
+            ex,
+        )
 
     _LOGGER.info(
         "Unload completed for vehicle %s, unload_ok=%s", vehicle_name, unload_ok
@@ -866,16 +884,26 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.warning("=== async_remove_entry CALLED ===")
     _LOGGER.warning("=== async_remove_entry - entry.entry_id: %s ===", entry.entry_id)
     _LOGGER.warning("=== async_remove_entry - entry.data: %s ===", entry.data)
-    _LOGGER.warning("=== async_remove_entry - type(entry.data): %s ===", type(entry.data))
+    _LOGGER.warning(
+        "=== async_remove_entry - type(entry.data): %s ===", type(entry.data)
+    )
 
     # Safely extract vehicle_name from entry.data
     vehicle_name_raw = entry.data.get("vehicle_name") if entry.data else None
-    _LOGGER.warning("=== async_remove_entry - vehicle_name_raw: %s ===", vehicle_name_raw)
+    _LOGGER.warning(
+        "=== async_remove_entry - vehicle_name_raw: %s ===", vehicle_name_raw
+    )
 
     if not vehicle_name_raw:
-        _LOGGER.error("async_remove_entry: vehicle_name not found in entry.data! entry.data=%s", entry.data)
+        _LOGGER.error(
+            "async_remove_entry: vehicle_name not found in entry.data! entry.data=%s",
+            entry.data,
+        )
         # Try to get from other possible keys
-        _LOGGER.error("async_remove_entry: available keys in entry.data: %s", list(entry.data.keys()) if entry.data else "None")
+        _LOGGER.error(
+            "async_remove_entry: available keys in entry.data: %s",
+            list(entry.data.keys()) if entry.data else "None",
+        )
         # Fall back to using entry_id as identifier
         vehicle_id = entry.entry_id
         vehicle_name = f"unknown_{entry.entry_id[:8]}"
@@ -883,7 +911,11 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
         vehicle_name = vehicle_name_raw
 
-    _LOGGER.warning("=== async_remove_entry CALLED for vehicle: %s (id: %s) ===", vehicle_name, vehicle_id)
+    _LOGGER.warning(
+        "=== async_remove_entry CALLED for vehicle: %s (id: %s) ===",
+        vehicle_name,
+        vehicle_id,
+    )
 
     try:
         # Delete the persistent storage for this vehicle's trips
@@ -897,7 +929,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Use Store to delete the data
         store = ha_storage.Store(hass, version=1, key=storage_key)
 
-        #.async_remove() deletes the storage file
+        # .async_remove() deletes the storage file
         try:
             await store.async_remove()
             _LOGGER.info(
@@ -914,12 +946,14 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         try:
             import os
             from pathlib import Path
+
             config_dir = hass.config.config_dir or "/config"
             yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
             if yaml_path.exists():
                 os.unlink(yaml_path)
                 _LOGGER.info(
-                    "Removed YAML storage for vehicle %s during entry removal", vehicle_name
+                    "Removed YAML storage for vehicle %s during entry removal",
+                    vehicle_name,
                 )
         except Exception as yaml_err:
             _LOGGER.warning(
@@ -949,12 +983,17 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ]
 
         for entity_id in input_helper_entities:
-            for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
+            for prefix in [
+                "input_select.",
+                "input_datetime.",
+                "input_number.",
+                "input_text.",
+            ]:
                 full_entity_id = f"{prefix}{entity_id}"
                 try:
                     if hass.states.get(full_entity_id):
                         await hass.services.async_call(
-                            entity_id.split(".")[0],
+                            full_entity_id.split(".", maxsplit=1)[0],
                             "remove",
                             {"entity_id": full_entity_id},
                             blocking=True,
@@ -963,13 +1002,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 except Exception:
                     pass  # Entity might not exist, that's OK
 
-        _LOGGER.info(
-            "Entry removal complete for vehicle %s", vehicle_name
-        )
+        _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)
     except Exception as err:
-        _LOGGER.error(
-            "Error removing entry for vehicle %s: %s", vehicle_name, err
-        )
+        _LOGGER.error("Error removing entry for vehicle %s: %s", vehicle_name, err)
 
 
 def register_services(hass: HomeAssistant) -> None:
@@ -1084,7 +1119,11 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        trip_data = {
+                            **trip,
+                            "id": str(trip.get("id")),
+                            "tipo": trip_type,
+                        }
                         await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)
@@ -1099,7 +1138,11 @@ def register_services(hass: HomeAssistant) -> None:
                     try:
                         from .sensor import async_create_trip_sensor
 
-                        trip_data = {**trip, "id": str(trip.get("id")), "tipo": trip_type}
+                        trip_data = {
+                            **trip,
+                            "id": str(trip.get("id")),
+                            "tipo": trip_type,
+                        }
                         await async_create_trip_sensor(hass, entry.entry_id, trip_data)
                     except Exception as err:  # pragma: no cover
                         _LOGGER.warning("Failed to create trip sensor: %s", err)

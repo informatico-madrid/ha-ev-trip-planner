@@ -109,6 +109,7 @@ STEP_EMHASS_SCHEMA = vol.Schema(
             description={
                 "suggested_value": "24",
                 "placeholder": "24",
+                # Note: Max 168 hours = 1 week
                 "description": "Horas de cooldown antes de reutilizar un índice liberado (1-168).",
             },
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=168)),
@@ -151,11 +152,11 @@ STEP_PRESENCE_SCHEMA = vol.Schema(
 # Step 5: Notifications configuration
 # Using EntitySelector with domain=["notify", "assist_satellite"] to show all notify
 # services/entities AND assist_satellite devices (e.g., Home Assistant Voice Satellite)
-# This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
-# The selector queries the entity registry for entities in the notify and assist_satellite domains
-# Note: EntitySelector works with notify services in HA because they are registered
-# as entities in the entity registry (notify.<service_name>)
-# assist_satellite devices are also registered in the entity registry and need explicit inclusion
+# This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications.
+# The selector queries the entity registry for entities in the notify and assist_satellite
+# domains. Note: EntitySelector works with notify services in HA because they are
+# registered as entities in the entity registry (notify.<service_name>). assist_satellite
+# devices are also registered in the entity registry and need explicit inclusion.
 STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_NOTIFICATION_SERVICE): selector.EntitySelector(
@@ -550,11 +551,15 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - home_sensor (entity selector, binary_sensor domain)
         - plugged_sensor (entity selector, binary_sensor domain)
         """
-        _LOGGER.info("Config flow step 4 (presence): called with user_input=%s", user_input)
+        _LOGGER.info(
+            "Config flow step 4 (presence): called with user_input=%s", user_input
+        )
 
         # If user_input is None, show the form (first visit or "Skip" via back button)
         if user_input is None:
-            _LOGGER.info("Config flow step 4 (presence): showing form (user_input is None)")
+            _LOGGER.info(
+                "Config flow step 4 (presence): showing form (user_input is None)"
+            )
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
@@ -564,9 +569,15 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             )
 
         # User submitted the presence form (user_input is dict, possibly empty)
-        _LOGGER.info("Config flow step 4 (presence): processing submission, user_input=%s", user_input)
+        _LOGGER.info(
+            "Config flow step 4 (presence): processing submission, user_input=%s",
+            user_input,
+        )
         charging_sensor = user_input.get(CONF_CHARGING_SENSOR)
-        _LOGGER.info("Config flow step 4 (presence): charging_sensor from form=%s", charging_sensor)
+        _LOGGER.info(
+            "Config flow step 4 (presence): charging_sensor from form=%s",
+            charging_sensor,
+        )
 
         # Auto-select first available entity if not provided
         if not charging_sensor:
@@ -577,16 +588,22 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 # er.async_get returns EntityRegistry directly (not a coroutine)
                 entity_registry = er.async_get(self.hass)
                 entities = [
-                    entity_id for entity_id in entity_registry.entities.keys()
-                    if entity_id.startswith("binary_sensor.") or entity_id.startswith("input_boolean.")
+                    entity_id
+                    for entity_id in entity_registry.entities.keys()
+                    if entity_id.startswith("binary_sensor.")
+                    or entity_id.startswith("input_boolean.")
                 ]
-                _LOGGER.info("Config flow step 4 (presence): found %d entities in registry: %s", len(entities), entities)
+                _LOGGER.info(
+                    "Config flow step 4 (presence): found %d entities in registry: %s",
+                    len(entities),
+                    entities,
+                )
                 if entities:
                     charging_sensor = entities[0]
                     user_input = {**user_input, CONF_CHARGING_SENSOR: charging_sensor}
                     _LOGGER.info(
                         "Config flow step 4 (presence): auto-selected charging_sensor=%s",
-                        charging_sensor
+                        charging_sensor,
                     )
                 else:
                     _LOGGER.error(
@@ -595,12 +612,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             except Exception as e:
                 _LOGGER.error(
                     "Config flow step 4 (presence): error getting entity registry: %s",
-                    str(e)
+                    str(e),
                 )
 
         # If still no charging_sensor after auto-selection, show error
         if not charging_sensor:
-            _LOGGER.warning("Config flow step 4 (presence): charging_sensor still empty after auto-selection, showing error")
+            _LOGGER.warning(
+                "Config flow step 4 (presence): charging_sensor still empty after auto-selection, showing error"
+            )
             return self.async_show_form(
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
@@ -610,7 +629,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 },
             )
 
-        _LOGGER.info("Config flow step 4 (presence): proceeding to notifications with charging_sensor=%s", charging_sensor)
+        _LOGGER.info(
+            "Config flow step 4 (presence): proceeding to notifications with charging_sensor=%s",
+            charging_sensor,
+        )
 
         # Validate charging sensor exists
         if not self.hass.states.get(charging_sensor):

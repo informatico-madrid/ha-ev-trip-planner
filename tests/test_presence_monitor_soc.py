@@ -102,11 +102,10 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -156,11 +155,10 @@ async def test_soc_change_does_not_trigger_when_away(mock_hass, mock_trip_manage
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -204,11 +202,10 @@ async def test_soc_change_does_not_trigger_when_unplugged(mock_hass, mock_trip_m
     new_soc_state = Mock()
     new_soc_state.state = "60"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -354,11 +351,10 @@ async def test_soc_debouncing_5_percent_threshold_blocks_recalculation(
     new_soc_state = Mock()
     new_soc_state.state = "53"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -408,11 +404,10 @@ async def test_soc_debouncing_5_percent_threshold_allows_recalculation(
     new_soc_state = Mock()
     new_soc_state.state = "55"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
@@ -461,11 +456,10 @@ async def test_soc_debouncing_ignores_unavailable_state(
     new_soc_state = Mock()
     new_soc_state.state = "unavailable"
 
-    event = {
-        "data": {
-            "old_state": old_soc_state,
-            "new_state": new_soc_state,
-        }
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
     }
 
     # Process the SOC change event
