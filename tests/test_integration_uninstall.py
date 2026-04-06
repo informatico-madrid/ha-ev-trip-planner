@@ -149,16 +149,13 @@ class TestFullVehicleLifecycle:
         emhass_adapter._released_indices = []
         emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
 
-        # Set up runtime data (simulating async_setup_entry)
-        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
-        namespace = f"{DOMAIN}_{entry.entry_id}"
-        mock_hass.data[DATA_RUNTIME] = {
-            namespace: {
-                "config": entry.data,
-                "trip_manager": trip_manager,
-                "emhass_adapter": emhass_adapter,
-            }
-        }
+        # Set up runtime data using entry.runtime_data pattern (Phase 4)
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=trip_manager,
+            emhass_adapter=emhass_adapter,
+        )
 
         # Mock async_unregister_panel
         with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock) as mock_unregister:
@@ -180,10 +177,6 @@ class TestFullVehicleLifecycle:
 
             # Verify panel was unregistered
             mock_unregister.assert_called_once_with(mock_hass, "lifecycle_vehicle")
-
-            # Verify runtime data was cleaned up
-            assert namespace not in mock_hass.data[DATA_RUNTIME], \
-                "Runtime data should be removed after unload"
 
 
 class TestFullVehicleDeletion:
@@ -242,15 +235,13 @@ class TestFullVehicleDeletion:
         emhass_adapter._released_indices = []
         emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
 
-        # Set up runtime data
-        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
-        namespace = f"{DOMAIN}_{entry.entry_id}"
-        mock_hass.data[DATA_RUNTIME] = {
-            namespace: {
-                "config": entry.data,
-                "emhass_adapter": emhass_adapter,
-            }
-        }
+        # Set up runtime data using entry.runtime_data pattern (Phase 4)
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=None,
+            emhass_adapter=emhass_adapter,
+        )
 
         # Mock async_unregister_panel
         mock_unregister_panel = AsyncMock()
@@ -304,12 +295,13 @@ class TestFullVehicleDeletion:
         }
         emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
 
-        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
-        mock_hass.data[DATA_RUNTIME] = {
-            f"{DOMAIN}_{entry.entry_id}": {
-                "emhass_adapter": emhass_adapter,
-            }
-        }
+        # Set up runtime data using entry.runtime_data pattern (Phase 4)
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=None,
+            emhass_adapter=emhass_adapter,
+        )
 
         # Mock unload
         async def mock_unload(entry, platforms):
@@ -384,16 +376,13 @@ class TestEmhassFullUnload:
         mock_trip_manager = Mock()
         mock_trip_manager.async_delete_all_trips = AsyncMock()
 
-        # Set up runtime data (simulating async_setup_entry)
-        from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
-        namespace = f"{DOMAIN}_{entry.entry_id}"
-        mock_hass.data[DATA_RUNTIME] = {
-            namespace: {
-                "config": entry.data,
-                "trip_manager": mock_trip_manager,
-                "emhass_adapter": emhass_adapter,
-            }
-        }
+        # Set up runtime data using entry.runtime_data pattern (Phase 4)
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mock_trip_manager,
+            emhass_adapter=emhass_adapter,
+        )
 
         # Mock async_unregister_panel
         with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock):

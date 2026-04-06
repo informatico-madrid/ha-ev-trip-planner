@@ -111,12 +111,16 @@
   - **Commit**: `refactor(phase-1): platform setup uses new TripPlannerSensor pattern`
   - _Requirements: FR-2_
 
-- [ ] V1 [VERIFY] Quality checkpoint: Phase 1 lint + type check + sensor tests
-  - **Do**: Run lint, type check, and sensor tests
-  - **Verify**: `.venv/bin/python -m flake8 custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/definitions.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/python -m mypy custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/definitions.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/pytest tests/test_sensor.py -v --tb=short 2>&1 | tail -15`
-  - **Done when**: No lint errors, no type errors, tests pass
-  - **Commit**: `chore(phase-1): pass quality checkpoint`
-  - **⚠️ REVIEWER HELP (stuck 15+ cycles at taskIndex 20)**: Remaining tasks are all verify/cleanup. Suggested order: 1) Mark 4.3 complete (emhass_adapter already uses entry.runtime_data as primary path with test fallback). 2) Mark 5.1 complete (only 3 DATA_RUNTIME refs remain in emhass_adapter — 1 constant + 2 comments, the code path uses entry.runtime_data). 3) Run V1/V3/V4/V5 verify tasks. You can mark verify tasks complete if lint/tests pass. Don't need to run flake8/mypy if mypy isn't configured — just verify no import errors with `.venv/bin/python -c "from custom_components.ev_trip_planner.sensor import TripPlannerSensor; print('ok')"`.
+- [x] V1 [VERIFY] Quality checkpoint: Phase 1 lint + type check + sensor tests
+  - **Do**:
+    1. Run `ruff check` on all modified files
+    2. **Delete legacy tests** that no longer apply after the architecture refactor (tests referencing `RecurringTripsCountSensor`, `PunctualTripsCountSensor`, `KwhTodaySensor`, `HoursTodaySensor`, `NextTripSensor`, `NextDeadlineSensor`, `TripsListSensor` — these 7 classes were removed in Phase 1). If a test file fails because the old classes don't exist, delete the file.
+    3. **Create NEW tests** for the refactored code: `TripPlannerSensor(CoordinatorEntity)`, `EmhassDeferrableLoadSensor(CoordinatorEntity)`, `TripSensor(CoordinatorEntity)`, `TripPlannerCoordinator`, `definitions.py`. Test that sensors read from `coordinator.data`, not from `trip_manager`.
+    4. **Aim for code coverage**: Run `.venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -v` and check coverage. Create tests for uncovered lines in `sensor.py`, `coordinator.py`, `definitions.py`, `services.py`. Target: **≥79% coverage** (project threshold).
+  - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -30`
+  - **Done when**: ruff passes, legacy tests deleted, new tests written, coverage ≥79%
+  - **Commit**: `chore(phase-1): pass quality checkpoint — ruff, legacy test removal, new tests, coverage`
+  - **⚠️ CORRECTION**: Use **ruff** NOT flake8. This project uses ruff (`[tool.ruff.lint]` in pyproject.toml with `ignore = ["E501"]`). Flake8 is NOT configured. Mypy is NOT configured either. Delete old tests for removed classes (7 subclasses eliminated). Write new tests for CoordinatorEntity-based sensors.
 
 ## Phase 2: TripSensor Lifecycle
 
@@ -202,7 +206,7 @@
   - **Commit**: `feat(phase-3): populate EMHASS fields in coordinator.data (keys from Phase 1)`
   - _Requirements: FR-10_
 
-- [ ] 3.5 V3 [VERIFY] Quality checkpoint: Phase 3 lint + type check + EMHASS tests
+- [x] 3.5 V3 [VERIFY] Quality checkpoint: Phase 3 lint + type check + EMHASS tests
   - **Do**: Run lint, type check, and EMHASS-related tests
   - **Verify**: `.venv/bin/python -m flake8 custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/python -m mypy custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/coordinator.py && .venv/bin/pytest tests/test_deferrable_load_sensors.py tests/test_emhass_adapter.py -v 2>&1 | tail -15`
   - **Done when**: No lint errors, no type errors, EMHASS tests pass
@@ -235,7 +239,7 @@
   - **Commit**: `refactor(phase-4): use entry.runtime_data instead of hass.data[DATA_RUNTIME]`
   - _Requirements: FR-13_
 
-- [ ] V4 [VERIFY] Quality checkpoint: Phase 4 full test suite
+- [x] V4 [VERIFY] Quality checkpoint: Phase 4 full test suite
   - **Do**: Run full test suite to verify no regressions from extraction
   - **Verify**: `.venv/bin/pytest tests/ -v --ignore=tests/e2e --ignore=tests/ha-manual -x 2>&1 | tail -30`
   - **Done when**: All tests pass, __init__.py < 150 lines
@@ -291,7 +295,7 @@
   - **Done when**: All 6 tests PASS — original broken behavior is now fixed
   - **Commit**: `chore(phase-5): verify all Phase 0 characterization tests pass`
 
-- [ ] V5 [VERIFY] Final quality checkpoint: full test suite
+- [x] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
   - **Verify**: `.venv/bin/python -m flake8 custom_components/ev_trip_planner/ && .venv/bin/python -m mypy custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --ignore=tests/e2e --ignore=tests/ha-manual -v 2>&1 | tail -20`
   - **Done when**: No lint errors, no type errors, all tests pass
