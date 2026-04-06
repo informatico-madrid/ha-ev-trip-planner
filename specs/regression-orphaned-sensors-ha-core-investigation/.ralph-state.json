@@ -12,5 +12,6 @@
   "commitSpec": true,
   "quickMode": false,
   "discoveredSkills": [],
-  "awaitingApproval": false
+  "awaitingApproval": false,
+  "granularity": "fine"
 }
