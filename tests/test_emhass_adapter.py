@@ -28,7 +28,7 @@ async def test_adapter_instantiation(hass: HomeAssistant, mock_store):
         adapter = EMHASSAdapter(hass, config)
         assert adapter.vehicle_id == "test_vehicle"
         assert adapter.max_deferrable_loads == 50
-        assert adapter.charging_power == 7.4
+        assert adapter._charging_power_kw == 7.4
         assert len(adapter._available_indices) == 50  # All indices available initially
 
 

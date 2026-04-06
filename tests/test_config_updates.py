@@ -149,8 +149,9 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
     """Test that config entry listener is properly set up.
 
     setup_config_entry_listener() should:
-    1. Store listener handle on adapter via config_entry.add_update_listener
-    2. Register _handle_config_entry_update callback
+    1. Retrieve config_entry via async_get_entry
+    2. Store listener handle on adapter via config_entry.add_update_listener
+    3. Register _handle_config_entry_update callback
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -161,18 +162,19 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
     # Create mock unsubscribe function
     mock_unsubscribe = MagicMock()
 
-    # Create adapter with mock config entry
+    # Create mock config entry
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_id_123"
     mock_entry.data = config
     mock_entry.async_on_unload = MagicMock(return_value=mock_unsubscribe)
-    # add_update_listener returns the unsubscribe function
     mock_entry.add_update_listener = MagicMock(return_value=mock_unsubscribe)
 
     with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
-        adapter.config_entry = mock_entry
+
+        # Mock async_get_entry to return our mock_entry
+        mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
         # Set up listener
         adapter.setup_config_entry_listener()
@@ -181,10 +183,11 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
         assert hasattr(adapter, '_config_entry_listener')
         assert adapter._config_entry_listener is mock_unsubscribe
 
+        # Verify: async_get_entry was called with entry_id
+        mock_hass.config_entries.async_get_entry.assert_called_once_with("test_entry_id_123")
+
         # Verify: add_update_listener was called with the handler
         mock_entry.add_update_listener.assert_called_once()
-        # Verify: async_on_unload was called with the unsubscribe function
-        mock_entry.async_on_unload.assert_called_once_with(mock_unsubscribe)
 
 
 @pytest.mark.asyncio

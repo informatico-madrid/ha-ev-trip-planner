@@ -40,7 +40,6 @@ class EMHASSAdapter:
 
         self.vehicle_id = entry_data.get(CONF_VEHICLE_NAME)
         self.max_deferrable_loads = entry_data.get(CONF_MAX_DEFERRABLE_LOADS, 50)
-        self.charging_power = entry_data.get(CONF_CHARGING_POWER, 7.4)
 
         # Notification configuration
         self.notification_service = entry_data.get(CONF_NOTIFICATION_SERVICE)
@@ -269,8 +268,8 @@ class EMHASSAdapter:
                 return False
 
             # Calculate EMHASS parameters
-            total_hours = kwh / self.charging_power
-            power_watts = self.charging_power * 1000  # Convert to Watts
+            total_hours = kwh / self._charging_power_kw
+            power_watts = self._charging_power_kw * 1000  # Convert to Watts
             end_timestep = min(int(hours_available), 168)  # Max 7 days
 
             # Create attributes
@@ -281,6 +280,7 @@ class EMHASSAdapter:
                 "def_end_timestep": end_timestep,
                 "trip_id": trip_id,
                 "vehicle_id": self.vehicle_id,
+                "entry_id": self.entry_id,  # FR-1.2: For orphan detection
                 "trip_description": trip.get("descripcion", ""),
                 "status": "pending",
                 "kwh_needed": kwh,
@@ -505,7 +505,7 @@ class EMHASSAdapter:
             True if all trips published successfully
         """
         if charging_power_kw is None:
-            charging_power_kw = self.charging_power
+            charging_power_kw = self._charging_power_kw
 
         # FR-3.1: Store trips for reactive republish when charging power changes
         self._published_trips = list(trips)
@@ -1175,15 +1175,23 @@ class EMHASSAdapter:
                 # Remove from entity registry
                 try:
                     registry.async_remove(config_sensor_id)
-                except Exception:  # Entity may not exist or already removed
-                    pass
+                except Exception as err:  # Entity may not exist or already removed
+                    _LOGGER.debug(
+                        "Registry async_remove failed for %s: %s",
+                        config_sensor_id,
+                        err,
+                    )
 
         # Clear the main vehicle sensor from registry
         try:
             main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             registry.async_remove(main_sensor_id)
-        except Exception:  # Entity may not exist or already removed
-            pass
+        except Exception as err:  # Entity may not exist or already removed
+            _LOGGER.debug(
+                "Registry async_remove failed for %s: %s",
+                main_sensor_id,
+                err,
+            )
 
         # Hard reset: clear all mappings and released indices
         self._published_entity_ids.clear()
@@ -1273,6 +1281,15 @@ class EMHASSAdapter:
         FR-3.1: When entry.data changes (e.g., charging_power_kw), we need to republish
         sensor attributes with the new values.
         """
+        # Retrieve config_entry from entry_id since __init__ may receive a dict
+        self.config_entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if not self.config_entry:
+            _LOGGER.warning(
+                "Config entry %s not found for listener setup",
+                self.entry_id,
+            )
+            return
+
         # Use ConfigEntry.add_update_listener pattern per HA best practices
         self._config_entry_listener = (
             self.config_entry.async_on_unload(

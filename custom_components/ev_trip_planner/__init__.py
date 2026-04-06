@@ -993,7 +993,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 try:
                     if hass.states.get(full_entity_id):
                         await hass.services.async_call(
-                            entity_id.split(".", maxsplit=1)[0],
+                            full_entity_id.split(".", maxsplit=1)[0],
                             "remove",
                             {"entity_id": full_entity_id},
                             blocking=True,

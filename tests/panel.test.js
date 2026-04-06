@@ -8,6 +8,9 @@
  * Bug fix for PR #21: Panel was filtering by entry_id but sensor stores vehicle_id
  */
 
+// Import the panel component to register the custom element
+import '../../../../../custom_components/ev_trip_planner/frontend/panel.js';
+
 import { html } from 'lit';
 import { expect, fixture } from '@open-wc/testing';
 
@@ -86,23 +89,48 @@ describe('EV Trip Planner Panel - Vehicle ID Filtering', () => {
     });
 
     it('should NOT display trips with mismatched vehicle_id', async () => {
-      // Simulate trips from a different vehicle
-      const otherVehicleTrips = [
-        {
-          id: 'rec_mar_xyz789',
-          tipo: 'recurrente',
-          dia_semana: 'martes',
-          hora: '12:00',
-          km: 30,
-          kwh: 3,
-          activo: true,
-          vehicle_id: 'otro_coche' // Different vehicle
+      // Create a mock hass that returns trips from a DIFFERENT vehicle
+      const mismatchedHass = new MockHass();
+      mismatchedHass.mockCallService = async (domain, service, serviceData) => {
+        if (domain === 'ev_trip_planner' && service === 'trip_list') {
+          // Return trips with DIFFERENT vehicle_id than what panel expects
+          return {
+            response: {
+              found: true,
+              vehicle_id: serviceData.vehicle_id,
+              trips: [
+                {
+                  id: 'rec_mar_xyz789',
+                  tipo: 'recurrente',
+                  dia_semana: 'martes',
+                  hora: '12:00',
+                  km: 30,
+                  kwh: 3,
+                  activo: true,
+                  vehicle_id: 'otro_coche' // Different vehicle - should be filtered
+                }
+              ]
+            }
+          };
         }
-      ];
+        return null;
+      };
 
-      // Panel should filter these out since they don't match _vehicleId
-      const filteredTrips = otherVehicleTrips.filter(t => t.vehicle_id === panel._vehicleId);
-      expect(filteredTrips).to.have.length(0);
+      // Create panel with different vehicle_id
+      const differentPanel = await fixture(html`
+        <ev-trip-planner-panel
+          .hass=${mismatchedHass}
+          ._vehicleId=${'mi_coche'}
+        ></ev-trip-planner-panel>
+      `);
+
+      // Call _loadTrips which should filter out mismatched vehicle_id trips
+      await differentPanel._loadTrips();
+
+      // The panel should NOT display trips with mismatched vehicle_id
+      // Since all returned trips have vehicle_id='otro_coche' but panel expects 'mi_coche',
+      // the filtered result should be empty
+      expect(differentPanel._trips).to.have.length(0);
     });
   });
 });
