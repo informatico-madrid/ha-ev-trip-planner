@@ -123,3 +123,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "next_trip": next_trip,
             **emhass_data,
         }
+
+    async def async_refresh_trips(self) -> None:
+        """Refresh trip data from TripManager.
+
+        This method is called by service handlers after trip CRUD operations
+        to trigger an immediate refresh of the coordinator data.
+        """
+        await self.async_refresh()
