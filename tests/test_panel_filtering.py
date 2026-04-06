@@ -1,10 +1,9 @@
-"""Tests for panel sensor filtering by entry_id.
+"""Tests for panel sensor filtering by vehicle_id.
 
-Tests verify that the panel correctly filters EMHASS sensors by entry_id:
-- Only sensors with matching entry_id appear on vehicle panel
+Tests verify that the panel correctly filters EMHASS sensors by vehicle_id:
+- Only sensors with matching vehicle_id appear on vehicle panel
 - No cross-vehicle sensor contamination
-- Non-EMHASS sensors still work correctly
-"""
+- Non-EMHASS sensors still work correctly"""
 
 import pytest
 from unittest.mock import MagicMock
@@ -32,16 +31,16 @@ class MockPanel:
 
         This mirrors the JavaScript logic in custom_components/ev_trip_planner/frontend/panel.js:
         - For EMHASS sensors (starting with sensor.emhass_perfil_diferible_),
-          verify entry_id attribute matches current vehicle
+          verify vehicle_id attribute matches current vehicle
         - For other sensors, include them normally
         """
         result = {}
 
         for entityId, state in states.items():
-            # FR-2.1: For EMHASS sensors, verify entry_id attribute matches current vehicle
+            # FR-2.1: For EMHASS sensors, verify vehicle_id attribute matches current vehicle
             if entityId.startswith('sensor.emhass_perfil_diferible_'):
-                entryId = state.attributes.get('entry_id')
-                if entryId == self._vehicleId:
+                vehicleId = state.attributes.get('vehicle_id')
+                if vehicleId == self._vehicleId:
                     result[entityId] = state
             else:
                 result[entityId] = state
@@ -63,23 +62,23 @@ def sample_states():
         'sensor.emhass_perfil_diferible_vehicle_a': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a',
             'active',
-            {'entry_id': 'vehicle_a', 'deferrables_schedule': []}
+            {'vehicle_id': 'vehicle_a', 'deferrables_schedule': []}
         ),
         'sensor.emhass_perfil_diferible_vehicle_a_trip_001': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a_trip_001',
             'active',
-            {'entry_id': 'vehicle_a', 'power_profile_watts': [0, 1000, 2000]}
+            {'vehicle_id': 'vehicle_a', 'power_profile_watts': [0, 1000, 2000]}
         ),
         # EMHASS sensors for vehicle_b (should be excluded)
         'sensor.emhass_perfil_diferible_vehicle_b': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_b',
             'active',
-            {'entry_id': 'vehicle_b', 'deferrables_schedule': []}
+            {'vehicle_id': 'vehicle_b', 'deferrables_schedule': []}
         ),
         'sensor.emhass_perfil_diferible_vehicle_b_trip_002': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_b_trip_002',
             'active',
-            {'entry_id': 'vehicle_b', 'power_profile_watts': [0, 500, 1000]}
+            {'vehicle_id': 'vehicle_b', 'power_profile_watts': [0, 500, 1000]}
         ),
         # Regular sensors (should be included)
         'sensor.vehicle_a_battery': MockPanelState(
@@ -95,22 +94,22 @@ def sample_states():
     }
 
 
-def test_panel_filters_by_entry_id():
-    """Test that panel filters EMHASS sensors by entry_id.
+def test_panel_filters_by_vehicle_id():
+    """Test that panel filters EMHASS sensors by vehicle_id.
 
-    FR-2.1: Vehicle panel should only show EMHASS sensors with matching entry_id.
+    FR-2.1: Vehicle panel should only show EMHASS sensors with matching vehicle_id.
     """
     panel = MockPanel('vehicle_a')
     filtered = panel._getVehicleStates({
         'sensor.emhass_perfil_diferible_vehicle_a': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a',
             'active',
-            {'entry_id': 'vehicle_a'}
+            {'vehicle_id': 'vehicle_a'}
         ),
         'sensor.emhass_perfil_diferible_vehicle_b': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_b',
             'active',
-            {'entry_id': 'vehicle_b'}
+            {'vehicle_id': 'vehicle_b'}
         ),
     })
 
@@ -122,7 +121,7 @@ def test_panel_filters_by_entry_id():
 def test_no_cross_vehicle_contamination():
     """Test that sensors from one vehicle don't appear on another vehicle's panel.
 
-    FR-2.1: Prevent cross-vehicle sensor contamination by filtering on entry_id.
+    FR-2.1: Prevent cross-vehicle sensor contamination by filtering on vehicle_id.
     """
     panel = MockPanel('vehicle_a')
 
@@ -131,7 +130,7 @@ def test_no_cross_vehicle_contamination():
         f'sensor.emhass_perfil_diferible_vehicle_{v}': MockPanelState(
             f'sensor.emhass_perfil_diferible_vehicle_{v}',
             'active',
-            {'entry_id': f'vehicle_{v}'}
+            {'vehicle_id': f'vehicle_{v}'}
         )
         for v in ['a', 'b', 'c']
     }
@@ -145,10 +144,10 @@ def test_no_cross_vehicle_contamination():
     assert 'sensor.emhass_perfil_diferible_vehicle_c' not in filtered
 
 
-def test_no_entry_id_attribute():
-    """Test handling of EMHASS sensors without entry_id attribute.
+def test_no_vehicle_id_attribute():
+    """Test handling of EMHASS sensors without vehicle_id attribute.
 
-    If an EMHASS sensor lacks the entry_id attribute, it should be excluded
+    If an EMHASS sensor lacks the vehicle_id attribute, it should be excluded
     to prevent showing orphaned or misconfigured sensors.
     """
     panel = MockPanel('vehicle_a')
@@ -157,18 +156,18 @@ def test_no_entry_id_attribute():
         'sensor.emhass_perfil_diferible_vehicle_a': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a',
             'active',
-            {'deferrables_schedule': []}  # Missing entry_id
+            {'deferrables_schedule': []}  # Missing vehicle_id
         ),
         'sensor.emhass_perfil_diferible_vehicle_b': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_b',
             'active',
-            {'entry_id': 'vehicle_b'}
+            {'vehicle_id': 'vehicle_b'}
         ),
     }
 
     filtered = panel._getVehicleStates(states)
 
-    # Verify: Sensor without entry_id is excluded
+    # Verify: Sensor without vehicle_id is excluded
     assert 'sensor.emhass_perfil_diferible_vehicle_a' not in filtered
     assert 'sensor.emhass_perfil_diferible_vehicle_b' not in filtered
 
@@ -185,7 +184,7 @@ def test_non_emhass_sensors_included():
         'sensor.emhass_perfil_diferible_vehicle_b': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_b',
             'active',
-            {'entry_id': 'vehicle_b'}
+            {'vehicle_id': 'vehicle_b'}
         ),
         'sensor.vehicle_a_battery': MockPanelState(
             'sensor.vehicle_a_battery',
@@ -208,9 +207,9 @@ def test_non_emhass_sensors_included():
 
 
 def test_partial_entry_id_match():
-    """Test that partial entry_id matches are excluded.
+    """Test that partial vehicle_id matches are excluded.
 
-    Only exact entry_id matches should be included.
+    Only exact vehicle_id matches should be included.
     """
     panel = MockPanel('vehicle_a')
 
@@ -218,12 +217,12 @@ def test_partial_entry_id_match():
         'sensor.emhass_perfil_diferible_vehicle_a': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a',
             'active',
-            {'entry_id': 'vehicle_a'}
+            {'vehicle_id': 'vehicle_a'}
         ),
         'sensor.emhass_perfil_diferible_vehicle_a_backup': MockPanelState(
             'sensor.emhass_perfil_diferible_vehicle_a_backup',
             'active',
-            {'entry_id': 'vehicle_a_backup'}  # Different entry_id
+            {'vehicle_id': 'vehicle_a_backup'}  # Different vehicle_id
         ),
     }
 

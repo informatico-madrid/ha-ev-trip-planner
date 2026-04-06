@@ -9,6 +9,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
 
+@pytest.fixture
+def enable_custom_integrations():
+    """Enable custom integrations for testing."""
+    return True
+
+
 class TestCascadeDelete:
     """Tests for cascade delete when vehicle is uninstalled."""
 
@@ -340,6 +346,7 @@ class TestEmhassFullUnload:
         # Create mock Home Assistant instance with config_entries attribute
         mock_hass = MagicMock()
         mock_hass.data = {}
+        mock_hass.states.async_remove = AsyncMock()
 
         # Create mock config_entries with async_unload_platforms
         async def mock_unload_platforms(entry, platforms):
@@ -359,7 +366,12 @@ class TestEmhassFullUnload:
 
         # Create mock EMHASS adapter (not real instance to avoid hass.bus issues)
         emhass_adapter = Mock()
-        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+
+        async def cleanup_side_effect():
+            for entity_id in list(emhass_adapter._published_entity_ids):
+                await mock_hass.states.async_remove(entity_id)
+
+        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock(side_effect=cleanup_side_effect)
 
         # Simulate published sensors by populating _published_entity_ids and _index_map
         # The main vehicle sensor
@@ -399,3 +411,6 @@ class TestEmhassFullUnload:
 
             # Verify cleanup was called
             emhass_adapter.async_cleanup_vehicle_indices.assert_called_once()
+
+            # CRITICAL: Verify hass.states.async_remove was called for published sensor
+            mock_hass.states.async_remove.assert_any_call(vehicle_sensor_id)

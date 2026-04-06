@@ -124,17 +124,15 @@ async def test_state_sensor_has_entry_id(mock_hass: HomeAssistant, mock_store):
 
         mock_hass.states.async_set = mock_async_set
 
-        # Execute: Publish deferrable loads
-        # We can't fully test publish_deferrable_loads without full setup,
-        # but we can verify the entry_id attribute is set in the code
-        # by checking the source
+        # Execute: Publish deferrable loads with empty trips list
+        await adapter.publish_deferrable_loads([])
 
-        # Verify: entry_id attribute is set in publish_deferrable_loads
-        import inspect
-        source = inspect.getsource(adapter.publish_deferrable_loads)
-
-        # The source should include entry_id attribute
-        assert '"entry_id": self.entry_id' in source or "'entry_id': self.entry_id" in source
+        # Verify: at least one published state includes the entry_id attribute
+        assert captured_attrs, "Expected at least one sensor to be published"
+        assert any(
+            attrs.get("entry_id") == adapter.entry_id
+            for attrs in captured_attrs.values()
+        ), "Expected published sensor to include entry_id attribute"
 
 
 @pytest.mark.asyncio

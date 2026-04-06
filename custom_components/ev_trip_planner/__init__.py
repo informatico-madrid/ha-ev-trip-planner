@@ -476,9 +476,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         namespace = f"{DOMAIN}_{entry.entry_id}"
         runtime_data = hass.data.get(DATA_RUNTIME, {})
         vehicle_data = runtime_data.get(namespace, {})
-        trip_manager = vehicle_data.get("trip_manager")
-        if trip_manager and hasattr(trip_manager, '_emhass_adapter') and trip_manager._emhass_adapter:
-            await trip_manager._emhass_adapter.update_charging_power()
+        emhass_adapter = vehicle_data.get("emhass_adapter")
+        if emhass_adapter:
+            await emhass_adapter.update_charging_power()
 
     return True
 

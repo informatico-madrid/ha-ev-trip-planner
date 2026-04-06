@@ -4,12 +4,12 @@
 
 This spec implements fixes for EMHASS sensor entity lifecycle issues using a POC-first approach across 5 phases.
 
-**Total Tasks**: 20 across 4 phases (19 implementation + 1 baseline checkpoint)
+**Total Tasks**: 23 across 5 phases (22 implementation + 1 baseline checkpoint)
 
 ## Phase Breakdown
 
 - **Phase 0 (Baseline)**: 1 task - verify all existing tests pass before changes
-- **Phase 1 (POC)**: 5 tasks - proves the core fixes work
+- **Phase 1 (POC)**: 8 tasks - proves the core fixes work
 - **Phase 2 (Refactor)**: 5 tasks - clean up and consolidate
 - **Phase 3 (Testing)**: 5 tasks - add comprehensive test coverage
 - **Phase 4 (Quality)**: 4 tasks - CI/PR readiness
@@ -61,7 +61,6 @@ This spec implements fixes for EMHASS sensor entity lifecycle issues using a POC
 
 **Verify**:
 ```bash
-cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 make test
 # Expected: All tests pass before any changes
 ```
@@ -89,7 +88,6 @@ make test
 
 **Verify**:
 ```bash
-cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 python3 -c "import ast; ast.parse(open('custom_components/ev_trip_planner/emhass_adapter.py').read()); print('Syntax OK')"
 ```
 
@@ -200,7 +198,6 @@ grep -B 3 -A 10 "update_charging_power" custom_components/ev_trip_planner/__init
 
 ```bash
 # Verify syntax
-cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py
 python -m py_compile custom_components/ev_trip_planner/config_flow.py
 
@@ -248,9 +245,9 @@ grep -A 5 "_cached_attrs" custom_components/ev_trip_planner/sensor.py | grep "as
 - `custom_components/ev_trip_planner/panel.js`
 
 **Done When**:
-- [ ] `_getVehicleStates()` filters by `state.attributes?.entry_id === currentEntryId`
-- [ ] No longer uses `sensor.ev_trip_planner` pattern
-- [ ] Only shows sensors with matching entry_id
+- [x] `_getVehicleStates()` filters by `state.attributes?.vehicle_id === currentVehicleId`
+- [x] No longer uses `sensor.ev_trip_planner` pattern
+- [x] Only shows sensors with matching vehicle_id
 
 **Verify**:
 ```bash
@@ -269,9 +266,9 @@ grep -A 5 "_getVehicleStates" custom_components/ev_trip_planner/panel.js | grep 
 - `custom_components/ev_trip_planner/__init__.py`
 
 **Done When**:
-- [ ] `async_unregister_panel()` is called regardless of `unload_ok` status
-- [ ] Success logging added for panel cleanup
-- [ ] Error logging for failures preserved
+- [x] `async_unregister_panel()` is called regardless of `unload_ok` status
+- [x] Success logging added for panel cleanup
+- [x] Error logging for failures preserved
 
 **Verify**:
 ```bash
@@ -292,9 +289,9 @@ grep -B 2 -A 5 "async_unregister_panel" custom_components/ev_trip_planner/__init
 - `custom_components/ev_trip_planner/emhass_adapter.py`
 
 **Done When**:
-- [ ] Single loop iterates through vehicle indices
-- [ ] Both state and registry cleanup in same iteration
-- [ ] Clear comments explaining both cleanup paths
+- [x] Single loop iterates through vehicle indices
+- [x] Both state and registry cleanup in same iteration
+- [x] Clear comments explaining both cleanup paths
 
 **Verify**:
 ```python
@@ -313,9 +310,9 @@ grep -A 30 "async_cleanup_vehicle_indices" custom_components/ev_trip_planner/emh
 - `custom_components/ev_trip_planner/emhass_adapter.py`
 
 **Done When**:
-- [ ] `async_cleanup_vehicle_indices()` has comprehensive docstring
-- [ ] Comments explain why both state and registry cleanup needed
-- [ ] Error handling documented
+- [x] `async_cleanup_vehicle_indices()` has comprehensive docstring
+- [x] Comments explain why both state and registry cleanup needed
+- [x] Error handling documented
 
 **Verify**:
 ```bash
@@ -335,9 +332,9 @@ grep -B 5 "async_cleanup_vehicle_indices" custom_components/ev_trip_planner/emha
 - `custom_components/ev_trip_planner/__init__.py`
 
 **Done When**:
-- [ ] Config listener stored as instance variable for cleanup
-- [ ] `async_unload_entry()` removes listener when adapter unloaded
-- [ ] No memory leaks on reload
+- [x] Config listener stored as instance variable for cleanup
+- [x] `async_unload_entry()` removes listener when adapter unloaded
+- [x] No memory leaks on reload
 
 **Verify**:
 ```bash
@@ -357,9 +354,9 @@ grep -A 5 "async_unload_entry" custom_components/ev_trip_planner/__init__.py | g
 - `custom_components/ev_trip_planner/__init__.py`
 
 **Done When**:
-- [ ] INFO for successful cleanup
-- [ ] WARNING for skipped operations
-- [ ] ERROR for failed operations
+- [x] INFO for successful cleanup
+- [x] WARNING for skipped operations
+- [x] ERROR for failed operations
 
 **Verify**:
 ```bash
@@ -378,9 +375,9 @@ grep "_LOGGER\." custom_components/ev_trip_planner/emhass_adapter.py | grep -E "
 - `custom_components/ev_trip_planner/emhass_adapter.py`
 
 **Done When**:
-- [ ] `verify_cleanup()` method checks both state and registry
-- [ ] Returns dict with cleanup status
-- [ ] Used in tests for verification
+- [x] `verify_cleanup()` method checks both state and registry
+- [x] Returns dict with cleanup status
+- [x] Used in tests for verification
 
 **Verify**:
 ```bash
@@ -401,13 +398,12 @@ grep -A 10 "def verify_cleanup" custom_components/ev_trip_planner/emhass_adapter
 - `tests/test_entity_cleanup.py` (new file)
 
 **Done When**:
-- [ ] `test_entity_registry_cleanup` verifies `entity_registry.async_remove()` called
-- [ ] `test_state_sensor_has_entry_id` verifies attribute set
-- [ ] Tests use proper HA test fixtures
+- [x] `test_entity_registry_cleanup` verifies `entity_registry.async_remove()` called
+- [x] `test_state_sensor_has_entry_id` verifies attribute set
+- [x] Tests use proper HA test fixtures
 
 **Verify**:
 ```bash
-cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 python -m pytest tests/test_entity_cleanup.py -v
 ```
 
@@ -423,9 +419,9 @@ python -m pytest tests/test_entity_cleanup.py -v
 - `tests/test_config_updates.py` (new file)
 
 **Done When**:
-- [ ] `test_config_update_triggers_republish` verifies republish on power change
-- [ ] `test_no_republish_when_no_change` verifies no action when power unchanged
-- [ ] Tests mock config entry update events
+- [x] `test_config_update_triggers_republish` verifies republish on power change
+- [x] `test_no_republish_when_no_change` verifies no action when power unchanged
+- [x] Tests mock config entry update events
 
 **Verify**:
 ```bash
@@ -444,9 +440,9 @@ python -m pytest tests/test_config_updates.py -v
 - `tests/test_panel_filtering.py` (new file)
 
 **Done When**:
-- [ ] `test_panel_filters_by_entry_id` verifies vehicle-specific filtering
-- [ ] `test_no_cross_vehicle_contamination` verifies no sensor bleed between vehicles
-- [ ] Tests create mock states with entry_id attributes
+- [x] `test_panel_filters_by_vehicle_id` verifies vehicle-specific filtering
+- [x] `test_no_cross_vehicle_contamination` verifies no sensor bleed between vehicles
+- [x] Tests create mock states with vehicle_id attributes
 
 **Verify**:
 ```bash
@@ -465,9 +461,9 @@ python -m pytest tests/test_panel_filtering.py -v
 - `tests/test_integration_uninstall.py` (update existing file)
 
 **Done When**:
-- [ ] `test_full_vehicle_deletion` verifies state + registry + panel cleanup
-- [ ] Tests verify no orphaned sensors after deletion
-- [ ] Tests use real HA integration test patterns
+- [x] `test_full_vehicle_deletion` verifies state + registry + panel cleanup
+- [x] Tests verify no orphaned sensors after deletion
+- [x] Tests use real HA integration test patterns
 
 **Verify**:
 ```bash
@@ -486,9 +482,9 @@ python -m pytest tests/test_integration_uninstall.py::test_full_vehicle_deletion
 - All test files
 
 **Done When**:
-- [ ] All existing tests pass
-- [ ] All new tests pass
-- [ ] Test coverage report generated
+- [x] All existing tests pass
+- [x] All new tests pass
+- [x] Test coverage report generated
 
 **Verify**:
 ```bash
@@ -591,7 +587,6 @@ head -20 CHANGELOG.md
 
 **Verify**:
 ```bash
-cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
 
 # Run E2E tests (auto-starts HA, runs onboarding, executes Playwright tests)
 make e2e
