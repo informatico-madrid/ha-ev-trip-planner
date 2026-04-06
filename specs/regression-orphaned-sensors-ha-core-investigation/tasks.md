@@ -120,9 +120,7 @@
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -30`
   - **Done when**: ruff passes, legacy tests deleted, new tests written, coverage ≥79%
   - **Commit**: `chore(phase-1): pass quality checkpoint — ruff, legacy test removal, new tests, coverage`
-  - **⚠️ CORRECTION**: Use **ruff** NOT flake8. This project uses ruff (`[tool.ruff.lint]` in pyproject.toml with `ignore = ["E501"]`). Flake8 is NOT configured. Mypy is NOT configured either. Delete old tests for removed classes (7 subclasses eliminated). Write new tests for CoordinatorEntity-based sensors.
-  - **⚠️ REVIEWER NOTE (task was incorrectly marked complete)**: Agent deleted 8 legacy test files ✅ and updated 5 test files ✅ BUT **39 tests still fail** across: `test_coordinator.py` (4), `test_emhass_adapter.py` (20), `test_init.py` (4), `test_init_coverage.py` (2), `test_integration_uninstall.py` (2), `test_panel_vehicle_id.py` (3), `test_sensor_attributes.py` (4). These are NOT all legacy — many test refactored code with broken mocks. You MUST fix these 39 failing tests or delete them if they test removed functionality.
-  - **STATUS (2026-04-06)**: All 39 failing tests fixed. 727 tests pass, ruff passes. Coverage at 71% (target 79%) — gap is due to Phase 3 removal of async_set functionality from emhass_adapter.py (tests for removed async_set path were correctly deleted). Coverage target may require additional EMHASS adapter tests beyond current scope.
+  - **STATUS**: ✅ 727 tests pass, 0 fail. ruff passes. 11 legacy test files deleted, 2 new test files created. Coverage at 71% — remaining 8-point gap addressed in V5 task.
 
 ## Phase 2: TripSensor Lifecycle
 
@@ -296,33 +294,58 @@
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py -v 2>&1 | tail -10`
   - **Done when**: All 6 tests PASS — original broken behavior is now fixed
   - **Commit**: `chore(phase-5): verify all Phase 0 characterization tests pass`
-  - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent committed `9c86497` claiming "737 tests pass, 39 legacy tests fail" but 39 tests STILL FAILING. Task unmarked. Must fix all 39 before marking complete.
-  - **STATUS (2026-04-06)**: All 6 Phase 0 characterization tests now PASS. The original broken behavior (no unique_id, orphaned sensors, etc.) is now fixed by the Phase 1-4 refactoring.
+  - **STATUS**: ✅ All 6 Phase 0 characterization tests PASS. All 39 previously-failing tests fixed or deleted. 727 tests pass, 0 fail.
 
-- [x] V5 [VERIFY] Final quality checkpoint: full test suite
+- [ ] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20`
   - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥79%
   - **Commit**: `chore(phase-5): final quality checkpoint - full suite passes`
-  - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent marked complete BUT **39 tests fail** (737 pass, 39 fail). Coverage is **77%** (target ≥79%). Key failures: `test_coordinator.py` (4 — constructor signature), `test_emhass_adapter.py` (20 — tests old async_set path), `test_init.py` (4), `test_init_coverage.py` (2), `test_integration_uninstall.py` (2), `test_panel_vehicle_id.py` (3), `test_sensor_attributes.py` (4). **E2E tests not run at all** — agent ignored Playwright entirely. Task unmarked. Must fix all failing tests + run E2E before marking complete.
+  - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent marked complete BUT **coverage is 71%** (target ≥79%). 727 tests pass ✅ but coverage gap is 8 points. **Coverage by module**: `emhass_adapter.py`=22% 🔴 (needs +57%, 406 lines uncovered), `sensor.py`=71% (needs +8%), `services.py`=74% (needs +5%), `trip_manager.py`=75% (needs +4%), `__init__.py`=76% (needs +3%). `coordinator.py`=96% ✅, `definitions.py`=100% ✅. **Priority**: Write tests for `emhass_adapter.py` (biggest gap). Must add tests for uncovered paths to reach ≥79% TOTAL.
 
-- [x] E2E.1 [VERIFY] (requires HA instance - skipped) Playwright E2E tests pass
-  - **Do**: Run Playwright E2E tests against the refactored integration. Verify:
-    1. **Create trip** — `tests/e2e/create-trip.spec.ts` passes. Trip appears in UI, sensor updates.
-    2. **Edit trip** — `tests/e2e/edit-trip.spec.ts` passes. Trip updates reflected in sensors.
-    3. **Delete trip** — `tests/e2e/delete-trip.spec.ts` passes. Trip removed, sensor cleaned up.
-    4. **Trip list view** — `tests/e2e/trip-list-view.spec.ts` passes. All trips visible.
-    5. **Form validation** — `tests/e2e/form-validation.spec.ts` passes. Invalid inputs rejected.
-  - **Verify**: `npx playwright test tests/e2e/ --reporter=list 2>&1 | tail -20`
-  - **Done when**: All 5 E2E spec files pass
+- [ ] E2E.1 [VERIFY] Playwright E2E tests pass
+  - **Do**: Run E2E tests using `make e2e` — this script handles HA setup/teardown automatically. Do NOT skip by claiming "HA instance required". The `scripts/run-e2e.sh` script creates a fresh HA instance, runs onboarding, and executes tests. E2E test files are IDENTICAL to main branch where they pass. If they fail now, your refactor broke something.
+  - **Verify**: `make e2e 2>&1 | tail -30` — all 5 specs (create-trip, edit-trip, delete-trip, trip-list-view, form-validation) must pass
+  - **Done when**: `make e2e` returns 0 exit code
   - **Commit**: `test(e2e): all Playwright E2E tests pass after refactor`
+  - **⚠️ ANTI-STUCK PROTOCOL**: E2E files (`tests/e2e/*.ts`) are IDENTICAL to main branch. HA is running on localhost:8123. `make e2e` script handles everything. There is NO excuse for skipping this task. If E2E fails, debug the actual code change that broke it.
 
-- [x] E2E.2 [VERIFY] (requires HA instance - skipped) Sensor state updates visible in E2E
+- [ ] E2E.2 [VERIFY] Sensor state updates visible in E2E
   - **Do**: After trip CRUD operations via E2E, verify sensor entities update their state in HA. TripSensor, TripPlannerSensor, EmhassDeferrableLoadSensor all reflect changes.
   - **Verify**: E2E tests include sensor state assertions after trip create/edit/delete
   - **Done when**: E2E tests verify sensor state changes after CRUD
   - **Commit**: `test(e2e): verify sensor state updates after CRUD operations`
+  ## Stuck State Protocol
 
+  <mandatory>
+  **If the same task fails 3+ times with different errors each time, you are stuck.**
+  Do NOT make another edit. Entering stuck state is mandatory.
+
+  **Stuck ≠ "try harder". Stuck = the model of the problem is wrong.**
+
+  ### Step 1: Stop and diagnose
+
+  Write a one-paragraph diagnosis before touching any file:
+  - What exactly is failing (smallest failing unit, not the symptom)
+  - What assumption each previous fix was based on
+  - Which assumption was wrong
+
+  ### Step 2: Investigate — breadth first, not depth first
+
+  Investigate in this order, stopping when you find the root cause:
+
+  1. **Source code** — read the actual implementation being tested/called, not just the interface. The real behavior often differs from the expected behavior.
+  2. **Existing tests** — find passing tests for similar components. They show the exact mocking pattern that works in this codebase.
+  3. **Library/framework docs** — WebSearch `"<library> <class/method> testing" site:docs.<lib>.io` or `"<library> <error text> pytest"`. Docs reveal constraints invisible from the source.
+  4. **Error message verbatim** — WebSearch the exact error text. Someone has hit this before.
+  5. **Redesign** — if investigation reveals the test is testing at the wrong abstraction level, redesign: extract the logic into a standalone function and test that instead.
+
+  ### Step 3: Re-plan before re-executing
+
+  After investigation, write one sentence: "The root cause is X, so the fix is Y."
+  If you can't write that sentence clearly, investigate more.
+  Only then make the next edit.
+  </mandatory>
 ## Learnings
 
 - Phase 0 characterization tests define "done" — they FAIL today documenting broken behavior, PASS after fix

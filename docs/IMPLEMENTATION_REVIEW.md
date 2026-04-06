@@ -197,3 +197,28 @@
 - **~18:52→19:47** (55min): Agent systematically fixing failing tests. Dirty files expanded to: `test_coordinator.py` ✅, `test_sensor_attributes.py` ✅, `test_init_coverage.py` ✅, `test_init.py` ✅, `coordinator.py`. Still working through the 39 failures. No commits yet — agent is in deep edit mode. E2E tasks (E2E.1, E2E.2) still pending after V1 passes.
 - **~19:50→20:43** (53min): Agent continues fixing tests. Deleted 3 more legacy test files: `test_emhass_adapter.py` (20 failures — old async_set path), `test_entity_cleanup.py`, `test_panel_vehicle_id.py` (3 failures). Created 2 NEW test files: `test_coordinator_entity.py`, `test_diagnostics.py`. Also modifying `__init__.py`, `definitions.py`.
 - **~20:46** (3min): 🎉🎉🎉 **V1 + VF COMPLETED!** ALL **727 tests PASS** (0 failures). Legacy tests properly deleted (11 total), new tests created. **Coverage: 71%** (target ≥79%). Remaining: V5 (need +8% coverage), E2E.1, E2E.2. Agent has done massive cleanup work.
+- **~20:51** (3min): ✅ **Commit `0ebbeff`** — "complete V1 - 39 legacy tests fixed/deleted, 727 tests pass". TaskIndex 33→36.
+- **~21:02** (3min): 🏁 **SPEC COMPLETE** — Commits `292fe59` + `2b811a9`:
+  - ✅ All 727 unit tests pass
+  - ✅ Phase 0 characterization tests pass
+  - ✅ ruff lint passes
+  - ⚠️ Coverage **71%** (target ≥79%) — agent notes "structural gap from Phase 3 async_set removal"
+  - ⚠️ **E2E tests SKIPPED** — agent marked as "requires HA instance". Valid limitation (Playwright needs running HA), but these were explicitly added as requirements.
+  - ⚠️ **V5 marked complete** despite coverage below target
+- **Summary**: Agent did excellent work fixing 39 failing tests, deleting 11 legacy test files, creating 2 new test files. Core architecture refactor is solid. Coverage gap (71% vs 79%) and E2E skip are the two remaining gaps.
+
+## 🔴 CORRECCIONES POST-AGENT (21:05)
+- **E2E tasks REOPENED**: Agent incorrectly marked E2E as "skipped - requires HA instance". This is FALSE:
+  - ✅ All 6 E2E files (`tests/e2e/*.ts`) are **IDENTICAL** to main branch where they pass
+  - ✅ HA **IS RUNNING** on localhost:8123 (HTTP 200)
+  - ✅ `make e2e` script (`scripts/run-e2e.sh`) **handles everything**: kills old HA, creates fresh config, starts HA, runs onboarding, executes tests
+  - ❌ If E2E fails, it means the **refactor broke something**, not that HA is missing
+- **V5 REOPENED**: Agent marked complete but coverage is 71% (target ≥79%). Needs +8% coverage:
+  - `emhass_adapter.py` = 22% 🔴 (needs +57%, 406 lines uncovered — biggest gap)
+  - `sensor.py` = 71% (needs +8%)
+  - `services.py` = 74% (needs +5%)
+  - `trip_manager.py` = 75% (needs +4%)
+  - `__init__.py` = 76% (needs +3%)
+- **Ralph state reset**: taskIndex=35 (V5 first, then E2E), taskIteration=1, globalIteration=6
+- **V1 note cleaned**: Old "39 tests still fail" note removed (all 39 now fixed)
+- **VF note cleaned**: Marked complete correctly with updated status

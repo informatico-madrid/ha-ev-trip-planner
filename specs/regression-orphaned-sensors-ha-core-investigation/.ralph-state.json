@@ -3,7 +3,7 @@
   "name": "regression-orphaned-sensors-ha-core-investigation",
   "basePath": "specs/regression-orphaned-sensors-ha-core-investigation",
   "phase": "execution",
-  "taskIndex": 36,
+  "taskIndex": 35,
   "totalTasks": 38,
   "taskIteration": 1,
   "maxTaskIterations": 5,
