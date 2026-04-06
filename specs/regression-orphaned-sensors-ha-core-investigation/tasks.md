@@ -42,7 +42,7 @@
   - **Commit**: `test(phase-0): red - failing test for no duplicates after reload` (143ced7)
   - _Requirements: Phase 0 characterization_
 
-- [ ] 0.6 [RED] Failing test: test_two_vehicles_no_unique_id_collision
+- [x] 0.6 [RED] Failing test: test_two_vehicles_no_unique_id_collision
   - **Do**: Write characterization test asserting that unique_ids from two different vehicles are globally unique. Documents broken behavior: collision possible because TripSensor unique_id is just `trip_{trip_id}` without vehicle prefix.
   - **Files**: `tests/test_entity_registry.py`
   - **Done when**: Test exists, runs, and fails (collision or overlap possible)
@@ -127,7 +127,7 @@
   - **Commit**: `feat(phase-2): add CoordinatorEntity-based TripSensor class`
   - _Requirements: FR-5_
 
-- [ ] 2.2 [GREEN] Add entity_registry.async_remove() on trip delete
+- [x] 2.2 [GREEN] Add entity_registry.async_remove() on trip delete
   - **Do**: In `async_remove_trip_sensor` (sensor.py), add entity registry cleanup: `entity_registry = er.async_get(hass); for entry in er.async_entries_for_config_entry(entity_registry, entry_id): if trip_id in entry.unique_id: entity_registry.async_remove(entry.entity_id)`.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Deleting a trip also removes its registry entry
@@ -159,10 +159,10 @@
   - **Commit**: `refactor(phase-2): add EVTripRuntimeData dataclass with sensor_async_add_entities`
   - _Requirements: FR-6_
 
-- [ ] V2 [VERIFY] Quality checkpoint: Phase 2 type check + entity registry tests
+- [x] V2 [VERIFY] Quality checkpoint: Phase 2 type check + entity registry tests
   - **Do**: Run type check on modified files and entity registry tests
   - **Verify**: `.venv/bin/python -m mypy custom_components/ev_trip_planner/__init__.py custom_components/ev_trip_planner/sensor.py && .venv/bin/pytest tests/test_entity_registry.py -v 2>&1 | tail -20`
-  - **Done when**: No type errors, Phase 0 tests progressing
+  - **Done when**: No type errors, Phase 0 tests progressing (4/6 pass after Phase 2 fixes)
   - **Commit**: `chore(phase-2): pass quality checkpoint`
 
 ## Phase 3: EMHASS Single Path
