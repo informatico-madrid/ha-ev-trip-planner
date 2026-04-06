@@ -7,10 +7,12 @@ Supports recurring weekly routines and one-time punctual trips.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Optional, TypeAlias
+from typing import Any, Awaitable, Callable, Optional, TypeAlias
 
 import voluptuous as vol
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
@@ -30,6 +32,25 @@ _LOGGER = logging.getLogger(__name__)
 
 # Global storage for runtime data (compatible with HA versions without runtime_data)
 DATA_RUNTIME = f"{DOMAIN}_runtime_data"
+
+
+@dataclass
+class EVTripRuntimeData:
+    """Runtime data container for a single vehicle config entry.
+
+    Attributes:
+        coordinator: The TripPlannerCoordinator instance for this vehicle.
+        trip_manager: The TripManager instance for this vehicle.
+        sensor_async_add_entities: Callback to add sensors dynamically.
+            Captured during platform setup. Use to register TripSensors
+            created by services so they appear in the entity registry.
+    """
+
+    coordinator: Any  # TripPlannerCoordinator - set after Phase 3 type cleanup
+    trip_manager: TripManager | None = None
+    sensor_async_add_entities: (
+        Callable[[list[SensorEntity], bool], Awaitable[None]] | None
+    ) = None
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,

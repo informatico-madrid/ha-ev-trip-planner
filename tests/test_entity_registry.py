@@ -401,8 +401,22 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
     # Track entities created during async_setup_entry
     setup_entities = []
 
-    def capture_async_add_entities(entities, update_before_add=True):
+    async def capture_async_add_entities(entities, update_before_add=True):
         setup_entities.extend(entities)
+        # Simulate HA's async_add_entities: register each entity in the registry
+        registry = mock_hass.entity_registry
+        for entity in entities:
+            # Use the entity's unique_id and name to create a registry entry
+            unique_id = getattr(entity, '_attr_unique_id', None) or getattr(entity, 'unique_id', 'unknown')
+            suggested_object_id = getattr(entity, '_attr_name', None) or getattr(entity, 'name', 'unknown')
+            entity_id = f"sensor.{suggested_object_id}".lower().replace(" ", "_")
+            entry = registry.async_get_or_create(
+                domain="sensor",
+                platform="ev_trip_planner",
+                unique_id=unique_id,
+                suggested_object_id=suggested_object_id,
+                config_entry=config_entry,
+            )
 
     # Run async_setup_entry to set up the initial 8 sensors
     result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
@@ -428,8 +442,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
         "estado": "pendiente",
     }
 
-    # Call async_create_trip_sensor - this creates the object but does NOT
-    # register it with the entity registry (the bug!)
+    # Call async_create_trip_sensor - this creates AND registers the sensor
     create_result = await async_create_trip_sensor(
         mock_hass, config_entry.entry_id, trip_data
     )
@@ -443,7 +456,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
         "Trip sensor object should exist in hass.data trip_sensors dict"
     )
 
-    # BUT the sensor is NOT in the entity registry (this is the bug!)
+    # The sensor SHOULD be in the entity registry (this is the fix!)
     # Check the entity registry for a TripSensor with this trip_id
     registry = mock_hass.entity_registry
     all_entries = registry.entries
@@ -454,14 +467,12 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
         if "test_trip_001" in entry.unique_id
     ]
 
-    # This FAILS: async_create_trip_sensor never calls async_add_entities(),
-    # so the entity is not registered in the entity registry
+    # This should now PASS: async_create_trip_sensor calls async_add_entities()
+    # which registers the entity in the registry
     assert len(matching_entries) > 0, (
         f"Expected TripSensor with trip_id 'test_trip_001' to appear in entity registry "
         f"after async_create_trip_sensor(), but no matching entry found. "
-        f"Available entries: {[(e.entity_id, e.unique_id) for e in all_entries.values()]}. "
-        f"The sensor object exists in hass.data but is invisible to HA because "
-        f"async_create_trip_sensor() never calls async_add_entities()."
+        f"Available entries: {[(e.entity_id, e.unique_id) for e in all_entries.values()]}."
     )
 
 

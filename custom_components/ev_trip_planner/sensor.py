@@ -431,7 +431,19 @@ async def async_setup_entry(
         [type(e).__name__ for e in entities],
     )
 
-    async_add_entities(entities)
+    # async_add_entities may be sync or async depending on HA version
+    result = async_add_entities(entities)
+    if result is not None:
+        # Await if it returns an awaitable (async callback)
+        try:
+            await result
+        except TypeError:
+            # Sync callback - result is None, nothing to await
+            pass
+
+    # Capture async_add_entities callback for dynamic service use (task 2.3)
+    namespace_data["sensor_async_add_entities"] = async_add_entities
+
     return True
 
 
@@ -538,24 +550,49 @@ async def async_create_trip_sensor(
 
     _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
 
-    # Get the namespace and trip_manager
+    # Get the namespace, trip_manager, coordinator, and async_add_entities
     namespace = f"{DOMAIN}_{entry_id}"
     runtime_data = hass.data.get(DATA_RUNTIME, {})
     namespace_data = runtime_data.get(namespace, {})
     trip_manager = namespace_data.get("trip_manager")
+    coordinator = namespace_data.get("coordinator")
+    async_add_entities = namespace_data.get("sensor_async_add_entities")
 
     if not trip_manager:
         _LOGGER.error("No trip_manager found for entry %s", entry_id)
         return False
 
-    # Create the trip sensor (new signature - trip_id and trip_type derived from trip_data)
+    if not coordinator:
+        _LOGGER.error("No coordinator found for entry %s", entry_id)
+        return False
+
+    if not async_add_entities:
+        _LOGGER.error(
+            "No async_add_entities callback found for entry %s (platform not set up)",
+            entry_id,
+        )
+        return False
+
+    # Get vehicle_id from config
+    config = namespace_data.get("config", {})
+    vehicle_id = config.get("vehicle_name", "").lower().replace(" ", "_")
+
+    # Create the trip sensor (new signature: coordinator, vehicle_id, trip_id)
     try:
-        sensor = TripSensor(hass, trip_manager, trip_data)
-        hass.data[DATA_RUNTIME][namespace]["trip_sensors"] = hass.data[DATA_RUNTIME][
-            namespace
-        ].get("trip_sensors", {})
-        hass.data[DATA_RUNTIME][namespace]["trip_sensors"][trip_id] = sensor
-        _LOGGER.debug("Trip sensor created for trip %s", trip_id)
+        sensor = TripSensor(coordinator, vehicle_id, trip_id)
+        # Register via async_add_entities so entity appears in registry
+        result = async_add_entities([sensor], True)
+        if result is not None:
+            try:
+                await result
+            except TypeError:
+                # Sync callback
+                pass
+        # Also store in dict for backward compatibility with existing code
+        trip_sensors = namespace_data.get("trip_sensors", {})
+        trip_sensors[trip_id] = sensor
+        namespace_data["trip_sensors"] = trip_sensors
+        _LOGGER.debug("Trip sensor created and registered for trip %s", trip_id)
         return True
     except Exception as err:  # pragma: no cover
         _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)

@@ -76,7 +76,7 @@
   - _Requirements: FR-3_
   - **[P]**
 
-- [ ] 1.3 [GREEN] Refactor TripPlannerSensor to use CoordinatorEntity pattern
+- [x] 1.3 [GREEN] Refactor TripPlannerSensor to use CoordinatorEntity pattern
   - **Do**: In `sensor.py`, replace `class TripPlannerSensor(SensorEntity)` with `class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)`. Uses `self.coordinator` instead of `self.trip_manager`. Reads from `coordinator.data` via `entity_description.value_fn()`. Sets `_attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}"`.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: TripPlannerSensor inherits CoordinatorEntity, no longer has `async_update()` polling
@@ -85,7 +85,7 @@
   - _Requirements: FR-2, FR-3_
   - **[P]**
 
-- [ ] 1.4 [GREEN] Remove 7 TripPlannerSensor subclasses
+- [x] 1.4 [GREEN] Remove 7 TripPlannerSensor subclasses
   - **Do**: Remove `RecurringTripsCountSensor`, `PunctualTripsCountSensor`, `TripsListSensor`, `KwhTodaySensor`, `HoursTodaySensor`, `NextTripSensor`, `NextDeadlineSensor` from `sensor.py`. Replace with single `TripPlannerSensor` class using `TRIP_SENSORS` from definitions.py.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: 7 old subclasses removed, single class with entity descriptions used
@@ -94,7 +94,7 @@
   - _Requirements: FR-2_
   - **[P]**
 
-- [ ] 1.5 [GREEN] Remove MagicMock from sensor.py production code
+- [x] 1.5 [GREEN] Remove MagicMock from sensor.py production code
   - **Do**: In sensor.py, remove all `from unittest.mock import MagicMock` imports. Replace any `if coordinator is None: return` (MagicMock guard) with `raise ValueError("coordinator is required")`. All sensors must require a valid coordinator.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Zero `MagicMock` imports in sensor.py
@@ -103,7 +103,7 @@
   - _Requirements: FR-4_
   - **[P]**
 
-- [ ] 1.6 [GREEN] Update sensor platform async_setup_entry to use new TripPlannerSensor
+- [x] 1.6 [GREEN] Update sensor platform async_setup_entry to use new TripPlannerSensor
   - **Do**: In `sensor.py` `async_setup_entry`, update sensor creation to use new `TripPlannerSensor(runtime_data.coordinator, vehicle_id, description)` pattern. Create instances from `TRIP_SENSORS` tuple instead of subclass constructors.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Platform setup creates sensors from TRIP_SENSORS descriptions
@@ -119,7 +119,7 @@
 
 ## Phase 2: TripSensor Lifecycle
 
-- [ ] 2.1 [GREEN] Create TripSensor using CoordinatorEntity pattern
+- [x] 2.1 [GREEN] Create TripSensor using CoordinatorEntity pattern
   - **Do**: Create new `TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)` class in `sensor.py`. Reads trip data from `coordinator.data["recurring_trips"][trip_id]` or `coordinator.data["punctual_trips"][trip_id]`. Sets `_attr_unique_id = f"{DOMAIN}_{vehicle_id}_trip_{trip_id}"`.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: TripSensor inherits CoordinatorEntity, reads from coordinator.data
@@ -135,7 +135,7 @@
   - **Commit**: `fix(phase-2): add entity_registry.async_remove on trip delete`
   - _Requirements: FR-7_
 
-- [ ] 2.3 [GREEN] Capture async_add_entities in platform setup for service use
+- [x] 2.3 [GREEN] Capture async_add_entities in platform setup for service use
   - **Do**: In sensor.py `async_setup_entry`, after creating all TripSensors and calling `async_add_entities(entities, True)`, assign `runtime_data.sensor_async_add_entities = async_add_entities` so service handlers can use it for dynamic entity creation.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: `runtime_data.sensor_async_add_entities` is set from platform setup
@@ -143,7 +143,7 @@
   - **Commit**: `feat(phase-2): capture async_add_entities in platform setup for service use`
   - _Requirements: FR-6_
 
-- [ ] 2.4 [GREEN] Dynamic TripSensor creation via sensor_async_add_entities
+- [x] 2.4 [GREEN] Dynamic TripSensor creation via sensor_async_add_entities
   - **Do**: Update `async_create_trip_sensor` (or create new service handler) to use `entry.runtime_data.sensor_async_add_entities` for dynamic TripSensor creation instead of storing in `hass.data[...]` dict. Call `async_add_entities([new_sensor], True)` to properly register the entity.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`, `custom_components/ev_trip_planner/services.py`
   - **Done when**: TripSensors created via service are registered in entity registry
@@ -151,7 +151,7 @@
   - **Commit**: `fix(phase-2): dynamic TripSensor creation via sensor_async_add_entities callback`
   - _Requirements: FR-6_
 
-- [ ] 2.5 [GREEN] Update __init__.py EVTripRuntimeData dataclass with sensor_async_add_entities
+- [x] 2.5 [GREEN] Update __init__.py EVTripRuntimeData dataclass with sensor_async_add_entities
   - **Do**: Create `@dataclass class EVTripRuntimeData` in `__init__.py` with fields: `coordinator: TripPlannerCoordinator`, `trip_manager: TripManager`, `sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None`. Replace all `hass.data[DATA_RUNTIME][namespace]` accesses with `entry.runtime_data`.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: EVTripRuntimeData dataclass with sensor_async_add_entities exists, used for all runtime data access
