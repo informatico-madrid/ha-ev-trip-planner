@@ -1,0 +1,100 @@
+"""Coordinator for EV Trip Planner integration.
+
+Provides TripPlannerCoordinator which manages the data update cycle for all
+EV Trip Planner sensors, reading from TripManager and exposing data via
+coordinator.data for CoordinatorEntity-based sensors.
+
+Phase 1: Defines full data contract with EMHASS keys as None placeholders.
+Phase 3: EMHASS keys are populated from emhass_adapter computation results.
+"""
+
+from collections.abc import Awaitable
+from datetime import timedelta
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+from .const import DOMAIN
+
+
+class TripPlannerCoordinator(DataUpdateCoordinator):
+    """Coordinator for EV Trip Planner data updates.
+
+    This coordinator holds the canonical view of all EV Trip Planner data,
+    reading from TripManager on each refresh cycle and exposing it via
+    coordinator.data for all sensors to consume via CoordinatorEntity pattern.
+
+    Data contract (Phase 1 - EMHASS keys as None):
+        {
+            "recurring_trips": dict of trip_id -> trip_data,
+            "punctual_trips": dict of trip_id -> trip_data,
+            "kwh_today": float,
+            "hours_today": float,
+            "next_trip": dict or None,
+            "emhass_power_profile": None,      # populated in Phase 3
+            "emhass_deferrables_schedule": None,  # populated in Phase 3
+            "emhass_status": None,             # "ready" | "computing" | None
+        }
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        trip_manager: Any,
+    ) -> None:
+        """Initialize the coordinator.
+
+        Args:
+            hass: HomeAssistant instance.
+            entry: ConfigEntry for this vehicle/device.
+            trip_manager: TripManager instance for this vehicle.
+        """
+        super().__init__(
+            hass,
+            name=f"{DOMAIN} ({entry.entry_id})",
+            update_interval=timedelta(seconds=30),
+        )
+        self._trip_manager = trip_manager
+        self._entry = entry
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch latest data from TripManager and build coordinator.data dict.
+
+        This method is called by DataUpdateCoordinator on each refresh cycle.
+        It reads current state from TripManager and builds the full data dict
+        with all keys defined in the contract.
+
+        Returns:
+            dict with full data contract including EMHASS keys (None in Phase 1).
+        """
+        # Get recurring trips as list, convert to dict keyed by trip_id
+        recurring_list = await self._trip_manager.async_get_recurring_trips()
+        recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
+
+        # Get punctual trips as list, convert to dict keyed by trip_id
+        punctual_list = await self._trip_manager.async_get_punctual_trips()
+        punctual_trips = {trip["id"]: trip for trip in punctual_list if "id" in trip}
+
+        # Get today's energy and hours needs
+        kwh_today = await self._trip_manager.async_get_kwh_needed_today()
+        hours_today = float(await self._trip_manager.async_get_hours_needed_today())
+
+        # Get next scheduled trip
+        next_trip = await self._trip_manager.async_get_next_trip()
+
+        # Phase 1: EMHASS keys are None placeholders (populated in Phase 3)
+        # These will be populated by emhass_adapter after Phase 3 changes
+        return {
+            "recurring_trips": recurring_trips,
+            "punctual_trips": punctual_trips,
+            "kwh_today": kwh_today,
+            "hours_today": hours_today,
+            "next_trip": next_trip,
+            # EMHASS keys - populated in Phase 3 when emhass_adapter is integrated
+            "emhass_power_profile": None,
+            "emhass_deferrables_schedule": None,
+            "emhass_status": None,
+        }

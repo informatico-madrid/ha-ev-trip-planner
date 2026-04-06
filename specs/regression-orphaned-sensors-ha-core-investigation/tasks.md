@@ -58,7 +58,7 @@
 
 ## Phase 1: definitions.py + TripPlannerSensor Refactor
 
-- [ ] 1.1 [GREEN] Create definitions.py with TripSensorEntityDescription dataclass
+- [x] 1.1 [GREEN] Create definitions.py with TripSensorEntityDescription dataclass
   - **Do**: Create `custom_components/ev_trip_planner/definitions.py` with `TripSensorEntityDescription` dataclass (frozen=True, extends SensorEntityDescription) and `TRIP_SENSORS` tuple with 7 sensor descriptions (recurring_trips_count, punctual_trips_count, trips_list, kwh_needed_today, hours_needed_today, next_trip, next_deadline). Each description has `value_fn` and `attrs_fn` callables.
   - **Files**: `custom_components/ev_trip_planner/definitions.py` (CREATE)
   - **Done when**: File created with correct dataclass and 7 sensor descriptions
@@ -67,7 +67,7 @@
   - _Requirements: FR-1_
   - **[P]**
 
-- [ ] 1.2 [GREEN] Create coordinator.py with TripPlannerCoordinator (full data contract)
+- [x] 1.2 [GREEN] Create coordinator.py with TripPlannerCoordinator (full data contract)
   - **Do**: Create `custom_components/ev_trip_planner/coordinator.py` with `TripPlannerCoordinator(DataUpdateCoordinator)`. The coordinator holds `coordinator.data` shape with ALL keys defined upfront: `{"recurring_trips": {}, "punctual_trips": {}, "kwh_today": float, "hours_today": float, "next_trip": {}, "emhass_power_profile": None, "emhass_deferrables_schedule": None, "emhass_status": None}`. EMHASS keys start as None (Phase 3 populates them). `_async_update_data()` reads from trip_manager and builds this dict.
   - **Files**: `custom_components/ev_trip_planner/coordinator.py` (CREATE)
   - **Done when**: TripPlannerCoordinator class created with full data contract including EMHASS keys
