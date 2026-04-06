@@ -258,200 +258,73 @@ class EmhassDeferrableLoadSensor(SensorEntity):
             await self.trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
 
 
-class TripSensor(SensorEntity):
-    """Sensor para un viaje específico.
+class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
+    """Sensor for a specific trip using CoordinatorEntity pattern.
 
-    Crea una entidad de sensor para cada viaje programado.
-    El sensor muestra información del viaje como:
-    - Descripción/destino
-    - Distancia (km)
-    - Energía estimada (kWh)
-    - Fecha/hora del viaje
-    - Estado (pendiente/completado/cancelado)
+    Reads trip data from coordinator.data["recurring_trips"][trip_id] or
+    coordinator.data["punctual_trips"][trip_id].
 
-    Entity: sensor.trip_{trip_id}
+    Entity: sensor.ev_trip_planner_{vehicle_id}_trip_{trip_id}
     """
 
     def __init__(
         self,
-        hass: HomeAssistant,
-        trip_manager: TripManager,
-        trip_data: Dict[str, Any],
+        coordinator: TripPlannerCoordinator,
+        vehicle_id: str,
+        trip_id: str,
     ) -> None:
-        """Inicializa el sensor del viaje.
+        """Initialize the trip sensor.
 
         Args:
-            hass: Home Assistant instance
-            trip_manager: TripManager instance for this vehicle
-            trip_data: Complete trip data including id, tipo, etc.
+            coordinator: TripPlannerCoordinator instance.
+            vehicle_id: Vehicle identifier.
+            trip_id: Trip identifier.
         """
-        self.hass = hass
-        self.trip_manager = trip_manager
-        self._trip_data = trip_data
-        self._trip_id = trip_data.get("id", "unknown")
-        self._trip_type = trip_data.get("tipo", "unknown")
-
-        # Build unique_id from trip_id
-        self._attr_unique_id = f"trip_{self._trip_id}"
-        self._attr_name = f"Trip {trip_data.get('descripcion', self._trip_id)}"
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self._vehicle_id = vehicle_id
+        self._trip_id = trip_id
+        self._attr_unique_id = f"{DOMAIN}_{vehicle_id}_trip_{trip_id}"
+        self._attr_name = f"Trip {trip_id}"
         self._attr_has_entity_name = True
         self._attr_device_class = SensorDeviceClass.ENUM
         self._attr_state_class = None
-
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         # Set enum options for estado
-        self._attr_options = ["pendiente", "completado", "cancelado"]
+        self._attr_options = ["active", "pendiente", "completado", "cancelado", "recurrente"]
 
-        # Set native value (estado)
-        if self._trip_type == TRIP_TYPE_PUNCTUAL:
-            self._attr_native_value = trip_data.get("estado", "pendiente")
-        else:
-            self._attr_native_value = "recurrente"
+    def _get_trip_data(self) -> Dict[str, Any]:
+        """Get trip data from coordinator.
 
-        # Store trip details as attributes
-        self._attr_extra_state_attributes: Dict[str, Any] = {
-            "trip_id": self._trip_id,
-            "trip_type": self._trip_type,
-            "descripcion": trip_data.get("descripcion", ""),
-            "km": trip_data.get("km", 0.0),
-            "kwh": trip_data.get("kwh", 0.0),
-            "fecha_hora": trip_data.get("datetime", trip_data.get("hora", "")),
-            "activo": trip_data.get("activo", True),
-            "estado": trip_data.get("estado", "pendiente"),
-        }
-
-        # Add soc_target if soc_objetivo is present (AC-3)
-        soc_objetivo = trip_data.get("soc_objetivo")
-        if soc_objetivo is not None:
-            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
-
-        # Add deficit_from_previous if deficit_acumulado is present (AC-3)
-        deficit_acumulado = trip_data.get("deficit_acumulado")
-        if deficit_acumulado is not None:
-            self._attr_extra_state_attributes["deficit_from_previous"] = deficit_acumulado
-
-        # Add EMHASS-related info
-        self._attr_extra_state_attributes.update(self._get_emhass_info())
-
-        # Add charging_window if ventana_carga exists
-        ventana_carga = trip_data.get("ventana_carga")
-        if ventana_carga:
-            inicio = ventana_carga.get("inicio_ventana", "")
-            fin = ventana_carga.get("fin_ventana", "")
-            start_time = _format_window_time(inicio)
-            end_time = _format_window_time(fin)
-            if start_time and end_time:
-                self._attr_extra_state_attributes["charging_window"] = {
-                    "start": start_time,
-                    "end": end_time,
-                }
-
-    def _get_emhass_info(self) -> Dict[str, Any]:
-        """Get EMHASS-related info for this trip.
-
-        Returns dict with EMHASS-related attributes (e.g., p_deferrable_index).
-        Designed to be extended with future EMHASS attributes like soc_target.
+        Returns:
+            Trip data dict or empty dict if not found.
         """
-        emhass_info: Dict[str, Any] = {}
-        emhass_adapter = self.trip_manager.get_emhass_adapter()
-        if emhass_adapter is not None:
-            p_deferrable_index = emhass_adapter.get_assigned_index(self._trip_id)
-            if p_deferrable_index is not None:
-                emhass_info["p_deferrable_index"] = p_deferrable_index
-        return emhass_info
+        if self.coordinator.data is None:
+            return {}
+        recurring_trips = self.coordinator.data.get("recurring_trips", {})
+        punctual_trips = self.coordinator.data.get("punctual_trips", {})
+        return recurring_trips.get(self._trip_id) or punctual_trips.get(self._trip_id) or {}
 
     @property
     def native_value(self) -> Any:
-        """Return sensor value based on trip type and status."""
-        if self._trip_type == TRIP_TYPE_PUNCTUAL:
-            return self._trip_data.get("estado", "pendiente")
+        """Return sensor value (trip estado)."""
+        trip_data = self._get_trip_data()
+        if not trip_data:
+            return None
+        trip_type = trip_data.get("tipo", "unknown")
+        if trip_type == TRIP_TYPE_PUNCTUAL:
+            return trip_data.get("estado", "pendiente")
         return "recurrente"
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return trip details as attributes."""
-        return self._attr_extra_state_attributes.copy()
-
-    @property
-    def device_info(self) -> Dict[str, Any]:
-        """Return device info for the trip sensor.
-
-        Returns device info with the vehicle_name from the config entry,
-        ensuring the device name uses the slug-based identifier and
-        displays the human-readable vehicle name.
-        """
-        vehicle_id = self.trip_manager.vehicle_id
-        vehicle_name = vehicle_id  # Fallback to vehicle_id if config entry not found
-
-        try:
-            # Find the config entry for this specific vehicle_id
-            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if (
-                    config_entry.data
-                    and config_entry.data.get("vehicle_name") == vehicle_id
-                ):
-                    vehicle_name = config_entry.data.get("vehicle_name", vehicle_id)
-                    break
-        except Exception:
-            pass
-
+        trip_data = self._get_trip_data()
+        if not trip_data:
+            return {}
         return {
-            "identifiers": {(DOMAIN, f"{vehicle_id}_{self._trip_id}")},
-            "name": f"Trip {self._trip_id} - {vehicle_name}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, vehicle_id),
-        }
-
-    def _update_state_attributes_from_trip_data(
-        self, trip_data: Dict[str, Any]
-    ) -> None:
-        """Update extra_state_attributes from trip data.
-
-        Args:
-            trip_data: Trip data to extract attributes from.
-        """
-        # Add deficit_from_previous if deficit_acumulado is present (AC-3)
-        deficit_acumulado = trip_data.get("deficit_acumulado")
-        if deficit_acumulado is not None:
-            self._attr_extra_state_attributes["deficit_from_previous"] = deficit_acumulado
-
-        # Add soc_target if soc_objetivo is present (AC-3)
-        soc_objetivo = trip_data.get("soc_objetivo")
-        if soc_objetivo is not None:
-            self._attr_extra_state_attributes["soc_target"] = soc_objetivo
-
-        # Add EMHASS-related info
-        self._attr_extra_state_attributes.update(self._get_emhass_info())
-
-        # Add charging_window if ventana_carga exists
-        ventana_carga = trip_data.get("ventana_carga")
-        if ventana_carga:
-            inicio = ventana_carga.get("inicio_ventana", "")
-            fin = ventana_carga.get("fin_ventana", "")
-            start_time = _format_window_time(inicio)
-            end_time = _format_window_time(fin)
-            if start_time and end_time:
-                self._attr_extra_state_attributes["charging_window"] = {
-                    "start": start_time,
-                    "end": end_time,
-                }
-
-    def update_from_trip_data(self, trip_data: Dict[str, Any]) -> None:
-        """Update sensor state from trip data.
-
-        Args:
-            trip_data: Updated trip data
-        """
-        self._trip_data = trip_data
-        self._attr_name = f"Trip {trip_data.get('descripcion', self._trip_id)}"
-        if self._trip_type == TRIP_TYPE_PUNCTUAL:
-            self._attr_native_value = trip_data.get("estado", "pendiente")
-        else:
-            self._attr_native_value = "recurrente"
-        self._attr_extra_state_attributes = {
-            "trip_id": self._trip_id,
-            "trip_type": self._trip_type,
+            "trip_id": trip_data.get("id", self._trip_id),
+            "trip_type": trip_data.get("tipo", "unknown"),
             "descripcion": trip_data.get("descripcion", ""),
             "km": trip_data.get("km", 0.0),
             "kwh": trip_data.get("kwh", 0.0),
@@ -459,12 +332,18 @@ class TripSensor(SensorEntity):
             "activo": trip_data.get("activo", True),
             "estado": trip_data.get("estado", "pendiente"),
         }
-        # Update state attributes from trip data (AC-4)
-        self._update_state_attributes_from_trip_data(trip_data)
 
-        # Trigger state update only if entity_id is set (entity is registered)
-        if self.entity_id is not None:
-            self.async_schedule_update_ha_state()
+    @property
+    def device_info(self) -> Dict[str, Any]:
+        """Return device info for the trip sensor."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._vehicle_id}_{self._trip_id}")},
+            "name": f"Trip {self._trip_id} - {self._vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+            "via_device": (DOMAIN, self._vehicle_id),
+        }
 
 
 async def async_setup_entry(
