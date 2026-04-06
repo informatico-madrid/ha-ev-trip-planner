@@ -224,3 +224,90 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
         f"Expected 0 registry entries after unload, but found {len(entries_after)} "
         f"orphaned sensors still in registry. Sensors should be cleaned up during unload."
     )
+
+
+@pytest.mark.asyncio
+async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry):
+    """Test that TripSensor appears in entity registry after add_trip service.
+
+    This test FAILS today because async_create_trip_sensor() creates an orphan
+    Python object stored in hass.data[DATA_RUNTIME][namespace]["trip_sensors"]
+    but NEVER calls async_add_entities(), so the entity never appears in the
+    registry at all.
+
+    The sensor object exists as a Python object but is invisible to Home Assistant
+    because it was never registered via the entity registry API.
+
+    After Phase 2 fix, calling the add_trip service should result in a TripSensor
+    that appears in the entity registry (via async_add_entities callback).
+    """
+    from custom_components.ev_trip_planner import DATA_RUNTIME
+    from custom_components.ev_trip_planner.const import DOMAIN
+    from custom_components.ev_trip_planner.sensor import async_create_trip_sensor
+    from custom_components.ev_trip_planner.sensor import async_setup_entry
+
+    # Track entities created during async_setup_entry
+    setup_entities = []
+
+    def capture_async_add_entities(entities, update_before_add=True):
+        setup_entities.extend(entities)
+
+    # Run async_setup_entry to set up the initial 8 sensors
+    result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
+    assert result is True, "async_setup_entry should succeed"
+
+    # Verify initial sensors are set up
+    initial_count = len(setup_entities)
+    assert initial_count >= 8, f"Expected >= 8 initial sensors, got {initial_count}"
+
+    # Get the namespace used by the integration
+    namespace = f"{DOMAIN}_{config_entry.entry_id}"
+
+    # Now create a trip sensor via async_create_trip_sensor
+    trip_data = {
+        "id": "test_trip_001",
+        "tipo": "recurrente",
+        "dia_semana": "lunes",
+        "hora": "08:00",
+        "km": 25.5,
+        "kwh": 15.0,
+        "descripcion": "Test trip to office",
+        "activo": True,
+        "estado": "pendiente",
+    }
+
+    # Call async_create_trip_sensor - this creates the object but does NOT
+    # register it with the entity registry (the bug!)
+    create_result = await async_create_trip_sensor(
+        mock_hass, config_entry.entry_id, trip_data
+    )
+    assert create_result is True, "async_create_trip_sensor should succeed"
+
+    # The sensor object IS stored in hass.data (verify this)
+    runtime_data = mock_hass.data.get(DATA_RUNTIME, {})
+    namespace_data = runtime_data.get(namespace, {})
+    trip_sensors_dict = namespace_data.get("trip_sensors", {})
+    assert "test_trip_001" in trip_sensors_dict, (
+        "Trip sensor object should exist in hass.data trip_sensors dict"
+    )
+
+    # BUT the sensor is NOT in the entity registry (this is the bug!)
+    # Check the entity registry for a TripSensor with this trip_id
+    registry = mock_hass.entity_registry
+    all_entries = registry.entries
+
+    # Find any registry entry whose unique_id contains our trip_id
+    matching_entries = [
+        entry for entry in all_entries.values()
+        if "test_trip_001" in entry.unique_id
+    ]
+
+    # This FAILS: async_create_trip_sensor never calls async_add_entities(),
+    # so the entity is not registered in the entity registry
+    assert len(matching_entries) > 0, (
+        f"Expected TripSensor with trip_id 'test_trip_001' to appear in entity registry "
+        f"after async_create_trip_sensor(), but no matching entry found. "
+        f"Available entries: {[(e.entity_id, e.unique_id) for e in all_entries.values()]}. "
+        f"The sensor object exists in hass.data but is invisible to HA because "
+        f"async_create_trip_sensor() never calls async_add_entities()."
+    )
