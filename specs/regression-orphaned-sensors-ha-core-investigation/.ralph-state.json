@@ -7,7 +7,7 @@
   "totalTasks": 38,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 6,
+  "globalIteration": 7,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": false,

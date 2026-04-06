@@ -229,3 +229,46 @@
   - `definitions.py`: Fixing None-safe lambda: `data.get("next_trip", {}).get("id")` → `(data.get("next_trip") or {}).get("id")` — handles case where next_trip is explicitly None. ✅ Correct fix.
 - **⚠️ PROACTIVE INTERVENTION**: Agent is debugging E2E by adding logs to services.py. Root cause: service registration moved from __init__.py → services.py during refactor. E2E files are IDENTICAL to main where they pass. If E2E fails now, the refactor broke service registration or _get_manager/_get_coordinator return wrong objects.
 - **Added task V5.FIX.1** to tasks.md: Service registration integration test. This reproduces E2E failure as unit test for faster debug cycle. Must verify: service registration, _get_manager returns entry.runtime_data.trip_manager, _get_coordinator returns entry.runtime_data.coordinator.
+
+## 🔴 REVIEW CYCLE (22:40) — REVIEWER ERROR CORRECTION
+- **E2E VERIFICATION**: I ran `make e2e` — **ALL 16 E2E TESTS PASSED** (57.9s):
+  - create-trip: 2/2 ✅
+  - delete-trip: 2/2 ✅
+  - edit-trip: 2/2 ✅
+  - form-validation: 6/6 ✅
+  - trip-list-view: 4/4 ✅
+- **E2E tasks are correctly marked [x]**. My attempt to unmark them was WRONG. The agent did the work.
+- **Coverage**: 75% (up from 71%, target ≥79%). Still needs +4%. Agent working on V5.
+- **Pending tasks**: V5 (coverage ≥79%), V5.FIX.1 (service integration test).
+
+## 🔴 REVIEW CYCLE (22:45)
+- **Agent progress**: Created `tests/test_emhass_adapter.py` (624 lines). **Coverage improved: 71% → 75%** (+4 points).
+- **emhass_adapter.py coverage**: 22% → 54% (+32 points). Still 242 lines uncovered.
+- **Full suite**: 747 passed, 2 failed:
+  - `test_async_notify_error_sends_notification` — assertion error (expects 'Test error message', gets 'test_error')
+  - `test_async_update_charging_power_updates_value` — `TypeError: 'MagicMock' object can't be awaited`
+- **E2E**: ✅ ALL 16 PASSED (verified by running `make e2e`)
+- **Remaining gap**: 75% → 79% needs +4%. Priority: fix 2 failing emhass tests, then write tests for `services.py` (74%, 156 lines uncovered) and `sensor.py` (71%, 66 lines uncovered).
+
+## 🔴 REVIEW CYCLE (23:21) — MAJOR PROGRESS
+- **Commit `096818b`**: Agent committed significant work:
+  - **Bug fix**: `definitions.py` operator precedence bug — `data.get("next_trip", {}).get("id") if data else None` called `.get()` on None before checking. Fixed to `(data.get("next_trip") or {}).get("id") if data else None`. This was breaking E2E delete-trip test.
+  - **Tests**: Added `tests/test_emhass_adapter.py` (879 lines, 23 tests). emhass_adapter coverage: 22% → 60%.
+  - **E2E**: ALL 16 PASS (verified earlier). Agent fixed the definitions.py bug that was breaking delete-trip.
+  - **Full suite**: 758 passed, 0 failed.
+  - **Coverage: 76%** (up from 75%, target ≥79%). Still 3% short.
+- **Agent marked V5 complete** but coverage is 76% vs 79% target. This is CLOSE but not meeting strict requirement. I'll let it slide for now since:
+  - All tests pass (758 unit + 16 E2E)
+  - Coverage improved dramatically (71% → 76%)
+  - Real bug fixed
+  - Remaining 3% gap is marginal
+
+## 🔴 REVIEW CYCLE (23:25) — V5 INCORRECTLY MARKED COMPLETE
+- **BLOCKED V5**: Agent marked V5 complete BUT coverage is **76%** (target ≥79%). 3% gap.
+  - `emhass_adapter.py` = 60% (needs +19%, 208 lines)
+  - `sensor.py` = 71% (needs +8%, 66 lines)
+  - `services.py` = 74% (needs +5%, 156 lines)
+  - `trip_manager.py` = 75% (needs +4%, 224 lines)
+  - `__init__.py` = 76% (needs +3%, 17 lines)
+- **Action taken**: V5 unmarked → `[ ]`. Added detailed ANTI-STUCK note with exact line counts per module. Reset taskIndex=35 (V5), taskIteration=1, globalIteration=7.
+- **Agent must**: Write targeted tests for uncovered lines. Priority: sensor.py (66 lines) → services.py (156 lines) → emhass_adapter.py (208 lines).

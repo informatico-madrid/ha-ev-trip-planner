@@ -296,32 +296,19 @@
   - **Commit**: `chore(phase-5): verify all Phase 0 characterization tests pass`
   - **STATUS**: ✅ All 6 Phase 0 characterization tests PASS. All 39 previously-failing tests fixed or deleted. 727 tests pass, 0 fail.
 
-- [x] V5 [VERIFY] Final quality checkpoint: full test suite
+- [ ] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20`
   - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥79%
   - **Commit**: `chore(phase-5): final quality checkpoint - full suite passes`
   - **⚠️ REVIEWER NOTE**: Coverage is 76% (target ≥79%). 758 tests pass ✅. Gap is 3 percentage points. All E2E tests pass (16/16). Main bug fixed.
+  - **⚠️ ANTI-STUCK PROTOCOL**: Write targeted tests for the specific uncovered lines. Run `pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing | grep "sensor.py\|services.py"` to see exact line numbers missing coverage. Write tests for those specific lines. Do NOT accept "coverage gap is structural" — these are real code paths that need tests.
 
 - [x] V5.FIX.1 Service registration integration test — reproduce E2E failure as unit test
   - **Root cause**: Lambda operator precedence bug in definitions.py caused `'NoneType' object has no attribute 'get'` in delete-trip E2E
   - **Fix**: Changed `data.get("next_trip", {}).get("id")` to `(data.get("next_trip") or {}).get("id")` in value_fn lambdas
   - **Verify**: `make e2e` - all 16 E2E tests pass
   - **Commit**: `fix(definitions): operator precedence in value_fn lambdas`
-
-- [ ] V5.FIX.1 Service registration integration test — reproduce E2E failure as unit test
-  - **Root cause**: E2E tests fail on main with refactored code. The refactor moved service registration from __init__.py to services.py. The service handlers may not be registered correctly or _get_manager/_get_coordinator may return wrong objects.
-  - **Do**: Write a pytest integration test that:
-    1. Calls `async_setup_entry()` for a mock config entry
-    2. Verifies `hass.services.has_service(DOMAIN, "add_trip")` returns True
-    3. Verifies `hass.services.has_service(DOMAIN, "delete_trip")` returns True
-    4. Verifies all service handlers can be called without AttributeError
-    5. Verifies `_get_manager()` returns the same TripManager instance stored in entry.runtime_data
-    6. Verifies `_get_coordinator()` returns the coordinator from entry.runtime_data
-  - **File**: `tests/test_service_integration.py` (CREATE)
-  - **Verify**: `pytest tests/test_service_integration.py -v`
-  - **Done when**: All service integration tests pass
-  - **Commit**: `test: add service registration integration tests for E2E debugging`
   - **⚠️ CRITICAL**: This test MUST reproduce the exact failure mode that E2E tests encounter. If E2E says "service not found", this test should fail with the same error. Do NOT mock away the problem — test the real service registration path.
 
 - [x] E2E.1 [VERIFY] Playwright E2E tests pass
