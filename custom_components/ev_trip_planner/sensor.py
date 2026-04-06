@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -651,6 +652,13 @@ async def async_remove_trip_sensor(
     namespace = f"{DOMAIN}_{entry_id}"
     runtime_data = hass.data.get(DATA_RUNTIME, {})
     namespace_data = runtime_data.get(namespace, {})
+
+    # Remove from Entity Registry
+    entity_registry = getattr(hass, "entity_registry", None) or er.async_get(hass)
+    for entry in entity_registry.async_entries_for_config_entry(entry_id):
+        if trip_id in entry.unique_id:
+            entity_registry.async_remove(entry.entity_id)
+            _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
 
     # Remove from trip_sensors dict
     trip_sensors = namespace_data.get("trip_sensors", {})
