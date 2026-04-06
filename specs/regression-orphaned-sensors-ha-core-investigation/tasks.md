@@ -50,7 +50,7 @@
   - **Commit**: `test(phase-0): red - failing test for unique_id collision across vehicles`
   - _Requirements: Phase 0 characterization_
 
-- [ ] V0 [VERIFY] Quality checkpoint: Phase 0 tests run and fail as expected
+- [x] V0 [VERIFY] Quality checkpoint: Phase 0 tests run and fail as expected
   - **Do**: Run all 6 Phase 0 tests, verify they all fail (characterize broken behavior)
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py -v 2>&1 | grep -E "^(tests/|PASSED|FAILED)" | head -20`
   - **Done when**: All 6 tests FAIL (documenting broken behavior)
