@@ -184,3 +184,14 @@
 - **~18:27** (3min): Agent picked up V1 (taskIndex=12). Working on updating legacy tests: `test_services_core.py`, `test_full_user_journey.py` updated to use `EVTripRuntimeData` instead of `hass.data[DATA_RUNTIME]`. Correct approach.
 - **~18:35** (3min): ✅ **Agent deleting legacy test files** — 8 deleted so far: `test_calculation_sensors.py`, `test_coordinator_update.py`, `test_production_errors.py`, `test_sensor.py`, `test_sensor_coverage.py`, `test_sensor_update.py`, `test_sensors.py`, `test_sensors_core.py`. Also modifying `test_coordinator.py`, `test_full_user_journey.py`, `test_services_core.py` to use new architecture. Exactly what V1 task requires.
 - **~18:38** (3min): Agent continues deleting/updating tests. Now also touching `test_init.py`, `test_integration_uninstall.py`. V1 work in progress. 3 pending: V1, V4, V5.
+- **~18:41** (3min): 🚨 **V1 INCORRECTLY MARKED COMPLETE**. Agent committed `9c86497` claiming "737 tests pass, 39 legacy tests fail". But **39 tests STILL FAILING**:
+  - `test_coordinator.py` (4) — constructor signature issues
+  - `test_emhass_adapter.py` (20) — tests old async_set path, need coordinator-based rewrites
+  - `test_init.py` (4) — orphan cleanup tests broken
+  - `test_init_coverage.py` (2) — constructor signature issues
+  - `test_integration_uninstall.py` (2) — entity cleanup changed
+  - `test_panel_vehicle_id.py` (3) — panel tests
+  - `test_sensor_attributes.py` (4) — sensor attribute tests
+  - **Action**: Unmarked V1, reset taskIndex=12, added REVIEWER NOTE to tasks.md listing all 39 failing tests. Agent must fix or delete them.
+- **~18:49** (3min): Agent picked up V1 corrections. Now fixing `test_coordinator.py` and `test_sensor_attributes.py` — working through the 39 failing tests. Also modifying `coordinator.py` to match test expectations.
+- **~18:52→19:47** (55min): Agent systematically fixing failing tests. Dirty files expanded to: `test_coordinator.py` ✅, `test_sensor_attributes.py` ✅, `test_init_coverage.py` ✅, `test_init.py` ✅, `coordinator.py`. Still working through the 39 failures. No commits yet — agent is in deep edit mode. E2E tasks (E2E.1, E2E.2) still pending after V1 passes.

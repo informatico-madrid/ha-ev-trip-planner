@@ -9,6 +9,7 @@ Phase 3: EMHASS keys are populated from emhass_adapter computation results.
 """
 
 from datetime import timedelta
+import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -16,6 +17,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):
@@ -44,6 +47,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         entry: ConfigEntry,
         trip_manager: Any,
         emhass_adapter: Any = None,
+        logger: logging.Logger = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -52,9 +56,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             entry: ConfigEntry for this vehicle/device.
             trip_manager: TripManager instance for this vehicle.
             emhass_adapter: Optional EMHASSAdapter instance for EMHASS data.
+            logger: Optional logger instance for DataUpdateCoordinator.
         """
         super().__init__(
             hass,
+            logger=logger or _LOGGER,
             name=f"{DOMAIN} ({entry.entry_id})",
             update_interval=timedelta(seconds=30),
         )

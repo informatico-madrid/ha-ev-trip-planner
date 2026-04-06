@@ -16,7 +16,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+from .const import DOMAIN  # noqa: F401
 from .coordinator import TripPlannerCoordinator
 from .emhass_adapter import EMHASSAdapter
 from .panel import async_unregister_panel  # noqa: F401 (re-export for tests)

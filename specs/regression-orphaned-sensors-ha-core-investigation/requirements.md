@@ -281,12 +281,14 @@ entry.runtime_data.coordinator.async_request_refresh()
 | **Phase 3** | EMHASS sensor updates via CoordinatorEntity only (no `async_set` path) |
 | **Phase 4** | `__init__.py` < 150 lines, services extracted, `entry.runtime_data` used |
 | **Phase 5** | Zero legacy fallbacks, zero MagicMock in production, DEBUG logs |
+| **V1** | ruff passes, 0 failing unit tests, coverage ≥79% |
+| **E2E** | All 5 Playwright specs pass (create-trip, edit-trip, delete-trip, trip-list-view, form-validation). Sensor state updates verified after CRUD. |
 
 ---
 
 ## Non-Goals (Explicitly Out of Scope)
 
-- E2E test modifications (Tier 2 tests untouched)
+~~- E2E test modifications (Tier 2 tests untouched)~~ → **CHANGED: E2E tests MUST pass after refactor. They are the ultimate verification that the architecture works end-to-end.**
 - `hass.states.async_get()` integration tests (Tier 3, deferred)
 - Frontend panel changes (handled separately if needed)
 - EMHASS computation logic (only lifecycle, not the algorithm)

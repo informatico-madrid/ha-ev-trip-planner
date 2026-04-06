@@ -31,41 +31,67 @@ TRIP_SENSORS = (
     TripSensorEntityDescription(
         key="recurring_trips_count",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: len(data.get("recurring_trips", {})),
+        value_fn=lambda data: len(data.get("recurring_trips", {})) if data else 0,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
     ),
     TripSensorEntityDescription(
         key="punctual_trips_count",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: len(data.get("punctual_trips", {})),
+        value_fn=lambda data: len(data.get("punctual_trips", {})) if data else 0,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
     ),
     TripSensorEntityDescription(
         key="trips_list",
-        value_fn=lambda data: str(
-            list(data.get("recurring_trips", {}).keys())
-        ),
+        value_fn=lambda data: str(list(data.get("recurring_trips", {}).keys())) if data else "[]",
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
     ),
     TripSensorEntityDescription(
         key="kwh_needed_today",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        value_fn=lambda data: data.get("kwh_today", 0.0),
+        value_fn=lambda data: data.get("kwh_today", 0.0) if data else 0.0,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
         restore=True,
     ),
     TripSensorEntityDescription(
         key="hours_needed_today",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: data.get("hours_today", 0.0),
+        value_fn=lambda data: data.get("hours_today", 0.0) if data else 0.0,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
         restore=True,
     ),
     TripSensorEntityDescription(
         key="next_trip",
-        value_fn=lambda data: data.get("next_trip", {}).get("id"),
+        value_fn=lambda data: data.get("next_trip", {}).get("id") if data else None,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
         restore=True,
     ),
     TripSensorEntityDescription(
         key="next_deadline",
-        value_fn=lambda data: data.get("next_trip", {}).get("_deadline"),
+        value_fn=lambda data: data.get("next_trip", {}).get("_deadline") if data else None,
+        attrs_fn=lambda data: {
+            "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+            "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
+        },
         restore=True,
     ),
 )

@@ -483,6 +483,7 @@ _LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical
 | Phase 3 | — | `emhass_adapter.py`, `sensor.py` (EmhassDeferrableLoadSensor → CoordinatorEntity) | — |
 | Phase 4 | — | `__init__.py` (final lifecycle-only), `config_flow.py` | — |
 | Phase 5 | `diagnostics.py` | `__init__.py` cleanup | — |
+| E2E | — | Fix existing Playwright tests, verify sensor state after CRUD | — |
 
 ---
 
@@ -495,7 +496,9 @@ _LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical
 | Phase 2 | `.venv/bin/pytest tests/test_entity_registry.py -v -k "trip"` |
 | Phase 3 | `.venv/bin/pytest tests/test_emhass_adapter.py -v` |
 | Phase 4 | `.venv/bin/pytest tests/test_init.py -v` |
-| Phase 5 | Full suite + `pylint --disable=all --enable=E,F` |
+| Phase 5 | `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20` |
+| V1 | `ruff` passes, 0 failing tests, coverage ≥79% |
+| E2E | `npx playwright test tests/e2e/ --reporter=list` — all 5 specs pass |
 
 ---
 

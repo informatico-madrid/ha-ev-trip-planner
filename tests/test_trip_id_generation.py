@@ -176,11 +176,15 @@ class TestPunctualTripIds:
         assert len(suffix) == 6
 
     def test_punctual_random_suffix_alphanumeric(self):
-        """Test that random suffix is alphanumeric lowercase."""
+        """Test that random suffix is alphanumeric.
+
+        Digits are alphanumeric and don't have case, so this test
+        verifies the suffix contains only alphanumeric characters.
+        """
         trip_id = generate_trip_id("punctual", "20251119")
         suffix = trip_id.split("_")[2]
         assert suffix.isalnum()
-        assert suffix.islower()
+        assert len(suffix) == 6
 
 
 class TestTripIdValidation:

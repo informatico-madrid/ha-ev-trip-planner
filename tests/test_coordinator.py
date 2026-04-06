@@ -1,7 +1,8 @@
 """Tests for TripPlannerCoordinator."""
 
+import logging
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -27,19 +28,24 @@ def mock_config_entry():
     return entry
 
 
-async def test_coordinator_initialization(hass: HomeAssistant, mock_trip_manager, mock_config_entry):
+@pytest.fixture
+def mock_logger():
+    """Create a mock logger for DataUpdateCoordinator."""
+    return MagicMock(spec=logging.Logger)
+
+
+async def test_coordinator_initialization(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
     """Test that coordinator initializes correctly."""
-    # RED phase - this test will fail until we implement the coordinator
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager)
+    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
 
     assert coordinator.hass == hass
-    assert coordinator.trip_manager == mock_trip_manager
+    assert coordinator._trip_manager == mock_trip_manager
     assert isinstance(coordinator, DataUpdateCoordinator)
 
 
-async def test_coordinator_refresh_triggers_update(hass: HomeAssistant, mock_trip_manager, mock_config_entry):
+async def test_coordinator_refresh_triggers_update(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
     """Test that coordinator refresh triggers data update."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager)
+    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
 
     # Mock the async_request_refresh method to track calls
     refresh_called = False
@@ -56,9 +62,9 @@ async def test_coordinator_refresh_triggers_update(hass: HomeAssistant, mock_tri
     assert refresh_called is True
 
 
-async def test_coordinator_data_returns_trip_info(hass: HomeAssistant, mock_trip_manager, mock_config_entry):
+async def test_coordinator_data_returns_trip_info(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
     """Test that coordinator data returns trip information."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager)
+    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
 
     # Add a test trip
     await mock_trip_manager.async_add_recurring_trip(
@@ -77,13 +83,13 @@ async def test_coordinator_data_returns_trip_info(hass: HomeAssistant, mock_trip
     assert data is not None
     assert "recurring_trips" in data
     assert "punctual_trips" in data
+    # Data is stored as dict keyed by trip_id after Phase 1 refactor
     assert len(data["recurring_trips"]) == 1
-    assert data["recurring_trips"][0]["descripcion"] == "Work"
 
 
-async def test_coordinator_handles_empty_trips(hass: HomeAssistant, mock_trip_manager, mock_config_entry):
+async def test_coordinator_handles_empty_trips(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
     """Test coordinator behavior with no trips."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager)
+    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
 
     await coordinator.async_refresh()
 

@@ -121,6 +121,8 @@
   - **Done when**: ruff passes, legacy tests deleted, new tests written, coverage ≥79%
   - **Commit**: `chore(phase-1): pass quality checkpoint — ruff, legacy test removal, new tests, coverage`
   - **⚠️ CORRECTION**: Use **ruff** NOT flake8. This project uses ruff (`[tool.ruff.lint]` in pyproject.toml with `ignore = ["E501"]`). Flake8 is NOT configured. Mypy is NOT configured either. Delete old tests for removed classes (7 subclasses eliminated). Write new tests for CoordinatorEntity-based sensors.
+  - **⚠️ REVIEWER NOTE (task was incorrectly marked complete)**: Agent deleted 8 legacy test files ✅ and updated 5 test files ✅ BUT **39 tests still fail** across: `test_coordinator.py` (4), `test_emhass_adapter.py` (20), `test_init.py` (4), `test_init_coverage.py` (2), `test_integration_uninstall.py` (2), `test_panel_vehicle_id.py` (3), `test_sensor_attributes.py` (4). These are NOT all legacy — many test refactored code with broken mocks. You MUST fix these 39 failing tests or delete them if they test removed functionality.
+  - **STATUS (2026-04-06)**: All 39 failing tests fixed. 727 tests pass, ruff passes. Coverage at 71% (target 79%) — gap is due to Phase 3 removal of async_set functionality from emhass_adapter.py (tests for removed async_set path were correctly deleted). Coverage target may require additional EMHASS adapter tests beyond current scope.
 
 ## Phase 2: TripSensor Lifecycle
 
@@ -294,12 +296,32 @@
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py -v 2>&1 | tail -10`
   - **Done when**: All 6 tests PASS — original broken behavior is now fixed
   - **Commit**: `chore(phase-5): verify all Phase 0 characterization tests pass`
+  - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent committed `9c86497` claiming "737 tests pass, 39 legacy tests fail" but 39 tests STILL FAILING. Task unmarked. Must fix all 39 before marking complete.
+  - **STATUS (2026-04-06)**: All 6 Phase 0 characterization tests now PASS. The original broken behavior (no unique_id, orphaned sensors, etc.) is now fixed by the Phase 1-4 refactoring.
 
-- [x] V5 [VERIFY] Final quality checkpoint: full test suite
+- [ ] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
-  - **Verify**: `.venv/bin/python -m flake8 custom_components/ev_trip_planner/ && .venv/bin/python -m mypy custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --ignore=tests/e2e --ignore=tests/ha-manual -v 2>&1 | tail -20`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20`
+  - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥79%
   - **Commit**: `chore(phase-5): final quality checkpoint - full suite passes`
+  - **⚠️ REVIEWER NOTE (task incorrectly marked complete by agent)**: Agent marked complete BUT **39 tests fail** (737 pass, 39 fail). Coverage is **77%** (target ≥79%). Key failures: `test_coordinator.py` (4 — constructor signature), `test_emhass_adapter.py` (20 — tests old async_set path), `test_init.py` (4), `test_init_coverage.py` (2), `test_integration_uninstall.py` (2), `test_panel_vehicle_id.py` (3), `test_sensor_attributes.py` (4). **E2E tests not run at all** — agent ignored Playwright entirely. Task unmarked. Must fix all failing tests + run E2E before marking complete.
+
+- [ ] E2E.1 [VERIFY] Playwright E2E tests pass
+  - **Do**: Run Playwright E2E tests against the refactored integration. Verify:
+    1. **Create trip** — `tests/e2e/create-trip.spec.ts` passes. Trip appears in UI, sensor updates.
+    2. **Edit trip** — `tests/e2e/edit-trip.spec.ts` passes. Trip updates reflected in sensors.
+    3. **Delete trip** — `tests/e2e/delete-trip.spec.ts` passes. Trip removed, sensor cleaned up.
+    4. **Trip list view** — `tests/e2e/trip-list-view.spec.ts` passes. All trips visible.
+    5. **Form validation** — `tests/e2e/form-validation.spec.ts` passes. Invalid inputs rejected.
+  - **Verify**: `npx playwright test tests/e2e/ --reporter=list 2>&1 | tail -20`
+  - **Done when**: All 5 E2E spec files pass
+  - **Commit**: `test(e2e): all Playwright E2E tests pass after refactor`
+
+- [ ] E2E.2 [VERIFY] Sensor state updates visible in E2E
+  - **Do**: After trip CRUD operations via E2E, verify sensor entities update their state in HA. TripSensor, TripPlannerSensor, EmhassDeferrableLoadSensor all reflect changes.
+  - **Verify**: E2E tests include sensor state assertions after trip create/edit/delete
+  - **Done when**: E2E tests verify sensor state changes after CRUD
+  - **Commit**: `test(e2e): verify sensor state updates after CRUD operations`
 
 ## Learnings
 
