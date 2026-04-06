@@ -34,12 +34,12 @@
   - **Commit**: `test(phase-0): red - failing test for trip sensor removal from registry`
   - _Requirements: Phase 0 characterization_
 
-- [ ] 0.5 [RED] Failing test: test_no_duplicate_sensors_after_reload
+- [x] 0.5 [RED] Failing test: test_no_duplicate_sensors_after_reload
   - **Do**: Write characterization test asserting that sensor count before and after reload is the same (no duplicates). Documents broken behavior: reload creates duplicate sensors because existing ones lack unique_id.
   - **Files**: `tests/test_entity_registry.py`
   - **Done when**: Test exists, runs, and fails (count doubles after reload)
   - **Verify**: `.venv/bin/pytest tests/test_entity_registry.py::test_no_duplicate_sensors_after_reload -v 2>&1 | grep -q "FAILED\|AssertionError" && echo RED_PASS`
-  - **Commit**: `test(phase-0): red - failing test for no duplicates after reload`
+  - **Commit**: `test(phase-0): red - failing test for no duplicates after reload` (143ced7)
   - _Requirements: Phase 0 characterization_
 
 - [ ] 0.6 [RED] Failing test: test_two_vehicles_no_unique_id_collision
