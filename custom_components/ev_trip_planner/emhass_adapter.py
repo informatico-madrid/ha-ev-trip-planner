@@ -861,6 +861,8 @@ class EMHASSAdapter:
                 "error_type": error_type,
                 "error_message": message,
                 "error_time": datetime.now().isoformat(),
+                # FR-1.2: Add entry_id for orphan detection (matches publish_deferrable_loads)
+                "entry_id": self.entry_id,
             }
 
             if trip_id:
@@ -1218,27 +1220,37 @@ class EMHASSAdapter:
 
         registry = er.async_get(self.hass)
 
-        # Check state machine for EMHASS sensors
+        # Check state machine for EMHASS sensors (both main and per-trip config sensors)
         state_clean = True
         for state in self.hass.states.async_all("sensor"):
             entity_id = state.entity_id
+            # Check for main sensor pattern
             if entity_id.startswith("sensor.emhass_perfil_diferible_"):
                 if state.attributes and state.attributes.get("entry_id") == self.entry_id:
                     state_clean = False
                     break
+            # Check for per-trip config sensor pattern
+            if entity_id.startswith("sensor.emhass_deferrable_load_config_"):
+                if state.attributes and state.attributes.get("entry_id") == self.entry_id:
+                    state_clean = False
+                    break
 
-        # Check entity registry for EMHASS sensors
+        # Check entity registry for EMHASS sensors (both main and per-trip config sensors)
         registry_clean = True
         for entity_entry in registry.entities.values():
-            if (
-                entity_entry.domain == "sensor"
-                and entity_entry.unique_id
-                and entity_entry.unique_id.startswith(
+            if entity_entry.domain == "sensor" and entity_entry.unique_id:
+                # Check for main sensor pattern
+                if entity_entry.unique_id.startswith(
                     f"emhass_perfil_diferible_{self.entry_id}"
-                )
-            ):
-                registry_clean = False
-                break
+                ):
+                    registry_clean = False
+                    break
+                # Check for per-trip config sensor pattern
+                if entity_entry.unique_id.startswith(
+                    f"emhass_deferrable_load_config_{self.entry_id}"
+                ):
+                    registry_clean = False
+                    break
 
         return {
             "state_clean": state_clean,
@@ -1255,25 +1267,19 @@ class EMHASSAdapter:
         FR-3.1: When entry.data changes (e.g., charging_power_kw), we need to republish
         sensor attributes with the new values.
         """
-        # Store listener handle for cleanup
-        self._config_entry_listener = self.hass.bus.async_listen(
-            "config_entries",
-            self._on_config_entry_updated,
+        # Use ConfigEntry.add_update_listener pattern per HA best practices
+        self._config_entry_listener = (
+            self.config_entry.async_on_unload(
+                self.config_entry.add_update_listener(self._handle_config_entry_update)
+            )
         )
 
-    async def _on_config_entry_updated(self, event: Dict[str, Any]) -> None:
+    async def _handle_config_entry_update(self, hass: HomeAssistant, config_entry) -> None:
         """
         Handle config entry update events.
 
         When charging_power_kw changes, we need to recalculate power_profile_watts.
         """
-        if event.get("action") != "updated":
-            return
-
-        entry_id = event.get("entry_id")
-        if entry_id != self.entry_id:
-            return
-
         _LOGGER.info(
             "Config entry updated for vehicle %s, checking charging power",
             self.vehicle_id,

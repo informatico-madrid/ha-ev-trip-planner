@@ -5,7 +5,7 @@ from datetime import datetime
 from math import atan2, cos, radians, sin, sqrt
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
@@ -446,7 +446,7 @@ class PresenceMonitor:
             self._async_handle_soc_change,
         )
 
-    async def _async_handle_soc_change(self, event: Dict[str, Any]) -> None:
+    async def _async_handle_soc_change(self, event: Event) -> None:
         """Handle SOC state change event.
 
         Called when the SOC sensor state changes. If the vehicle is home

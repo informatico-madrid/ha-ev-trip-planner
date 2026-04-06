@@ -53,7 +53,7 @@ describe('EV Trip Planner Panel - Vehicle ID Filtering', () => {
     panel = await fixture(html`
       <ev-trip-planner-panel
         .hass=${hass}
-        .vehicleId=${'mi_coche'}
+        ._vehicleId=${'mi_coche'}
       ></ev-trip-planner-panel>
     `);
   });
