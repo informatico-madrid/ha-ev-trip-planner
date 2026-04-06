@@ -127,9 +127,11 @@ class EmhassDeferrableLoadSensor(SensorEntity):
 
 ### Why Both Are Wrong
 
-1. **Two writers for same entity_id** — Race condition, inconsistent state
-2. **`publish_deferrable_loads()` not triggered on vehicle param changes** — `power_profile_watts` doesn't update when charging_power changes
-3. **`async_update()` missing `async_schedule_update_ha_state()`** — Attributes updated internally but not propagated to HA state machine
+1. **Two writers for same entity_id** — Race condition. `publish_deferrable_loads()` writes via `hass.states.async_set()` which OVERWRITES `_cached_attrs` that `EmhassDeferrableLoadSensor.async_update()` writes to. The two paths overwrite each other.
+2. **`EmhassDeferrableLoadSensor` does NOT inherit from `CoordinatorEntity`** — It is `SensorEntity` only (sensor.py:494). Even if we call `coordinator.async_request_refresh()`, it will NOT trigger `EmhassDeferrableLoadSensor.async_update()`.
+3. **`publish_deferrable_loads()` not triggered on vehicle param changes** — `power_profile_watts` doesn't update when charging_power changes
+
+**Note**: `EmhassDeferrableLoadSensor.async_update()` DOES call `self.async_schedule_update_ha_state()` at line 612. The problem is NOT a missing call — it's that TWO writers write to the same entity's state simultaneously.
 
 ### Correct Fix
 
@@ -145,7 +147,37 @@ coordinator.async_request_refresh()  # ← Triggers EmhassDeferrableLoadSensor u
 
 ---
 
-## Problem 4: __init__.py God Object (Bug G-12)
+## Problem 4: Panel.js Cross-Vehicle Sensor Contamination
+
+### Root Cause
+
+`panel.js` at lines 1008-1064 (`_getVehicleStates()`) uses overly broad sensor patterns:
+
+```javascript
+const patterns = [
+  `sensor.${lowerVehicleId}`, `sensor.${lowerVehicleId}_`,
+  'sensor.trip_',
+  'sensor.ev_trip_planner_',  // ← TOO BROAD: catches ALL emhass_perfil_diferible sensors
+  'sensor.ev_trip_planner',
+];
+```
+
+Pattern `sensor.ev_trip_planner` matches `sensor.emhass_perfil_diferible_{ANY_ENTRY_ID}`, causing sensors from ALL vehicles to appear on every panel, not just the current vehicle's sensors.
+
+### Why This Matters
+
+EMHASS sensor naming uses `entry_id` (HA-generated UUID), not `vehicle_id`:
+- `sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"` (emhass_adapter.py:512)
+- On re-creation, NEW `entry_id` = NEW orphaned sensor
+- Panel cannot distinguish which vehicle owns which sensor by name alone
+
+### Fix Required
+
+Panel must filter sensors by exact `entry_id` match, not broad prefix patterns. Or use `entry_id` attribute on state sensors for filtering.
+
+---
+
+## Problem 5: __init__.py God Object (Bug G-12)
 
 Current `__init__.py`: **1864 lines**
 

@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-05T18:45:21Z",
+  "updated": "2026-04-06T07:42:20Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 22,
+      "specsCount": 23,
       "isDefault": true
     }
   ],
@@ -156,6 +156,19 @@
       "phase": "tasks",
       "taskIndex": 19,
       "totalTasks": 25
+    },
+    {
+      "name": "emhass-sensor-entity-lifecycle",
+      "path": "./specs/emhass-sensor-entity-lifecycle",
+      "phase": "completed",
+      "taskIndex": 72,
+      "totalTasks": 72
+    },
+    {
+      "name": "regression-orphaned-sensors-ha-core-investigation",
+      "path": "./specs/regression-orphaned-sensors-ha-core-investigation",
+      "phase": "design",
+      "awaitingApproval": true
     }
   ]
 }

@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-05T18:09:41Z
+**Last updated:** 2026-04-06T07:42:20Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 22 | Yes |
+| ./specs | 23 | Yes |
 
-## All Specs (22)
+## All Specs (23)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -37,8 +37,9 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | emhass-integration-with-fixes | ./specs | execution | 10/23 tasks |
 | 013-fix-emhass-attribute-size | ./specs | completed | done |
 | e2e-trip-crud | ./specs | tasks | 48/52 tasks |
-| duplicate-emhass-sensor-fix | ./specs | completed | done |
-| emhass-sensor-entity-lifecycle | ./specs | execution | 4/23 tasks |
+| duplicate-emhass-sensor-fix | ./specs | tasks |  |
+| emhass-sensor-entity-lifecycle | ./specs | completed | done |
+| regression-orphaned-sensors-ha-core-investigation | ./specs | design | awaiting approval |
 
 ---
 

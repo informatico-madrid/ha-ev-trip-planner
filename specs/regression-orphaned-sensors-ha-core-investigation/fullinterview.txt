@@ -1,0 +1,556 @@
+Question 1 of N — What's the primary focus?
+
+The problems you've described are actually two separate issues that may need different approaches:
+
+A) Entity orphaning/deduplication — Old "chispi" and "chispitas" sensors still appearing after reinstall. This is primarily about proper unique_id + Entity Registry cleanup via async_remove_entry.
+
+B) EMHASS charge planning not updating — New trips don't appear in power_profile_watts/deferrables_schedule. This is primarily about the publish_deferrable_loads() → state machine → HA sensor update pipeline.
+
+C) Both need fixing — The underlying architecture issues (BUG-1, BUG-2, __init__.py complexity) are causing both symptoms.
+
+Which is your primary concern for this spec? Or are they equally important to you?
+
+.progress.md
+La opción c . SUPONGO PORQUE AMBAS COSAS NECESITAN SER ARREGLADAS, No se si estan relacionadas. supongo que todo parte de una arquitectura mal plantaada por la IA desde el principio.
+The user says option C - both need fixing, and they suspect everything stems from a poorly planned architecture from the beginning. This confirms my assessment.
+
+Now I need to ask another clarifying question to understand the scope better. Let me think about what I need to understand:
+
+The user wants me to research HA core patterns deeply
+They want integration tests and E2E tests
+They've provided logs and code guidelines as mandatory references
+Let me ask about the scope of the refactoring - do they want a full architectural refactor or targeted fixes?
+
+Agreed — both are manifestations of the same root problem: the architecture violates HA conventions.
+
+Question 2 of N — Scope of refactoring:
+
+The CODEGUIDELINESia.md document (which you shared) identifies 7 structural bugs (BUG-1 through BUG-7). The document also shows the target architecture (Section 5) with clear module separation.
+
+For this spec, we have two paths:
+
+A) Targeted Fix (faster) — Fix only what's needed to solve the orphaning + EMHASS update issues:
+
+Add unique_id to TripPlannerSensor subclasses
+Fix async_remove_entry to clean Entity Registry
+Ensure publish_deferrable_loads triggers proper sensor updates
+~Minor changes to __init__.py
+B) Full Architectural Refactor (more thorough) — Apply ALL 12 rules from CODEGUIDELINESia.md:
+
+Create proper CoordinatorEntity hierarchy
+Split __init__.py (1864 lines → ~150 lines just lifecycle)
+Remove all legacy fallbacks, single hass.data pattern
+Rebuild sensor classes to read from coordinator only
+This is a larger undertaking but would prevent future regressions
+Which scope do you want for this spec?
+
+CODEGUIDELINESia.md
+La opción B !!!! Porque si no vamos a estar con dolores todo el tiempo. atajamos el problema de raiz
+Pero fijate que he actualizado CODEGUIDELINESia.md AHORA ES V2 con otros gap que se han detectado o deficiencias.
+The user wants Option B (full architectural refactor) and is pointing out they updated CODEGUIDELINESia.md to V2 with additional gaps detected. I need to read the updated version before proceeding.
+
+Read CODEGUIDELINESia.md
+Excellent! Now I have the full picture. The CODEGUIDELINESia.md v2 has 12 gaps (G-01 through G-12) with comprehensive rules (R-01 through R-12). This is a thorough architectural refactoring project.
+
+Key insights from v2:
+
+12 gaps organized in 4 categories (identity, update cycle, architecture, lifecycle)
+SensorEntityDescription + definitions.py pattern from Bambu Lab (1 class instead of 8+)
+entry.runtime_data with @dataclass from Bermuda
+diagnostics.py from Battery Notes
+RestoreSensor from Versatile Thermostat
+async_migrate_entry with Entity Registry migration from Bermuda
+This is a MUCH larger refactoring than initially assessed. The target architecture is:
+
+__init__.py → <150 lines (lifecycle only)
+coordinator.py → NEW (TripPlannerCoordinator)
+definitions.py → NEW (sensor definitions as data)
+diagnostics.py → NEW
+sensor.py → 1 class (TripPlannerSensor with CoordinatorEntity + RestoreSensor)
+services.py → EXTRACT from init.py
+Let me continue the brainstorming with this comprehensive understanding. The user chose Option B (full architectural refactor) and now I have the full v2 requirements.
+
+Now I need to ask more clarifying questions about:
+
+The scope for EMHASS sensors (they're different from TripPlannerSensors)
+Integration test strategy
+E2E test strategy
+Actually, the user said "Opción B" so they're committed to the full refactor. I should proceed to propose approaches based on the v2 requirements.
+
+Let me think about what question to ask next. Given the scope is now clear (full architectural refactor per v2), I should ask about:
+
+The EMHASS sensors need different handling since they're state-based entities that use hass.states.async_set() rather than following the standard sensor creation pattern
+The test strategy needs clarification since this involves both unit tests for the new architecture and integration tests to verify sensor state via HA API
+I should ask about the EMHASS sensors specifically since they operate under different rules and the current approach in emhass_adapter.py creates them via hass.states.async_set() which bypasses the normal entity registration system.
+
+This v2 document is comprehensive — 12 gaps, 5 integration references (Bambu Lab, Bermuda, Battery Notes, Versatile Thermostat, Nordpool), and a clear target architecture.
+
+Question 3 of N — EMHASS sensors are special:
+
+Looking at the codebase, the EmhassDeferrableLoadSensor (line 494 in sensor.py) and the state-based sensors created by emhass_adapter.publish_deferrable_loads() work differently from the TripPlannerSensors:
+
+They use hass.states.async_set() directly (bypass entity registry)
+They don't use CoordinatorEntity
+They store entry_id in attributes to track which integration created them
+The CODEGUIDELINESia.md v2 doesn't address this dual-mechanism clearly. Should the EMHASS sensors follow the same architectural refactor, or should they remain as-is (since they're HA state-machine entities, not Entity Registry entities)?
+
+A) Refactor EMHASS sensors too — Apply SensorEntityDescription pattern to EMHASS, create proper entities instead of using async_set
+
+B) Keep EMHASS as-is for now — Focus on TripPlannerSensors first; EMHASS sensors are a different beast (HA state machine entities vs Entity Registry entities)
+
+C) Create separate spec for EMHASS — This is complex enough to warrant its own spec
+
+Which approach for EMHASS?
+
+CODEGUIDELINESia.md
+Puedes revisar las spec del proyecto y averiguar en que spec aparecio ese sensor con que motivo y luego me reformulas otra vez esta pregunta 3. ?? necesito aclarar de donde salio ese sensor yo tengo una idea de cual es el objetivo pero primero investigame de que sepc o commits aparecio este sensor y que parece hacer. o querer hacer.
+The user wants me to investigate the history of the EmhassDeferrableLoadSensor - where it came from, which spec introduced it, and what it's supposed to do. Let me search the specs and git history.
+
+Bash
+IN
+git log --oneline --all --source --remotes -- custom_components/ev_trip_planner/sensor.py | head -30
+
+OUT
+ffe8f35	refs/heads/copilot/fix-e2e-tests-pipeline fix: remove orphaned EMHASS sensors and persist attribute updates (#19)
+c8e1481	refs/remotes/origin/duplicate-emhass-sensor-fix feat(duplicate-emhass-sensor-fix): implement fixes for orphaned sensors and attribute updates
+93ca048	refs/remotes/origin/duplicate-emhass-sensor-fix feat(sensor): green - call async_schedule_update_ha_state in async_update
+2439ff1	refs/remotes/origin/claude/hola fix(sensor): add async_will_remove_from_hass for entity cleanup
+dfd0d67	refs/heads/fix/soc-milestone-bugs fix: address Copilot review comments for PR #7
+042269c	refs/remotes/origin/copilot/fix-hour-minute-error feat(trip-card): add p_deferrable_index and charging_window to trip cards
+dbfd16d	refs/heads/feature/soc-milestone-algorithm feat(trip-card): green - update_from_trip_data preserves new attributes
+674ee4f	refs/heads/feature/soc-milestone-algorithm feat(trip-card): green - add deficit_from_previous to TripSensor
+b3956dc	refs/heads/feature/soc-milestone-algorithm feat(trip-card): green - add soc_target to TripSensor
+127a0af	refs/heads/feature/soc-milestone-algorithm refactor(trip-card): extract _get_emhass_info helper
+e456415	refs/heads/feature/soc-milestone-algorithm feat(trip-card): green - add charging_window to TripSensor
+de09d1a	refs/heads/feature/soc-milestone-algorithm feat(trip-card): green - add p_deferrable_index to TripSensor
+1ce6568	refs/heads/feature/soc-milestone-algorithm refactor(emhass): extract EMHASS state constants
+5c49104	refs/heads/feature/soc-milestone-algorithm feat(sensor): add trips_count and vehicle_id to sensor attributes
+50d70f3	refs/heads/feature/soc-milestone-algorithm feat(sensor): add last_update and emhass_status to EmhassDeferrableLoadSensor
+4a33544	refs/remotes/origin/copilot/fix-hour-minute-error chore(spec): update progress for task 2.1
+52b62a6	refs/remotes/origin/e2e-tests feat: Improve device_info method to ensure vehicle_name is correctly extracted and formatted
+451cc00	refs/heads/worktree-ha-e2e-test-architect feat: Improve device_info method to ensure vehicle_name is correctly extracted and formatted
+a8e1f0e	refs/remotes/origin/e2e-tests feat: Add E2E tests for US2 device name verification
+9c13a16	refs/heads/worktree-ha-e2e-test-architect feat: Add E2E tests for US2 device name verification
+bfa22d8	refs/remotes/origin/e2e-tests feat: device_info uses vehicle_name from config entry for display name
+6363ebc	refs/heads/worktree-ha-e2e-test-architect feat: device_info uses vehicle_name from config entry for display name
+a8fe9f2	refs/remotes/origin/e2e-tests Fix Playwright test results and add last run status file
+a0f8ff0	refs/remotes/origin/e2e-tests feat: Add trip data handling and device info to TripSensor, update tests for new signature
+49e6c3b	refs/remotes/origin/e2e-tests Merge branch 'ralph/012-dashboard-crud-verify-20260321_042120' into 012-dashboard-crud-verify
+5d34b17	refs/remotes/origin/e2e-tests feat: Complete dashboard CRUD verification tasks and update tests
+1c7bab4	refs/remotes/origin/e2e-tests feat: Add new YAML files for EV trip planner test vehicles and update imports in the integration
+21a2c16	refs/remotes/origin/e2e-tests feat: Add trip sensor entity creation on trip creation (FR-004)
+35915ac	refs/remotes/origin/e2e-tests fix: Remove coordinator warning messages from sensor debug logs
+f78016a	refs/remotes/origin/e2e-tests Refactor EV Trip Planner integration for improved notification handling and entity management
+Bash
+IN
+ls specs/ | grep -i emhass
+
+OUT
+013-fix-emhass-attribute-size
+duplicate-emhass-sensor-fix
+emhass-integration-with-fixes
+emhass-sensor-enhancement
+emhass-sensor-entity-lifecycle
+Let me look at the specs related to EMHASS to understand the history of this sensor. The key specs seem to be:
+
+emhass-sensor-entity-lifecycle (current spec in .current-spec)
+emhass-integration-with-fixes
+emhass-sensor-enhancement
+013-fix-emhass-attribute-size
+duplicate-emhass-sensor-fix
+Let me read the research.md or similar files from these specs.
+
+Bash
+IN
+ls -la specs/emhass-sensor-entity-lifecycle/
+
+OUT
+total 68
+drwxrwxr-x  2 malka malka   125 abr  6 03:45 .
+drwxrwxr-x 26 malka malka  4096 abr  6 05:12 ..
+-rw-rw-r--  1 malka malka 10937 abr  6 03:45 design.md
+-rw-rw-r--  1 malka malka  1967 abr  6 03:45 .progress.md
+-rw-rw-r--  1 malka malka  8915 abr  6 03:45 requirements.md
+-rw-rw-r--  1 malka malka 15129 abr  6 03:45 research.md
+-rw-rw-r--  1 malka malka 17876 abr  6 03:45 tasks.md
+Read .progress.md
+Let me read the research.md and design.md to understand what this sensor is supposed to do.
+
+Read research.md
+Read design.md
+Now I understand the full picture:
+
+EMHASS Sensor History:
+
+The EmhassDeferrableLoadSensor was created in a spec to solve a specific problem - it's a sensor that integrates with EMHASS (Energy Management Home Assistant) for deferrable loads optimization
+The research shows that there are TWO parallel entity creation paths:
+State-only path via hass.states.async_set() in publish_deferrable_loads()
+Entity registry path via proper SensorEntity class
+The problem:
+
+publish_deferrable_loads() creates state-only sensors with hass.states.async_set() that bypass the entity registry
+EmhassDeferrableLoadSensor is ALSO registered via platform setup for the same entity_id
+Cleanup only calls hass.states.async_remove() which doesn't clean up entity registry entries
+The panel uses too-broad patterns to find sensors
+Now I can reframe the question properly.
+
+Now I have the full picture. Let me reframe Question 3 properly.
+
+Question 3 (refined) — EMHASS Sensor Purpose:
+
+The EmhassDeferrableLoadSensor is designed to expose EMHASS optimization data (deferrable loads schedule, power profile) to Home Assistant. It's a state machine entity created via hass.states.async_set() (not entity registry) because EMHASS computations are external and dynamic.
+
+The current design problem:
+
+publish_deferrable_loads() creates state-only entities via hass.states.async_set()
+EmhassDeferrableLoadSensor (proper SensorEntity) is ALSO registered for the same entity_id
+Two creation mechanisms for the same entity — causes lifecycle issues
+Cleanup only removes state, not registry entries
+The two options:
+
+A) Keep EMHASS as HA state-machine entities — They work differently from TripPlannerSensors (external data, computed per trip, not stored in HA). Fix cleanup to handle both state + registry, but don't try to force them into CoordinatorEntity pattern. The SensorEntityDescription pattern from CODEGUIDELINESia.md may not fit here.
+
+B) Convert EMHASS to proper entity registry entities — Rebuild EmhassDeferrableLoadSensor to fully use SensorEntityDescription + CoordinatorEntity pattern, remove hass.states.async_set() path entirely. More work but consistent architecture.
+
+Which do you prefer? And additionally: Did you want the new trip sensor creation (TripSensor class at line 637 in sensor.py) to be part of this spec too, or was that from a different spec?
+
+Respuesta a Smart Ralph: Opción B + TripSensor es un problema diferente y más grave
+Sobre EMHASS (Opción A vs B): Opción B, pero no es mucho trabajo
+El argumento de Ralph para la Opción A ("external data, computed per trip, not stored in HA") era válido en teoría, pero el código ya tiene EmhassDeferrableLoadSensor como SensorEntity correcta con unique_id. El problema real no es el patrón, es que existen dos caminos de escritura simultáneos para el mismo entity_id:
+
+EmhassDeferrableLoadSensor.async_update() → escribe via self._cached_attrs (correcto, SensorEntity)
+
+publish_deferrable_loads() en trip_manager.py → escribe via hass.states.async_set() (incorrecto, bypassa el registry)
+
+La solución no es "rebuild from scratch" — es eliminar el path async_set de emhass_adapter.py y hacer que publish_deferrable_loads() en su lugar llame a coordinator.async_request_refresh(). EmhassDeferrableLoadSensor ya está bien construido, sólo hay que dejarlo ser la única fuente de verdad.
+
+Sobre TripSensor: Es un spec diferente y MÁS urgente
+TripSensor tiene un bug arquitectónico que Ralph no ha visto todavía. Hay tres capas de creación que no se coordinan:
+
+text
+1. async_setup_entry()
+   └─ _async_create_trip_sensors()  → crea TripSensor y los registra con async_add_entities()
+                                       (estos SÍ están en Entity Registry)
+
+2. async_create_trip_sensor()       → crea TripSensor y los guarda en
+                                       hass.data[DATA_RUNTIME][namespace]["trip_sensors"]
+                                       ← NUNCA llama async_add_entities()
+                                       (estos NO están en Entity Registry, son objetos huérfanos)
+
+3. async_remove_trip_sensor()       → sólo hace `del trip_sensors[trip_id]`
+                                       (no llama entity_registry.async_remove())
+                                       (el registry no se limpia nunca)
+Resultado: cuando añades un viaje después del setup inicial, el sensor se crea como objeto Python en memoria, pero HA no sabe que existe. No aparece en la UI, no se puede automatizar, y cuando eliminas el viaje el registry mantiene el zombie de los sensores creados en el arranque.
+
+Lo que Smart Ralph llama "TripSensor class at line 637" — sí, necesita su propio spec. El patrón correcto es usar async_add_entities desde un async_write_ha_state listener o desde el propio servicio:
+
+python
+# Correcto: cuando se añade un viaje desde un servicio
+new_sensor = TripSensor(hass, trip_manager, trip_data)
+async_add_entities([new_sensor])  # ← el mismo callable guardado en el setup
+# NO: hass.data[...]["trip_sensors"][trip_id] = sensor (objeto huérfano)
+Excellent! The user has clarified the situation:
+
+EMHASS: Option B - but the fix is simple: remove the hass.states.async_set() path from emhass_adapter.py and make publish_deferrable_loads() call coordinator.async_request_refresh() instead. EmhassDeferrableLoadSensor is already correctly built.
+
+TripSensor: This is a SEPARATE, MORE URGENT spec. The bug is that there are THREE layers of creation that don't coordinate:
+
+async_setup_entry() → _async_create_trip_sensors() → creates and registers with async_add_entities() (correct - in registry)
+async_create_trip_sensor() → creates sensor stored in hass.data[...]["trip_sensors"] but NEVER calls async_add_entities() (orphan objects)
+async_remove_trip_sensor() → only deletes from dict, doesn't clean registry
+This is a critical bug - trip sensors created after initial setup are orphans in the Python runtime but not visible in HA UI.
+
+So the user wants:
+
+This spec: Full architectural refactor per CODEGUIDELINESia.md v2 (Option B for EMHASS - simple fix, remove async_set path)
+Separate spec: TripSensor orphan bug (more urgent)
+Let me ask about creating the separate TripSensor spec and then focus on the design for this current spec.
+
+Actually, I should ask: should I create the TripSensor spec immediately (more urgent), or should we complete this spec first then do TripSensor?
+
+The user said TripSensor is "más urgente" (more urgent). But they also said the architectural refactor is needed to stop the constant pain.
+
+I should clarify the priority order.
+
+Excellent clarification. So we have two distinct problems:
+
+EMHASS fix is simple: Remove hass.states.async_set() path from emhass_adapter.py, make publish_deferrable_loads() call coordinator.async_request_refresh() instead. EmhassDeferrableLoadSensor is already correct — just leave it as sole source of truth.
+
+TripSensor is a separate critical bug: Three-layer creation that doesn't coordinate, causing orphaned sensors in Python memory but not in HA UI.
+
+Question 4 — Priority:
+
+You said TripSensor is "más urgente" (more urgent). We have two options:
+
+A) Create TripSensor spec NOW, then return to this spec — The orphan bug is critical and quick to fix (just need to call async_add_entities properly). This spec continues in background.
+
+B) Do this architectural refactor FIRST, then TripSensor — Full CODEGUIDELINESia.md v2 refactor, then fix TripSensor as part of it or after.
+
+C) Parallel specs — Run both simultaneously with separate agents.
+
+Which priority?
+
+Vamos a tratarlo todo dentro de la mismas spec . la fase de diseño se ocupara de priorizar una sobre otra. Pero todo va en la misma spec
+The user wants everything in one spec. The design phase will prioritize between EMHASS fix and TripSensor fix. So we should proceed with the brainstorming and then move to design where prioritization happens.
+
+Let me update the todo and move to the next clarifying question about the scope of the refactor.
+
+Update Todos
+
+Explore project context - understand current codebase structure
+
+Ask clarifying questions about regression scope
+
+Ask about implementation approach (bottom-up vs top-down)
+
+Analyze logs for patterns
+
+Research HA core entity lifecycle patterns
+
+Propose 2-3 approaches with tradeoffs
+
+Present design sections
+
+Write design doc
+
+Spec self-review and user review
+
+Transition to implementation plan
+Now I need to understand the user's preferences for implementation approach. The user wants to do full architectural refactor following CODEGUIDELINESia.md v2, with two main fixes (EMHASS + TripSensor) prioritized by the design phase.
+
+But I need to understand if they prefer a bottom-up or top-down approach to the refactor.
+
+Good. Now let me understand the implementation approach.
+
+Question 5 — Implementation strategy:
+
+We have three components to refactor/fix:
+
+TripPlannerSensors (RecurringTripsCountSensor, etc.) — Need unique_id + CoordinatorEntity + definitions.py
+EMHASS — Remove async_set path, use coordinator.async_request_refresh()
+TripSensor — Fix async_add_entities coordination
+We have two implementation strategies:
+
+A) Bottom-up (safer, incremental) — Fix TripSensor first (smallest, contained), then EMHASS (single file), then TripPlannerSensor refactor (largest change). Each layer works before adding next.
+
+B) Top-down (architectural) — Create definitions.py, refactor all TripPlannerSensors to single TripPlannerSensor class, then fix TripSensor + EMHASS using the new architecture. More rework upfront but cleaner result.
+
+C) Inside-out — Start with __init__.py refactor (extract services, create coordinator.py), then fix all sensor issues using new structure. Most thorough but most complex.
+
+Which approach for the implementation?
+
+CODEGUIDELINESia.md
+El plan concreto en 5 fases
+Fase 0 — Tests de regresión 
+Antes de tocar nada, escribe tests de integración que ejerciten el comportamiento actual (aunque roto). Esto crea una red de seguridad. Si algo que funcionaba se rompe durante el refactor, los tests lo detectan inmediatamente.
+
+Fase 1 — definitions.py + arquitectura base 
+Crear definitions.py con SensorEntityDescription para los 7 sensores TripPlanner y un único TripPlannerSensor(CoordinatorEntity) que los reemplaza a todos. Resultado: unique_id resuelto, polling eliminado, MagicMock eliminado. Esta fase no toca servicios ni EMHASS — sólo sensores estáticos.
+
+Fase 2 — TripSensor ciclo de vida 
+Guardar el callable async_add_entities en hass.data[DATA_RUNTIME][namespace]["async_add_entities"] durante el async_setup_entry. Todos los servicios que crean/eliminan viajes usan ese callable. Añadir entity_registry.async_remove() en async_remove_trip_sensor. Esta fase es independiente de la Fase 1 — si algo sale mal, se puede revertir sin afectar los sensores.
+
+Fase 3 — EMHASS path único
+Eliminar todas las llamadas a hass.states.async_set() en emhass_adapter.py. Hacer que publish_deferrable_loads() llame a coordinator.async_request_refresh(). EmhassDeferrableLoadSensor ya existe y está bien construido — sólo hay que dejarlo ser el único escritor.
+
+Fase 4 — __init__.py extracción 
+Con todo lo anterior funcionando, extraer los servicios a services.py y el coordinator a coordinator.py. El __init__.py queda con solo lifecycle (setup/teardown). Esta fase es cosmética desde el punto de vista funcional pero es lo que convierte el código en mantenible a largo plazo.
+
+Fase 5 — Cleanup global 
+Eliminar todos los legacy fallbacks de namespace (ev_trip_planner_, hass.data[DOMAIN]), eliminar from unittest.mock import MagicMock, eliminar _LOGGER.warning de código de producción que son restos de debug.
+The user has given a very concrete 5-phase plan. This is excellent - it's exactly the kind of clear direction that allows proper planning. Let me confirm this is the plan and then present it as the design.
+
+This is a complete plan:
+
+Phase 0: Regression tests first (safety net)
+Phase 1: definitions.py + base architecture (unique_id, CoordinatorEntity, no MagicMock)
+Phase 2: TripSensor lifecycle (fix async_add_entities coordination)
+Phase 3: EMHASS single path (remove async_set, use coordinator.refresh)
+Phase 4: init.py extraction (services.py, coordinator.py)
+Phase 5: Global cleanup (legacy fallbacks, MagicMock, debug logs)
+This is a clear, phased approach. I should now:
+
+Propose approaches if needed (but user already gave explicit plan)
+Present the design
+Get approval
+Actually the user just gave me the plan directly - this is a clear directive. I should confirm I understand and present it as the design to get approval, then proceed to write the design doc and move to implementation planning.
+
+Excellent — that's a clear, well-sequenced plan. Let me summarize and ask one final question before presenting the design.
+
+5-Phase Plan Confirmed:
+
+Phase	Focus	Goal
+0	Regression tests	Safety net before any changes
+1	definitions.py + base architecture	Single TripPlannerSensor class, unique_id, CoordinatorEntity, no MagicMock
+2	TripSensor lifecycle	Fix async_add_entities coordination + entity_registry.async_remove()
+3	EMHASS single path	Remove async_set, use coordinator.async_request_refresh()
+4	__init__.py extraction	Extract to services.py + coordinator.py
+5	Global cleanup	Remove legacy fallbacks, MagicMock, debug logs
+Question 6 — Phase 0 test scope:
+
+Before we write the design, I need to understand the regression tests:
+
+What should the Phase 0 tests cover? The goal is "exercitar el comportamiento actual (aunque roto)" — capture current behavior as baseline.
+
+A) Current behavior via HA API — Tests that use hass.states.async_get() to verify actual sensor states exist and have certain attributes (before and after operations like creating trips, changing SOC, etc.)
+
+B) Entity lifecycle tests — Tests that verify sensor creation/deletion behavior via entity registry (er.async_get().async_entries_for_config_entry())
+
+C) Full E2E via HA API — Tests that call actual service handlers (trip_list, add_trip, etc.) and verify the resulting sensor states
+
+D) All of the above — Comprehensive regression suite covering A + B + C
+
+Which test scope for Phase 0?
+
+Opción D, pero con prioridades muy claras
+No son equivalentes. Ordénalos así:
+
+Tier 1 — Añadir ahora mismo (antes del refactor)
+Tests de Entity Registry lifecycle (Opción B) — estos son los que más faltan y los que detectarían exactamente los bugs que tienes: Ejmplos :"# Lo que debería existir y no existe:
+
+async def test_sensor_unique_id_exists_after_setup(hass, config_entry):
+    """Cada sensor debe tener unique_id en el Entity Registry."""
+    er = entity_registry.async_get(hass)
+    entries = er.async_entries_for_config_entry(config_entry.entry_id)
+    assert len(entries) == 8  # los 8 sensores del vehículo
+    for entry in entries:
+        assert entry.unique_id is not None
+
+async def test_sensor_removed_after_unload(hass, config_entry):
+    """Al eliminar la integración, los sensores deben desaparecer del registry."""
+    er = entity_registry.async_get(hass)
+    await hass.config_entries.async_unload(config_entry.entry_id)
+    entries = er.async_entries_for_config_entry(config_entry.entry_id)
+    assert len(entries) == 0  # ← este test FALLA ahora mismo
+
+async def test_trip_sensor_created_in_registry_after_add(hass, config_entry):
+    """Al añadir un viaje, debe crearse un TripSensor en el Entity Registry."""
+    er = entity_registry.async_get(hass)
+    await hass.services.async_call(DOMAIN, "add_recurring_trip", {...})
+    entries = er.async_entries_for_config_entry(config_entry.entry_id)
+    trip_sensors = [e for e in entries if "trip_" in e.unique_id]
+    assert len(trip_sensors) == 1  # ← este test FALLA ahora mismo
+
+async def test_trip_sensor_removed_from_registry_after_delete(hass, config_entry):
+    """Al eliminar un viaje, su sensor debe desaparecer del Entity Registry."""
+    # setup: añadir viaje
+    # act: eliminar viaje
+    # assert: registry limpio
+    # ← este test FALLA ahora mismo" ,  Estos 4 tests capturan exactamente los 3 bugs principales. Fallan hoy. Pasan después del refactor. Son tu definición de "done".
+
+Tier 2 — Los E2E que ya tienes cubren esto
+Los 16 tests E2E ya cubren el CRUD de viajes y el config flow. No los toques. Son tu red de seguridad para que el refactor no rompa funcionalidad existente.
+
+Tier 3 — No priorizar ahora
+Los tests de hass.states.async_get() (Opción A) y los E2E adicionales (Opción C) tienen valor, pero no son el gap. El gap es exactamente el Tier 1.  Esto es lo que en la industria se llama characterization tests — tests que documentan el comportamiento roto actual para que el refactor tenga un target claro. No testeas que el código está bien, testeas que después del refactor hace lo que debe hacer.
+The user has clarified the test priorities clearly:
+
+Tier 1 (Priority): Entity Registry lifecycle tests - these are the critical gap and will detect the exact bugs
+Tier 2: Existing E2E tests (16 of them) - already cover trip CRUD and config flow
+Tier 3: Not a priority right now
+The user also introduced the concept of "characterization tests" - tests that document current broken behavior so the refactor has a clear target.
+
+Now I have enough information to present the design. The brainstorming phase is essentially complete - I have:
+
+Clear problem understanding (orphaned sensors, EMHASS dual-path, TripSensor lifecycle)
+Full 5-phase implementation plan
+Clear test priorities (Tier 1 focus)
+Let me now propose the 2-3 approaches (as required by brainstorming) and then present the design sections.
+
+The approaches I should present:
+
+Full bottom-up implementation (what the user described)
+Maybe a variation with different test strategy
+But the user's plan is already so well defined that the approaches might be more about scope/timing
+Actually, the user has given me a very detailed 5-phase plan. The approaches might be:
+
+Execute the 5 phases exactly as described (what the user outlined)
+Some variation in ordering or scope
+Let me present the design sections now since we've been through extensive clarification.
+
+Perfect — clear prioritization. Tier 1 tests are the target. Now let me present the design.
+
+Design Presentation
+Section 1: Architecture Overview
+Target structure:
+
+
+custom_components/ev_trip_planner/
+├── __init__.py              # <150 lines: lifecycle only
+├── definitions.py           # NEW: TripSensorEntityDescription + TRIP_SENSORS
+├── coordinator.py           # NEW: TripPlannerCoordinator
+├── sensor.py                # MODIFIED: TripPlannerSensor + EmhassDeferrableLoadSensor
+├── services.py              # NEW: extracted from __init__.py
+├── emhass_adapter.py        # MODIFIED: remove async_set, use coordinator refresh
+├── trip_manager.py          # KEPT: business logic, minimal changes
+├── config_flow.py           # KEPT: with version=2 migration
+├── diagnostics.py           # NEW: async_get_config_entry_diagnostics
+└── ...rest
+Data flow (single path, no exceptions):
+
+
+Service call → services.py handler
+           → trip_manager.async_X_trip()
+           → coordinator.async_request_refresh()
+           → coordinator._async_update_data()
+           → coordinator.data updated
+           → CoordinatorEntity listeners notified
+           → TripPlannerSensor.native_value reads coordinator.data
+           → HA UI updated
+Section 2: Phase-by-Phase Breakdown
+Phase 0 — Characterization Tests
+Write 4 tests that FAIL today but define "done":
+
+test_sensor_unique_id_exists_after_setup — 8 sensors with unique_id
+test_sensor_removed_after_unload — 0 sensors after unload (FAILS now)
+test_trip_sensor_created_in_registry_after_add — TripSensor in registry (FAILS now)
+test_trip_sensor_removed_from_registry_after_delete — clean deletion (FAILS now)
+Phase 1 — definitions.py + base architecture
+
+Create definitions.py with TripSensorEntityDescription dataclass
+Define 7 sensor descriptors as data (not classes)
+Single TripPlannerSensor(coordinator, vehicle_id, description) class
+All 7 sensors become instances of ONE class with different descriptions
+_attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}" — deterministico, sin magic
+Remove async_update() polling — sensors read from coordinator.data via value_fn
+Delete MagicMock usage from sensor.py
+Phase 2 — TripSensor lifecycle
+
+Store async_add_entities callable in hass.data[DOMAIN][entry_id]["async_add_entities"] during setup
+Services use stored callable instead of creating orphaned objects
+Add entity_registry.async_remove() in async_remove_trip_sensor()
+TripSensor class uses same CoordinatorEntity pattern
+Phase 3 — EMHASS single path
+
+Remove ALL hass.states.async_set() calls from emhass_adapter.py
+publish_deferrable_loads() replaced with coordinator.async_request_refresh()
+EmhassDeferrableLoadSensor remains as-is — sole source of truth
+Add entry_id attribute to sensor attributes for orphan detection
+Phase 4 — init.py extraction
+
+Extract service handlers to services.py
+Extract coordinator creation to coordinator.py
+__init__.py becomes: PLATFORMS, EVTripRuntimeData dataclass, async_setup_entry, async_unload_entry, async_remove_entry, async_migrate_entry
+Use entry.runtime_data instead of hass.data[DATA_RUNTIME]
+Phase 5 — Global cleanup
+
+Remove all f"ev_trip_planner_{entry_id}" legacy patterns
+Remove MagicMock imports from production code
+Replace WARNING debug spam with DEBUG level logs
+Add diagnostics.py for HA Quality
+Section 3: Key Risks & Mitigations
+Risk	Mitigation
+Phase 1 refactor breaks existing sensors	Phase 0 tests catch immediately
+TripSensor registry changes affect other sensors	Phase 2 isolated from Phase 1
+EMHASS loses data during transition	Phase 3 is cutover, not gradual
+__init__.py extraction causes regression	All phases verified by Phase 0 tests
+Section 4: Test Strategy
+Phase 0 (characterization) → Phase 1-5 (verification)
+
+Phase 0 tests define "done" for each phase
+After each phase: run Phase 0 tests, ensure no regression
+Final verification: all 4 Phase 0 tests must pass
+Existing E2E (Tier 2) — untouched
+
+16 E2E tests cover trip CRUD + config flow
+Run after each phase to catch functional regressions
