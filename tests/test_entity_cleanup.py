@@ -20,6 +20,12 @@ from custom_components.ev_trip_planner.const import (
 
 
 @pytest.fixture
+def enable_custom_integrations():
+    """Enable custom integrations for testing."""
+    return True
+
+
+@pytest.fixture
 def mock_store():
     """Create a mock store for testing."""
     store = MagicMock()

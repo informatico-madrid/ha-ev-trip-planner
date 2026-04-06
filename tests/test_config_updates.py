@@ -19,6 +19,12 @@ from custom_components.ev_trip_planner.const import (
 
 
 @pytest.fixture
+def enable_custom_integrations():
+    """Enable custom integrations for testing."""
+    return True
+
+
+@pytest.fixture
 def mock_store():
     """Create a mock store for testing."""
     store = MagicMock()
@@ -126,11 +132,16 @@ async def test_no_republish_when_no_change(mock_hass: HomeAssistant, mock_store)
 
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
 
+        # Mock publish_deferrable_loads to track calls
+        adapter.publish_deferrable_loads = AsyncMock()
+
         # Execute: Call update_charging_power with no change
         await adapter.update_charging_power()
 
         # Verify: Power remains unchanged
         assert adapter._charging_power_kw == 7.4
+        # Verify: publish_deferrable_loads NOT called because power unchanged
+        adapter.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio
