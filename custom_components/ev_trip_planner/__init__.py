@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeAlias
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -119,7 +119,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         trip_manager.set_emhass_adapter(emhass_adapter)
 
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady:
+        raise  # Re-raise to allow HA's built-in retry mechanism
     await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)
 
     # Store runtime data using entry.runtime_data (HA-recommended pattern)
