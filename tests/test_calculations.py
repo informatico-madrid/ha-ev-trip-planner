@@ -120,23 +120,63 @@ class TestCalculateTripTime:
         # Should be next Monday (April 13)
         assert result.date() == ref.date() + timedelta(days=7)
 
-    def test_punctual_trip(self):
-        """Punctual trip returns parsed datetime."""
+    def test_punctual_trip_with_seconds_format(self):
+        """Punctual trip with seconds in datetime string uses second strptime format (line 125)."""
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
 
         ref = datetime(2026, 4, 6, 8, 0)
+        # With seconds format - should fallback from %Y-%m-%dT%H:%M to %Y-%m-%dT%H:%M:%S
         result = calculate_trip_time(
             trip_tipo=TRIP_TYPE_PUNCTUAL,
             hora=None,
             dia_semana=None,
-            datetime_str="2026-04-10T14:30",
+            datetime_str="2026-04-10T14:30:45",
             reference_dt=ref,
         )
         assert result is not None
         assert result.date() == datetime(2026, 4, 10).date()
         assert result.hour == 14
         assert result.minute == 30
+        assert result.second == 45
+
+    def test_punctual_trip_invalid_datetime_raises_value_error(self):
+        """Punctual trip with invalid datetime raises ValueError (both formats fail)."""
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        ref = datetime(2026, 4, 6, 8, 0)
+        # Invalid datetime fails both parse attempts -> ValueError propagates
+        with pytest.raises(ValueError):
+            calculate_trip_time(
+                trip_tipo=TRIP_TYPE_PUNCTUAL,
+                hora=None,
+                dia_semana=None,
+                datetime_str="not-a-date-at-all",
+                reference_dt=ref,
+            )
+
+    def test_recurring_trip_invalid_hora_raises_value_error(self):
+        """Recurring trip with malformed hora raises ValueError (line 115)."""
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        ref = datetime(2026, 4, 6, 8, 0)  # Monday
+        # hora with non-numeric hour -> hour=0 from exception, but then datetime.strptime fails
+        with pytest.raises(ValueError):
+            calculate_trip_time(
+                trip_tipo=TRIP_TYPE_RECURRING,
+                hora="not-a-time",
+                dia_semana="lunes",
+                datetime_str=None,
+                reference_dt=ref,
+            )
+
+    def test_day_index_empty_string_returns_default(self):
+        """calculate_day_index with empty string returns default 0 (line 64)."""
+        from custom_components.ev_trip_planner.calculations import calculate_day_index
+        result = calculate_day_index("")
+        assert result == 0  # Default Monday
 
     def test_unknown_tipo_returns_none(self):
         """Unknown trip tipo returns None."""
