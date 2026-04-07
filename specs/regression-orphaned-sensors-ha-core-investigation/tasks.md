@@ -578,7 +578,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Verify**: `grep -A2 "async_update_entry" custom_components/ev_trip_planner/__init__.py` — should show `version=2`
   - **Commit**: `fix(init): persist version=2 in async_update_entry to prevent re-migration on every startup`
 
-- [ ] C3-FIX run_until_complete deadlock risk in _get_manager
+- [x] C3-FIX run_until_complete deadlock risk in _get_manager
   - **Bug**: services.py:753 `hass.loop.run_until_complete(trip_manager.async_setup())` inside sync function `_get_manager`. If called from async context (which it is — service handlers are async), this causes RuntimeError/deadlock.
   - **Fix**: Make `_get_manager` async (`async def _get_manager`) and use `await trip_manager.async_setup()`. Update all callers to await it.
   - **Files**: services.py (function + callers: handle_trip_create, handle_trip_update, handle_delete_trip)
@@ -675,25 +675,73 @@ no sabía cómo testear.
 | m14 | docs/TDD_METHODOLOGY.md:317-330 | `spec=` vs `wraps=` | ❌ FALSO POSITIVO | Documentación técnica |
 | m15 | Múltiples tests | Pylint E0611 imports custom_components | ❌ FP PERO SOLUCIONABLE | PYTHONPATH — tarea LINT-FIX creada |
 
-### TAREAS CREADAS DE ESTA AUDITORÍA
+### TAREAS CREADAS DE ESTA AUDITORÍA (ordenadas por prioridad)
 
-- [ ] PRAGMA-ALL Remove all 17 `# pragma: no cover` from exception handlers and replace with proper tests
-  - **Do**: Remove ALL `# pragma: no cover` comments. For each removed, create an integration test that exercises the error path:
-    - **config_flow.py** (2): Use integration tests with mocked dashboard/panel modules that raise
-    - **trip_manager.py** (3): Create `FakeEMHASSAdapter` with methods that raise on demand. Test: sync, remove, publish error paths.
-    - **services.py** (5): Integration tests with mocked dependencies that raise. Use `FakeEntry`, `FakeTripManager`, `FakeRegistry`.
-    - **sensor.py** (1): Integration test: `async_create_trip_sensor` with `async_add_entities` that raises.
-    - **dashboard.py** (6): Create `FakeStorage` class (not MagicMock) with `read()`/`write()` that raise. Test template load, storage API, YAML fallback paths.
-  - **Testing strategy**: 
-    - Use **Fakes over Mocks**: Real classes with minimal interfaces (FakeStorage, FakeEMHASSAdapter)
-    - Use **Fixtures**: `@pytest.fixture` that provides failing dependencies
-    - Use **Parameterized tests**: `@pytest.mark.parametrize` for multiple error scenarios
-    - Use **Integration tests**: Test the full chain (service → trip_manager → adapter), not individual mock calls
-  - **Done when**: `grep -r "pragma: no cover" custom_components/` returns 0 results AND coverage ≥ 85%
-  - **Files**: ALL 5 files + new test file `tests/test_error_paths_integration.py`
-  - **Verify**: `grep -c "pragma: no cover" custom_components/ev_trip_planner/*.py` — all 0
-  - **Commit**: `test: remove 17 pragma:no cover markers, add integration tests for error paths`
-  - **⚠️ RATIONALE**: The agent used `pragma: no cover` as an escape hatch for not knowing how to test error paths. Every exception handler CAN be tested with proper integration test patterns. This is not a structural limitation — it's a knowledge gap.
+### 🔴 CRÍTICOS — Correctitud (resolver primero, todos son pequeños)
+
+- [ ] C2-FIX Versión no persiste en async_migrate_entry
+  - **Bug**: __init__.py:89 calls `hass.config_entries.async_update_entry(entry, data=new_data)` but does NOT pass `version=2`. Entry stays at version=1 forever, so migration re-runs on every HA startup.
+  - **Fix**: Change line 89 to `hass.config_entries.async_update_entry(entry, data=new_data, version=2)`
+  - **Verify**: `grep -A2 "async_update_entry" custom_components/ev_trip_planner/__init__.py` — should show `version=2`
+  - **Commit**: `fix(init): persist version=2 in async_update_entry to prevent re-migration on every startup`
+
+- [ ] C3-FIX run_until_complete deadlock risk in _get_manager
+  - **Bug**: services.py:753 `hass.loop.run_until_complete(trip_manager.async_setup())` inside sync function `_get_manager`. If called from async context (which it is — service handlers are async), this causes RuntimeError/deadlock.
+  - **Fix**: Make `_get_manager` async (`async def _get_manager`) and use `await trip_manager.async_setup()`. Update all callers to await it.
+  - **Files**: services.py (function + callers: handle_trip_create, handle_trip_update, handle_delete_trip)
+  - **Verify**: `grep "run_until_complete" custom_components/ev_trip_planner/services.py` — zero results
+  - **Commit**: `fix(services): replace run_until_complete with await in async _get_manager`
+
+- [ ] C4-FIX er.async_entries_for_config_entry llamado con args incorrectos
+  - **Bug**: services.py:1182 `er.async_entries_for_config_entry(hass, DOMAIN)` — La firma correcta es `async_entries_for_config_entry(entity_registry, config_entry_id)`. `hass` no es un entity registry.
+  - **Fix**: `registry = er.async_get(hass); entries = er.async_entries_for_config_entry(registry, entry.entry_id)`
+  - **Files**: services.py function `async_cleanup_orphaned_emhass_sensors`
+  - **Verify**: `grep "async_entries_for_config_entry" custom_components/ev_trip_planner/services.py` — should use `er.async_get(hass)` as first arg
+  - **Commit**: `fix(services): fix async_entries_for_config_entry call to use entity_registry not hass`
+
+- [ ] C5-FIX register_static_path argumentos intercambiados (línea 1293)
+  - **Bug**: services.py:1293 `hass.http.register_static_path(path_spec.path, path_spec.url_path)` — arguments are swapped. Should be `(url_path, path)`.
+  - **Fix**: Change to `hass.http.register_static_path(path_spec.url_path, path_spec.path)`
+  - **Verify**: Check Home Assistant API: `register_static_path(url_path: str, path: str)` — first arg is URL path, second is filesystem path
+  - **Commit**: `fix(services): swap url_path and path arguments in register_static_path call`
+
+- [ ] C6-FIX self.trip_manager no existe en EmhassDeferrableLoadSensor
+  - **Bug**: sensor.py:194-195 references `self.trip_manager` in `EmhassDeferrableLoadSensor.async_will_remove_from_hass()`. But `EmhassDeferrableLoadSensor.__init__` only sets `self.coordinator` and `self._entry_id` — no `trip_manager` attribute. This causes AttributeError on entity removal.
+  - **Fix**: Access trip_manager via `self.coordinator.trip_manager` (if exists) or pass it in __init__. Alternative: move cleanup to coordinator level.
+  - **Verify**: `python -c "from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor; s = EmhassDeferrableLoadSensor.__new__(EmhassDeferrableLoadSensor); print(hasattr(s, 'trip_manager'))"` — should be False (confirms bug)
+  - **Commit**: `fix(sensor): fix trip_manager reference in EmhassDeferrableLoadSensor cleanup`
+
+### 🟠 MEDIO — Cobertura de error paths (3 sub-tareas)
+
+- [ ] PRAGMA-A Handlers de servicios — Mock(side_effect) para error paths (10 casos)
+  - **Archivos**: `services.py` (5), `trip_manager.py` (3), `sensor.py` (1), `config_flow.py` (2 — dashboard import + panel registration)
+  - **Do**: Remove `# pragma: no cover` from each. Create tests using `AsyncMock(side_effect=Exception("forced error"))` on the dependency that the handler calls.
+  - **Criterio de aceptación**: Cada test debe verificar (en este orden):
+    1. La excepción no se propaga al llamante (el handler la captura)
+    2. `_LOGGER.error/warning` se llama con el mensaje apropiado
+    3. El handler retorna un valor consistente (None, dict con "error":..., o False)
+    4. El estado interno del objeto se mantiene consistente después del error
+  - **Testing strategy**: `FakeTripManager` con métodos que raise on demand, `FakeEMHASSAdapter` con side_effect, integration tests con `AsyncMock(side_effect=...)`.
+  - **Verify**: `grep -c "pragma: no cover" custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/sensor.py custom_components/ev_trip_planner/config_flow.py` — all 0
+  - **Commit**: `test: add error path tests for service handlers (PRAGMA-A)`
+
+- [ ] PRAGMA-B File system / registry — patch de OS/HA para error paths (4 casos)
+  - **Archivos**: `services.py` (2: entity cleanup, panel unregister), `dashboard.py` (6: template load, storage API, YAML fallback)
+  - **Do**: Remove `# pragma: no cover`. Create tests using `patch("os.unlink", side_effect=PermissionError)`, `patch.object(registry, "async_entries_for_config_entry", side_effect=Exception(...))`, `FakeStorage` con métodos que raise.
+  - **Criterio de aceptación**: Cada test debe verificar que tras el error del FS/registry, el código mantiene estado consistente y loguea apropiadamente.
+  - **Verify**: `grep -c "pragma: no cover" custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/dashboard.py` — all 0
+  - **Commit**: `test: add error path tests for file system and registry operations (PRAGMA-B)`
+
+- [ ] PRAGMA-C Evaluar casos genuinamente difíciles (3 casos restantes)
+  - **Archivos**: `dashboard.py` (líneas 459, 500, 701 — storage API exception handling, YAML fallback, dashboard config load)
+  - **Do**: Para cada uno, evaluar si es testeable razonablemente:
+    - Si SÍ: escribir test con Fake y quitar pragma
+    - Si NO: sustituir `# pragma: no cover` por `# pytest.mark.integration` con comentario explicando por qué requiere HA real
+  - **Criterio**: No más de 1 caso debe quedar sin test. Si 2+ son "genuinamente difíciles", documentar la limitación en TDD_METHODOLOGY.md.
+  - **Verify**: `grep -c "pragma: no cover" custom_components/ev_trip_planner/` — total across all files should be ≤ 1
+  - **Commit**: `test: evaluate remaining hard-to-test error paths (PRAGMA-C)`
+
+### 🟡 MENORES — Cosmético, limpieza (resolver al final)
 
 - [ ] M1-FIX Use concrete type for trip_manager in coordinator.py
   - **Bug**: coordinator.py:48 `trip_manager: Any` should be `trip_manager: TripManager`
@@ -738,13 +786,6 @@ no sabía cómo testear.
   - **Bug**: .github/copilot-instructions.md:36 "implmenting" → "implementing"
   - **Fix**: Correct the typo
   - **Commit**: `docs: fix typo implmenting → implementing`
-
-- [ ] C8-FIX async_register_panel called without await in panel_custom.py
-  - **Bug**: panel_custom.py calls `async_register_panel(...)` without `await`. `async_register_panel` is a coroutine (`inspect.iscoroutinefunction` returns True). Calling without await creates the coroutine but never executes it — panel is never registered.
-  - **Fix**: Change `async_register_panel(` to `await async_register_panel(` in panel_custom.py:async_setup()
-  - **Files**: `custom_components/ev_trip_planner/panel_custom.py`
-  - **Verify**: `grep -n "async_register_panel" custom_components/ev_trip_planner/panel_custom.py` — all calls should be `await async_register_panel(`
-  - **Commit**: `fix(panel): await async_register_panel coroutine in panel_custom.py`
 
 - [ ] LINT-FIX Fix Pylint E0611 globally for custom_components imports
   - **Problem**: Pylint reports E0611 (no-name-in-module) for `from custom_components.ev_trip_planner import ...` in test files because Pylint doesn't know the project root is in PYTHONPATH.

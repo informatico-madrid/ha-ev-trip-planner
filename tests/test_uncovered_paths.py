@@ -395,7 +395,8 @@ class TestFindEntryByVehicle:
 class TestGetManager:
     """Tests for _get_manager helper."""
 
-    def test_raises_when_entry_not_found(self):
+    @pytest.mark.asyncio
+    async def test_raises_when_entry_not_found(self):
         """Raises ValueError when no config entry exists for vehicle."""
         from custom_components.ev_trip_planner.services import _get_manager
 
@@ -403,4 +404,4 @@ class TestGetManager:
         mock_hass.config_entries.async_entries = MagicMock(return_value=[])
 
         with pytest.raises(ValueError, match="not found in config entries"):
-            _get_manager(mock_hass, "unknown_vehicle")
+            await _get_manager(mock_hass, "unknown_vehicle")

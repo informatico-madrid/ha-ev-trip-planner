@@ -34,7 +34,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle adding a recurring trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await mgr.async_add_recurring_trip(
             dia_semana=data["dia_semana"],
             hora=data["hora"],
@@ -52,7 +52,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle adding a punctual trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await mgr.async_add_punctual_trip(
             datetime_str=data["datetime"],
             km=float(data["km"]),
@@ -75,7 +75,7 @@ def register_services(hass: HomeAssistant) -> None:
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_type = data.get("type", data.get("trip_type", "recurrente"))
-        mgr = _get_manager(hass, vehicle_id)  # Raises if vehicle not found
+        mgr = await _get_manager(hass, vehicle_id)  # Raises if vehicle not found
 
         if trip_type == "recurrente":
             # Create recurring trip
@@ -182,7 +182,7 @@ def register_services(hass: HomeAssistant) -> None:
             _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
             return
 
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_update_trip(trip_id, updates)
 
@@ -214,7 +214,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle editing a trip (deprecated alias for trip_update)."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_update_trip(str(data["trip_id"]), dict(data["updates"]))
         # Refresh coordinator using vehicle_id
@@ -232,7 +232,7 @@ def register_services(hass: HomeAssistant) -> None:
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_id = str(data["trip_id"])
-        mgr = _get_manager(hass, vehicle_id)  # Raises if vehicle not found
+        mgr = await _get_manager(hass, vehicle_id)  # Raises if vehicle not found
         await _ensure_setup(mgr)
 
         # Delete the trip (sensor removal handled internally by async_delete_trip)
@@ -248,7 +248,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle pausing a recurring trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_pause_recurring_trip(str(data["trip_id"]))
         # Refresh coordinator using vehicle_id
@@ -261,7 +261,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle resuming a recurring trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_resume_recurring_trip(str(data["trip_id"]))
         # Refresh coordinator using vehicle_id
@@ -274,7 +274,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle completing a punctual trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_complete_punctual_trip(str(data["trip_id"]))
         # Refresh coordinator using vehicle_id
@@ -287,7 +287,7 @@ def register_services(hass: HomeAssistant) -> None:
         """Handle cancelling a punctual trip."""
         data = call.data
         vehicle_id = data["vehicle_id"]
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
         await mgr.async_cancel_punctual_trip(str(data["trip_id"]))
         # Refresh coordinator using vehicle_id
@@ -440,7 +440,7 @@ def register_services(hass: HomeAssistant) -> None:
     async def handle_import_weekly_pattern(call: ServiceCall) -> None:
         """Handle importing a weekly pattern."""
         data = call.data
-        mgr = _get_manager(hass, data["vehicle_id"])
+        mgr = await _get_manager(hass, data["vehicle_id"])
         await _ensure_setup(mgr)
 
         clear_existing = bool(data.get("clear_existing", True))
@@ -480,7 +480,7 @@ def register_services(hass: HomeAssistant) -> None:
         vehicle_id = data.get("vehicle_id", "unknown")
         _LOGGER.warning("=== trip_list SERVICE CALLED === vehicle: %s", vehicle_id)
 
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         # _get_manager already calls async_setup which loads trips from storage
         _LOGGER.warning("=== _get_manager returned manager ===")
         _LOGGER.warning(
@@ -612,7 +612,7 @@ def register_services(hass: HomeAssistant) -> None:
             trip_id,
         )
 
-        mgr = _get_manager(hass, vehicle_id)
+        mgr = await _get_manager(hass, vehicle_id)
         _LOGGER.warning("=== _get_manager returned manager ===")
 
         try:
@@ -706,7 +706,7 @@ def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
     return None
 
 
-def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
+async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
     """Get or create TripManager for vehicle."""
     _LOGGER.info("=== _get_manager START - vehicle_id: %s ===", vehicle_id)
     entry = _find_entry_by_vehicle(hass, vehicle_id)
@@ -750,7 +750,7 @@ def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
             _LOGGER.info(
                 "=== _get_manager - Calling hass.loop.run_until_complete(trip_manager.async_setup()) ==="
             )
-            hass.loop.run_until_complete(trip_manager.async_setup())
+            await trip_manager.async_setup()
             _LOGGER.info(
                 "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ===",
                 len(trip_manager._recurring_trips),
