@@ -239,6 +239,16 @@
   - **Commit**: `refactor(phase-4): use entry.runtime_data instead of hass.data[DATA_RUNTIME]`
   - _Requirements: FR-13_
 
+- [ ] 4.4 [CLEANUP] Remove or fix `_get_emhass_adapter` returning None
+  - **Problem**: In `services.py`, `_get_emhass_adapter()` always returns `None` because the EMHASS adapter is stored in `entry.runtime_data.emhass_adapter` but the function has a comment saying "Return None - this function's contract may need redesign". This is dead code that may mislead future developers.
+  - **Do**: Check if `_get_emhass_adapter` is actually called anywhere in services.py:
+    1. If **called**: Wire it properly to return `entry.runtime_data.emhass_adapter` (same pattern as `_get_coordinator`)
+    2. If **not called**: Delete the function entirely — dead code with misleading return value
+  - **Files**: `custom_components/ev_trip_planner/services.py`
+  - **Done when**: Either (a) function returns real adapter, or (b) function is deleted and no callers reference it
+  - **Verify**: `grep "_get_emhass_adapter" custom_components/ev_trip_planner/services.py` — only the definition should appear (or zero results if deleted)
+  - **Commit**: `refactor(services): remove dead _get_emhass_adapter function` OR `fix(services): wire _get_emhass_adapter to entry.runtime_data.emhass_adapter`
+
 - [x] V4 [VERIFY] Quality checkpoint: Phase 4 full test suite
   - **Do**: Run full test suite to verify no regressions from extraction
   - **Verify**: `.venv/bin/pytest tests/ -v --ignore=tests/e2e --ignore=tests/ha-manual -x 2>&1 | tail -30`
@@ -302,6 +312,38 @@
   - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥85%
   - **Commit**: `chore(phase-5): final quality checkpoint - full suite passes`
   - **⚠️ REVIEWER NOTE (agent lowered target from 85% to 77%)**: Agent changed the task's own target from ≥85% to ≥77%. This is NOT acceptable — the agent cannot change its own success criteria. Coverage is 77% (target ≥85%). 787 tests pass ✅. Gap is 2pp. **Remaining uncovered lines**: `services.py` (149 lines, 75%), `sensor.py` (48 lines, 79%), `trip_manager.py` (224 lines, 75%). Priority: write tests for services.py error paths and trip_manager.py EMHASS paths.
+  - **💡 TESTING STRATEGY GUIDE (from reviewer)**:
+    To reach 85% coverage, you need ~290 more lines covered out of 671 missing. Here's the most efficient path:
+
+    **Priority 1: services.py (149 uncovered lines, 75% → need +10%)**
+    - Use **integration-style tests** with real `FakeEntry` + minimal mocks. Most uncovered lines are in `handle_trip_create`, `handle_trip_update`, `handle_delete_trip` error branches.
+    - **Fakes over Mocks**: Create `FakeTripManager` (real class, not MagicMock) with in-memory trip storage. This tests the actual service handler → trip_manager → data flow.
+    - **Fixtures**: Extract reusable `@pytest.fixture` for `mock_hass`, `fake_entry`, `fake_trip_manager`, `fake_coordinator`. Don't repeat setup in every test.
+    - **Target branches**: 
+      - `handle_trip_create` with invalid trip_type (already tested? check test_services_error_paths.py)
+      - `handle_delete_trip` when trip not found (404 branch)
+      - `async_import_dashboard` error paths (YAML write failures)
+      - `async_unregister_panel` with missing panel
+    - **Estimate**: ~15 tests → +10pp coverage on services.py
+
+    **Priority 2: trip_manager.py (224 uncovered lines, 75% → need +5%)**
+    - These are mostly EMHASS optimization paths, trip validation edge cases, and async_delete_all_trips.
+    - **Stubs**: Use `AsyncMock` for EMHASS adapter methods, but keep TripManager real. Test: `async_run_emhass_optimization` success/failure, `async_get_next_trip_after` with malformed times, `async_delete_all_trips`.
+    - **Parameterized tests**: Use `@pytest.mark.parametrize` for trip validation variants (missing fields, invalid types, boundary values). One test function, 10+ data cases.
+    - **Target branches**: EMHASS schedule parsing errors, trip activation/deactivation state machines, presence monitor integration.
+    - **Estimate**: ~20 tests → +5pp on trip_manager.py
+
+    **Priority 3: sensor.py (48 uncovered lines, 91% → need +4%)**
+    - Already well-covered. Remaining lines are `async_create_trip_sensor` error paths and `_async_create_trip_sensors` edge cases.
+    - **Test with real classes**: Use `TripPlannerSensor(coordinator, vehicle_id, description)` with a real `TripPlannerCoordinator` (or a well-designed fake). Test `async_added_to_hass` restore paths.
+    - **Estimate**: ~5 tests → +4pp on sensor.py
+
+    **General principles**:
+    - **Prefer Fakes**: `FakeEntry`, `FakeCoordinator`, `FakeTripManager` — real classes with minimal interfaces. More reliable than MagicMock for integration testing.
+    - **Prefer Integration tests for service handlers**: They call trip_manager which calls coordinator. Test the full chain, not individual mock assertions.
+    - **Avoid Mock-as-Oracle**: Don't test `mock_fn.assert_called_once()`. Test `assert result == expected_value`.
+    - **Use `pytest.mark.parametrize`**: One test function, many input combinations. Much more efficient than separate tests.
+    - **Target**: ~40 new focused tests → +3pp coverage → 85%.
 
 - [x] V5.FIX.1 Service registration integration test — reproduce E2E failure as unit test
   - **Root cause**: Lambda operator precedence bug in definitions.py caused `'NoneType' object has no attribute 'get'` in delete-trip E2E
@@ -367,7 +409,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `test(gap-g09): red - failing test for entity registry migration in async_migrate_entry`
   - _Requirements: R-08_
 
-- [ ] G-09.2 [GREEN] Implement async_migrate_entries for entity registry migration
+- [x] G-09.2 [GREEN] Implement async_migrate_entries for entity registry migration
   - **Do**: In `__init__.py async_migrate_entry`, add `from homeassistant.helpers.entity_registry import async_migrate_entries`. When `current_version < 2`, get vehicle_id from entry.data, then call `async_migrate_entries(hass, entry.entry_id, migrate_unique_id)` where `migrate_unique_id` transforms old-format unique_ids (without vehicle_id) to new format (with vehicle_id prefix).
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: async_migrate_entry migrates both config_entry.data AND entity registry unique_ids
@@ -377,7 +419,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### G-07/G-08: exists_fn + restore: bool + RestoreSensor Implementation (R-02, R-05)
 
-- [ ] G-07.1 [RED] Failing test: TripSensorEntityDescription has exists_fn field
+- [x] G-07.1 [RED] Failing test: TripSensorEntityDescription has exists_fn field
   - **Do**: Write a test in `tests/test_definitions.py` asserting that `TripSensorEntityDescription` has an `exists_fn` callable field that defaults to `lambda _: True`. Also verify that `restore: bool` field exists and defaults to `False`.
   - **Files**: `tests/test_definitions.py`
   - **Done when**: Test fails because current definitions.py TripSensorEntityDescription lacks exists_fn
@@ -385,7 +427,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `test(gap-g07): red - failing test for exists_fn in TripSensorEntityDescription`
   - _Requirements: R-02, R-05_
 
-- [ ] G-07.2 [GREEN] Add exists_fn to TripSensorEntityDescription dataclass
+- [x] G-07.2 [GREEN] Add exists_fn to TripSensorEntityDescription dataclass
   - **Do**: In `definitions.py`, add `exists_fn: Callable[[dict], bool] = lambda _: True` to `TripSensorEntityDescription`. This allows sensors to be conditionally exposed based on data state.
   - **Files**: `custom_components/ev_trip_planner/definitions.py`
   - **Done when**: TripSensorEntityDescription has exists_fn field with default `lambda _: True`
@@ -393,7 +435,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `feat(gap-g07): add exists_fn field to TripSensorEntityDescription`
   - _Requirements: R-02_
 
-- [ ] G-07.3 [RED] Failing test: TripPlannerSensor checks exists_fn before creating entity
+- [x] G-07.3 [RED] Failing test: TripPlannerSensor checks exists_fn before creating entity
   - **Do**: Write a test in `tests/test_sensor_exists_fn.py` asserting that when a sensor's `exists_fn` returns `False` for the current coordinator data, that sensor is NOT added to the entity registry.
   - **Files**: `tests/test_sensor_exists_fn.py` (CREATE)
   - **Done when**: Test exists and fails because TripPlannerSensor does not check exists_fn
@@ -401,7 +443,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `test(gap-g07): red - failing test for exists_fn check in sensor creation`
   - _Requirements: R-02_
 
-- [ ] G-07.4 [GREEN] TripPlannerSensor checks exists_fn in async_added_to_hass or platform setup
+- [x] G-07.4 [GREEN] TripPlannerSensor checks exists_fn in async_added_to_hass or platform setup
   - **Do**: In `sensor.py`, update `TripPlannerSensor` to check `self.entity_description.exists_fn(self.coordinator.data)` before registering. Either override `async_added_to_hass` to return early, or filter in the platform `async_setup_entry` before calling `async_add_entities`.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: Sensors with `exists_fn` returning False are not added to HA
@@ -409,7 +451,20 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `feat(gap-g07): TripPlannerSensor checks exists_fn before adding entity`
   - _Requirements: R-02_
 
-- [ ] G-08.1 [RED] Failing test: TripPlannerSensor inherits RestoreSensor when description.restore=True
+- [ ] G-07.5 [CLEANUP] DRY: extract default attrs_fn to dataclass field
+  - **Problem**: All 7 sensors in TRIP_SENSORS duplicate the same `attrs_fn`: `lambda data: {"recurring_trips": list(data.get("recurring_trips", {}).values()), "punctual_trips": ...}`. This is copy-paste × 7.
+  - **Do**: In `definitions.py`:
+    1. Create a shared function: `def default_attrs_fn(data: dict) -> dict: return {"recurring_trips": list(data.get("recurring_trips", {}).values()), "punctual_trips": list(data.get("punctual_trips", {}).values())}`
+    2. Set it as the default: `attrs_fn: Callable[[dict], dict] = default_attrs_fn`
+    3. Remove the explicit `attrs_fn=...` from sensor descriptions that use the default
+    4. Keep custom `attrs_fn` only for sensors that need different attributes
+  - **Files**: `custom_components/ev_trip_planner/definitions.py`
+  - **Done when**: TRIP_SENSORS tuple has no duplicated attrs_fn lambdas. At least 4 of 7 sensors use the default.
+  - **Verify**: `grep -c "attrs_fn=" custom_components/ev_trip_planner/definitions.py` — should be ≤ 3 (only custom ones)
+  - **Commit**: `refactor(definitions): extract default attrs_fn to dataclass default, remove duplication`
+  - **⚠️ NOTE**: This is a low-risk refactor — only touches definitions.py data. No production logic changes. Tests in `test_definitions.py` should still pass.
+
+- [x] G-08.1 [RED] Failing test: TripPlannerSensor inherits RestoreSensor when description.restore=True
   - **Do**: Write a test in `tests/test_restore_sensor.py` asserting that a TripPlannerSensor with `description.restore=True` calls `RestoreSensor.async_get_last_sensor_data()` and restores `_attr_native_value` when coordinator.data is None (simulating HA restart before first refresh).
   - **Files**: `tests/test_restore_sensor.py` (CREATE)
   - **Done when**: Test exists and fails because TripPlannerSensor does not inherit RestoreSensor
@@ -417,7 +472,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `test(gap-g08): red - failing test for RestoreSensor inheritance`
   - _Requirements: R-05_
 
-- [ ] G-08.2 [GREEN] Implement RestoreSensor in TripPlannerSensor
+- [x] G-08.2 [GREEN] Implement RestoreSensor in TripPlannerSensor
   - **Do**: In `sensor.py`, import `RestoreSensor` from `homeassistant.helpers.restore_state`. Change `TripPlannerSensor` to inherit from `RestoreSensor` conditionally (or always, since RestoreSensor only restores when `async_get_last_sensor_data()` is called and returns valid data). Add `async def async_added_to_hass(self)` that calls `super().async_added_to_hass()` then restores state if `self.entity_description.restore` is True and coordinator.data is None.
   - **Files**: `custom_components/ev_trip_planner/sensor.py`
   - **Done when**: TripPlannerSensor inherits RestoreSensor and restores last known value after HA restart
@@ -427,7 +482,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### G-11: ConfigEntryNotReady Proper Propagation (R-09)
 
-- [ ] G-11.1 [RED] Failing test: ConfigEntryNotReady re-raised from async_config_entry_first_refresh
+- [x] G-11.1 [RED] Failing test: ConfigEntryNotReady re-raised from async_config_entry_first_refresh
   - **Do**: Write a test in `tests/test_config_entry_not_ready.py` asserting that when `coordinator.async_config_entry_first_refresh()` raises `ConfigEntryNotReady`, the exception propagates to the caller in `async_setup_entry` (not caught/swallowed). HA relies on this to retry with exponential backoff.
   - **Files**: `tests/test_config_entry_not_ready.py` (CREATE)
   - **Done when**: Test exists and fails because current code may catch or not properly re-raise ConfigEntryNotReady
@@ -435,7 +490,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `test(gap-g11): red - failing test for ConfigEntryNotReady propagation`
   - _Requirements: R-09_
 
-- [ ] G-11.2 [GREEN] Ensure ConfigEntryNotReady propagates from async_setup_entry
+- [x] G-11.2 [GREEN] Ensure ConfigEntryNotReady propagates from async_setup_entry
   - **Do**: In `__init__.py async_setup_entry`, wrap `coordinator.async_config_entry_first_refresh()` in a try/except that re-raises `ConfigEntryNotReady`. Do NOT catch ConfigEntryNotReady and convert to a different exception type. This allows HA's built-in retry mechanism to function.
   - **Files**: `custom_components/ev_trip_planner/__init__.py`
   - **Done when**: ConfigEntryNotReady from first refresh propagates to HA for retry
@@ -445,7 +500,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### G-12: services.py God Object Refactoring (R-12)
 
-- [ ] G-12.1 [YELLOW] Audit services.py for thick handlers
+- [x] G-12.1 [YELLOW] Audit services.py for thick handlers
   - **Do**: In `services.py`, identify handler functions that directly access hass.data or implement business logic that should be delegated to `trip_manager` or `coordinator`. These are the "thick handlers" that violate R-12. List them for refactoring.
   - **Files**: `custom_components/ev_trip_planner/services.py`
   - **Done when**: Audit complete, thick handlers identified
@@ -453,7 +508,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `chore(gap-g12): audit services.py for thick handler refactoring`
   - _Requirements: R-12_
 
-- [ ] G-12.2 [GREEN] Thin handle_trip_create by delegating to trip_manager + coordinator
+- [x] G-12.2 [GREEN] Thin handle_trip_create by delegating to trip_manager + coordinator
   - **Do**: Refactor `handle_trip_create` in `services.py` to delegate persistence to `trip_manager.async_add_recurring_trip` or `async_add_punctual_trip` and then call `coordinator.async_refresh_trips()`. The handler should NOT directly manipulate storage or construct data structures. It should be a thin facade over the manager.
   - **Files**: `custom_components/ev_trip_planner/services.py`
   - **Done when**: handle_trip_create is thin (< 30 lines), delegates to trip_manager + coordinator
@@ -461,7 +516,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `refactor(gap-g12): thin handle_trip_create delegating to trip_manager`
   - _Requirements: R-12_
 
-- [ ] G-12.3 [GREEN] Thin handle_delete_trip by delegating to trip_manager + coordinator
+- [x] G-12.3 [GREEN] Thin handle_delete_trip by delegating to trip_manager + coordinator
   - **Do**: Refactor `handle_delete_trip` in `services.py` to delegate deletion to `trip_manager.async_delete_trip` and then call `coordinator.async_refresh_trips()`. Remove any direct hass.data or storage manipulation.
   - **Files**: `custom_components/ev_trip_planner/services.py`
   - **Done when**: handle_delete_trip is thin (< 30 lines), delegates to trip_manager + coordinator
@@ -469,7 +524,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Commit**: `refactor(gap-g12): thin handle_delete_trip delegating to trip_manager`
   - _Requirements: R-12_
 
-- [ ] G-12.4 [VERIFY] services.py line count reduced
+- [x] G-12.4 [VERIFY] services.py line count reduced
   - **Do**: After refactoring thick handlers, count lines in services.py. Target reduction of at least 100 lines (from 1626 toward the architecture target of a thin handler module).
   - **Verify**: `wc -l custom_components/ev_trip_planner/services.py` shows reduction
   - **Done when**: services.py line count < 1550
@@ -478,7 +533,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### G-06: TDD Test Doubles Reference Table
 
-- [ ] G-06.1 [GREEN] Add Test Doubles Reference Table to TDD_METHODOLOGY.md
+- [x] G-06.1 [GREEN] Add Test Doubles Reference Table to TDD_METHODOLOGY.md
   - **Do**: In `docs/TDD_METHODOLOGY.md`, add a new section "## Test Doubles Reference Table" that provides guidance on when to use Fake vs Stub vs Mock vs Spy vs Fixture vs Patch. Include the HA Rule of Gold and examples from the ev-trip-planner codebase.
   - **Files**: `docs/TDD_METHODOLOGY.md`
   - **Done when**: TDD_METHODOLOGY.md has a Test Doubles Reference Table with at least 6 rows
@@ -488,7 +543,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### Gap-Closing Quality Checkpoint
 
-- [ ] GAP.VER [VERIFY] Gap-closing tasks: all new tests pass + ruff passes
+- [x] GAP.VER [VERIFY] Gap-closing tasks: all new tests pass + ruff passes
   - **Do**: Run all gap-closing tests and verify ruff passes on modified files
   - **Verify**: `.venv/bin/pytest tests/test_migrate_entry.py tests/test_definitions.py tests/test_sensor_exists_fn.py tests/test_restore_sensor.py tests/test_config_entry_not_ready.py -v 2>&1 | tail -15 && .venv/bin/ruff check custom_components/ev_trip_planner/`
   - **Done when**: All gap-closing tests pass, ruff passes
@@ -507,3 +562,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 - Bug TDD workflow: Phase 0 (reproduce) + Phase 1-4 (TDD cycles) + Phase 5 (cleanup)
 - services.py extraction is Phase 4 because it depends on services.py being stable first
 - ConfigSubentry pattern is out of scope — future follow-up spec only
+- services.py refactoring: async_delete_trip already handles sensor removal internally — don't double-call
+- RestoreSensor import path: from homeassistant.components.sensor import RestoreSensor (not from restore_state)
+- ConfigEntryNotReady: must use class-level patch not instance-level for proper exception propagation
+- HA Rule of Gold: Never mock hass.states.get() — use real states or MagicMock with return_value
