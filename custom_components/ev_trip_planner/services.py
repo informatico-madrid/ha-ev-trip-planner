@@ -244,14 +244,6 @@ def register_services(hass: HomeAssistant) -> None:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
-        # Remove trip sensor
-        try:
-            from .sensor import async_remove_trip_sensor
-
-            await async_remove_trip_sensor(hass, entry.entry_id, trip_id)
-        except Exception as err:  # pragma: no cover
-            _LOGGER.warning("Failed to remove trip sensor: %s", err)
-
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
