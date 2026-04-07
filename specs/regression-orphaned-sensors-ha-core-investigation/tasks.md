@@ -585,23 +585,23 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
   - **Verify**: `grep "run_until_complete" custom_components/ev_trip_planner/services.py` — zero results
   - **Commit**: `fix(services): replace run_until_complete with await in async _get_manager`
 
-- [ ] C5-FIX register_static_path argumentos intercambiados (línea 1293)
+- [x] C5-FIX register_static_path argumentos intercambiados (línea 1293)
   - **Bug**: services.py:1293 `hass.http.register_static_path(path_spec.path, path_spec.url_path)` — arguments are swapped. Should be `(url_path, path)`.
   - **Fix**: Change to `hass.http.register_static_path(path_spec.url_path, path_spec.path)`
   - **Verify**: Check Home Assistant API: `register_static_path(url_path: str, path: str)` — first arg is URL path, second is filesystem path
   - **Commit**: `fix(services): swap url_path and path arguments in register_static_path call`
 
-- [ ] C4-FIX er.async_entries_for_config_entry llamado con args incorrectos
-  - **Bug**: services.py:1182 `er.async_entries_for_config_entry(hass, DOMAIN)` — La firma correcta es `async_entries_for_config_entry(entity_registry, config_entry_id)`. `hass` no es un entity registry.
-  - **Fix**: `registry = er.async_get(hass); entries = er.async_entries_for_config_entry(registry, entry.entry_id)`
+- [x] C4-FIX er.async_entries_for_config_entry llamado con args incorrectos
+  - **Bug**: services.py:1182 `er.async_entries_for_config_entry(hass, DOMAIN)` — La firma correcta es `async_entries_for_config_entry(registry, config_entry_id)`. `hass` no es un entity registry.
+  - **Fix**: `registry = er.async_get(hass); for entry in hass.config_entries.async_entries(DOMAIN): entries = er.async_entries_for_config_entry(registry, entry.entry_id)`
   - **Files**: services.py function `async_cleanup_orphaned_emhass_sensors`
   - **Verify**: `grep "async_entries_for_config_entry" custom_components/ev_trip_planner/services.py` — should use `er.async_get(hass)` as first arg
   - **Commit**: `fix(services): fix async_entries_for_config_entry call to use entity_registry not hass`
 
-- [ ] C6-FIX self.trip_manager no existe en EmhassDeferrableLoadSensor
+- [x] C6-FIX self.trip_manager no existe en EmhassDeferrableLoadSensor
   - **Bug**: sensor.py:194-195 references `self.trip_manager` in `EmhassDeferrableLoadSensor.async_will_remove_from_hass()`. But `EmhassDeferrableLoadSensor.__init__` only sets `self.coordinator` and `self._entry_id` — no `trip_manager` attribute. This causes AttributeError on entity removal.
-  - **Fix**: Access trip_manager via `self.coordinator.trip_manager` (if exists) or pass it in __init__. Alternative: move cleanup to coordinator level.
-  - **Verify**: `python -c "from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor; s = EmhassDeferrableLoadSensor.__new__(EmhassDeferrableLoadSensor); print(hasattr(s, 'trip_manager'))"` — should be False (confirms bug)
+  - **Fix**: Access trip_manager via `self.coordinator.trip_manager` (if exists)
+  - **Verify**: `python -c "from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor; s = EmhassDeferrableLoadSensor.__new__(EmhassDeferrableLoadSensor); print(hasattr(s, 'trip_manager'))"` — should be False
   - **Commit**: `fix(sensor): fix trip_manager reference in EmhassDeferrableLoadSensor cleanup`
 
 ### VERIFIED FALSE POSITIVES (no acción necesaria)
@@ -660,7 +660,7 @@ no sabía cómo testear.
 | ID | Archivo | Problema | Veredicto | Acción |
 |----|---------|----------|-----------|--------|
 | m1 | coordinator.py:48 | `trip_manager: Any` debería ser `TripManager` | ✅ VÁLIDO | Crear tarea tipo concreto |
-| m2 | tests/test_entity_registry.py:16 | `ConfigEntry` importado pero no usado | ❌ FALSO POSITIVO | Se usa en docstring y función |
+| m2 | tests/test_entity_registry.py:16 | `ConfigEntry` importado pero no usado | ❌ FALSO POSITIVO | Se usa como docstring y tipo de fixture |
 | m3 | tests/test_entity_registry.py:61 | `registered_entities` asignado pero no usado | ✅ VÁLIDO | Variable de fixture sin uso |
 | m4 | tests/test_entity_registry.py:521 | f"trip_trip_001" sin placeholders | ✅ VÁLIDO (trivial) | Cambiar a string literal |
 | m5 | __init__.py:113 | `_presence_monitor` sin check None | ✅ VÁLIDO | Acceso potencial a None |
@@ -673,7 +673,7 @@ no sabía cómo testear.
 | m12 | specs/tasks.md:347 | Coverage gap "2pp" siendo 8pp | ❌ FALSO POSITIVO | Doc antiguo, irrelevante |
 | m13 | docs/IMPLEMENTATION_REVIEW.md | Summary desfasado | ❌ FALSO POSITIVO | Doc auto-generado |
 | m14 | docs/TDD_METHODOLOGY.md:317-330 | `spec=` vs `wraps=` | ❌ FALSO POSITIVO | Documentación técnica |
-| m15 | Múltiples tests | Pylint E0611 imports custom_components | ❌ FALSO POSITIVO | PYTHONPATH del linter |
+| m15 | Múltiples tests | Pylint E0611 imports custom_components | ❌ FP PERO SOLUCIONABLE | PYTHONPATH — tarea LINT-FIX creada |
 
 ### TAREAS CREADAS DE ESTA AUDITORÍA
 
@@ -738,3 +738,20 @@ no sabía cómo testear.
   - **Bug**: .github/copilot-instructions.md:36 "implmenting" → "implementing"
   - **Fix**: Correct the typo
   - **Commit**: `docs: fix typo implmenting → implementing`
+
+- [ ] C8-FIX async_register_panel called without await in panel_custom.py
+  - **Bug**: panel_custom.py calls `async_register_panel(...)` without `await`. `async_register_panel` is a coroutine (`inspect.iscoroutinefunction` returns True). Calling without await creates the coroutine but never executes it — panel is never registered.
+  - **Fix**: Change `async_register_panel(` to `await async_register_panel(` in panel_custom.py:async_setup()
+  - **Files**: `custom_components/ev_trip_planner/panel_custom.py`
+  - **Verify**: `grep -n "async_register_panel" custom_components/ev_trip_planner/panel_custom.py` — all calls should be `await async_register_panel(`
+  - **Commit**: `fix(panel): await async_register_panel coroutine in panel_custom.py`
+
+- [ ] LINT-FIX Fix Pylint E0611 globally for custom_components imports
+  - **Problem**: Pylint reports E0611 (no-name-in-module) for `from custom_components.ev_trip_planner import ...` in test files because Pylint doesn't know the project root is in PYTHONPATH.
+  - **Fix**: Add to `pyproject.toml`:
+    ```toml
+    [tool.pylint.main]
+    init-hook = "import sys; sys.path.insert(0, '.')"
+    ```
+  - **Verify**: `pylint tests/ --disable=all --enable=E0611 2>&1 | grep -c "E0611"` — should be 0
+  - **Commit**: `lint: add init-hook to pyproject.toml to fix Pylint E0611 for custom_components imports`

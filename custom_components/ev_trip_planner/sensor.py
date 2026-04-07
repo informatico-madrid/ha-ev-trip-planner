@@ -191,8 +191,9 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
 
     async def async_will_remove_from_hass(self) -> None:
         """Clean up when entity is removed from Home Assistant."""
-        if hasattr(self.trip_manager, "_emhass_adapter") and self.trip_manager._emhass_adapter is not None:
-            await self.trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
+        trip_manager = getattr(self.coordinator, "trip_manager", None)
+        if trip_manager and hasattr(trip_manager, "_emhass_adapter") and trip_manager._emhass_adapter is not None:
+            await trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
 
 
 class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
