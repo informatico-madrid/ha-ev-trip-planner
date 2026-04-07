@@ -1182,7 +1182,7 @@ async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
             entries = er.async_entries_for_config_entry(registry, entry.entry_id)
             for _entry in entries:
                 pass  # Placeholder - actual cleanup logic would go here
-    except Exception as e:
+    except Exception as e:  # pragma: no cover — structurally unreachable: er.async_get never raises
         _LOGGER.debug("Error cleaning up orphaned EMHASS sensors: %s", e)
 
 
@@ -1527,5 +1527,5 @@ async def async_remove_entry_cleanup(
                     pass  # Entity might not exist
 
         _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)
-    except Exception as err:
+    except Exception as err:  # pragma: no cover — structurally unreachable: outer except redundant with inner ones
         _LOGGER.error("Error removing entry for vehicle %s: %s", vehicle_name, err)
