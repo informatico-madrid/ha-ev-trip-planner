@@ -242,10 +242,12 @@ class TestVerifyStoragePermissions:
     @pytest.mark.asyncio
     async def test_verify_storage_permissions_not_available(self, mock_hass):
         """Test storage permissions when storage API is not available."""
-        # Remove storage attribute to simulate no storage
-        mock_hass.storage = None
-
-        result = await _verify_storage_permissions(mock_hass, "test_vehicle")
+        # Patch Store to simulate storage not being available
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            side_effect=Exception("Storage not available"),
+        ):
+            result = await _verify_storage_permissions(mock_hass, "test_vehicle")
 
         # Should return False when storage is not available
         assert result is False
@@ -253,11 +255,12 @@ class TestVerifyStoragePermissions:
     @pytest.mark.asyncio
     async def test_verify_storage_permissions_no_async_write(self, mock_hass):
         """Test storage permissions when async_write_dict is missing."""
-        mock_hass.storage = Mock()
-        # Remove async_write_dict
-        del mock_hass.storage.async_write_dict
-
-        result = await _verify_storage_permissions(mock_hass, "test_vehicle")
+        # Patch Store to simulate async_write_dict missing
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            side_effect=AttributeError("async_write_dict not available"),
+        ):
+            result = await _verify_storage_permissions(mock_hass, "test_vehicle")
 
         # Should return False when async_write_dict is missing
         assert result is False
@@ -508,9 +511,12 @@ class TestCreateDashboardInputHelpers:
     @pytest.mark.asyncio
     async def test_verify_storage_permissions_no_storage(self, mock_hass):
         """Test storage permissions when no storage available."""
-        mock_hass.storage = None
-
-        result = await _verify_storage_permissions(mock_hass, "test_vehicle")
+        # Patch Store to simulate storage not being available
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            side_effect=Exception("Storage not available"),
+        ):
+            result = await _verify_storage_permissions(mock_hass, "test_vehicle")
 
         # Should return False when no storage
         assert result is False
