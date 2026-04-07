@@ -296,9 +296,11 @@ async def async_setup_entry(
         coordinator is not None,
     )
 
+    # Filter sensors based on exists_fn (G-07.4)
     entities = [
         TripPlannerSensor(coordinator, vehicle_id, desc)
         for desc in TRIP_SENSORS
+        if desc.exists_fn(coordinator.data)
     ]
     entities.append(EmhassDeferrableLoadSensor(coordinator, entry_id))
 
