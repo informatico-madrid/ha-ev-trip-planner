@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
 )
@@ -53,11 +54,12 @@ def _format_window_time(value: Any) -> str | None:
         return None
 
 
-class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
+class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor, SensorEntity):
     """Sensor base for EV Trip Planner using CoordinatorEntity pattern.
 
     Reads from coordinator.data via entity_description.value_fn().
     Sets _attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}".
+    Inherits RestoreSensor for state restoration on HA restart.
     """
 
     def __init__(
@@ -83,6 +85,18 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)
         self._attr_name = f"EV Trip Planner {entity_description.key}"
         # Store cached attributes for synchronous access
         self._cached_attrs: Dict[str, Any] = {}
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass.
+
+        Restores state if restore=True and coordinator.data is None.
+        """
+        await super().async_added_to_hass()
+        if self.entity_description.restore and self.coordinator.data is None:
+            # Restore state from previous run
+            last_state = await self.async_get_last_state()
+            if last_state is not None:
+                self._attr_native_value = last_state.state
 
     @property
     def native_value(self) -> Any:
