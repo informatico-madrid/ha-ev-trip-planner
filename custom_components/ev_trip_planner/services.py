@@ -744,11 +744,10 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
             len(trip_manager._punctual_trips),
         )
 
-        # Load trips from HA storage - use hass.loop.run_until_complete
-        # This is safe because we're in the callback, not inside an async context
+        # Load trips from HA storage
         try:
             _LOGGER.info(
-                "=== _get_manager - Calling hass.loop.run_until_complete(trip_manager.async_setup()) ==="
+                "=== _get_manager - Calling trip_manager.async_setup() ==="
             )
             await trip_manager.async_setup()
             _LOGGER.info(
