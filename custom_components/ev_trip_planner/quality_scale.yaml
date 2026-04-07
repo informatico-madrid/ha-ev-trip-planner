@@ -1,6 +1,6 @@
 rules:
   config-flow: done
-  test-coverage: done
+  test-coverage: todo           # actual: 85%, target: 100%
   config-flow-test-coverage: done
   action-exceptions: done
   async-dependency: done

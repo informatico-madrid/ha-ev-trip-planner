@@ -107,14 +107,17 @@ Only then make the next edit.
 ## Test Writing Rules (MANDATORY)
 
 1. AWAIT ALL ASYNC: Every test calling an async function MUST use `await`.
-   Never call async functions without await — pytest won't fail loudly, 
+   Never call async functions without await — pytest won't fail loudly,
    it will silently skip the coroutine.
 
-2. FIXTURES FIRST: Before writing test methods that use parameters, define 
-   ALL fixtures at the top of the file with @pytest.fixture. 
+2. FIXTURES FIRST: Before writing test methods that use parameters, define
+   ALL fixtures at the top of the file with @pytest.fixture.
    Run the file with `pytest -x <file>` before moving on.
 
-3. DO NOT SELF-MARK VERIFY TASKS: Never mark V0/V1/V5/VF tasks as [x] 
-   yourself. Verify tasks are marked [x] ONLY after running the full suite 
-   (`pytest --cov`) and confirming the metric. Show the output in your 
+3. DO NOT SELF-MARK VERIFY TASKS: Never mark V0/V1/V5/VF tasks as [x]
+   yourself. Verify tasks are marked [x] ONLY after running the full suite
+   (`pytest --cov`) and confirming **100% coverage**. Show the output in your
    commit message.
+
+4. **100% COVERAGE IS THE TARGET**: Every module, function, and branch must be
+   covered. No exceptions. If a line is hard to test, refactor it — don't skip it.
