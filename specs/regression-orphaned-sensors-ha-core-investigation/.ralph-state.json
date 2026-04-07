@@ -75,7 +75,8 @@
     "CLEANUP-TESTS",
     "PRAGMA-A",
     "PRAGMA-B",
-    "PRAGMA-C"
+    "PRAGMA-C",
+    "REFACTOR-T3"
   ],
   "tasksPending": [
     "V5",
@@ -88,16 +89,16 @@
     "PLATINUM-G2",
     "FLAKY-FIX"
   ],
-  "currentTask": "REFACTOR-T3",
+  "currentTask": "V5",
   "status": "in-progress",
   "metrics": {
-    "testsPassed": 900,
+    "testsPassed": 969,
     "testsFailed": 0,
-    "coverage": 81.25,
+    "coverage": 82.48,
     "coverageTarget": 100,
     "ruffPass": true,
     "pragmaNoCoverRemaining": 0,
     "orphanTestFiles": 0
   },
-  "notes": "Progress: (1) Fixed missing await bugs in emhass_adapter.py, trip_manager.py, services.py, sensor.py - makes cleanup actually work. (2) Fixed mock in test_entity_registry.py to use async methods. (3) Added parametrized tests for _calcular_tasa_carga_soc and _calcular_soc_objetivo_base. Coverage 81.25%. PRAGMA-C decisions documented. Remaining: REFACTOR tasks for async functions."
+  "notes": "REFACTOR-T3 complete: Extracted 10+ pure functions to calculations.py (746 lines). trip_manager.py delegadas a funciones puras. Coverage trip_manager.py: 79%. Coverage general: 82.48%. 969 tests passing. Remaining: V5, G-07.5, 4.4, REFACTOR-T1, REFACTOR-T2, PLATINUM-G1, PLATINUM-G2, FLAKY-FIX"
 }

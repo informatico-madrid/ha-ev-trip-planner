@@ -1490,8 +1490,10 @@ class TestResultStructure:
 
         # Verify specific values
         assert result["trip_id"] == "structure_test_trip"
+        # soc_objetivo = from mock _calcular_soc_objetivo_base = 30.0
         assert result["soc_objetivo"] == 30.0
-        assert result["kwh_necesarios"] == 0.0  # 30% target - 30% start = 0% gap
+        # kwh_necesarios = (30% - 30%) * 50kWh / 100 = 0.0 kWh (mock soc matches mock soc_target)
+        assert result["kwh_necesarios"] == 0.0
         assert result["deficit_acumulado"] == 0.0
         assert ventana["ventana_horas"] == 4.0
         assert ventana["es_suficiente"] is True
