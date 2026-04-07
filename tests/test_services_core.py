@@ -2377,6 +2377,47 @@ class TestHandleTripUpdatePunctualBranch:
         mock_mgr.async_get_punctual_trips.assert_awaited()
 
 
+class TestAsyncCleanupOrphanedEmhassSensors:
+    """Tests for async_cleanup_orphaned_emhass_sensors - covers for loop iteration."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_orphaned_emhass_sensors_iterates_entries(self, mock_hass):
+        """async_cleanup_orphaned_emhass_sensors iterates over orphaned entries.
+
+        Covers lines 1181-1184 (for loop body).
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Create mock config entry for our domain
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_id"
+
+        # Create mock entity entries
+        mock_entity_entry1 = MagicMock()
+        mock_entity_entry1.entity_id = "sensor.emhass_1"
+        mock_entity_entry2 = MagicMock()
+        mock_entity_entry2.entity_id = "sensor.emhass_2"
+
+        mock_registry = MagicMock()
+        mock_registry.async_entries_for_config_entry = MagicMock(
+            return_value=[mock_entity_entry1, mock_entity_entry2]
+        )
+
+        # Set up hass.config_entries to return our domain entry
+        mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+
+        # Patch er.async_entries_for_config_entry (the actual function called)
+        with patch(
+            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            return_value=[mock_entity_entry1, mock_entity_entry2],
+        ) as mock_entries_fn:
+            # Execute the function
+            await svcs.async_cleanup_orphaned_emhass_sensors(mock_hass)
+
+        # Verify er.async_entries_for_config_entry was called for our entry
+        mock_entries_fn.assert_called()
+
+
 class TestAsyncCleanupOrphanedEmhassSensorsException:
     """Tests for async_cleanup_orphaned_emhass_sensors exception - covers lines 1182-1186."""
 
