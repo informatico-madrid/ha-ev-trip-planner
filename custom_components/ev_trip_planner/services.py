@@ -474,20 +474,20 @@ def register_services(hass: HomeAssistant) -> None:
 
         Returns a dict with vehicle_id, trips, and total count.
         """
-        _LOGGER.warning("=== trip_list SERVICE HANDLER CALLED ===")
-        _LOGGER.warning("=== call.data: %s", call.data)
+        _LOGGER.debug("=== trip_list SERVICE HANDLER CALLED ===")
+        _LOGGER.debug("=== call.data: %s", call.data)
         data = call.data
         vehicle_id = data.get("vehicle_id", "unknown")
-        _LOGGER.warning("=== trip_list SERVICE CALLED === vehicle: %s", vehicle_id)
+        _LOGGER.debug("=== trip_list SERVICE CALLED === vehicle: %s", vehicle_id)
 
         mgr = await _get_manager(hass, vehicle_id)
         # _get_manager already calls async_setup which loads trips from storage
-        _LOGGER.warning("=== _get_manager returned manager ===")
-        _LOGGER.warning(
+        _LOGGER.debug("=== _get_manager returned manager ===")
+        _LOGGER.debug(
             "=== Before async_get_recurring_trips - mgr._recurring_trips: %d",
             len(mgr._recurring_trips),
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "=== Before async_get_punctual_trips - mgr._punctual_trips: %d",
             len(mgr._punctual_trips),
         )
@@ -536,7 +536,7 @@ def register_services(hass: HomeAssistant) -> None:
                 "punctual_trips": punctual_trips,
                 "total_trips": len(recurring_trips) + len(punctual_trips),
             }
-            _LOGGER.warning("=== trip_list result ===")
+            _LOGGER.debug("=== trip_list result ===")
             _LOGGER.warning("recurring_trips count: %d", len(recurring_trips))
             _LOGGER.warning("punctual_trips count: %d", len(punctual_trips))
             _LOGGER.warning("total_trips: %d", result["total_trips"])
@@ -601,8 +601,8 @@ def register_services(hass: HomeAssistant) -> None:
 
         Returns the trip data for a specific trip_id.
         """
-        _LOGGER.warning("=== trip_get SERVICE HANDLER CALLED ===")
-        _LOGGER.warning("=== call.data: %s", call.data)
+        _LOGGER.debug("=== trip_get SERVICE HANDLER CALLED ===")
+        _LOGGER.debug("=== call.data: %s", call.data)
         data = call.data
         vehicle_id = data.get("vehicle_id", "unknown")
         trip_id = data.get("trip_id", "unknown")
@@ -613,7 +613,7 @@ def register_services(hass: HomeAssistant) -> None:
         )
 
         mgr = await _get_manager(hass, vehicle_id)
-        _LOGGER.warning("=== _get_manager returned manager ===")
+        _LOGGER.debug("=== _get_manager returned manager ===")
 
         try:
             # Get all trips and find the one with matching ID
@@ -644,14 +644,14 @@ def register_services(hass: HomeAssistant) -> None:
                     break
 
             if trip_found:
-                _LOGGER.warning("=== trip_get SUCCESS - Found trip: %s ===", trip_found)
+                _LOGGER.debug("=== trip_get SUCCESS - Found trip: %s ===", trip_found)
                 return {
                     "vehicle_id": vehicle_id,
                     "trip": trip_found,
                     "found": True,
                 }
             else:
-                _LOGGER.warning("=== trip_get NOT FOUND - trip_id: %s ===", trip_id)
+                _LOGGER.debug("=== trip_get NOT FOUND - trip_id: %s ===", trip_id)
                 return {
                     "vehicle_id": vehicle_id,
                     "trip": None,
@@ -1459,7 +1459,7 @@ async def async_remove_entry_cleanup(
         hass: The Home Assistant instance.
         entry: The config entry to remove.
     """
-    _LOGGER.warning("=== async_remove_entry CALLED === entry_id: %s", entry.entry_id)
+    _LOGGER.debug("=== async_remove_entry CALLED === entry_id: %s", entry.entry_id)
 
     # Safely extract vehicle_name from entry.data
     vehicle_name_raw = entry.data.get("vehicle_name") if entry.data else None
