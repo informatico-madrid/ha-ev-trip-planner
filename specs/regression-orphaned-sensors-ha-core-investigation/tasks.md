@@ -567,3 +567,174 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 - RestoreSensor import path: from homeassistant.components.sensor import RestoreSensor (not from restore_state)
 - ConfigEntryNotReady: must use class-level patch not instance-level for proper exception propagation
 - HA Rule of Gold: Never mock hass.states.get() — use real states or MagicMock with return_value
+
+## 🔴 REVIEWER CRITICAL FINDINGS (2026-04-07) — PR Comment Audit
+
+### VERIFIED REAL BUGS (requieren tareas de corrección)
+
+- [x] C2-FIX Versión no persiste en async_migrate_entry
+  - **Bug**: __init__.py:89 calls `hass.config_entries.async_update_entry(entry, data=new_data)` but does NOT pass `version=2`. Entry stays at version=1 forever, so migration re-runs on every HA startup.
+  - **Fix**: Change line 89 to `hass.config_entries.async_update_entry(entry, data=new_data, version=2)`
+  - **Verify**: `grep -A2 "async_update_entry" custom_components/ev_trip_planner/__init__.py` — should show `version=2`
+  - **Commit**: `fix(init): persist version=2 in async_update_entry to prevent re-migration on every startup`
+
+- [ ] C3-FIX run_until_complete deadlock risk in _get_manager
+  - **Bug**: services.py:753 `hass.loop.run_until_complete(trip_manager.async_setup())` inside sync function `_get_manager`. If called from async context (which it is — service handlers are async), this causes RuntimeError/deadlock.
+  - **Fix**: Make `_get_manager` async (`async def _get_manager`) and use `await trip_manager.async_setup()`. Update all callers to await it.
+  - **Files**: services.py (function + callers: handle_trip_create, handle_trip_update, handle_delete_trip)
+  - **Verify**: `grep "run_until_complete" custom_components/ev_trip_planner/services.py` — zero results
+  - **Commit**: `fix(services): replace run_until_complete with await in async _get_manager`
+
+- [ ] C5-FIX register_static_path argumentos intercambiados (línea 1293)
+  - **Bug**: services.py:1293 `hass.http.register_static_path(path_spec.path, path_spec.url_path)` — arguments are swapped. Should be `(url_path, path)`.
+  - **Fix**: Change to `hass.http.register_static_path(path_spec.url_path, path_spec.path)`
+  - **Verify**: Check Home Assistant API: `register_static_path(url_path: str, path: str)` — first arg is URL path, second is filesystem path
+  - **Commit**: `fix(services): swap url_path and path arguments in register_static_path call`
+
+- [ ] C4-FIX er.async_entries_for_config_entry llamado con args incorrectos
+  - **Bug**: services.py:1182 `er.async_entries_for_config_entry(hass, DOMAIN)` — La firma correcta es `async_entries_for_config_entry(entity_registry, config_entry_id)`. `hass` no es un entity registry.
+  - **Fix**: `registry = er.async_get(hass); entries = er.async_entries_for_config_entry(registry, entry.entry_id)`
+  - **Files**: services.py function `async_cleanup_orphaned_emhass_sensors`
+  - **Verify**: `grep "async_entries_for_config_entry" custom_components/ev_trip_planner/services.py` — should use `er.async_get(hass)` as first arg
+  - **Commit**: `fix(services): fix async_entries_for_config_entry call to use entity_registry not hass`
+
+- [ ] C6-FIX self.trip_manager no existe en EmhassDeferrableLoadSensor
+  - **Bug**: sensor.py:194-195 references `self.trip_manager` in `EmhassDeferrableLoadSensor.async_will_remove_from_hass()`. But `EmhassDeferrableLoadSensor.__init__` only sets `self.coordinator` and `self._entry_id` — no `trip_manager` attribute. This causes AttributeError on entity removal.
+  - **Fix**: Access trip_manager via `self.coordinator.trip_manager` (if exists) or pass it in __init__. Alternative: move cleanup to coordinator level.
+  - **Verify**: `python -c "from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor; s = EmhassDeferrableLoadSensor.__new__(EmhassDeferrableLoadSensor); print(hasattr(s, 'trip_manager'))"` — should be False (confirms bug)
+  - **Commit**: `fix(sensor): fix trip_manager reference in EmhassDeferrableLoadSensor cleanup`
+
+### VERIFIED FALSE POSITIVES (no acción necesaria)
+
+| ID | Veredicto | Razón |
+|----|-----------|-------|
+| C1 | ❌ Falso positivo | Python 3.12+ soporta f-strings anidados con las mismas comillas. `ast.parse` confirma SYNTAX OK. |
+| C4 | 🔴 **BUG CONFIRMADO** | `er.async_entries_for_config_entry(hass, DOMAIN)` — `hass` no es entity_registry. Debe ser `er.async_get(hass)` como primer arg. |
+| C7 | ❌ Falso positivo (ya arreglado) | exists_fn YA existe en TripSensorEntityDescription (commit b390768). El CI check que falló era de un estado anterior. |
+| C8 | ❌ Falso positivo | `async_register_panel` no se llama sin await en producción. Se llama desde `async_setup_entry` que es async. |
+| M1 | ❌ Falso positivo | Solo hay UNA clase TripPlannerCoordinator en coordinator.py:24. No hay duplicado en __init__.py (solo importa). |
+| M2 | ⚠️ Parcial | coordinator.trip_manager no es property pública pero tests pueden acceder a _trip_manager. Bajo impacto. |
+| M4-M8 | ⚠️ Verificar en tests | Son problemas de tests, no de producción. Prioridad baja. |
+| m1-m15 | ❌ Falsos positivos o triviales | No son bugs de producción. |
+
+### C4 RE-ANÁLISIS: Bug confirmado
+- services.py:1182: `er.async_entries_for_config_entry(hass, DOMAIN)` — La firma correcta es `async_entries_for_config_entry(entity_registry, config_entry_id)`. `hass` no es un entity registry, es HomeAssistant. Debería ser: `registry = er.async_get(hass); entries = er.async_entries_for_config_entry(registry, DOMAIN)`
+
+## 🔴 AUDIT: `pragma: no cover` y puntos menores (2026-04-07)
+
+### PRAGMA NO COVER — TODOS SON TRAMPA (17 instancias)
+
+El agente puso `# pragma: no cover` en TODOS los handlers `except Exception` del código.
+**17 instancias en 5 archivos**. Patrón universal:
+```python
+except Exception as err:  # pragma: no cover
+    _LOGGER.error/warning("...", err)
+```
+
+**Veredicto**: TODOS testables con integración tests, Fakes, Fixtures y Stubs.
+El agente no usó las herramientas disponibles y marcó como "no testeable" lo que simplemente
+no sabía cómo testear.
+
+| # | Archivo:Línea | Contexto | Cómo testear |
+|---|--------------|----------|-------------|
+| 1 | config_flow.py:849 | Dashboard import optional fail | Integration test: mock dashboard import que lanza |
+| 2 | config_flow.py:867 | Panel registration optional fail | Integration test: mock panel module que lanza |
+| 3 | trip_manager.py:874 | EMHASS trip sync error | Fake EMHASSAdapter que raise en sync method |
+| 4 | trip_manager.py:889 | EMHASS trip removal error | Fake adapter que raise en remove method |
+| 5 | trip_manager.py:908 | EMHASS trip publish error | Fake adapter que raise en publish method |
+| 6 | services.py:204 | Trip sensor update fail | Integration: mock entity registry que lanza |
+| 7 | services.py:550 | List trips error | Integration: mock trip_manager.get_trips() que lanza |
+| 8 | services.py:661 | Get trip error | Integration: mock que lanza en get |
+| 9 | services.py:1436 | Entity registry cleanup fail | Integration: mock registry.async_entries que lanza |
+| 10 | services.py:1444 | Panel unregister fail | Integration: mock async_unregister_panel que lanza |
+| 11 | sensor.py:491 | async_create_trip_sensor fail | Integration: mock async_add_entities que lanza |
+| 12 | dashboard.py:401 | Template load fail | Fixture: FakeTemplateLoader que lanza |
+| 13 | dashboard.py:459 | Storage API fail | FakeStorage API que raise |
+| 14 | dashboard.py:500 | YAML fallback fail | Integration: mock YAML dump que lanza |
+| 15 | dashboard.py:701 | Dashboard config load fail | Fixture: mock file read que lanza |
+| 16 | dashboard.py:884 | Storage write fail | FakeStorage.write() que raise |
+| 17 | dashboard.py:903 | Dashboard import fail | Integration: mock storage API que lanza |
+
+### MENORES — VERIFICADOS (m1-m15)
+
+| ID | Archivo | Problema | Veredicto | Acción |
+|----|---------|----------|-----------|--------|
+| m1 | coordinator.py:48 | `trip_manager: Any` debería ser `TripManager` | ✅ VÁLIDO | Crear tarea tipo concreto |
+| m2 | tests/test_entity_registry.py:16 | `ConfigEntry` importado pero no usado | ❌ FALSO POSITIVO | Se usa en docstring y función |
+| m3 | tests/test_entity_registry.py:61 | `registered_entities` asignado pero no usado | ✅ VÁLIDO | Variable de fixture sin uso |
+| m4 | tests/test_entity_registry.py:521 | f"trip_trip_001" sin placeholders | ✅ VÁLIDO (trivial) | Cambiar a string literal |
+| m5 | __init__.py:113 | `_presence_monitor` sin check None | ✅ VÁLIDO | Acceso potencial a None |
+| m6 | services.py:796 | `except Exception: pass` silencia errores | ✅ VÁLIDO | Log al menos |
+| m7 | tests/test_integration_uninstall.py:31 | Test desactivado, comentario incorrecto | ✅ VÁLIDO | Test muerto, borrar |
+| m8 | tests/test_integration_uninstall.py:67 | Test desactivado contradice producción | ✅ VÁLIDO | Test muerto, borrar |
+| m9 | tests/test_trip_id_generation.py:187 | `islower()` eliminado, inconsistencia | ❌ FALSO POSITIVO | Comportamiento intencional |
+| m10 | .github/copilot-instructions.md:36 | Typo "implmenting" | ✅ VÁLIDO (trivial) | Corregir typo |
+| m11 | services.py | `_get_emhass_adapter` dead code, ya tarea 4.4 | ✅ VÁLIDO | Ya cubierta por tarea 4.4 |
+| m12 | specs/tasks.md:347 | Coverage gap "2pp" siendo 8pp | ❌ FALSO POSITIVO | Doc antiguo, irrelevante |
+| m13 | docs/IMPLEMENTATION_REVIEW.md | Summary desfasado | ❌ FALSO POSITIVO | Doc auto-generado |
+| m14 | docs/TDD_METHODOLOGY.md:317-330 | `spec=` vs `wraps=` | ❌ FALSO POSITIVO | Documentación técnica |
+| m15 | Múltiples tests | Pylint E0611 imports custom_components | ❌ FALSO POSITIVO | PYTHONPATH del linter |
+
+### TAREAS CREADAS DE ESTA AUDITORÍA
+
+- [ ] PRAGMA-ALL Remove all 17 `# pragma: no cover` from exception handlers and replace with proper tests
+  - **Do**: Remove ALL `# pragma: no cover` comments. For each removed, create an integration test that exercises the error path:
+    - **config_flow.py** (2): Use integration tests with mocked dashboard/panel modules that raise
+    - **trip_manager.py** (3): Create `FakeEMHASSAdapter` with methods that raise on demand. Test: sync, remove, publish error paths.
+    - **services.py** (5): Integration tests with mocked dependencies that raise. Use `FakeEntry`, `FakeTripManager`, `FakeRegistry`.
+    - **sensor.py** (1): Integration test: `async_create_trip_sensor` with `async_add_entities` that raises.
+    - **dashboard.py** (6): Create `FakeStorage` class (not MagicMock) with `read()`/`write()` that raise. Test template load, storage API, YAML fallback paths.
+  - **Testing strategy**: 
+    - Use **Fakes over Mocks**: Real classes with minimal interfaces (FakeStorage, FakeEMHASSAdapter)
+    - Use **Fixtures**: `@pytest.fixture` that provides failing dependencies
+    - Use **Parameterized tests**: `@pytest.mark.parametrize` for multiple error scenarios
+    - Use **Integration tests**: Test the full chain (service → trip_manager → adapter), not individual mock calls
+  - **Done when**: `grep -r "pragma: no cover" custom_components/` returns 0 results AND coverage ≥ 85%
+  - **Files**: ALL 5 files + new test file `tests/test_error_paths_integration.py`
+  - **Verify**: `grep -c "pragma: no cover" custom_components/ev_trip_planner/*.py` — all 0
+  - **Commit**: `test: remove 17 pragma:no cover markers, add integration tests for error paths`
+  - **⚠️ RATIONALE**: The agent used `pragma: no cover` as an escape hatch for not knowing how to test error paths. Every exception handler CAN be tested with proper integration test patterns. This is not a structural limitation — it's a knowledge gap.
+
+- [ ] M1-FIX Use concrete type for trip_manager in coordinator.py
+  - **Bug**: coordinator.py:48 `trip_manager: Any` should be `trip_manager: TripManager`
+  - **Fix**: Change type annotation to `TripManager`. Add import if needed.
+  - **Files**: `custom_components/ev_trip_planner/coordinator.py`
+  - **Verify**: `grep "trip_manager: Any" custom_components/ev_trip_planner/coordinator.py` — zero results
+  - **Commit**: `typing(coordinator): use TripManager concrete type instead of Any`
+
+- [ ] M3-FIX Remove unused `registered_entities` variable in test fixture
+  - **Bug**: tests/test_entity_registry.py:60 `registered_entities` is assigned but never used
+  - **Fix**: Remove the variable or use it in the fixture
+  - **Verify**: `grep "registered_entities" tests/test_entity_registry.py` — only the assignment (if kept) or zero results (if removed)
+  - **Commit**: `test: remove unused registered_entities variable from fixture`
+
+- [ ] M4-FIX Fix f-string without placeholders
+  - **Bug**: tests/test_entity_registry.py:521 `f"trip_trip_001"` has no `{}` placeholders
+  - **Fix**: Change to plain string: `"trip_trip_001"`
+  - **Verify**: `ruff check tests/test_entity_registry.py` — no F541
+  - **Commit**: `test: fix f-string without placeholders in test_entity_registry.py`
+
+- [ ] M5-FIX Check None before accessing _presence_monitor
+  - **Bug**: __init__.py:113 accesses `trip_manager.vehicle_controller._presence_monitor` without None check
+  - **Fix**: Add `if trip_manager.vehicle_controller and trip_manager.vehicle_controller._presence_monitor:` guard
+  - **Files**: `custom_components/ev_trip_planner/__init__.py`
+  - **Verify**: `grep "_presence_monitor" custom_components/ev_trip_planner/__init__.py` — shows None check
+  - **Commit**: `fix(init): add None check before accessing _presence_monitor`
+
+- [ ] M6-FIX Log or handle exceptions in _ensure_setup instead of silent pass
+  - **Bug**: services.py:796 `except Exception: pass` silently swallows errors from async_setup
+  - **Fix**: Add `_LOGGER.debug("TripManager already set up: %s", err)` or similar
+  - **Files**: `custom_components/ev_trip_planner/services.py`
+  - **Verify**: `grep -A2 "except Exception:" custom_components/ev_trip_planner/services.py` — should have log or re-raise
+  - **Commit**: `fix(services): log exception in _ensure_setup instead of silent pass`
+
+- [ ] M7-FIX Delete dead test_integration_uninstall.py tests
+  - **Bug**: tests/test_integration_uninstall.py has disabled tests with incorrect comments. Tests don't match production behavior.
+  - **Fix**: Delete the entire file — it's dead documentation, not functioning tests
+  - **Verify**: `ls tests/test_integration_uninstall.py` — file should not exist
+  - **Commit**: `test: delete dead test_integration_uninstall.py — tests contradict production`
+
+- [ ] M10-FIX Fix typo in copilot-instructions.md
+  - **Bug**: .github/copilot-instructions.md:36 "implmenting" → "implementing"
+  - **Fix**: Correct the typo
+  - **Commit**: `docs: fix typo implmenting → implementing`

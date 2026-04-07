@@ -272,3 +272,411 @@
   - `__init__.py` = 76% (needs +3%, 17 lines)
 - **Action taken**: V5 unmarked → `[ ]`. Added detailed ANTI-STUCK note with exact line counts per module. Reset taskIndex=35 (V5), taskIteration=1, globalIteration=7.
 - **Agent must**: Write targeted tests for uncovered lines. Priority: sensor.py (66 lines) → services.py (156 lines) → emhass_adapter.py (208 lines).
+
+## 🔴 REVIEW CYCLE (00:15) — COVERAGE TARGET MET, 4 TEST MOCK BUGS
+- **Last commit**: `9131c79` — chore(spec): final progress update
+- **Coverage: 79.26%** ✅ **TARGET MET** (was 76%, +3.26pp improvement)
+  - `__init__.py` = 76% (+0pp)
+  - `config_flow.py` = 85%
+  - `coordinator.py` = 93% (+0pp)
+  - `definitions.py` = 100%
+  - `diagnostics.py` = 100%
+  - `emhass_adapter.py` = 75% (+15pp 🎉)
+  - `sensor.py` = 82% (+11pp 🎉)
+  - `services.py` = 75% (+1pp)
+  - `trip_manager.py` = 75% (+0pp)
+- **Tests: 829 passed, 4 failed** — all 4 in new uncommitted `test_sensor_coverage.py`
+- **E2E**: ✅ ALL 16 PASSED (confirmed previous cycle)
+- **ruff**: Need to verify
+
+### New Uncommitted Test Files (4 files, agent wrote these):
+1. **`tests/test_emhass_adapter_error_paths.py`** (752 lines) — Comprehensive error path tests for EMHASS adapter
+2. **`tests/test_sensor_coverage.py`** (268 lines) — Sensor device_info, async_create_trip_sensor, _async_create_trip_sensors
+3. **`tests/test_trip_create_branches.py`** (215 lines) — Service handler branch coverage
+4. **`tests/test_uncovered_paths.py`** — Additional uncovered path tests
+
+### 4 Failing Tests — All Mock Bugs (test_sensor_coverage.py):
+1. **`test_async_create_trip_sensor_with_punctual_trip`** — `TypeError: async_create_trip_sensor() takes 3 positional arguments but 4 were given`
+   - **Bug**: Test calls `async_create_trip_sensor(mock_hass, "entry_xyz", trip_data, mock_add_entities)` — 4 args
+   - **Actual signature**: `async_create_trip_sensor(hass, entry_id, trip_data)` — 3 args, NO `mock_add_entities`
+   - **Fix**: Remove 4th argument. Function internally calls `entry.runtime_data.sensor_async_add_entities`
+   - **Severity**: LOW — test-only bug
+
+2. **`test_async_create_trip_sensor_with_recurring_trip`** — Same signature bug as #1
+
+3. **`test_create_trip_sensors_with_recurring_trips`** — `assert 0 == 1` (got 0 sensors, expected 1)
+   - **Bug**: Test sets `mock_trip_manager._recurring_trips` but `_async_create_trip_sensors` calls `trip_manager.get_recurring_trips()` and `trip_manager.get_punctual_trips()` (methods, not attributes)
+   - **Fix**: Mock the methods: `mock_trip_manager.get_recurring_trips = MagicMock(return_value={"rec_1": {...}})`
+   - **Severity**: LOW — test-only bug
+
+4. **`test_create_trip_sensors_with_punctual_trips`** — Same mock issue as #3
+
+### Assessment:
+Agent made excellent progress — coverage jumped from 76% → 79.26%, crossing the target threshold. The 4 failing tests are all in the new uncommitted test file and have mock wiring issues, not production code bugs. Agent should:
+1. Fix the 4 mock bugs in test_sensor_coverage.py
+2. Commit all 4 new test files
+3. Re-run full suite to confirm 0 failures + ≥79% coverage
+
+### Remaining Tasks:
+- **V5** (coverage ≥79%) — ✅ COVERAGE MET, pending test fixes
+- **V5.FIX.1** (service registration test) — marked [x]
+- **E2E.1, E2E.2** — both marked [x], verified passing
+
+## 🔴 REVIEW CYCLE (06:10) — 80.57% COVERAGE, 1 ISOLATION FAILURE
+- **Last commit**: `e559b7f` — "Add comprehensive tests for sensor and service functionalities"
+- **Coverage: 80.57%** ✅ (up from 79.26%, +1.3pp)
+  - `sensor.py` = 91% (+9pp 🎉 — major improvement)
+  - `dashboard.py` = 76% (+8pp 🎉)
+  - `emhass_adapter.py` = 75% (same)
+  - `services.py` = 75% (same)
+  - `trip_manager.py` = 75% (same)
+  - `__init__.py` = 76% (same)
+- **Tests: 849 passed, 1 failed** (was 829 pass, 4 fail)
+  - 4 mock bugs in test_sensor_coverage.py → **ALL FIXED** 🎉
+  - 1 failure: `test_await_executor_result_with_direct_value` — **ISOLATION BUG**: passes when run alone (14/14), fails in full suite. Test ordering issue, not a real bug.
+- **Dirty files**: `IMPLEMENTATION_REVIEW.md` (my edits), `test_sensor_coverage.py` (agent refactored: 268→459 lines), `test_dashboard_validation.py` (new file, 14 tests)
+- **Assessment**: Agent fixed all 4 mock bugs, refactored test_sensor_coverage.py properly, added dashboard tests. Coverage solidly above target (80.57% vs 79%). Single failure is test isolation — not production code bug. Agent is on right track.
+- **Next**: Agent should commit the refactored tests, then the isolation issue will likely resolve (or be a separate fix).
+
+## 🔴 REVIEW CYCLE (06:16) — 80.81% COVERAGE, 1 TEST MOCK BUG
+- **Last commit**: `e559b7f` (same — no new commit yet)
+- **Coverage: 80.81%** ✅ (up from 80.57%, +0.24pp)
+  - `emhass_adapter.py` = 76% (+1pp)
+  - `services.py` = 76% (+1pp)
+  - `sensor.py` = 91% (same)
+  - `dashboard.py` = 76% (same)
+- **Tests: 863 passed, 1 failed** (was 849 pass, 1 fail — +14 new tests from agent)
+  - 1 failure: `test_get_manager_reuses_existing` in new `test_services_error_paths.py`
+  - **Bug**: Test calls `_find_entry_by_vehicle(mock_hass, "test_vehicle")` but never mocks `mock_hass.config_entries.async_entries(DOMAIN)` to return `[mock_entry]`. Function iterates over MagicMock → returns None.
+  - **Fix**: Add `mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])`
+  - **Severity**: LOW — test-only mock bug, not production code
+- **New uncommitted files**: `test_services_error_paths.py` (189 lines, ~12 tests), `test_emhass_adapter_error_paths.py` expanded (+122 lines)
+- **Assessment**: Agent actively adding coverage tests. Coverage creeping up (80.81%). Only 1 test mock bug out of 864 total tests. Agent should fix the mock and commit.
+
+## 🔴 REVIEW CYCLE (06:22) — 🎉 866 TESTS PASS, 80.99% COVERAGE
+- **Last commit**: `e559b7f` (same — agent still writing tests)
+- **Coverage: 80.99%** ✅ (up from 80.81%, +0.18pp)
+  - `panel_custom.py` = 100% (new file covered 🎉)
+  - `emhass_adapter.py` = 76% (+0pp)
+  - `services.py` = 76% (+0pp)
+  - `sensor.py` = 91% (same)
+- **Tests: 866 passed, 0 FAILED** 🎉🎉🎉 (was 863 pass, 1 fail)
+  - The mock bug in `test_get_manager_reuses_existing` → **FIXED** by agent
+  - All previous test files passing
+  - New uncommitted: `test_panel_custom.py` (panel coverage), `coverage.json`
+- **Uncommitted files**: 6 total — 3 test files being expanded + 2 new test files + IMPLEMENTATION_REVIEW.md + copilot-instructions.md
+- **Assessment**: Agent fixed the 1 remaining mock bug. ALL tests green. Coverage approaching 81%. Agent actively writing more tests. Very close to spec completion — just needs to commit and push coverage a bit more.
+
+## 🔴 REVIEW CYCLE (06:26) — 868 PASS, 81.18% COVERAGE
+- **Last commit**: `e559b7f` (same — agent still writing)
+- **Coverage: 81.18%** ✅ (+0.19pp)
+  - `dashboard.py` = 78% (+2pp)
+  - All others stable
+- **Tests: 868 passed, 0 FAILED** ✅ (+2 tests from agent)
+- **Same dirty files** — agent expanding existing test files, not adding new ones
+- **Assessment**: Steady progress. Agent adding more tests to existing coverage files. No new issues. Same state as previous cycle — agent likely still writing tests for the same uncovered areas.
+
+## 🔴 REVIEW CYCLE (06:31) — 871 PASS, 8 ERRORS (MISSING FIXTURES)
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 81.18%** ✅ (stable)
+- **Tests: 871 passed, 8 errors, 0 failures**
+  - 8 errors in new `test_schedule_monitor_error_paths.py` (314 lines, agent-created)
+  - **Bug**: Tests reference undefined fixtures: `mock_hass`, `mock_control_strategy`, `mock_presence_monitor`, `mock_emhass_adapter`. Fixtures used but never defined with `@pytest.fixture`.
+  - **Fix**: Add fixture definitions at top of file:
+    ```python
+    @pytest.fixture
+    def mock_hass(): return MagicMock()
+    @pytest.fixture
+    def mock_control_strategy(): return MagicMock()
+    @pytest.fixture
+    def mock_presence_monitor(): return MagicMock()
+    @pytest.fixture
+    def mock_emhass_adapter(): return MagicMock()
+    ```
+  - 3 passing tests (simple import-based tests without fixtures)
+  - **Severity**: LOW — test-only fixture bug, agent will likely fix
+- **New uncommitted**: `test_schedule_monitor_error_paths.py` (314 lines)
+- **Assessment**: Agent creating schedule_monitor coverage tests but forgot fixtures. Will likely fix in next iteration. Otherwise same good trajectory.
+
+## 🔴 REVIEW CYCLE (06:36) — 877 PASS, 2 FAIL (MOCK ASSERTION)
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 81.18%** ✅ (stable)
+- **Tests: 877 passed, 2 failed** (was 871 pass, 8 errors → agent fixed fixtures! +6 more passing)
+  - 2 failures in `test_schedule_monitor_error_paths.py`:
+    - `test_async_start_charging_failure_path` — `Expected 'mock' to have been called once. Called 0 times.`
+    - `test_async_stop_charging_failure_path` — Same
+  - **Bug**: Tests set `monitor._async_notify = AsyncMock()` but the method isn't called by the code path. Likely the error path doesn't call `_async_notify` in the way the test expects, or the mock is overwritten.
+  - **Fix**: Verify actual error path in schedule_monitor.py `_async_start_charging` — check if `_async_notify` is actually called on failure
+  - **Severity**: LOW — test-only assertion bug
+- **Assessment**: Agent fixed all 8 fixture errors, now down to 2 assertion bugs. Steady improvement.
+
+## 🔴 REVIEW CYCLE (06:41) — 🎉 877 PASS, 0 FAIL
+- **Last commit**: `e559b7f` (same — agent still working)
+- **Coverage: 81.18%** ✅ (stable)
+- **Tests: 877 passed, 0 FAILED** 🎉🎉🎉 (was 877 pass, 2 fail → agent fixed!)
+- **ALL quality gates**: 
+  - ✅ All tests pass
+  - ✅ Coverage ≥79% (81.18%)
+  - ✅ Ruff passes
+  - ✅ No mock in production
+  - ✅ __init__.py = 129 lines (<150)
+- **Assessment**: Agent fixed all test bugs. ALL green. Still working on expanding test files (same dirty set). Should commit soon and finish V5.
+
+## 🔴 REVIEW CYCLE (06:46) — 877 PASS, 81.18% — AGENT WRITING, NO COMMIT
+- **Last commit**: `e559b7f` (same — 5+ cycles without committing)
+- **Coverage: 81.18%** ✅ (stable)
+- **Tests: 877 passed, 0 FAILED** ✅
+- **Same dirty files** — no new content changes. Agent may be in a writing loop or waiting.
+- **Stall check**: No new commit in 5+ cycles (~20 min). Uncommitted files same content. Agent is still active (review loop running), but no disk writes detected. May need intervention.
+
+## 🔴 REVIEW CYCLE (06:51) — 877 PASS, 17 ERRORS (NEW TRIP_MANAGER TESTS)
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 81.18%** ✅ (stable)
+- **Tests: 877 passed, 17 errors** (was 877 pass, 0 fail → new file `test_trip_manager_error_paths.py` added with 17 errors)
+  - **Bug**: Likely same missing fixtures pattern as schedule_monitor had earlier
+  - Classes: `TestTripManagerEdgeCases`, `TestTripTimeCalculations`, `TestDeleteAllTrips`, `TestGetTripMethods`
+  - **Severity**: LOW — test-only, agent will fix (same pattern as before)
+- **New uncommitted**: `test_trip_manager_error_paths.py` (untracked, just created)
+- **Assessment**: Agent expanding trip_manager coverage. Same fixture pattern will need fixing. Expected to resolve in 1-2 cycles.
+
+## 🔴 REVIEW CYCLE (06:56) — 🎉 899 PASS, 82% COVERAGE
+- **Last commit**: `e559b7f` (same — agent still writing, NOT stalling)
+- **Coverage: 82%** ✅ (up from 81.18%, +0.82pp)
+- **Tests: 899 passed, 0 FAILED/ERRORS** 🎉🎉🎉 (was 877 pass, 17 errors → agent fixed ALL!)
+- **Summary**: Agent fixed all 17 fixture errors in trip_manager tests + added 22 more passing tests. Coverage climbing steadily toward target.
+- **Gap to target**: 82% vs 85% required = need +3pp. Agent on right trajectory.
+
+## 🔴 REVIEW CYCLE (07:01) — 900 PASS, 82%
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 82%** ✅ (stable, 687 missing lines → need ~298 more covered for 85%)
+- **Tests: 900 passed, 0 FAILED** ✅ (+1 test from agent)
+- **Same dirty files** — agent iterating on test coverage
+
+## 🔴 REVIEW CYCLE (07:06) — 905 PASS, 82%
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 82%** ✅ (683 missing lines, down from 687 — gaining slowly)
+- **Tests: 905 passed, 0 FAILED** ✅ (+5 tests, new file `test_services_coverage2.py`)
+- **Gap**: 82% → 85% needs ~290 more lines covered. Agent adding services coverage tests.
+
+## 🔴 REVIEW CYCLE (07:11) — 905 PASS, 82% — STABLE
+- **Last commit**: `e559b7f` (same — 10+ cycles without commit)
+- **Coverage: 82%** ✅ (683 missing, stable)
+- **Tests: 905 passed, 0 FAILED** ✅
+- **Same state** — agent actively writing tests but not committing yet. No issues detected.
+
+## 🔴 REVIEW CYCLE (07:16) — 905 PASS, 82% — STABLE
+- No changes from previous cycle. Agent still writing.
+
+## 🔴 REVIEW CYCLE (07:21) — 905 PASS, 82% — STABLE
+- No changes. Agent still writing tests.
+
+## 🔴 REVIEW CYCLE (07:26) — 905 PASS, 82% — AGENT ACTIVE
+- Ralph agent active (modified `.ralph-state.json`). Same test files, same coverage. Still writing.
+
+## 🔴 REVIEW CYCLE (07:30) — 905 PASS, 82% — NO CHANGE
+- Same state. Agent writing, no commits yet.
+
+## 🔴 REVIEW CYCLE (07:35) — 905 PASS, 82% — NO CHANGE
+- Agent still active (more ralph-state.json changes). No new test content. All green.
+
+## 🔴 REVIEW CYCLE (07:40) — 905 PASS, 1 FAIL (MIGRATE_ENTRY AWAIT BUG)
+- **Last commit**: `e559b7f` (same)
+- **Coverage: 82%** ✅ (stable)
+- **Tests: 905 passed, 1 failed** — `test_migrate_entry_version2_entity_registry`
+  - **Bug**: `async_migrate_entry` is async but test doesn't `await` it → `RuntimeWarning: coroutine was never awaited`
+  - **Fix**: Add `await` before the call to `async_migrate_entry(hass, mock_entry)`
+  - **Severity**: LOW — test-only await bug
+- **New file**: `test_migrate_entry.py` (untracked) — tests for R-08 entity registry migration
+
+## 🔴 REVIEW CYCLE (07:45) — 905 PASS, 1 FAIL (INTENTIONAL RED TEST, G-09)
+- **New commit**: `ba6f096` — "test(gap-g09): red - failing test for entity registry migration"
+- **Coverage: 82%** ✅ (stable)
+- **Tests: 905 passed, 1 failed** — `test_migrate_entry_version2_entity_registry` is **INTENTIONAL RED**:
+  - Documents G-09 gap: `async_migrate_entry` doesn't call `async_migrate_entries` for entity registry
+  - Test expects `ev_trip_planner_chispi_kwh_today` but gets `ev_trip_planner_kwh_today` (no vehicle_id prefix)
+  - **However**: `RuntimeWarning: coroutine 'async_migrate_entry' was never awaited` — test has await bug too
+  - **Assessment**: Test is a valid characterization test (RED by design). Should be marked in tasks.md as "expected fail" until G-09 fix.
+- **Agent made a commit!** 🎉 — first commit in many cycles. Test infrastructure work progressing.
+
+## 🔴 REVIEW CYCLE (07:50) — 905 PASS, 1 RED (INTENTIONAL), 82%
+- **Last commit**: `ba6f096` (same — no new commit)
+- **Coverage: 82%** ✅ (700 missing lines, +12 new lines in codebase)
+- **Tests: 905 pass, 1 fail** — intentional RED for G-09 characterization
+- **14 dirty files** — agent still writing. Same trajectory.
+
+## 🔴 REVIEW CYCLE (07:55) — 905 PASS, 1 RED, 82% — NO CHANGE
+- Same state. Agent writing.
+
+## 🔴 REVIEW CYCLE (07:59) — 🎉 906 PASS, 0 FAIL, G-09 FIXED!
+- **New commit**: `6a06bd4` — "fix(gap-g09): implement async_migrate_entries for entity registry migration"
+- **Coverage: 82%** ✅ (673 missing lines, down from 693 — -20 lines covered!)
+- **Tests: 906 passed, 0 FAILED/RED** 🎉🎉🎉 (was 905 pass, 1 RED → agent FIXED G-09!)
+- **Summary**: Agent implemented `async_migrate_entries` in `async_migrate_entry` to migrate entity registry unique_ids. The intentional RED test from ba6f096 now PASSES. Major milestone — G-09 gap closed.
+
+## 🔴 REVIEW CYCLE (08:05) — 909 PASS, G-07 EN PROGRESO
+- **New commits**: `e236d00` (ralph state) + `b390768` — "feat(gap-g07): add exists_fn field to TripSensorEntityDescription"
+- **Coverage: 82%** ✅ (673 missing, stable)
+- **Tests: 909 passed, 0 FAILED** ✅ (+3 tests from agent)
+- **Only 2 dirty files** — agent committing frequently now, clean tree
+- **Summary**: Agent working on G-07 (SensorEntityDescription pattern). Added `exists_fn` field to TripSensorEntityDescription. Healthy commit cadence established.
+
+## 🔴 REVIEW CYCLE (08:10) — 912 PASS, 2 RED (INTENTIONAL G-08 RESTORESENSOR)
+- **3 new commits**: 
+  - `b390768` — "feat(gap-g07): add exists_fn field"
+  - `3894e50` — "test(gap-g07): red - failing test for exists_fn"
+  - `176b26e` — "feat(gap-g07): TripPlannerSensor checks exists_fn"
+- **Coverage: 82%** ✅ (stable)
+- **Tests: 912 passed, 2 RED** — both in `test_restore_sensor.py` (INTENTIONAL RED for G-08):
+  1. `test_trip_planner_sensor_inherits_restore_sensor` — TripPlannerSensor doesn't inherit RestoreEntity yet
+  2. `test_trip_planner_sensor_calls_async_get_last_sensor_data` — No async_get_last_sensor_data method yet
+  3. ✅ `test_trip_planner_sensor_without_restore_not_restore_sensor` — PASSES (correct for non-restore sensors)
+- **New dirty file**: `test_restore_sensor.py` (untracked) — RED tests for G-08
+- **Summary**: Agent completed G-07 (exists_fn) with 3 commits in TDD pattern. Now created RED tests for G-08 (RestoreSensor). Healthy workflow.
+
+## 🔴 REVIEW CYCLE (08:15) — 🎉 G-08 FIXED, 914 PASS, 1 RED (G-11)
+- **New commits** (from earlier cycles): 
+  - `646d0c1` — "test(gap-g08): red - failing test for RestoreSensor inheritance"
+  - `1f4c320` — "fix(gap-g08): correct RestoreSensor import path"
+  - `7b3f1fd` — "feat(gap-g08): implement RestoreSensor in TripPlannerSensor"
+- **Coverage: 82%** ✅ (stable)
+- **Tests: 914 passed, 1 failed, 0 errors** (the 904 errors were a flaky run!)
+  - ✅ All 3 restore_sensor tests PASS — **G-08 FIXED!**
+  - 1 fail: `test_config_entry_not_ready_propagates_from_async_setup_entry` — likely RED for G-11 (ConfigEntryNotReady)
+- **Summary**: Agent completed G-08 (RestoreSensor inheritance). TripPlannerSensor now inherits RestoreEntity and has async_get_last_sensor_data. Healthy TDD workflow continuing.
+
+## 🔴 REVIEW CYCLE (08:22) — 🎉🎉 915 PASS, G-11 FIXED!
+- **New commits**: 
+  - `3e812ee` — "test(gap-g11): red - failing test for ConfigEntryNotReady propagation"
+  - `52bb75c` — "feat(gap-g11): ensure ConfigEntryNotReady propagates from async_setup_entry"
+- **Coverage: 82%** ✅ (stable)
+- **Tests: 915 passed, 0 FAILED** 🎉🎉🎉 (was 914 pass, 1 RED → G-11 FIXED!)
+- **Gaps closed today**: G-07 (exists_fn), G-08 (RestoreSensor), G-09 (entity registry migration), G-11 (ConfigEntryNotReady)
+- **Remaining gaps**: G-05 (runtime_data — partially done), G-10 (diagnostics.py — already done), G-12 (separation — done)
+- **Summary**: Agent on fire! 4 gaps closed in one session. TDD workflow producing results rapidly.
+
+## 🔴 REVIEW CYCLE (08:27) — 915 PASS, G-12 EN PROGRESO
+- **New commits**:
+  - `880d5f0` — "refactor(gap-g12): thin handle_trip_create delegating to trip_manager"
+  - `06e3c4d` — "refactor(gap-g12): thin handle_delete_trip delegating to trip_manager"
+- **Coverage: 82%** ✅ (653 missing lines, code shrinking — 3724 total stmts vs 3763 before)
+- **Tests: 915 passed, 0 FAILED** ✅
+- **Summary**: Agent refactoring services.py handlers to be thin delegation to trip_manager (G-12: separation of concerns). Code getting thinner (3724 vs 3763 statements). Excellent architectural cleanup.
+
+---
+
+# 🔍 AUDITORÍA DE CALIDAD COMPLETA (08:32)
+
+## Veredicto General: ✅ CALIDAD ALTA — El agente está haciendo un trabajo legítimo y sólido
+
+### 1. GAP IMPLEMENTATIONS — TODOS LEGÍTIMOS
+
+| Gap | Commit | Veredicto | Detalle |
+|-----|--------|-----------|---------|
+| **G-07** (exists_fn) | `b390768`+`176b26e` | ✅ REAL | Añadió `exists_fn: Callable[[dict], bool]` a `TripSensorEntityDescription`. `sensor.py` filtra sensores antes de crearlos. Test RED→GREEN correcto. |
+| **G-08** (RestoreSensor) | `7b3f1fd` | ✅ REAL | `TripPlannerSensor` ahora hereda `RestoreSensor`. Implementa `async_added_to_hass()` con restore condicional (`if self.entity_description.restore and self.coordinator.data is None`). Solo 15 líneas de producción — cambio mínimo y correcto. |
+| **G-09** (entity registry migration) | `6a06bd4` | ✅ REAL | Implementó `async_migrate_entries` con migración de unique_ids: `"ev_trip_planner_kwh_today"` → `"ev_trip_planner_chispi_kwh_today"`. Usa `er.RegistryEntry` correctamente. Test con `FakeConfigEntry` bien diseñado. |
+| **G-11** (ConfigEntryNotReady) | `52bb75c` | ✅ REAL | Asegura que `async_config_entry_first_refresh()` propaga `ConfigEntryNotReady`. Test verifica que el error se propaga, no se traga silenciosamente. |
+| **G-12** (separation) | `880d5f0`+`06e3c4d`+`98a2165` | ✅ REAL | Thin handlers en `services.py` que delegan a `trip_manager`. Eliminado código muerto de sensor removal. -104 líneas netas en services.py. |
+
+### 2. TESTS — ¿SON ÚTILES REALMENTE?
+
+| Archivo Tests | Líneas | Tests | Utilidad | Veredicto |
+|---|---|---|---|---|
+| `test_migrate_entry.py` | 199 | ~4 | **ALTA** — Verifica migración de entity registry unique_ids. Usa `FakeConfigEntry` realista. Sin mocks excesivos. | ✅ VALIOSO |
+| `test_restore_sensor.py` | 137 | 3 | **ALTA** — Verifica herencia de RestoreSensor, llamada a async_get_last_sensor_data, y que sensores sin restore NO heredan. Test directo al gap. | ✅ VALIOSO |
+| `test_sensor_exists_fn.py` | 174 | ~6 | **ALTA** — Verifica que exists_fn filtra sensores. TDD correcto: RED test → fix → GREEN. | ✅ VALIOSO |
+| `test_config_entry_not_ready.py` | 91 | ~3 | **ALTA** — Verifica que ConfigEntryNotReady no se traga. Gap G-11 real. | ✅ VALIOSO |
+| `test_definitions.py` | 40 | ~4 | **MEDIA** — Tests de datos puros (TripSensorEntityDescription). Útil pero simple. | ✅ ACEPTABLE |
+| `test_emhass_adapter_error_paths.py` | 752 | ~23 | **ALTA** — Cubre get_cached_optimization_results, error handling, shell command verification. emhass_adapter 22%→76%. | ✅ VALIOSO |
+| `test_services_error_paths.py` | 189 | ~12 | **ALTA** — _ensure_setup, _find_entry_by_vehicle error paths, handle_trip_create branches. services.py 74%→76%. | ✅ VALIOSO |
+| `test_schedule_monitor_error_paths.py` | 314 | ~11 | **ALTA** — VehicleScheduleMonitor error branches. schedule_monitor 95%. | ✅ VALIOSO |
+| `test_trip_manager_error_paths.py` | ~392 | ~15 | **ALTA** — Edge cases, trip time calculations, delete all trips. trip_manager 75%. | ✅ VALIOSO |
+| `test_sensor_coverage.py` | 459 | ~15 | **MEDIA-ALTA** — device_info, async_setup_entry error paths, native_value edge cases. sensor.py 71%→91%. | ✅ VALIOSO |
+| `test_dashboard_validation.py` | ~100 | 14 | **MEDIA** — Dashboard import validation, template loading, storage API fallback. | ✅ ACEPTABLE |
+| `test_panel_custom.py` | ~47 | ~3 | **BAJA** — Tests triviales para panel_custom.py (7 líneas de producción). | ⚠️ OVERTESTING |
+
+**Conclusión**: 11/12 archivos de tests son valiosos. Solo `test_panel_custom.py` es overtesting (3 tests para 7 líneas de producción que es un wrapper trivial). El resto cubre gaps reales de arquitectura, error paths que nunca se testearon, y edge cases legítimos.
+
+### 3. ¿CÓDIGO BIEN IMPLEMENTADO?
+
+#### ✅ Puntos fuertes:
+- **`TripPlannerSensor` herencia correcta**: `CoordinatorEntity[TripPlannerCoordinator], RestoreSensor, SensorEntity` — sigue patrón Bambu Lab + Versatile Thermostat
+- **`definitions.py` limpio**: 7 sensores como datos, sin código duplicado. `exists_fn` añadido correctamente.
+- **`__init__.py` = 129 líneas**: Cumple R-10 (<150 líneas). Solo lifecycle.
+- **`entry.runtime_data`**: Usa `EVTripRuntimeData` dataclass tipado. Sin `hass.data[DATA_RUNTIME]` strings.
+- **0 `unittest.mock` en producción**: Cumple R-06.
+- **Ruff limpio**: 0 errores.
+- **`async_migrate_entry` completo**: Migra config data Y entity registry. Cumple R-08.
+
+#### ⚠️ Problemas menores detectados:
+1. **`attrs_fn` duplicado en todos los sensores**: Todos los 7 sensores tienen el mismo `attrs_fn` que devuelve recurring_trips + punctual_trips. Debería ser un default en la dataclass.
+2. **`_LOGGER` imports**: services.py tiene 1551 líneas — grande pero inevitable dado el scope. Podría extraerse más.
+3. **`_get_emhass_adapter` retorna None**: Hay un comentario "Return None - this function's contract may need redesign". Código muerto potencial.
+4. **Coverage estancada en 82%**: El target es ≥79% (cumplido) pero no llega al 85% del pyproject.toml. Las 673 líneas sin cubrir están mayormente en error paths profundos de services.py y trip_manager.
+
+### 4. ¿RESOLVIÓ BIEN LAS ÚLTIMAS TAREAS (GAPS + REFACTOR)?
+
+| Tarea | ¿Bien resuelta? | Nota |
+|-------|----------------|------|
+| G-07 (exists_fn) | ✅ Sí | TDD correcto. Test RED → Fix → GREEN. |
+| G-08 (RestoreSensor) | ✅ Sí | Herencia correcta, restore condicional, async_added_to_hass implementado. |
+| G-09 (entity registry migration) | ✅ Sí | async_migrate_entries con migrate_unique_id correcto. Test con FakeConfigEntry realista. |
+| G-11 (ConfigEntryNotReady) | ✅ Sí | Propagación verificada. Test RED → GREEN. |
+| G-12 (thin handlers) | ✅ Sí | -104 líneas en services.py. Delegación limpia a trip_manager. Código muerto eliminado. |
+
+### 5. ESTADO ACTUAL DEL PROYECTO
+
+```
+Tests:     915 passed, 0 FAILED ✅
+Coverage:  82% (671 missing lines, 3721 total statements)
+Ruff:      All checks passed ✅
+Gaps:      G-07✅ G-08✅ G-09✅ G-11✅ G-12✅ (5 de 12 cerrados en esta sesión)
+Commits:   20+ commits limpios en TDD pattern (RED→GREEN)
+```
+
+### CONCLUSIÓN FINAL
+
+El agente Ralph está haciendo un **trabajo excelente**. Cada gap tiene:
+1. Test RED intencional primero
+2. Implementación mínima de producción
+3. Test GREEN después
+4. Commit limpio con mensaje descriptivo
+
+Los tests NO son padding — cubren gaps arquitectónicos reales identificados en CODEGUIDELINESia.md v2. La producción code sigue las reglas R-01 a R-12 correctamente.
+
+**Recomendación**: Dejar al agente continuar. Está en buen ritmo cerrando gaps. Lo pendiente sería llegar a 85% coverage (ahora 82%) y cerrar los gaps restantes (G-05 runtime_data ya hecho, G-10 diagnostics ya hecho).
+
+## 🔴 REVIEW CYCLE (10:10) — AGENT STALLED AT 84% COVERAGE
+- **Last commit**: `e0f0d46` — "chore(spec): final progress update - coverage at 84%"
+- **Coverage: 84%** ✅ (581 missing lines, needs ~37 more for 85%)
+- **Tests: 934 passed, 0 FAILED** ✅
+- **Stall**: 7+ cycles with no changes. Agent appears to have stopped voluntarily at 84%, acknowledging it couldn't reach 85%.
+- **Gap analysis**: The remaining 581 lines are concentrated in:
+  - `emhass_adapter.py`: 126 lines (76%) — deep error paths, shell command verification
+  - `trip_manager.py`: 202 lines (78%) — EMHASS optimization, edge case validation
+  - `services.py`: 128 lines (77%) — dashboard import, panel registration error paths
+  - `sensor.py`: 27 lines (89%) — async_create_trip_sensor error handling
+  - `dashboard.py`: 74 lines (78%) — lovelace storage, YAML fallback
+- **Assessment**: Agent squeezed out significant coverage gains (71% → 84%) but hit diminishing returns. The last 1% requires testing deep error paths that need extensive mocking. 84% is close to the 85% target and well above the original 79% floor.
+
+## 🔴 PR COMMENT AUDIT (10:30) — 5 BUGS CONFIRMADOS, 10+ FALSOS POSITIVOS
+
+Auditoría completa de los puntos del PR. Veredicto por categoría:
+
+### Bugs de producción confirmados (5 tareas creadas):
+| ID | Severidad | Archivo | Problema | Tarea |
+|----|-----------|---------|----------|-------|
+| C2 | 🔴 Crítico | `__init__.py:89` | `async_update_entry` no persiste `version=2` → migración se re-ejecuta en cada startup | `C2-FIX` ✅ creada |
+| C3 | 🔴 Crítico | `services.py:753` | `hass.loop.run_until_complete()` en función sync llamada desde async → deadlock | `C3-FIX` ✅ creada |
+| C4 | 🔴 Crítico | `services.py:1182` | `er.async_entries_for_config_entry(hass, ...)` — `hass` no es entity_registry | `C4-FIX` ✅ creada |
+| C5 | 🟠 Mayor | `services.py:1293` | `register_static_path(path, url)` args intercambiados → debería ser `(url, path)` | `C5-FIX` ✅ creada |
+| C6 | 🟠 Mayor | `sensor.py:194-195` | `self.trip_manager` no existe en `EmhassDeferrableLoadSensor` → AttributeError | `C6-FIX` ✅ creada |
+
+### Falsos positivos confirmados (no acción):
+| ID | Veredicto | Razón |
+|----|-----------|-------|
+| C1 | ❌ FP | Python 3.12+ soporta f-strings anidados. `ast.parse` confirma OK. |
+| C7 | ❌ FP | exists_fn ya existe (commit b390768). CI check era estado anterior. |
+| C8 | ❌ FP | `async_register_panel` se llama desde async_setup_entry (async). |
+| M1 | ❌ FP | Solo UNA clase TripPlannerCoordinator en coordinator.py. |
+| m1-m15 | ❌ FP | Triviales, cosméticos, o falsos positivos de linter. |

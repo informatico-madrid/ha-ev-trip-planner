@@ -30,7 +30,7 @@ def mock_hass_with_storage():
 
 
 @pytest.mark.asyncio
-async def test_async_setup_cancelled_error(mock_hass_with_storage):
+async def test_async_setup_handles_cancelled_error(mock_hass_with_storage):
     """async_setup handles CancelledError during storage load."""
     trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 
@@ -49,7 +49,7 @@ async def test_async_setup_cancelled_error(mock_hass_with_storage):
 
 
 @pytest.mark.asyncio
-async def test_async_setup_generic_exception(mock_hass_with_storage):
+async def test_async_setup_handles_generic_exception(mock_hass_with_storage):
     """async_setup handles generic Exception during storage load."""
     trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 

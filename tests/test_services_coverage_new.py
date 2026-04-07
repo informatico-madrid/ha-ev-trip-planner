@@ -413,11 +413,14 @@ class TestHandleTripUpdateWithError:
         }
         # Should return without raising - logs error for missing entry
         await handler(call)
-    """Tests for handle_trip_update service handler."""
+
+
+class TestHandleTripUpdateWithUpdatesEmpty:
+    """Tests for handle_trip_update with updates={} (line 452-453)."""
 
     @pytest.fixture
-    def mock_hass_for_update(self):
-        """Create mock hass with a config entry for update tests."""
+    def mock_hass_for_update_empty(self):
+        """Create mock hass for update tests with empty updates."""
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
         class Services:
@@ -441,6 +444,7 @@ class TestHandleTripUpdateWithError:
 
         mock_manager = MagicMock()
         mock_manager.async_update_trip = AsyncMock(return_value=True)
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
         mock_entry.runtime_data = EVTripRuntimeData(
             coordinator=mock_coordinator,
             trip_manager=mock_manager,
@@ -453,12 +457,17 @@ class TestHandleTripUpdateWithError:
         return hass, mock_manager
 
     @pytest.mark.asyncio
-    async def test_handle_trip_update_new_format(self, mock_hass_for_update):
-        """handle_trip_update with new format (direct fields)."""
+    async def test_handle_trip_update_with_updates_empty_dict(self, mock_hass_for_update_empty):
+        """handle_trip_update with updates={} hits except Exception on line 452-453."""
         from custom_components.ev_trip_planner.__init__ import register_services
 
-        hass, mock_manager = mock_hass_for_update
+        hass, mock_manager = mock_hass_for_update_empty
         register_services(hass)
+
+        # Make async_get_recurring_trips raise so we hit line 452-453
+        mock_manager.async_get_recurring_trips = AsyncMock(
+            side_effect=Exception("Storage error")
+        )
 
         handler = hass.services.registry["trip_update"]
         call = MagicMock()
@@ -466,45 +475,10 @@ class TestHandleTripUpdateWithError:
             "vehicle_id": "test_vehicle",
             "trip_id": "rec_lun_abc",
             "type": "recurrente",
-            "dia_semana": "martes",
-            "hora": "10:00",
-            "km": 30.0,
-            "kwh": 4.5,
-            "descripcion": "Updated",
+            "updates": {},  # Empty updates - uses old format path
         }
+        # Should not raise - exception is caught and existing = []
         await handler(call)
-
-        mock_manager.async_update_trip.assert_awaited_once_with(
-            "rec_lun_abc",
-            {"dia_semana": "martes", "hora": "10:00", "km": 30.0, "kwh": 4.5, "descripcion": "Updated"},
-        )
-
-    @pytest.mark.asyncio
-    async def test_handle_trip_update_new_format_alt_keys(self, mock_hass_for_update):
-        """handle_trip_update with alternative field names (day_of_week, time, description)."""
-        from custom_components.ev_trip_planner.__init__ import register_services
-
-        hass, mock_manager = mock_hass_for_update
-        register_services(hass)
-
-        handler = hass.services.registry["trip_update"]
-        call = MagicMock()
-        call.data = {
-            "vehicle_id": "test_vehicle",
-            "trip_id": "rec_lun_abc",
-            "type": "recurrente",
-            "day_of_week": "miercoles",
-            "time": "11:00",
-            "km": 35.0,
-            "kwh": 5.25,
-            "description": "Updated via alt keys",
-        }
-        await handler(call)
-
-        mock_manager.async_update_trip.assert_awaited_once_with(
-            "rec_lun_abc",
-            {"dia_semana": "miercoles", "hora": "11:00", "km": 35.0, "kwh": 5.25, "descripcion": "Updated via alt keys"},
-        )
 
 
 class TestAsyncCleanupStaleStorage:

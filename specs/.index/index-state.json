@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-07T05:51:11Z",
+  "updated": "2026-04-07T10:33:03Z",
   "directories": [
     {
       "path": "./specs",
@@ -167,7 +167,9 @@
     {
       "name": "regression-orphaned-sensors-ha-core-investigation",
       "path": "./specs/regression-orphaned-sensors-ha-core-investigation",
-      "phase": "tasks"
+      "phase": "execution",
+      "taskIndex": 57,
+      "totalTasks": 57
     }
   ]
 }
