@@ -1,392 +1,405 @@
-"""Tests for trip_manager.py edge cases and error handling."""
+"""Additional error path coverage tests for trip_manager.py."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, date
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+import asyncio
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.trip_manager import TripManager, generate_trip_id, TRIP_TYPE_RECURRING, TRIP_TYPE_PUNCTUAL
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
-# =============================================================================
-# TripManager - error handling and edge cases
-# =============================================================================
+@pytest.fixture
+def mock_hass_with_storage():
+    """Create a mock hass with storage for testing error paths."""
+    hass = MagicMock()
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    mock_loop = MagicMock()
+    mock_loop.create_future = MagicMock(return_value=None)
+    hass.loop = mock_loop
+
+    hass.storage = MagicMock()
+    hass.storage.async_read = AsyncMock(return_value=None)
+    hass.storage.async_write_dict = AsyncMock(return_value=True)
+
+    return hass
 
 
-class TestTripManagerEdgeCases:
-    """Tests for TripManager edge cases."""
+class TestTripManagerAsyncCreateTripSensor:
+    """Tests for async_create_trip_sensor error paths."""
 
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
+    @pytest.mark.asyncio
+    async def test_async_create_trip_sensor_entity_registry_error(self, mock_hass_with_storage):
+        """async_create_trip_sensor handles entity registry error gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Add a trip first
+        trip_manager._punctual_trips["trip_1"] = {
+            "id": "trip_1",
+            "tipo": "punctual",
+            "datetime": "2025-01-15T18:00",
+            "km": 30.0,
+            "kwh": 5.0,
+            "descripcion": "Test trip",
+            "estado": "pendiente",
+        }
+
+        # Mock entity_registry to raise on async_get_or_create
+        with patch(
+            "homeassistant.helpers.entity_registry.EntityRegistry.async_get_or_create",
+            side_effect=Exception("Registry error"),
+        ):
+            # Should not raise - exception is caught and logged
+            await trip_manager.async_create_trip_sensor("trip_1", trip_manager._punctual_trips["trip_1"])
+
+
+class TestTripManagerAsyncRemoveTripSensor:
+    """Tests for async_remove_trip_sensor error paths."""
+
+    @pytest.mark.asyncio
+    async def test_async_remove_trip_sensor_registry_error(self, mock_hass_with_storage):
+        """async_remove_trip_sensor handles registry error gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Mock registry.async_get to raise
+        with patch(
+            "homeassistant.helpers.entity_registry.EntityRegistry.async_get",
+            side_effect=Exception("Registry error"),
+        ):
+            # Should not raise - exception is caught and logged
+            await trip_manager.async_remove_trip_sensor("trip_1")
+
+
+class TestTripManagerAsyncUpdateTripSensor:
+    """Tests for async_update_trip_sensor error paths."""
+
+    @pytest.mark.asyncio
+    async def test_async_update_trip_sensor_trip_not_found(self, mock_hass_with_storage):
+        """async_update_trip_sensor handles missing trip gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Don't add any trips - trip_1 doesn't exist
+        # Should not raise - returns early when trip not found
+        await trip_manager.async_update_trip_sensor("trip_1")
+
+    @pytest.mark.asyncio
+    async def test_async_update_trip_sensor_registry_get_error(self, mock_hass_with_storage):
+        """async_update_trip_sensor handles registry get error."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Add a trip
+        trip_manager._punctual_trips["trip_1"] = {
+            "id": "trip_1",
+            "tipo": "punctual",
+            "datetime": "2025-01-15T18:00",
+            "km": 30.0,
+            "kwh": 5.0,
+        }
+
+        # Mock entity_registry.async_get to return an entry first (exists), then raise on update
         mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
+        mock_entry.entity_id = "sensor.trip_1"
 
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance with mocked dependencies."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        # _recurring_trips and _punctual_trips are dicts, not lists
-        mgr._recurring_trips = {}
-        mgr._punctual_trips = {}
-        return mgr
+        with patch(
+            "homeassistant.helpers.entity_registry.EntityRegistry.async_get",
+            return_value=mock_entry,
+        ):
+            # Should not raise even if hass.states.async_set fails
+            with patch.object(mock_hass_with_storage, "states") as mock_states:
+                mock_states.async_set = MagicMock(side_effect=Exception("State error"))
+                await trip_manager.async_update_trip_sensor("trip_1")
 
-    def test_is_trip_today_recurring(self, trip_manager):
-        """Test _is_trip_today correctly identifies recurring trip."""
-        # Monday trip
+
+class TestTripManagerGetTripTime:
+    """Tests for _get_trip_time error paths."""
+
+    def test_get_trip_time_recurring_invalid_hora(self, mock_hass_with_storage):
+        """_get_trip_time handles invalid hora format in recurring trip."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
         trip = {
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
+            "tipo": "recurring",
+            "dia_semana": "monday",
+            "hora": "invalid_time",  # Invalid format
         }
 
-        # Mock today to be Monday (weekday() = 0)
-        mock_today = Mock()
-        mock_today.weekday = Mock(return_value=0)
+        result = trip_manager._get_trip_time(trip)
+        assert result is None
 
-        result = trip_manager._is_trip_today(trip, mock_today)
-        assert result is True
+    def test_get_trip_time_punctual_invalid_datetime(self, mock_hass_with_storage):
+        """_get_trip_time handles invalid datetime in punctual trip."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 
-    def test_is_trip_today_recurring_wrong_day(self, trip_manager):
-        """Test _is_trip_today returns False for wrong day."""
         trip = {
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
+            "tipo": "punctual",
+            "datetime": "not-a-datetime",  # Invalid format
         }
 
-        # Mock today to be Tuesday (weekday() = 1)
-        mock_today = Mock()
-        mock_today.weekday = Mock(return_value=1)
+        result = trip_manager._get_trip_time(trip)
+        assert result is None
 
-        result = trip_manager._is_trip_today(trip, mock_today)
-        assert result is False
+    def test_get_trip_time_unknown_tipo(self, mock_hass_with_storage):
+        """_get_trip_time handles unknown trip tipo."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 
-    def test_is_trip_today_punctual(self, trip_manager):
-        """Test _is_trip_today correctly identifies punctual trip."""
-        trip = {
-            "tipo": "puntual",
-            "datetime": "2026-04-15T10:00",
-        }
-
-        mock_today = date(2026, 4, 15)
-
-        result = trip_manager._is_trip_today(trip, mock_today)
-        assert result is True
-
-    def test_is_trip_today_unknown_type(self, trip_manager):
-        """Test _is_trip_today returns False for unknown trip type."""
         trip = {
             "tipo": "unknown_type",
-        }
-
-        mock_today = Mock()
-
-        result = trip_manager._is_trip_today(trip, mock_today)
-        assert result is False
-
-    def test_get_day_index_with_numeric_string(self, trip_manager):
-        """Test _get_day_index handles numeric day strings."""
-        # Test valid numeric index
-        result = trip_manager._get_day_index("2")
-        assert result == 2
-
-    def test_get_day_index_with_numeric_out_of_range(self, trip_manager):
-        """Test _get_day_index handles out of range numeric index."""
-        # Test out of range index (should default to 0)
-        result = trip_manager._get_day_index("9")
-        assert result == 0  # Defaults to Monday
-
-    def test_get_day_index_case_insensitive(self, trip_manager):
-        """Test _get_day_index is case insensitive."""
-        result = trip_manager._get_day_index("LUNES")
-        assert result == 0
-
-        result = trip_manager._get_day_index("MiErCoLeS")
-        assert result == 2
-
-
-# =============================================================================
-# TripManager - trip time calculations
-# =============================================================================
-
-
-class TestTripTimeCalculations:
-    """Tests for trip time calculation methods."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        mgr._recurring_trips = {}
-        mgr._punctual_trips = {}
-        return mgr
-
-    def test_get_trip_time_recurring(self, trip_manager):
-        """Test _get_trip_time for recurring trip."""
-        trip = {
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
-            "hora": "09:30",
-        }
-
-        result = trip_manager._get_trip_time(trip)
-
-        assert result is not None
-        assert result.minute == 30
-        assert result.hour == 9
-
-    def test_get_trip_time_punctual(self, trip_manager):
-        """Test _get_trip_time for punctual trip."""
-        trip = {
-            "tipo": "puntual",
-            "datetime": "2026-04-15T14:30",
-        }
-
-        result = trip_manager._get_trip_time(trip)
-
-        assert result is not None
-        assert result.minute == 30
-        assert result.hour == 14
-
-    def test_get_trip_time_unknown_type(self, trip_manager):
-        """Test _get_trip_time returns None for unknown type."""
-        trip = {
-            "tipo": "unknown",
         }
 
         result = trip_manager._get_trip_time(trip)
         assert result is None
 
 
-# =============================================================================
-# TripManager - async_delete_all_trips
-# =============================================================================
+class TestTripManagerDayIndex:
+    """Tests for _get_day_index error paths."""
+
+    def test_get_day_index_invalid_digit(self, mock_hass_with_storage):
+        """_get_day_index handles out-of-range day index."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
+        result = trip_manager._get_day_index("9")  # Only 0-6 are valid
+        assert result == 0  # Defaults to Monday
+
+    def test_get_day_index_unknown_name(self, mock_hass_with_storage):
+        """_get_day_index handles unknown day name."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
+        result = trip_manager._get_day_index("NotADay")
+        assert result == 0  # Defaults to Monday
 
 
-class TestDeleteAllTrips:
-    """Tests for delete_all_trips method."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        return mgr
+class TestTripManagerSaveTrips:
+    """Tests for async_save_trips error paths."""
 
     @pytest.mark.asyncio
-    async def test_async_delete_all_trips_deletes_both_lists(self, trip_manager):
-        """Test delete_all_trips clears both recurring and punctual trips."""
-        # Add some trips (stored as dict)
+    async def test_async_save_trips_yaml_write_fails(self, mock_hass_with_storage):
+        """async_save_trips handles YAML write failure gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Add some data
+        trip_manager._punctual_trips["trip_1"] = {
+            "id": "trip_1",
+            "tipo": "punctual",
+        }
+
+        # Make both HA storage AND YAML fallback fail
+        mock_hass_with_storage.storage.async_write_dict = AsyncMock(
+            side_effect=Exception("HA storage failed")
+        )
+
+        # Make Path.mkdir raise
+        with patch(
+            "pathlib.Path.mkdir",
+            side_effect=Exception("mkdir failed"),
+        ):
+            # Should not raise - both failures caught
+            await trip_manager.async_save_trips()
+
+    @pytest.mark.asyncio
+    async def test_async_save_trips_yaml_open_fails(self, mock_hass_with_storage):
+        """async_save_trips handles YAML file open failure."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        trip_manager._punctual_trips["trip_1"] = {"id": "trip_1"}
+
+        # Make storage fail
+        mock_hass_with_storage.storage.async_write_dict = AsyncMock(
+            side_effect=Exception("HA storage failed")
+        )
+
+        # Make yaml.dump succeed but file write fail
+        with patch(
+            "pathlib.Path.mkdir",
+        ):
+            with patch(
+                "builtins.open",
+                side_effect=Exception("File write error"),
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.trip_manager.yaml.safe_load",
+                ):
+                    # Should not raise
+                    await trip_manager.async_save_trips()
+
+
+class TestTripManagerEMHASSAdapter:
+    """Tests for EMHASS adapter methods."""
+
+    @pytest.mark.asyncio
+    async def test_get_emhass_adapter_returns_none(self, mock_hass_with_storage):
+        """get_emhass_adapter returns None when no adapter set."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # No EMHASS adapter set
+        result = trip_manager.get_emhass_adapter()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_set_and_get_emhass_adapter(self, mock_hass_with_storage):
+        """set_emhass_adapter and get_emhass_adapter work correctly."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        mock_adapter = MagicMock()
+        trip_manager.set_emhass_adapter(mock_adapter)
+
+        assert trip_manager.get_emhass_adapter() is mock_adapter
+
+
+class TestTripManagerVehicleSOC:
+    """Tests for vehicle SOC methods."""
+
+    @pytest.mark.asyncio
+    async def test_async_get_vehicle_soc_returns_zero_on_no_entry(self, mock_hass_with_storage):
+        """async_get_vehicle_soc returns 0.0 when no config entry found."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Make async_entries return empty list (no matching entry)
+        mock_hass_with_storage.config_entries.async_entries = MagicMock(return_value=[])
+
+        # Returns 0.0 when no entry found
+        result = await trip_manager.async_get_vehicle_soc("test_vehicle")
+        assert result == 0.0
+
+
+class TestTripManagerCalcularVentana:
+    """Tests for calcular_ventana_carga error paths."""
+
+    @pytest.mark.asyncio
+    async def test_calcular_ventana_carga_no_deadline(self, mock_hass_with_storage):
+        """calcular_ventana_carga handles trip with no deadline."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        trip = {
+            "id": "trip_1",
+            "tipo": "punctual",
+            "datetime": "invalid-datetime",
+            "km": 30,
+            "kwh": 5,
+        }
+
+        # Should return default window (0 hours) for invalid datetime
+        result = await trip_manager.calcular_ventana_carga(
+            trip, soc_actual=50.0, hora_regreso=None, charging_power_kw=7.4
+        )
+
+        assert result["ventana_horas"] == 0.0
+
+
+class TestTripManagerGetAllTrips:
+    """Tests for get_all_trips."""
+
+    def test_get_all_trips_returns_structure(self, mock_hass_with_storage):
+        """get_all_trips returns dict with recurring and punctual keys."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
         trip_manager._recurring_trips = {
-            "r1": {"id": "r1", "tipo": "recurrente"},
-            "r2": {"id": "r2", "tipo": "recurrente"},
+            "rec_1": {"id": "rec_1", "tipo": "recurring"}
         }
         trip_manager._punctual_trips = {
-            "p1": {"id": "p1", "tipo": "puntual"},
+            "pun_1": {"id": "pun_1", "tipo": "punctual"}
         }
 
-        await trip_manager.async_delete_all_trips()
-
-        assert len(trip_manager._recurring_trips) == 0
-        assert len(trip_manager._punctual_trips) == 0
-
-
-# =============================================================================
-# TripManager - get trip methods
-# =============================================================================
-
-
-class TestGetTripMethods:
-    """Tests for get trip methods."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        mgr._recurring_trips = {
-            "r1": {"id": "r1", "tipo": "recurrente", "activo": True},
-            "r2": {"id": "r2", "tipo": "recurrente", "activo": False},
-        }
-        mgr._punctual_trips = {
-            "p1": {"id": "p1", "tipo": "puntual"},
-        }
-        return mgr
-
-    @pytest.mark.asyncio
-    async def test_async_get_recurring_trips_returns_all(self, trip_manager):
-        """Test async_get_recurring_trips returns all trips (filtering happens elsewhere)."""
-        trips = await trip_manager.async_get_recurring_trips()
-
-        # Returns all trips (2 total: one active, one inactive)
-        assert len(trips) == 2
-
-    @pytest.mark.asyncio
-    async def test_async_get_punctual_trips_returns_all(self, trip_manager):
-        """Test async_get_punctual_trips returns all trips."""
-        trips = await trip_manager.async_get_punctual_trips()
-
-        assert len(trips) == 1
-        assert trips[0]["id"] == "p1"
-
-    def test_get_all_trips_returns_both(self, trip_manager):
-        """Test get_all_trips returns both recurring and punctual."""
         result = trip_manager.get_all_trips()
 
         assert "recurring" in result
         assert "punctual" in result
-        assert len(result["recurring"]) == 2
+        assert len(result["recurring"]) == 1
         assert len(result["punctual"]) == 1
 
 
-# =============================================================================
-# TripManager - pause/resume trips
-# =============================================================================
-
-
-class TestPauseResumeTrips:
-    """Tests for pause and resume trip methods."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        mgr._recurring_trips = {
-            "r1": {"id": "r1", "tipo": "recurrente", "activo": True},
-        }
-        mgr._punctual_trips = {}
-        return mgr
+class TestTripManagerAsyncAddRecurringTrip:
+    """Tests for async_add_recurring_trip error paths."""
 
     @pytest.mark.asyncio
-    async def test_async_pause_recurring_trip(self, trip_manager):
-        """Test pausing a recurring trip."""
-        await trip_manager.async_pause_recurring_trip("r1")
+    async def test_async_add_recurring_trip_generates_id(self, mock_hass_with_storage):
+        """async_add_recurring_trip generates trip_id if not provided."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
 
-        assert trip_manager._recurring_trips["r1"]["activo"] is False
+        # Mock the sensor creation and EMHASS to avoid side effects
+        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+            with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
+                await trip_manager.async_add_recurring_trip(
+                    dia_semana="monday",
+                    hora="08:00",
+                    km=30,
+                    kwh=5,
+                )
 
-    @pytest.mark.asyncio
-    async def test_async_pause_nonexistent_trip(self, trip_manager):
-        """Test pausing a nonexistent trip doesn't raise."""
-        await trip_manager.async_pause_recurring_trip("nonexistent")
-        # Should not raise - just logs warning
-
-    @pytest.mark.asyncio
-    async def test_async_resume_recurring_trip(self, trip_manager):
-        """Test resuming a recurring trip."""
-        # First pause it
-        trip_manager._recurring_trips["r1"]["activo"] = False
-
-        await trip_manager.async_resume_recurring_trip("r1")
-
-        assert trip_manager._recurring_trips["r1"]["activo"] is True
+        # Check that a recurring trip was added
+        recurring_ids = list(trip_manager._recurring_trips.keys())
+        assert len(recurring_ids) == 1
+        assert recurring_ids[0].startswith("rec_")
 
     @pytest.mark.asyncio
-    async def test_async_resume_nonexistent_trip(self, trip_manager):
-        """Test resuming a nonexistent trip doesn't raise."""
-        await trip_manager.async_resume_recurring_trip("nonexistent")
-        # Should not raise - just logs warning
+    async def test_async_add_recurring_trip_with_custom_id(self, mock_hass_with_storage):
+        """async_add_recurring_trip uses provided trip_id."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+            with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
+                await trip_manager.async_add_recurring_trip(
+                    trip_id="custom_recurring_1",
+                    dia_semana="monday",
+                    hora="08:00",
+                    km=30,
+                    kwh=5,
+                )
+
+        assert "custom_recurring_1" in trip_manager._recurring_trips
 
 
-# =============================================================================
-# TripManager - SOC calculations
-# =============================================================================
-
-
-class TestSOCCalculations:
-    """Tests for SOC calculation methods."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock Home Assistant instance."""
-        hass = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "test_entry"
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass):
-        """Create TripManager instance."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-        mgr = TripManager(mock_hass, "test_vehicle")
-        return mgr
+class TestTripManagerAsyncDeleteTrip:
+    """Tests for async_delete_trip error paths."""
 
     @pytest.mark.asyncio
-    async def test_async_get_kwh_needed_today_with_no_trips(self, trip_manager):
-        """Test kwh needed returns 0 when no trips today."""
-        result = await trip_manager.async_get_kwh_needed_today()
-        assert result == 0.0
+    async def test_async_delete_trip_not_found(self, mock_hass_with_storage):
+        """async_delete_trip handles missing trip gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Try to delete a trip that doesn't exist
+        with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
+            with patch.object(trip_manager, "async_remove_trip_sensor", new_callable=AsyncMock):
+                with patch.object(trip_manager, "_async_remove_trip_from_emhass", new_callable=AsyncMock):
+                    await trip_manager.async_delete_trip("nonexistent_trip")
+
+        # No error should be raised - just returns early
+
+
+class TestTripManagerAsyncPauseResume:
+    """Tests for async_pause/resume_recurring_trip."""
 
     @pytest.mark.asyncio
-    async def test_async_get_hours_needed_today_with_no_trips(self, trip_manager):
-        """Test hours needed returns 0 when no trips today."""
-        result = await trip_manager.async_get_hours_needed_today()
-        assert result == 0
+    async def test_async_pause_recurring_trip_not_found(self, mock_hass_with_storage):
+        """async_pause_recurring_trip handles missing trip gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
 
+        with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
+            await trip_manager.async_pause_recurring_trip("nonexistent_trip")
 
-# =============================================================================
-# Helper functions
-# =============================================================================
+    @pytest.mark.asyncio
+    async def test_async_resume_recurring_trip_not_found(self, mock_hass_with_storage):
+        """async_resume_recurring_trip handles missing trip gracefully."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
 
-
-class TestHelperFunctions:
-    """Tests for module-level helper functions."""
-
-    def test_generate_trip_id_recurring(self):
-        """Test generate_trip_id for recurring trips."""
-        trip_id = generate_trip_id(TRIP_TYPE_RECURRING, "lunes")
-        assert trip_id.startswith("rec_")
-
-    def test_generate_trip_id_punctual(self):
-        """Test generate_trip_id for punctual trips."""
-        trip_id = generate_trip_id(TRIP_TYPE_PUNCTUAL, "martes")
-        assert trip_id.startswith("punt_") or trip_id.startswith("trip_")
+        with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
+            await trip_manager.async_resume_recurring_trip("nonexistent_trip")

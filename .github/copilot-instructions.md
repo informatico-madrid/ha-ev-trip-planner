@@ -33,7 +33,7 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 - Read the entire file before attempting to make changes
 - Ensure the text to replace exactly matches the file content
 - Use read_file to verify content before making changes
-- If you are implmenting tasks, always read docs/IMPLEMENTATION_REVIEW.md for any important notes left by the reviewer that may help you in your task.
+- If you are implementing tasks, always read docs/IMPLEMENTATION_REVIEW.md for any important notes left by the reviewer that may help you in your task.
 
 ## Stuck State Protocol
 

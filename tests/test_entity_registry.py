@@ -13,9 +13,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers import entity_registry as er
-
 
 class FakeEntry:
     """Minimal ConfigEntry substitute for testing."""
@@ -55,9 +52,6 @@ def mock_hass(config_entry):
     from custom_components.ev_trip_planner.const import DOMAIN
 
     hass = MagicMock()
-
-    # Track registered entities - this is what should be cleared on unload
-    registered_entities: dict[str, dict] = {}
 
     class MockRegistry:
         """Mock entity registry that tracks entities."""
@@ -157,8 +151,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
             # Use the entity's unique_id and name to create a registry entry
             unique_id = getattr(entity, '_attr_unique_id', None) or getattr(entity, 'unique_id', 'unknown')
             suggested_object_id = getattr(entity, '_attr_name', None) or getattr(entity, 'name', 'unknown')
-            entity_id = f"sensor.{suggested_object_id}".lower().replace(" ", "_")
-            entry = registry.async_get_or_create(
+            registry.async_get_or_create(
                 domain="sensor",
                 platform="ev_trip_planner",
                 unique_id=unique_id,
@@ -222,7 +215,6 @@ async def test_two_vehicles_no_unique_id_collision():
     After Phase 1-3 refactoring, unique_ids should be globally unique:
       _attr_unique_id = f"{DOMAIN}_{vehicle_id}_{trip_id}"
     """
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.sensor import async_setup_entry
 
     # Create two config entries for two different vehicles
@@ -369,13 +361,11 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
     entry after unload.
     """
     from custom_components.ev_trip_planner import async_unload_entry
-    from custom_components.ev_trip_planner.const import DOMAIN
 
     # Manually register 8 sensors in the entity registry before the test
     # (simulating what async_setup_entry does)
     registry = mock_hass.entity_registry
     for i in range(8):
-        entity_id = f"sensor.test_entity_{i}"
         registry.async_get_or_create(
             domain="sensor",
             platform="ev_trip_planner",
@@ -420,7 +410,6 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
     After Phase 2 fix, calling the add_trip service should result in a TripSensor
     that appears in the entity registry (via async_add_entities callback).
     """
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.sensor import async_create_trip_sensor
     from custom_components.ev_trip_planner.sensor import async_setup_entry
 
@@ -435,8 +424,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
             # Use the entity's unique_id and name to create a registry entry
             unique_id = getattr(entity, '_attr_unique_id', None) or getattr(entity, 'unique_id', 'unknown')
             suggested_object_id = getattr(entity, '_attr_name', None) or getattr(entity, 'name', 'unknown')
-            entity_id = f"sensor.{suggested_object_id}".lower().replace(" ", "_")
-            entry = registry.async_get_or_create(
+            registry.async_get_or_create(
                 domain="sensor",
                 platform="ev_trip_planner",
                 unique_id=unique_id,
@@ -454,9 +442,6 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
     # Verify initial sensors are set up
     initial_count = len(setup_entities)
     assert initial_count >= 8, f"Expected >= 8 initial sensors, got {initial_count}"
-
-    # Get the namespace used by the integration
-    namespace = f"{DOMAIN}_{config_entry.entry_id}"
 
     # Now create a trip sensor via async_create_trip_sensor
     trip_data = {
@@ -515,7 +500,7 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
     registry.async_get_or_create(
         domain="sensor",
         platform="ev_trip_planner",
-        unique_id=f"trip_trip_001",
+        unique_id="trip_trip_001",
         suggested_object_id="trip_trip_001",
         config_entry=config_entry,
     )

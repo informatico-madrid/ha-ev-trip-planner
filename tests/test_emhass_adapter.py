@@ -470,8 +470,8 @@ async def test_async_notify_error_sends_notification(hass, mock_store):
 
 
 @pytest.mark.asyncio
-async def test_async_clear_error_clears_error_state(hass, mock_store):
-    """Test that async_clear_error clears the error state."""
+async def test_async_clear_error_after_notify(hass, mock_store):
+    """Test that async_clear_error clears error set via async_notify_error."""
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -86,6 +87,26 @@ async def test_async_save_trips_handles_exception(mock_hass_with_storage):
 
 
 @pytest.mark.asyncio
+async def test_async_save_trips_yaml_fallback_also_fails(mock_hass_with_storage):
+    """async_save_trips falls back to YAML and catches that error too."""
+    trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+    await trip_manager.async_setup()
+
+    # Make both HA storage AND YAML fallback fail
+    mock_hass_with_storage.storage.async_write_dict = AsyncMock(
+        side_effect=Exception("HA storage failed")
+    )
+
+    # Patch Path to raise on mkdir
+    with patch(
+        "pathlib.Path.mkdir",
+        side_effect=Exception("mkdir failed"),
+    ):
+        # Should not raise - both failures caught
+        await trip_manager.async_save_trips()
+
+
+@pytest.mark.asyncio
 async def test_set_and_get_emhass_adapter(mock_hass_with_storage):
     """TripManager set_emhass_adapter and get_emhass_adapter work correctly."""
     trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
@@ -108,3 +129,43 @@ async def test_async_generate_deferrables_schedule_returns_list(mock_hass_with_s
     assert len(result) > 0
     # Each entry should have a 'date' key
     assert "date" in result[0]
+
+
+@pytest.mark.asyncio
+async def test_async_generate_power_profile_with_presence_monitor(mock_hass_with_storage):
+    """async_generate_power_profile uses presence_monitor for hora_regreso."""
+    trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+    await trip_manager.async_setup()
+
+    # Set up presence_monitor mock
+    mock_presence = MagicMock()
+    mock_presence.async_get_hora_regreso = AsyncMock(
+        return_value=datetime(2025, 1, 15, 18, 0)
+    )
+    trip_manager.vehicle_controller._presence_monitor = mock_presence
+
+    # Should use presence_monitor's hora_regreso
+    result = await trip_manager.async_generate_power_profile(
+        charging_power_kw=3.6,
+        planning_horizon_days=1,
+    )
+
+    assert isinstance(result, list)
+
+
+@pytest.mark.asyncio
+async def test_async_generate_power_profile_no_presence_monitor(mock_hass_with_storage):
+    """async_generate_power_profile handles missing presence_monitor gracefully."""
+    trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+    await trip_manager.async_setup()
+
+    # No presence_monitor set
+    trip_manager.vehicle_controller._presence_monitor = None
+
+    # Should not raise - presence_monitor is None
+    result = await trip_manager.async_generate_power_profile(
+        charging_power_kw=3.6,
+        planning_horizon_days=1,
+    )
+
+    assert isinstance(result, list)

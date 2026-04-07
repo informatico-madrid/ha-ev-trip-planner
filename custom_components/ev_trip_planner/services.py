@@ -790,9 +790,8 @@ async def _ensure_setup(mgr: TripManager) -> None:
     # Check if manager needs setup - call async_setup if not already done
     try:
         await mgr.async_setup()
-    except Exception:
-        # Already set up or not needed
-        pass
+    except Exception as err:
+        _LOGGER.debug("TripManager async_setup raised (may already be set up): %s", err)
 
 
 @callback

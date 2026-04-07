@@ -1814,7 +1814,7 @@ class TripManager:
 
         # Obtener hora_regreso si no fue proporcionada
         # Si no hay hora_regreso detectada aun, usar departure_time + 6h como estimado
-        if hora_regreso is None and self.vehicle_controller._presence_monitor:
+        if hora_regreso is None and self.vehicle_controller and self.vehicle_controller._presence_monitor:
             hora_regreso = await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
 
         # Inicializar perfil de potencia (0 = no cargar)

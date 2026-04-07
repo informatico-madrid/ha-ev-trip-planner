@@ -17,6 +17,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+from .emhass_adapter import EMHASSAdapter
+from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,8 +47,8 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        trip_manager: Any,
-        emhass_adapter: Any = None,
+        trip_manager: TripManager,
+        emhass_adapter: EMHASSAdapter | None = None,
         logger: logging.Logger = None,
     ) -> None:
         """Initialize the coordinator.

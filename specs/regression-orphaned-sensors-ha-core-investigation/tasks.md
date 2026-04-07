@@ -284,6 +284,11 @@
   - **Commit**: `refactor(phase-5): replace WARNING debug spam with DEBUG level`
   - _Requirements: FR-16_
   - **[P]**
+  - En services.py el handler handle_trip_list contiene más de 15 llamadas _LOGGER.warning("=== ...") que son claramente debug logging . Igualmente handle_trip_get y _get_manager están llenos de _LOGGER.warning("=== ..."). Esto es inconsistente con el ✅ de la tarea 5.3 que dice haber limpiado el __init__.py, pero services.py quedó sin limpiar.
+
+- [ ] 5.3B [GREEN] Replace WARNING debug spam with DEBUG level in services.py
+  - **Files**: `custom_components/ev_trip_planner/services.py`
+  - **Done when**: `grep -c "_LOGGER.warning.*===" custom_components/ev_trip_planner/services.py` returns `0`
 
 - [x] 5.4 [GREEN] Create diagnostics.py for HA Quality
   - **Do**: Create `custom_components/ev_trip_planner/diagnostics.py` with `async_get_config_entry_diagnostics` function. Export integration diagnostics (config entry data, coordinator state, trip counts) for HA diagnostic tooling.
@@ -619,27 +624,55 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### 🔴 CRÍTICOS — Correctitud
 
-- [x] C2-FIX ✅ FIXED (commit `38c649a`) — `async_update_entry` ahora pasa `version=2`
+- [ ] C2-FIX ✅ REVIEW (commit `38c649a`) — `async_update_entry` ahora pasa `version=2`  Si una entrada ya tiene battery_capacity_kwh (no hay nada que cambiar en data), changed queda False y la versión nunca se actualiza a 2. La migración de entity registry (el await async_migrate_entries(...)) sí se ejecuta, pero la versión sigue en 1, provocando que se re-ejecute en cada startup. El tasks.md DECIA ✅ FIXED, pero la fix está incompleta. Debería ser:
+```python
+# Al final de la sección "if entry.version < 2:", SIEMPRE actualizar versión
+hass.config_entries.async_update_entry(entry, data=new_data, version=2)
 - [x] C3-FIX ✅ FIXED — `_get_manager` es ahora `async def` con `await trip_manager.async_setup()`
 - [x] C4-FIX ✅ FIXED (commit `38c649a`) — usa `er.async_get(hass)` correctamente
 - [x] C5-FIX ✅ FIXED (commit `38c649a`) — args en orden correcto `(url_path, path)`
 - [x] C6-FIX ✅ FIXED (commit `38c649a`) — accede via `coordinator.trip_manager`
-- [ ] C8-FIX — async_register_panel sin await en panel_custom.py — pending
+- [ ] C8-FIX ✅ REVIEW — `panel_custom.py` es código muerto (nunca se importa en producción). El bug existe en el archivo pero es irrelevante. Eliminar el archivo en cleanup. Commit pending: `chore: delete dead panel_custom.py`
 
 ### 🟠 MEDIO — PRAGMA (3 sub-tareas)
 
-- [ ] PRAGMA-A Handlers de servicios — Mock(side_effect) para 10 error paths
-- [ ] PRAGMA-B File system/registry — patch de OS/HA para 4 error paths
+- [ ] PRAGMA-A Quitar 10 `# pragma: no cover` + tests con Mock(side_effect) para error paths
+  - **MANDATORIO**: Quitar `# pragma: no cover` de CADA handler antes de escribir el test. El test DEBE cubrir la línea que antes estaba marcada.
+  - **Archivos**: services.py (5), trip_manager.py (3), sensor.py (1), config_flow.py (2)
+  - **Criterio**: `grep -c "pragma: no cover" services.py trip_manager.py sensor.py config_flow.py` → todos 0 en esas secciones
+  
+- [ ] PRAGMA-B Quitar 6 `# pragma: no cover` + tests con patch de OS/HA para error paths
+  - **MANDATORIO**: Quitar `# pragma: no cover` de CADA handler antes de escribir el test.
+  - **Archivos**: services.py (2: entity cleanup, panel unregister), dashboard.py (6: template load, storage API, YAML fallback)
+  - **Criterio**: `grep -c "pragma: no cover" services.py dashboard.py` → todos 0
   - **⚠️ Para dashboard.py**: Después de cada error simulado, verificar que `async_get_dashboard_config()` sigue retornando datos válidos (no None, no estado corrupto). El fallback debe producir un dashboard usable.
-- [ ] PRAGMA-C Evaluar 3 casos genuinamente difíciles
+  
+- [ ] PRAGMA-C Evaluar 3 casos restantes — si testables, quitar `# pragma: no cover` + testear; si NO, documentar por qué en TDD_METHODOLOGY.md
+  - **MANDATORIO**: O se quita el `# pragma: no cover` y se escribe test, O se documenta la limitación técnica. No se puede dejar la marca sin justificación.
+  - **Criterio final**: `grep -rn "pragma: no cover" custom_components/ev_trip_planner/` → 0 resultados TOTAL
 
 ### 🟡 MENORES
 
-- [ ] M1-FIX `Any` → `TripManager` en coordinator
-- [ ] M3-FIX Unused `registered_entities` en test fixture
-- [ ] M4-FIX f-string sin placeholders
-- [ ] M5-FIX None check para `_presence_monitor`
-- [ ] M6-FIX Log en `_ensure_setup` except pass
-- [ ] M7-FIX Delete dead test_integration_uninstall.py
-- [ ] M10-FIX Typo "implmenting"
-- [ ] LINT-FIX Pylint E0611 init-hook en pyproject.toml
+- [x] M1-FIX `Any` → `TripManager` en coordinator
+- [x] M3-FIX Unused `registered_entities` en test fixture
+- [x] M4-FIX f-string sin placeholders en test_entity_registry.py
+- [x] M4B-FIX Test con nombre duplicado en test_emhass_adapter.py:321 — `test_async_clear_error_clears_error_state` aparece 2 veces. Renombrar el segundo para que sea único.
+- [x] M5-FIX None check para `_presence_monitor`
+- [x] M6-FIX Log en `_ensure_setup` except pass
+- [x] M7-FIX Clean test_integration_uninstall.py — eliminar tests DISABLED con `pass`, corregir comentarios incorrectos. Mantener tests válidos (ej: `test_no_orphaned_sensors_after_deletion` tiene assertions reales). Si TODOS están muertos, borrar archivo.
+- [x] M10-FIX Typo "implmenting"
+- [ ] FLAKY-FIX 3 tests fallan consistentemente en test_trip_manager_error_paths.py — NO son flaky, son bugs de tests:
+
+  1. `test_get_deferrable_load_ids_returns_list` → `TripManager.get_deferrable_load_ids()` no existe. Fix: eliminar test o usar método real.
+
+  2. `test_async_get_vehicle_soc_with_entry_error` → espera 50.0, obtiene 0.0. Fix: corregir mock o assertion.
+
+  3. `test_calcular_ventana_carga_no_deadline` → usa `soc_initial=` pero método usa `soc_actual=`. Fix: renombrar parámetro.
+
+  **Verify**: `pytest tests/test_trip_manager_error_paths.py -v 2>&1 | grep -E "^(PASSED|FAILED)"`
+
+  **Commit**: `fix(tests): fix 3 broken tests in test_trip_manager_error_paths.py`
+
+  **⚠️ REVIEWER BLOCK**: No añadir más tests de coverage hasta que estos 3 fallen. La suite no debe tener 0 failures.
+
+- [x] LINT-FIX Pylint E0611 init-hook en pyproject.toml (no issues found)

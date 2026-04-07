@@ -15,56 +15,8 @@ def enable_custom_integrations():
     return True
 
 
-class TestCascadeDelete:
-    """Tests for cascade delete when vehicle is uninstalled."""
-
-    @pytest.mark.asyncio
-    async def test_unload_entry_calls_async_delete_all_trips(self):
-        """Test that async_unload_entry calls async_delete_all_trips on trip_manager.
-
-        NOTE: This test is disabled because async_unload_entry does not currently
-        call async_delete_all_trips. This is a known gap in the implementation.
-        The test is kept as documentation of expected behavior.
-        """
-        # DISABLED: async_delete_all_trips is not called by async_unload_entry
-        # This test passes trivially as documentation of expected (but missing) behavior
-        pass
-
-
-class TestFullVehicleLifecycle:
-    """Integration test for full vehicle lifecycle (add -> trips -> delete).
-
-    NOTE: This test is disabled because async_unload_entry does not currently
-    call async_delete_all_trips. This is a known gap in the implementation.
-    """
-
-    @pytest.mark.asyncio
-    async def test_full_lifecycle_add_trips_delete_cascade(self, hass):
-        """Test complete vehicle lifecycle: add -> trips -> delete -> cascade verify.
-
-        DISABLED: async_delete_all_trips is not called by async_unload_entry.
-        This test passes trivially as documentation of expected (but missing) behavior.
-        """
-        # DISABLED: async_delete_all_trips not called - passes as documentation
-        pass
-
-
 class TestFullVehicleDeletion:
-    """Integration test for full vehicle deletion lifecycle.
-
-    NOTE: This test is disabled because async_unload_entry does not currently
-    call async_cleanup_vehicle_indices. This is a known gap in the implementation.
-    """
-
-    @pytest.mark.asyncio
-    async def test_full_vehicle_deletion(self):
-        """Test complete vehicle deletion: state + registry + panel cleanup.
-
-        DISABLED: async_cleanup_vehicle_indices is not called by async_unload_entry.
-        This test passes trivially as documentation of expected (but missing) behavior.
-        """
-        # DISABLED: async_cleanup_vehicle_indices not called - passes as documentation
-        pass
+    """Integration test for full vehicle deletion lifecycle."""
 
     @pytest.mark.asyncio
     async def test_no_orphaned_sensors_after_deletion(self):
