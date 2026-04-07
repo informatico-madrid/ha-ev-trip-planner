@@ -817,9 +817,7 @@ def _get_emhass_adapter(
     entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
         return None
-    # Note: EMHASS adapter is not stored in entry.runtime_data
-    # Return None - this function's contract may need redesign
-    return None
+    return getattr(entry.runtime_data, "emhass_adapter", None)
 
 
 async def create_dashboard_input_helpers(

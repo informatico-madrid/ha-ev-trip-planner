@@ -106,8 +106,8 @@ class TestBuildPresenceConfig:
 class TestGetEmhassAdapter:
     """Tests for _get_emhass_adapter."""
 
-    def test_get_emhass_adapter_returns_none(self):
-        """_get_emhass_adapter always returns None."""
+    def test_get_emhass_adapter_returns_none_when_not_set(self):
+        """_get_emhass_adapter returns None when no emhass_adapter in runtime_data."""
         from custom_components.ev_trip_planner.services import _get_emhass_adapter
 
         mock_hass = MagicMock()
@@ -115,10 +115,30 @@ class TestGetEmhassAdapter:
         mock_entry = MagicMock()
         mock_entry.entry_id = "entry_1"
         mock_entry.data = {"vehicle_name": "Test Vehicle"}
+        # runtime_data exists but has no emhass_adapter
+        mock_entry.runtime_data = MagicMock(spec=[])  # Empty spec means no emhass_adapter attr
 
         mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
 
         result = _get_emhass_adapter(mock_hass, "test_vehicle")
 
-        # Always returns None by design
         assert result is None
+
+    def test_get_emhass_adapter_returns_adapter_when_set(self):
+        """_get_emhass_adapter returns emhass_adapter from runtime_data."""
+        from custom_components.ev_trip_planner.services import _get_emhass_adapter
+
+        mock_hass = MagicMock()
+        mock_adapter = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_1"
+        mock_entry.data = {"vehicle_name": "Test Vehicle"}
+        mock_entry.runtime_data = MagicMock()
+        mock_entry.runtime_data.emhass_adapter = mock_adapter
+
+        mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+
+        result = _get_emhass_adapter(mock_hass, "test_vehicle")
+
+        assert result is mock_adapter

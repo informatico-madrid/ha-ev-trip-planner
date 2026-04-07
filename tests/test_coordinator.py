@@ -97,3 +97,22 @@ async def test_coordinator_handles_empty_trips(hass: HomeAssistant, mock_trip_ma
     assert data is not None
     assert len(data["recurring_trips"]) == 0
     assert len(data["punctual_trips"]) == 0
+
+
+async def test_coordinator_async_refresh_trips_calls_async_refresh(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+    """Test that async_refresh_trips delegates to async_refresh."""
+    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+
+    refresh_called = False
+
+    async def mock_refresh():
+        nonlocal refresh_called
+        refresh_called = True
+
+    coordinator.async_refresh = mock_refresh
+
+    # Call async_refresh_trips which should delegate to async_refresh
+    await coordinator.async_refresh_trips()
+
+    assert refresh_called is True
+
