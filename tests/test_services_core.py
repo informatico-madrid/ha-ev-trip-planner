@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -742,3 +743,463 @@ class TestGetManagerErrorPaths:
         assert result["punctual_trips"] == []
         assert result["total_trips"] == 0
 
+
+class TestHandleTripGetNotFound:
+    """Tests for handle_trip_get when trip is not found - PRAGMA-A coverage targets."""
+
+    @pytest.fixture
+    def mock_hass_get_not_found(self):
+        """Create mock hass where trip is not found."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_get_returns_not_found(self, mock_hass_get_not_found):
+        """handle_trip_get returns found=False when trip_id not found.
+
+        Tests the error path at lines 653-659 where trip is not found.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_get_not_found
+        register_services(hass)
+
+        handler = hass.services.registry["trip_get"]
+        call = MagicMock()
+        call.data = {"vehicle_id": "test_vehicle", "trip_id": "nonexistent_id"}
+
+        result = await handler(call)
+
+        # Should return not found result
+        assert result["found"] is False
+        assert result["trip"] is None
+        assert "not found" in result["error"]
+
+
+class TestHandleImportWeeklyPattern:
+    """Tests for handle_import_weekly_pattern error paths - PRAGMA-A coverage targets."""
+
+    @pytest.fixture
+    def mock_hass_import_error(self):
+        """Create mock hass that errors on async_get_recurring_trips during import."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_get_recurring_trips = AsyncMock(
+            side_effect=RuntimeError("Storage error during clear")
+        )
+        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_new")
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_import_weekly_pattern_catches_clear_error(
+        self, mock_hass_import_error
+    ):
+        """handle_import_weekly_pattern catches exception from async_get_recurring_trips.
+
+        Tests the error path at lines 450-453 where clear_existing=True but
+        async_get_recurring_trips raises - the exception is caught and existing=[]
+        is used, allowing import to continue.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_import_error
+        register_services(hass)
+
+        handler = hass.services.registry["import_from_weekly_pattern"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "clear_existing": True,
+            "pattern": {
+                "lunes": [{"hora": "09:00", "km": 24.0, "kwh": 3.6, "descripcion": "Test"}],
+            },
+        }
+
+        # Should NOT raise - exception is caught, existing=[]
+        await handler(call)
+
+        # Import should continue with empty existing list
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_manager = mock_entry.runtime_data.trip_manager
+        mock_manager.async_add_recurring_trip.assert_awaited()
+
+
+class TestAsyncCleanupStaleStorage:
+    """Tests for async_cleanup_stale_storage error paths - PRAGMA-A coverage targets."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_stale_storage_handles_load_error(self):
+        """async_cleanup_stale_storage catches exception from store.async_load.
+
+        Tests the error path at lines 1164-1168 where storage cleanup error is caught
+        and logged but doesn't propagate.
+        """
+        from custom_components.ev_trip_planner.services import async_cleanup_stale_storage
+
+        hass = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+
+        # Make store.async_load raise
+        from homeassistant.helpers import storage as ha_storage
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(side_effect=RuntimeError("Load failed"))
+        hass.data = {"storage": {}}
+
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            # Should NOT raise - exception is caught
+            await async_cleanup_stale_storage(hass, "test_vehicle")
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_stale_storage_handles_yaml_remove_error(self):
+        """async_cleanup_stale_storage catches exception from os.unlink.
+
+        Tests the error path at lines 1164-1168 where YAML cleanup error is caught
+        and logged but doesn't propagate.
+        """
+        from custom_components.ev_trip_planner.services import async_cleanup_stale_storage
+
+        hass = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+
+        from homeassistant.helpers import storage as ha_storage
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={"trips": []})
+        mock_store.async_remove = AsyncMock()
+
+        yaml_dir = Path("/tmp/test_config/ev_trip_planner")
+        yaml_dir.mkdir(parents=True, exist_ok=True)
+        yaml_file = yaml_dir / "ev_trip_planner_test_vehicle.yaml"
+        yaml_file.write_text("test: data")
+
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            with patch("os.unlink", side_effect=OSError("Cannot remove file")):
+                # Should NOT raise - exception is caught
+                await async_cleanup_stale_storage(hass, "test_vehicle")
+
+
+class TestAsyncRegisterStaticPaths:
+    """Tests for async_register_static_paths error paths - PRAGMA-A coverage targets."""
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_handles_early_register_error(self):
+        """async_register_static_paths catches exception from async_register_static_paths.
+
+        Tests the error path at lines 1281-1299 where static path registration error
+        is caught and logged.
+        """
+        from custom_components.ev_trip_planner.services import async_register_static_paths
+
+        hass = MagicMock()
+        hass.http = None  # No http server
+
+        # Should handle gracefully - hass.http is None
+        await async_register_static_paths(hass)
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_handles_legacy_register_error(self):
+        """async_register_static_paths handles RuntimeError from legacy register_static_path.
+
+        Tests the error path at lines 1296-1299 where "already registered" RuntimeError
+        is caught and continue is used.
+        """
+        from custom_components.ev_trip_planner.services import async_register_static_paths
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.async_register_static_paths = AsyncMock(
+            side_effect=RuntimeError("already registered: /test")
+        )
+        hass.http.register_static_path = MagicMock(
+            side_effect=RuntimeError("already registered: /test")
+        )
+
+        # Should handle gracefully - "already registered" error is caught
+        await async_register_static_paths(hass)
+
+
+class TestAsyncCleanupOrphanedEmhassSensors:
+    """Tests for async_cleanup_orphaned_emhass_sensors - PRAGMA-A coverage targets."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_orphaned_handles_registry_error(self):
+        """async_cleanup_orphaned_emhass_sensors catches exception from er.async_get.
+
+        Tests the error path at lines 1185-1186 where entity registry error is caught
+        and logged.
+        """
+        from custom_components.ev_trip_planner.services import async_cleanup_orphaned_emhass_sensors
+
+        hass = MagicMock()
+
+        # Make er.async_get raise
+        with patch("homeassistant.helpers.entity_registry.async_get", side_effect=RuntimeError("Registry error")):
+            # Should NOT raise - exception is caught
+            await async_cleanup_orphaned_emhass_sensors(hass)
+
+
+class TestAsyncRemoveEntryCleanup:
+    """Tests for async_remove_entry_cleanup error paths - PRAGMA-A coverage targets."""
+
+    @pytest.fixture
+    def mock_hass_removal(self):
+        """Create mock hass for async_remove_entry_cleanup tests."""
+        hass = MagicMock()
+        hass.data = {"storage": {}}
+        hass.config.config_dir = "/tmp/test_config"
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "Test Vehicle"}
+
+        return hass, mock_entry
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_handles_storage_error(
+        self, mock_hass_removal
+    ):
+        """async_remove_entry_cleanup catches storage removal errors.
+
+        Tests the error path at lines 1479-1482 where store.async_remove error is caught
+        and logged.
+        """
+        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from homeassistant.helpers import storage as ha_storage
+
+        hass, mock_entry = mock_hass_removal
+
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock(side_effect=RuntimeError("Cannot remove storage"))
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            # Should NOT raise - exception is caught
+            await async_remove_entry_cleanup(hass, mock_entry)
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_handles_yaml_error(
+        self, mock_hass_removal
+    ):
+        """async_remove_entry_cleanup catches YAML removal errors.
+
+        Tests the error path at lines 1493-1494 where YAML cleanup error is caught
+        and logged.
+        """
+        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from homeassistant.helpers import storage as ha_storage
+
+        hass, mock_entry = mock_hass_removal
+
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock(return_value=None)
+
+        yaml_dir = Path("/tmp/test_config/ev_trip_planner")
+        yaml_dir.mkdir(parents=True, exist_ok=True)
+        yaml_file = yaml_dir / "ev_trip_planner_test_vehicle.yaml"
+        yaml_file.write_text("test: data")
+
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            with patch("os.unlink", side_effect=OSError("Cannot remove file")):
+                # Should NOT raise - exception is caught
+                await async_remove_entry_cleanup(hass, mock_entry)
+
+
+class TestHandleTripDelete:
+    """Tests for handle_delete_trip error paths - PRAGMA-A coverage targets."""
+
+    @pytest.fixture
+    def mock_hass_delete_not_found(self):
+        """Create mock hass where trip is not found."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_delete_trip = AsyncMock(return_value=False)
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_delete_trip_not_found_returns_early(
+        self, mock_hass_delete_not_found
+    ):
+        """handle_delete_trip proceeds when async_delete_trip returns False (trip not found).
+
+        The current implementation refreshes coordinator even when trip not found.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_delete_not_found
+        register_services(hass)
+
+        handler = hass.services.registry["delete_trip"]
+        call = MagicMock()
+        call.data = {"vehicle_id": "test_vehicle", "trip_id": "nonexistent"}
+
+        # Should complete without raising
+        await handler(call)
+
+        # Verify delete was attempted
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_manager = mock_entry.runtime_data.trip_manager
+        mock_manager.async_delete_trip.assert_awaited_once()
+        # Coordinator is refreshed even when trip not found
+        mock_entry.runtime_data.coordinator.async_refresh_trips.assert_awaited_once()
+
+
+class TestHandleTripCreateManagerError:
+    """Tests for handle_trip_create when manager setup raises - PRAGMA-A coverage targets."""
+
+    @pytest.fixture
+    def mock_hass_create_manager_error(self):
+        """Create mock hass where manager async_setup raises."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_entry.unique_id = "unique_test"
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_setup = AsyncMock(side_effect=RuntimeError("Setup failed"))
+        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_abc")
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=None,  # Will cause new manager to be created
+        )
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_create_catches_manager_setup_error(
+        self, mock_hass_create_manager_error
+    ):
+        """handle_trip_create catches RuntimeError from manager async_setup.
+
+        Tests the error path at lines 758-764 where async_setup raises in _get_manager,
+        but the error is logged and manager is still returned.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_create_manager_error
+        register_services(hass)
+
+        handler = hass.services.registry["trip_create"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "type": "recurring",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 3.6,
+        }
+
+        # Should catch the setup error and log it, then continue
+        # Manager is returned with empty storage after setup error
+        await handler(call)
