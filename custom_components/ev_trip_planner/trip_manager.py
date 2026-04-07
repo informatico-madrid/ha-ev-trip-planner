@@ -21,7 +21,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
-    DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,

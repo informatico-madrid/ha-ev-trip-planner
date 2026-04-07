@@ -2049,3 +2049,142 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
 
             # Indices should still be cleared
             assert len(adapter.get_available_indices()) == 50
+
+
+class TestEmhassAdapterCleanupEmptyIndices:
+    """Tests for async_cleanup_vehicle_indices with empty vehicle indices - PRAGMA-C coverage."""
+
+    @pytest.fixture
+    def mock_store(self):
+        """Create a mock store."""
+        store = MagicMock()
+        store.async_load = AsyncMock(return_value={})
+        store.async_save = AsyncMock()
+        return store
+
+    @pytest.fixture
+    def emhass_config(self):
+        """Create base EMHASS config."""
+        return {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_vehicle_indices_with_no_assigned_trips(
+        self, hass, mock_store, emhass_config
+    ):
+        """async_cleanup_vehicle_indices handles empty vehicle (no trips assigned).
+
+        Tests the cleanup path when _index_map is empty - should complete without error.
+        """
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, emhass_config)
+            await adapter.async_load()
+
+            # _index_map should be empty at start
+            assert len(adapter._index_map) == 0
+
+            # Mock entity registry
+            mock_registry = MagicMock()
+            mock_registry.async_remove = AsyncMock()
+
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
+                hass.states.async_remove = AsyncMock()
+
+                # Should NOT raise even with empty _index_map
+                await adapter.async_cleanup_vehicle_indices()
+
+            # All indices should still be available
+            assert len(adapter.get_available_indices()) == 50
+
+
+class TestEmhassAdapterAsyncSaveErrorPaths:
+    """Tests for emhass_adapter async_save error paths - PRAGMA-C coverage."""
+
+    @pytest.fixture
+    def mock_store(self):
+        """Create a mock store."""
+        store = MagicMock()
+        store.async_load = AsyncMock(return_value={})
+        store.async_save = AsyncMock()
+        return store
+
+    @pytest.fixture
+    def emhass_config(self):
+        """Create base EMHASS config."""
+        return {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+    @pytest.mark.asyncio
+    async def test_async_save_handles_save_error(
+        self, mock_store, emhass_config
+    ):
+        """async_save catches exception when store.async_save raises.
+
+        Tests error path at lines 1171-1172.
+        """
+        mock_store.async_save = AsyncMock(side_effect=Exception("Save error"))
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(None, emhass_config)
+            adapter._store = mock_store
+            adapter._index_map = {"trip_1": 0}
+            adapter._released_indices = {}
+
+            # Should not raise - exception is caught
+            await adapter.async_save()
+
+
+class TestEmhassAdapterPublishAllErrorPaths:
+    """Tests for async_publish_all_deferrable_loads error paths - PRAGMA-C coverage."""
+
+    @pytest.fixture
+    def mock_store(self):
+        """Create a mock store."""
+        store = MagicMock()
+        store.async_load = AsyncMock(return_value={})
+        store.async_save = AsyncMock()
+        return store
+
+    @pytest.fixture
+    def emhass_config(self):
+        """Create base EMHASS config."""
+        return {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+    @pytest.mark.asyncio
+    async def test_async_publish_all_deferrable_loads_with_no_trips(
+        self, hass, mock_store, emhass_config
+    ):
+        """async_publish_all_deferrable_loads handles empty trip list.
+
+        Tests the happy path when there are no trips to publish.
+        """
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, emhass_config)
+            await adapter.async_load()
+
+            hass.states.async_set = AsyncMock()
+
+            # Empty trips list should not raise
+            await adapter.async_publish_all_deferrable_loads([])

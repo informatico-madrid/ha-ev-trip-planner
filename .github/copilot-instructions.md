@@ -23,6 +23,41 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
   - Constants: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_CONSUMPTION`)
   - Private methods/vars: Must have a leading underscore (e.g., `_calculate_internal`)
 
+## 🧹 CLEAN CODE RULES (MANDATORY)
+
+### TDD Workflow (Red-Green-Refactor)
+- **RED:** Always start with a failing test for a micro-feature
+- **GREEN:** Write minimal code to pass the test
+- **REFACTOR:** Optimize for DRY/SOLID only after tests pass
+- **Never proceed to GREEN without a failing test**
+
+### DRY Enforcement
+- Extract repeated logic immediately
+- Flag duplicate code for refactoring
+- Create shared utilities after second repetition
+
+### SOLID Compliance
+- **Single Responsibility:** One purpose per function/class
+- **Open/Closed:** Extend via interfaces/abstractions
+- **Liskov Substitution:** Interchangeable subtypes
+- **Interface Segregation:** Split large interfaces
+- **Dependency Inversion:** Depend on abstractions, not concretions
+
+### Workflow Rules
+1. Break features into micro-tasks (max 5-10 lines of code per task)
+2. For each micro-task follow RED → GREEN → REFACTOR cycle
+3. Propose design patterns (Strategy, Factory, etc.) early
+4. Isolate concerns — no mixing of UI, business logic, and I/O
+5. **KISS + YAGNI:** No speculative implementation, simplest solution that works
+
+### Legacy Code Rules
+- Create adapter layers for external services
+- Wrap legacy components with facade pattern
+
+### Architecture Rules
+- Code against interfaces when complexity warrants it
+- No class > 200 lines
+
 
 ## 📝 COMMIT MESSAGES
 When asked to generate a commit message, strictly use Conventional Commits format:
