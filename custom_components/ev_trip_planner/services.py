@@ -70,17 +70,12 @@ def register_services(hass: HomeAssistant) -> None:
 
         This unified service accepts a 'type' parameter to determine whether
         to create a recurring trip (recurrente) or a punctual trip (puntual).
+        Thin facade - delegates to trip_manager and coordinator.
         """
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_type = data.get("type", data.get("trip_type", "recurrente"))
-        mgr = _get_manager(hass, vehicle_id)
-
-        # Find config entry to get entry_id
-        entry = _find_entry_by_vehicle(hass, vehicle_id)
-        if not entry:
-            _LOGGER.error("Config entry not found for vehicle %s", vehicle_id)
-            return
+        mgr = _get_manager(hass, vehicle_id)  # Raises if vehicle not found
 
         if trip_type == "recurrente":
             # Create recurring trip
@@ -125,48 +120,6 @@ def register_services(hass: HomeAssistant) -> None:
                 vehicle_id,
             )
             return
-
-        # Get the newly created trip to create sensor
-        if trip_type == "recurrente":
-            trips = await mgr.async_get_recurring_trips()
-            for trip in trips:
-                if (
-                    trip.get("dia_semana") == data["dia_semana"]
-                    and trip.get("hora") == data["hora"]
-                    and trip.get("km") == float(data["km"])
-                ):
-                    # Create trip sensor
-                    try:
-                        from .sensor import async_create_trip_sensor
-
-                        trip_data = {
-                            **trip,
-                            "id": str(trip.get("id")),
-                            "tipo": trip_type,
-                        }
-                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
-                    except Exception as err:  # pragma: no cover
-                        _LOGGER.warning("Failed to create trip sensor: %s", err)
-                    break
-        elif trip_type == "puntual":
-            trips = await mgr.async_get_punctual_trips()
-            for trip in trips:
-                if trip.get("datetime") == data["datetime"] and trip.get("km") == float(
-                    data["km"]
-                ):
-                    # Create trip sensor
-                    try:
-                        from .sensor import async_create_trip_sensor
-
-                        trip_data = {
-                            **trip,
-                            "id": str(trip.get("id")),
-                            "tipo": trip_type,
-                        }
-                        await async_create_trip_sensor(hass, entry.entry_id, trip_data)
-                    except Exception as err:  # pragma: no cover
-                        _LOGGER.warning("Failed to create trip sensor: %s", err)
-                    break
 
         # Refresh coordinator using vehicle_id
         coordinator = _get_coordinator(hass, vehicle_id)
