@@ -25,6 +25,7 @@ class TripSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict], Any] = lambda data: None
     attrs_fn: Callable[[dict], dict] = lambda data: {}
     restore: bool = False
+    exists_fn: Callable[[dict], bool] = lambda _: True
 
 
 TRIP_SENSORS = (
