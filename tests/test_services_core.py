@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -1203,3 +1204,1321 @@ class TestHandleTripCreateManagerError:
         # Should catch the setup error and log it, then continue
         # Manager is returned with empty storage after setup error
         await handler(call)
+
+
+# =============================================================================
+# PRAGMA-A: Additional error path tests for services.py 100% coverage
+# =============================================================================
+
+class TestHandleTripUpdateEnglishAliases:
+    """Tests for English field name aliases in handle_trip_update (lines 156-170)."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_uses_english_day_of_week(self, mock_hass):
+        """handle_trip_update maps day_of_week -> dia_semana."""
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        mock_mgr.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc123", "dia_semana": "lunes", "hora": "09:00", "km": 24.0, "kwh": 3.6}
+        ])
+        mock_entry.runtime_data.trip_manager = mock_mgr
+
+        # Patch async_update_trip_sensor to avoid entity registry
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            new_callable=AsyncMock,
+        ) as mock_update_sensor:
+            register_services(mock_hass)
+
+            # Use "trip_update" service (the one with field mapping), NOT "edit_trip"
+            handler = mock_hass.services.registry["trip_update"]
+            call = MagicMock()
+            # Use English field name 'day_of_week' instead of 'dia_semana' (NEW format, no "updates" wrapper)
+            call.data = {
+                "vehicle_id": "chispitas",
+                "trip_id": "rec_lun_abc123",
+                "type": "recurrente",
+                "day_of_week": "martes",
+                "time": "10:00",
+                "description": "Updated desc",
+            }
+            await handler(call)
+
+            # Verify async_update_trip was called with Spanish field names
+            mock_mgr.async_update_trip.assert_awaited_once()
+            call_args = mock_mgr.async_update_trip.call_args
+            updates = call_args[0][1]  # second positional arg is updates dict
+            assert updates["dia_semana"] == "martes"
+            assert updates["hora"] == "10:00"
+            assert updates["descripcion"] == "Updated desc"
+
+
+class TestHandleTripUpdateConfigEntryNotFound:
+    """Tests for config entry not found in handle_trip_update (lines 182-183)."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_returns_early_when_entry_not_found(self, mock_hass):
+        """handle_trip_update returns early when _find_entry_by_vehicle returns None."""
+        from custom_components.ev_trip_planner import services as svcs
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        # Set up a config entry for "chispitas" but NOT for "nonexistent_vehicle"
+        _setup_mock_config_entry(mock_hass, "chispitas")
+        register_services(mock_hass)
+
+        # Use "trip_update" service and patch _find_entry_by_vehicle to return None
+        with patch.object(svcs, "_find_entry_by_vehicle", return_value=None):
+            handler = mock_hass.services.registry["trip_update"]
+            call = MagicMock()
+            call.data = {
+                "vehicle_id": "nonexistent_vehicle",
+                "trip_id": "rec_lun_abc",
+                "type": "recurrente",
+                "dia_semana": "lunes",
+            }
+            # Should return early at line 182-183 when entry is None
+            await handler(call)
+
+
+class TestHandleTripUpdateSensorLoop:
+    """Tests for sensor update loop break in handle_trip_update (line 203)."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_updates_sensor_and_breaks(self, mock_hass):
+        """handle_trip_update updates sensor and breaks after first match."""
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        # Return 3 trips - only one matches
+        mock_mgr.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00", "km": 24.0, "kwh": 3.6},
+            {"id": "rec_mar_def", "dia_semana": "martes", "hora": "10:00", "km": 30.0, "kwh": 4.5},
+            {"id": "rec_mie_ghi", "dia_semana": "miercoles", "hora": "11:00", "km": 20.0, "kwh": 3.0},
+        ])
+        mock_entry.runtime_data.trip_manager = mock_mgr
+
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            new_callable=AsyncMock,
+        ) as mock_update_sensor:
+            register_services(mock_hass)
+
+            # Use "trip_update" service (NOT "edit_trip")
+            handler = mock_hass.services.registry["trip_update"]
+            call = MagicMock()
+            call.data = {
+                "vehicle_id": "chispitas",
+                "trip_id": "rec_mar_def",
+                "type": "recurrente",
+                "dia_semana": "martes",
+            }
+            await handler(call)
+
+            # async_update_trip_sensor should be called exactly once (break after first match)
+            assert mock_update_sensor.call_count == 1
+            call_args = mock_update_sensor.call_args[0]
+            assert call_args[2]["id"] == "rec_mar_def"  # trip_data.id
+
+
+class TestHandleTripUpdateWithKmAndKwh:
+    """Tests for handle_trip_update with km and kwh fields - covers lines 164, 166."""
+
+    @pytest.fixture
+    def mock_hass_update_km_kwh(self):
+        """Create mock hass for trip_update with km/kwh fields."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_update_trip = AsyncMock(return_value=True)
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00", "km": 24.0, "kwh": 3.6}
+        ])
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_with_km_and_kwh(self, mock_hass_update_km_kwh):
+        """handle_trip_update converts km and kwh to float.
+
+        Covers lines 164 and 166 where km and kwh are converted to float.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_update_km_kwh
+        register_services(hass)
+
+        handler = hass.services.registry["trip_update"]
+        call = MagicMock()
+        # Include km and kwh directly in data (not in updates wrapper)
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "rec_lun_abc",
+            "type": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 25.5,
+            "kwh": 4.2,
+        }
+        await handler(call)
+
+        # Verify async_update_trip was called with km and kwh as floats
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_entry.runtime_data.trip_manager.async_update_trip.assert_awaited_once()
+        call_args = mock_entry.runtime_data.trip_manager.async_update_trip.call_args[0]
+        updates = call_args[1]
+        assert updates["km"] == 25.5
+        assert updates["kwh"] == 4.2
+
+
+class TestHandleTripUpdateWithDescripcionDirect:
+    """Tests for handle_trip_update with descripcion directly - covers line 168."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_with_descripcion_direct(self, mock_hass):
+        """handle_trip_update converts descripcion to str.
+
+        Covers line 168 where descripcion is converted to string.
+        """
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        mock_mgr.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}
+        ])
+        mock_entry.runtime_data.trip_manager = mock_mgr
+
+        register_services(mock_hass)
+
+        handler = mock_hass.services.registry["trip_update"]
+        call = MagicMock()
+        # Include descripcion directly (not description)
+        call.data = {
+            "vehicle_id": "chispitas",
+            "trip_id": "rec_lun_abc",
+            "dia_semana": "lunes",
+            "descripcion": "Updated description",
+        }
+        await handler(call)
+
+        # Verify async_update_trip was called with descripcion as string
+        mock_mgr.async_update_trip.assert_awaited_once()
+        call_args = mock_mgr.async_update_trip.call_args[0]
+        updates = call_args[1]
+        assert updates["descripcion"] == "Updated description"
+
+
+class TestHandleTripGetFound:
+    """Tests for trip found path in handle_trip_get (lines 641-648)."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_get_returns_found_trip(self, mock_hass):
+        """handle_trip_get returns trip when found in search loop."""
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc", "dia_semana": "lunes"},
+            {"id": "rec_mar_def", "dia_semana": "martes"},
+        ])
+        mock_mgr.async_get_punctual_trips = AsyncMock(return_value=[])
+        mock_entry.runtime_data.trip_manager = mock_mgr
+
+        register_services(mock_hass)
+
+        handler = mock_hass.services.registry["trip_get"]
+        call = MagicMock()
+        call.data = {"vehicle_id": "chispitas", "trip_id": "rec_mar_def"}
+        result = await handler(call)
+
+        assert result["found"] is True
+        assert result["trip"]["id"] == "rec_mar_def"
+        assert result["trip"]["dia_semana"] == "martes"
+
+
+class TestGetCoordinatorReturnsNone:
+    """Tests for _get_coordinator returning None (line 805)."""
+
+    @pytest.mark.asyncio
+    async def test_get_coordinator_returns_none_for_missing_vehicle(self, mock_hass):
+        """_get_coordinator returns None when vehicle entry not found."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Set up a config entry for different vehicle
+        _setup_mock_config_entry(mock_hass, "chispitas")
+
+        # Call _get_coordinator with non-existent vehicle (not async)
+        result = svcs._get_coordinator(mock_hass, "nonexistent_vehicle")
+        assert result is None
+
+
+class TestCreateDashboardInputHelpersErrors:
+    """Tests for error paths in create_dashboard_input_helpers (lines 850-884, 1103-1107)."""
+
+    @pytest.mark.asyncio
+    async def test_create_dashboard_input_helpers_input_already_exists(self, mock_hass):
+        """create_dashboard_input_helpers catches 'already exists' errors for input_select."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_hass.services.async_call = AsyncMock(
+            side_effect=Exception("Entity already exists")
+        )
+
+        result = await svcs.create_dashboard_input_helpers(mock_hass, "chispitas")
+
+        # Should still succeed (already exists is caught)
+        assert result.success is True
+        assert result.storage_method == "input_helpers"
+
+    @pytest.mark.asyncio
+    async def test_create_dashboard_input_helpers_datetime_create_error(self, mock_hass):
+        """create_dashboard_input_helpers catches datetime create errors."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        created = {"input_select": False, "input_datetime": False}
+
+        async def mock_async_call(domain, service, data):
+            if service == "create":
+                if domain == "input_select":
+                    created["input_select"] = True
+                    return  # Success
+                elif domain == "input_datetime":
+                    if not created["input_datetime"]:
+                        created["input_datetime"] = True
+                        raise Exception("Entity already exists")
+                    return  # Already exists, caught
+            elif service == "set_options":
+                return  # Success
+
+        mock_hass.services.async_call = AsyncMock(side_effect=mock_async_call)
+
+        result = await svcs.create_dashboard_input_helpers(mock_hass, "chispitas")
+
+        # Should succeed (both errors caught)
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_create_dashboard_input_helpers_input_number_create_error(self, mock_hass):
+        """create_dashboard_input_helpers catches input_number create errors."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        call_count = {"total": 0}
+
+        async def mock_async_call(domain, service, data):
+            call_count["total"] += 1
+            if service == "create":
+                raise Exception("Entity already exists")
+            return  # Caught
+
+        mock_hass.services.async_call = AsyncMock(side_effect=mock_async_call)
+
+        result = await svcs.create_dashboard_input_helpers(mock_hass, "chispitas")
+
+        # Should still succeed (errors caught)
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_create_dashboard_input_helpers_raises_fatal_error(self, mock_hass):
+        """create_dashboard_input_helpers returns failure when outer exception handler catches error.
+
+        The outer try/except (lines 828-1101) catches exceptions that escape all inner
+        try/except blocks. We trigger it by causing an exception in code that is
+        outside the inner try blocks but inside the outer try block.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Make the logger.info call at line 1092 raise by patching _LOGGER.info
+        original_info = svcs._LOGGER.info
+
+        def raising_info(*args, **kwargs):
+            if "Input helpers created successfully" in str(args):
+                raise RuntimeError("Fatal logging error")
+            return original_info(*args, **kwargs)
+
+        mock_hass.services.async_call = AsyncMock()
+        mock_hass.config.config_dir = "/tmp"
+
+        with patch.object(svcs._LOGGER, "info", side_effect=raising_info):
+            result = await svcs.create_dashboard_input_helpers(mock_hass, "chispitas")
+
+        assert result.success is False
+
+
+class TestAsyncCleanupStaleStorageYaml:
+    """Tests for YAML cleanup in async_cleanup_stale_storage (line 1161)."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_stale_storage_yaml_cleanup_success(self, mock_hass):
+        """async_cleanup_stale_storage removes YAML file when it exists."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Create a temporary YAML file
+        import tempfile
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Mock hass.config.config_dir to our temp dir
+            mock_hass.config.config_dir = tmpdir
+
+            # Create a YAML file in the ev_trip_planner directory
+            yaml_dir = os.path.join(tmpdir, "ev_trip_planner")
+            os.makedirs(yaml_dir, exist_ok=True)
+            yaml_path = os.path.join(yaml_dir, "ev_trip_planner_test_vehicle.yaml")
+            with open(yaml_path, "w") as f:
+                f.write("test: data")
+
+            # Also mock the Store to return no data (so we skip the store cleanup path)
+            with patch(
+                "homeassistant.helpers.storage.Store.async_load",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                await svcs.async_cleanup_stale_storage(mock_hass, "test_vehicle")
+
+            # YAML file should be removed
+            assert not os.path.exists(yaml_path)
+
+
+class TestAsyncCleanupOrphanedEmhassSensors:
+    """Tests for orphan cleanup loop iteration (lines 1182-1184)."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_orphaned_emhass_sensors_with_entries(self, mock_hass):
+        """async_cleanup_orphaned_emhass_sensors iterates over orphaned entries."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Set up mock entity registry
+        mock_entry1 = MagicMock()
+        mock_entry1.entry_id = "orphan_entry_1"
+        mock_entry2 = MagicMock()
+        mock_entry2.entry_id = "orphan_entry_2"
+
+        mock_registry = MagicMock()
+        # Return 2 entries for each config entry (simulating orphaned entries)
+        with patch(
+            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            return_value=[mock_entry1, mock_entry2],
+        ):
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
+                # No config entries for DOMAIN - simulates orphaned sensors
+                mock_hass.config_entries.async_entries = MagicMock(return_value=[])
+
+                await svcs.async_cleanup_orphaned_emhass_sensors(mock_hass)
+
+
+class TestAsyncRegisterStaticPaths:
+    """Tests for async_register_static_paths (lines 1234-1235, 1277, 1290-1302)."""
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_import_error_path(self, mock_hass):
+        """async_register_static_paths handles StaticPathConfig import error."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Simulate ImportError by removing StaticPathConfig from modules
+        original_modules = dict(sys.modules)
+
+        try:
+            # Remove the module to simulate ImportError
+            if "homeassistant.components.http" in sys.modules:
+                del sys.modules["homeassistant.components.http"]
+
+            # Mock hass.http with a simple object (no async_register_static_paths)
+            mock_hass.http = MagicMock()
+
+            await svcs.async_register_static_paths(mock_hass)
+
+            # Should not raise - ImportError is caught
+        finally:
+            # Restore modules
+            sys.modules.update(original_modules)
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_legacy_tuple_path(self, mock_hass):
+        """async_register_static_paths falls back to legacy tuple path when async_register raises."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        registered = []
+
+        def legacy_register(url_path, file_path):
+            registered.append((url_path, file_path))
+
+        mock_hass.http = MagicMock()
+        # async_register_static_paths raises TypeError, triggering legacy path
+        mock_hass.http.async_register_static_paths = AsyncMock(
+            side_effect=TypeError("async_register_static_paths not available")
+        )
+        mock_hass.http.register_static_path = legacy_register
+
+        # Ensure the file paths exist to avoid early return
+        with patch(
+            "pathlib.Path.exists", return_value=True,
+        ):
+            await svcs.async_register_static_paths(mock_hass)
+
+        # Should have fallen through to legacy path and registered paths
+        assert len(registered) > 0
+
+
+class TestAsyncRegisterPanelForEntry:
+    """Tests for async_register_panel_for_entry (lines 1324-1346)."""
+
+    @pytest.mark.asyncio
+    async def test_async_register_panel_returns_false(self, mock_hass):
+        """async_register_panel_for_entry handles panel returning False."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+
+        # Patch panel module to return False
+        with patch(
+            "custom_components.ev_trip_planner.panel.async_register_panel",
+            new_callable=AsyncMock,
+            return_value=False,
+        ):
+            result = await svcs.async_register_panel_for_entry(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_async_register_panel_raises_exception(self, mock_hass):
+        """async_register_panel_for_entry catches panel registration exceptions."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+
+        with patch(
+            "custom_components.ev_trip_planner.panel.async_register_panel",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Panel registration failed"),
+        ):
+            result = await svcs.async_register_panel_for_entry(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+            assert result is False
+
+
+class TestAsyncImportDashboardForEntry:
+    """Tests for async_import_dashboard_for_entry (lines 1361-1378)."""
+
+    @pytest.mark.asyncio
+    async def test_async_import_dashboard_with_use_charts_true(self, mock_hass):
+        """async_import_dashboard_for_entry passes use_charts to import_dashboard."""
+        from custom_components.ev_trip_planner import services as svcs
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+
+        mock_entry = MagicMock()
+        mock_entry.data = {"vehicle_name": "chispitas", "use_charts": True}
+        mock_entry.entry_id = "entry_chispitas"
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.import_dashboard",
+            new_callable=AsyncMock,
+            return_value=DashboardImportResult(
+                success=True,
+                vehicle_id="chispitas",
+                vehicle_name="Chispitas",
+                dashboard_type="simple",
+                storage_method="input_helpers",
+            ),
+        ) as mock_import:
+            await svcs.async_import_dashboard_for_entry(mock_hass, mock_entry, "chispitas")
+
+            mock_import.assert_awaited_once()
+            call_kwargs = mock_import.call_args[1]
+            assert call_kwargs["use_charts"] is True
+
+    @pytest.mark.asyncio
+    async def test_async_import_dashboard_import_fails(self, mock_hass):
+        """async_import_dashboard_for_entry handles import failure."""
+        from custom_components.ev_trip_planner import services as svcs
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+
+        mock_entry = MagicMock()
+        mock_entry.data = {"vehicle_name": "chispitas"}
+        mock_entry.entry_id = "entry_chispitas"
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.import_dashboard",
+            new_callable=AsyncMock,
+            return_value=DashboardImportResult(
+                success=False,
+                vehicle_id="chispitas",
+                vehicle_name="Chispitas",
+                error="Import failed",
+                dashboard_type="simple",
+                storage_method="input_helpers",
+            ),
+        ):
+            # Should not raise - handles failure gracefully
+            await svcs.async_import_dashboard_for_entry(mock_hass, mock_entry, "chispitas")
+
+    @pytest.mark.asyncio
+    async def test_async_import_dashboard_raises_exception(self, mock_hass):
+        """async_import_dashboard_for_entry catches exception from import_dashboard."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = MagicMock()
+        mock_entry.data = {"vehicle_name": "chispitas"}
+        mock_entry.entry_id = "entry_chispitas"
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.import_dashboard",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Import crashed"),
+        ):
+            # Should catch exception and not raise
+            await svcs.async_import_dashboard_for_entry(mock_hass, mock_entry, "chispitas")
+
+
+class TestAsyncUnloadEntryCleanupPanelUnregister:
+    """Tests for panel unregister error in async_unload_entry_cleanup (lines 1444-1445)."""
+
+    @pytest.mark.asyncio
+    async def test_async_unload_entry_cleanup_panel_unregister_error(self, mock_hass):
+        """async_unload_entry_cleanup handles panel unregister error."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_entry.data["vehicle_name"] = "chispitas"
+        mock_hass.data = {svcs.DOMAIN: {}}
+
+        # Mock async_unload_platforms to return True (awaitable)
+        mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+        mock_hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
+
+        with patch(
+            "custom_components.ev_trip_planner.panel.async_unregister_panel",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("Panel not found"),
+        ):
+            # Should catch exception and continue
+            await svcs.async_unload_entry_cleanup(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+
+
+class TestAsyncRemoveEntryCleanupMissingVehicleName:
+    """Tests for missing vehicle_name in async_remove_entry_cleanup (lines 1467-1468)."""
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_missing_vehicle_name(self, mock_hass):
+        """async_remove_entry_cleanup uses fallback when vehicle_name not in entry.data."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_abc12345"
+        mock_entry.data = {}  # No vehicle_name
+        mock_entry.runtime_data = MagicMock()
+        mock_entry.runtime_data.trip_manager = None
+        mock_hass.data = {svcs.DOMAIN: {}}
+        mock_hass.states.get = MagicMock(return_value=None)
+        mock_hass.services.async_call = AsyncMock()
+
+        # Mock store for storage removal
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock()
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            return_value=mock_store,
+        ):
+            # Should not raise - uses fallback for missing vehicle_name
+            await svcs.async_remove_entry_cleanup(mock_hass, mock_entry)
+
+
+class TestAsyncRemoveEntryCleanupOuterException:
+    """Tests for outer exception handler in async_remove_entry_cleanup (lines 1530-1531)."""
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_outer_exception(self, mock_hass):
+        """async_remove_entry_cleanup catches exceptions from inner operations."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_abc12345"
+        mock_entry.data = {"vehicle_name": "chispitas"}
+        mock_entry.runtime_data = MagicMock()
+        mock_entry.runtime_data.trip_manager = None
+        mock_hass.data = {svcs.DOMAIN: {}}
+
+        # Make hass.states.get raise an exception (caught by outer try/except)
+        mock_hass.states.get = MagicMock(side_effect=RuntimeError("States error"))
+        mock_hass.services.async_call = AsyncMock()
+
+        # Mock store for storage removal
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock()
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            return_value=mock_store,
+        ):
+            # Should catch the exception and not raise
+            await svcs.async_remove_entry_cleanup(mock_hass, mock_entry)
+
+
+class TestHandleTripCreateRecurrenteSuccess:
+    """Tests for handle_trip_create with type=recurrente - covers lines 83-93, 125-128."""
+
+    @pytest.fixture
+    def mock_hass_recurrente_success(self):
+        """Create mock hass for successful recurrente trip creation."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_abc12345")
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_create_recurrente_success(self, mock_hass_recurrente_success):
+        """handle_trip_create with type=recurrente creates trip and refreshes coordinator.
+
+        Covers lines 83-93 (recurrente branch) and 125-128 (coordinator refresh).
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_recurrente_success
+        register_services(hass)
+
+        handler = hass.services.registry["trip_create"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "type": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 3.6,
+            "descripcion": "Trabajo",
+        }
+        await handler(call)
+
+        # Verify trip was created
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_entry.runtime_data.trip_manager.async_add_recurring_trip.assert_awaited_once()
+        # Verify coordinator was refreshed
+        mock_entry.runtime_data.coordinator.async_refresh_trips.assert_awaited()
+
+
+class TestHandleTripCreatePuntualSuccess:
+    """Tests for handle_trip_create with type=puntual - covers lines 102-110."""
+
+    @pytest.fixture
+    def mock_hass_puntual_success(self):
+        """Create mock hass for successful punctual trip creation."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_add_punctual_trip = AsyncMock(return_value="pun_20251119_abc12345")
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_create_puntual_success(self, mock_hass_puntual_success):
+        """handle_trip_create with type=puntual creates trip and refreshes coordinator.
+
+        Covers lines 102-110 (puntual branch).
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_puntual_success
+        register_services(hass)
+
+        handler = hass.services.registry["trip_create"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "type": "puntual",
+            "datetime": "2025-11-19T15:00:00",
+            "km": 110.0,
+            "kwh": 16.5,
+            "descripcion": "Viaje",
+        }
+        await handler(call)
+
+        # Verify trip was created
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_entry.runtime_data.trip_manager.async_add_punctual_trip.assert_awaited_once()
+        # Verify coordinator was refreshed
+        mock_entry.runtime_data.coordinator.async_refresh_trips.assert_awaited()
+
+
+class TestHandleTripCreateEnglishFields:
+    """Tests for handle_trip_create with English field names - covers lines 83-93."""
+
+    @pytest.fixture
+    def mock_hass_english_fields(self):
+        """Create mock hass for trip creation with English fields."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_abc12345")
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_create_with_english_fields_recurrente(
+        self, mock_hass_english_fields
+    ):
+        """handle_trip_create with English fields (time, day_of_week, description).
+
+        Covers lines 83-93 where day_of_week and time are used instead of dia_semana and hora.
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_english_fields
+        register_services(hass)
+
+        handler = hass.services.registry["trip_create"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "type": "recurrente",
+            "day_of_week": "martes",
+            "time": "14:00",
+            "km": 30.0,
+            "kwh": 4.5,
+            "description": "Reunion",
+        }
+        await handler(call)
+
+        # Verify trip was created with translated field names
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_entry.runtime_data.trip_manager.async_add_recurring_trip.assert_awaited_once()
+        call_args = mock_entry.runtime_data.trip_manager.async_add_recurring_trip.call_args
+        # day_of_week should be translated to dia_semana
+        assert call_args.kwargs["dia_semana"] == "martes"
+        # time should be translated to hora
+        assert call_args.kwargs["hora"] == "14:00"
+        # description should be translated to descripcion
+        assert call_args.kwargs["descripcion"] == "Reunion"
+
+
+class TestHandleTripListWithTrips:
+    """Tests for handle_trip_list when trips exist - covers lines 513, 523, 544, 546."""
+
+    @pytest.fixture
+    def mock_hass_list_with_trips(self):
+        """Create mock hass with existing trips."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        # Return trips that will trigger the debug logging
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_1", "tipo": "recurrente", "activo": True},
+            {"id": "rec_mar_1", "tipo": "recurrente", "activo": True},
+        ])
+        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[
+            {"id": "pun_20251119_1", "tipo": "puntual", "estado": "pendiente"},
+        ])
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_list_with_trips(self, mock_hass_list_with_trips):
+        """handle_trip_list returns trips and triggers debug logging.
+
+        Covers lines 513, 523, 544, 546 (debug logging when trips exist).
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_list_with_trips
+        register_services(hass)
+
+        handler = hass.services.registry["trip_list"]
+        call = MagicMock()
+        call.data = {"vehicle_id": "test_vehicle"}
+        result = await handler(call)
+
+        # Verify trips are returned
+        assert result["total_trips"] == 3
+        assert len(result["recurring_trips"]) == 2
+        assert len(result["punctual_trips"]) == 1
+
+
+class TestFindEntryByVehicleWithNoneData:
+    """Tests for _find_entry_by_vehicle when entry.data is None - covers lines 696-700."""
+
+    @pytest.fixture
+    def mock_hass_none_data_entry(self):
+        """Create mock hass with an entry that has None data."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        # Create two entries: one with None data (should be skipped), one with valid data
+        mock_entry_valid = MagicMock()
+        mock_entry_valid.entry_id = "entry_valid"
+        mock_entry_valid.data = {"vehicle_name": "valid_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_manager = MagicMock()
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
+
+        mock_entry_valid.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+
+        mock_entry_none = MagicMock()
+        mock_entry_none.entry_id = "entry_none"
+        mock_entry_none.data = None  # This should trigger lines 696-700
+
+        # First entry has None data, second entry is valid
+        hass.config_entries.async_entries = MagicMock(
+            return_value=[mock_entry_none, mock_entry_valid]
+        )
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry_valid)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_find_entry_by_vehicle_skips_none_data(
+        self, mock_hass_none_data_entry
+    ):
+        """_find_entry_by_vehicle skips entries with None data.
+
+        Covers lines 696-700 (warning logged when data is None).
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Test _find_entry_by_vehicle directly
+        entry = svcs._find_entry_by_vehicle(mock_hass_none_data_entry, "valid_vehicle")
+
+        # Should find the valid entry despite the None data entry
+        assert entry is not None
+        assert entry.entry_id == "entry_valid"
+
+
+class TestHandleTripUpdateWithUpdatesObject:
+    """Tests for handle_trip_update with old 'updates' format - covers line 149."""
+
+    @pytest.fixture
+    def mock_hass_update_with_updates(self):
+        """Create mock hass for trip_update with updates object."""
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        class Services:
+            def __init__(self):
+                self.registry = {}
+
+            def async_register(self, domain, name, handler, schema=None, supports_response=None):
+                if domain == DOMAIN:
+                    self.registry[name] = handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.services = Services()
+        hass.config_entries = MagicMock()
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "entry_test"
+        mock_entry.data = {"vehicle_name": "test_vehicle"}
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
+
+        mock_manager = MagicMock()
+        mock_manager.async_update_trip = AsyncMock(return_value=True)
+        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[
+            {"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}
+        ])
+        mock_manager.async_setup = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator,
+            trip_manager=mock_manager,
+        )
+        mock_entry.runtime_data.trip_manager = mock_manager
+
+        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_with_updates_object(
+        self, mock_hass_update_with_updates
+    ):
+        """handle_trip_update with 'updates' object (old format).
+
+        Covers line 149 where updates = dict(data["updates"]).
+        """
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        hass = mock_hass_update_with_updates
+        register_services(hass)
+
+        handler = hass.services.registry["trip_update"]
+        call = MagicMock()
+        # Old format with "updates" wrapper
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "rec_lun_abc",
+            "updates": {
+                "dia_semana": "martes",
+                "hora": "10:00",
+            },
+        }
+        await handler(call)
+
+        # Verify update was called with the updates dict directly
+        mock_entry = hass.config_entries.async_get_entry.return_value
+        mock_entry.runtime_data.trip_manager.async_update_trip.assert_awaited_once()
+        call_args = mock_entry.runtime_data.trip_manager.async_update_trip.call_args
+        # The second arg should be the updates dict (not wrapped)
+        assert call_args[0][1] == {"dia_semana": "martes", "hora": "10:00"}
+
+
+class TestHandleTripUpdatePunctualBranch:
+    """Tests for handle_trip_update with punctual trip - covers line 197."""
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_punctual_gets_punctual_trips(self, mock_hass):
+        """handle_trip_update when updates don't include dia_semana uses punctual branch.
+
+        Covers line 197 where async_get_punctual_trips is called.
+        """
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        # Set up mock with manager
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        # Return matching punctual trip
+        mock_mgr.async_get_punctual_trips = AsyncMock(return_value=[
+            {"id": "pun_20251119_abc", "datetime": "2025-11-19T15:00:00"}
+        ])
+        mock_entry.runtime_data.trip_manager = mock_mgr
+
+        register_services(mock_hass)
+
+        handler = mock_hass.services.registry["trip_update"]
+        call = MagicMock()
+        # No dia_semana, so it should be treated as punctual
+        call.data = {
+            "vehicle_id": "chispitas",
+            "trip_id": "pun_20251119_abc",
+            "datetime": "2025-11-20T16:00:00",
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            new_callable=AsyncMock,
+        ):
+            await handler(call)
+
+        # Verify async_get_punctual_trips was called (line 197)
+        mock_mgr.async_get_punctual_trips.assert_awaited()
+
+
+class TestAsyncCleanupOrphanedEmhassSensorsException:
+    """Tests for async_cleanup_orphaned_emhass_sensors exception - covers lines 1182-1186."""
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_orphaned_emhass_sensors_catches_exception(self, mock_hass):
+        """async_cleanup_orphaned_emhass_sensors catches exception from registry access.
+
+        Covers lines 1182-1186.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Make er.async_get raise
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            side_effect=RuntimeError("Registry error"),
+        ):
+            # Should not raise - exception is caught
+            await svcs.async_cleanup_orphaned_emhass_sensors(mock_hass)
+
+
+class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
+    """Tests for async_unload_entry_cleanup entity registry fallback - covers line 1432."""
+
+    @pytest.mark.asyncio
+    async def test_async_unload_entry_cleanup_entity_registry_fallback(self, mock_hass):
+        """async_unload_entry_cleanup falls back to er.async_get when hass.entity_registry is None.
+
+        Covers line 1432.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_entry.data["vehicle_name"] = "chispitas"
+        mock_hass.data = {svcs.DOMAIN: {}}
+
+        # Make hass not have entity_registry attribute (so it falls back to er.async_get)
+        del mock_hass.entity_registry
+        mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        # Mock entity registry entries
+        mock_entity_entry = MagicMock()
+        mock_entity_entry.entity_id = "sensor.test"
+        mock_registry = MagicMock()
+        mock_registry.async_entries_for_config_entry = MagicMock(
+            return_value=[mock_entity_entry]
+        )
+        mock_registry.async_remove = AsyncMock()
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
+            await svcs.async_unload_entry_cleanup(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+
+        # Verify async_get was called (line 1432)
+        mock_registry.async_entries_for_config_entry.assert_called()
+
+
+class TestAsyncUnloadEntryCleanupWithTripManager:
+    """Tests for async_unload_entry_cleanup with trip_manager - covers lines 1411-1412."""
+
+    @pytest.mark.asyncio
+    async def test_async_unload_entry_cleanup_with_trip_manager(self, mock_hass):
+        """async_unload_entry_cleanup calls async_delete_all_trips when trip_manager exists.
+
+        Covers lines 1411-1412.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_entry.data["vehicle_name"] = "chispitas"
+
+        # Set up trip_manager
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.async_delete_all_trips = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mock_trip_manager,
+            emhass_adapter=None,
+        )
+        mock_hass.data = {svcs.DOMAIN: {}}
+        mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        # No entity registry
+        del mock_hass.entity_registry
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=MagicMock(async_entries_for_config_entry=MagicMock(return_value=[])),
+        ):
+            await svcs.async_unload_entry_cleanup(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+
+        # Verify async_delete_all_trips was called (line 1412)
+        mock_trip_manager.async_delete_all_trips.assert_awaited_once()
+
+
+class TestAsyncUnloadEntryCleanupWithEmhassAdapter:
+    """Tests for async_unload_entry_cleanup with emhass_adapter - covers lines 1416-1419."""
+
+    @pytest.mark.asyncio
+    async def test_async_unload_entry_cleanup_with_emhass_adapter(self, mock_hass):
+        """async_unload_entry_cleanup cleans up EMHASS adapter when present.
+
+        Covers lines 1416-1419.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_entry.data["vehicle_name"] = "chispitas"
+
+        # Set up emhass_adapter
+        mock_emhass = MagicMock()
+        mock_emhass._config_entry_listener = MagicMock()
+        mock_emhass.async_cleanup_vehicle_indices = AsyncMock()
+
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=None,
+            emhass_adapter=mock_emhass,
+        )
+        mock_hass.data = {svcs.DOMAIN: {}}
+        mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        # No entity registry
+        del mock_hass.entity_registry
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=MagicMock(async_entries_for_config_entry=MagicMock(return_value=[])),
+        ):
+            await svcs.async_unload_entry_cleanup(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+
+        # Verify EMHASS cleanup was called (lines 1417-1419)
+        # Note: _config_entry_listener is set to None by the code after calling it
+        # So we verify async_cleanup_vehicle_indices was called instead
+        mock_emhass.async_cleanup_vehicle_indices.assert_awaited_once()
