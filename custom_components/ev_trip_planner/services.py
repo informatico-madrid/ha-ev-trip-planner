@@ -201,7 +201,7 @@ def register_services(hass: HomeAssistant) -> None:
                     trip_data = {**trip, "id": trip_id}
                     await async_update_trip_sensor(hass, entry.entry_id, trip_data)
                     break
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.warning("Failed to update trip sensor: %s", err)
 
         # Refresh coordinator using vehicle_id
@@ -547,7 +547,7 @@ def register_services(hass: HomeAssistant) -> None:
 
             # Return the result - MUST return explicitly
             return result
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error(
                 "Error listing trips for vehicle %s: %s", vehicle_id, err, exc_info=True
             )
@@ -658,7 +658,7 @@ def register_services(hass: HomeAssistant) -> None:
                     "found": False,
                     "error": f"Trip with ID {trip_id} not found",
                 }
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error(
                 "Error getting trip %s for vehicle %s: %s",
                 trip_id,
@@ -1433,7 +1433,7 @@ async def async_unload_entry_cleanup(
         # Use the registry's async_entries_for_config_entry method directly
         for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):
             entity_registry.async_remove(entity_entry.entity_id)
-    except Exception as ex:  # pragma: no cover
+    except Exception as ex:
         _LOGGER.warning("Failed to clean up entity registry: %s", ex)
 
     # Remove the native panel from sidebar
@@ -1441,7 +1441,7 @@ async def async_unload_entry_cleanup(
         from .panel import async_unregister_panel
 
         await async_unregister_panel(hass, vehicle_id)
-    except Exception as ex:  # pragma: no cover
+    except Exception as ex:
         _LOGGER.warning("Failed to unregister panel for vehicle %s: %s", vehicle_id, ex)
 
     return unload_ok

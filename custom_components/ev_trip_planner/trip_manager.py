@@ -871,7 +871,7 @@ class TripManager:
                     changed_fields,
                 )
 
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error syncing trip %s to EMHASS: %s", trip_id, err)
 
     async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
@@ -886,7 +886,7 @@ class TripManager:
             await self._publish_deferrable_loads()
 
             _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error removing trip %s from EMHASS: %s", trip_id, err)
 
     async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
@@ -905,7 +905,7 @@ class TripManager:
                 "Published new trip %s to EMHASS deferrable loads",
                 trip.get("id"),
             )
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error publishing trip %s to EMHASS: %s", trip.get("id"), err)
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:

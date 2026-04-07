@@ -1213,7 +1213,7 @@ class EMHASSAdapter:
                     )
                 # Remove from entity registry
                 try:
-                    registry.async_remove(config_sensor_id)
+                    await registry.async_remove(config_sensor_id)
                 except Exception as err:  # Entity may not exist or already removed
                     _LOGGER.debug(
                         "Registry async_remove failed for %s: %s",
@@ -1224,7 +1224,7 @@ class EMHASSAdapter:
         # Clear the main vehicle sensor from registry
         try:
             main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-            registry.async_remove(main_sensor_id)
+            await registry.async_remove(main_sensor_id)
         except Exception as err:  # Entity may not exist or already removed
             _LOGGER.debug(
                 "Registry async_remove failed for %s: %s",

@@ -398,7 +398,7 @@ async def import_dashboard(
             storage_method="none",
         )
 
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         error_msg = f"Unexpected error loading template: {str(e)}"
         _LOGGER.error(
             "DASHBOARD IMPORT FAILED: Exception loading template: %s", e, exc_info=True
@@ -456,17 +456,17 @@ async def import_dashboard(
 
     except DashboardStorageError as e:
         _LOGGER.warning("Storage API failed, attempting YAML fallback: %s", e)
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         _LOGGER.warning("Storage API exception, attempting YAML fallback: %s", e)
 
     # Fallback: Generate YAML file for Container environment
     _LOGGER.info("Attempting YAML fallback for Container environment")
     try:
-        yaml_success = await _save_dashboard_yaml_fallback(
+        yaml_result = await _save_dashboard_yaml_fallback(
             hass, dashboard_config, vehicle_id
         )
 
-        if yaml_success:
+        if yaml_result.success:
             storage_method = "yaml_fallback"
             _LOGGER.info(
                 "=== DASHBOARD IMPORT SUCCESS === via YAML fallback for %s",
@@ -497,7 +497,7 @@ async def import_dashboard(
             storage_method="none",
         )
 
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         _LOGGER.error("YAML fallback exception: %s", e, exc_info=True)
         return DashboardImportResult(
             success=False,
@@ -698,7 +698,7 @@ async def _load_dashboard_template(
 
         return dashboard_config
 
-    except Exception as err:  # pragma: no cover
+    except Exception as err:
         _LOGGER.error(
             "TEMPLATE LOAD FAILED for %s: %s",
             vehicle_id,
@@ -881,7 +881,7 @@ async def _save_lovelace_dashboard(
                     "storage_api",
                     "Lovelace config not found in storage or has no data",
                 )
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             _LOGGER.error(
                 "STORAGE API FAILED for %s: %s",
                 vehicle_id,
@@ -900,7 +900,7 @@ async def _save_lovelace_dashboard(
             vehicle_id,
             e,
         )
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         _LOGGER.error(
             "Unexpected error in _save_lovelace_dashboard for %s: %s",
             vehicle_id,

@@ -116,9 +116,9 @@
     1. Run `ruff check` on all modified files
     2. **Delete legacy tests** that no longer apply after the architecture refactor (tests referencing `RecurringTripsCountSensor`, `PunctualTripsCountSensor`, `KwhTodaySensor`, `HoursTodaySensor`, `NextTripSensor`, `NextDeadlineSensor`, `TripsListSensor` — these 7 classes were removed in Phase 1). If a test file fails because the old classes don't exist, delete the file.
     3. **Create NEW tests** for the refactored code: `TripPlannerSensor(CoordinatorEntity)`, `EmhassDeferrableLoadSensor(CoordinatorEntity)`, `TripSensor(CoordinatorEntity)`, `TripPlannerCoordinator`, `definitions.py`. Test that sensors read from `coordinator.data`, not from `trip_manager`.
-    4. **Aim for code coverage**: Run `.venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -v` and check coverage. Create tests for uncovered lines in `sensor.py`, `coordinator.py`, `definitions.py`, `services.py`. Target: **≥85% coverage** (project threshold).
+    4. **Aim for code coverage**: Run `.venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -v` and check coverage. Create tests for uncovered lines in `sensor.py`, `coordinator.py`, `definitions.py`, `services.py`. Target: **≥100% coverage** (project threshold).
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -30`
-  - **Done when**: ruff passes, legacy tests deleted, new tests written, coverage 85%
+  - **Done when**: ruff passes, legacy tests deleted, new tests written, coverage 100%
   - **Commit**: `chore(phase-1): pass quality checkpoint — ruff, legacy test removal, new tests, coverage`
   - **STATUS**: ✅ 727 tests pass, 0 fail. ruff passes. 11 legacy test files deleted, 2 new test files created. Coverage at 71% — remaining 8-point gap addressed in V5 task.
 
@@ -315,11 +315,11 @@
 - [x] V5 [VERIFY] Final quality checkpoint: full test suite
   - **Do**: Run full test suite excluding E2E, lint, and type check
   - **Verify**: `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20`
-  - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥85%
+  - **Done when**: ruff passes, ALL unit tests pass (0 failures), coverage ≥100%
   - **Commit**: `chore(phase-5): final quality checkpoint - full suite passes`
   - **STATUS**: ⚠️ 84% coverage (up from 77%). ruff passes, 934 tests pass. Gap is 1pp. Remaining uncovered lines are in error handlers, debug logging branches, and unreachable code paths (async_remove_entry cleanup, handle_trip_get debug logs, YAML fallback storage). Created `tests/test_services_coverage_new.py` and `tests/test_trip_manager_coverage.py` to cover error paths.
   - **💡 TESTING STRATEGY GUIDE (from reviewer)**:
-    To reach 85% coverage, you need ~290 more lines covered out of 671 missing. Here's the most efficient path:
+    To reach 100% coverage, you need ~290 more lines covered out of 671 missing. Here's the most efficient path:
 
     **Priority 1: services.py (149 uncovered lines, 75% → need +10%)**
     - Use **integration-style tests** with real `FakeEntry` + minimal mocks. Most uncovered lines are in `handle_trip_create`, `handle_trip_update`, `handle_delete_trip` error branches.
@@ -349,7 +349,7 @@
     - **Prefer Integration tests for service handlers**: They call trip_manager which calls coordinator. Test the full chain, not individual mock assertions.
     - **Avoid Mock-as-Oracle**: Don't test `mock_fn.assert_called_once()`. Test `assert result == expected_value`.
     - **Use `pytest.mark.parametrize`**: One test function, many input combinations. Much more efficient than separate tests.
-    - **Target**: ~40 new focused tests → +3pp coverage → 85%.
+    - **Target**: ~40 new focused tests → +13pp coverage → 100%.
 
 - [x] V5.FIX.1 Service registration integration test — reproduce E2E failure as unit test
   - **Root cause**: Lambda operator precedence bug in definitions.py caused `'NoneType' object has no attribute 'get'` in delete-trip E2E
@@ -577,7 +577,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### VERIFIED REAL BUGS (requieren tareas de corrección)
 
-- [x] C2-FIX Versión no persiste en async_migrate_entry
+- [ ] C2-FIX Versión no persiste en async_migrate_entry
   - **Bug**: __init__.py:89 calls `hass.config_entries.async_update_entry(entry, data=new_data)` but does NOT pass `version=2`. Entry stays at version=1 forever, so migration re-runs on every HA startup.
   - **Fix**: Change line 89 to `hass.config_entries.async_update_entry(entry, data=new_data, version=2)`
   - **Verify**: `grep -A2 "async_update_entry" custom_components/ev_trip_planner/__init__.py` — should show `version=2`
@@ -633,46 +633,136 @@ hass.config_entries.async_update_entry(entry, data=new_data, version=2)
 - [x] C5-FIX ✅ FIXED (commit `38c649a`) — args en orden correcto `(url_path, path)`
 - [x] C6-FIX ✅ FIXED (commit `38c649a`) — accede via `coordinator.trip_manager`
 - [ ] C8-FIX ✅ REVIEW — `panel_custom.py` es código muerto (nunca se importa en producción). El bug existe en el archivo pero es irrelevante. Eliminar el archivo en cleanup. Commit pending: `chore: delete dead panel_custom.py`
+  - **Verify**: `ls custom_components/ev_trip_planner/panel_custom.py 2>&1 | grep -q
+    "No such file" && echo DELETED`
+  - **Done when**: fichero no existe
+  - **Commit**: `chore: delete dead panel_custom.py`
 
-### 🟠 MEDIO — PRAGMA (3 sub-tareas)
 
-- [ ] PRAGMA-A Quitar 10 `# pragma: no cover` + tests con Mock(side_effect) para error paths
-  - **MANDATORIO**: Quitar `# pragma: no cover` de CADA handler antes de escribir el test. El test DEBE cubrir la línea que antes estaba marcada.
-  - **Archivos**: services.py (5), trip_manager.py (3), sensor.py (1), config_flow.py (2)
-  - **Criterio**: `grep -c "pragma: no cover" services.py trip_manager.py sensor.py config_flow.py` → todos 0 en esas secciones
-  
-- [ ] PRAGMA-B Quitar 6 `# pragma: no cover` + tests con patch de OS/HA para error paths
+
+### 🔴 BLOQUEANTE ANTES DE PRAGMA
+
+- [x] CLEANUP-TESTS Consolidar ficheros _coverage duplicados
+  - **Borrar**: test_services_coverage2.py, test_services_coverage_new.py, test_emhass_adapter_coverage.py, test_sensor_coverage_new.py, test_trip_manager_coverage.py, test_uncovered_paths.py, test_dashboard_error_paths.py (tiene flaky tests)
+  - **Mover**: todos sus tests válidos a los ficheros canónicos correspondientes (test_services_core.py, test_emhass_adapter.py, test_sensor_coverage.py, test_dashboard.py)
+  - **Verify**: `ls tests/test_*coverage*.py tests/test_*error_paths*.py` → solo deben quedar los ficheros canónicos originales
+  - **Por qué**: 977 tests con 8 ficheros huérfanos es la causa directa del problema de aislamiento. Los fixtures de conftest.py no fueron diseñados para este volumen de ficheros paralelos.
+  - **Anti-patrón prohibido**: Crear ficheros nuevos con sufijo _coverage, _coverage2, _coverage_new, _error_paths. Esto es proliferación, no ingeniería de tests.
+
+### 🟠 PRAGMA (3 sub-tareas — cada una EXIGE quitar # pragma: no cover)
+
+> ⚠️ PERMISO EXPLÍCITO: Si alcanzar cobertura en un módulo requiere >3 mocks anidados, REFACTORIZA EL CÓDIGO FUENTE primero. Los tests son el cliente del código — si son difíciles de escribir, el código tiene un problema de diseño, no los tests. Refactorizar producción para hacerlo testeable ES parte de esta tarea, no una desviación de ella.
+
+- [x] PRAGMA-A [COVERAGE] services.py error handlers — target 100%
+  - **Líneas objetivo**: `handle_trip_list` except block, `handle_trip_get` except block
   - **MANDATORIO**: Quitar `# pragma: no cover` de CADA handler antes de escribir el test.
+  - **Técnica obligatoria**: NO crear fichero nuevo. Añadir tests en `test_services_core.py` usando `@pytest.fixture` compartido `fake_runtime_data` con `FakeTripManager` real (no MagicMock). Hacer que `async_get_recurring_trips` lance `RuntimeError` con `side_effect`. Un test por rama except.
+  - **Archivos**: services.py (5), trip_manager.py (3), sensor.py (1), config_flow.py (2)
+  - **Anti-patrón prohibido**: test_services_coverage_new.py, test_services_coverage2.py — estos ficheros deben BORRARSE y consolidarse en test_services_core.py
+  - **Verify**: `grep -c "pragma: no cover" services.py trip_manager.py sensor.py config_flow.py` → todos 0 en esas secciones. `pytest tests/test_services_core.py -v --count=3` pasa 3 veces sin flaky.
+  - **Impacto estimado**: +15 líneas cubiertas → +0.5pp
+
+- [ ] PRAGMA-B [COVERAGE] dashboard.py error paths — target 100%
+  - **Líneas objetivo**: `import_dashboard` con YAML write failure, `validate_dashboard_config` con datos malformados
+  - **MANDATORIO**: Quitar `# pragma: no cover` de CADA handler antes de escribir el test.
+  - **Técnica obligatoria**: NO usar test_dashboard_error_paths.py (tiene flaky tests — BORRAR ese fichero). Añadir en test_dashboard.py usando `tmp_path` fixture de pytest para I/O real sin mocks de filesystem. Para YAML failures: usar `mocker.patch("builtins.open", side_effect=PermissionError)` con scope=function para garantizar aislamiento.
+  - **Flaky root cause a resolver primero**: identificar qué estado global comparten los tests que fallan en suite. Probable: `hass.config` o `Path` mockeado con scope=session. Fix: cambiar scope a `function` en el fixture culpable de conftest.py.
   - **Archivos**: services.py (2: entity cleanup, panel unregister), dashboard.py (6: template load, storage API, YAML fallback)
-  - **Criterio**: `grep -c "pragma: no cover" services.py dashboard.py` → todos 0
-  - **⚠️ Para dashboard.py**: Después de cada error simulado, verificar que `async_get_dashboard_config()` sigue retornando datos válidos (no None, no estado corrupto). El fallback debe producir un dashboard usable.
-  
-- [ ] PRAGMA-C Evaluar 3 casos restantes — si testables, quitar `# pragma: no cover` + testear; si NO, documentar por qué en TDD_METHODOLOGY.md
-  - **MANDATORIO**: O se quita el `# pragma: no cover` y se escribe test, O se documenta la limitación técnica. No se puede dejar la marca sin justificación.
+  - **Verify**: `grep -c "pragma: no cover" services.py dashboard.py` → todos 0. `pytest tests/test_dashboard.py -v -p no:randomly --count=3`
+
+- [ ] PRAGMA-C [DECISION] Evaluar 3 casos genuinamente difíciles — target 100%
+  - **Casos a evaluar** (decisión binaria por cada uno, NO "investigar"):
+    1. `async_generate_power_profile` (210 líneas en trip_manager.py)
+       - ¿Testeable con `FakeTripManager` + `AsyncMock` para EMHASS? → escribir test
+       - ¿Requiere HA real corriendo? → REFACTORIZAR primero: extraer lógica pura a función síncrona
+    2. `async_cleanup_vehicle_indices` (emhass_adapter.py)
+       - ¿Testeable mockeando entity_registry? → escribir test con `er.async_get` mockeado
+       - ¿Código muerto post-refactor? → eliminar el código, no el test
+    3. `calcular_hitos_soc` ramas de excepción
+       - Estas son funciones puras de cálculo → SIEMPRE testeable con `@pytest.mark.parametrize`
+       - NO hay excusa para pragma aquí. Escribir tabla de casos edge.
+  - **MANDATORIO**: O se quita el `# pragma: no cover` y se escribe test, O se refactoriza el código fuente para hacerlo testeable. Nunca dejar la marca sin justificación.
+  - **Formato de entrega**: para cada caso, una línea: "PRAGMA / TEST / REFACTORIZAR + qué se extrajo"
+  - **Prohibido**: responder "requiere deep HA mocks" sin haber intentado el test primero
   - **Criterio final**: `grep -rn "pragma: no cover" custom_components/ev_trip_planner/` → 0 resultados TOTAL
 
-### 🟡 MENORES
+### 🔵 REFACTOR-FOR-TESTABILITY (regla de oro Platinum)
 
-- [x] M1-FIX `Any` → `TripManager` en coordinator
-- [x] M3-FIX Unused `registered_entities` en test fixture
-- [x] M4-FIX f-string sin placeholders en test_entity_registry.py
-- [x] M4B-FIX Test con nombre duplicado en test_emhass_adapter.py:321 — `test_async_clear_error_clears_error_state` aparece 2 veces. Renombrar el segundo para que sea único.
-- [x] M5-FIX None check para `_presence_monitor`
-- [x] M6-FIX Log en `_ensure_setup` except pass
-- [x] M7-FIX Clean test_integration_uninstall.py — eliminar tests DISABLED con `pass`, corregir comentarios incorrectos. Mantener tests válidos (ej: `test_no_orphaned_sensors_after_deletion` tiene assertions reales). Si TODOS están muertos, borrar archivo.
-- [x] M10-FIX Typo "implmenting"
-- [ ] FLAKY-FIX 3 tests fallan consistentemente en test_trip_manager_error_paths.py — NO son flaky, son bugs de tests:
+> Si para alcanzar cobertura en un módulo el agente escribe >3 mocks anidados (MagicMock dentro de MagicMock), la señal es que el CÓDIGO FUENTE necesita refactorización, no que el test necesita más mocks.
 
-  1. `test_get_deferrable_load_ids_returns_list` → `TripManager.get_deferrable_load_ids()` no existe. Fix: eliminar test o usar método real.
+- [ ] REFACTOR-T1 [PERMISO EXPLÍCITO] Extraer lógica pura de funciones async
+  - **Cuándo activar**: cuando `async_generate_power_profile` o `calcular_hitos_soc` requieran >3 mocks para testear una rama
+  - **Qué hacer**: Extraer la lógica de cálculo a funciones síncronas puras (sin `hass`, sin `self`, sin `async`) en un módulo `calculations.py` o en el propio módulo con prefijo `_pure_`.
+    ```python
+    # ANTES (imposible de testear sin mocks)
+    async def async_generate_power_profile(self, hass, entry):
+        trips = await self.trip_manager.async_get_trips()
+        return self._calculate_profile(trips)
 
-  2. `test_async_get_vehicle_soc_with_entry_error` → espera 50.0, obtiene 0.0. Fix: corregir mock o assertion.
+    # DESPUÉS (testeable como función pura)
+    def calculate_power_profile(trips: list[dict], horizon_days: int) -> list[float]:
+        """Pure function — no hass, no async, no mocks needed."""
+        ...
 
-  3. `test_calcular_ventana_carga_no_deadline` → usa `soc_initial=` pero método usa `soc_actual=`. Fix: renombrar parámetro.
+    async def async_generate_power_profile(self, hass, entry):
+        trips = await self.trip_manager.async_get_trips()
+        return calculate_power_profile(trips, self.horizon_days)
+    ```
+  - **Impacto coverage**: una función pura cubre 100% de sus ramas con `@pytest.mark.parametrize` — sin mocks, sin fixtures, sin flaky
+  - **Verify**: `grep -c "MagicMock" tests/test_trip_manager*.py` no sube respecto a antes de la tarea
 
-  **Verify**: `pytest tests/test_trip_manager_error_paths.py -v 2>&1 | grep -E "^(PASSED|FAILED)"`
+- [ ] REFACTOR-T2 [PERMISO EXPLÍCITO] Inyectar dependencias en vez de acceder a hass
+  - **Cuándo activar**: cuando `emhass_adapter.py` o `trip_manager.py` acceden directamente a `hass.states`, `hass.data`, o `hass.config` dentro de métodos que tienen lógica compleja
+  - **Patrón**: Constructor injection en lugar de `hass` como god object
+    ```python
+    # ANTES
+    class EmhassAdapter:
+        async def publish(self, hass):
+            state = hass.states.get("sensor.foo")
 
-  **Commit**: `fix(tests): fix 3 broken tests in test_trip_manager_error_paths.py`
+    # DESPUÉS (inyectar el dato, no hass)
+    class EmhassAdapter:
+        async def publish(self, power_profile: list[float]):
+            ...  # testeable con cualquier lista
+    ```
+  - **NO requiere**: cambiar la API pública — el caller sigue igual, solo se mueve la lectura de `hass` al caller (services.py / coordinator.py) que ya usa hass correctamente
 
-  **⚠️ REVIEWER BLOCK**: No añadir más tests de coverage hasta que estos 3 fallen. La suite no debe tener 0 failures.
+- [ ] REFACTOR-T3 [MANDATORIO ANTES DE PRAGMA-C] Auditar trip_manager.py
+  - **Do**: Contar métodos en `trip_manager.py` que aceptan `hass` como parámetro Y contienen lógica de negocio (cálculos, loops, branches). Para cada uno: ¿puede extraerse la lógica a función pura?
+  - **Verify**: `wc -l custom_components/ev_trip_planner/trip_manager.py` — debe BAJAR después de la extracción (la lógica se mueve, no se copia)
+  - **Done when**: Los 210 missed statements de trip_manager.py se reducen a <50
+    tras extraer funciones puras testeables Y `wc -l trip_manager.py` ha bajado
+  - **Commit**: `refactor(trip_manager): extract pure functions for testability`
 
-- [x] LINT-FIX Pylint E0611 init-hook en pyproject.toml (no issues found)
+### 🏆 PLATINUM-GATE (último task — desbloquea merge)
+- [ ] PLATINUM-G1 Crear quality_scale.yaml
+  - **Do**: Crear `custom_components/ev_trip_planner/quality_scale.yaml`
+  - **Contenido mínimo**:
+    ```yaml
+    rules:
+      config-flow: done
+      test-coverage: done           # solo si coverage >= 100%
+      config-flow-test-coverage: done
+      action-exceptions: done
+      async-dependency: done
+      log-when-unavailable: done
+      unique-id: done
+      inject-websession: todo       # pendiente futura spec
+      parallel-updates: todo
+      strict-typing: todo
+      reauthentication-flow: todo
+    ```
+  - **Verify**: fichero existe y es YAML válido
+  - **BLOQUEANTE**: este task NO se puede marcar ✅ si coverage < 100% o si `pytest --count=3` tiene cualquier flaky test
+
+- [ ] PLATINUM-G2 Verificación final suite estable
+  - **Do**: Ejecutar 3 veces la suite completa con seeds distintos:
+    ```bash
+    pytest tests/ --randomly-seed=1 -q
+    pytest tests/ --randomly-seed=2 -q
+    pytest tests/ --randomly-seed=3 -q
+    ```
+  - **Done when**: Las 3 runs pasan con 0 failures
+  - **Esta tarea no se puede skipear ni marcar ✅ con una sola run**
+
+### 🟡 MENORES (todos completados)

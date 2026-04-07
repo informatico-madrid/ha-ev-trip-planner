@@ -846,7 +846,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 use_charts=use_charts,
             )
             _LOGGER.info("Dashboard imported successfully for %s", vehicle_name)
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             # Log but don't fail the flow - dashboard import is optional
             _LOGGER.warning(
                 "Could not auto-import dashboard for %s: %s",
@@ -864,7 +864,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 vehicle_name=vehicle_name,
             )
             _LOGGER.info("Panel registered successfully for %s", vehicle_name)
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             # Log but don't fail the flow - panel registration is optional
             _LOGGER.warning(
                 "Could not register native panel for %s: %s",

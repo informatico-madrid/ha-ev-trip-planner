@@ -210,7 +210,10 @@ class TestDashboardStorage:
     @pytest.mark.asyncio
     async def test_storage_api_failure_falls_back_to_yaml(self):
         """When storage API fails, falls back to YAML."""
-        from custom_components.ev_trip_planner.dashboard import import_dashboard
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+            import_dashboard,
+        )
 
         mock_hass = MagicMock()
 
@@ -231,7 +234,13 @@ class TestDashboardStorage:
                     ):
                         with patch(
                             "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
-                            return_value=True,
+                            return_value=DashboardImportResult(
+                                success=True,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                                dashboard_type="simple",
+                                storage_method="yaml_fallback",
+                            ),
                         ):
                             result = await import_dashboard(
                                 mock_hass,
@@ -239,6 +248,136 @@ class TestDashboardStorage:
                                 vehicle_name="Test Vehicle",
                             )
 
+        assert result.success is True
+        assert result.storage_method == "yaml_fallback"
+
+    @pytest.mark.asyncio
+    async def test_yaml_write_failure_returns_error(self):
+        """When YAML write fails, returns error result with write_failure."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={
+                    "title": "Test Dashboard",
+                    "views": [
+                        {
+                            "title": "Test View",
+                            "path": "test_view",
+                            "cards": [{"type": "markdown", "content": "test"}],
+                        }
+                    ],
+                },
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.dashboard._validate_dashboard_config",
+                ):
+                    with patch(
+                        "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                        return_value=False,
+                    ):
+                        # Mock _write_file_content to raise an exception
+                        # This simulates the YAML write failing
+                        with patch(
+                            "custom_components.ev_trip_planner.dashboard._write_file_content",
+                            side_effect=Exception("YAML write failed"),
+                        ):
+                            result = await import_dashboard(
+                                mock_hass,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                            )
+
+        # The fallback should handle the error and return success=False
+        # with the appropriate error message
+        assert result.success is False
+        # When YAML write fails, the error is "All import methods failed"
+        # because both storage API and YAML fallback failed
+        assert result.error == "All import methods failed"
+
+    @pytest.mark.asyncio
+    async def test_template_load_exception_returns_error(self):
+        """When template loading raises generic exception, returns error result."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                side_effect=RuntimeError("Template file corrupted"),
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "Unexpected error loading template" in result.error
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
+    async def test_storage_api_exception_falls_back_to_yaml(self):
+        """When storage API raises exception, falls back to YAML."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+            import_dashboard,
+        )
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={
+                    "title": "Test Dashboard",
+                    "views": [
+                        {
+                            "title": "Test View",
+                            "path": "test_view",
+                            "cards": [{"type": "markdown", "content": "test"}],
+                        }
+                    ],
+                },
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.dashboard._validate_dashboard_config",
+                ):
+                    with patch(
+                        "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                        side_effect=Exception("Storage API error"),
+                    ):
+                        # YAML fallback succeeds
+                        with patch(
+                            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+                            return_value=DashboardImportResult(
+                                success=True,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                                dashboard_type="simple",
+                                storage_method="yaml_fallback",
+                            ),
+                        ):
+                            result = await import_dashboard(
+                                mock_hass,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                            )
+
+        # Should fall back to YAML and succeed
         assert result.success is True
         assert result.storage_method == "yaml_fallback"
 

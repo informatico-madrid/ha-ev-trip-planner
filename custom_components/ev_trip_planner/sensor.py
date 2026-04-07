@@ -489,7 +489,7 @@ async def async_create_trip_sensor(
                 pass
         _LOGGER.debug("Trip sensor created and registered for trip %s", trip_id)
         return True
-    except Exception as err:  # pragma: no cover
+    except Exception as err:
         _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
         return False
 
