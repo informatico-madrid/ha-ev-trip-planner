@@ -74,13 +74,13 @@
     "LINT-FIX",
     "CLEANUP-TESTS",
     "PRAGMA-A",
-    "PRAGMA-B"
+    "PRAGMA-B",
+    "PRAGMA-C"
   ],
   "tasksPending": [
     "V5",
     "G-07.5",
     "4.4",
-    "PRAGMA-C",
     "REFACTOR-T1",
     "REFACTOR-T2",
     "REFACTOR-T3",
@@ -88,16 +88,16 @@
     "PLATINUM-G2",
     "FLAKY-FIX"
   ],
-  "currentTask": "PRAGMA-C",
+  "currentTask": "REFACTOR-T3",
   "status": "in-progress",
   "metrics": {
-    "testsPassed": 885,
+    "testsPassed": 900,
     "testsFailed": 0,
-    "coverage": 81,
+    "coverage": 81.25,
     "coverageTarget": 100,
     "ruffPass": true,
-    "pragmaNoCoverRemaining": 6,
+    "pragmaNoCoverRemaining": 0,
     "orphanTestFiles": 0
   },
-  "notes": "CLEANUP-TESTS completed: consolidated 12 orphan files into canonical files. PRAGMA-A completed: removed all pragma marks from services.py, trip_manager.py, sensor.py, config_flow.py (11 total). Added error path tests for handle_trip_get and handle_trip_list. Coverage 81% (target 100%). 6 pragma marks remain in dashboard.py."
+  "notes": "Progress: (1) Fixed missing await bugs in emhass_adapter.py, trip_manager.py, services.py, sensor.py - makes cleanup actually work. (2) Fixed mock in test_entity_registry.py to use async methods. (3) Added parametrized tests for _calcular_tasa_carga_soc and _calcular_soc_objetivo_base. Coverage 81.25%. PRAGMA-C decisions documented. Remaining: REFACTOR tasks for async functions."
 }
