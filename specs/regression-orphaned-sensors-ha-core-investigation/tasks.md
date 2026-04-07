@@ -630,6 +630,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 - [ ] PRAGMA-A Handlers de servicios — Mock(side_effect) para 10 error paths
 - [ ] PRAGMA-B File system/registry — patch de OS/HA para 4 error paths
+  - **⚠️ Para dashboard.py**: Después de cada error simulado, verificar que `async_get_dashboard_config()` sigue retornando datos válidos (no None, no estado corrupto). El fallback debe producir un dashboard usable.
 - [ ] PRAGMA-C Evaluar 3 casos genuinamente difíciles
 
 ### 🟡 MENORES
