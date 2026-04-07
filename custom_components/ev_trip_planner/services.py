@@ -244,12 +244,6 @@ def register_services(hass: HomeAssistant) -> None:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
             await coordinator.async_refresh_trips()
 
-        # Refresh coordinator using vehicle_id
-        coordinator = _get_coordinator(hass, vehicle_id)
-        if coordinator:
-            _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
-            await coordinator.async_refresh_trips()
-
     async def handle_pause_recurring(call: ServiceCall) -> None:
         """Handle pausing a recurring trip."""
         data = call.data
