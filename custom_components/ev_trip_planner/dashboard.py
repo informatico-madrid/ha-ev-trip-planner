@@ -873,14 +873,6 @@ async def _save_lovelace_dashboard(
                     dashboard_type="simple",
                     storage_method="storage_api",
                 )
-
-                _LOGGER.error(
-                    "STORAGE API FAILED: Lovelace config not found in storage or has no data"
-                )
-                raise DashboardStorageError(
-                    "storage_api",
-                    "Lovelace config not found in storage or has no data",
-                )
         except Exception as e:
             _LOGGER.error(
                 "STORAGE API FAILED for %s: %s",

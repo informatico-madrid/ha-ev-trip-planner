@@ -543,6 +543,17 @@ class TestDashboardErrors:
         assert error.message == "Test error"
         assert error.details == {}
 
+    def test_dashboard_storage_error(self):
+        """DashboardStorageError stores storage_method and error."""
+        from custom_components.ev_trip_planner.dashboard import DashboardStorageError
+
+        error = DashboardStorageError("storage_api", "Failed to write")
+
+        assert error.message == "Dashboard storage failed for storage_api: Failed to write"
+        assert error.details["storage_method"] == "storage_api"
+        assert error.details["error"] == "Failed to write"
+        assert error.details["error_type"] == "storage_error"
+
     def test_dashboard_import_result_str_repr_success(self):
         """__str__ returns success string."""
         from custom_components.ev_trip_planner.dashboard import DashboardImportResult
@@ -623,3 +634,23 @@ class TestDashboardHelpers:
 
         result = await _await_executor_result(42)
         assert result == 42
+
+
+class TestCallAsyncExecutorSync:
+    """Tests for _call_async_executor_sync helper function."""
+
+    def test_call_async_executor_sync_without_attr(self):
+        """_call_async_executor_sync falls back when hass has no async_add_executor_job."""
+        from unittest.mock import MagicMock
+        from custom_components.ev_trip_planner.dashboard import _call_async_executor_sync
+
+        # Create mock hass without async_add_executor_job
+        hass = MagicMock(spec=[])
+        if hasattr(hass, "async_add_executor_job"):
+            del hass.async_add_executor_job
+
+        def dummy_func(a, b):
+            return a + b
+
+        result = _call_async_executor_sync(hass, dummy_func, 2, 3)
+        assert result == 5
