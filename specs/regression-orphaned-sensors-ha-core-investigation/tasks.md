@@ -736,7 +736,7 @@ hass.config_entries.async_update_entry(entry, data=new_data, version=2)
   - **Result**: Extraidas 10+ funciones puras a calculations.py (746 lines). trip_manager.py delegadas a funciones puras. Coverage trip_manager.py: 79% (167 missed de 798). Coverage general: 82.48%. 969 tests passing.
 
 ### 🏆 PLATINUM-GATE (último task — desbloquea merge)
-- [ ] PLATINUM-G1 Crear quality_scale.yaml
+- [x] PLATINUM-G1 Crear quality_scale.yaml
   - **Do**: Crear `custom_components/ev_trip_planner/quality_scale.yaml`
   - **Contenido mínimo**:
     ```yaml
