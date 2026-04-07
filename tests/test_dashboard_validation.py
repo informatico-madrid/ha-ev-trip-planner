@@ -327,6 +327,142 @@ class TestDashboardStorage:
         assert result.storage_method == "none"
 
     @pytest.mark.asyncio
+    async def test_validation_error_missing_title(self):
+        """When validation finds missing title, returns error."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Template without title - validation should fail
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={"views": [{"title": "Test"}]},  # Missing title
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "title" in result.error.lower()
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
+    async def test_validation_error_missing_views(self):
+        """When validation finds missing views, returns error."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Template without views - validation should fail
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={"title": "Test Dashboard"},  # Missing views
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "views" in result.error.lower()
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
+    async def test_validation_error_empty_views(self):
+        """When validation finds empty views list, returns error."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Template with empty views - validation should fail
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={"title": "Test Dashboard", "views": []},
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "empty" in result.error.lower() or "views" in result.error.lower()
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
+    async def test_validation_error_view_missing_path(self):
+        """When validation finds view missing path, returns error."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Template with view missing path - validation should fail
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={
+                    "title": "Test Dashboard",
+                    "views": [{"title": "Test View"}],  # Missing path
+                },
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "path" in result.error.lower()
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
+    async def test_validation_error_view_missing_cards(self):
+        """When validation finds view missing cards, returns error."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Template with view missing cards - validation should fail
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={
+                    "title": "Test Dashboard",
+                    "views": [{"title": "Test View", "path": "test"}],
+                },
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "cards" in result.error.lower()
+        assert result.storage_method == "none"
+
+    @pytest.mark.asyncio
     async def test_storage_api_exception_falls_back_to_yaml(self):
         """When storage API raises exception, falls back to YAML."""
         from custom_components.ev_trip_planner.dashboard import (
