@@ -1,0 +1,12 @@
+rules:
+  config-flow: done
+  test-coverage: done
+  config-flow-test-coverage: done
+  action-exceptions: done
+  async-dependency: done
+  log-when-unavailable: done
+  unique-id: done
+  inject-websession: todo
+  parallel-updates: todo
+  strict-typing: todo
+  reauthentication-flow: todo
