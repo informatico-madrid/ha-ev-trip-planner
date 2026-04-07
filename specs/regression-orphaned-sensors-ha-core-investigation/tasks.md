@@ -359,7 +359,7 @@ These tasks close specific architectural gaps (G-07 through G-12) identified dur
 
 ### G-09: async_migrate_entry Entity Registry Migration (R-08)
 
-- [ ] G-09.1 [RED] Failing test: async_migrate_entry migrates old unique_id format
+- [x] G-09.1 [RED] Failing test: async_migrate_entry migrates old unique_id format
   - **Do**: Write a test in `tests/test_migrate_entry.py` that verifies `async_migrate_entry` migrates entity unique_ids from `ev_trip_planner_kwh_today` format (without vehicle_id) to `ev_trip_planner_{vehicle_id}_kwh_today` format when upgrading from version 1 to version 2. Use `async_migrate_entries` from entity registry.
   - **Files**: `tests/test_migrate_entry.py` (CREATE)
   - **Done when**: Test exists and fails because current migration only updates config_entry.data, not entity registry

@@ -1,0 +1,350 @@
+"""Tests for dashboard.py validation and error paths.
+
+Covers dashboard.py validation branches that return error results.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+
+# =============================================================================
+# Dashboard validation error paths
+# =============================================================================
+
+class TestDashboardImportValidation:
+    """Tests for dashboard import validation branches."""
+
+    @pytest.mark.asyncio
+    async def test_import_with_empty_vehicle_id_returns_error(self):
+        """Returns error when vehicle_id is empty string."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        # Mock Lovelace as available
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="",  # Empty
+                vehicle_name="Test Vehicle",
+            )
+
+        assert result.success is False
+        assert result.error_details.get("validation") == "invalid_vehicle_id"
+
+    @pytest.mark.asyncio
+    async def test_import_with_none_vehicle_id_returns_error(self):
+        """Returns error when vehicle_id is None."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id=None,  # None
+                vehicle_name="Test Vehicle",
+            )
+
+        assert result.success is False
+        assert result.error_details.get("validation") == "invalid_vehicle_id"
+
+    @pytest.mark.asyncio
+    async def test_import_with_non_string_vehicle_id_returns_error(self):
+        """Returns error when vehicle_id is not a string."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id=12345,  # Not a string
+                vehicle_name="Test Vehicle",
+            )
+
+        assert result.success is False
+        assert result.error_details.get("validation") == "invalid_vehicle_id"
+
+    @pytest.mark.asyncio
+    async def test_import_with_empty_vehicle_name_returns_error(self):
+        """Returns error when vehicle_name is empty."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="test_vehicle",
+                vehicle_name="",  # Empty
+            )
+
+        assert result.success is False
+        assert result.error_details.get("validation") == "invalid_vehicle_name"
+
+    @pytest.mark.asyncio
+    async def test_import_with_none_vehicle_name_returns_error(self):
+        """Returns error when vehicle_name is None."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="test_vehicle",
+                vehicle_name=None,  # None
+            )
+
+        assert result.success is False
+        assert result.error_details.get("validation") == "invalid_vehicle_name"
+
+    @pytest.mark.asyncio
+    async def test_import_when_lovelace_not_available_returns_error(self):
+        """Returns error when Lovelace is not available."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=False,
+        ):
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="test_vehicle",
+                vehicle_name="Test Vehicle",
+            )
+
+        assert result.success is False
+        assert "Lovelace" in result.error
+
+
+# =============================================================================
+# Dashboard template loading error paths
+# =============================================================================
+
+class TestDashboardTemplateLoading:
+    """Tests for dashboard template loading branches."""
+
+    @pytest.mark.asyncio
+    async def test_template_load_returns_none_when_not_found(self):
+        """Returns None when template not found."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value=None,
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "Failed to load" in result.error
+
+    @pytest.mark.asyncio
+    async def test_template_load_raises_dashboardnotfound_error(self):
+        """Propagates DashboardNotFoundError from template loading."""
+        from custom_components.ev_trip_planner.dashboard import (
+            import_dashboard,
+            DashboardNotFoundError,
+        )
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                side_effect=DashboardNotFoundError(
+                    "test.yaml", ["path1", "path2"]
+                ),
+            ):
+                result = await import_dashboard(
+                    mock_hass,
+                    vehicle_id="test_vehicle",
+                    vehicle_name="Test Vehicle",
+                )
+
+        assert result.success is False
+        assert "Template not found" in result.error
+
+
+# =============================================================================
+# Dashboard storage error paths
+# =============================================================================
+
+class TestDashboardStorage:
+    """Tests for dashboard storage branches."""
+
+    @pytest.mark.asyncio
+    async def test_storage_api_failure_falls_back_to_yaml(self):
+        """When storage API fails, falls back to YAML."""
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={"views": [{"title": "Test"}]},
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.dashboard._validate_dashboard_config",
+                ):
+                    with patch(
+                        "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                        return_value=False,
+                    ):
+                        with patch(
+                            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+                            return_value=True,
+                        ):
+                            result = await import_dashboard(
+                                mock_hass,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                            )
+
+        assert result.success is True
+        assert result.storage_method == "yaml_fallback"
+
+
+# =============================================================================
+# Dashboard errors
+# =============================================================================
+
+class TestDashboardErrors:
+    """Tests for DashboardError classes."""
+
+    def test_dashboard_error_with_details(self):
+        """DashboardError stores details dict."""
+        from custom_components.ev_trip_planner.dashboard import DashboardError
+
+        error = DashboardError("Test error", details={"key": "value"})
+
+        assert error.message == "Test error"
+        assert error.details == {"key": "value"}
+
+    def test_dashboard_error_without_details(self):
+        """DashboardError defaults details to empty dict."""
+        from custom_components.ev_trip_planner.dashboard import DashboardError
+
+        error = DashboardError("Test error")
+
+        assert error.message == "Test error"
+        assert error.details == {}
+
+    def test_dashboard_import_result_str_repr_success(self):
+        """__str__ returns success string."""
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+
+        result = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        s = str(result)
+        assert "SUCCESS" in s
+        assert "Test Vehicle" in s
+        assert "test_vehicle" in s
+
+    def test_dashboard_import_result_str_repr_failure(self):
+        """__str__ returns failure string with error details."""
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+
+        result = DashboardImportResult(
+            success=False,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            error="Template not found",
+            error_details={"validation": "invalid_vehicle_id"},
+            dashboard_type="simple",
+            storage_method="unknown",
+        )
+
+        s = str(result)
+        assert "FAILED" in s
+        assert "Error: Template not found" in s
+        assert "Details:" in s
+
+    def test_dashboard_import_result_to_dict(self):
+        """DashboardImportResult.to_dict returns correct structure."""
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+
+        result = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        d = result.to_dict()
+        assert d["success"] is True
+        assert d["vehicle_id"] == "test_vehicle"
+        assert d["dashboard_type"] == "simple"
+        assert d["storage_method"] == "storage_api"
+
+
+# =============================================================================
+# Dashboard helper functions
+# =============================================================================
+
+class TestDashboardHelpers:
+    """Tests for dashboard helper functions."""
+
+    @pytest.mark.asyncio
+    async def test_await_executor_result_with_coro(self):
+        """_await_executor_result awaits coroutine objects."""
+        from custom_components.ev_trip_planner.dashboard import _await_executor_result
+
+        async def dummy():
+            return 42
+
+        result = await _await_executor_result(dummy())
+        assert result == 42
+
+    @pytest.mark.asyncio
+    async def test_await_executor_result_with_direct_value(self):
+        """_await_executor_result returns non-awaitable values directly."""
+        from custom_components.ev_trip_planner.dashboard import _await_executor_result
+
+        result = await _await_executor_result(42)
+        assert result == 42

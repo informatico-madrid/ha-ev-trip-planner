@@ -15,30 +15,52 @@ import pytest
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity_registry import callback
 
 
 class MockRegistryEntry:
     """Minimal mock entity registry entry."""
 
-    def __init__(self, entity_id: str, unique_id: str, config_entry_id: str):
+    def __init__(self, entity_id: str, unique_id: str, config_entry_id: str, id: str | None = None):
         self.entity_id = entity_id
         self.unique_id = unique_id
         self.config_entry_id = config_entry_id
+        self.id = id or unique_id  # Default to unique_id if no internal id provided
+
+
+class MockEntities:
+    """Mock entities collection for entity registry."""
+
+    def __init__(self, registry):
+        self._registry = registry
+
+    def get_entry(self, entry_id: str) -> MockRegistryEntry | None:
+        """Return entry by internal id."""
+        return self._registry._entities.get(entry_id)
+
+    def get_entries_for_config_entry_id(self, config_entry_id: str) -> list[MockRegistryEntry]:
+        """Return entries for a config entry."""
+        return [
+            entry for entry in self._registry._entities.values()
+            if entry.config_entry_id == config_entry_id
+        ]
 
 
 class MockRegistry:
     """Mock entity registry that tracks old-format unique_ids."""
 
     def __init__(self):
-        self.entries: dict[str, MockRegistryEntry] = {}
+        self.entries: dict[str, MockRegistryEntry] = {}  # keyed by entity_id
+        self._entities = {}  # keyed by internal id (for get_entry)
+        self.entities = MockEntities(self)
 
     def async_get(self, hass_instance=None):
         return self
 
     def async_entries_for_config_entry(self, config_entry_id: str) -> list[MockRegistryEntry]:
-        """Return entries for a config entry."""
+        """Return entries for a config entry (legacy method)."""
         return [
-            entry for entry in self.entries.values()
+            entry for entry in self._entities.values()
             if entry.config_entry_id == config_entry_id
         ]
 
@@ -46,9 +68,20 @@ class MockRegistry:
         unique_id = kwargs.get("unique_id", "")
         entity_id = kwargs.get("suggested_object_id", "unknown")
         config_entry_id = kwargs.get("config_entry", "")
-        entry = MockRegistryEntry(f"sensor.{entity_id}", unique_id, config_entry_id)
+        # Generate a unique internal id based on entity_id
+        internal_id = f"{config_entry_id}_{entity_id}"
+        entry = MockRegistryEntry(f"sensor.{entity_id}", unique_id, config_entry_id, id=internal_id)
         self.entries[f"sensor.{entity_id}"] = entry
+        self._entities[internal_id] = entry
         return entry
+
+    @callback
+    def async_update_entity(self, entity_id: str, **kwargs) -> None:
+        """Update an entity entry."""
+        if entity_id in self.entries:
+            entry = self.entries[entity_id]
+            if "new_unique_id" in kwargs:
+                entry.unique_id = kwargs["new_unique_id"]
 
 
 class FakeRuntimeData:
@@ -97,7 +130,8 @@ def mock_registry(mock_hass):
     return registry
 
 
-def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
+@pytest.mark.asyncio
+async def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
     """Test that async_migrate_entry migrates old-format entity unique_ids.
 
     OLD format (version 1): unique_id = "ev_trip_planner_{description_key}"
@@ -146,7 +180,7 @@ def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
         assert entity.unique_id in old_unique_ids, f"Expected old format, got {entity.unique_id}"
 
     # Migrate
-    updated = async_migrate_entry(mock_hass, entry)
+    updated = await async_migrate_entry(mock_hass, entry)
 
     # Verify: entity unique_ids should be migrated to NEW format (with vehicle_id)
     migrated = mock_registry.async_entries_for_config_entry(entry.entry_id)

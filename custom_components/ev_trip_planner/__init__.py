@@ -14,6 +14,8 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity_registry import async_migrate_entries
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN  # noqa: F401
@@ -61,9 +63,27 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     new_data = entry.data.copy()
     changed = False
 
-    if "battery_capacity" in new_data and "battery_capacity_kwh" not in new_data:
-        new_data["battery_capacity_kwh"] = new_data.pop("battery_capacity")
-        changed = True
+    # Migrate from version 1 to version 2
+    if entry.version < 2:
+        # battery_capacity field rename
+        if "battery_capacity" in new_data and "battery_capacity_kwh" not in new_data:
+            new_data["battery_capacity_kwh"] = new_data.pop("battery_capacity")
+            changed = True
+
+        # Migrate entity registry unique_ids from old format (no vehicle_id) to new format (with vehicle_id)
+        vehicle_id = entry.data.get("vehicle_name", "").lower().replace(" ", "_")
+        if vehicle_id:
+
+            def migrate_unique_id(old_entry: er.RegistryEntry) -> dict[str, Any] | None:
+                # OLD: "ev_trip_planner_kwh_today"
+                # NEW: "ev_trip_planner_{vehicle_id}_kwh_today"
+                old_uid = old_entry.unique_id
+                if old_uid.startswith(f"{DOMAIN}_") and f"{DOMAIN}_{vehicle_id}_" not in old_uid:
+                    new_uid = f"{DOMAIN}_{vehicle_id}_{old_uid[len(f"{DOMAIN}_"):]}"
+                    return {"new_unique_id": new_uid}
+                return None
+
+            await async_migrate_entries(hass, entry.entry_id, migrate_unique_id)
 
     if changed:
         hass.config_entries.async_update_entry(entry, data=new_data)

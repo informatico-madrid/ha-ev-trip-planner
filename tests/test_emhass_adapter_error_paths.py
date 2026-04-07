@@ -723,6 +723,128 @@ async def test_publish_deferrable_load_no_trip_manager(hass, mock_store):
 
 
 # =============================================================================
+# _async_send_error_notification edge cases
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_send_error_notification_no_service_configured(hass, mock_store):
+    """Returns False when notification service is not configured."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        CONF_NOTIFICATION_SERVICE: None,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        result = await adapter._async_send_error_notification(
+            "Test notification", "Test body"
+        )
+
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_send_error_notification_with_valid_service(hass, mock_store):
+    """Returns True when notification is sent successfully."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+
+    mock_store._storage = {}
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        result = await adapter._async_send_error_notification(
+            "Test notification", "Test body"
+        )
+
+        assert result is True
+        adapter.hass.services.async_call.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_send_error_notification_service_raises_exception(hass, mock_store):
+    """Returns False when notification service call raises."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+
+    mock_store._storage = {}
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+        adapter.hass.services.async_call = MagicMock(
+            side_effect=Exception("Service unavailable")
+        )
+
+        result = await adapter._async_send_error_notification(
+            "Test notification", "Test body"
+        )
+
+        assert result is False
+
+
+# =============================================================================
+# async_verify_shell_command_integration with hass.states.async_all
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_verify_shell_command_with_emhass_response_sensors(hass, mock_store):
+    """Returns configured when EMHASS response sensors are found."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    mock_sensor = MagicMock()
+    mock_sensor.attributes = {"power_profile_watts": [100, 200]}
+    mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
+
+    mock_emhass_response = MagicMock()
+    mock_emhass_response.entity_id = "sensor.emhass_opt"
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+        adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+        adapter.hass.states.async_all = MagicMock(
+            return_value=[mock_emhass_response]
+        )
+        await adapter.async_assign_index_to_trip("trip_1")
+
+        result = await adapter.async_verify_shell_command_integration()
+
+        assert result["is_configured"] is True
+        assert len(result["emhass_response_sensors"]) == 1
+
+
+# =============================================================================
 # async_get_integration_status tests
 # =============================================================================
 
