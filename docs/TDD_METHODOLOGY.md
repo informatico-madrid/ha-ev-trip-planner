@@ -300,12 +300,79 @@ async def test_service_add_trip(hass):
     """Test add trip service."""
     # Arrange
     call = ServiceCall(domain=DOMAIN, service="add_recurring_trip", data={...})
-    
+
     # Act
     await handle_add_recurring_trip(call)
-    
+
     # Assert
     assert hass.states.get("sensor.test_trips") is not None
+```
+
+---
+
+## Test Doubles Reference Table
+
+| Double | When to Use | HA Rule of Gold | Example from ev-trip-planner |
+|--------|--------------|-----------------|------------------------------|
+| **Fake** | Simplify complex dependencies with working implementations (in-memory DB, stub HTTP) | Use Fakes when you need behavior but not side effects | `MagicMock()` without spec acts as fake - works but ignores unexpected calls |
+| **Stub** | Provide pre-programmed responses to specific method calls | Stub external I/O (files, network) that your code calls but shouldn't actually execute | `async def mock_load(): return {"data": "cached"}` - returns predetermined value |
+| **Mock** | Verify interactions happened (call count, arguments, call order) | **Never Mock the database, file system, or network in integration tests** | `coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)` verifies method was called |
+| **Spy** | Wrap real object, record how it's used while letting calls pass through | Use Spies when you need the real behavior plus verification | `MagicMock(spec=DataUpdateCoordinator)` wraps real coordinator, failing on unexpected calls |
+| **Fixture** | Provide test data or helper objects to tests; setup code | Fixtures are for test data and helper objects, NOT for verifying behavior | `mock_hass()` fixture creates consistent mock HA instance |
+| **Patch** | Temporarily replace attributes/objects in a module scope | Use `patch()` only at boundaries (HA subsystem calls) not inside your code | `patch('custom_components.ev_trip_planner.services.handle_trip_create')` |
+
+### HA Rule of Gold (Strict)
+
+**"Never mock the internals of Home Assistant — only mock external dependencies and boundaries."**
+
+This means:
+- ✅ **ALWAYS mock**: External services (EMHASS API, HTTP endpoints), file system calls, `hass.loop`, `asyncio` primitives
+- ✅ **NEVER mock**: `hass.states`, `hass.services`, `entity_registry.async_entries_for_config_entry` — test with real objects or Fakes
+- ⚠️ **USE SPARINGLY**: `DataUpdateCoordinator` internals, config entry APIs — prefer integration tests
+
+### When to Use Each Test Double
+
+| Scenario | Recommended Double | Example |
+|----------|-------------------|---------|
+| Test service handler delegates to manager | Mock + Spy | `mgr.async_add_recurring_trip = AsyncMock()` then verify called |
+| Test that sensor reads coordinator.data | Fake | `coordinator.data = {"kwh_today": 5.0}` |
+| Test error handling for missing entry | Stub | `_find_entry_by_vehicle = MagicMock(return_value=None)` |
+| Test that exception propagates | Spy | Pass real object, assert exception raised |
+| Test with HomeAssistant state | Fixture | `mock_hass()` creates pre-configured hass object |
+| Replace a function during test | Patch | `patch('homeassistant.helpers.storage.Store')` |
+
+### Common Mistakes with Test Doubles
+
+| Mistake | Why It's Wrong | Correct Approach |
+|---------|----------------|------------------|
+| `MagicMock()` without spec | Catches no errors on wrong API usage | Use `MagicMock(spec=RealClass)` or Spy pattern |
+| Mocking `hass.states.get()` | Breaks HA's state machine contract | Use real states or `hass.states.get = MagicMock(return_value=real_state)` |
+| Stubbing entire class | Test doesn't catch API changes | Stub only the method being called |
+| Mock in unit test that should be integration | Tests don't catch real integration bugs | Use real objects for HA boundaries |
+
+### ev-trip-planner Test Double Examples
+
+```python
+# MOCK: Verify async_config_entry_first_refresh is called
+coordinator.async_config_entry_first_refresh = AsyncMock()
+
+# FAKE: In-memory coordinator data
+coordinator.data = {"recurring_trips": {}, "kwh_today": 0.0}
+
+# SPY: Verify method was called on real object
+real_trip_manager.async_add_recurring_trip = AsyncMock(wraps=original_method)
+
+# STUB: Provide fixed response
+trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+
+# PATCH: Temporarily replace Store
+with patch('homeassistant.helpers.storage.Store', return_value=mock_store):
+    await async_cleanup_stale_storage(hass, vehicle_id)
+
+# FIXTURE: Provide test data
+@pytest.fixture
+def mock_presence_config():
+    return {"home_sensor": "sensor.home", "plugged_sensor": "sensor.plugged"}
 ```
 
 ---
