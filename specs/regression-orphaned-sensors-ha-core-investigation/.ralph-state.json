@@ -1,0 +1,23 @@
+{
+  "phase": "execution",
+  "taskIndex": 71,
+  "totalTasks": 78,
+  "taskIteration": 1,
+  "repairIteration": 0,
+  "failedStory": null,
+  "originTaskIndex": null,
+  "maxTaskIterations": 5,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "awaitingApproval": false,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0
+}
