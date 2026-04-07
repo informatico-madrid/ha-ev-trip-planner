@@ -1188,3 +1188,73 @@ class TestTripManagerAsyncPauseResume:
         with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
             await trip_manager.async_resume_recurring_trip("nonexistent_trip")
 
+
+# =============================================================================
+# Pure calculation function tests (PRAGMA-C coverage for calcular_hitos_soc helpers)
+# =============================================================================
+
+class TestCalcularTasaCargaSoc:
+    """Parametrized tests for _calcular_tasa_carga_soc - pure calculation function."""
+
+    @pytest.fixture
+    def trip_manager(self, mock_hass_with_storage):
+        """Create TripManager instance for testing pure functions."""
+        return TripManager(mock_hass_with_storage, "test_vehicle")
+
+    @pytest.mark.parametrize(
+        "charging_power_kw,battery_capacity_kwh,expected",
+        [
+            # Normal case: 7.4kW / 50kWh * 100 = 14.8 % SOC/hour
+            (7.4, 50.0, 14.8),
+            # Lower charging power: 3.6kW / 50kWh * 100 = 7.2 % SOC/hour
+            (3.6, 50.0, 7.2),
+            # Higher capacity: 7.4kW / 75kWh * 100 = 9.87 % SOC/hour
+            (7.4, 75.0, 9.866666666666667),
+            # Zero capacity: should return 0.0 (edge case)
+            (7.4, 0.0, 0.0),
+            # Negative capacity: should return 0.0 (edge case)
+            (7.4, -10.0, 0.0),
+            # Very small capacity: 7.4kW / 1kWh * 100 = 740 % SOC/hour
+            (7.4, 1.0, 740.0),
+        ],
+    )
+    def test_calcular_tasa_carga_soc(
+        self, trip_manager, charging_power_kw, battery_capacity_kwh, expected
+    ):
+        """Test SOC charging rate calculation with various battery capacities."""
+        result = trip_manager._calcular_tasa_carga_soc(charging_power_kw, battery_capacity_kwh)
+        assert abs(result - expected) < 0.001, f"Expected {expected}, got {result}"
+
+
+class TestCalcularSocObjetivoBase:
+    """Parametrized tests for _calcular_soc_objetivo_base - pure calculation function."""
+
+    @pytest.fixture
+    def trip_manager(self, mock_hass_with_storage):
+        """Create TripManager instance for testing pure functions."""
+        return TripManager(mock_hass_with_storage, "test_vehicle")
+
+    @pytest.mark.parametrize(
+        "trip,battery_capacity_kwh,consumption,expected_soc",
+        [
+            # Trip with kwh directly specified
+            ({"kwh": 10.0}, 50.0, 0.15, 20.0 + 10),  # 20% + 10% buffer
+            # Trip with km distance - energy calculated from distance
+            ({"km": 100.0}, 50.0, 0.15, 30.0 + 10),  # 15kWh = 30% + 10% buffer
+            # Trip with no kwh or km - zero energy
+            ({}, 50.0, 0.15, 0.0 + 10),  # 0kWh + 10% buffer
+            # Zero battery capacity - should return buffer only
+            ({"kwh": 10.0}, 0.0, 0.15, 0.0 + 10),  # 0% + 10% buffer
+            # Negative battery capacity - should return buffer only
+            ({"kwh": 10.0}, -50.0, 0.15, 0.0 + 10),  # 0% + 10% buffer
+            # Large trip: 30kWh / 75kWh * 100 = 40% + 10% buffer = 50%
+            ({"kwh": 30.0}, 75.0, 0.15, 40.0 + 10),
+        ],
+    )
+    def test_calcular_soc_objetivo_base(
+        self, trip_manager, trip, battery_capacity_kwh, consumption, expected_soc
+    ):
+        """Test SOC target calculation with various trip data and battery capacities."""
+        result = trip_manager._calcular_soc_objetivo_base(trip, battery_capacity_kwh, consumption)
+        assert abs(result - expected_soc) < 0.001, f"Expected {expected_soc}, got {result}"
+

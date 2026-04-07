@@ -2172,7 +2172,7 @@ class TripManager:
                 return
 
             # Remove the entity from the registry
-            registry.async_remove(entity_id)
+            await registry.async_remove(entity_id)
 
             _LOGGER.info(
                 "Removed trip sensor %s for trip %s (vehicle: %s)",

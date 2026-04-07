@@ -569,7 +569,7 @@ async def async_remove_trip_sensor(
     removed = False
     for entry in entity_registry.async_entries_for_config_entry(entry_id):
         if trip_id in entry.unique_id:
-            entity_registry.async_remove(entry.entity_id)
+            await entity_registry.async_remove(entry.entity_id)
             _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
             removed = True
 

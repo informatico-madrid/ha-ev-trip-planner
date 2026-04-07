@@ -1432,7 +1432,7 @@ async def async_unload_entry_cleanup(
             entity_registry = er.async_get(hass)
         # Use the registry's async_entries_for_config_entry method directly
         for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):
-            entity_registry.async_remove(entity_entry.entity_id)
+            await entity_registry.async_remove(entity_entry.entity_id)
     except Exception as ex:
         _LOGGER.warning("Failed to clean up entity registry: %s", ex)
 
