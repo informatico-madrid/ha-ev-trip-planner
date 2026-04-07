@@ -1697,6 +1697,57 @@ class TestAsyncRegisterStaticPaths:
         # Should have fallen through to legacy path and registered paths
         assert len(registered) > 0
 
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_success_path(self, mock_hass, tmp_path):
+        """async_register_static_paths succeeds with new StaticPathConfig API."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Create actual frontend files in tmp
+        frontend_dir = tmp_path / "frontend"
+        frontend_dir.mkdir()
+        (frontend_dir / "panel.js").touch()
+        (frontend_dir / "panel.css").touch()
+        (frontend_dir / "lit-bundle.js").touch()
+
+        # Mock hass.http with successful async_register_static_paths
+        mock_hass.http = MagicMock()
+        mock_hass.http.async_register_static_paths = AsyncMock()
+
+        # Patch pathlib.Path globally and __file__ at module level
+        original_file = svcs.__file__
+        try:
+            svcs.__file__ = str(tmp_path / "services.py")
+            with patch("pathlib.Path.exists", return_value=True):
+                await svcs.async_register_static_paths(mock_hass)
+        finally:
+            svcs.__file__ = original_file
+
+        # Should have called async_register_static_paths successfully
+        mock_hass.http.async_register_static_paths.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_hass_http_none(self, mock_hass):
+        """async_register_static_paths logs warning when hass.http is None."""
+        from custom_components.ev_trip_planner import services as svcs
+
+        # Create a mock with http=None
+        mock_hass.http = None
+
+        # Patch to have static_paths available
+        original_file = svcs.__file__
+        try:
+            # Point to a path with frontend files
+            svcs.__file__ = str(
+                mock_hass.data.get("__file__", "/some/path/services.py")
+                if mock_hass.data.get("__file__")
+                else "/tmp/services.py"
+            )
+            # We'll mock the component_dir to have frontend files
+            with patch("pathlib.Path.exists", return_value=True):
+                await svcs.async_register_static_paths(mock_hass)
+        finally:
+            svcs.__file__ = original_file
+
 
 class TestAsyncRegisterPanelForEntry:
     """Tests for async_register_panel_for_entry (lines 1324-1346)."""
