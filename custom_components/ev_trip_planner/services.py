@@ -809,17 +809,6 @@ def _get_coordinator(
     return entry.runtime_data.coordinator if entry.runtime_data else None
 
 
-def _get_emhass_adapter(
-    hass: HomeAssistant,
-    vehicle_id: str,
-) -> Optional[Any]:
-    """Get EMHASS adapter for vehicle."""
-    entry = _find_entry_by_vehicle(hass, vehicle_id)
-    if not entry:
-        return None
-    return getattr(entry.runtime_data, "emhass_adapter", None)
-
-
 async def create_dashboard_input_helpers(
     hass: HomeAssistant,
     vehicle_id: str,
