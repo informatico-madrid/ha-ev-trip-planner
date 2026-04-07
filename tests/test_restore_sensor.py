@@ -42,7 +42,7 @@ def test_trip_planner_sensor_inherits_restore_sensor(mock_coordinator):
         TripSensorEntityDescription,
     )
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-    from homeassistant.helpers.restore_state import RestoreEntity
+    from homeassistant.components.sensor import RestoreSensor
 
     # Create entity description with restore=True
     desc = TripSensorEntityDescription(
@@ -61,10 +61,10 @@ def test_trip_planner_sensor_inherits_restore_sensor(mock_coordinator):
 
     # EXPECTED: sensor should inherit from RestoreSensor
     # ACTUAL (RED): sensor does NOT inherit from RestoreSensor
-    assert isinstance(sensor, RestoreEntity), (
-        f"TripPlannerSensor with restore=True should inherit RestoreEntity, "
+    assert isinstance(sensor, RestoreSensor), (
+        f"TripPlannerSensor with restore=True should inherit RestoreSensor, "
         f"but it inherits from {[type(c).__name__ for c in type(sensor).__bases__]}. "
-        "TripPlannerSensor does not inherit RestoreEntity."
+        "TripPlannerSensor does not inherit RestoreSensor."
     )
 
 
@@ -112,7 +112,7 @@ def test_trip_planner_sensor_without_restore_not_restore_sensor(mock_coordinator
         TripSensorEntityDescription,
     )
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-    from homeassistant.helpers.restore_state import RestoreEntity
+    from homeassistant.components.sensor import RestoreSensor
 
     # Create entity description with restore=False (default)
     desc = TripSensorEntityDescription(
@@ -129,9 +129,9 @@ def test_trip_planner_sensor_without_restore_not_restore_sensor(mock_coordinator
         entity_description=desc,
     )
 
-    # restore=False sensors don't need RestoreEntity behavior
+    # restore=False sensors don't need RestoreSensor behavior
     # (they just won't restore - this is expected behavior)
-    assert isinstance(sensor, RestoreEntity) or not hasattr(sensor, 'async_get_last_sensor_data'), (
-        "TripPlannerSensor with restore=False may or may not be RestoreEntity - "
+    assert isinstance(sensor, RestoreSensor) or not hasattr(sensor, 'async_get_last_sensor_data'), (
+        "TripPlannerSensor with restore=False may or may not be RestoreSensor - "
         "this is not strictly required."
     )
