@@ -85,8 +85,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             await async_migrate_entries(hass, entry.entry_id, migrate_unique_id)
 
+    # Always update version to 2 when migrating from version < 2
+    hass.config_entries.async_update_entry(entry, data=new_data, version=2)
     if changed:
-        hass.config_entries.async_update_entry(entry, data=new_data, version=2)
         runtime_data = getattr(entry, "runtime_data", None)
         emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
         if emhass_adapter:
