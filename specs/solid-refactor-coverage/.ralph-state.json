@@ -3,11 +3,11 @@
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
   "phase": "execution",
-  "taskIndex": 13,
+  "taskIndex": 16,
   "totalTasks": 64,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 5,
+  "globalIteration": 14,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": true,
@@ -32,5 +32,14 @@
   "maxModificationDepth": 2,
   "nativeTaskMap": {},
   "nativeSyncEnabled": true,
-  "nativeSyncFailureCount": 0
+  "nativeSyncFailureCount": 0,
+  "completedTasks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 16, 18],
+  "failedTasks": [11, 12],
+  "skippedTasks": [0, 15],
+  "reviewNotes": {
+    "T011": "REVIEW FAIL: _validate_hora, _sanitize_recurring_trips, _is_trip_today en TripManager tienen logica inline, NO delegan a utils.py",
+    "T012": "REVIEW FAIL: utils.py 96%, calculations.py 84%. No 100%",
+    "T000": "SKIP: Coverage baseline not recorded before Phase A",
+    "T015": "SKIP: mypy not installed in venv (agent fixed mypy errors via code changes in commit 5734a8e)"
+  }
 }

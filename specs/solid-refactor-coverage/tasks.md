@@ -43,8 +43,9 @@
 - [x] T008 [P] [US-A1] Add `is_trip_today(trip: Dict, today: date) -> bool` to `custom_components/ev_trip_planner/utils.py`
 - [x] T009 [P] [US-A1] Add `calculate_trip_time(trip: Dict) -> Optional[datetime]` and `calculate_day_index(day_name: str) -> int` to `custom_components/ev_trip_planner/utils.py`
 - [x] T010 [P] [US-A1] Add `calculate_charging_rate(power_kw: float, capacity: float) -> float` and `calculate_soc_target(trip, capacity: float, consumption: float) -> float` to `custom_components/ev_trip_planner/calculations.py`
-- [x] T011 [US-A1] Update `TripManager` to import and call extracted functions — delegate internal private methods to the new pure functions (no logic duplication)
-- [x] T012 [US-A1] Verify pure functions in `utils.py` and `calculations.py` show 100% coverage
+- [ ] T011 [US-A1] Update `TripManager` to import and call extracted functions — delegate internal private methods to the new pure functions (no logic duplication)
+  ⚠️ REVIEW FAIL: Solo 4/7 delegan correctamente. FALTA: `_validate_hora` no delega a utils.validate_hora, `_sanitize_recurring_trips` no delega a utils.sanitize_recurring_trips, `_is_trip_today` no delega a utils.is_trip_today. TripManager debe importar estas funciones de utils.py y delegar.
+- [ ] T012 [US-A1] Verify pure functions in `utils.py` and `calculations.py` show 100% coverage — utils.py 96% (5 edge-case lines), calculations.py 84%. No es 100%. Se necesitan tests adicionales para ramas no cubiertas.
 
 #### US-A1 Gate
 
@@ -60,9 +61,9 @@
 
 #### Tests FIRST (TDD RED)
 
-- [ ] T016 [P] [US-A2] [VERIFY:TEST] Write failing tests for `calculate_deferrable_parameters()` in `tests/test_calculations.py`
+- [x] T016 [P] [US-A2] [VERIFY:TEST] Write failing tests for `calculate_deferrable_parameters()` in `tests/test_calculations.py`
 - [ ] T017 [P] [US-A2] [VERIFY:TEST] Write failing tests for `calculate_power_profile_from_trips()` in `tests/test_calculations.py`
-- [ ] T018 [P] [US-A2] [VERIFY:TEST] Write failing tests for `generate_deferrable_schedule_from_trips()` in `tests/test_calculations.py`
+- [x] T018 [P] [US-A2] [VERIFY:TEST] Write failing tests for `generate_deferrable_schedule_from_trips()` in `tests/test_calculations.py`
 
 #### Implementation
 

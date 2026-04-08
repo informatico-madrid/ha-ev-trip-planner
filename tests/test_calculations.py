@@ -685,3 +685,256 @@ class TestGenerateDeferrableScheduleFromTrips:
             date_str = entry.get("date", "")
             # Should be parseable (contains date and time info)
             assert "T" in date_str or "-" in date_str
+
+
+class TestCalculateDeferrableParameters:
+    """Tests for calculate_deferrable_parameters.
+
+    TDD RED phase: This function must NOT exist in calculations.py yet.
+    These tests will fail with ImportError until T019 is implemented.
+    """
+
+    def test_import_calculate_deferrable_parameters(self):
+        """Import should succeed once function is implemented in calculations.py."""
+        # This import will raise NameError or ImportError until the function exists
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+        assert callable(calculate_deferrable_parameters)
+
+    def test_trip_with_kwh_returns_deferrable_params(self):
+        """Trip with kwh and deadline returns full deferrable parameters dict."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {
+            "id": "trip1",
+            "kwh": 10.0,
+            "datetime": "2026-04-10T18:00:00",
+        }
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        # Should return a non-empty dict
+        assert result != {}
+        # Must have energy and power keys
+        assert "total_energy_kwh" in result
+        assert "power_watts" in result
+        assert "total_hours" in result
+        assert "end_timestep" in result
+        assert "start_timestep" in result
+
+    def test_energy_and_power_values(self):
+        """Energy and power values are correctly calculated."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": 7.4, "datetime": "2026-04-10T18:00:00"}
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        # 7.4 kWh at 7.4 kW = 1 hour
+        assert result["total_energy_kwh"] == 7.4
+        assert result["total_hours"] == 1.0
+        # Power in watts: 7.4 kW * 1000 = 7400 W
+        assert result["power_watts"] == 7400.0
+
+    def test_zero_kwh_returns_empty_dict(self):
+        """Trip with zero or negative kwh returns empty dict."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        result = calculate_deferrable_parameters({"id": "trip1", "kwh": 0.0}, power_kw=7.4)
+        assert result == {}
+
+        result = calculate_deferrable_parameters({"id": "trip1", "kwh": -5.0}, power_kw=7.4)
+        assert result == {}
+
+    def test_missing_kwh_returns_empty_dict(self):
+        """Trip without kwh key returns empty dict."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        result = calculate_deferrable_parameters({"id": "trip1"}, power_kw=7.4)
+        assert result == {}
+
+    def test_end_timestep_calculated_from_deadline(self):
+        """end_timestep is computed from hours until deadline (max 168 = 7 days)."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": 10.0, "datetime": "2026-04-10T18:00:00"}
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        assert 1 <= result["end_timestep"] <= 168
+
+    def test_default_end_timestep_without_deadline(self):
+        """Without deadline, end_timestep defaults to 24."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": 10.0}  # No datetime
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        assert result["end_timestep"] == 24
+
+    def test_start_timestep_is_zero(self):
+        """start_timestep is always 0 (charging starts at beginning of window)."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": 10.0, "datetime": "2026-04-10T18:00:00"}
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        assert result["start_timestep"] == 0
+
+    def test_is_single_constant_is_true(self):
+        """is_single_constant is True for basic deferrable load."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": 10.0, "datetime": "2026-04-10T18:00:00"}
+        result = calculate_deferrable_parameters(trip, power_kw=7.4)
+
+        assert result.get("is_single_constant") is True
+
+    @pytest.mark.parametrize("kwh,power_kw,expected_hours", [
+        (7.4, 7.4, 1.0),
+        (14.8, 7.4, 2.0),
+        (3.7, 7.4, 0.5),
+        (74.0, 7.4, 10.0),
+    ])
+    def test_total_hours_calculation(self, kwh: float, power_kw: float, expected_hours: float):
+        """Parametrized: total_hours = kwh / power_kw."""
+        from custom_components.ev_trip_planner.calculations import calculate_deferrable_parameters
+
+        trip = {"id": "trip1", "kwh": kwh}
+        result = calculate_deferrable_parameters(trip, power_kw=power_kw)
+        assert abs(result["total_hours"] - expected_hours) < 0.01
+
+
+class TestCalculatePowerProfileFromTrips:
+    """Tests for calculate_power_profile_from_trips.
+
+    TDD RED phase: This function must NOT exist in calculations.py yet.
+    These tests will fail with ImportError until T020 is implemented.
+    """
+
+    def test_import_from_calculations_succeeds(self):
+        """The function must be importable from calculations.py."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+        assert callable(calculate_power_profile_from_trips)
+
+    def test_empty_trips_returns_all_zeros(self):
+        """Empty trip list returns a list of all zeros."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+        result = calculate_power_profile_from_trips(
+            trips=[],
+            power_kw=7.4,
+            horizon=24,
+        )
+        assert isinstance(result, list)
+        assert len(result) == 24
+        assert all(v == 0.0 for v in result)
+
+    def test_returns_list_of_correct_length(self):
+        """Returns a list with length equal to horizon."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+        for horizon in [1, 24, 48, 168]:
+            result = calculate_power_profile_from_trips(
+                trips=[],
+                power_kw=7.4,
+                horizon=horizon,
+            )
+            assert len(result) == horizon
+
+    def test_single_trip_sets_power_at_deadline_hours(self):
+        """A single trip with a deadline sets charging power at that hour slot."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trip = {
+            "id": "trip1",
+            "tipo": TRIP_TYPE_PUNCTUAL,
+            "datetime": "2026-04-06T18:00",
+            "kwh": 10.0,
+        }
+
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+        )
+
+        # 10 hours from ref to deadline, needs ~2 hours charging
+        # Charging should be active in the last 2 hours before deadline (hours 8-9)
+        # Power is in watts: 7.4 kW * 1000 = 7400 W
+        non_zero = [v for v in result if v > 0]
+        assert len(non_zero) >= 1
+        assert all(v == 7400.0 for v in non_zero)
+
+    def test_trip_without_datetime_not_included(self):
+        """Trips without datetime are skipped (no IndexError)."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trips = [
+            {"id": "no_dt", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": None, "kwh": 10.0},
+        ]
+        result = calculate_power_profile_from_trips(
+            trips=trips,
+            power_kw=7.4,
+            horizon=24,
+        )
+        # Should not crash; returns zeros when no valid trips
+        assert all(v == 0.0 for v in result)
+
+    def test_power_values_in_watts(self):
+        """Power values are in watts (power_kw * 1000)."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trip = {
+            "id": "trip1",
+            "tipo": TRIP_TYPE_PUNCTUAL,
+            "datetime": "2026-04-06T10:00",
+            "kwh": 5.0,
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+        )
+        non_zero = [v for v in result if v > 0]
+        if non_zero:
+            assert all(v == 7400.0 for v in non_zero)
+
+    def test_zero_power_kw_returns_all_zeros(self):
+        """Zero power_kw returns all zeros (can't charge)."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trip = {
+            "id": "trip1",
+            "tipo": TRIP_TYPE_PUNCTUAL,
+            "datetime": "2026-04-06T10:00",
+            "kwh": 10.0,
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=0.0,
+            horizon=24,
+        )
+        assert all(v == 0.0 for v in result)
+
+    def test_multiple_trips_accumulate(self):
+        """Multiple trips each contribute their charging windows."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trips = [
+            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T10:00", "kwh": 5.0},
+            {"id": "trip2", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 5.0},
+        ]
+        result = calculate_power_profile_from_trips(
+            trips=trips,
+            power_kw=7.4,
+            horizon=24,
+        )
+        # Should have charging windows for both trips
+        non_zero = [v for v in result if v > 0]
+        assert len(non_zero) >= 2
+
+    def test_horizon_168_one_week(self):
+        """horizon=168 covers one full week (7*24)."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+        result = calculate_power_profile_from_trips(
+            trips=[],
+            power_kw=7.4,
+            horizon=168,
+        )
+        assert len(result) == 168
+        assert all(v == 0.0 for v in result)
