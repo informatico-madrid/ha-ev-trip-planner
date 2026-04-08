@@ -44,6 +44,7 @@
 - [ ] T008 [P] [US-A1] Add `is_trip_today(trip: Dict, today: date) -> bool` to `custom_components/ev_trip_planner/utils.py`
 - [ ] T009 [P] [US-A1] Add `calculate_trip_time(trip: Dict) -> Optional[datetime]` and `calculate_day_index(day_name: str) -> int` to `custom_components/ev_trip_planner/utils.py`
 - [ ] T010 [P] [US-A1] Add `calculate_charging_rate(power_kw: float, capacity: float) -> float` and `calculate_soc_target(trip, capacity: float, consumption: float) -> float` to `custom_components/ev_trip_planner/calculations.py`
+  ⚠️ REVIEW FAIL: Estas funciones YA EXISTÍAN en calculations.py. El agente NO debía añadirlas sino VERIFICAR delegación. CAMBIÓ la semántica existente: calculate_charging_rate ahora retorna power_kw directo en vez de (power/capacity)*100, y calculate_soc_target eliminó soc_buffer_percent. REVERTIR calculaciones.py a versión original y SOLO verificar que TripManager delega correctamente.
 - [ ] T011 [US-A1] Update `TripManager` to import and call extracted functions — delegate internal private methods to the new pure functions (no logic duplication)
 - [ ] T012 [US-A1] Verify pure functions in `utils.py` and `calculations.py` show 100% coverage
 

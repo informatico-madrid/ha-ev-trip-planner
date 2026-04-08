@@ -250,7 +250,9 @@ def is_trip_today(trip: dict, today: date) -> bool:
 
     if trip_type == "recurrente":
         # Recurring trip: check if today's day name matches the trip's day
-        trip_day = trip.get("dia", "").lower()
+        # Support both 'dia' (legacy/test format) and 'dia_semana' (production format)
+        trip_day = trip.get("dia", "") or trip.get("dia_semana", "")
+        trip_day = trip_day.lower()
         today_day = today.strftime("%A").lower()  # Full English day name
 
         # Normalize trip day to English using DAY_ABBREVIATIONS mapping
@@ -272,15 +274,19 @@ def is_trip_today(trip: dict, today: date) -> bool:
                     return eng_day == today_day
         return False
 
-    elif trip_type == "punctual":
+    elif trip_type in ("puntual", "punctual"):
         # Punctual trip: check if the trip's date matches today
-        fecha = trip.get("fecha")
+        # Support both 'datetime' (TripManager format) and 'fecha' (legacy/test format)
+        # Also support both 'puntual' (Spanish) and 'punctual' (English) trip types
+        fecha = trip.get("datetime") or trip.get("fecha")
 
         if isinstance(fecha, date):
             return fecha == today
         elif isinstance(fecha, str):
+            # Extract date portion from ISO datetime string (format: "YYYY-MM-DDTHH:MM" or "YYYY-MM-DDTHH:MM:SS")
+            date_str = fecha.split("T")[0] if "T" in fecha else fecha
             # Normalize string date to YYYYMMDD for comparison
-            normalized = fecha.replace("-", "").replace("/", "")
+            normalized = date_str.replace("-", "").replace("/", "")
             today_str = today.strftime("%Y%m%d")
             return normalized == today_str
 
