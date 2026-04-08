@@ -9,6 +9,7 @@ from custom_components.ev_trip_planner.utils import (
     is_valid_trip_id,
     calcular_energia_kwh,
     validate_hora,
+    sanitize_recurring_trips,
 )
 
 
@@ -237,3 +238,76 @@ class TestCalcularEnergiaKwh:
         # 50km trip at 0.18 kWh/km
         energy = calcular_energia_kwh(50, 0.18)
         assert energy == 9.0
+
+
+class TestSanitizeRecurringTrips:
+    """Tests for sanitize_recurring_trips function."""
+
+    def test_filters_trips_with_invalid_hora(self):
+        """Test that trips with invalid hora entries are filtered out."""
+        trips = {
+            "rec_lun_abc123": {"hora": "09:30", "dia": "lunes"},
+            "rec_mar_xyz789": {"hora": "25:00", "dia": "martes"},
+        }
+        result = sanitize_recurring_trips(trips)
+        assert "rec_lun_abc123" in result
+        assert "rec_mar_xyz789" not in result
+
+    def test_keeps_trips_with_valid_hora(self):
+        """Test that trips with valid hora are kept."""
+        trips = {
+            "rec_lun_abc123": {"hora": "09:30", "dia": "lunes"},
+            "rec_mar_xyz789": {"hora": "14:45", "dia": "martes"},
+        }
+        result = sanitize_recurring_trips(trips)
+        assert len(result) == 2
+        assert "rec_lun_abc123" in result
+        assert "rec_mar_xyz789" in result
+
+    def test_filters_invalid_minute_format(self):
+        """Test that trips with invalid minute values are filtered out."""
+        trips = {
+            "rec_lun_abc123": {"hora": "09:30", "dia": "lunes"},
+            "rec_mar_xyz789": {"hora": "09:60", "dia": "martes"},
+        }
+        result = sanitize_recurring_trips(trips)
+        assert "rec_lun_abc123" in result
+        assert "rec_mar_xyz789" not in result
+
+    def test_filters_invalid_format(self):
+        """Test that trips with invalid time format are filtered out."""
+        trips = {
+            "rec_lun_abc123": {"hora": "09:30", "dia": "lunes"},
+            "rec_mar_xyz789": {"hora": "invalid", "dia": "martes"},
+        }
+        result = sanitize_recurring_trips(trips)
+        assert "rec_lun_abc123" in result
+        assert "rec_mar_xyz789" not in result
+
+    def test_returns_empty_dict_for_all_invalid(self):
+        """Test that empty dict is returned when all trips have invalid hora."""
+        trips = {
+            "rec_lun_abc123": {"hora": "25:00", "dia": "lunes"},
+            "rec_mar_xyz789": {"hora": "invalid", "dia": "martes"},
+        }
+        result = sanitize_recurring_trips(trips)
+        assert result == {}
+
+    def test_returns_empty_dict_for_empty_input(self):
+        """Test that empty dict is returned for empty input."""
+        result = sanitize_recurring_trips({})
+        assert result == {}
+
+    def test_preserves_trip_data_for_valid_entries(self):
+        """Test that valid trip data is preserved in output."""
+        trips = {
+            "rec_lun_abc123": {
+                "hora": "09:30",
+                "dia": "lunes",
+                "destino": "work",
+                "consumo": 0.18,
+            },
+        }
+        result = sanitize_recurring_trips(trips)
+        assert result["rec_lun_abc123"]["destino"] == "work"
+        assert result["rec_lun_abc123"]["consumo"] == 0.18
