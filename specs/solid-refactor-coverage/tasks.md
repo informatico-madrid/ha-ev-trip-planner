@@ -244,11 +244,47 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
 
 ### US-G5: Llevar dashboard.py a 100%
 
-- [ ] T081 [US-G5] [VERIFY:TEST] Obtener las 60 líneas sin cubrir en dashboard.py:
+- [ ] T081 [US-G5] [VERIFY:TEST] Obtener las ~60 líneas sin cubrir en dashboard.py:
   ```bash
-  pytest tests/ --cov=custom_components.ev_trip_planner.dashboard --cov-report=term-missing -q 2>&1 | tail -5
+  pytest tests/ --cov=custom_components.ev_trip_planner.dashboard --cov-report=term-missing -q 2>&1 | tail -10
   ```
-  Si hay código que registra panels o websocket handlers de HA → `# pragma: no cover  # requires HA frontend panel registration`.
+
+  **dashboard.py es casi todo Python puro y debe testearse con tests, no con pragmas.**
+
+  El módulo contiene:
+  - Clases de error (`DashboardError`, `DashboardNotFoundError`, etc.) — puras, instanciar directamente en tests
+  - `DashboardImportResult` — clase de datos pura, testear `.to_dict()` y `.__str__()`
+  - `_validate_dashboard_config()` — lógica de validación pura, testear todos los branches con dicts bien/mal formados
+  - `is_lovelace_available()` — testear con `hass = MagicMock(); hass.config.components = {"lovelace"}`
+  - `_load_dashboard_template()` — testear con `patch("os.path.exists")` y `patch("builtins.open", mock_open(read_data="..."))`
+  - `_save_dashboard_yaml_fallback()` — testear con `patch("os.path.exists")`, `patch("builtins.open", mock_open())` y `hass.config.config_dir = "/tmp/test"`
+  - `import_dashboard()` — testear el flujo completo pasando `hass = MagicMock()` y mockeando las sub-funciones
+
+  **La ÚNICA línea con pragma legítimo posible** en dashboard.py:
+  - `await hass.services.async_call("lovelace", "save", ...)` dentro de `_save_lovelace_dashboard()` — si y solo si la rama `hass.services.has_service("lovelace", "save")` retorna True requiere el servicio lovelace real. En ese caso: `# pragma: no cover  # requires real HA lovelace service`.
+  - `ha_storage.Store(hass, ...)` en `_verify_storage_permissions()` y `_save_lovelace_dashboard()` — testear con `patch("homeassistant.helpers.storage.Store")` con `AsyncMock`. Si el patch no es viable por la forma en que se importa dentro de la función, usar `patch("custom_components.ev_trip_planner.dashboard.ha_storage.Store")`.
+
+  **Patrón de test para las funciones con ficheros:**
+  ```python
+  from unittest.mock import patch, mock_open, MagicMock, AsyncMock
+  import pytest
+
+  @pytest.mark.asyncio
+  async def test_load_template_file_not_found():
+      hass = MagicMock()
+      with patch("os.path.exists", return_value=False):
+          result = await _load_dashboard_template(hass, "car1", "Mi Coche", False)
+      assert result is None
+
+  @pytest.mark.asyncio
+  async def test_load_template_reads_and_substitutes():
+      hass = MagicMock()
+      yaml_content = "title: EV Planner {{ vehicle_name }}\nviews: []"
+      with patch("os.path.exists", return_value=True), \
+           patch("builtins.open", mock_open(read_data=yaml_content)):
+          result = await _load_dashboard_template(hass, "car1", "Mi Coche", False)
+      assert result["title"] == "EV Planner Mi Coche"
+  ```
 
   VERIFICACIÓN FINAL: `pytest tests/ --cov=custom_components.ev_trip_planner.dashboard --cov-report=term-missing -q` → **100%**
 
