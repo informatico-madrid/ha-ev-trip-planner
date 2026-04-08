@@ -1,6 +1,6 @@
 """Protocols for TripManager dependency injection."""
 
-from typing import Any, Dict, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -19,3 +19,9 @@ class EMHASSPublisherProtocol(Protocol):
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool: ...
 
     async def async_remove_deferrable_load(self, trip_id: str) -> bool: ...
+
+    async def async_publish_all_deferrable_loads(
+        self, trips: List[Dict[str, Any]], charging_power_kw: Optional[float] = None
+    ) -> bool: ...
+
+    async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool: ...

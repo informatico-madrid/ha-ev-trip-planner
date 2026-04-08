@@ -76,6 +76,7 @@ class FakeEMHASSPublisher:
     def __init__(self) -> None:
         self.published_trips: List[Dict[str, Any]] = []
         self.removed_trip_ids: List[str] = []
+        self.all_published_trips: List[List[Dict[str, Any]]] = []
 
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         self.published_trips.append(trip)
@@ -84,6 +85,17 @@ class FakeEMHASSPublisher:
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         self.removed_trip_ids.append(trip_id)
         return True
+
+    async def async_publish_all_deferrable_loads(
+        self, trips: List[Dict[str, Any]], charging_power_kw: float = None
+    ) -> bool:
+        self.all_published_trips.append(trips)
+        for trip in trips:
+            self.published_trips.append(trip)
+        return True
+
+    async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool:
+        return await self.async_publish_deferrable_load(trip)
 
 
 # =============================================================================

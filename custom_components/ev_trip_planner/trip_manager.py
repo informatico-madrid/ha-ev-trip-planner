@@ -88,8 +88,8 @@ class TripManager:
         hass: HomeAssistant,
         vehicle_id: str,
         presence_config: Optional[Dict[str, Any]] = None,
-        storage: TripStorageProtocol = _UNSET,
-        emhass_adapter: EMHASSPublisherProtocol = _UNSET,
+        storage: TripStorageProtocol = _UNSET,  # type: ignore[assignment]
+        emhass_adapter: EMHASSPublisherProtocol = _UNSET,  # type: ignore[assignment]
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
@@ -105,12 +105,12 @@ class TripManager:
         self._storage = storage if storage is not _UNSET else None
         self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else None
 
-    def set_emhass_adapter(self, adapter: EMHASSAdapter) -> None:
+    def set_emhass_adapter(self, adapter: EMHASSPublisherProtocol) -> None:
         """Set the EMHASS adapter for this trip manager."""
         self._emhass_adapter = adapter
         _LOGGER.debug("EMHASS adapter set for vehicle %s", self.vehicle_id)
 
-    def get_emhass_adapter(self) -> Optional[EMHASSAdapter]:
+    def get_emhass_adapter(self) -> Optional[EMHASSPublisherProtocol]:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
 
@@ -158,11 +158,7 @@ class TripManager:
         if not self._emhass_adapter:
             return
         all_trips = await self._get_all_active_trips()
-        charging_power_kw = self._get_charging_power()
-        await self._emhass_adapter.publish_deferrable_loads(
-            all_trips,
-            charging_power_kw,
-        )
+        await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -1103,8 +1099,10 @@ class TripManager:
         """
         from .calculations import calculate_trip_time
 
+        tipo = trip.get("tipo")
+        assert tipo is not None, "trip tipo is required"
         return calculate_trip_time(
-            trip.get("tipo"),
+            tipo,
             trip.get("hora"),
             trip.get("dia_semana"),
             trip.get("datetime"),

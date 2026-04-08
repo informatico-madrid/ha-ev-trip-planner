@@ -889,7 +889,7 @@ async def test_publish_deferrable_loads_with_adapter(mock_hass, vehicle_id):
 
     # Set up mock emhass adapter (not TripManager, so spec not needed)
     mock_adapter = MagicMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Set up some trips
@@ -909,7 +909,7 @@ async def test_publish_deferrable_loads_with_adapter(mock_hass, vehicle_id):
     await manager._publish_deferrable_loads()
 
     # Verify adapter was called
-    mock_adapter.publish_deferrable_loads.assert_called_once()
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
 
 
 @pytest.mark.asyncio
