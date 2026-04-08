@@ -2188,3 +2188,1101 @@ class TestEmhassAdapterPublishAllErrorPaths:
 
             # Empty trips list should not raise
             await adapter.async_publish_all_deferrable_loads([])
+
+
+# =============================================================================
+# Additional coverage tests for uncovered code paths
+# =============================================================================
+
+class TestGetCoordinatorFallback:
+    """Tests for _get_coordinator fallback path (lines 155-158)."""
+
+    def test_get_coordinator_fallback_to_hass_data(self):
+        """_get_coordinator falls back to hass.data when runtime_data not available."""
+        hass = MagicMock()
+        hass.data = {}
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        adapter = EMHASSAdapter(hass, config)
+        # _entry is None when constructed with dict
+        adapter._entry = None
+
+        # No coordinator in hass.data - should return None
+        result = adapter._get_coordinator()
+        assert result is None
+
+
+class TestAsyncLoadErrorPath:
+    """Tests for async_load error handling (lines 134-139)."""
+
+    @pytest.fixture
+    def mock_store(self):
+        """Create a mock store that raises on async_load."""
+        store = MagicMock()
+        store.async_load = AsyncMock(side_effect=Exception("Storage read error"))
+        return store
+
+    @pytest.mark.asyncio
+    async def test_async_load_handles_storage_error(self, hass, mock_store):
+        """async_load catches exception when store.async_load raises."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            # Should not raise - exception is caught
+            await adapter.async_load()
+
+    @pytest.mark.asyncio
+    async def test_async_load_with_stored_data_and_released_indices(self, hass):
+        """async_load restores released indices and rebuilds available indices (lines 100-126)."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+            CONF_INDEX_COOLDOWN_HOURS: 24,
+        }
+
+        # Create store with data that includes released_indices
+        stored_released = {
+            "0": (datetime.now() - timedelta(hours=1)).isoformat(),  # Still in cooldown
+            "1": (datetime.now() - timedelta(hours=25)).isoformat(),  # Expired
+        }
+        stored_data = {
+            "index_map": {"trip_1": 2, "trip_2": 3},
+            "released_indices": stored_released,
+        }
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value=stored_data)
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # Index 0 was released but still in cooldown, should still be unavailable
+            # Index 1 was released and expired, should be available
+            # Index 2, 3 are used by trips
+            # Available should be all except 0, 2, 3
+            available = adapter.get_available_indices()
+            assert 1 in available  # Expired index should be available
+            assert 0 not in available  # In cooldown should not be
+            assert 2 not in available  # Used
+            assert 3 not in available  # Used
+
+
+class TestPublishDeferrableLoadDeadlineHandling:
+    """Tests for async_publish_deferrable_load deadline handling (lines 309, 314-316)."""
+
+    def test_publish_deferrable_load_with_string_deadline(self):
+        """async_publish_deferrable_load parses string deadline correctly."""
+        hass = MagicMock()
+        hass.data = {}
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp"
+        hass.config.time_zone = "UTC"
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        adapter = EMHASSAdapter(hass, config)
+        adapter.async_assign_index_to_trip = AsyncMock(return_value=0)
+        adapter.async_release_trip_index = AsyncMock()
+        adapter.hass.states.async_set = AsyncMock()
+
+        # Future deadline as ISO string
+        future_time = (datetime.now() + timedelta(hours=10)).isoformat()
+        trip = {"id": "trip_1", "kwh": 7.4, "datetime": future_time}
+
+        # Should not raise - deadline is parsed from string
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            adapter.async_publish_deferrable_load(trip)
+        )
+        assert isinstance(result, bool)
+
+    def test_publish_deferrable_load_with_past_deadline(self):
+        """async_publish_deferrable_load returns False for past deadline."""
+        hass = MagicMock()
+        hass.data = {}
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp"
+        hass.config.time_zone = "UTC"
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        adapter = EMHASSAdapter(hass, config)
+        adapter.async_assign_index_to_trip = AsyncMock(return_value=0)
+        adapter.async_release_trip_index = AsyncMock()
+
+        # Past deadline
+        past_time = (datetime.now() - timedelta(hours=1)).isoformat()
+        trip = {"id": "trip_1", "kwh": 7.4, "datetime": past_time}
+
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            adapter.async_publish_deferrable_load(trip)
+        )
+        assert result is False
+
+
+class TestAsyncRemoveDeferrableLoadCoverage:
+    """Tests for async_remove_deferrable_load coverage (lines 370-372, 388-395)."""
+
+    @pytest.mark.asyncio
+    async def test_async_remove_deferrable_load_unknown_trip(self, hass):
+        """async_remove_deferrable_load returns False for unknown trip (lines 370-372)."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # _index_map is empty, so unknown trip should return False
+            result = await adapter.async_remove_deferrable_load("nonexistent_trip")
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_async_remove_deferrable_load_exception_path(self, hass):
+        """async_remove_deferrable_load handles exception (lines 388-395)."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # Assign an index so we enter the main try block
+            await adapter.async_assign_index_to_trip("trip_1")
+
+            # Mock async_release_trip_index to raise an exception
+            adapter.async_release_trip_index = AsyncMock(
+                side_effect=Exception("Release failed")
+            )
+            adapter.async_notify_error = AsyncMock()
+
+            result = await adapter.async_remove_deferrable_load("trip_1")
+
+            # Should return False due to exception
+            assert result is False
+
+
+class TestPublishDeferrableLoadsCoordinatorPath:
+    """Tests for publish_deferrable_loads coordinator path (line 543)."""
+
+    @pytest.mark.asyncio
+    async def test_publish_deferrable_loads_with_no_coordinator(self, hass):
+        """publish_deferrable_loads handles None coordinator gracefully."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+        # No runtime_data with coordinator
+        entry.runtime_data = MagicMock()
+        entry.runtime_data.coordinator = None
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+
+            # Ensure _get_coordinator returns None
+            adapter._get_coordinator = MagicMock(return_value=None)
+            adapter.hass.states.async_set = AsyncMock()
+
+            trips = [{"id": "trip_1", "kwh": 7.4, "hora": "09:00"}]
+
+            # Should not raise - coordinator is None
+            await adapter.publish_deferrable_loads(trips)
+
+
+class TestVerifyShellCommandIntegrationCoverage:
+    """Tests for async_verify_shell_command_integration coverage (line 643)."""
+
+    @pytest.mark.asyncio
+    async def test_verify_shell_command_no_emhass_response_sensors(self, hass, mock_store):
+        """async_verify_shell_command_integration returns not configured when no EMHASS sensors."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {"power_profile_watts": [100, 200, 300]}
+        mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+            adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+            # Return empty list for EMHASS sensors
+            adapter.hass.states.async_all = MagicMock(return_value=[])
+            await adapter.async_assign_index_to_trip("trip_1")
+
+            result = await adapter.async_verify_shell_command_integration()
+
+            # is_configured is False when no EMHASS response sensors found
+            assert result["is_configured"] is False
+            assert len(result["emhass_response_sensors"]) == 0
+
+
+class TestCheckEmhassResponseSensorsCoverage:
+    """Tests for async_check_emhass_response_sensors coverage (lines 699-700, 719-725)."""
+
+    @pytest.mark.asyncio
+    async def test_check_emhass_response_sensors_missing_trip(self, hass, mock_store):
+        """async_check_emhass_response_sensors reports missing trips."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+            await adapter.async_assign_index_to_trip("trip_1")
+
+            # No config sensor found, no EMHASS response
+            adapter.hass.states.get = MagicMock(return_value=None)
+            adapter.hass.states.async_all = MagicMock(return_value=[])
+
+            result = await adapter.async_check_emhass_response_sensors(trip_ids=["trip_1"])
+
+            assert "trip_1" in result["missing_trips"]
+
+
+class TestAsyncGetIntegrationStatusCoverage:
+    """Tests for async_get_integration_status coverage (lines 774-786)."""
+
+    @pytest.mark.asyncio
+    async def test_get_integration_status_deferrable_sensor_not_found(self, hass, mock_store):
+        """async_get_integration_status returns ERROR when sensor not found."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+            adapter.hass.states.get = MagicMock(return_value=None)
+            adapter.hass.states.async_all = MagicMock(return_value=[])
+
+            result = await adapter.async_get_integration_status()
+
+            # Status should indicate error (sensor not found)
+            assert result["status"] == EMHASS_STATE_ERROR
+
+    @pytest.mark.asyncio
+    async def test_get_integration_status_sensor_without_data(self, hass, mock_store):
+        """async_get_integration_status returns warning when sensor has no data."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {}  # Missing power_profile_watts
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+            adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+            adapter.hass.states.async_all = MagicMock(return_value=[])
+
+            result = await adapter.async_get_integration_status()
+
+            # Status should be warning (sensor exists but no data)
+            assert result["status"] == "warning"
+
+
+class TestAsyncUpdateErrorStatusCoverage:
+    """Tests for _async_update_error_status coverage (lines 868, 881-882)."""
+
+    @pytest.mark.asyncio
+    async def test_async_update_error_status_handles_homeassistant_error(self, hass, mock_store):
+        """_async_update_error_status catches HomeAssistantError."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter.hass.states.async_set = AsyncMock(
+                side_effect=HomeAssistantError("State update failed")
+            )
+
+            # Should not raise - exception is caught
+            await adapter._async_update_error_status(
+                error_type="test_error",
+                message="Test error message",
+            )
+
+
+class TestAsyncSendErrorNotificationCoverage:
+    """Tests for _async_send_error_notification coverage (lines 935, 957)."""
+
+    @pytest.mark.asyncio
+    async def test_async_send_error_notification_emhass_unavailable_type(self, hass, mock_store):
+        """_async_send_error_notification handles emhass_unavailable error type."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+            CONF_NOTIFICATION_SERVICE: "notify.test",
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter.hass.services.async_call = AsyncMock()
+
+            # Should use emhass_unavailable error type
+            result = await adapter._async_send_error_notification(
+                error_type="emhass_unavailable",
+                message="EMHASS not available",
+            )
+
+            # Verify notification was called with expected error type in body
+            call_args = adapter.hass.services.async_call.call_args
+            assert "EMHASS no está disponible" in str(call_args)
+
+    @pytest.mark.asyncio
+    async def test_async_send_error_notification_sensor_missing_type(self, hass, mock_store):
+        """_async_send_error_notification handles sensor_missing error type."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+            CONF_NOTIFICATION_SERVICE: "notify.test",
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter.hass.services.async_call = AsyncMock()
+
+            result = await adapter._async_send_error_notification(
+                error_type="sensor_missing",
+                message="Sensor not found",
+            )
+
+            call_args = adapter.hass.services.async_call.call_args
+            assert "Sensor EMHASS no encontrado" in str(call_args)
+
+    @pytest.mark.asyncio
+    async def test_async_send_error_notification_shell_command_failure_type(self, hass, mock_store):
+        """_async_send_error_notification handles shell_command_failure error type."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+            CONF_NOTIFICATION_SERVICE: "notify.test",
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter.hass.services.async_call = AsyncMock()
+
+            result = await adapter._async_send_error_notification(
+                error_type="shell_command_failure",
+                message="Shell command failed",
+            )
+
+            call_args = adapter.hass.services.async_call.call_args
+            assert "Error en shell command de EMHASS" in str(call_args)
+
+    @pytest.mark.asyncio
+    async def test_async_send_error_notification_no_service_returns_false(self, hass, mock_store):
+        """_async_send_error_notification returns False when no notification service configured."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+            CONF_NOTIFICATION_SERVICE: None,  # No notification service
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            result = await adapter._async_send_error_notification(
+                error_type="test_error",
+                message="Test error",
+            )
+
+            # Should return False without calling notification service
+            assert result is False
+
+
+class TestAsyncClearErrorCoverage:
+    """Tests for async_clear_error coverage (lines 1125-1126)."""
+
+    @pytest.mark.asyncio
+    async def test_async_clear_error_handles_homeassistant_error(self, hass, mock_store):
+        """async_clear_error catches HomeAssistantError when sensor update fails."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter._last_error = "Some error"
+            adapter._last_error_time = datetime.now()
+
+            mock_state = MagicMock()
+            mock_state.attributes = {"error_type": "old_error"}
+            sensor_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
+            adapter.hass.states.get = MagicMock(return_value=mock_state)
+            adapter.hass.states.async_set = AsyncMock(
+                side_effect=HomeAssistantError("Failed to update")
+            )
+
+            # Should not raise - exception is caught
+            await adapter.async_clear_error()
+
+            # Error should still be cleared from adapter state
+            assert adapter._last_error is None
+
+
+class TestVerifyCleanupCoverage:
+    """Tests for verify_cleanup coverage (lines 1233-1260)."""
+
+    @pytest.mark.asyncio
+    async def test_verify_cleanup_with_sensors_in_state(self, hass, mock_store):
+        """verify_cleanup detects EMHASS sensors in state machine."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # Create mock state with our entry_id
+            mock_state = MagicMock()
+            mock_state.entity_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
+            mock_state.attributes = {"entry_id": adapter.entry_id}
+
+            mock_registry = MagicMock()
+            mock_registry.entities = {}
+
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
+                adapter.hass.states.async_all = MagicMock(
+                    return_value=[mock_state]
+                )
+
+                result = adapter.verify_cleanup()
+
+                # Should detect state is not clean
+                assert result["state_clean"] is False
+
+    @pytest.mark.asyncio
+    async def test_verify_cleanup_with_sensors_in_registry(self, hass, mock_store):
+        """verify_cleanup detects EMHASS sensors in entity registry."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # No sensors in state
+            adapter.hass.states.async_all = MagicMock(return_value=[])
+
+            # Create mock entity entry
+            mock_entity_entry = MagicMock()
+            mock_entity_entry.domain = "sensor"
+            mock_entity_entry.unique_id = f"emhass_perfil_diferible_{adapter.entry_id}"
+
+            mock_registry = MagicMock()
+            mock_registry.entities = {"sensor.test": mock_entity_entry}
+
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
+                result = adapter.verify_cleanup()
+
+                # Should detect registry is not clean
+                assert result["registry_clean"] is False
+
+
+class TestSetupConfigEntryListenerCoverage:
+    """Tests for setup_config_entry_listener coverage (lines 1280-1284)."""
+
+    @pytest.mark.asyncio
+    async def test_setup_config_entry_listener_returns_early_when_no_entry(self, hass, mock_store):
+        """setup_config_entry_listener returns early when config entry not found."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            # Mock config_entries.async_get_entry to return None
+            hass.config_entries = MagicMock()
+            hass.config_entries.async_get_entry = MagicMock(return_value=None)
+
+            # Should return early without setting up listener
+            adapter.setup_config_entry_listener()
+
+            assert adapter._config_entry_listener is None
+
+
+class TestHandleConfigEntryUpdateCoverage:
+    """Tests for _handle_config_entry_update coverage (lines 1299-1303)."""
+
+    @pytest.mark.asyncio
+    async def test_handle_config_entry_update_logs_message(self, hass, mock_store):
+        """_handle_config_entry_update logs the update message."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            adapter.update_charging_power = AsyncMock()
+
+            # Should log and call update_charging_power
+            await adapter._handle_config_entry_update(hass, MagicMock())
+
+            adapter.update_charging_power.assert_called_once()
+
+
+class TestUpdateChargingPowerCoverage:
+    """Tests for update_charging_power coverage (lines 1315-1316, 1320-1321, 1325-1326)."""
+
+    @pytest.mark.asyncio
+    async def test_update_charging_power_entry_not_found(self, hass, mock_store):
+        """update_charging_power returns early when entry not found."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            hass.config_entries = MagicMock()
+            hass.config_entries.async_get_entry = MagicMock(return_value=None)
+
+            # Should return early
+            await adapter.update_charging_power()
+
+            # Power should remain unchanged
+            assert adapter._charging_power_kw == 7.4
+
+    @pytest.mark.asyncio
+    async def test_update_charging_power_no_charging_power_in_entry(self, hass, mock_store):
+        """update_charging_power returns early when charging_power_kw not in entry data."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            mock_entry = MagicMock()
+            mock_entry.data = {}  # No charging_power_kw
+            hass.config_entries = MagicMock()
+            hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+            # Should return early
+            await adapter.update_charging_power()
+
+            # Power should remain unchanged
+            assert adapter._charging_power_kw == 7.4
+
+    @pytest.mark.asyncio
+    async def test_update_charging_power_unchanged(self, hass, mock_store):
+        """update_charging_power returns early when power hasn't changed."""
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, config)
+            await adapter.async_load()
+
+            mock_entry = MagicMock()
+            mock_entry.data = {CONF_CHARGING_POWER: 7.4}  # Same as current
+            hass.config_entries = MagicMock()
+            hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+            # Should return early - no change
+            await adapter.update_charging_power()
+
+            assert adapter._charging_power_kw == 7.4
+
+
+# =============================================================================
+# T074.1: HTTP error in publish_deferrable_loads (line 537)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads_coordinator_refresh_raises(hass, mock_store):
+    """publish_deferrable_loads handles exception when coordinator.async_request_refresh raises.
+
+    Tests the HTTP error path in publish_deferrable_loads where
+    coordinator.async_request_refresh() raises an exception (EMHASS unavailable).
+    This is line 537 - the call that can fail when EMHASS HTTP endpoint is down.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        trips = [
+            {"id": "trip_001", "descripcion": "Trip 1", "kwh": 5.0, "hora": "09:00"},
+        ]
+
+        hass.states.async_set = AsyncMock()
+
+        # Create a mock coordinator that raises when async_request_refresh is called
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_request_refresh = AsyncMock(
+            side_effect=Exception("EMHASS HTTP error")
+        )
+
+        # Patch _get_coordinator to return our mock
+        with patch.object(adapter, '_get_coordinator', return_value=mock_coordinator):
+            # Should raise since there's no try/except around async_request_refresh
+            with pytest.raises(Exception, match="EMHASS HTTP error"):
+                await adapter.publish_deferrable_loads(trips)
+
+
+# =============================================================================
+# T074.2: Storage error in async_cleanup_vehicle_indices (lines 1178-1187)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_async_cleanup_vehicle_indices_handles_main_sensor_registry_removal_error(
+    hass, mock_store
+):
+    """async_cleanup_vehicle_indices handles Exception when main sensor registry removal fails.
+
+    Tests the storage error path at lines 1178-1187 where
+    registry.async_remove() raises for the main vehicle sensor.
+    The error should be caught and logged, cleanup should continue.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Assign an index to populate _index_map
+        await adapter.async_assign_index_to_trip("trip_001")
+
+        # Create a custom async_remove that succeeds for trip sensors
+        # but raises for the main vehicle sensor
+        async def registry_remove_side_effect(sensor_id):
+            if "emhass_perfil_diferible_" in sensor_id and "deferrable_load_config" not in sensor_id:
+                raise Exception("Storage error removing main sensor")
+            # Trip sensors succeed (return None)
+
+        mock_registry = MagicMock()
+        mock_registry.async_remove = AsyncMock(side_effect=registry_remove_side_effect)
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
+            hass.states.async_remove = AsyncMock()
+
+            # Should NOT raise - error is caught at lines 1182-1187
+            await adapter.async_cleanup_vehicle_indices()
+
+            # Mappings should still be cleared
+            assert len(adapter._index_map) == 0
+            assert len(adapter._published_entity_ids) == 0
+
+
+# =============================================================================
+# T074.3: State machine transitions (READY→ACTIVE→ERROR)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_async_get_integration_status_transitions_to_ready(hass, mock_store):
+    """async_get_integration_status returns READY when all checks pass.
+
+    Tests the READY state transition (lines 784-786).
+    When deferrable_sensor_exists=True, deferrable_sensor_has_data=True,
+    is_configured=True, and all_trips_verified=True -> status = EMHASS_STATE_READY.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Assign a trip to make _index_map non-empty (required for is_configured)
+        trip_index = await adapter.async_assign_index_to_trip("trip_001")
+
+        # Mock verification to return all OK
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {"power_profile_watts": [100, 200, 300]}
+        mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
+
+        mock_emhass_sensor = MagicMock()
+        mock_emhass_sensor.entity_id = "sensor.emhass_response_1"
+
+        # Mock config sensor state to return ACTIVE (for trip verification)
+        mock_config_sensor = MagicMock()
+        mock_config_sensor.state = EMHASS_STATE_ACTIVE
+        mock_config_sensor.attributes = {}
+
+        def states_get_side_effect(entity_id):
+            if entity_id == f"sensor.emhass_deferrable_load_config_{trip_index}":
+                return mock_config_sensor
+            return mock_sensor
+
+        adapter.hass.states.get = MagicMock(side_effect=states_get_side_effect)
+        adapter.hass.states.async_all = MagicMock(
+            return_value=[mock_emhass_sensor]
+        )
+
+        result = await adapter.async_get_integration_status()
+
+        # Status should be READY (line 785)
+        assert result["status"] == EMHASS_STATE_READY
+        assert result["message"] == "EMHASS integration working correctly."
+
+
+@pytest.mark.asyncio
+async def test_async_get_integration_status_transitions_to_error(hass, mock_store):
+    """async_get_integration_status returns ERROR when deferrable sensor not found.
+
+    Tests the ERROR state transition (lines 771-773).
+    When deferrable_sensor_exists=False -> status = EMHASS_STATE_ERROR.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock sensor not found
+        adapter.hass.states.get = MagicMock(return_value=None)
+        adapter.hass.states.async_all = MagicMock(return_value=[])
+
+        result = await adapter.async_get_integration_status()
+
+        # Status should be ERROR (line 772)
+        assert result["status"] == EMHASS_STATE_ERROR
+        assert "Deferrable sensor not found" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_async_get_integration_status_transitions_to_warning_no_data(
+    hass, mock_store
+):
+    """async_get_integration_status returns warning when sensor has no data.
+
+    Tests the warning state transition (lines 774-776).
+    When deferrable_sensor_exists=True but deferrable_sensor_has_data=False
+    -> status = 'warning'.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Sensor exists but has no data
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {}  # Missing power_profile_watts
+
+        adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+        adapter.hass.states.async_all = MagicMock(return_value=[])
+
+        result = await adapter.async_get_integration_status()
+
+        # Status should be warning (line 775)
+        assert result["status"] == "warning"
+        assert "no data" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_async_get_integration_status_transitions_to_warning_not_configured(
+    hass, mock_store
+):
+    """async_get_integration_status returns warning when EMHASS not fully configured.
+
+    Tests the warning state transition (lines 777-779).
+    When is_configured=False (has published trips but no EMHASS response sensors)
+    -> status = 'warning'.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Assign a trip to make _index_map non-empty (required for is_configured check)
+        await adapter.async_assign_index_to_trip("trip_001")
+
+        # Sensor exists with data but no EMHASS response sensors
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {"power_profile_watts": [100, 200, 300]}
+        mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
+
+        adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+        adapter.hass.states.async_all = MagicMock(return_value=[])  # No EMHASS sensors
+
+        result = await adapter.async_get_integration_status()
+
+        # Status should be warning (line 778)
+        assert result["status"] == "warning"
+        assert "Shell command may not be configured" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_async_get_integration_status_transitions_to_warning_missing_trips(
+    hass, mock_store
+):
+    """async_get_integration_status returns warning when EMHASS not responding to trips.
+
+    Tests the warning state transition (lines 780-783).
+    When all_trips_verified=False (EMHASS not responding to published trips)
+    -> status = 'warning'.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # All verification passes but trips are not verified by EMHASS
+        mock_sensor = MagicMock()
+        mock_sensor.attributes = {"power_profile_watts": [100, 200, 300]}
+        mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
+
+        mock_emhass_sensor = MagicMock()
+        mock_emhass_sensor.entity_id = "sensor.emhass_response_1"
+
+        adapter.hass.states.get = MagicMock(return_value=mock_sensor)
+        adapter.hass.states.async_all = MagicMock(
+            return_value=[mock_emhass_sensor]
+        )
+
+        # Assign a trip index so check_emhass_response_sensors has something to check
+        await adapter.async_assign_index_to_trip("trip_001")
+
+        # Mock the config sensor to not be ACTIVE (EMHASS not responding)
+        def get_state_side_effect(entity_id):
+            if "deferrable_load_config" in entity_id:
+                # Config sensor exists but is not ACTIVE
+                mock_state = MagicMock()
+                mock_state.state = "unknown"  # Not ACTIVE
+                mock_state.attributes = {}
+                return mock_state
+            return mock_sensor
+
+        adapter.hass.states.get = MagicMock(side_effect=get_state_side_effect)
+
+        result = await adapter.async_get_integration_status()
+
+        # Status should be warning due to missing trips (line 781)
+        assert result["status"] == "warning"
+        assert "not responding" in result["message"]

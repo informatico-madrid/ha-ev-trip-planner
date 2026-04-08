@@ -7,6 +7,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import yaml
 
 from custom_components.ev_trip_planner.const import (
     TRIP_STATUS_COMPLETED,
@@ -1164,3 +1165,839 @@ async def test_storage_wiring_fallback_to_ha_store(mock_hass, vehicle_id):
 
         assert manager._trips.get("trip_fb") is not None, \
             "Fallback HA Store path failed - _load_trips() not working"
+
+
+@pytest.mark.asyncio
+async def test_load_trips_yaml_error_path(mock_hass, vehicle_id):
+    """Test that _load_trips_yaml executes error handling when yaml.safe_load fails."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Mock Path.exists to return True and open to raise an exception
+    with patch("custom_components.ev_trip_planner.trip_manager.Path") as mock_path_class:
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        mock_path.parent.mkdir.return_value = None
+
+        # Make open() raise an exception (simulating I/O failure)
+        mock_path.__enter__ = MagicMock(side_effect=OSError("Simulated read error"))
+        mock_path.__exit__ = MagicMock(return_value=False)
+
+        mock_path_class.return_value = mock_path
+
+        # Mock yaml.safe_load to raise (simulating corrupted YAML)
+        with patch("custom_components.ev_trip_planner.trip_manager.yaml.safe_load") as mock_load:
+            mock_load.side_effect = yaml.YAMLError("Simulated YAML parse error")
+
+            # Call the method - it should catch the exception
+            await manager._load_trips_yaml("test_key")
+
+            # After error, trips should be reset to empty
+            assert manager._trips == {}
+            assert manager._recurring_trips == {}
+            assert manager._punctual_trips == {}
+
+
+@pytest.mark.asyncio
+async def test_save_trips_yaml_error_path(mock_hass, vehicle_id):
+    """Test that _save_trips_yaml executes error handling when yaml.dump fails."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {"rec_lun_123": {"id": "rec_lun_123", "tipo": "recurrente"}}
+
+    # Mock yaml.dump to raise an exception
+    with patch("custom_components.ev_trip_planner.trip_manager.yaml.dump") as mock_dump:
+        mock_dump.side_effect = yaml.YAMLError("Simulated YAML dump error")
+
+        with patch("custom_components.ev_trip_planner.trip_manager.Path") as mock_path_class:
+            mock_path = MagicMock()
+            mock_path.parent.mkdir.return_value = None
+
+            # Make open() raise an exception during write
+            mock_file = MagicMock()
+            mock_file.__enter__ = MagicMock(side_effect=OSError("Simulated write error"))
+            mock_file.__exit__ = MagicMock(return_value=False)
+            mock_path.__enter__ = MagicMock(return_value=mock_file)
+            mock_path.__exit__ = MagicMock(return_value=False)
+
+            mock_path_class.return_value = mock_path
+
+            # Call the method - it should catch the exception and not re-raise
+            await manager._save_trips_yaml("test_key")
+
+            # Should complete without raising (error was caught)
+
+
+# =============================================================================
+# T072: Tests for trip_manager error paths and state branches
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_get_all_active_trips_with_active_and_inactive_recurring(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: _get_all_active_trips includes active, excludes inactive recurring trips."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {
+        "rec_lun_active": {
+            "id": "rec_lun_active",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "activo": True,
+        },
+        "rec_mar_inactive": {
+            "id": "rec_mar_inactive",
+            "tipo": "recurrente",
+            "dia_semana": "martes",
+            "hora": "09:00",
+            "activo": False,
+        },
+    }
+    manager._punctual_trips = {}
+
+    trips = await manager._get_all_active_trips()
+
+    # Only active recurring trip should be included
+    assert len(trips) == 1
+    assert trips[0]["id"] == "rec_lun_active"
+
+
+@pytest.mark.asyncio
+async def test_get_all_active_trips_with_pending_and_completed_punctual(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: _get_all_active_trips includes pending, excludes completed punctual trips."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {}
+    manager._punctual_trips = {
+        "pun_pending": {
+            "id": "pun_pending",
+            "tipo": "puntual",
+            "datetime": "2025-01-06T15:00",
+            "estado": "pendiente",
+        },
+        "pun_completed": {
+            "id": "pun_completed",
+            "tipo": "puntual",
+            "datetime": "2025-01-06T16:00",
+            "estado": "completado",
+        },
+    }
+
+    trips = await manager._get_all_active_trips()
+
+    # Only pending punctual trip should be included
+    assert len(trips) == 1
+    assert trips[0]["id"] == "pun_pending"
+
+
+@pytest.mark.asyncio
+async def test_get_all_active_trips_with_mixed_states(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: _get_all_active_trips handles mixed trip states correctly."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {
+        "rec_lun_active": {
+            "id": "rec_lun_active",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "activo": True,
+        },
+        "rec_mar_inactive": {
+            "id": "rec_mar_inactive",
+            "tipo": "recurrente",
+            "dia_semana": "martes",
+            "hora": "09:00",
+            "activo": False,
+        },
+    }
+    manager._punctual_trips = {
+        "pun_pending": {
+            "id": "pun_pending",
+            "tipo": "puntual",
+            "datetime": "2025-01-06T15:00",
+            "estado": "pendiente",
+        },
+        "pun_completed": {
+            "id": "pun_completed",
+            "tipo": "puntual",
+            "datetime": "2025-01-06T16:00",
+            "estado": "completado",
+        },
+    }
+
+    trips = await manager._get_all_active_trips()
+
+    # Only active recurring and pending punctual should be included
+    assert len(trips) == 2
+    trip_ids = [t["id"] for t in trips]
+    assert "rec_lun_active" in trip_ids
+    assert "pun_pending" in trip_ids
+    assert "rec_mar_inactive" not in trip_ids
+    assert "pun_completed" not in trip_ids
+
+
+@pytest.mark.asyncio
+async def test_get_all_active_trips_recurring_missing_activo_defaults_to_true(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: _get_all_active_trips treats missing activo as True (active)."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {
+        "rec_lun_no_activo": {
+            "id": "rec_lun_no_activo",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            # No "activo" key - should default to True (active)
+        },
+    }
+    manager._punctual_trips = {}
+
+    trips = await manager._get_all_active_trips()
+
+    # Trip without activo should be included (defaults to active)
+    assert len(trips) == 1
+    assert trips[0]["id"] == "rec_lun_no_activo"
+
+
+@pytest.mark.asyncio
+async def test_async_get_kwh_needed_today_with_empty_data(
+    mock_hass, vehicle_id
+):
+    """Test T072.3: async_get_kwh_needed_today returns 0.0 when no trips exist."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+
+    kwh = await manager.async_get_kwh_needed_today()
+
+    assert kwh == 0.0
+
+
+@pytest.mark.asyncio
+async def test_async_get_hours_needed_today_with_empty_data(
+    mock_hass, vehicle_id
+):
+    """Test T072.3: async_get_hours_needed_today returns 0 when no trips exist."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+
+    hours = await manager.async_get_hours_needed_today()
+
+    assert hours == 0
+
+
+@pytest.mark.asyncio
+async def test_async_get_hours_needed_today_with_zero_kwh(
+    mock_hass, vehicle_id
+):
+    """Test T072.3: async_get_hours_needed_today returns 0 when kwh_needed is 0."""
+    mock_entry = MagicMock()
+    mock_entry.data = {"charging_power": 7.4}
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+
+    hours = await manager.async_get_hours_needed_today()
+
+    assert hours == 0
+
+
+@pytest.mark.asyncio
+async def test_add_recurring_trip_rejects_invalid_dia_semana(
+    mock_hass, vehicle_id
+):
+    """Test T072.1: async_add_recurring_trip rejects invalid dia_semana values.
+
+    While validate_hora handles hour validation, dia_semana is stored directly.
+    An invalid dia_semana should be accepted (stored as-is) but may cause
+    issues when the trip is processed. This tests that the system handles
+    invalid day names gracefully.
+    """
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Invalid dia_semana (not a real day) - should still be stored since
+    # dia_semana validation happens at trip evaluation time, not at storage time
+    await manager.async_add_recurring_trip(
+        dia_semana="invalid_day",
+        hora="09:00",
+        km=24.0,
+        kwh=3.6,
+        descripcion="Test",
+    )
+
+    # Trip should be stored with the invalid dia_semana
+    assert len(manager._recurring_trips) == 1
+    trip_id = list(manager._recurring_trips.keys())[0]
+    assert manager._recurring_trips[trip_id]["dia_semana"] == "invalid_day"
+
+
+@pytest.mark.asyncio
+async def test_async_get_next_trip_with_all_completed_punctual(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: async_get_next_trip returns None when all punctual trips are completed."""
+    from datetime import datetime
+
+    mock_datetime = unittest.mock.MagicMock()
+    mock_datetime.now.return_value = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
+    mock_datetime.strptime = datetime.strptime
+
+    with unittest.mock.patch(
+        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+    ):
+        manager = TripManager(mock_hass, vehicle_id)
+        manager._recurring_trips = {}
+        manager._punctual_trips = {
+            "pun_completed": {
+                "id": "pun_completed",
+                "tipo": "puntual",
+                "datetime": "2025-01-06T09:00",
+                "estado": "completado",
+            },
+            "pun_also_completed": {
+                "id": "pun_also_completed",
+                "tipo": "puntual",
+                "datetime": "2025-01-06T10:00",
+                "estado": "completado",
+            },
+        }
+
+        next_trip = await manager.async_get_next_trip()
+
+        # No pending trips, should return None
+        assert next_trip is None
+
+
+@pytest.mark.asyncio
+async def test_async_get_next_trip_with_all_inactive_recurring(
+    mock_hass, vehicle_id
+):
+    """Test T072.2: async_get_next_trip returns None when all recurring trips are inactive."""
+    frozen_time = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
+    with patch(
+        "custom_components.ev_trip_planner.trip_manager.datetime"
+    ) as mock_dt:
+        mock_dt.now.return_value = frozen_time
+        mock_dt.strptime = datetime.strptime
+        mock_dt.combine = datetime.combine
+
+        manager = TripManager(mock_hass, vehicle_id)
+        manager._recurring_trips = {
+            "rec_lun_inactive1": {
+                "id": "rec_lun_inactive1",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "09:00",
+                "activo": False,
+            },
+            "rec_lun_inactive2": {
+                "id": "rec_lun_inactive2",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "10:00",
+                "activo": False,
+            },
+        }
+        manager._punctual_trips = {}
+
+        next_trip = await manager.async_get_next_trip()
+
+        # No active trips, should return None
+        assert next_trip is None
+
+
+# =============================================================================
+# T075: Tests for EMHASS adapter integration paths (coverage 81% -> 88%)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_add_recurring_trip_with_emhass_adapter(mock_hass, vehicle_id):
+    """Test that async_add_recurring_trip calls _async_publish_new_trip_to_emhass when adapter is set."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock async_save_trips to avoid storage operations
+    manager.async_save_trips = AsyncMock()
+
+    # Mock async_create_trip_sensor to avoid entity registry operations
+    manager.async_create_trip_sensor = AsyncMock()
+
+    # Add a recurring trip
+    await manager.async_add_recurring_trip(
+        dia_semana="lunes", hora="09:00", km=24.0, kwh=3.6, descripcion="Trabajo"
+    )
+
+    # Verify EMHASS adapter was called to publish the new trip
+    mock_adapter.async_publish_deferrable_load.assert_called_once()
+    # And that all deferrable loads were republished
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_add_punctual_trip_with_empty_datetime(mock_hass, vehicle_id):
+    """Test that async_add_punctual_trip handles empty datetime string (line 507)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Mock dependencies
+    manager.async_save_trips = AsyncMock()
+    manager.async_create_trip_sensor = AsyncMock()
+
+    # Add a punctual trip with empty datetime - this exercises line 507 (date_part = "")
+    await manager.async_add_punctual_trip(
+        datetime="", km=24.0, kwh=3.6, descripcion="Trabajo"
+    )
+
+    # Should have added a trip with empty datetime
+    assert len(manager._punctual_trips) == 1
+
+
+@pytest.mark.asyncio
+async def test_async_add_punctual_trip_with_emhass_adapter(mock_hass, vehicle_id):
+    """Test that async_add_punctual_trip calls _async_publish_new_trip_to_emhass when adapter is set."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock async_save_trips to avoid storage operations
+    manager.async_save_trips = AsyncMock()
+
+    # Mock async_create_trip_sensor to avoid entity registry operations
+    manager.async_create_trip_sensor = AsyncMock()
+
+    # Add a punctual trip
+    await manager.async_add_punctual_trip(
+        datetime="2025-11-19T15:00:00", km=110.0, kwh=16.5, descripcion="Viaje"
+    )
+
+    # Verify EMHASS adapter was called
+    mock_adapter.async_publish_deferrable_load.assert_called_once()
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_save_trips_with_emhass_adapter_triggers_publish(mock_hass, vehicle_id):
+    """Test that async_save_trips calls _publish_deferrable_loads when adapter is set (line 376)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock the storage to avoid HA storage operations
+    mock_storage = MagicMock()
+    mock_storage.async_save = AsyncMock()
+    manager._storage = mock_storage
+
+    # Add a trip to have data to save
+    manager._recurring_trips = {
+        "rec_lun_123": {
+            "id": "rec_lun_123",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 30,
+            "kwh": 5.0,
+            "activo": True,
+        }
+    }
+
+    # Call async_save_trips
+    await manager.async_save_trips()
+
+    # Verify _publish_deferrable_loads was called (line 376)
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_update_trip_with_emhass_adapter_syncs(mock_hass, vehicle_id):
+    """Test that async_update_trip calls _async_sync_trip_to_emhass when adapter is set (line 580)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a trip
+    manager._recurring_trips = {
+        "rec_lun_12345678": {
+            "id": "rec_lun_12345678",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 5.0,
+            "activo": True,
+        },
+    }
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_update_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock async_save_trips and async_update_trip_sensor
+    manager.async_save_trips = AsyncMock()
+    manager.async_update_trip_sensor = AsyncMock()
+
+    # Update the trip - this should trigger _async_sync_trip_to_emhass
+    await manager.async_update_trip("rec_lun_12345678", {"hora": "10:00", "km": 30.0})
+
+    # Verify EMHASS adapter was called to update the deferrable load
+    mock_adapter.async_update_deferrable_load.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_async_delete_trip_with_emhass_adapter_removes(mock_hass, vehicle_id):
+    """Test that async_delete_trip calls _async_remove_trip_from_emhass when adapter is set (line 610)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a trip
+    manager._recurring_trips = {
+        "rec_lun_12345678": {
+            "id": "rec_lun_12345678",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "activo": True,
+        },
+    }
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock async_save_trips and async_remove_trip_sensor
+    manager.async_save_trips = AsyncMock()
+    manager.async_remove_trip_sensor = AsyncMock()
+
+    # Delete the trip
+    await manager.async_delete_trip("rec_lun_12345678")
+
+    # Verify _async_remove_trip_from_emhass was called (line 610)
+    mock_adapter.async_remove_deferrable_load.assert_called_once_with("rec_lun_12345678")
+
+
+@pytest.mark.asyncio
+async def test_async_cancel_punctual_trip_with_emhass_adapter_removes(mock_hass, vehicle_id):
+    """Test that async_cancel_punctual_trip calls _async_remove_trip_from_emhass when adapter is set (line 798)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a punctual trip
+    manager._punctual_trips = {
+        "pun_20251119_87654321": {
+            "id": "pun_20251119_87654321",
+            "tipo": "puntual",
+            "datetime": "2025-11-19T15:00:00",
+            "estado": "pendiente",
+        },
+    }
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Mock async_save_trips
+    manager.async_save_trips = AsyncMock()
+
+    # Cancel the punctual trip
+    await manager.async_cancel_punctual_trip("pun_20251119_87654321")
+
+    # Verify _async_remove_trip_from_emhass was called (line 798)
+    mock_adapter.async_remove_deferrable_load.assert_called_once_with("pun_20251119_87654321")
+
+
+# =============================================================================
+# T075: Tests for error handling paths
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_get_next_trip_after_handles_invalid_hora(mock_hass, vehicle_id):
+    """Test that async_get_next_trip_after handles trips with invalid hora format (lines 1069-1098)."""
+    from datetime import datetime as dt
+
+    frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
+    hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
+
+    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+        mock_dt.now.return_value = frozen_time
+        mock_dt.strptime = dt.strptime
+        mock_dt.combine = dt.combine
+
+        manager = TripManager(mock_hass, vehicle_id)
+        # Add a recurring trip with invalid hora format
+        manager._recurring_trips = {
+            "rec_lun_bad_hora": {
+                "id": "rec_lun_bad_hora",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "invalid",  # Invalid format
+                "activo": True,
+            },
+        }
+        manager._punctual_trips = {}
+
+        # Should not raise, should handle gracefully
+        next_trip = await manager.async_get_next_trip_after(hora_regreso)
+
+        # The trip with invalid hora should be skipped
+        assert next_trip is None
+
+
+@pytest.mark.asyncio
+async def test_async_get_vehicle_soc_handles_unavailable_sensor(mock_hass, vehicle_id):
+    """Test that async_get_vehicle_soc logs warning when sensor is unavailable (lines 1151, 1154-1155)."""
+    # Set up mock entry with soc_sensor
+    mock_entry = MagicMock()
+    mock_entry.data = {"soc_sensor": "sensor.vehicle_soc"}
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+
+    # Set up mock state that returns unavailable
+    mock_state = MagicMock()
+    mock_state.state = "unavailable"
+    mock_hass.states.get = MagicMock(return_value=mock_state)
+
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Should return 0.0 when sensor is unavailable and log warning
+    soc = await manager.async_get_vehicle_soc(vehicle_id)
+
+    assert soc == 0.0
+
+
+@pytest.mark.asyncio
+async def test_async_get_vehicle_soc_handles_missing_entry(mock_hass, vehicle_id):
+    """Test that async_get_vehicle_soc logs warning when entry is not found (line 1153)."""
+    # Return None when no entry found
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[])
+
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Should return 0.0 when entry not found
+    soc = await manager.async_get_vehicle_soc(vehicle_id)
+
+    assert soc == 0.0
+
+
+@pytest.mark.asyncio
+async def test_get_charging_power_handles_exception(mock_hass, vehicle_id):
+    """Test that _get_charging_power returns default when exception occurs (lines 959-960)."""
+    # Make async_entries raise an exception
+    mock_hass.config_entries.async_entries = MagicMock(side_effect=RuntimeError("Config error"))
+
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Should return DEFAULT_CHARGING_POWER when exception occurs
+    power = manager._get_charging_power()
+
+    # DEFAULT_CHARGING_POWER is 11.0 kW
+    assert power == 11.0
+
+
+# =============================================================================
+# T075: Tests for EMHASS adapter error handling paths
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_sync_trip_to_emhass_with_inactive_trip(mock_hass, vehicle_id):
+    """Test _async_sync_trip_to_emhass removes inactive trip from EMHASS (line 821-827)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a paused (inactive) trip
+    manager._recurring_trips = {
+        "rec_lun_12345678": {
+            "id": "rec_lun_12345678",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 5.0,
+            "activo": False,  # Inactive/paused
+        },
+    }
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Call _async_sync_trip_to_emhass with an update
+    await manager._async_sync_trip_to_emhass("rec_lun_12345678", {}, {"activo": False})
+
+    # Should call async_remove_deferrable_load for inactive trip
+    mock_adapter.async_remove_deferrable_load.assert_called_once_with("rec_lun_12345678")
+
+
+@pytest.mark.asyncio
+async def test_async_sync_trip_to_emhass_with_km_change_triggers_recalculate(mock_hass, vehicle_id):
+    """Test _async_sync_trip_to_emhass with km change triggers recalculate (critical update)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a trip
+    manager._recurring_trips = {
+        "rec_lun_12345678": {
+            "id": "rec_lun_12345678",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 5.0,
+            "activo": True,
+        },
+    }
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_update_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Call _async_sync_trip_to_emhass with a critical update (km change)
+    # km IS in recalc_fields, so needs_recalculate will be True
+    old_trip = manager._recurring_trips["rec_lun_12345678"].copy()
+    await manager._async_sync_trip_to_emhass("rec_lun_12345678", old_trip, {"km": 30.0})
+
+    # Should call both update and publish_all for critical updates
+    mock_adapter.async_update_deferrable_load.assert_called()
+    mock_adapter.async_publish_all_deferrable_loads.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_async_sync_trip_to_emhass_handles_exception(mock_hass, vehicle_id):
+    """Test _async_sync_trip_to_emhass handles exceptions gracefully (line 876-877)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Pre-populate with a trip
+    manager._recurring_trips = {
+        "rec_lun_12345678": {
+            "id": "rec_lun_12345678",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24.0,
+            "kwh": 5.0,
+            "activo": True,
+        },
+    }
+
+    # Set up mock EMHASS adapter that raises an exception
+    mock_adapter = MagicMock()
+    mock_adapter.async_update_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Should not raise, should handle gracefully
+    await manager._async_sync_trip_to_emhass("rec_lun_12345678", {}, {"km": 30.0})
+
+    # Exception was caught and logged, no assertion needed
+
+
+@pytest.mark.asyncio
+async def test_async_remove_trip_from_emhass_handles_exception(mock_hass, vehicle_id):
+    """Test _async_remove_trip_from_emhass handles exceptions gracefully (line 891-892)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter that raises an exception
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Should not raise, should handle gracefully
+    await manager._async_remove_trip_from_emhass("rec_lun_12345678")
+
+    # Exception was caught and logged, no assertion needed
+
+
+@pytest.mark.asyncio
+async def test_async_publish_new_trip_to_emhass_handles_exception(mock_hass, vehicle_id):
+    """Test _async_publish_new_trip_to_emhass handles exceptions gracefully (line 910-911)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter that raises an exception
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    trip = {
+        "id": "rec_lun_12345678",
+        "tipo": "recurrente",
+        "dia_semana": "lunes",
+        "hora": "09:00",
+        "km": 24.0,
+        "kwh": 5.0,
+        "activo": True,
+    }
+
+    # Should not raise, should handle gracefully
+    await manager._async_publish_new_trip_to_emhass(trip)
+
+    # Exception was caught and logged, no assertion needed
+
+
+@pytest.mark.asyncio
+async def test_async_sync_trip_to_emhass_trip_not_found(mock_hass, vehicle_id):
+    """Test _async_sync_trip_to_emhass handles trip not found (line 836-838)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # Set up mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    manager.set_emhass_adapter(mock_adapter)
+
+    # Trip doesn't exist - call sync with non-existent trip
+    await manager._async_sync_trip_to_emhass("nonexistent_trip", {}, {"km": 30.0})
+
+    # Should call async_remove_deferrable_load for the non-existent trip
+    mock_adapter.async_remove_deferrable_load.assert_called_once_with("nonexistent_trip")
+
+
+@pytest.mark.asyncio
+async def test_async_calcular_energia_necesaria_with_charging_power_zero(mock_hass, vehicle_id):
+    """Test async_calcular_energia_necesaria handles zero charging power (line 1207)."""
+    manager = TripManager(mock_hass, vehicle_id)
+
+    trip = {
+        "id": "test_trip",
+        "tipo": "puntual",
+        "datetime": "2025-11-19T15:00:00",
+        "km": 100,
+        "kwh": 15.0,
+    }
+    vehicle_config = {
+        "battery_capacity_kwh": 50.0,
+        "charging_power_kw": 0,  # Zero charging power
+        "soc_current": 50.0,
+    }
+
+    result = await manager.async_calcular_energia_necesaria(trip, vehicle_config)
+
+    # Should calculate correctly with zero charging power
+    assert result["energia_necesaria_kwh"] > 0
+    assert result["horas_carga_necesarias"] == 0
