@@ -29,6 +29,8 @@ from .emhass_adapter import EMHASSAdapter
 from .utils import calcular_energia_kwh, generate_trip_id
 from .vehicle_controller import VehicleController
 
+_UNSET = object()
+
 _LOGGER = logging.getLogger(__name__)
 
 # Days of week in Spanish (lowercase)
