@@ -461,3 +461,177 @@ class TestGetDayIndex:
         """Test that numeric string raises ValueError."""
         with pytest.raises(ValueError):
             get_day_index("123")
+
+
+class TestIsTripToday:
+    """Tests for is_trip_today function.
+
+    Tests recurring trips (with day names) and punctual trips (with date).
+    """
+
+    # === Recurring trips (day-based) ===
+
+    def test_recurring_trip_lunes_returns_true_when_today_is_monday(self):
+        """Test recurring trip on 'lunes' returns True when today is Monday."""
+        # Using a fixed Monday date (2026-04-06 was a Monday)
+        monday = date(2026, 4, 6)
+        trip = {"tipo": "recurrente", "dia": "lunes", "hora": "09:30"}
+        assert is_trip_today(trip, monday) is True
+
+    def test_recurring_trip_martes_returns_true_when_today_is_tuesday(self):
+        """Test recurring trip on 'martes' returns True when today is Tuesday."""
+        # 2026-04-07 was a Tuesday
+        tuesday = date(2026, 4, 7)
+        trip = {"tipo": "recurrente", "dia": "martes", "hora": "09:30"}
+        assert is_trip_today(trip, tuesday) is True
+
+    def test_recurring_trip_miercoles_returns_true_when_today_is_wednesday(self):
+        """Test recurring trip on 'miercoles' returns True when today is Wednesday."""
+        # 2026-04-08 was a Wednesday
+        wednesday = date(2026, 4, 8)
+        trip = {"tipo": "recurrente", "dia": "miercoles", "hora": "09:30"}
+        assert is_trip_today(trip, wednesday) is True
+
+    def test_recurring_trip_jueves_returns_true_when_today_is_thursday(self):
+        """Test recurring trip on 'jueves' returns True when today is Thursday."""
+        # 2026-04-09 was a Thursday
+        thursday = date(2026, 4, 9)
+        trip = {"tipo": "recurrente", "dia": "jueves", "hora": "09:30"}
+        assert is_trip_today(trip, thursday) is True
+
+    def test_recurring_trip_viernes_returns_true_when_today_is_friday(self):
+        """Test recurring trip on 'viernes' returns True when today is Friday."""
+        # 2026-04-10 was a Friday
+        friday = date(2026, 4, 10)
+        trip = {"tipo": "recurrente", "dia": "viernes", "hora": "09:30"}
+        assert is_trip_today(trip, friday) is True
+
+    def test_recurring_trip_sabado_returns_true_when_today_is_saturday(self):
+        """Test recurring trip on 'sabado' returns True when today is Saturday."""
+        # 2026-04-11 was a Saturday
+        saturday = date(2026, 4, 11)
+        trip = {"tipo": "recurrente", "dia": "sabado", "hora": "09:30"}
+        assert is_trip_today(trip, saturday) is True
+
+    def test_recurring_trip_domingo_returns_true_when_today_is_sunday(self):
+        """Test recurring trip on 'domingo' returns True when today is Sunday."""
+        # 2026-04-12 was a Sunday
+        sunday = date(2026, 4, 12)
+        trip = {"tipo": "recurrente", "dia": "domingo", "hora": "09:30"}
+        assert is_trip_today(trip, sunday) is True
+
+    def test_recurring_trip_monday_returns_true_when_today_is_monday(self):
+        """Test recurring trip on 'monday' (English) returns True when today is Monday."""
+        monday = date(2026, 4, 6)
+        trip = {"tipo": "recurrente", "dia": "monday", "hora": "09:30"}
+        assert is_trip_today(trip, monday) is True
+
+    def test_recurring_trip_tuesday_returns_true_when_today_is_tuesday(self):
+        """Test recurring trip on 'tuesday' (English) returns True when today is Tuesday."""
+        tuesday = date(2026, 4, 7)
+        trip = {"tipo": "recurrente", "dia": "tuesday", "hora": "09:30"}
+        assert is_trip_today(trip, tuesday) is True
+
+    def test_recurring_trip_wednesday_returns_true_when_today_is_wednesday(self):
+        """Test recurring trip on 'wednesday' (English) returns True when today is Wednesday."""
+        wednesday = date(2026, 4, 8)
+        trip = {"tipo": "recurrente", "dia": "wednesday", "hora": "09:30"}
+        assert is_trip_today(trip, wednesday) is True
+
+    def test_recurring_trip_thursday_returns_true_when_today_is_thursday(self):
+        """Test recurring trip on 'thursday' (English) returns True when today is Thursday."""
+        thursday = date(2026, 4, 9)
+        trip = {"tipo": "recurrente", "dia": "thursday", "hora": "09:30"}
+        assert is_trip_today(trip, thursday) is True
+
+    def test_recurring_trip_friday_returns_true_when_today_is_friday(self):
+        """Test recurring trip on 'friday' (English) returns True when today is Friday."""
+        friday = date(2026, 4, 10)
+        trip = {"tipo": "recurrente", "dia": "friday", "hora": "09:30"}
+        assert is_trip_today(trip, friday) is True
+
+    def test_recurring_trip_saturday_returns_true_when_today_is_saturday(self):
+        """Test recurring trip on 'saturday' (English) returns True when today is Saturday."""
+        saturday = date(2026, 4, 11)
+        trip = {"tipo": "recurrente", "dia": "saturday", "hora": "09:30"}
+        assert is_trip_today(trip, saturday) is True
+
+    def test_recurring_trip_sunday_returns_true_when_today_is_sunday(self):
+        """Test recurring trip on 'sunday' (English) returns True when today is Sunday."""
+        sunday = date(2026, 4, 12)
+        trip = {"tipo": "recurrente", "dia": "sunday", "hora": "09:30"}
+        assert is_trip_today(trip, sunday) is True
+
+    def test_recurring_trip_lunes_returns_false_when_today_is_tuesday(self):
+        """Test recurring trip on 'lunes' returns False when today is Tuesday."""
+        tuesday = date(2026, 4, 7)
+        trip = {"tipo": "recurrente", "dia": "lunes", "hora": "09:30"}
+        assert is_trip_today(trip, tuesday) is False
+
+    def test_recurring_trip_monday_returns_false_when_today_is_friday(self):
+        """Test recurring trip on 'monday' returns False when today is Friday."""
+        friday = date(2026, 4, 10)
+        trip = {"tipo": "recurrente", "dia": "monday", "hora": "09:30"}
+        assert is_trip_today(trip, friday) is False
+
+    def test_recurring_trip_case_insensitive(self):
+        """Test recurring trip day matching is case insensitive."""
+        monday = date(2026, 4, 6)
+        trip_lower = {"tipo": "recurrente", "dia": "lunes", "hora": "09:30"}
+        trip_upper = {"tipo": "recurrente", "dia": "LUNES", "hora": "09:30"}
+        trip_mixed = {"tipo": "recurrente", "dia": "Lunes", "hora": "09:30"}
+        assert is_trip_today(trip_lower, monday) is True
+        assert is_trip_today(trip_upper, monday) is True
+        assert is_trip_today(trip_mixed, monday) is True
+
+    # === Punctual trips (date-based) ===
+
+    def test_punctual_trip_returns_true_when_date_matches(self):
+        """Test punctual trip returns True when date matches today."""
+        trip_date = date(2026, 4, 8)
+        today = date(2026, 4, 8)
+        trip = {"tipo": "punctual", "fecha": trip_date, "hora": "09:30"}
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_trip_returns_false_when_date_does_not_match(self):
+        """Test punctual trip returns False when date does not match today."""
+        trip_date = date(2026, 4, 8)
+        today = date(2026, 4, 7)
+        trip = {"tipo": "punctual", "fecha": trip_date, "hora": "09:30"}
+        assert is_trip_today(trip, today) is False
+
+    def test_punctual_trip_with_date_string(self):
+        """Test punctual trip with date string in YYYYMMDD format."""
+        today = date(2026, 4, 8)
+        trip = {"tipo": "punctual", "fecha": "20260408", "hora": "09:30"}
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_trip_with_iso_date_string(self):
+        """Test punctual trip with ISO date string (YYYY-MM-DD)."""
+        today = date(2026, 4, 8)
+        trip = {"tipo": "punctual", "fecha": "2026-04-08", "hora": "09:30"}
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_trip_with_slash_date_string(self):
+        """Test punctual trip with slash date string (YYYY/MM/DD)."""
+        today = date(2026, 4, 8)
+        trip = {"tipo": "punctual", "fecha": "2026/04/08", "hora": "09:30"}
+        assert is_trip_today(trip, today) is True
+
+    # === Returns bool ===
+
+    def test_returns_bool_true(self):
+        """Test that True is returned (not truthy value)."""
+        monday = date(2026, 4, 6)
+        trip = {"tipo": "recurrente", "dia": "lunes", "hora": "09:30"}
+        result = is_trip_today(trip, monday)
+        assert result is True
+        assert isinstance(result, bool)
+
+    def test_returns_bool_false(self):
+        """Test that False is returned (not falsy value)."""
+        tuesday = date(2026, 4, 7)
+        trip = {"tipo": "recurrente", "dia": "lunes", "hora": "09:30"}
+        result = is_trip_today(trip, tuesday)
+        assert result is False
+        assert isinstance(result, bool)
