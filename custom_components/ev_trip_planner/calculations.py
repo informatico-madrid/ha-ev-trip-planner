@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from .const import DEFAULT_SOC_BUFFER_PERCENT
 from .utils import calcular_energia_kwh
 
-
 # Days of week in Spanish (lowercase) — mirrors trip_manager.DAYS_OF_WEEK
 DAYS_OF_WEEK = (
     "lunes",

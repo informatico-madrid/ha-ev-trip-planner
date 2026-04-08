@@ -1121,9 +1121,10 @@ async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> N
     When a user deletes and re-adds an integration, we want a fresh start.
     """
     try:
-        from homeassistant.helpers import storage as ha_storage
         import os
         from pathlib import Path
+
+        from homeassistant.helpers import storage as ha_storage
 
         cleanup_key = f"{DOMAIN}_{vehicle_id}"
         _LOGGER.warning(

@@ -49,7 +49,7 @@
 #### US-A1 Gate
 
 - [x] T013 [US-A1] Run `pytest tests/test_trip_manager_core.py tests/test_utils.py -v` — all pass
-- [ ] T014 [US-A1] Run `ruff check custom_components/ev_trip_planner/ --select=I` — 0 violations
+- [x] T014 [US-A1] Run `ruff check custom_components/ev_trip_planner/ --select=I` — 0 violations
 - [ ] T015 [US-A1] Run `mypy custom_components/ev_trip_planner/utils.py custom_components/ev_trip_planner/calculations.py` — 0 errors
 
 ---

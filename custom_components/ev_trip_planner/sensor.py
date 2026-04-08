@@ -21,12 +21,12 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .definitions import TripSensorEntityDescription, TRIP_SENSORS
 from .const import (
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
 )
 from .coordinator import TripPlannerCoordinator
+from .definitions import TRIP_SENSORS, TripSensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
