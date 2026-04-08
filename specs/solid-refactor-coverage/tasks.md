@@ -196,7 +196,7 @@
 - [ ] T051 [P] [US-D2] Fix `tests/test_trip_manager.py`: replace all `MagicMock()` with `MagicMock(spec=TripManager)` for TripManager class
 - [ ] T052 [P] [US-D2] Fix `tests/test_trip_manager_core.py`: replace all `MagicMock()` with `MagicMock(spec=TripManager)` for TripManager class
 - [ ] T053 [P] [US-D2] Fix `tests/test_emhass_adapter.py`: replace all `MagicMock()` with `MagicMock(spec=EMHASSAdapter)` for EMHASSAdapter class
-- [ ] T054 [P] [US-D2] Fix `tests/test_coordinator.py`: replace all `MagicMock()` with `MagicMock(spec=TripPlannerCoordinator)` for coordinator class
+- [x] T054 [P] [US-D2] Fix `tests/test_coordinator.py`: replace all `MagicMock()` with `MagicMock(spec=TripPlannerCoordinator)` for coordinator class
 - [ ] T055 [P] [US-D2] Fix remaining test files with MagicMock() violations for own classes
 
 #### US-D2 Gate
