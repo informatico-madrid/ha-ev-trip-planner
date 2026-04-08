@@ -132,58 +132,59 @@ def calculate_trip_time(
 
 
 def calculate_charging_rate(
-    power_kw: float, capacity: float
+    charging_power_kw: float, battery_capacity_kwh: float = 50.0
 ) -> float:
-    """Returns charging power in kW (simple pass-through).
+    """Calcula la tasa de carga en % SOC/hora.
 
-    Phase A pure function extracted from TripManager for testability.
+    Formula: charging_power_kw / battery_capacity_kwh * 100 = % SOC/hour
 
     Args:
-        power_kw: Charging power in kW
-        capacity: Battery capacity in kWh
+        charging_power_kw: Potencia de carga en kW
+        battery_capacity_kwh: Capacidad de la bateria en kWh (default 50.0)
 
     Returns:
-        power_kw directly (pass-through)
+        Tasa de carga en % SOC por hora
     """
-    if capacity <= 0:
+    if battery_capacity_kwh <= 0:
         return 0.0
-    return power_kw
+    return (charging_power_kw / battery_capacity_kwh) * 100
 
 
 def calculate_soc_target(
     trip: Dict[str, Any],
     battery_capacity_kwh: float,
     consumption_kwh_per_km: float = 0.15,
+    soc_buffer_percent: float = DEFAULT_SOC_BUFFER_PERCENT,
 ) -> float:
-    """Calculates the target SOC (state of charge) as a percentage.
+    """Calculates the base SOC target percentage for a trip.
 
-    Phase A pure function extracted from TripManager for testability.
-
-    Formula: (trip_distance * consumption) / capacity * 100
+    Pure version of TripManager._calcular_soc_objetivo_base.
 
     Args:
-        trip: Dictionary with trip data (kwh or km key)
+        trip: Dictionary with trip data (kwh or km, consumo)
         battery_capacity_kwh: Battery capacity in kWh
         consumption_kwh_per_km: Energy consumption in kWh/km (default 0.15)
+        soc_buffer_percent: Buffer to add to target SOC (default from const)
 
     Returns:
-        Target SOC percentage for the trip
+        Base SOC target percentage for the trip (energy + buffer)
     """
-    if battery_capacity_kwh <= 0:
-        return 0.0
-
-    # Extract trip_distance from trip dict (kwh or km)
+    # Calculate energy needed for trip
     if "kwh" in trip and trip["kwh"]:
-        trip_distance = trip["kwh"]
-    elif "km" in trip:
-        trip_distance = trip["km"]
+        energia_kwh = trip["kwh"]
     else:
-        trip_distance = 0.0
+        distance_km = trip.get("km", 0.0)
+        energia_kwh = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-    if consumption_kwh_per_km <= 0:
-        return 0.0
+    # Convert to SOC percentage
+    if battery_capacity_kwh > 0:
+        energia_soc = (energia_kwh / battery_capacity_kwh) * 100
+    else:
+        energia_soc = 0.0
 
-    return (trip_distance * consumption_kwh_per_km) / battery_capacity_kwh * 100
+    # Add buffer
+    soc_objetivo_base = energia_soc + soc_buffer_percent
+    return soc_objetivo_base
 
 
 def calculate_energy_needed(
