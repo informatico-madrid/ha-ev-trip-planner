@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, HomeAssistantError
 from homeassistant.helpers.storage import Store
 
 from .calculations import (
-    calculate_deferrable_parameters,
+    calculate_deferrable_parameters as calc_deferrable_parameters,
     calculate_power_profile_from_trips,
     generate_deferrable_schedule_from_trips,
 )
@@ -473,7 +473,7 @@ class EMHASSAdapter:
             - end_timestep: End timestep for EMHASS
             - start_timestep: Start timestep for EMHASS
         """
-        return calculate_deferrable_parameters(trip, charging_power_kw)
+        return calc_deferrable_parameters(trip, charging_power_kw)
 
     async def publish_deferrable_loads(
         self,

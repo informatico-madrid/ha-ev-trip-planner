@@ -641,7 +641,7 @@ class TestGenerateDeferrableScheduleFromTrips:
         ref = datetime(2026, 4, 6, 8, 0)
         trip_deadline = (ref + timedelta(hours=10)).strftime("%Y-%m-%dT%H:%M")
         trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": trip_deadline, "kwh": 5.0}]
-        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4, reference_dt=ref)
         # Should have some entries with non-zero p_deferrable0
         non_zero_entries = [e for e in result if float(e.get("p_deferrable0", "0.0")) > 0]
         assert len(non_zero_entries) > 0

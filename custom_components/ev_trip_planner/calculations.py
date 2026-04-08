@@ -848,6 +848,7 @@ def calculate_power_profile(
 def generate_deferrable_schedule_from_trips(
     trips: List[Dict[str, Any]],
     power_kw: float,
+    reference_dt: datetime | None = None,
 ) -> List[Dict[str, Any]]:
     """Generate deferrable load schedule from trips (pure function version).
 
@@ -861,6 +862,8 @@ def generate_deferrable_schedule_from_trips(
     Args:
         trips: List of trip dictionaries (must contain 'datetime' and 'kwh')
         power_kw: Charging power in kW
+        reference_dt: Reference datetime for calculations (defaults to datetime.now()).
+            For deterministic tests, pass a fixed datetime.
 
     Returns:
         List of schedule dictionaries with 'date' and 'p_deferrable{N}' keys.
@@ -869,7 +872,7 @@ def generate_deferrable_schedule_from_trips(
     if not trips:
         return []
 
-    now = datetime.now()
+    now = reference_dt if reference_dt is not None else datetime.now()
     schedule: List[Dict[str, Any]] = []
 
     # Generate schedule for next 24 hours
