@@ -3,11 +3,11 @@
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
   "phase": "execution",
-  "taskIndex": 78,
+  "taskIndex": 81,
   "totalTasks": 87,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 62,
+  "globalIteration": 65,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": true,
@@ -109,7 +109,10 @@
     74,
     75,
     76,
-    77
+    77,
+    78,
+    79,
+    80
   ],
   "failedTasks": [],
   "skippedTasks": [
@@ -136,9 +139,11 @@
     "PhaseF": "COMPLETO: 92% global, trip_manager 88%, emhass 93%, calculations 97%, yaml_trip_storage 100%, utils 100%, protocols 100%",
     "PhaseG": "PENDIENTE: CI falla con fail_under=100. Faltan ~325 l\u00edneas: config_flow 44, dashboard 60, __init__ 14, trip_manager 84, emhass_adapter 33, calculations 9",
     "STATUS": "NO ALL_TASKS_COMPLETE \u2014 Phase G pendiente. CI fail_under=100 NO pasa con 92%.",
-    "Tests": "1255 passed, 0 failed",
-    "Coverage": "92.12% (calculations.py 100%)",
+    "Tests": "1339 passed, 0 failed (test_dashboard_missing.py removed)",
+    "Coverage": "~96%",
     "Phase G": "NEW: Phase G (T077-T086) \u2014 100% coverage across all modules: calculations.py (9 lines), trip_manager.py (84 lines), emhass_adapter.py (33 lines), config_flow.py (44), dashboard.py (60), __init__.py (14)",
-    "T077": "DONE: calculations.py 100% (pragmas documentados en l\u00edneas unreachable)"
+    "T077": "DONE: calculations.py 100% (pragmas documentados en l\u00edneas unreachable)",
+    "T078": "DONE: trip_manager.py coverage improved. 1284 tests passing.",
+    "T081": "IN PROGRESS: test_dashboard_missing.py removed \u2014 test hung due to asyncio/MagicMock incompatibility in _save_dashboard_yaml_fallback. Production code is alive (called from 4 sites), but agent test was broken. Needs proper mocking of _call_async_executor_sync."
   }
 }
