@@ -53,7 +53,7 @@
 
 - [x] T013 [US-A1] Run `pytest tests/test_trip_manager_core.py tests/test_utils.py -v` — all pass
 - [x] T014 [US-A1] Run `ruff check custom_components/ev_trip_planner/ --select=I` — 0 violations
-- [ ] T015 [US-A1] Run `mypy custom_components/ev_trip_planner/utils.py custom_components/ev_trip_planner/calculations.py` — 0 errors
+- [x] T015 [US-A1] Run `mypy custom_components/ev_trip_planner/utils.py custom_components/ev_trip_planner/calculations.py` — 0 errors
 
 ---
 
@@ -149,11 +149,11 @@
 
 #### US-C1 Gate
 
-- [ ] T042 [US-C1] Run `pytest tests/test_trip_manager_core.py -v` — all pass
-- [ ] T043 [US-C1] Run `pytest tests/test_trip_manager_emhass.py -v` — all pass
-- [ ] T044 [US-C1] Run `ruff check custom_components/ev_trip_planner/trip_manager.py --select=I` — 0 violations
-- [ ] T045 [US-C1] Run `mypy custom_components/ev_trip_planner/trip_manager.py` — 0 errors
-- [ ] T046 [US-C1] Verify `set_emhass_adapter()` still works (backward compatibility)
+- [x] T042 [US-C1] Run `pytest tests/test_trip_manager_core.py -v` — all pass (47 passed)
+- [x] T043 [US-C1] Run `pytest tests/test_trip_manager_emhass.py -v` — all pass (15 passed)
+- [x] T044 [US-C1] Run `ruff check custom_components/ev_trip_planner/trip_manager.py --select=I` — 0 violations (fixed import sorting)
+- [x] T045 [US-C1] Run `mypy custom_components/ev_trip_planner/trip_manager.py` — 0 errors (added assertion for previous_arrival)
+- [x] T046 [US-C1] Verify `set_emhass_adapter()` still works (backward compatibility) — test_set_emhass_adapter passed
 
 ---
 

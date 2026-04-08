@@ -27,7 +27,10 @@ from .const import (
 )
 from .emhass_adapter import EMHASSAdapter
 from .protocols import EMHASSPublisherProtocol, TripStorageProtocol
-from .utils import calcular_energia_kwh, generate_trip_id, is_trip_today as pure_is_trip_today, sanitize_recurring_trips as pure_sanitize_recurring_trips, validate_hora as pure_validate_hora
+from .utils import calcular_energia_kwh, generate_trip_id
+from .utils import is_trip_today as pure_is_trip_today
+from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
+from .utils import validate_hora as pure_validate_hora
 from .vehicle_controller import VehicleController
 
 _UNSET = object()
@@ -1434,6 +1437,7 @@ class TripManager:
                     window_start = trip_departure_time - timedelta(hours=DURACION_VIAJE_HORAS)
             else:
                 # Subsequent trips: window starts at previous trip's arrival
+                assert previous_arrival is not None
                 window_start = previous_arrival
 
             # Calculate arrival time for this trip (departure + 6h)
