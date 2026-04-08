@@ -592,3 +592,96 @@ class TestCalculatePowerProfile:
         non_zero = [v for v in result if v > 0]
         if non_zero:
             assert all(v == 7400.0 for v in non_zero)
+
+
+class TestGenerateDeferrableScheduleFromTrips:
+    """Tests for generate_deferrable_schedule_from_trips."""
+
+    def test_import_function(self):
+        """Function can be imported from calculations module."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        assert callable(generate_deferrable_schedule_from_trips)
+
+    def test_empty_trips_returns_empty_list(self):
+        """Empty trip list returns empty list."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        result = generate_deferrable_schedule_from_trips(trips=[], power_kw=7.4)
+        assert result == []
+
+    def test_returns_list_of_dicts(self):
+        """Returns list of dictionaries with date and p_deferrable keys."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 10.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert isinstance(result, list)
+        assert len(result) > 0
+        for entry in result:
+            assert isinstance(entry, dict)
+            assert "date" in entry
+            assert any(key.startswith("p_deferrable") for key in entry)
+
+    def test_schedule_has_24_entries(self):
+        """Schedule contains 24 entries (one per hour)."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 5.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) == 24
+
+    def test_punctual_trip_with_future_deadline(self):
+        """Punctual trip with future deadline has charging window before deadline."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+        from datetime import datetime
+
+        # Trip deadline is 10 hours from reference
+        ref = datetime(2026, 4, 6, 8, 0)
+        trip_deadline = (ref + timedelta(hours=10)).strftime("%Y-%m-%dT%H:%M")
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": trip_deadline, "kwh": 5.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        # Should have some entries with non-zero p_deferrable0
+        non_zero_entries = [e for e in result if float(e.get("p_deferrable0", "0.0")) > 0]
+        assert len(non_zero_entries) > 0
+
+    def test_trip_without_datetime_has_zero_power(self):
+        """Trip without datetime has all p_deferrable values at 0.0."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": None, "kwh": 10.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        for entry in result:
+            assert entry.get("p_deferrable0", "0.0") == "0.0"
+
+    def test_multiple_trips_have_separate_power_keys(self):
+        """Multiple trips have separate p_deferrableN keys for each trip."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [
+            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 5.0},
+            {"id": "trip2", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T20:00", "kwh": 10.0},
+        ]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) > 0
+        # Both trips should have their own keys
+        assert "p_deferrable0" in result[0]
+        assert "p_deferrable1" in result[0]
+
+    def test_date_format_is_isoformat(self):
+        """Date field is in ISO format string."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 5.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) > 0
+        # date should be parseable as ISO format
+        from datetime import datetime
+        for entry in result:
+            date_str = entry.get("date", "")
+            # Should be parseable (contains date and time info)
+            assert "T" in date_str or "-" in date_str
