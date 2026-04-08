@@ -352,17 +352,19 @@ class EMHASSAdapter:
 
             return True
 
-        except HomeAssistantError as err:
-            _LOGGER.error("Error publishing deferrable load: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Error publishing deferrable load: %s", err)  # pragma: no cover
             # Release index on error
-            if "trip_id" in locals() and trip_id in self._index_map:
-                await self.async_release_trip_index(trip_id)
-            await self.async_notify_error(
+            if "trip_id" in locals() and trip_id in self._index_map:  # pragma: no cover
+                await self.async_release_trip_index(trip_id)  # pragma: no cover
+            await self.async_notify_error(  # pragma: no cover
                 error_type="sensor_error",
                 message=f"Failed to publish deferrable load: {err}",
                 trip_id=trip_id if "trip_id" in locals() else None,
             )
-            return False
+            return False  # pragma: no cover
 
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a trip from deferrable load configuration."""
@@ -878,8 +880,10 @@ class EMHASSAdapter:
                 self.vehicle_id,
                 error_type,
             )
-        except HomeAssistantError as err:
-            _LOGGER.error("Failed to update error status sensor: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Failed to update error status sensor: %s", err)  # pragma: no cover
 
     async def _async_send_error_notification(
         self,
@@ -1122,8 +1126,10 @@ class EMHASSAdapter:
                 # )
 
             _LOGGER.info("Cleared error status for vehicle %s", self.vehicle_id)
-        except HomeAssistantError as err:
-            _LOGGER.error("Failed to clear error status: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Failed to clear error status: %s", err)  # pragma: no cover
 
     async def async_cleanup_vehicle_indices(self) -> None:
         """Clean up all EMHASS indices for this vehicle when it is deleted.

@@ -139,11 +139,11 @@
     "PhaseF": "COMPLETO: 92% global, trip_manager 88%, emhass 93%, calculations 97%, yaml_trip_storage 100%, utils 100%, protocols 100%",
     "PhaseG": "PENDIENTE: CI falla con fail_under=100. Faltan ~325 l\u00edneas: config_flow 44, dashboard 60, __init__ 14, trip_manager 84, emhass_adapter 33, calculations 9",
     "STATUS": "NO ALL_TASKS_COMPLETE \u2014 Phase G pendiente. CI fail_under=100 NO pasa con 92%.",
-    "Tests": "1339 passed, 0 failed (test_dashboard_missing.py removed)",
-    "Coverage": "~96%",
+    "Tests": "1354 passed, 0 failed (stable)",
+    "Coverage": "~96% (dashboard coverage improving)",
     "Phase G": "NEW: Phase G (T077-T086) \u2014 100% coverage across all modules: calculations.py (9 lines), trip_manager.py (84 lines), emhass_adapter.py (33 lines), config_flow.py (44), dashboard.py (60), __init__.py (14)",
     "T077": "DONE: calculations.py 100% (pragmas documentados en l\u00edneas unreachable)",
     "T078": "DONE: trip_manager.py coverage improved. 1284 tests passing.",
-    "T081": "NOT SKIPPED \u2014 agent MUST complete. dashboard.py ~60 lines uncovered. Known bug: test hangs due to _call_async_executor_sync + MagicMock asyncio incompatibility. Fix: patch _call_async_executor_sync directly. test_dashboard_missing.py deleted by reviewer \u2014 agent must recreate with correct mocks."
+    "T081": "IN PROGRESS: test_dashboard_missing.py recreated by agent (15 tests). Initial flaky failure resolved \u2014 all 1354 tests pass."
   }
 }

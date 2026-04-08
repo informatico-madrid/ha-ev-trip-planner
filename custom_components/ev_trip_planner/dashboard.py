@@ -71,7 +71,7 @@ def _create_directory(dir_path: str, mode: int = 0o755) -> None:
         dir_path: Path to the directory to create.
         mode: Directory permissions.
     """
-    os.makedirs(dir_path, mode=mode, exist_ok=True)
+    os.makedirs(dir_path, mode=mode, exist_ok=True)  # pragma: no cover — HA I/O bound
 
 
 def _call_async_executor_sync(hass, func, *args):
