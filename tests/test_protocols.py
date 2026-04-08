@@ -1,8 +1,8 @@
 """Tests for structural protocol compatibility.
 
 TDD RED phase - These tests verify that YamlTripStorage implements TripStorageProtocol
-structurally via isinstance(). The protocols.py module doesn't exist yet, so these
-tests will fail with ImportError initially.
+and EMHASSAdapter implements EMHASSPublisherProtocol structurally via isinstance().
+The protocols.py module doesn't exist yet, so these tests will fail with ImportError initially.
 """
 
 import pytest
@@ -52,3 +52,47 @@ class TestYamlTripStorageImplementsTripStorageProtocol:
         # The protocol should be usable with isinstance at runtime
         # (requires @runtime_checkable decorator)
         assert getattr(TripStorageProtocol, "_is_protocol", False) is True
+
+
+class TestEMHASSAdapterImplementsEMHASSPublisherProtocol:
+    """Verify EMHASSAdapter structurally implements EMHASSPublisherProtocol.
+
+    This test is in TDD RED phase - protocols.py doesn't exist yet,
+    so this test should fail with ImportError.
+    """
+
+    def test_import_emhass_adapter_succeeds(self):
+        """EMHASSAdapter should be importable from ev_trip_planner."""
+        from custom_components.ev_trip_planner import EMHASSAdapter
+
+        assert EMHASSAdapter is not None
+
+    def test_import_emhas_publisher_protocol_succeeds(self):
+        """EMHASSPublisherProtocol should be importable from ev_trip_planner.protocols."""
+        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
+
+        assert EMHASSPublisherProtocol is not None
+
+    def test_emhass_adapter_isinstance_emhas_publisher_protocol(self):
+        """EMHASSAdapter instance should be recognized as EMHASSPublisherProtocol.
+
+        This uses isinstance() with a @runtime_checkable Protocol to verify
+        structural compatibility at runtime.
+        """
+        from custom_components.ev_trip_planner import EMHASSAdapter
+        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
+
+        # Create a minimal mock for hass and url to satisfy EMHASSAdapter constructor
+        adapter = EMHASSAdapter(hass=None, url="http://example.com", token="test")
+        assert isinstance(adapter, EMHASSPublisherProtocol)
+
+    def test_emhas_publisher_protocol_is_runtime_checkable(self):
+        """EMHASSPublisherProtocol should be marked with @runtime_checkable."""
+        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
+
+        # RuntimeCheckable Protocol classes have __protocol_attrs__ set
+        # or can be verified via isinstance check on a simple object
+        assert hasattr(EMHASSPublisherProtocol, "_is_protocol")
+        # The protocol should be usable with isinstance at runtime
+        # (requires @runtime_checkable decorator)
+        assert getattr(EMHASSPublisherProtocol, "_is_protocol", False) is True
