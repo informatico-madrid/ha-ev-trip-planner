@@ -942,3 +942,53 @@ class TestCalculatePowerProfileFromTrips:
         )
         assert len(result) == 168
         assert all(v == 0.0 for v in result)
+
+
+class TestGenerateDeferrableScheduleEdgeCases:
+    """Edge case tests for generate_deferrable_schedule_from_trips to cover uncovered lines."""
+
+    def test_trip_with_zero_kwh_has_zero_power(self):
+        """Trip with kwh=0 has zero p_deferrable values. Covers lines 897-898."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 0.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) == 24
+        for entry in result:
+            assert entry.get("p_deferrable0", "0.0") == "0.0"
+
+    def test_trip_with_negative_kwh_has_zero_power(self):
+        """Trip with negative kwh has zero p_deferrable values. Covers lines 897-898."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": -5.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) == 24
+        for entry in result:
+            assert entry.get("p_deferrable0", "0.0") == "0.0"
+
+    def test_trip_with_invalid_datetime_string_has_zero_power(self):
+        """Trip with invalid datetime string has zero p_deferrable values. Covers lines 910-912."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "invalid-date-format", "kwh": 5.0}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) == 24
+        for entry in result:
+            assert entry.get("p_deferrable0", "0.0") == "0.0"
+
+    def test_trip_with_missing_kwh_has_zero_power(self):
+        """Trip without kwh field has zero p_deferrable values. Covers lines 896-898."""
+        from custom_components.ev_trip_planner.calculations import generate_deferrable_schedule_from_trips
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [{"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00"}]
+        result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
+        assert len(result) == 24
+        for entry in result:
+            assert entry.get("p_deferrable0", "0.0") == "0.0"
+
+

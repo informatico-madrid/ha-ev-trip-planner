@@ -79,6 +79,20 @@ class TestValidateHora:
         with pytest.raises(ValueError):
             validate_hora("0930")
 
+    def test_invalid_format_non_digit_after_split(self):
+        """Test time with non-digit parts after colon (e.g., ab:cd) raises ValueError.
+
+        This tests line 154: the second ValueError check after splitting on ':'.
+        The format check passes (5 chars, ':' at position 2), but digit check fails.
+        """
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("ab:cd")
+
+    def test_invalid_format_digit_letter_mix(self):
+        """Test time with mixed digits and letters (e.g., 12:ab) raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("12:ab")
+
 
 class TestGenerateTripId:
     """Tests for generate_trip_id function."""
@@ -379,6 +393,25 @@ class TestGetTripTime:
         assert result.hour == 23
         assert result.minute == 59
 
+    def test_returns_none_for_invalid_time_format(self):
+        """Test that None is returned when hora has invalid time format.
+
+        This tests lines 180-181: the exception handler for strptime failures.
+        "25:99" is 5 chars with ':' at position 2, but 25 is not a valid hour.
+        """
+        trip = {"hora": "25:99"}
+        result = get_trip_time(trip)
+        assert result is None
+
+    def test_returns_none_for_alphabetic_time(self):
+        """Test that None is returned when hora contains alphabetic characters.
+
+        This tests the exception handler when strptime cannot parse the time.
+        """
+        trip = {"hora": "ab:cd"}
+        result = get_trip_time(trip)
+        assert result is None
+
 
 class TestGetDayIndex:
     """Tests for get_day_index function."""
@@ -635,3 +668,43 @@ class TestIsTripToday:
         result = is_trip_today(trip, tuesday)
         assert result is False
         assert isinstance(result, bool)
+
+    # === Edge cases for uncovered lines 275 and 293 ===
+
+    def test_recurring_trip_unknown_day_returns_false(self):
+        """Test recurring trip with unknown day name (not in DAY_ABBREVIATIONS) returns False.
+
+        This tests line 275: return False when trip_day is not in DAY_ABBREVIATIONS.
+        """
+        monday = date(2026, 4, 6)
+        trip = {"tipo": "recurrente", "dia": "unknownday", "hora": "09:30"}
+        assert is_trip_today(trip, monday) is False
+
+    def test_unknown_trip_type_returns_false(self):
+        """Test unknown trip type returns False.
+
+        This tests line 293: return False when trip_type is not 'recurrente'
+        and not 'puntual'/'punctual'.
+        """
+        today = date(2026, 4, 8)
+        trip = {"tipo": "desconocido", "hora": "09:30"}
+        assert is_trip_today(trip, today) is False
+
+    def test_empty_trip_returns_false(self):
+        """Test empty trip dict returns False.
+
+        This tests line 293: return False when trip has no 'tipo' key.
+        """
+        today = date(2026, 4, 8)
+        trip = {}
+        assert is_trip_today(trip, today) is False
+
+    def test_punctual_trip_with_numeric_fecha_returns_false(self):
+        """Test punctual trip with numeric fecha (not a date or string) returns False.
+
+        This tests line 293: the elif chain for punctual trips only handles
+        date objects and strings; numeric types fall through to return False.
+        """
+        today = date(2026, 4, 8)
+        trip = {"tipo": "punctual", "fecha": 20260408, "hora": "09:30"}
+        assert is_trip_today(trip, today) is False
