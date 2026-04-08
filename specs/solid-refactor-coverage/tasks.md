@@ -92,16 +92,16 @@
 
 #### Tests FIRST (TDD RED)
 
-- [ ] T027 [P] [US-B1] [VERIFY:TEST] Write failing test verifying `YamlTripStorage` implements `TripStorageProtocol` structurally via `isinstance()` in `tests/test_protocols.py` — requires `@runtime_checkable` decorator (see T028)
+- [x] T027 [P] [US-B1] [VERIFY:TEST] Write failing test verifying `YamlTripStorage` implements `TripStorageProtocol` structurally via `isinstance()` in `tests/test_protocols.py` — requires `@runtime_checkable` decorator (see T028)
 
 #### Implementation
 
-- [ ] T028 [US-B1] Create `custom_components/ev_trip_planner/protocols.py` with `@runtime_checkable` decorator and `TripStorageProtocol` defining `async_load() -> Dict` and `async_save(data: Dict) -> None` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime
+- [ ] T028 [US-B1] Create `custom_components/ev_trip_planner/protocols.py` with `@runtime_checkable` decorator and `TripStorageProtocol` defining `async_load() -> Dict` and `async_save(data: Dict) -> None` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
 
 #### US-B1 Gate
 
 - [ ] T029 [US-B1] Run `pytest tests/test_protocols.py -v` — isinstance check passes
-- [ ] T030 [US-B1] Run `mypy custom_components/ev_trip_planner/protocols.py` — 0 errors
+- [ ] T030 [US-B1] Run `mypy custom_components/ev_trip_planner/protocols.py` — 0 errors  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
 
 ---
 
@@ -111,11 +111,11 @@
 
 #### Tests FIRST (TDD RED)
 
-- [ ] T031 [P] [US-B2] [VERIFY:TEST] Write failing test verifying `EMHASSAdapter` implements `EMHASSPublisherProtocol` structurally via `isinstance()` in `tests/test_protocols.py` — requires `@runtime_checkable` decorator (see T032)
+- [ ] T031 [P] [US-B2] [VERIFY:TEST] Write failing test verifying `EMHASSAdapter` implements `EMHASSPublisherProtocol` structurally via `isinstance()` in `tests/test_protocols.py` — requires `@runtime_checkable` decorator (see T032)  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
 
 #### Implementation
 
-- [ ] T032 [US-B2] Add `@runtime_checkable` decorator and `EMHASSPublisherProtocol` to `protocols.py` with `async_publish_deferrable_load(trip: Dict) -> bool` and `async_remove_deferrable_load(trip_id: str) -> bool` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime
+- [ ] T032 [US-B2] Add `@runtime_checkable` decorator and `EMHASSPublisherProtocol` to `protocols.py` with `async_publish_deferrable_load(trip: Dict) -> bool` and `async_remove_deferrable_load(trip_id: str) -> bool` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
 
 #### US-B2 Gate
 
