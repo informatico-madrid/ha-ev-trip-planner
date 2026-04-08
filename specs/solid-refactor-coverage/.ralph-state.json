@@ -3,7 +3,7 @@
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
   "phase": "execution",
-  "taskIndex": 29,
+  "taskIndex": 65,
   "totalTasks": 78,
   "taskIteration": 1,
   "maxTaskIterations": 5,
@@ -131,17 +131,13 @@
     "T067-FIX": "DONE (uncommitted): reference_dt added to calculate_deferrable_parameters + other datetime functions",
     "T068-FIX": "BUG ACTIVO: yaml_trip_storage.async_load() puede devolver no-dict",
     "Phase F": "NUEVA: T064-T076 \u2014 cobertura 100% m\u00f3dulos puros, 92%+ total",
-    "Tests": "1193 passed",
-    "Coverage": "88.16%",
+    "Tests": "1196 passed, coverage 88.54%",
+    "Coverage": "88.34%",
     "T029_breadcrumb": "\ud83c\udf5e Agente: T029 PENDIENTE \u2014 stub local en test_protocols.py NO valida clase real. Reemplazar por from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage",
     "T068": "DONE: yaml_trip_storage.py 100% coverage, 7 tests pass, imports REAL class",
-    "T029_status": "DESGLosado en 4 micro-tareas para evitar atasco. Agente debe ejecutar T029.1 \u2192 T029.4 en orden.",
+    "T029_status": "NOT STARTED \u2014 agent still on Phase F. Micro-tasks T029.1-T029.4 added and waiting.",
     "Phase_F_progress": "+16 new edge case tests (+320 lines). Coverage 88.19%",
-    "T029_micro_tasks": {
-      "T029.1": "Eliminar stub local en test_protocols.py, usar from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage",
-      "T029.2": "Ajustar constructor: MagicMock() para hass, vehicle_id=\"test_vehicle\". Verificar isinstance(storage, TripStorageProtocol)",
-      "T029.3": "Eliminar docstring \"TDD RED phase \u2014 module doesn't exist\"",
-      "T029.4": "Gate: pytest tests/test_protocols.py::TestYamlTripStorageImplementsTripStorageProtocol -v"
-    }
+    "T029_micro_tasks": "4 micro-tasks added: T029.1-T029.4. Agent should pick these up next.",
+    "T065b": "DECOMPOSED: Agent claim of \"structurally unreachable\" is WRONG for most lines. Only ordered_to_idx.get() lines (524,538,557,599) might qualify for pragma IF caller contract guarantees matched data. Lines 66, 693, 810, 819, 823, 830 are REACHABLE \u2014 need tests, NOT pragmas. Rules say: \"no pragma without documented reason\" and \"only for structurally unreachable code\"."
   }
 }
