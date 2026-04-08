@@ -139,11 +139,11 @@
 
 #### Implementation
 
-- [ ] T037 [US-C1] Add `_UNSET = object()` sentinel at module level in `custom_components/ev_trip_planner/trip_manager.py`
-- [ ] T038 [US-C1] Modify `TripManager.__init__` signature: add `storage: TripStorageProtocol = _UNSET` and `emhass_adapter: EMHASSPublisherProtocol = _UNSET` parameters
-- [ ] T039 [US-C1] Implement inline defaults: `self._storage = storage if storage is not _UNSET else YamlTripStorage(hass, vehicle_id)` and `self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else EMHASSAdapter(...)`
-- [ ] T040 [US-C1] Preserve `set_emhass_adapter()` and `get_emhass_adapter()` for backward compatibility
-- [ ] T041 [US-C1] Import protocols from `protocols.py`
+- [x] T037 [US-C1] Add `_UNSET = object()` sentinel at module level in `custom_components/ev_trip_planner/trip_manager.py`
+- [x] T038 [US-C1] Modify `TripManager.__init__` signature: add `storage: TripStorageProtocol = _UNSET` and `emhass_adapter: EMHASSPublisherProtocol = _UNSET` parameters
+- [x] T039 [US-C1] Implement inline defaults: `self._storage = storage if storage is not _UNSET else YamlTripStorage(hass, vehicle_id)` and `self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else EMHASSAdapter(...)`
+- [x] T040 [US-C1] Preserve `set_emhass_adapter()` and `get_emhass_adapter()` for backward compatibility
+- [x] T041 [US-C1] Import protocols from `protocols.py`
 
 #### US-C1 Gate
 

@@ -26,6 +26,7 @@ from .const import (
     TRIP_TYPE_RECURRING,
 )
 from .emhass_adapter import EMHASSAdapter
+from .protocols import EMHASSPublisherProtocol, TripStorageProtocol
 from .utils import calcular_energia_kwh, generate_trip_id
 from .vehicle_controller import VehicleController
 
@@ -84,6 +85,8 @@ class TripManager:
         hass: HomeAssistant,
         vehicle_id: str,
         presence_config: Optional[Dict[str, Any]] = None,
+        storage: TripStorageProtocol = _UNSET,
+        emhass_adapter: EMHASSPublisherProtocol = _UNSET,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
@@ -95,7 +98,9 @@ class TripManager:
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
         self._last_update: Optional[datetime] = None
-        self._emhass_adapter: Optional[EMHASSAdapter] = None
+        # Inline defaults: use provided instance or create default
+        self._storage = storage if storage is not _UNSET else None
+        self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else None
 
     def set_emhass_adapter(self, adapter: EMHASSAdapter) -> None:
         """Set the EMHASS adapter for this trip manager."""
