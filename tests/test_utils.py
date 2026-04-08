@@ -8,7 +8,72 @@ from custom_components.ev_trip_planner.utils import (
     generate_random_suffix,
     is_valid_trip_id,
     calcular_energia_kwh,
+    validate_hora,
 )
+
+
+class TestValidateHora:
+    """Tests for validate_hora function."""
+
+    def test_valid_hhmm_format_passes(self):
+        """Test valid HH:MM format passes without error."""
+        validate_hora("09:30")
+
+    def test_valid_boundary_0000(self):
+        """Test boundary value 00:00 is valid."""
+        validate_hora("00:00")
+
+    def test_valid_boundary_2359(self):
+        """Test boundary value 23:59 is valid."""
+        validate_hora("23:59")
+
+    def test_valid_midday(self):
+        """Test valid midday time."""
+        validate_hora("12:00")
+
+    def test_valid_midnight(self):
+        """Test valid midnight time."""
+        validate_hora("00:00")
+
+    def test_invalid_hour_25(self):
+        """Test invalid hour 25:00 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid hour"):
+            validate_hora("25:00")
+
+    def test_invalid_hour_24(self):
+        """Test invalid hour 24:00 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid hour"):
+            validate_hora("24:00")
+
+    def test_invalid_minute_60(self):
+        """Test invalid minute 12:60 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid minute"):
+            validate_hora("12:60")
+
+    def test_invalid_minute_61(self):
+        """Test invalid minute 12:61 raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid minute"):
+            validate_hora("12:61")
+
+    def test_invalid_format_abc(self):
+        """Test invalid alphabetic string raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("abc")
+
+    def test_invalid_format_empty(self):
+        """Test empty string raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("")
+
+    def test_invalid_format_incomplete(self):
+        """Test incomplete time raises ValueError."""
+        with pytest.raises(ValueError):
+            validate_hora("9:30")
+
+    def test_invalid_format_no_colon(self):
+        """Test time without colon raises ValueError."""
+        with pytest.raises(ValueError):
+            validate_hora("0930")
 
 
 class TestGenerateTripId:
