@@ -208,55 +208,115 @@ class TestCalculateTripTime:
         assert result is None
 
 
-class TestCalculateChargingRate:
-    """Tests for calculate_charging_rate."""
+class TestCalculateChargingRateT004:
+    """Tests for calculate_charging_rate — T004 RED phase.
 
-    @pytest.mark.parametrize("charging_power_kw,battery_capacity_kwh,expected", [
-        # Standard cases
-        (7.4, 50.0, 14.8),
-        (3.6, 50.0, 7.2),
-        (11.0, 75.0, 14.666666666666666),
-        # Edge: zero battery
-        (7.4, 0.0, 0.0),
-        (7.4, -1.0, 0.0),
-        # Small values
-        (0.0, 50.0, 0.0),
-        (0.0, 0.0, 0.0),
-    ])
-    def test_charging_rate_formula(
-        self, charging_power_kw: float, battery_capacity_kwh: float, expected: float
-    ):
-        """Parametrized: charging rate = power / capacity * 100."""
+    These tests define the expected interface:
+    - calculate_charging_rate(power_kw: float, capacity: float) -> float
+    - Returns power_kw (simple pass-through for now)
+    - Handle edge cases: 0 capacity should not divide by zero
+    """
+
+    def test_returns_power_kw_pass_through(self):
+        """Returns power_kw directly (simple pass-through)."""
         from custom_components.ev_trip_planner.calculations import calculate_charging_rate
-        result = calculate_charging_rate(charging_power_kw, battery_capacity_kwh)
-        assert abs(result - expected) < 0.0001
+        assert calculate_charging_rate(7.4, 50.0) == 7.4
+        assert calculate_charging_rate(11.0, 75.0) == 11.0
+        assert calculate_charging_rate(3.6, 50.0) == 3.6
 
+    def test_zero_capacity_returns_zero_no_divide_by_zero(self):
+        """Zero capacity returns 0.0 without division by zero."""
+        from custom_components.ev_trip_planner.calculations import calculate_charging_rate
+        result = calculate_charging_rate(7.4, 0.0)
+        assert result == 0.0
 
-class TestCalculateSocTarget:
-    """Tests for calculate_soc_target."""
+    def test_negative_capacity_returns_zero(self):
+        """Negative capacity returns 0.0 (invalid input)."""
+        from custom_components.ev_trip_planner.calculations import calculate_charging_rate
+        result = calculate_charging_rate(7.4, -1.0)
+        assert result == 0.0
 
-    @pytest.mark.parametrize("trip,capacity,expected_min", [
-        # 10 kWh trip / 50 kWh battery = 20% + 10% buffer = 30%
-        ({"kwh": 10.0}, 50.0, 30.0),
-        # 0 kWh trip: 0% + 10% buffer = 10%
-        ({"kwh": 0.0}, 50.0, 10.0),
-        # Using km: 100*0.15/50*100 = 30% + 10% buffer = 40%
-        ({"km": 100.0}, 50.0, 40.0),
-        # Empty trip: 0% + 10% buffer = 10%
-        ({}, 50.0, 10.0),
+    def test_zero_power_returns_zero(self):
+        """Zero power returns 0.0."""
+        from custom_components.ev_trip_planner.calculations import calculate_charging_rate
+        result = calculate_charging_rate(0.0, 50.0)
+        assert result == 0.0
+
+    @pytest.mark.parametrize("power_kw,capacity", [
+        (7.4, 50.0),
+        (11.0, 75.0),
+        (3.6, 50.0),
+        (22.0, 100.0),
     ])
-    def test_soc_target_with_buffer(self, trip: dict, capacity: float, expected_min: float):
-        """Parametrized: SOC target = (energy/capacity)*100 + buffer (10%)."""
-        from custom_components.ev_trip_planner.calculations import calculate_soc_target
-        result = calculate_soc_target(trip, capacity)
-        assert result >= expected_min
+    def test_various_power_values(self, power_kw: float, capacity: float):
+        """Parametrized: returns power_kw regardless of capacity."""
+        from custom_components.ev_trip_planner.calculations import calculate_charging_rate
+        assert calculate_charging_rate(power_kw, capacity) == power_kw
 
-    def test_zero_battery_returns_buffer_only(self):
-        """Zero battery capacity returns buffer only (no division by zero)."""
+
+class TestCalculateSocTargetT004:
+    """Tests for calculate_soc_target — T004 RED phase.
+
+    These tests define the expected interface:
+    - calculate_soc_target(trip, capacity: float, consumption: float) -> float
+    - Returns target SOC (state of charge) as percentage
+    - Formula: (trip_distance * consumption) / capacity
+    - Handle edge cases
+    """
+
+    def test_formula_with_kwh_trip(self):
+        """SOC target = (kwh * consumption) / capacity * 100."""
         from custom_components.ev_trip_planner.calculations import calculate_soc_target
-        result = calculate_soc_target({"kwh": 10.0}, 0.0)
-        # energia_soc = 0 (no division), then + DEFAULT_SOC_BUFFER_PERCENT (10)
-        assert result == 10.0  # DEFAULT_SOC_BUFFER_PERCENT
+        # 10 kWh trip, 50 kWh capacity, 1.0 consumption -> 20%
+        result = calculate_soc_target({"kwh": 10.0}, 50.0, 1.0)
+        assert abs(result - 20.0) < 0.001
+
+    def test_formula_with_km_trip(self):
+        """SOC target = (km * consumption) / capacity * 100."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        # 100 km trip, 50 kWh capacity, 0.15 consumption -> 30%
+        result = calculate_soc_target({"km": 100.0}, 50.0, 0.15)
+        assert abs(result - 30.0) < 0.001
+
+    def test_zero_consumption_returns_zero(self):
+        """Zero consumption returns 0% SOC target."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        result = calculate_soc_target({"kwh": 10.0}, 50.0, 0.0)
+        assert result == 0.0
+
+    def test_zero_capacity_returns_zero_no_divide_by_zero(self):
+        """Zero capacity returns 0.0 without division by zero."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        result = calculate_soc_target({"kwh": 10.0}, 0.0, 1.0)
+        assert result == 0.0
+
+    def test_empty_trip_returns_zero(self):
+        """Empty trip dict returns 0% SOC target."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        result = calculate_soc_target({}, 50.0, 1.0)
+        assert result == 0.0
+
+    def test_no_km_or_kwh_returns_zero(self):
+        """Trip without km or kwh returns 0% SOC target."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        result = calculate_soc_target({"other": 100.0}, 50.0, 1.0)
+        assert result == 0.0
+
+    @pytest.mark.parametrize("trip,capacity,consumption,expected", [
+        # 100 km, 50 kWh, 0.15 -> 30%
+        ({"km": 100.0}, 50.0, 0.15, 30.0),
+        # 50 km, 50 kWh, 0.18 -> 18%
+        ({"km": 50.0}, 50.0, 0.18, 18.0),
+        # 20 kWh, 50 kWh, 1.0 -> 40%
+        ({"kwh": 20.0}, 50.0, 1.0, 40.0),
+    ])
+    def test_parametrized_soc_calculation(
+        self, trip: dict, capacity: float, consumption: float, expected: float
+    ):
+        """Parametrized: SOC = (distance * consumption) / capacity * 100."""
+        from custom_components.ev_trip_planner.calculations import calculate_soc_target
+        result = calculate_soc_target(trip, capacity, consumption)
+        assert abs(result - expected) < 0.001
 
 
 class TestCalculateEnergyNeeded:
