@@ -128,16 +128,17 @@
     "T030": "PENDIENTE: mypy protocols.py",
     "T033": "PENDIENTE: pytest test_protocols.py EMHASSPublisherProtocol",
     "T034": "PENDIENTE: mypy protocols.py",
-    "T067-FIX": "DONE (uncommitted): reference_dt added to calculate_deferrable_parameters + other datetime functions",
+    "T067-FIX": "NEEDS REWORK: Agent attempt broke deficit_propagation tests. reference_dt param must be added without changing deficit logic.",
     "T068-FIX": "BUG ACTIVO: yaml_trip_storage.async_load() puede devolver no-dict",
     "Phase F": "NUEVA: T064-T076 \u2014 cobertura 100% m\u00f3dulos puros, 92%+ total",
-    "Tests": "1196 passed, coverage 88.54%",
-    "Coverage": "88.34%",
+    "Tests": "1177 passed, 0 failed (regression reverted)",
+    "Coverage": "87.78%",
     "T029_breadcrumb": "\ud83c\udf5e Agente: T029 PENDIENTE \u2014 stub local en test_protocols.py NO valida clase real. Reemplazar por from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage",
     "T068": "DONE: yaml_trip_storage.py 100% coverage, 7 tests pass, imports REAL class",
     "T029_status": "NOT STARTED \u2014 agent still on Phase F. Micro-tasks T029.1-T029.4 added and waiting.",
     "Phase_F_progress": "+16 new edge case tests (+320 lines). Coverage 88.19%",
     "T029_micro_tasks": "4 micro-tasks added: T029.1-T029.4. Agent should pick these up next.",
-    "T065b": "DECOMPOSED: Agent claim of \"structurally unreachable\" is WRONG for most lines. Only ordered_to_idx.get() lines (524,538,557,599) might qualify for pragma IF caller contract guarantees matched data. Lines 66, 693, 810, 819, 823, 830 are REACHABLE \u2014 need tests, NOT pragmas. Rules say: \"no pragma without documented reason\" and \"only for structurally unreachable code\"."
+    "T065b": "DECOMPOSED: Agent claim of \"structurally unreachable\" is WRONG for most lines. Only ordered_to_idx.get() lines (524,538,557,599) might qualify for pragma IF caller contract guarantees matched data. Lines 66, 693, 810, 819, 823, 830 are REACHABLE \u2014 need tests, NOT pragmas. Rules say: \"no pragma without documented reason\" and \"only for structurally unreachable code\".",
+    "REGRESSION_FIXED": "Agent changes to calculations.py broke 4 test_soc_milestone.py tests (deficit propagation regression). Reverted uncommitted changes to calculations.py and test_calculations.py. T067-FIX needs to be redone carefully without breaking deficit_propagation logic."
   }
 }
