@@ -10,6 +10,8 @@ from homeassistant.helpers.storage import Store
 
 from .calculations import (
     calculate_deferrable_parameters as calc_deferrable_parameters,
+)
+from .calculations import (
     calculate_power_profile_from_trips,
     generate_deferrable_schedule_from_trips,
 )
