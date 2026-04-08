@@ -62,25 +62,6 @@ git commit -m "feat: [descripción] - TDD cycle complete"
 
 ## 📦 Estructura de Tests
 
-### Organización de Archivos:
-
-```
-tests/
-├── __init__.py                      # ★ Fakes, Stubs y helpers compartidos (ver abajo)
-├── conftest.py                      # Fixtures de pytest
-├── test_config_flow.py              # Tests del flujo de configuración
-├── test_config_flow_milestone3.py   # Tests específicos de Milestone 3
-├── test_trip_manager.py             # Tests de gestión de viajes
-├── test_sensors.py                  # Tests de sensores
-├── test_sensors_milestone3.py       # Tests de sensores de Milestone 3
-├── test_emhass_adapter.py           # Tests del adaptador EMHASS
-├── test_vehicle_controller.py       # Tests del controlador de vehículos
-├── test_schedule_monitor.py         # Tests del monitor de schedules
-├── test_presence_monitor.py         # Tests del monitor de presencia
-├── test_integration.py              # Tests de integración E2E
-└── conftest.py                      # Fixtures y configuración
-```
-
 ### Convenciones de Nomenclatura:
 
 - **Archivos de test**: `test_[modulo].py`
@@ -199,27 +180,6 @@ Antes de marcar una tarea como completada, verificar:
 ❌ **NUNCA** usar `time.sleep()` en tests (usar `asyncio.sleep(0)` o fixtures)
 ❌ **NUNCA** usar `MagicMock()` sin `spec` para sustituir clases propias del proyecto
 ❌ **NUNCA** usar `patch()` dentro de código de producción — solo en tests, en los boundaries
-
----
-
-## 📊 Métricas de Calidad
-
-### Cobertura Mínima Requerida:
-- **Overall**: > 80%
-- **Código crítico** (control de carga, schedules): > 90%
-- **Config flow**: 100% (todos los caminos)
-
-### Ejecución de Tests:
-```bash
-# Todos los tests
-pytest tests/ -v --cov=custom_components/ev_trip_planner
-
-# Tests específicos de Milestone 3
-pytest tests/test_config_flow_milestone3.py tests/test_sensors_milestone3.py -v
-
-# Tests con cobertura
-pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=html
-```
 
 ---
 

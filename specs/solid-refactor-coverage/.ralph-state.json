@@ -1,0 +1,23 @@
+{
+  "source": "spec",
+  "name": "solid-refactor-coverage",
+  "basePath": "./specs/solid-refactor-coverage",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 64,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [
+    {
+      "name": "context-auditor",
+      "source": "/home/malka/.claude/plugins/cache/smart-ralph/ralph-specum/4.9.1/skills/context-auditor/SKILL.md",
+      "matchedAt": "start",
+      "invoked": true
+    }
+  ],
+  "awaitingApproval": true
+}
