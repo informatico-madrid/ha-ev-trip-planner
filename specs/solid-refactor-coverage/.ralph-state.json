@@ -2,15 +2,15 @@
   "source": "spec",
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
-  "phase": "tasks",
-  "taskIndex": 0,
+  "phase": "execution",
+  "taskIndex": 10,
   "totalTasks": 64,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 1,
+  "globalIteration": 3,
   "maxGlobalIterations": 100,
   "commitSpec": true,
-  "quickMode": false,
+  "quickMode": true,
   "discoveredSkills": [
     {
       "name": "context-auditor",
@@ -19,5 +19,18 @@
       "invoked": true
     }
   ],
-  "awaitingApproval": true
+  "awaitingApproval": false,
+  "repairIteration": 0,
+  "failedStory": null,
+  "originTaskIndex": null,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0
 }

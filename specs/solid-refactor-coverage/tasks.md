@@ -33,7 +33,8 @@
 - [x] T001 [P] [US-A1] [VERIFY:TEST] Write failing tests for `validate_hora()` in `tests/test_utils.py` — test valid "HH:MM", invalid "25:00", boundary cases
 - [x] T002 [P] [US-A1] [VERIFY:TEST] Write failing tests for `sanitize_recurring_trips()` in `tests/test_utils.py` — test filtering of invalid hora entries
 - [x] T003 [P] [US-A1] [VERIFY:TEST] Write failing tests for `is_trip_today()` in `tests/test_utils.py` — test recurring (lunes/monday) and punctual trips
-- [x] T004 [P] [US-A1] [VERIFY:TEST] Write failing tests for `calculate_charging_rate()` and `calculate_soc_target()` in `tests/test_calculations.py`
+- [ ] T004 [P] [US-A1] [VERIFY:TEST] Write failing tests for `calculate_charging_rate()` and `calculate_soc_target()` in `tests/test_calculations.py`
+  ⚠️ REVIEW FAIL: Ya existen tests paramétricos completos en test_calculations.py (TestCalculateChargingRate + TestCalculateSocTarget). NO reescribir semántica existente. La fórmula es: power/capacity*100. Verificar tests existentes antes de añadir nuevos.
 - [x] T005 [P] [US-A1] [VERIFY:TEST] Write failing tests for `get_trip_time()` and `get_day_index()` in `tests/test_utils.py`
 
 #### Implementation

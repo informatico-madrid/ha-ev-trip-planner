@@ -135,6 +135,158 @@ def is_valid_trip_id(trip_id: str) -> bool:
     return False
 
 
+def validate_hora(hora: str) -> None:
+    """Validate a time string in HH:MM format.
+
+    Args:
+        hora: A time string in HH:MM format (00:00-23:59).
+
+    Raises:
+        ValueError: If the time format is invalid, hour is out of range (0-23),
+                    or minute is out of range (0-59).
+    """
+    if not isinstance(hora, str) or len(hora) != 5 or hora[2] != ":":
+        raise ValueError("Invalid time format: expected HH:MM")
+
+    hour_str, minute_str = hora.split(":", 1)
+
+    if not hour_str.isdigit() or not minute_str.isdigit():
+        raise ValueError("Invalid time format: expected HH:MM")
+
+    hour = int(hour_str)
+    minute = int(minute_str)
+
+    if hour > 23:
+        raise ValueError(f"Invalid hour: {hour} (must be 0-23)")
+
+    if minute > 59:
+        raise ValueError(f"Invalid minute: {minute} (must be 0-59)")
+
+
+def get_trip_time(trip: dict) -> datetime | None:
+    """Extract time from a trip dict.
+
+    Args:
+        trip: A trip dictionary containing 'hora' key.
+
+    Returns:
+        A datetime object with the time, or None if hora is missing/empty.
+    """
+    hora = trip.get("hora")
+    if not hora:
+        return None
+    try:
+        return datetime.strptime(hora, "%H:%M")
+    except (ValueError, TypeError):
+        return None
+
+
+def get_day_index(day_name: str) -> int:
+    """Convert a day name to its index (lunes/monday=0 through domingo/sunday=6).
+
+    Args:
+        day_name: The name of the day in Spanish or English.
+
+    Returns:
+        The day index (0=Monday/lunes, 6=Sunday/domingo).
+
+    Raises:
+        ValueError: If the day name is not recognized.
+    """
+    if not day_name:
+        raise ValueError("Day name cannot be empty")
+    day_lower = day_name.lower()
+    if day_lower in ("lunes", "monday"):
+        return 0
+    if day_lower in ("martes", "tuesday"):
+        return 1
+    if day_lower in ("miercoles", "wednesday"):
+        return 2
+    if day_lower in ("jueves", "thursday"):
+        return 3
+    if day_lower in ("viernes", "friday"):
+        return 4
+    if day_lower in ("sabado", "saturday"):
+        return 5
+    if day_lower in ("domingo", "sunday"):
+        return 6
+    raise ValueError(f"Unknown day name: {day_name}")
+
+
+def sanitize_recurring_trips(trips: dict) -> dict:
+    """Filter out recurring trips with invalid hora from a dict of trips.
+
+    Args:
+        trips: Dictionary of recurring trips keyed by trip ID.
+
+    Returns:
+        Dictionary containing only trips with valid hora.
+    """
+    sanitized: dict = {}
+    for trip_id, trip in trips.items():
+        hora = trip.get("hora", "")
+        try:
+            validate_hora(hora)
+            sanitized[trip_id] = trip
+        except ValueError:
+            pass  # Skip invalid trips
+    return sanitized
+
+
+def is_trip_today(trip: dict, today: date) -> bool:
+    """Check if a trip is scheduled for today.
+
+    Args:
+        trip: A trip dictionary containing:
+            - tipo: "recurrente" or "punctual"
+            - dia: For recurring trips, the day name (e.g., "lunes", "monday")
+            - fecha: For punctual trips, the date (date object or string YYYYMMDD/ISO/slashed)
+        today: The date to check against.
+
+    Returns:
+        True if the trip is scheduled for today, False otherwise.
+    """
+    trip_type = trip.get("tipo")
+
+    if trip_type == "recurrente":
+        # Recurring trip: check if today's day name matches the trip's day
+        trip_day = trip.get("dia", "").lower()
+        today_day = today.strftime("%A").lower()  # Full English day name
+
+        # Normalize trip day to English using DAY_ABBREVIATIONS mapping
+        # DAY_ABBREVIATIONS maps both Spanish and English days to Spanish abbreviations
+        # We need to find the English day that maps to the same abbreviation
+        if trip_day in DAY_ABBREVIATIONS:
+            trip_abbr = DAY_ABBREVIATIONS[trip_day]
+            # Find English day that has the same abbreviation
+            for eng_day, esp_abbr in DAY_ABBREVIATIONS.items():
+                if esp_abbr == trip_abbr and eng_day in (
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                    "sunday",
+                ):
+                    return eng_day == today_day
+        return False
+
+    elif trip_type == "punctual":
+        # Punctual trip: check if the trip's date matches today
+        fecha = trip.get("fecha")
+
+        if isinstance(fecha, date):
+            return fecha == today
+        elif isinstance(fecha, str):
+            # Normalize string date to YYYYMMDD for comparison
+            normalized = fecha.replace("-", "").replace("/", "")
+            today_str = today.strftime("%Y%m%d")
+            return normalized == today_str
+
+    return False
+
+
 def calcular_energia_kwh(
     distance_km: float,
     consumption_kwh_per_km: float,
