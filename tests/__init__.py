@@ -61,7 +61,8 @@ class FakeTripStorage:
     """In-memory fake for TripStorageProtocol."""
 
     def __init__(self, initial_data: Dict[str, Any] = None) -> None:
-        self._data = initial_data or {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
+        # Preserve explicit empty dicts (T048: use `if initial_data is None` not `or {}`)
+        self._data = initial_data if initial_data is not None else {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
 
     async def async_load(self) -> Dict[str, Any]:
         return self._data
@@ -108,6 +109,9 @@ def create_mock_trip_manager(hass=None, vehicle_id: str = TEST_VEHICLE_ID) -> Ma
 
     AC-D1.2: Must use MagicMock(spec=TripManager) with async methods
     configured individually - NOT AsyncMock without spec.
+
+    T048: Includes all async stubs (async_get_kwh_needed_today,
+    async_get_hours_needed_today, async_get_next_trip) with defaults.
     """
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -121,6 +125,13 @@ def create_mock_trip_manager(hass=None, vehicle_id: str = TEST_VEHICLE_ID) -> Ma
     mock.async_save_trips = AsyncMock(return_value=None)
     mock.async_delete_trip = AsyncMock(return_value=None)
     mock._publish_deferrable_loads = AsyncMock(return_value=None)
+    # T048: async stubs for deterministic datetime-based calculations
+    mock.async_get_kwh_needed_today = AsyncMock(return_value=0.0)
+    mock.async_get_hours_needed_today = AsyncMock(return_value=0.0)
+    mock.async_get_next_trip = AsyncMock(return_value=None)
+    # T048: seed attributes required by tests
+    mock.hass = hass
+    mock.vehicle_id = vehicle_id
     mock._emhass_adapter = None
     mock._trips = {}
     mock._recurring_trips = {}

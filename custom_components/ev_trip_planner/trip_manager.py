@@ -170,20 +170,22 @@ class TripManager:
         """Carga los viajes desde el almacenamiento persistente."""
         _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
         try:
-            from homeassistant.helpers import storage as ha_storage
+            # DI: use injected storage if available, otherwise fallback to direct Store
+            if self._storage is not None:
+                _LOGGER.warning("=== Using injected storage ===")
+                stored_data = await self._storage.async_load()
+            else:
+                _LOGGER.warning("=== Using fallback HA Store ===")
+                from homeassistant.helpers import storage as ha_storage
 
-            storage_key = f"{DOMAIN}_{self.vehicle_id}"
-            _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
-
-            # Use HA's official Store API for persistence
-            store = ha_storage.Store(
-                self.hass,
-                version=1,
-                key=storage_key,
-            )
-            _LOGGER.warning("=== Store created with key: %s ===", storage_key)
-
-            stored_data = await store.async_load()
+                storage_key = f"{DOMAIN}_{self.vehicle_id}"
+                _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
+                store = ha_storage.Store(
+                    self.hass,
+                    version=1,
+                    key=storage_key,
+                )
+                stored_data = await store.async_load()
             _LOGGER.warning("=== async_load returned: %s ===", stored_data is not None)
             _LOGGER.warning("=== stored_data type: %s ===", type(stored_data).__name__)
             _LOGGER.warning("=== stored_data value: %s ===", stored_data)
@@ -334,30 +336,31 @@ class TripManager:
             len(self._recurring_trips),
             len(self._punctual_trips),
         )
+
+        data = {
+            "trips": self._trips,
+            "recurring_trips": self._recurring_trips,
+            "punctual_trips": self._punctual_trips,
+            "last_update": datetime.now().isoformat(),
+        }
+
         try:
-            from homeassistant.helpers import storage as ha_storage
+            # DI: use injected storage if available, otherwise fallback to direct Store
+            if self._storage is not None:
+                _LOGGER.info("=== Using injected storage ===")
+                await self._storage.async_save(data)
+            else:
+                _LOGGER.info("=== Using fallback HA Store ===")
+                from homeassistant.helpers import storage as ha_storage
 
-            storage_key = f"{DOMAIN}_{self.vehicle_id}"
-            _LOGGER.info("Creating store with key: %s", storage_key)
-
-            # Use HA's official Store API for persistence
-            store = ha_storage.Store(
-                self.hass,
-                version=1,
-                key=storage_key,
-            )
-
-            data = {
-                "trips": self._trips,
-                "recurring_trips": self._recurring_trips,
-                "punctual_trips": self._punctual_trips,
-                "last_update": datetime.now().isoformat(),
-            }
-
-            _LOGGER.info(
-                "About to call async_save with data keys: %s", list(data.keys())
-            )
-            await store.async_save(data)
+                storage_key = f"{DOMAIN}_{self.vehicle_id}"
+                _LOGGER.info("Creating store with key: %s", storage_key)
+                store = ha_storage.Store(
+                    self.hass,
+                    version=1,
+                    key=storage_key,
+                )
+                await store.async_save(data)
             _LOGGER.info(
                 "Viajes guardados en HA storage: %d recurrentes, %d puntuales",
                 len(self._recurring_trips),

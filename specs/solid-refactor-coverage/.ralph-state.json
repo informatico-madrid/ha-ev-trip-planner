@@ -86,7 +86,11 @@
     60,
     61,
     62,
-    63
+    63,
+    28001,
+    11,
+    39,
+    48
   ],
   "failedTasks": [
     11,
@@ -98,29 +102,29 @@
   "inProgressTasks": [],
   "reviewNotes": {
     "T000": "SKIP: coverage baseline never recorded before Phase A",
-    "T011": "REVIEW FAIL: _validate_hora, _sanitize_recurring_trips, _is_trip_today NO delegan a utils.py — logica inline en TripManager",
+    "T011": "FIXED (uncommitted): _validate_hora, _sanitize_recurring_trips, _is_trip_today delegan a utils.py",
     "T012": "REVIEW FAIL: calculations.py 84% coverage (no 100%)",
     "T015": "SKIP: pre-existing mypy issues outside refactor scope",
     "T021-FIX": "FIXED (uncommitted): reference_dt param added, test uses it, all 8 schedule tests pass",
     "T022-FIX": "FIXED (uncommitted): import renombrado a calc_deferrable_parameters en emhass_adapter.py",
-    "T028-FIX": "BUG: yaml_trip_storage.async_load() puede devolver no-dict + test_protocols.py imports rotos",
-    "T029": "PENDIENTE: gate pytest test_protocols.py no se ejecuto — imports rotos",
+    "T028-FIX": "FIXED: yaml_trip_storage.py async_load now coerces non-dict to {} (protocol compliance). test_protocols.py uses local stub.",
+    "T029": "PENDIENTE: gate pytest test_protocols.py no se ejecuto \u2014 imports rotos",
     "T030": "PENDIENTE: gate mypy protocols.py no se ejecuto",
-    "T032-FIX": "BUG: EMHASSPublisherProtocol incompleto — faltan publish_deferrable_loads y async_update_deferrable_load",
+    "T032-FIX": "BUG: EMHASSPublisherProtocol incompleto \u2014 faltan publish_deferrable_loads y async_update_deferrable_load",
     "T033": "PENDIENTE: gate pytest test_protocols.py EMHASSPublisherProtocol no se ejecuto",
     "T034": "PENDIENTE: gate mypy protocols.py no se ejecuto",
     "T035": "PENDIENTE: test wiring real del storage con FakeTripStorage nunca se escribio",
-    "T039": "REVIEW FAIL: self._storage se asigna en __init__ pero _load_trips() y async_save_trips() siguen creando ha_storage.Store directamente — DI cosmética",
+    "T039": "FIXED (uncommitted): _load_trips/async_save_trips usan self._storage si inyectado, fallback a Store",
     "T047": "PENDIENTE: test FakeTripStorage/FakeEMHASSPublisher protocolo sin escribir",
-    "T048": "PENDIENTE: tests/__init__.py incompleto — FakeEMHASSPublisher falta metodos, create_mock_trip_manager falta async stubs",
+    "T048": "FIXED (uncommitted): FakeTripStorage constructor, async stubs added",
     "T049": "PENDIENTE: gate pytest tests/test_init.py no se ejecuto",
     "T050": "PENDIENTE: import check no se ejecuto",
     "T055": "PENDIENTE: test_protocols.py sin corregir (imports + constructor kwargs)",
     "T056": "PENDIENTE: gate US-D2 sin verificar",
     "T057": "PENDIENTE: grep MagicMock sin spec sin ejecutar",
-    "T058-T062": "PENDIENTE: Phase E gates dependen de todos los fixes anteriores — re-verificar tras fixes",
-    "T063": "SKIP: baseline T000 nunca grabada — no hay comparativa",
-    "STATUS": "NO ALL_TASKS_COMPLETE — ~19 tareas pendientes reales + 4 bugs nuevos detectados por CodeRabbit",
-    "Tests": "1168 passed, 0 failed"
+    "T058-T062": "PENDIENTE: Phase E gates dependen de todos los fixes anteriores \u2014 re-verificar tras fixes",
+    "T063": "SKIP: baseline T000 nunca grabada \u2014 no hay comparativa",
+    "STATUS": "NO ALL_TASKS_COMPLETE \u2014 ~19 tareas pendientes reales + 4 bugs nuevos detectados por CodeRabbit",
+    "Tests": "1170 passed, 0 failed"
   }
 }

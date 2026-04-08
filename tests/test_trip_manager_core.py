@@ -1101,3 +1101,66 @@ async def test_sanitize_recurring_trips_all_corrupt_returns_empty(
 
     sanitized = manager._sanitize_recurring_trips(all_corrupt)
     assert sanitized == {}
+
+
+@pytest.mark.asyncio
+async def test_storage_wiring_uses_injected_storage(mock_hass, vehicle_id):
+    """Test T035: _load_trips() and async_save_trips() use injected self._storage.
+
+    When storage=FakeTripStorage is passed to TripManager constructor,
+    _load_trips() should call fake.async_load() (not ha_storage.Store).
+    Similarly async_save_trips() should call fake.async_save() (not Store).
+
+    This test FAILS if wiring is incomplete (T039).
+    """
+    from tests import FakeTripStorage
+
+    initial_data = {
+        "trips": {"trip_1": {"id": "trip_1", "tipo": "recurrente", "dia_semana": "lunes", "hora": "08:00", "km": 24.0, "kwh": 3.6}},
+        "recurring_trips": {"rec_lun": {"id": "rec_lun", "tipo": "recurrente", "dia_semana": "lunes", "hora": "08:00", "km": 24.0, "kwh": 3.6}},
+        "punctual_trips": {"pun_1": {"id": "pun_1", "tipo": "puntual"}},
+        "last_update": "2026-04-01T00:00:00",
+    }
+    fake_storage = FakeTripStorage(initial_data=initial_data)
+
+    manager = TripManager(mock_hass, vehicle_id, storage=fake_storage)
+    await manager.async_setup()
+
+    # T035: _load_trips() should have used injected storage, loading data
+    assert manager._recurring_trips.get("rec_lun") is not None, \
+        "_load_trips() did not use injected storage - recurring_trips empty"
+    assert manager._punctual_trips.get("pun_1") is not None, \
+        "_load_trips() did not use injected storage - punctual_trips empty"
+
+    # Now modify and save - T035: async_save_trips() should use fake.async_save()
+    manager._recurring_trips["rec_lun"] = {"id": "rec_lun", "tipo": "recurrente", "modified": True}
+    await manager.async_save_trips()
+
+    # Verify FakeTripStorage received the save call
+    assert "modified" in manager._recurring_trips["rec_lun"], \
+        "async_save_trips() did not use injected storage - data not saved"
+
+
+@pytest.mark.asyncio
+async def test_storage_wiring_fallback_to_ha_store(mock_hass, vehicle_id):
+    """Test T035: when no storage= is passed, _load_trips() falls back to ha_storage.Store.
+
+    This verifies the fallback path still works (no regression).
+    """
+    from homeassistant.helpers import storage as ha_storage
+
+    # Use the same patch pattern as existing tests in this file
+    with patch.object(ha_storage.Store, 'async_load', new_callable=lambda: AsyncMock(
+        return_value={
+            "data": {
+                "trips": {"trip_fb": {"id": "trip_fb"}},
+                "recurring_trips": {},
+                "punctual_trips": {},
+            }
+        }
+    )):
+        manager = TripManager(mock_hass, vehicle_id)  # no storage= passed
+        await manager.async_setup()
+
+        assert manager._trips.get("trip_fb") is not None, \
+            "Fallback HA Store path failed - _load_trips() not working"

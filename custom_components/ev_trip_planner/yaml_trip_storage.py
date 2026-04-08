@@ -40,7 +40,10 @@ class YamlTripStorage:
         if stored_data:
             if isinstance(stored_data, dict) and "data" in stored_data:
                 return stored_data.get("data", {})
-            return stored_data
+            if isinstance(stored_data, dict):
+                return stored_data
+            # Coerce non-dict data to empty dict (protocol compliance)
+            return {}
         return {}
 
     async def async_save(self, data: Dict[str, Any]) -> None:
