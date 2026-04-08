@@ -352,22 +352,28 @@ def calculate_multi_trip_charging_windows(
         return []
 
     results = []
-    previous_arrival = None
+    previous_arrival: datetime | None = None
 
     for idx, (trip_departure_time, trip) in enumerate(trips):
         # Determine window start
+        window_start: datetime | None
         if idx == 0:
             if hora_regreso is not None:
                 window_start = hora_regreso
             else:
+                # trip_departure_time must not be None here
+                assert trip_departure_time is not None
                 window_start = trip_departure_time - timedelta(hours=duration_hours)
         else:
             window_start = previous_arrival
 
         # Calculate arrival for this trip (departure + duration)
+        assert trip_departure_time is not None
         trip_arrival = trip_departure_time + timedelta(hours=duration_hours)
 
         # Calculate ventana_horas
+        # Ensure window_start is not None for the calculation
+        assert window_start is not None
         delta = trip_arrival - window_start
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
@@ -515,10 +521,12 @@ def calculate_deficit_propagation(
             trip_time = trip_times[idx]
         else:
             # Compute trip time from trip data
-            trip_tipo = trip.get("tipo")
-            hora = trip.get("hora")
-            dia_semana = trip.get("dia_semana")
-            datetime_str = trip.get("datetime")
+            trip_tipo: Optional[str] = trip.get("tipo")
+            hora: Optional[str] = trip.get("hora")
+            dia_semana: Optional[str] = trip.get("dia_semana")
+            datetime_str: Optional[str] = trip.get("datetime")
+            # trip_tipo must be a valid string for calculate_trip_time
+            assert trip_tipo is not None
             trip_time = calculate_trip_time(trip_tipo, hora, dia_semana, datetime_str, reference_dt)
         if trip_time:
             sorted_trips_with_times.append((trip_time, idx, trip))
@@ -541,9 +549,10 @@ def calculate_deficit_propagation(
 
     # ITERATE IN REVERSE ORDER (last trip to first)
     for ordered_idx in range(len(trips) - 1, -1, -1):
-        original_idx = ordered_to_idx.get(ordered_idx)
-        if original_idx is None:
+        _orig_idx = ordered_to_idx.get(ordered_idx)
+        if _orig_idx is None:
             continue
+        original_idx = _orig_idx
 
         # Get data in ordered position
         soc_data_item = soc_data[ordered_idx]
@@ -582,9 +591,10 @@ def calculate_deficit_propagation(
     # Build final results
     results: List[Dict[str, Any]] = []
     for ordered_idx in range(len(trips)):
-        original_idx = ordered_to_idx.get(ordered_idx)
-        if original_idx is None:
+        _orig_idx = ordered_to_idx.get(ordered_idx)
+        if _orig_idx is None:
             continue
+        original_idx = _orig_idx
 
         trip = trips[original_idx]
         soc_data_item = soc_data[ordered_idx]
@@ -661,10 +671,12 @@ def calculate_power_profile(
     # Assign deadlines and sort by urgency
     trips_with_deadlines: List[Tuple[datetime, int, Dict[str, Any]]] = []
     for idx, trip in enumerate(all_trips):
-        trip_tipo = trip.get("tipo")
-        hora = trip.get("hora")
-        dia_semana = trip.get("dia_semana")
-        datetime_str = trip.get("datetime")
+        trip_tipo: Optional[str] = trip.get("tipo")
+        hora: Optional[str] = trip.get("hora")
+        dia_semana: Optional[str] = trip.get("dia_semana")
+        datetime_str: Optional[str] = trip.get("datetime")
+        # trip_tipo must be a valid string for calculate_trip_time
+        assert trip_tipo is not None
         trip_time = calculate_trip_time(trip_tipo, hora, dia_semana, datetime_str, reference_dt)
         if trip_time:
             trips_with_deadlines.append((trip_time, idx, trip))

@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 import string
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 # Day abbreviations in Spanish (3-letter format for IDs)
 DAY_ABBREVIATIONS: dict[str, str] = {
@@ -163,7 +163,7 @@ def validate_hora(hora: str) -> None:
         raise ValueError(f"Invalid minute: {minute} (must be 0-59)")
 
 
-def get_trip_time(trip: dict) -> datetime | None:
+def get_trip_time(trip: dict[str, Any]) -> datetime | None:
     """Extract time from a trip dict.
 
     Args:
@@ -213,7 +213,7 @@ def get_day_index(day_name: str) -> int:
     raise ValueError(f"Unknown day name: {day_name}")
 
 
-def sanitize_recurring_trips(trips: dict) -> dict:
+def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     """Filter out recurring trips with invalid hora from a dict of trips.
 
     Args:
@@ -222,7 +222,7 @@ def sanitize_recurring_trips(trips: dict) -> dict:
     Returns:
         Dictionary containing only trips with valid hora.
     """
-    sanitized: dict = {}
+    sanitized: dict[str, Any] = {}
     for trip_id, trip in trips.items():
         hora = trip.get("hora", "")
         try:
@@ -233,7 +233,7 @@ def sanitize_recurring_trips(trips: dict) -> dict:
     return sanitized
 
 
-def is_trip_today(trip: dict, today: date) -> bool:
+def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     """Check if a trip is scheduled for today.
 
     Args:
