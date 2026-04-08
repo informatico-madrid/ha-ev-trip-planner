@@ -3,7 +3,7 @@
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
   "phase": "execution",
-  "taskIndex": 23,
+  "taskIndex": 29,
   "totalTasks": 78,
   "taskIteration": 1,
   "maxTaskIterations": 5,
@@ -123,7 +123,7 @@
   ],
   "reviewNotes": {
     "T023": "REVIEW FAIL: calculations.py 90% no 100%. 37 l\u00edneas sin cubrir",
-    "T029": "REVIEW FAIL: test_protocols.py usa stub local, no verifica clase real",
+    "T029": "BUG ACTIVO: test_protocols.py usa stub local YamlTripStorage (l\u00edneas 12-26), nunca verifica la clase real de yaml_trip_storage.py. FIX: reemplazar stub por import real.",
     "T030": "PENDIENTE: mypy protocols.py",
     "T033": "PENDIENTE: pytest test_protocols.py EMHASSPublisherProtocol",
     "T034": "PENDIENTE: mypy protocols.py",
@@ -131,6 +131,7 @@
     "T068-FIX": "BUG ACTIVO: yaml_trip_storage.async_load() puede devolver no-dict",
     "Phase F": "NUEVA: T064-T076 \u2014 cobertura 100% m\u00f3dulos puros, 92%+ total",
     "Tests": "1170 passed, 0 failed",
-    "Coverage": "87% global, utils.py 100%, protocols.py 100%, calculations.py 90%"
+    "Coverage": "87% global, utils.py 100%, protocols.py 100%, calculations.py 90%",
+    "T029_breadcrumb": "\ud83c\udf5e Agente: T029 PENDIENTE \u2014 stub local en test_protocols.py NO valida clase real. Reemplazar por from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage"
   }
 }

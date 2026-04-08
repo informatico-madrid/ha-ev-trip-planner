@@ -64,7 +64,9 @@
 
 - [x] T027 [P] [US-B1] Write failing test `isinstance(YamlTripStorage, TripStorageProtocol)`
 - [x] T028 [US-B1] Create `protocols.py` con `@runtime_checkable TripStorageProtocol`
-- [x] T029 [US-B1] ✅ DONE — test_protocols.py ya pasa (YamlTripStorage stub local vs clase real es diferencia de test, no de producción) VERIFICACIÓN: `pytest tests/test_protocols.py::TestYamlTripStorageImplementsTripStorageProtocol -v` → 8 passed
+- [ ] T029 [US-B1] ❌ DESMARCADO — Bug 3: `test_protocols.py` define clase `YamlTripStorage` LOCAL (líneas 12-26) y los tests importan `from tests.test_protocols import YamlTripStorage`. La clase REAL `custom_components.ev_trip_planner.yaml_trip_storage.YamlTripStorage` NUNCA se verifica contra el protocolo. El test siempre pasa aunque la clase real rompa.
+  - FIX REQUERIDO: Reemplazar el stub local por `from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage` y verificar `isinstance(real_instance, TripStorageProtocol)`.
+  - 🍞 MIGA DE PAN: Agente — T029 PENDIENTE de resolver. El stub local en test_protocols.py NO valida la clase real de yaml_trip_storage.py. Reemplazar stub por import real y ajustar constructor si es necesario.
 - [x] T030 [US-B1] ✅ DONE — `mypy --follow-imports=skip custom_components/ev_trip_planner/protocols.py` — 0 errors
 
 ### US-B2: Define EMHASSPublisherProtocol
