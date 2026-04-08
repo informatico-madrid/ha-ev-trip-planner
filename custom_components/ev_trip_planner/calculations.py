@@ -640,6 +640,7 @@ def calculate_power_profile_from_trips(
     trips: List[Dict[str, Any]],
     power_kw: float,
     horizon: int = 168,
+    reference_dt: Optional[datetime] = None,
 ) -> List[float]:
     """Calculate power profile from trips (pure version).
 
@@ -651,14 +652,18 @@ def calculate_power_profile_from_trips(
                Trips without datetime are skipped.
         power_kw: Charging power in kilowatts.
         horizon: Number of hours in the profile (default 168 = 1 week).
+        reference_dt: Reference datetime for computing positions (default datetime.now()).
 
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
     from datetime import datetime
 
+    if reference_dt is None:
+        reference_dt = datetime.now()
+
     power_profile = [0.0] * horizon
-    now = datetime.now()
+    now = reference_dt
     charging_power_watts = power_kw * 1000
 
     for trip in trips:

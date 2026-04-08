@@ -842,15 +842,17 @@ class TestCalculatePowerProfileFromTrips:
 
         trip = {
             "id": "trip1",
-            "tipo": TRIP_TYPE_PUNCTUAL,
             "datetime": "2026-04-06T18:00",
             "kwh": 10.0,
         }
 
+        # Reference: 2026-04-06T08:00, deadline 10 hours later at 18:00
+        # 10 kWh / 7.4 kW = ~1.35 hours needed, round up to 2 hours
         result = calculate_power_profile_from_trips(
             trips=[trip],
             power_kw=7.4,
             horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
         )
 
         # 10 hours from ref to deadline, needs ~2 hours charging
@@ -865,7 +867,7 @@ class TestCalculatePowerProfileFromTrips:
         from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
 
         trips = [
-            {"id": "no_dt", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": None, "kwh": 10.0},
+            {"id": "no_dt", "datetime": None, "kwh": 10.0},
         ]
         result = calculate_power_profile_from_trips(
             trips=trips,
@@ -881,14 +883,15 @@ class TestCalculatePowerProfileFromTrips:
 
         trip = {
             "id": "trip1",
-            "tipo": TRIP_TYPE_PUNCTUAL,
             "datetime": "2026-04-06T10:00",
             "kwh": 5.0,
         }
+        # Reference: 2026-04-06T08:00, 2 hours before deadline
         result = calculate_power_profile_from_trips(
             trips=[trip],
             power_kw=7.4,
             horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
         )
         non_zero = [v for v in result if v > 0]
         if non_zero:
@@ -900,7 +903,6 @@ class TestCalculatePowerProfileFromTrips:
 
         trip = {
             "id": "trip1",
-            "tipo": TRIP_TYPE_PUNCTUAL,
             "datetime": "2026-04-06T10:00",
             "kwh": 10.0,
         }
@@ -916,13 +918,15 @@ class TestCalculatePowerProfileFromTrips:
         from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
 
         trips = [
-            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T10:00", "kwh": 5.0},
-            {"id": "trip2", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T18:00", "kwh": 5.0},
+            {"id": "trip1", "datetime": "2026-04-06T10:00", "kwh": 5.0},
+            {"id": "trip2", "datetime": "2026-04-06T18:00", "kwh": 5.0},
         ]
+        # Reference: 2026-04-06T00:00, both deadlines are in the future
         result = calculate_power_profile_from_trips(
             trips=trips,
             power_kw=7.4,
             horizon=24,
+            reference_dt=datetime(2026, 4, 6, 0, 0),
         )
         # Should have charging windows for both trips
         non_zero = [v for v in result if v > 0]
