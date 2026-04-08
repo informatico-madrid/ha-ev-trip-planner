@@ -121,3 +121,38 @@ Only then make the next edit.
 
 4. **100% COVERAGE IS THE TARGET**: Every module, function, and branch must be
    covered. No exceptions. If a line is hard to test, refactor it — don't skip it.
+
+Cuándo usan pragma: no cover
+Los patrones aceptados en home-assistant/core son muy concretos:
+
+Ramas imposibles de alcanzar en test — Por ejemplo, código que solo se ejecuta si falla algo del sistema operativo, o ramas else de un TYPE_CHECKING block (que solo existe en tiempo de análisis estático, no de ejecución)
+
+Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como mypy, nunca se ejecutan realmente
+
+Bloques if TYPE_CHECKING: — Todo lo que está dentro de este bloque se excluye porque no se ejecuta en runtime
+
+Métodos abstractos triviales — raise NotImplementedError en clases base que se prueban a través de sus subclases
+
+Un ejemplo real de mqtt/entity.py en el repo oficial:
+
+python
+if TYPE_CHECKING:  # pragma: no cover
+    from homeassistant.core import HomeAssistant
+Lo que los revisores humanos saben (y el agente no)
+Esta es la clave de tu pregunta. Los revisores humanos de HA (o tú mismo como maintainer) tienen que juzgar si un pragma: no cover está justificado. Un agente de IA o Copilot que genere tests no sabe automáticamente qué líneas son genuinamente intesteables vs. cuáles el desarrollador simplemente no quiso testear. Los revisores necesitan saber:
+
+Uso aceptado	Uso rechazado
+if TYPE_CHECKING: blocks	Lógica de negocio compleja
+@overload decorators	Manejo de errores reales
+raise NotImplementedError en ABC	Ramas de configuración
+Imports de plataforma específica (ej. Windows-only)	Cualquier código que podría fallar en producción
+El 100% no es obligatorio en todos los niveles
+Importante aclarar: el 100% de cobertura solo es requisito Platinum. Gold requiere alta cobertura pero no el 100%. La realidad en los repos más grandes es que llegan a ese número con una combinación de:
+
+Tests muy exhaustivos que cubren casi todo
+
+# pragma: no cover aplicado quirúrgicamente en código genuinamente inaccesible
+
+Un coveragerc o pyproject.toml que excluye patrones globalmente (por ejemplo, todos los if TYPE_CHECKING: bloques del repositorio entero)
+
+El archivo .coveragerc de home-assistant/core define exclusiones globales de patrones como if TYPE_CHECKING:, @overload, y raise NotImplementedError, por lo que los contributors individuales ni siquiera tienen que poner el pragma en esos casos.
