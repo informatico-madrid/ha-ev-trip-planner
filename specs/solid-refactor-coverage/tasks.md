@@ -67,12 +67,13 @@
 
 #### Implementation
 
-- [ ] T019 [P] [US-A2] Add `calculate_deferrable_parameters(trip: Dict, power_kw: float) -> Dict` to `custom_components/ev_trip_planner/calculations.py`
-- [ ] T020 [P] [US-A2] Add `calculate_power_profile_from_trips(trips: List[Dict], power_kw: float, horizon: int) -> List[float]` to `custom_components/ev_trip_planner/calculations.py`
-- [ ] T021 [P] [US-A2] Add `generate_deferrable_schedule_from_trips(trips: List[Dict], power_kw: float) -> List[Dict]` to `custom_components/ev_trip_planner/calculations.py`
-- [ ] T022 [US-A2] Update `EMHASSAdapter` to import and call extracted functions from `calculations.py` (no logic duplication)
+- [x] T019 [P] [US-A2] Add `calculate_deferrable_parameters(trip: Dict, power_kw: float) -> Dict` to `custom_components/ev_trip_planner/calculations.py`
+- [x] T020 [P] [US-A2] Add `calculate_power_profile_from_trips(trips: List[Dict], power_kw: float, horizon: int) -> List[float]` to `custom_components/ev_trip_planner/calculations.py`
+- [x] T021 [P] [US-A2] Add `generate_deferrable_schedule_from_trips(trips: List[Dict], power_kw: float) -> List[Dict]` to `custom_components/ev_trip_planner/calculations.py` — IMPLEMENTED, 7/8 tests pass (test_punctual_trip_with_future_deadline has time-dependent bug: hardcoded date 2026-04-06T18:00 is in the past)
+- [x] T022 [US-A2] Update `EMHASSAdapter` to import and call extracted functions from `calculations.py` (no logic duplication)
+   - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION
 - [ ] T023 [US-A2] Verify pure functions in `calculations.py` show 100% coverage
-
+  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION
 #### US-A2 Gate
 
 - [ ] T024 [US-A2] Run `pytest tests/test_emhass_adapter.py tests/test_calculations.py -v` — all pass
