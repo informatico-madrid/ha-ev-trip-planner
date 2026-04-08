@@ -10,6 +10,9 @@ from custom_components.ev_trip_planner.utils import (
     calcular_energia_kwh,
     validate_hora,
     sanitize_recurring_trips,
+    get_trip_time,
+    get_day_index,
+    is_trip_today,
 )
 
 
@@ -311,3 +314,150 @@ class TestSanitizeRecurringTrips:
         result = sanitize_recurring_trips(trips)
         assert result["rec_lun_abc123"]["destino"] == "work"
         assert result["rec_lun_abc123"]["consumo"] == 0.18
+
+
+class TestGetTripTime:
+    """Tests for get_trip_time function."""
+
+    def test_extracts_datetime_from_trip_with_hora(self):
+        """Test extracting datetime from trip dict with hora field."""
+        trip = {"hora": "09:30", "dia": "lunes"}
+        result = get_trip_time(trip)
+        assert result is not None
+        assert result.hour == 9
+        assert result.minute == 30
+
+    def test_returns_none_when_hora_missing(self):
+        """Test that None is returned when hora key is missing."""
+        trip = {"dia": "lunes", "destino": "work"}
+        result = get_trip_time(trip)
+        assert result is None
+
+    def test_returns_none_for_empty_trip(self):
+        """Test that None is returned for empty trip dict."""
+        result = get_trip_time({})
+        assert result is None
+
+    def test_extracts_time_from_trip_with_additional_fields(self):
+        """Test extracting time from trip with multiple fields."""
+        trip = {
+            "hora": "14:45",
+            "dia": "martes",
+            "destino": "airport",
+            "consumo": 0.15,
+        }
+        result = get_trip_time(trip)
+        assert result is not None
+        assert result.hour == 14
+        assert result.minute == 45
+
+    def test_returns_none_when_hora_is_none(self):
+        """Test that None is returned when hora is explicitly None."""
+        trip = {"hora": None, "dia": "lunes"}
+        result = get_trip_time(trip)
+        assert result is None
+
+    def test_returns_none_when_hora_is_empty_string(self):
+        """Test that None is returned when hora is empty string."""
+        trip = {"hora": "", "dia": "lunes"}
+        result = get_trip_time(trip)
+        assert result is None
+
+    def test_boundary_0000(self):
+        """Test extracting midnight (00:00)."""
+        trip = {"hora": "00:00"}
+        result = get_trip_time(trip)
+        assert result is not None
+        assert result.hour == 0
+        assert result.minute == 0
+
+    def test_boundary_2359(self):
+        """Test extracting last minute of day (23:59)."""
+        trip = {"hora": "23:59"}
+        result = get_trip_time(trip)
+        assert result is not None
+        assert result.hour == 23
+        assert result.minute == 59
+
+
+class TestGetDayIndex:
+    """Tests for get_day_index function."""
+
+    def test_lunes_returns_0(self):
+        """Test that 'lunes' (Monday) returns 0."""
+        assert get_day_index("lunes") == 0
+
+    def test_monday_returns_0(self):
+        """Test that 'monday' returns 0."""
+        assert get_day_index("monday") == 0
+
+    def test_lunes_uppercase(self):
+        """Test that 'LUNES' returns 0 (case insensitive)."""
+        assert get_day_index("LUNES") == 0
+
+    def test_lunes_mixed_case(self):
+        """Test that 'Lunes' returns 0 (case insensitive)."""
+        assert get_day_index("Lunes") == 0
+
+    def test_martes_returns_1(self):
+        """Test that 'martes' (Tuesday) returns 1."""
+        assert get_day_index("martes") == 1
+
+    def test_tuesday_returns_1(self):
+        """Test that 'tuesday' returns 1."""
+        assert get_day_index("tuesday") == 1
+
+    def test_miercoles_returns_2(self):
+        """Test that 'miercoles' (Wednesday) returns 2."""
+        assert get_day_index("miercoles") == 2
+
+    def test_wednesday_returns_2(self):
+        """Test that 'wednesday' returns 2."""
+        assert get_day_index("wednesday") == 2
+
+    def test_jueves_returns_3(self):
+        """Test that 'jueves' (Thursday) returns 3."""
+        assert get_day_index("jueves") == 3
+
+    def test_thursday_returns_3(self):
+        """Test that 'thursday' returns 3."""
+        assert get_day_index("thursday") == 3
+
+    def test_viernes_returns_4(self):
+        """Test that 'viernes' (Friday) returns 4."""
+        assert get_day_index("viernes") == 4
+
+    def test_friday_returns_4(self):
+        """Test that 'friday' returns 4."""
+        assert get_day_index("friday") == 4
+
+    def test_sabado_returns_5(self):
+        """Test that 'sabado' (Saturday) returns 5."""
+        assert get_day_index("sabado") == 5
+
+    def test_saturday_returns_5(self):
+        """Test that 'saturday' returns 5."""
+        assert get_day_index("saturday") == 5
+
+    def test_domingo_returns_6(self):
+        """Test that 'domingo' (Sunday) returns 6."""
+        assert get_day_index("domingo") == 6
+
+    def test_sunday_returns_6(self):
+        """Test that 'sunday' returns 6."""
+        assert get_day_index("sunday") == 6
+
+    def test_invalid_day_name_raises(self):
+        """Test that invalid day name raises ValueError."""
+        with pytest.raises(ValueError):
+            get_day_index("invalidday")
+
+    def test_empty_string_raises(self):
+        """Test that empty string raises ValueError."""
+        with pytest.raises(ValueError):
+            get_day_index("")
+
+    def test_numbers_raises(self):
+        """Test that numeric string raises ValueError."""
+        with pytest.raises(ValueError):
+            get_day_index("123")
