@@ -15,7 +15,7 @@ from typing import Literal
 DOMAIN = "ev_trip_planner"
 
 # Config entry version for migrations
-CONFIG_VERSION = 1
+CONFIG_VERSION = 2
 
 # Dispatcher signal for reactive updates
 SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"

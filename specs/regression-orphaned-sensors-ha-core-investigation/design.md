@@ -100,7 +100,7 @@ async def test_sensor_unique_id_exists_after_setup(hass, config_entry):
 # custom_components/ev_trip_planner/definitions.py
 from dataclasses import dataclass
 from homeassistant.components.sensor import SensorEntityDescription, SensorStateClass
-from typing import Callable
+from typing import Any, Awaitable, Callable
 
 @dataclass(frozen=True)
 class TripSensorEntityDescription(SensorEntityDescription):
@@ -209,8 +209,9 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)
 ### Component: TripSensor with CoordinatorEntity
 
 ```python
-# coordinator.data shape
+# coordinator.data shape — FULL contract defined in Phase 1
 {
+    # Trip data (keyed by trip_id)
     "recurring_trips": {
         "trip_abc": {"id": "trip_abc", "tipo": "recurrente", "estado": "active", ...},
         "trip_def": {"id": "trip_def", "tipo": "recurrente", "estado": "active", ...},
@@ -219,6 +220,10 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)
     "kwh_today": 12.5,
     "hours_today": 1.2,
     "next_trip": {...},
+    # EMHASS data — keys defined in Phase 1, populated in Phase 3
+    "emhass_power_profile": None,       # populated by publish_deferrable_loads
+    "emhass_deferrables_schedule": None, # populated by publish_deferrable_loads
+    "emhass_status": None,              # "ready" | "computing" | None
 }
 
 class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
@@ -237,46 +242,68 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         return trip.get("estado", "pendiente") if trip else None
 ```
 
-### Component: TripSensor Platform Setup
+### Component: EVTripRuntimeData with sensor_async_add_entities callback
 
 ```python
-# sensor.py — sensor platform's async_setup_entry (HA passes async_add_entities HERE)
+# __init__.py
+from collections.abc import Awaitable
+from dataclasses import dataclass
+
+@dataclass
+class EVTripRuntimeData:
+    coordinator: TripPlannerCoordinator
+    trip_manager: TripManager
+    sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None
+```
+
+### Component: TripSensor Platform Setup — captures async_add_entities
+
+```python
+# sensor.py — sensor platform's async_setup_entry
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime_data: EVTripRuntimeData = entry.runtime_data
 
-    # HA passes async_add_entities ONLY to platform setup — it cannot escape to __init__.py
-    async def create_trip_sensors_for_current_trips():
-        for trip_id, trip in runtime_data.trip_manager.async_get_trips().items():
-            entities.append(TripSensor(runtime_data.coordinator, vehicle_id, trip_id, trip))
+    entities = []
 
     # Static sensors (TRIP_SENSORS from definitions.py)
     for description in TRIP_SENSORS:
         entities.append(TripPlannerSensor(runtime_data.coordinator, vehicle_id, description))
 
     # TripSensors: created on setup from existing trips
+    for trip_id, trip in runtime_data.trip_manager.async_get_trips().items():
+        entities.append(TripSensor(runtime_data.coordinator, vehicle_id, trip_id, trip))
+
+    # Register all entities with HA using the callback HA passed to us
     await async_add_entities(entities, True)
 
-    # When a trip is added via service:
-    #   1. trip_manager.async_add_trip(trip_data)
-    #   2. coordinator.async_request_refresh()
-    #   3. _async_update_data() rebuilds coordinator.data
-    #   4. coordinator listeners notified — TripPlannerSensor updates automatically
-    #   5. If trip_id not yet in coordinator.data → TripSensor not yet created
-    #      → Next platform setup or explicit _async_create_trip_sensors() call creates it
+    # CAPTURE: Store async_add_entities in EVTripRuntimeData for service use
+    # This is the ONLY way to make it available to service handlers
+    runtime_data.sensor_async_add_entities = async_add_entities
+
+    return True
 ```
 
-### Component: entry.runtime_data (NO async_add_entities)
+### Component: Dynamic TripSensor creation via service
 
 ```python
-# __init__.py
-@dataclass
-class EVTripRuntimeData:
-    coordinator: TripPlannerCoordinator
-    trip_manager: TripManager
-    # NO async_add_entities — HA only passes it to platform setup, not to __init__.py
+# services.py — handle_add_trip
+async def handle_add_trip(hass, entry, trip_data):
+    trip_manager = entry.runtime_data.trip_manager
+    coordinator = entry.runtime_data.coordinator
+    async_add_entities = entry.runtime_data.sensor_async_add_entities
+
+    await trip_manager.async_add_trip(trip_data["trip_data"])
+
+    # Create and register the new TripSensor dynamically
+    trip_id = trip_data["trip_data"].get("id")
+    new_sensor = TripSensor(coordinator, vehicle_id, trip_id, trip_data["trip_data"])
+    if async_add_entities:
+        await async_add_entities([new_sensor], True)
+
+    await coordinator.async_request_refresh()
 ```
 
-### Component: Delete with Registry Cleanup
+### Component: TripSensor delete with registry cleanup
 
 ```python
 async def async_remove_trip(hass, entry, trip_id):
@@ -354,13 +381,15 @@ And `coordinator.data` must include EMHASS data from `emhass_adapter`. The `publ
 
 ```python
 # __init__.py — FINAL STATE
+from collections.abc import Awaitable
+from dataclasses import dataclass
 PLATFORMS: list[Platform] = [Platform.SENSOR]  # Only sensor platform — per actual code
 
 @dataclass
 class EVTripRuntimeData:
     coordinator: TripPlannerCoordinator
     trip_manager: TripManager
-    # NO async_add_entities — HA only passes it to platform setup (sensor.py)
+    sensor_async_add_entities: Callable[[list[SensorEntity], bool], Awaitable[None]] | None = None
 
 type EVTripConfigEntry = ConfigEntry[EVTripRuntimeData]
 
@@ -435,10 +464,12 @@ _LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical
 |----------|-----------|
 | Phase 0 characterization tests first | Without tests, refactoring risks regressions |
 | Phase 1 definitions.py before services | Sensor architecture is foundation; services depend on it |
-| async_add_entities inside sensor.py platform setup | HA passes it directly to platform async_setup_entry; cannot escape to __init__.py or entry.runtime_data |
+| `sensor_async_add_entities` typed callback in EVTripRuntimeData | Captured from platform setup, enables dynamic TripSensor creation by services |
+| coordinator.data full contract in Phase 1 | EMHASS keys defined (None placeholder) in Phase 1, populated in Phase 3 — not introduced in Phase 3 |
 | TripSensor reads from coordinator.data by trip_id | Enforces single data flow; trip_manager is persistence layer only |
 | EMHASS: EmhassDeferrableLoadSensor → CoordinatorEntity | Must inherit CoordinatorEntity to receive updates from coordinator.refresh |
 | __init__.py extraction last | Cosmetic but critical for long-term maintainability |
+| ConfigSubentry out of scope | Too large a domain-model change; future follow-up spec only |
 
 ---
 
@@ -452,6 +483,7 @@ _LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical
 | Phase 3 | — | `emhass_adapter.py`, `sensor.py` (EmhassDeferrableLoadSensor → CoordinatorEntity) | — |
 | Phase 4 | — | `__init__.py` (final lifecycle-only), `config_flow.py` | — |
 | Phase 5 | `diagnostics.py` | `__init__.py` cleanup | — |
+| E2E | — | Fix existing Playwright tests, verify sensor state after CRUD | — |
 
 ---
 
@@ -464,7 +496,9 @@ _LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical
 | Phase 2 | `.venv/bin/pytest tests/test_entity_registry.py -v -k "trip"` |
 | Phase 3 | `.venv/bin/pytest tests/test_emhass_adapter.py -v` |
 | Phase 4 | `.venv/bin/pytest tests/test_init.py -v` |
-| Phase 5 | Full suite + `pylint --disable=all --enable=E,F` |
+| Phase 5 | `.venv/bin/python -m ruff check custom_components/ev_trip_planner/ && .venv/bin/pytest tests/ --cov=custom_components.ev_trip_planner -v --tb=short 2>&1 | tail -20` |
+| V1 | `ruff` passes, 0 failing tests, coverage ≥79% |
+| E2E | `npx playwright test tests/e2e/ --reporter=list` — all 5 specs pass |
 
 ---
 

@@ -1,0 +1,18 @@
+# Home Assistant Quality Scale
+# https://www.home-assistant.io/docs/quality_scale/
+
+rules:
+  # Bronze
+  config-flow: done
+  test-coverage: todo
+  config-flow-test-coverage: done
+  action-exceptions: done
+  async-dependency: done
+  log-when-unavailable: done
+  unique-id: done
+
+  # Silver
+  inject-websession: todo
+  parallel-updates: todo
+  strict-typing: todo
+  reauthentication-flow: todo

@@ -23,6 +23,41 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
   - Constants: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_CONSUMPTION`)
   - Private methods/vars: Must have a leading underscore (e.g., `_calculate_internal`)
 
+## 🧹 CLEAN CODE RULES (MANDATORY)
+
+### TDD Workflow (Red-Green-Refactor)
+- **RED:** Always start with a failing test for a micro-feature
+- **GREEN:** Write minimal code to pass the test
+- **REFACTOR:** Optimize for DRY/SOLID only after tests pass
+- **Never proceed to GREEN without a failing test**
+
+### DRY Enforcement
+- Extract repeated logic immediately
+- Flag duplicate code for refactoring
+- Create shared utilities after second repetition
+
+### SOLID Compliance
+- **Single Responsibility:** One purpose per function/class
+- **Open/Closed:** Extend via interfaces/abstractions
+- **Liskov Substitution:** Interchangeable subtypes
+- **Interface Segregation:** Split large interfaces
+- **Dependency Inversion:** Depend on abstractions, not concretions
+
+### Workflow Rules
+1. Break features into micro-tasks (max 5-10 lines of code per task)
+2. For each micro-task follow RED → GREEN → REFACTOR cycle
+3. Propose design patterns (Strategy, Factory, etc.) early
+4. Isolate concerns — no mixing of UI, business logic, and I/O
+5. **KISS + YAGNI:** No speculative implementation, simplest solution that works
+
+### Legacy Code Rules
+- Create adapter layers for external services
+- Wrap legacy components with facade pattern
+
+### Architecture Rules
+- Code against interfaces when complexity warrants it
+- No class > 200 lines
+
 
 ## 📝 COMMIT MESSAGES
 When asked to generate a commit message, strictly use Conventional Commits format:
@@ -33,10 +68,13 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 - Read the entire file before attempting to make changes
 - Ensure the text to replace exactly matches the file content
 - Use read_file to verify content before making changes
+- If you are implementing tasks, always read docs/IMPLEMENTATION_REVIEW.md for any important notes left by the reviewer that may help you in your task.
 
 ## Stuck State Protocol
 
 <mandatory>
+
+Los tests e2e se ejecutan con make e2e. tiene un script de lipmieza de carpetas y procesos antes de cada ejecución. 
 **If the same task fails 3+ times with different errors each time, you are stuck.**
 Do NOT make another edit. Entering stuck state is mandatory.
 
@@ -65,3 +103,56 @@ After investigation, write one sentence: "The root cause is X, so the fix is Y."
 If you can't write that sentence clearly, investigate more.
 Only then make the next edit.
 </mandatory>
+
+## Test Writing Rules (MANDATORY)
+
+1. AWAIT ALL ASYNC: Every test calling an async function MUST use `await`.
+   Never call async functions without await — pytest won't fail loudly,
+   it will silently skip the coroutine.
+
+2. FIXTURES FIRST: Before writing test methods that use parameters, define
+   ALL fixtures at the top of the file with @pytest.fixture.
+   Run the file with `pytest -x <file>` before moving on.
+
+3. DO NOT SELF-MARK VERIFY TASKS: Never mark V0/V1/V5/VF tasks as [x]
+   yourself. Verify tasks are marked [x] ONLY after running the full suite
+   (`pytest --cov`) and confirming **100% coverage**. Show the output in your
+   commit message.
+
+4. **100% COVERAGE IS THE TARGET**: Every module, function, and branch must be
+   covered. No exceptions. If a line is hard to test, refactor it — don't skip it.
+
+Cuándo usan pragma: no cover
+Los patrones aceptados en home-assistant/core son muy concretos:
+
+Ramas imposibles de alcanzar en test — Por ejemplo, código que solo se ejecuta si falla algo del sistema operativo, o ramas else de un TYPE_CHECKING block (que solo existe en tiempo de análisis estático, no de ejecución)
+
+Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como mypy, nunca se ejecutan realmente
+
+Bloques if TYPE_CHECKING: — Todo lo que está dentro de este bloque se excluye porque no se ejecuta en runtime
+
+Métodos abstractos triviales — raise NotImplementedError en clases base que se prueban a través de sus subclases
+
+Un ejemplo real de mqtt/entity.py en el repo oficial:
+
+python
+if TYPE_CHECKING:  # pragma: no cover
+    from homeassistant.core import HomeAssistant
+Lo que los revisores humanos saben (y el agente no)
+Esta es la clave de tu pregunta. Los revisores humanos de HA (o tú mismo como maintainer) tienen que juzgar si un pragma: no cover está justificado. Un agente de IA o Copilot que genere tests no sabe automáticamente qué líneas son genuinamente intesteables vs. cuáles el desarrollador simplemente no quiso testear. Los revisores necesitan saber:
+
+Uso aceptado	Uso rechazado
+if TYPE_CHECKING: blocks	Lógica de negocio compleja
+@overload decorators	Manejo de errores reales
+raise NotImplementedError en ABC	Ramas de configuración
+Imports de plataforma específica (ej. Windows-only)	Cualquier código que podría fallar en producción
+El 100% no es obligatorio en todos los niveles
+Importante aclarar: el 100% de cobertura solo es requisito Platinum. Gold requiere alta cobertura pero no el 100%. La realidad en los repos más grandes es que llegan a ese número con una combinación de:
+
+Tests muy exhaustivos que cubren casi todo
+
+# pragma: no cover aplicado quirúrgicamente en código genuinamente inaccesible
+
+Un coveragerc o pyproject.toml que excluye patrones globalmente (por ejemplo, todos los if TYPE_CHECKING: bloques del repositorio entero)
+
+El archivo .coveragerc de home-assistant/core define exclusiones globales de patrones como if TYPE_CHECKING:, @overload, y raise NotImplementedError, por lo que los contributors individuales ni siquiera tienen que poner el pragma en esos casos.

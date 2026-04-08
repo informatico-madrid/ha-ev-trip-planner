@@ -1,5 +1,10 @@
 # EV Trip Planner — Reglas de Código y Arquitectura (v2)
-
+## NOTA DE PRIORIDADES !!!
+tasks.md es la fuente de verdad para el orden
+         de implementación. CODEGUIDELINESia.md es referencia 
+        arquitectónica. Si entran en conflicto directo, aplica
+         tasks.md pero verifica que no se pierde ningún 
+        requisito de CODEGUIDELINES
 > Documento de referencia obligatorio para cualquier agente de IA o desarrollador.  
 > Versión: 2026-04-v2 · Análisis multi-integración: Bambu Lab (2085★), Bermuda (1695★), Battery Notes (1028★), Versatile Thermostat (1021★), Nordpool (Platinum)
 

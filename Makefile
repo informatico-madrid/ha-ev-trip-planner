@@ -23,13 +23,13 @@ test:
 	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=80 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/
 
 test-verbose:
 	python3 -m pytest tests -vv -s --tb=long --ignore=tests/ha-manual/ --ignore=tests/e2e/
 
 test-dashboard:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/
 	@echo "Dashboard de cobertura generado en htmlcov/index.html"
 
 test-e2e:
@@ -77,5 +77,5 @@ clean:
 	rm -rf .hypothesis
 
 htmlcov:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=80
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
 	@echo "Reporte HTML generado en htmlcov/index.html"

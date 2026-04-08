@@ -21,7 +21,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_CHARGING_POWER,
     DEFAULT_CHARGING_POWER,
-    DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
@@ -871,7 +870,7 @@ class TripManager:
                     changed_fields,
                 )
 
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error syncing trip %s to EMHASS: %s", trip_id, err)
 
     async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
@@ -886,7 +885,7 @@ class TripManager:
             await self._publish_deferrable_loads()
 
             _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error removing trip %s from EMHASS: %s", trip_id, err)
 
     async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
@@ -905,7 +904,7 @@ class TripManager:
                 "Published new trip %s to EMHASS deferrable loads",
                 trip.get("id"),
             )
-        except Exception as err:  # pragma: no cover
+        except Exception as err:
             _LOGGER.error("Error publishing trip %s to EMHASS: %s", trip.get("id"), err)
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
@@ -980,6 +979,8 @@ class TripManager:
 
         Formula: charging_power_kw / battery_capacity_kwh * 100 = % SOC/hour
 
+        Delegates to pure calculate_charging_rate for testability.
+
         Args:
             charging_power_kw: Potencia de carga en kW
             battery_capacity_kwh: Capacidad de la bateria en kWh (default 50.0)
@@ -987,9 +988,9 @@ class TripManager:
         Returns:
             Tasa de carga en % SOC por hora
         """
-        if battery_capacity_kwh <= 0:
-            return 0.0
-        return (charging_power_kw / battery_capacity_kwh) * 100
+        from .calculations import calculate_charging_rate
+
+        return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)
 
     def _calcular_soc_objetivo_base(
         self,
@@ -999,6 +1000,8 @@ class TripManager:
     ) -> float:
         """Calculates the base SOC target percentage for a trip.
 
+        Delegates to pure calculate_soc_target for testability.
+
         Args:
             trip: Dictionary with trip data (kwh or km, consumo)
             battery_capacity_kwh: Battery capacity in kWh
@@ -1007,22 +1010,9 @@ class TripManager:
         Returns:
             Base SOC target percentage for the trip (energy + buffer)
         """
-        # Calculate energy needed for trip
-        if "kwh" in trip and trip["kwh"]:
-            energia_kwh = trip["kwh"]
-        else:
-            distance_km = trip.get("km", 0.0)
-            energia_kwh = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
+        from .calculations import calculate_soc_target
 
-        # Convert to SOC percentage
-        if battery_capacity_kwh > 0:
-            energia_soc = (energia_kwh / battery_capacity_kwh) * 100
-        else:
-            energia_soc = 0.0
-
-        # Add buffer
-        soc_objetivo_base = energia_soc + DEFAULT_SOC_BUFFER_PERCENT
-        return soc_objetivo_base
+        return calculate_soc_target(trip, battery_capacity_kwh, consumption_kwh_per_km)
 
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
@@ -1116,55 +1106,28 @@ class TripManager:
         return False
 
     def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:
-        """Obtiene la fecha y hora del viaje."""
-        if trip["tipo"] == TRIP_TYPE_RECURRING:
-            now = datetime.now()
-            today = now.date()
-            day_of_week = now.weekday()
-            target_day = self._get_day_index(trip["dia_semana"])
-            days_ahead = (target_day - day_of_week) % 7
-            if days_ahead == 0 and now.hour > int(trip["hora"].split(":")[0]):
-                days_ahead = 7
-            return datetime.combine(
-                today + timedelta(days=days_ahead),
-                datetime.strptime(trip["hora"], "%H:%M").time(),
-            )
-        elif trip["tipo"] == TRIP_TYPE_PUNCTUAL:
-            return datetime.strptime(trip["datetime"], "%Y-%m-%dT%H:%M")
-        return None
+        """Obtiene la fecha y hora del viaje.
+
+        Delegates to pure calculate_trip_time for the core algorithm.
+        """
+        from .calculations import calculate_trip_time
+
+        return calculate_trip_time(
+            trip.get("tipo"),
+            trip.get("hora"),
+            trip.get("dia_semana"),
+            trip.get("datetime"),
+            datetime.now(),
+        )
 
     def _get_day_index(self, day_name: str) -> int:
-        """Obtiene el índice del día de la semana."""
-        day_lower = day_name.lower().strip()
+        """Obtiene el índice del día de la semana.
 
-        # Handle numeric day values (0-6)
-        # 0 = Monday (in Python's weekday()) or 0 = Sunday depending on convention
-        # HA uses 0 = Monday, so we map 0-6 to DAYS_OF_WEEK directly
-        if day_lower.isdigit():
-            day_index = int(day_lower)
-            if 0 <= day_index < len(DAYS_OF_WEEK):
-                return day_index
-            _LOGGER.warning(
-                "Day index %d out of range, defaulting to Monday", day_index
-            )
-            return 0  # Monday
+        Delegates to pure calculate_day_index for the core algorithm.
+        """
+        from .calculations import calculate_day_index
 
-        # Try direct match first
-        try:
-            return DAYS_OF_WEEK.index(day_lower)
-        except ValueError:
-            pass
-
-        # Try with proper capitalization
-        for i, day in enumerate(DAYS_OF_WEEK):
-            if day.lower() == day_lower:
-                return i
-
-        # If still not found, default to Monday (index 0)
-        _LOGGER.warning(
-            "Day '%s' not found in DAYS_OF_WEEK, defaulting to Monday", day_name
-        )
-        return 0
+        return calculate_day_index(day_name)
 
     async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
         """Obtiene el SOC actual del vehículo desde el sensor configurado."""
@@ -1608,14 +1571,16 @@ class TripManager:
     ) -> List[Dict[str, Any]]:
         """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás.
 
-        Implementa el algoritmo de detección y propagación de déficit:
-        1. Ordena viajes por hora de salida (primero el más temprano)
-        2. Itera en ORDEN INVERSO (del último viaje al primero)
-        3. Calcula capacidad de carga: tasa_carga_soc * ventana_horas
-        4. Si soc_inicio + capacidad_carga < soc_objetivo:
+        Implements the deficit detection and propagation algorithm:
+        1. Sorts trips by departure time (earliest first)
+        2. Iterates in REVERSE order (last trip to first)
+        3. Calculates charging capacity: tasa_carga_soc * ventana_horas
+        4. If soc_inicio + capacidad_carga < soc_objetivo:
            - deficit = soc_objetivo - (soc_inicio + capacidad_carga)
-           - Añade el déficit al soc_objetivo del viaje ANTERIOR
-        5. Almacena deficit_acumulado para cada viaje
+           - Propagates deficit to previous trip
+        5. Stores deficit_acumulado for each trip
+
+        Delegates pure deficit propagation to calculate_deficit_propagation.
 
         Args:
             trips: Lista de diccionarios con datos de viajes
@@ -1628,6 +1593,8 @@ class TripManager:
         Returns:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
         """
+        from .calculations import calculate_deficit_propagation
+
         # Extract battery_capacity_kwh from vehicle_config with fallback to 50.0 kWh
         battery_capacity_kwh = 50.0
         if vehicle_config and isinstance(vehicle_config, dict):
@@ -1658,112 +1625,31 @@ class TripManager:
             charging_power_kw=charging_power_kw,
         )
 
-        # Crear lista de resultados ordenada por tiempo de salida
-        # Primero, ordenamos los trips por departure time
-        sorted_trips_with_times = []
-        for idx, trip in enumerate(trips):
-            trip_time = self._get_trip_time(trip)
-            if trip_time:
-                sorted_trips_with_times.append((trip_time, idx, trip))
-        sorted_trips_with_times.sort(key=lambda x: x[0])  # Sort by time ascending
+        _LOGGER.debug(
+            "Deficit propagation START: %d trips, soc_inicial=%.2f%%, tasa_carga_soc=%.2f%%/h",
+            len(trips), soc_inicial, tasa_carga_soc
+        )
 
-        # Mapear índices originales a posiciones ordenadas y viceversa
-        idx_to_ordered = {}
-        ordered_to_idx = {}
-        for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
-            idx_to_ordered[original_idx] = ordered_idx
-            ordered_to_idx[ordered_idx] = original_idx
-
-        # Inicializar deficit_acumulado para cada viaje
-        # El déficit se propaga al viaje anterior (en orden temporal, no en orden invertido)
-        deficits = [0.0] * len(trips)
-
-        _LOGGER.debug("Deficit propagation START: %d trips, soc_inicial=%.2f%%, tasa_carga_soc=%.2f%%/h", len(trips), soc_inicial, tasa_carga_soc)
-
-        # ITERAR EN ORDEN INVERSO (del último viaje al primero)
-        for ordered_idx in range(len(trips) - 1, -1, -1):
-            # Obtener el índice original usando ordered_to_idx
-            original_idx = ordered_to_idx.get(ordered_idx)
-            if original_idx is None:
-                continue
-
-            # soc_inicio_info y ventanas están indexados por posición ordenada (sorted by time)
-            soc_data = soc_inicio_info[ordered_idx]
-            ventana = ventanas[ordered_idx]
-            trip = trips[ordered_idx]
-
-            soc_inicio = soc_data["soc_inicio"]
-            ventana_horas = ventana["ventana_horas"]
-
-            # Calcular soc_objetivo base para este viaje
-            soc_objetivo = self._calcular_soc_objetivo_base(
-                trip, battery_capacity_kwh
-            )
-
-            # Añadir déficit propagado desde viajes posteriores
-            soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
-
-            # Calcular capacidad de carga disponible
-            capacidad_carga = tasa_carga_soc * ventana_horas
-
-            _LOGGER.debug("Deficit calculation for trip %s (ordered_idx=%d): soc_inicio=%.2f%%, ventana_horas=%.2f, capacidad_carga=%.2f%%, soc_objetivo_base=%.2f%%, deficit_acumulado_previo=%.2f%%", trip.get("id", f"trip_{original_idx}"), ordered_idx, soc_inicio, ventana_horas, capacidad_carga, soc_objetivo, deficits[original_idx])
-
-            # Verificar si hay déficit
-            if soc_inicio + capacidad_carga < soc_objetivo_ajustado:
-                deficit = soc_objetivo_ajustado - (soc_inicio + capacidad_carga)
-
-                _LOGGER.debug("Deficit DETECTED for trip %s: deficit=%.2f%%, propagating to previous trip (ordered_idx=%d)", trip.get("id", f"trip_{original_idx}"), deficit, ordered_idx - 1)
-
-                # Propagar el déficit al viaje ANTERIOR (en orden temporal)
-                # Esto es, el viaje con departure time menor
-                if ordered_idx > 0:
-                    # Usar ordered_to_idx para encontrar el viaje anterior
-                    prev_original_idx = ordered_to_idx.get(ordered_idx - 1)
-                    if prev_original_idx is not None:
-                        deficits[prev_original_idx] += deficit
-
-                # Guardar deficit_acumulado para este viaje
-                deficits[original_idx] += deficit
-
-        # Construir resultados finales
-        # soc_inicio_info, ventanas y deficits están indexados por posición ordenada (sorted by time)
-        results: List[SOCMilestoneResult] = []
-
-        _LOGGER.debug("Final SOC targets for %d trips: deficit propagation complete", len(trips))
-        for ordered_idx in range(len(trips)):
-            # Get original index to retrieve the trip from unsorted list
-            original_idx = ordered_to_idx.get(ordered_idx)
-            if original_idx is None:
-                continue
-            trip = trips[original_idx]
-            soc_data = soc_inicio_info[ordered_idx]
-            ventana = ventanas[ordered_idx]
-
-            soc_objetivo = self._calcular_soc_objetivo_base(
-                trip, battery_capacity_kwh
-            )
-            soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
-
-            # Calculate kWh needed: (soc_objetivo - soc_inicio) * battery_capacity_kwh / 100
-            soc_inicio = soc_data["soc_inicio"]
-            kwh_necesarios = (soc_objetivo_ajustado - soc_inicio) * battery_capacity_kwh / 100
-
-            results.append({
-                "trip_id": trip.get("id", f"trip_{original_idx}"),
-                "soc_objetivo": round(soc_objetivo_ajustado, 2),
-                "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
-                "deficit_acumulado": round(deficits[original_idx], 2),
-                "ventana_carga": {
-                    "ventana_horas": ventana["ventana_horas"],
-                    "kwh_necesarios": ventana["kwh_necesarios"],
-                    "horas_carga_necesarias": ventana["horas_carga_necesarias"],
-                    "inicio_ventana": ventana["inicio_ventana"],
-                    "fin_ventana": ventana["fin_ventana"],
-                    "es_suficiente": ventana["es_suficiente"],
-                },
-            })
-
-            _LOGGER.debug("Final SOC target for trip %s: soc_objetivo=%.2f%%, kwh_necesarios=%.3f, deficit_acumulado=%.2f%%", trip.get("id", f"trip_{original_idx}"), round(soc_objetivo_ajustado, 2), round(max(0.0, kwh_necesarios), 3), round(deficits[original_idx], 2))
+        # Delegate pure deficit propagation algorithm to calculations.py
+        # Pre-compute trip times using the instance's _get_trip_time method
+        # (which may be mocked in tests) for correct test compatibility
+        precomputed_trip_times = [self._get_trip_time(trip) for trip in trips]
+        # Pre-compute SOC targets using the instance's _calcular_soc_objetivo_base
+        # (which may be mocked in tests) for correct test compatibility
+        precomputed_soc_targets = [
+            self._calcular_soc_objetivo_base(trip, battery_capacity_kwh)
+            for trip in trips
+        ]
+        results = calculate_deficit_propagation(
+            trips=trips,
+            soc_data=soc_inicio_info,
+            windows=ventanas,
+            tasa_carga_soc=tasa_carga_soc,
+            battery_capacity_kwh=battery_capacity_kwh,
+            reference_dt=datetime.now(),
+            trip_times=precomputed_trip_times,
+            soc_targets=precomputed_soc_targets,
+        )
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
@@ -1789,11 +1675,12 @@ class TripManager:
         Returns:
             Lista de valores de potencia en watts (0 = no cargar, positivo = cargar)
         """
+        from .calculations import calculate_power_profile
+
         # Cargar viajes
         await self._load_trips()
 
         # Obtener configuración del vehículo
-        # Use provided vehicle_config if available, otherwise get from config entry
         if vehicle_config:
             battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
             soc_current = vehicle_config.get("soc_current")
@@ -1813,13 +1700,8 @@ class TripManager:
             soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
 
         # Obtener hora_regreso si no fue proporcionada
-        # Si no hay hora_regreso detectada aun, usar departure_time + 6h como estimado
-        if hora_regreso is None and self.vehicle_controller._presence_monitor:
+        if hora_regreso is None and self.vehicle_controller and self.vehicle_controller._presence_monitor:
             hora_regreso = await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
-
-        # Inicializar perfil de potencia (0 = no cargar)
-        profile_length = planning_horizon_days * 24
-        power_profile = [0.0] * profile_length
 
         # Obtener todos los viajes pendientes
         all_trips = []
@@ -1830,89 +1712,16 @@ class TripManager:
             if trip.get("estado") == "pendiente":
                 all_trips.append(trip)
 
-        # Asignar índices a los viajes y aplicar prioridad
-        # Urgentes = menor deadline = índice menor (prioridad alta)
-        # Ordenar por tiempo de viaje (deadline más temprano = más urgente)
-        now = datetime.now()
-        for trip in all_trips:
-            trip_time = self._get_trip_time(trip)
-            if trip_time:
-                trip["_deadline"] = trip_time
-            else:
-                # Sin deadline conocido = menor prioridad
-                trip["_deadline"] = datetime.max
-
-        # Ordenar trips: primero los más urgentes (deadline más cercano)
-        all_trips.sort(key=lambda t: t.get("_deadline", datetime.max))
-
-        # Asignar índice a cada viaje (0, 1, 2, ...)
-        for idx, trip in enumerate(all_trips):
-            trip["_trip_index"] = idx
-
-        # Procesar cada viaje
-        now = datetime.now()
-        for trip in all_trips:
-            # Calcular energía necesaria
-            vehicle_config = {
-                "battery_capacity_kwh": battery_capacity,
-                "charging_power_kw": charging_power_kw,
-                "soc_current": soc_current,
-            }
-            energia_info = await self.async_calcular_energia_necesaria(
-                trip, vehicle_config
-            )
-            energia_kwh = energia_info["energia_necesaria_kwh"]
-
-            if energia_kwh <= 0:
-                continue
-
-            # Usar calcular_ventana_carga para determinar la ventana de carga
-            ventana_info = await self.calcular_ventana_carga(
-                trip, soc_current, hora_regreso, charging_power_kw
-            )
-
-            # Si no hay ventana suficiente, skip
-            if not ventana_info.get("es_suficiente", False):
-                continue
-
-            # Obtener inicio y fin de ventana
-            inicio_ventana = ventana_info.get("inicio_ventana")
-            fin_ventana = ventana_info.get("fin_ventana")
-
-            if not inicio_ventana or not fin_ventana:
-                continue
-
-            # Convertir a watts
-            charging_power_watts = charging_power_kw * 1000
-
-            # Determinar posición en el perfil basada en la ventana
-            delta_inicio = inicio_ventana - now
-            horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
-
-            if horas_desde_ahora < 0:
-                # La ventana ya empezó, cargar inmediatamente
-                hora_inicio_carga = 0
-            else:
-                hora_inicio_carga = horas_desde_ahora
-
-            # Las horas necesarias para cargar
-            horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
-            if horas_necesarias == 0:
-                horas_necesarias = 1
-
-            # Fin de la ventana relativo a ahora
-            delta_fin = fin_ventana - now
-            horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
-
-            if horas_hasta_fin < 0:
-                continue  # La ventana ya terminó
-
-            # Distribuir la carga en las horas disponibles
-            for h in range(int(hora_inicio_carga), min(int(hora_inicio_carga + horas_necesarias), horas_hasta_fin, profile_length)):
-                if h >= 0 and h < profile_length:
-                    power_profile[h] = charging_power_watts
-
-        return power_profile
+        # Delegate pure power profile calculation to calculations.py
+        return calculate_power_profile(
+            all_trips=all_trips,
+            battery_capacity_kwh=battery_capacity,
+            soc_current=soc_current,
+            charging_power_kw=charging_power_kw,
+            hora_regreso=hora_regreso,
+            planning_horizon_days=planning_horizon_days,
+            reference_dt=datetime.now(),
+        )
 
     async def async_generate_deferrables_schedule(
         self,
@@ -2172,7 +1981,7 @@ class TripManager:
                 return
 
             # Remove the entity from the registry
-            registry.async_remove(entity_id)
+            await registry.async_remove(entity_id)
 
             _LOGGER.info(
                 "Removed trip sensor %s for trip %s (vehicle: %s)",

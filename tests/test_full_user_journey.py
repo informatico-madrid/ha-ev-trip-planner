@@ -22,8 +22,8 @@ from custom_components.ev_trip_planner.const import (
     CONF_CONSUMPTION,
     CONF_CHARGING_POWER,
 )
-from custom_components.ev_trip_planner import DATA_RUNTIME, DOMAIN
-from custom_components.ev_trip_planner.__init__ import register_services
+from custom_components.ev_trip_planner import DOMAIN
+from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData, register_services
 
 
 # =============================================================================
@@ -45,6 +45,11 @@ def mock_hass():
         CONF_CONSUMPTION: 0.15,
         CONF_CHARGING_POWER: 11.0,
     }
+    # Set up entry.runtime_data with EVTripRuntimeData structure (Phase 4 pattern)
+    mock_entry.runtime_data = EVTripRuntimeData(
+        coordinator=MagicMock(),
+        trip_manager=None,
+    )
 
     def _async_entries(domain=None):
         return [mock_entry]
@@ -226,20 +231,16 @@ class TestFullUserJourney:
 
         manager = _create_mock_manager()
 
-        # Store in hass.data for services to find it
-        namespace = f"{DOMAIN}_{entry_id}"
-        if DATA_RUNTIME not in mock_hass.data:
-            mock_hass.data[DATA_RUNTIME] = {}
-        if namespace not in mock_hass.data[DATA_RUNTIME]:
-            mock_hass.data[DATA_RUNTIME][namespace] = {}
+        # Get the mock entry from config_entries
+        mock_entry = mock_hass.config_entries.async_get_entry(entry_id)
 
-        # _get_manager looks for trip_manager directly under namespace
-        mock_hass.data[DATA_RUNTIME][namespace]["trip_manager"] = manager
+        # _get_manager looks for trip_manager in entry.runtime_data
+        mock_entry.runtime_data.trip_manager = manager
 
         # Create mock coordinator
         coordinator = MagicMock()
         coordinator.async_refresh_trips = AsyncMock()
-        mock_hass.data[DATA_RUNTIME][namespace]["coordinator"] = coordinator
+        mock_entry.runtime_data.coordinator = coordinator
 
         # =====================================================================
         # STEP 2: Register services

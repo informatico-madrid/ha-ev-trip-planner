@@ -15,10 +15,13 @@ from .const import (
     CONF_NOTIFICATION_SERVICE,
     CONF_VEHICLE_NAME,
     DEFAULT_INDEX_COOLDOWN_HOURS,
+    DOMAIN,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     EMHASS_STATE_READY,
 )
+
+DATA_RUNTIME = f"{DOMAIN}_runtime_data"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ class EMHASSAdapter:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         """Initialize adapter."""
         self.hass = hass
+        self._entry = entry if isinstance(entry, ConfigEntry) else None
 
         # Handle both dict (backward compatibility for tests) and ConfigEntry
         if isinstance(entry, dict):
@@ -126,6 +130,43 @@ class EMHASSAdapter:
                 error_type="storage_error",
                 message=f"Failed to load data: {err}",
             )
+
+    def _get_coordinator(self) -> Optional[Any]:
+        """Get the TripPlannerCoordinator for this vehicle.
+
+        PHASE 4 (4.3): Use entry.runtime_data instead of hass.data[DATA_RUNTIME].
+
+        Returns:
+            The coordinator if found, None otherwise.
+        """
+        # PHASE 4: Use entry.runtime_data (HA-recommended pattern)
+        if self._entry is not None and hasattr(self._entry, "runtime_data"):
+            coordinator = getattr(self._entry.runtime_data, "coordinator", None)
+            if coordinator is not None:
+                return coordinator
+        # Fallback for test compatibility (when entry is a dict)
+        namespace = f"{DOMAIN}_{self.entry_id}"
+        runtime_data = self.hass.data.get(DATA_RUNTIME, {})
+        coordinators = runtime_data.get(namespace, {}).get("coordinators", {})
+        return coordinators.get(self.vehicle_id)
+
+    def get_cached_optimization_results(self) -> Dict[str, Any]:
+        """Return cached optimization results for coordinator retrieval.
+
+        PHASE 3 (3.4): This method exposes computed EMHASS data to the
+        TripPlannerCoordinator so it can populate coordinator.data.
+
+        Returns:
+            Dict with emhass_power_profile, emhass_deferrables_schedule,
+            and emhass_status keys.
+        """
+        return {
+            "emhass_power_profile": getattr(self, "_cached_power_profile", None),
+            "emhass_deferrables_schedule": getattr(
+                self, "_cached_deferrables_schedule", None
+            ),
+            "emhass_status": getattr(self, "_cached_emhass_status", None),
+        }
 
     async def async_save(self):
         """Save index mapping and released indices to storage."""
@@ -289,10 +330,10 @@ class EMHASSAdapter:
             }
 
             # Set state
-            config_sensor_id = self._get_config_sensor_id(emhass_index)
-            await self.hass.states.async_set(
-                config_sensor_id, EMHASS_STATE_ACTIVE, attributes
-            )
+            # PHASE 3 REMOVED (3.1): Remove dual-writing path - data via coordinator
+            #     config_sensor_id = self._get_config_sensor_id(emhass_index)
+            #     config_sensor_id, EMHASS_STATE_ACTIVE, attributes
+            # )
 
             _LOGGER.info(
                 "Published deferrable load for trip %s (index %d): %s hours, %s W",
@@ -324,10 +365,9 @@ class EMHASSAdapter:
                 return False
 
             emhass_index = self._index_map[trip_id]
-            config_sensor_id = self._get_config_sensor_id(emhass_index)
 
             # Clear the configuration
-            await self.hass.states.async_set(config_sensor_id, "idle", {})
+            # PHASE 3 REMOVED (3.1): Remove dual-writing path
 
             # Release the index
             await self.async_release_trip_index(trip_id)
@@ -395,8 +435,7 @@ class EMHASSAdapter:
         expired = [
             idx
             for idx, released_time in self._released_indices.items()
-            if (now - released_time).total_seconds()
-            >= self._index_cooldown_hours * 3600
+            if (now - released_time).total_seconds() >= self._index_cooldown_hours * 3600
         ]
         for idx in expired:
             del self._released_indices[idx]
@@ -528,28 +567,29 @@ class EMHASSAdapter:
             trips, charging_power_kw
         )
 
+        # PHASE 3 (3.4): Cache computed values for coordinator retrieval
+        self._cached_power_profile = power_profile
+        self._cached_deferrables_schedule = deferrables_schedule
+        self._cached_emhass_status = EMHASS_STATE_READY
+
         # Update the template sensor
         sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-        try:
-            await self.hass.states.async_set(
-                sensor_id,
-                EMHASS_STATE_READY,
-                {
-                    "power_profile_watts": power_profile,
-                    "deferrables_schedule": deferrables_schedule,
-                    "vehicle_id": self.vehicle_id,
-                    "trips_count": len(trips),
-                    # FR-1.2: Add entry_id for orphan detection
-                    "entry_id": self.entry_id,
-                },
+        # PHASE 3 REMOVED (3.1): Remove dual-writing path - data flows via coordinator
+        # The coordinator will handle EMHASS data via async_request_refresh()
+
+        # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
+        coordinator = self._get_coordinator()
+        if coordinator is not None:
+            await coordinator.async_request_refresh()
+            _LOGGER.debug(
+                "Triggered coordinator refresh for EMHASS data update for %s",
+                self.vehicle_id,
             )
-        except HomeAssistantError as err:
-            _LOGGER.error("Error publishing deferrable loads to sensor: %s", err)
-            await self.async_notify_error(
-                error_type="sensor_error",
-                message=f"Failed to publish deferrable loads: {err}",
+        else:
+            _LOGGER.warning(
+                "No coordinator found for %s, EMHASS data update delayed",
+                self.vehicle_id,
             )
-            return False
 
         # Track published entity (FR-1, AC-1.4)
         self._published_entity_ids.add(sensor_id)
@@ -857,7 +897,6 @@ class EMHASSAdapter:
     ) -> None:
         """Update dashboard status sensor with error information."""
         try:
-            sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             attributes = {
                 "power_profile_watts": [0.0] * 168,
                 "deferrables_schedule": [],
@@ -874,11 +913,11 @@ class EMHASSAdapter:
             if trip_id:
                 attributes["error_trip_id"] = trip_id
 
-            await self.hass.states.async_set(
-                sensor_id,
-                EMHASS_STATE_ERROR,
-                attributes,
-            )
+            # PHASE 3 REMOVED (3.1): Remove dual-writing path - data via coordinator
+            #     sensor_id,
+            #     EMHASS_STATE_ERROR,
+            #     attributes,
+            # )
 
             _LOGGER.debug(
                 "Updated dashboard status for vehicle %s: error=%s",
@@ -1122,11 +1161,11 @@ class EMHASSAdapter:
                 attributes.pop("error_trip_id", None)
                 attributes["emhass_status"] = EMHASS_STATE_READY
 
-                await self.hass.states.async_set(
-                    sensor_id,
-                    current_state.state,
-                    attributes,
-                )
+                # PHASE 3 REMOVED (3.1): Remove dual-writing path
+                #     sensor_id,
+                #     current_state.state,
+                #     attributes,
+                # )
 
             _LOGGER.info("Cleared error status for vehicle %s", self.vehicle_id)
         except HomeAssistantError as err:
@@ -1174,7 +1213,7 @@ class EMHASSAdapter:
                     )
                 # Remove from entity registry
                 try:
-                    registry.async_remove(config_sensor_id)
+                    await registry.async_remove(config_sensor_id)
                 except Exception as err:  # Entity may not exist or already removed
                     _LOGGER.debug(
                         "Registry async_remove failed for %s: %s",
@@ -1185,7 +1224,7 @@ class EMHASSAdapter:
         # Clear the main vehicle sensor from registry
         try:
             main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-            registry.async_remove(main_sensor_id)
+            await registry.async_remove(main_sensor_id)
         except Exception as err:  # Entity may not exist or already removed
             _LOGGER.debug(
                 "Registry async_remove failed for %s: %s",

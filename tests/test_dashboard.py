@@ -1,6 +1,6 @@
 """Tests for EV Trip Planner Dashboard YAML structure."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 from pathlib import Path
@@ -2378,3 +2378,431 @@ class TestEMHASSErrorNotifications:
         # Verify that async_notify_error was called
         # This assertion will FAIL because current async_load doesn't handle errors
         adapter.async_notify_error.assert_called_once()
+
+
+class TestDashboardErrorPaths:
+    """Tests for dashboard error paths - PRAGMA-B coverage targets.
+
+    Covers error handling in:
+    - _save_dashboard_yaml_fallback - YAML write failures
+    - import_dashboard - storage API exceptions
+    - _validate_dashboard_config - validation branches
+    """
+
+    @pytest.fixture
+    def mock_hass_container(self):
+        """Create a mock HomeAssistant instance simulating Container environment."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.components = ["sensor"]  # No lovelace component
+
+        # Container: NO storage API available
+        hass.storage = None
+
+        # Container: lovelace.save service does NOT exist
+        def has_service(domain, service):
+            if domain == "lovelace" and service == "save":
+                return False
+            return False
+
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = has_service
+
+        return hass
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_write_failure(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure when _write_file_content raises.
+
+        This tests the error path at lines 1165-1184 where the YAML write fails.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback, _call_async_executor_sync
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Mock _check_path_exists to return False (file doesn't exist)
+        mock_hass_container.async_add_executor_job = MagicMock(
+            side_effect=lambda fn, *args: fn(*args) if not callable(fn) else fn(*args)
+        )
+
+        # Create valid dashboard config
+        dashboard_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "test-view",
+                    "title": "Test View",
+                    "cards": [
+                        {
+                            "type": "markdown",
+                            "content": "Test content",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        # Patch _check_path_exists to return False (avoiding infinite loop in suffix logic)
+        original_check = __import__(
+            "custom_components.ev_trip_planner.dashboard",
+            fromlist=["_check_path_exists"]
+        )._check_path_exists
+
+        def patched_check_path(path):
+            if "ev-trip-planner" in path:
+                return False  # File doesn't exist
+            return original_check(path)
+
+        # Patch _write_file_content to raise an exception
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._check_path_exists",
+            side_effect=patched_check_path
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._write_file_content",
+                side_effect=PermissionError("Permission denied")
+            ):
+                result = await _save_dashboard_yaml_fallback(
+                    mock_hass_container, dashboard_config, "test_vehicle"
+                )
+
+        # Should return failure result
+        assert result.success is False, "Should return failure when write fails"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_empty_config(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure for empty config.
+
+        Tests the validation at lines 1007-1016.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Empty config should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container, {}, "test_vehicle"
+        )
+
+        assert result.success is False, "Empty config should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_missing_title(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure for missing title.
+
+        Tests validation at lines 1018-1027.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config without title should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"views": [{"path": "test", "title": "Test", "cards": []}]},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "Missing title should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_missing_views(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure for missing views.
+
+        Tests validation at lines 1029-1038.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config without views should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test"},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "Missing views should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_empty_views(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure for empty views list.
+
+        Tests validation at lines 1051-1060.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config with empty views should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test", "views": []},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "Empty views should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_view_missing_path(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure when view missing path.
+
+        Tests validation at lines 1073-1084.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config with view missing path should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test", "views": [{"title": "Test", "cards": []}]},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "View missing path should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_view_missing_title(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure when view missing title.
+
+        Tests validation at lines 1085-1096.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config with view missing title should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test", "views": [{"path": "test", "cards": []}]},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "View missing title should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_view_missing_cards(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure when view missing cards.
+
+        Tests validation at lines 1097-1108.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Config with view missing cards should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test", "views": [{"path": "test", "title": "Test"}]},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "View missing cards should return failure"
+
+    @pytest.mark.asyncio
+    async def test_save_yaml_fallback_no_config_dir(self, mock_hass_container, tmp_path):
+        """_save_dashboard_yaml_fallback returns failure when config_dir is empty.
+
+        Tests validation at lines 1112-1121.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+
+        # Set config_dir to empty/None
+        mock_hass_container.config.config_dir = ""
+
+        # Valid config but no config dir should fail
+        result = await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            {"title": "Test", "views": [{"path": "test", "title": "Test", "cards": []}]},
+            "test_vehicle"
+        )
+
+        assert result.success is False, "Empty config_dir should return failure"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_storage_api_exception(self, mock_hass_container, tmp_path):
+        """import_dashboard handles storage API exception and falls back to YAML.
+
+        Tests exception handling at lines 903-910 and 500-502.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import import_dashboard
+
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Mock is_lovelace_available to return True (so we try storage API)
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True
+        ):
+            # Mock _save_lovelace_dashboard to raise exception
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                side_effect=Exception("Storage API error")
+            ):
+                result = await import_dashboard(
+                    mock_hass_container,
+                    "test_vehicle",
+                    "Test Vehicle",
+                    use_charts=False,
+                )
+
+        # Should still succeed via YAML fallback
+        assert result.success is True, "Should fallback to YAML when storage API fails"
+
+    @pytest.mark.asyncio
+    async def test_validate_dashboard_config_valid(self):
+        """_validate_dashboard_config passes for valid config.
+
+        Tests the happy path validation.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _validate_dashboard_config
+
+        valid_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "test-view",
+                    "title": "Test View",
+                    "cards": [
+                        {
+                            "type": "markdown",
+                            "content": "Test content",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        # Should not raise for valid config
+        _validate_dashboard_config(valid_config, "test_vehicle")
+
+    @pytest.mark.asyncio
+    async def test_validate_dashboard_config_invalid_type(self):
+        """_validate_dashboard_config raises for non-dict config.
+
+        Tests validation at lines 529-533.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _validate_dashboard_config, DashboardValidationError
+
+        # Non-dict config should raise
+        with pytest.raises(DashboardValidationError):
+            _validate_dashboard_config("not a dict", "test_vehicle")
+
+    @pytest.mark.asyncio
+    async def test_validate_dashboard_config_view_not_dict(self):
+        """_validate_dashboard_config raises when view is not dict.
+
+        Tests validation at lines 559-564.
+        """
+        import sys
+        sys.path.insert(
+            0,
+            str(Path(__file__).parent.parent / "custom_components")
+        )
+
+        from custom_components.ev_trip_planner.dashboard import _validate_dashboard_config, DashboardValidationError
+
+        invalid_config = {
+            "title": "Test",
+            "views": [
+                "not a dict"  # Invalid view
+            ],
+        }
+
+        with pytest.raises(DashboardValidationError):
+            _validate_dashboard_config(invalid_config, "test_vehicle")
