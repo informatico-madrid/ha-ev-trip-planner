@@ -144,6 +144,6 @@
     "Phase G": "NEW: Phase G (T077-T086) \u2014 100% coverage across all modules: calculations.py (9 lines), trip_manager.py (84 lines), emhass_adapter.py (33 lines), config_flow.py (44), dashboard.py (60), __init__.py (14)",
     "T077": "DONE: calculations.py 100% (pragmas documentados en l\u00edneas unreachable)",
     "T078": "DONE: trip_manager.py coverage improved. 1284 tests passing.",
-    "T081": "IN PROGRESS: test_dashboard_missing.py removed \u2014 test hung due to asyncio/MagicMock incompatibility in _save_dashboard_yaml_fallback. Production code is alive (called from 4 sites), but agent test was broken. Needs proper mocking of _call_async_executor_sync."
+    "T081": "NOT SKIPPED \u2014 agent MUST complete. dashboard.py ~60 lines uncovered. Known bug: test hangs due to _call_async_executor_sync + MagicMock asyncio incompatibility. Fix: patch _call_async_executor_sync directly. test_dashboard_missing.py deleted by reviewer \u2014 agent must recreate with correct mocks."
   }
 }

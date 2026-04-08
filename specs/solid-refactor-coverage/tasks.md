@@ -261,15 +261,18 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
 
 ### US-G5: Llevar dashboard.py a 100%
 
-- [ ] T081 [US-G5] [VERIFY:TEST] Obtener las ~60 líneas sin cubrir en dashboard.py:
-  - ⚠️ ADVERTENCIA: `_save_dashboard_yaml_fallback` usa `_call_async_executor_sync` que interactúa con `asyncio.add_executor_job`. Los tests que mockean `hass` con MagicMock **cuelgan indefinidamente**.
-  - FIX: mockear `_call_async_executor_sync` directamente: `patch('custom_components.ev_trip_planner.dashboard._call_async_executor_sync', return_value=None)`. NO intentar mockear `hass.async_add_executor_job`.
-  - Archivo `tests/test_dashboard_missing.py` eliminado por reviewer — el agente debe recrearlo con mocks correctos.
-  ```bash
-  pytest tests/ --cov=custom_components.ev_trip_planner.dashboard --cov-report=term-missing -q 2>&1 | tail -10
-  ```
-
-  **dashboard.py es casi todo Python puro y debe testearse con tests, no con pragmas.**
+- [ ] T081 [US-G5] [VERIFY:TEST] Cubrir las ~60 líneas sin cubrir en dashboard.py:
+  - **NO SKIP — esta tarea DEBE completarse.** dashboard.py es Python puro y testeable.
+  - ⚠️ BUG CONOCIDO: `test_save_yaml_fallback_create_directory` cuelga indefinidamente porque mockea `hass` con MagicMock y `_call_async_executor_sync` intenta usar `asyncio.add_executor_job` que no funciona con MagicMock en mode AUTO.
+  - ✅ FIX CORRECTO (aplicar SIEMPRE):
+    ```python
+    with patch("custom_components.ev_trip_planner.dashboard._call_async_executor_sync", side_effect=lambda hass, func, *args: func(*args)):
+        # Llamar a la función bajo test — no cuelga porque el mock evita el executor real
+    ```
+  - Archivo `tests/test_dashboard_missing.py` eliminado por reviewer — **el agente DEBE recrearlo** con el mock correcto de arriba.
+  - Líneas a cubrir: 1147-1151 (crear directorio), 1165-1170 (escribir YAML), 1180-1185 (exception handling), etc.
+  - VERIFICACIÓN: `pytest tests/ --cov=custom_components.ev_trip_planner.dashboard --cov-report=term-missing -q` → 100%
+  - Gate: `pytest tests/ -v` → todos pasan, sin hangs.
 
   El módulo contiene:
   - Clases de error (`DashboardError`, `DashboardNotFoundError`, etc.) — puras, instanciar directamente en tests
