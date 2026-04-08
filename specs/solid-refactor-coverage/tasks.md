@@ -39,8 +39,8 @@
 
 #### Implementation
 
-- [ ] T006 [P] [US-A1] Add `validate_hora(hora: str) -> None` to `custom_components/ev_trip_planner/utils.py`
-- [ ] T007 [P] [US-A1] Add `sanitize_recurring_trips(trips: Dict) -> Dict` to `custom_components/ev_trip_planner/utils.py`
+- [x] T006 [P] [US-A1] Add `validate_hora(hora: str) -> None` to `custom_components/ev_trip_planner/utils.py`
+- [x] T007 [P] [US-A1] Add `sanitize_recurring_trips(trips: Dict) -> Dict` to `custom_components/ev_trip_planner/utils.py`
 - [ ] T008 [P] [US-A1] Add `is_trip_today(trip: Dict, today: date) -> bool` to `custom_components/ev_trip_planner/utils.py`
 - [ ] T009 [P] [US-A1] Add `calculate_trip_time(trip: Dict) -> Optional[datetime]` and `calculate_day_index(day_name: str) -> int` to `custom_components/ev_trip_planner/utils.py`
 - [ ] T010 [P] [US-A1] Add `calculate_charging_rate(power_kw: float, capacity: float) -> float` and `calculate_soc_target(trip, capacity: float, consumption: float) -> float` to `custom_components/ev_trip_planner/calculations.py`
