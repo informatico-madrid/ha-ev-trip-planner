@@ -3,11 +3,11 @@
   "name": "solid-refactor-coverage",
   "basePath": "./specs/solid-refactor-coverage",
   "phase": "execution",
-  "taskIndex": 23,
+  "taskIndex": 71,
   "totalTasks": 78,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 47,
+  "globalIteration": 49,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": true,
@@ -95,7 +95,9 @@
     61,
     62,
     68,
-    70
+    70,
+    23,
+    64
   ],
   "failedTasks": [],
   "skippedTasks": [
@@ -143,18 +145,19 @@
     "T067-FIX": "DONE (uncommitted, clean): reference_dt added to calculate_deferrable_parameters WITHOUT breaking deficit_propagation. Only minimal change: added param + datetime.now() replacement.",
     "T068-FIX": "BUG ACTIVO: yaml_trip_storage.async_load() puede devolver no-dict",
     "Phase F": "NUEVA: T064-T076 \u2014 cobertura 100% m\u00f3dulos puros, 92%+ total",
-    "Tests": "1177 passed, 0 failed",
-    "Coverage": "87.72%",
+    "Tests": "1193 passed, 0 failed. Coverage 89.16%",
+    "Coverage": "87.97%",
     "T029_breadcrumb": "\ud83c\udf5e Agente: T029 PENDIENTE \u2014 stub local en test_protocols.py NO valida clase real. Reemplazar por from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage",
     "T068": "DONE: yaml_trip_storage.py 100% coverage, 7 tests pass, imports REAL class",
     "T029_status": "COMPLETE",
     "Phase_F_progress": "+16 new edge case tests (+320 lines). Coverage 88.19%",
     "T029_micro_tasks": "4 micro-tasks added: T029.1-T029.4. Agent should pick these up next.",
-    "T065b": "DECOMPOSED: Agent claim of \"structurally unreachable\" is WRONG for most lines. Only ordered_to_idx.get() lines (524,538,557,599) might qualify for pragma IF caller contract guarantees matched data. Lines 66, 693, 810, 819, 823, 830 are REACHABLE \u2014 need tests, NOT pragmas. Rules say: \"no pragma without documented reason\" and \"only for structurally unreachable code\".",
+    "T065b": "QUALITY AUDIT: 23 incorrect pragmas reverted. Agent must write tests for reachable lines, not use pragma as shortcut.",
     "REGRESSION_FIXED": "Agent changes to calculations.py broke 4 test_soc_milestone.py tests (deficit propagation regression). Reverted uncommitted changes to calculations.py and test_calculations.py. T067-FIX needs to be redone carefully without breaking deficit_propagation logic.",
     "Agent_status": "T029 complete (8/8 tests pass). T065b + T023 pending. T067-FIX done (needs commit). T070-T076 Phase F coverage pending.",
     "Pending": "T023 (calculations 90%), T064 (coverage report), T065b (pragma analysis), T070-T076 (Phase F)",
     "T070": "COMPLETE: 1177 passed, 0 failed",
-    "T071-T074": "DECOMPOSED into micro-tasks: T071.1-T071.3, T072.1-T072.3, T073.1-T073.3, T074.1-T074.3"
+    "T071-T074": "DECOMPOSED into micro-tasks: T071.1-T071.3, T072.1-T072.3, T073.1-T073.3, T074.1-T074.3",
+    "QUALITY_AUDIT": "Agent added 23 # pragma: no cover on REACHABLE business logic lines - SPEC VIOLATION. Reverted all incorrect pragmas. T067-FIX applied cleanly (only 2 lines: reference_dt param + datetime.now() replacement). Rules say: \"NUNCA usar pragma para cubrir l\u00f3gica de negocio real\" - only OK for I/O bound with HA real."
   }
 }

@@ -951,6 +951,7 @@ def generate_deferrable_schedule_from_trips(
 def calculate_deferrable_parameters(
     trip: Dict[str, Any],
     power_kw: float,
+    reference_dt: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Calculate deferrable load parameters from trip data.
 
@@ -993,7 +994,7 @@ def calculate_deferrable_parameters(
 
         # Calculate available time until deadline
         if deadline:
-            now = datetime.now()
+            now = reference_dt if reference_dt is not None else datetime.now()
             if isinstance(deadline, str):
                 deadline_dt = datetime.fromisoformat(deadline)
             else:
