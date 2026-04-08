@@ -636,6 +636,81 @@ def calculate_deficit_propagation(
 # =============================================================================
 
 
+def calculate_power_profile_from_trips(
+    trips: List[Dict[str, Any]],
+    power_kw: float,
+    horizon: int = 168,
+) -> List[float]:
+    """Calculate power profile from trips (pure version).
+
+    Each trip creates a charging window before its deadline.
+    Power is distributed across the hours leading up to the deadline.
+
+    Args:
+        trips: List of trip dicts with 'datetime' and 'kwh' or 'km' keys.
+               Trips without datetime are skipped.
+        power_kw: Charging power in kilowatts.
+        horizon: Number of hours in the profile (default 168 = 1 week).
+
+    Returns:
+        List of power values in watts (one per hour, 0 = no charging).
+    """
+    from datetime import datetime
+
+    power_profile = [0.0] * horizon
+    now = datetime.now()
+    charging_power_watts = power_kw * 1000
+
+    for trip in trips:
+        # Get deadline
+        deadline = trip.get("datetime")
+        if not deadline:
+            continue
+
+        # Parse deadline
+        if isinstance(deadline, str):
+            try:
+                deadline_dt = datetime.fromisoformat(deadline)
+            except ValueError:
+                continue
+        else:
+            deadline_dt = deadline
+
+        # Calculate energy needed for this trip
+        # Use calculate_energy_needed to get kwh_necesarios
+        battery_capacity_kwh = 50.0  # Default for pure function
+        soc_current = 0.0  # Assume empty battery for worst-case
+        energia_info = calculate_energy_needed(
+            trip, battery_capacity_kwh, soc_current, power_kw
+        )
+        kwh = energia_info.get("energia_necesaria_kwh", 0.0)
+        if kwh <= 0:
+            continue
+
+        # Calculate hours needed to charge
+        total_hours = energia_info.get("horas_carga_necesarias", 0.0)
+        horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
+        if horas_necesarias == 0:
+            horas_necesarias = 1
+
+        # Calculate position in profile
+        delta = deadline_dt - now
+        horas_hasta_viaje = int(delta.total_seconds() / 3600)
+
+        if horas_hasta_viaje < 0:
+            continue
+
+        # Set charging hours (last hours before deadline)
+        hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+        hora_fin = min(horas_hasta_viaje, horizon)
+
+        for h in range(int(hora_inicio_carga), int(hora_fin)):
+            if 0 <= h < horizon:
+                power_profile[h] = charging_power_watts
+
+    return power_profile
+
+
 def calculate_power_profile(
     all_trips: List[Dict[str, Any]],
     battery_capacity_kwh: float,
