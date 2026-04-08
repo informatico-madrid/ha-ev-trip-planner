@@ -272,7 +272,114 @@ async def test_sensor_setup(hass: HomeAssistant, mock_config_entry):
     assert state is not None
 ```
 
-### 2. Coverage mínimo
+---
+
+### 2. Estrategia de Test Doubles (OBLIGATORIO)
+
+Seguimos la **Layered Test Doubles Strategy** usada por las integraciones HACS Platinum/Gold de referencia (ej. [Frigate](https://github.com/blakeblackshear/frigate-hass-integration)). La estrategia tiene **3 capas obligatorias**:
+
+#### Capa 1 — Fake del sistema externo (en `tests/__init__.py`)
+Datos y helpers compartidos que simulan el comportamiento del sistema externo con **implementación real en memoria**. No son mocks — tienen comportamiento.
+
+```python
+# tests/__init__.py
+from unittest.mock import AsyncMock
+
+TEST_CONFIG = {
+    "vehicle_name": "Test EV",
+    "soc_sensor": "sensor.test_soc",
+    "battery_capacity_kwh": 60,
+}
+
+TEST_TRIPS = {
+    "recurring": [{"id": "trip_001", "km": 50, "dia_semana": "lunes"}],
+    "punctual": [],
+}
+
+def create_mock_trip_manager() -> AsyncMock:
+    """Create a mock TripManager with realistic responses (Stub pattern)."""
+    mock = AsyncMock()
+    mock.async_get_recurring_trips = AsyncMock(return_value=TEST_TRIPS["recurring"])
+    mock.async_get_punctual_trips = AsyncMock(return_value=TEST_TRIPS["punctual"])
+    mock.async_add_recurring_trip = AsyncMock(return_value=True)
+    return mock
+
+def create_mock_coordinator(hass, entry, trip_manager=None):
+    """Create a coordinator with pre-configured fake data (Fake pattern)."""
+    from unittest.mock import MagicMock
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    coordinator = MagicMock(spec=TripPlannerCoordinator)
+    coordinator.data = {"recurring_trips": {}, "kwh_today": 0.0, "next_trip": None}
+    coordinator.hass = hass
+    coordinator._trip_manager = trip_manager or create_mock_trip_manager()
+    return coordinator
+```
+
+#### Capa 2 — Stub de respuestas por método
+Para tests de manejo de errores o respuestas específicas, stubbear solo el método concreto:
+
+```python
+# En el test individual
+trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+trip_manager.async_add_recurring_trip = AsyncMock(side_effect=ValueError("Trip exists"))
+```
+
+#### Capa 3 — Patch en el boundary de HA
+Usar `patch()` solo en los **límites externos** — nunca dentro del código de producción propio:
+
+```python
+async def setup_mock_config_entry(hass, config_entry=None, trip_manager=None):
+    """Set up a mock config entry injecting the fake manager at the HA boundary."""
+    config_entry = config_entry or create_mock_ev_config_entry(hass)
+    manager = trip_manager or create_mock_trip_manager()
+
+    with patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=manager,
+    ):
+        await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+    return config_entry
+```
+
+---
+
+### 3. Tabla de Test Doubles — Cuándo usar cada uno
+
+| Tipo | Cuándo usarlo | Ejemplo en ev-trip-planner |
+|------|--------------|----------------------------|
+| **Fake** | Dependencia compleja con comportamiento real simplificado | `coordinator.data = {"kwh_today": 5.0}` — datos reales en memoria |
+| **Stub** | Respuesta fija para un método concreto | `mgr.async_get_recurring_trips = AsyncMock(return_value=[])` |
+| **Mock** | Verificar que una interacción ocurrió (call count, args) | `mgr.async_add_recurring_trip = AsyncMock()` + `assert_called_once_with(...)` |
+| **Spy** | Envolver objeto real y verificar sin cambiar comportamiento | `MagicMock(spec=TripManager, wraps=real_manager)` |
+| **Fixture** | Datos de test reutilizables y objetos helper | `TEST_CONFIG`, `TEST_TRIPS` en `tests/__init__.py` |
+| **Patch** | Reemplazar en el boundary externo (factory de HA) | `patch('custom_components.ev_trip_planner.TripManager', ...)` |
+
+---
+
+### 4. HA Rule of Gold (ESTRICTO)
+
+> **"Nunca mockear los internals de Home Assistant — solo mockear dependencias externas y boundaries."**
+
+- ✅ **SIEMPRE mockear**: APIs externas (EMHASS API, HTTP), filesystem calls, `hass.loop`
+- ✅ **NUNCA mockear**: `hass.states`, `hass.services`, `entity_registry` — usar objetos reales o Fakes
+- ✅ **USAR `MagicMock(spec=ClaseReal)`**: Nunca `MagicMock()` sin `spec` para sustituir clases propias — el `spec` captura errores de API
+- ⚠️ **CON MODERACIÓN**: Internals de `DataUpdateCoordinator`, config entry APIs — preferir tests de integración
+
+```python
+# ❌ INCORRECTO — MagicMock sin spec no detecta errores de API
+coordinator = MagicMock()
+coordinator.non_existent_method()  # No falla — falso positivo
+
+# ✅ CORRECTO — MagicMock con spec detecta métodos inexistentes
+from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+coordinator = MagicMock(spec=TripPlannerCoordinator)
+coordinator.non_existent_method()  # AttributeError — detecta el error
+```
+
+---
+
+### 5. Coverage mínimo
 
 Home Assistant espera:
 - **> 90% coverage** para integraciones de calidad
@@ -302,7 +409,7 @@ open htmlcov/index.html
   "dependencies": [],
   "documentation": "https://github.com/informatico-madrid/ha-ev-trip-planner",
   "iot_class": "calculated",
-  "requirements": [],  // PyPI packages si necesitas
+  "requirements": [],
   "version": "0.1.0"
 }
 ```
@@ -424,12 +531,14 @@ async def add_trip(self, trip_data):
 - [ ] Code quality tools (black, pylint, mypy)
 - [ ] Async/await correctamente
 - [ ] Traducciones (al menos EN)
+- [ ] Test doubles correctos (sin `MagicMock()` sin `spec`)
 
 #### 💎 Platinum:
 - [ ] Tests >90% coverage
 - [ ] Performance optimizada
 - [ ] Documentación extensa
 - [ ] Ejemplos y tutoriales
+- [ ] Layered Test Doubles Strategy implementada (ver sección Testing)
 
 ---
 
@@ -515,12 +624,14 @@ def calculate_charging_hours(self, kwh_needed: float, power_kw: float) -> int:
 6. **Workflow**: Feature branches + Conventional Commits
 7. **TDD**: Híbrido (test during development)
 8. **Quality Target**: Gold (mínimo Silver para v1.0)
+9. **Test Doubles**: Layered strategy — ver sección Testing
 
 ---
 
 ## 📚 RECURSOS ADICIONALES
 
 ### Integraciones de referencia (código bien escrito):
+- **Frigate** (Layered Test Doubles): https://github.com/blakeblackshear/frigate-hass-integration
 - **HACS**: https://github.com/hacs/integration
 - **Adaptive Lighting**: https://github.com/basnijholt/adaptive-lighting
 - **Spook**: https://github.com/frenck/spook
@@ -533,4 +644,4 @@ def calculate_charging_hours(self, kwh_needed: float, power_kw: float) -> int:
 
 ---
 
-**Última actualización**: 18 Noviembre 2025
+**Última actualización**: 08 Abril 2026
