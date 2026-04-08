@@ -193,7 +193,7 @@
 
 #### Implementation (file by file as each Phase D sub-task)
 
-- [ ] T051 [P] [US-D2] Fix `tests/test_trip_manager.py`: replace all `MagicMock()` with `MagicMock(spec=TripManager)` for TripManager class
+- [x] T051 [P] [US-D2] Fix `tests/test_trip_manager.py`: replace all `MagicMock()` with `MagicMock(spec=TripManager)` for TripManager class
 - [ ] T052 [P] [US-D2] Fix `tests/test_trip_manager_core.py`: replace all `MagicMock()` with `MagicMock(spec=TripManager)` for TripManager class
 - [ ] T053 [P] [US-D2] Fix `tests/test_emhass_adapter.py`: replace all `MagicMock()` with `MagicMock(spec=EMHASSAdapter)` for EMHASSAdapter class
 - [x] T054 [P] [US-D2] Fix `tests/test_coordinator.py`: replace all `MagicMock()` with `MagicMock(spec=TripPlannerCoordinator)` for coordinator class
