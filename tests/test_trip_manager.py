@@ -1037,6 +1037,71 @@ class TestTripManagerEMHASSAdapter:
 
 
 
+class TestEMHASSAdapterConstructorInjection:
+    """T036: Tests for EMHASS adapter constructor injection (Phase C refactor).
+
+    These tests verify that after the Phase C refactor:
+    1. emhass_adapter can be passed to TripManager constructor
+    2. get_emhass_adapter() returns the adapter set via constructor
+    3. set_emhass_adapter() still works for backward compatibility
+    4. set_emhass_adapter() can override constructor-set adapter
+
+    These tests should FAIL in RED phase (before T037-T040 implementation).
+    """
+
+    @pytest.mark.asyncio
+    async def test_emhass_adapter_via_constructor(self, mock_hass_with_storage):
+        """TripManager accepts emhass_adapter in constructor and get_emhass_adapter returns it.
+
+        T036 RED phase: This test should fail because constructor doesn't accept
+        emhass_adapter parameter yet. After T037-T040, it should pass.
+        """
+        mock_adapter = MagicMock()
+
+        # After Phase C refactor, TripManager should accept emhass_adapter as 3rd parameter
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            emhass_adapter=mock_adapter,
+        )
+
+        # get_emhass_adapter should return the adapter set via constructor
+        assert trip_manager.get_emhass_adapter() is mock_adapter
+
+    @pytest.mark.asyncio
+    async def test_set_emhass_adapter_still_works_after_refactor(self, mock_hass_with_storage):
+        """set_emhass_adapter() still works after Phase C refactor (backward compatibility).
+
+        T036 RED phase: This test should fail because the refactor hasn't been done.
+        After T037-T040, the set_emhass_adapter() method should still be preserved.
+        """
+        # Create TripManager with emhass_adapter via constructor
+        mock_adapter_constructor = MagicMock()
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            emhass_adapter=mock_adapter_constructor,
+        )
+
+        # Override with set_emhass_adapter
+        mock_adapter_setter = MagicMock()
+        trip_manager.set_emhass_adapter(mock_adapter_setter)
+
+        # get_emhass_adapter should return the adapter set via setter (override)
+        assert trip_manager.get_emhass_adapter() is mock_adapter_setter
+
+    @pytest.mark.asyncio
+    async def test_get_emhass_adapter_returns_none_when_not_set(self, mock_hass_with_storage):
+        """get_emhass_adapter returns None when no adapter is set (via constructor or setter).
+
+        T036 RED phase: This test verifies baseline behavior is preserved.
+        """
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
+        assert trip_manager.get_emhass_adapter() is None
+
+
+
 class TestTripManagerVehicleSOC:
     """Tests for vehicle SOC methods."""
 

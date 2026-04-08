@@ -115,7 +115,7 @@
 
 #### Implementation
 
-- [ ] T032 [US-B2] Add `@runtime_checkable` decorator and `EMHASSPublisherProtocol` to `protocols.py` with `async_publish_deferrable_load(trip: Dict) -> bool` and `async_remove_deferrable_load(trip_id: str) -> bool` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
+- [x] T032 [US-B2] Add `@runtime_checkable` decorator and `EMHASSPublisherProtocol` to `protocols.py` with `async_publish_deferrable_load(trip: Dict) -> bool` and `async_remove_deferrable_load(trip_id: str) -> bool` using `...` stubs — **both protocols MUST have `@runtime_checkable`** for isinstance() to work at runtime  - OJO ⚠️ REVIEW TIENES TAREAS PENDIENTES PRO REVISION.  ATRAS REVISA BIEN EL ORDEN DE IMPLEMENTACION no continues avanzando sin sin compeltar las tareas anteriores!!
 
 #### US-B2 Gate
 
@@ -135,7 +135,7 @@
 #### Tests FIRST (TDD RED)
 
 - [ ] T035 [P] [US-C1] [VERIFY:TEST] Write failing test in `tests/test_trip_manager.py` verifying TripManager accepts `storage: TripStorageProtocol` and `emhass_adapter: EMHASSPublisherProtocol` in constructor with `_UNSET` sentinel defaults
-- [ ] T036 [P] [US-C1] [VERIFY:TEST] Write failing test verifying `set_emhass_adapter()` and `get_emhass_adapter()` still work after refactor
+- [x] T036 [P] [US-C1] [VERIFY:TEST] Write failing test verifying `set_emhass_adapter()` and `get_emhass_adapter()` still work after refactor
 
 #### Implementation
 
