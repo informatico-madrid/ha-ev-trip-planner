@@ -66,6 +66,8 @@ git commit -m "feat: [descripción] - TDD cycle complete"
 
 ```
 tests/
+├── __init__.py                      # ★ Fakes, Stubs y helpers compartidos (ver abajo)
+├── conftest.py                      # Fixtures de pytest
 ├── test_config_flow.py              # Tests del flujo de configuración
 ├── test_config_flow_milestone3.py   # Tests específicos de Milestone 3
 ├── test_trip_manager.py             # Tests de gestión de viajes
@@ -84,7 +86,7 @@ tests/
 - **Archivos de test**: `test_[modulo].py`
 - **Funciones de test**: `async def test_[escenario]_[condicion]()`
 - **Fixtures**: `@pytest.fixture` en `conftest.py`
-- **Mocks**: Usar `MagicMock` y `AsyncMock` para dependencias externas
+- **Test doubles compartidos**: en `tests/__init__.py` (NO en `conftest.py`)
 
 ---
 
@@ -170,6 +172,11 @@ Antes de marcar una tarea como completada, verificar:
   - [ ] Comentarios solo donde sea necesario
   - [ ] Todos los tests siguen pasando
 
+- [ ] **Test Doubles correctos**
+  - [ ] Usa `MagicMock(spec=ClaseReal)` — nunca `MagicMock()` sin `spec` para clases propias
+  - [ ] Fakes/Stubs compartidos están en `tests/__init__.py`
+  - [ ] Patches solo en boundaries externos (nunca dentro del código de producción)
+
 - [ ] **Documentación**
   - [ ] Docstrings en funciones públicas
   - [ ] Comentarios en lógica compleja
@@ -190,6 +197,8 @@ Antes de marcar una tarea como completada, verificar:
 ❌ **NUNCA** hacer commit con tests fallando
 ❌ **NUNCA** borrar tests sin reemplazarlos con tests equivalentes
 ❌ **NUNCA** usar `time.sleep()` en tests (usar `asyncio.sleep(0)` o fixtures)
+❌ **NUNCA** usar `MagicMock()` sin `spec` para sustituir clases propias del proyecto
+❌ **NUNCA** usar `patch()` dentro de código de producción — solo en tests, en los boundaries
 
 ---
 
@@ -210,6 +219,227 @@ pytest tests/test_config_flow_milestone3.py tests/test_sensors_milestone3.py -v
 
 # Tests con cobertura
 pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=html
+```
+
+---
+
+## 🏗️ Layered Test Doubles Strategy (OBLIGATORIO)
+
+Esta es la estrategia usada por integraciones HACS Platinum/Gold de referencia como [Frigate](https://github.com/blakeblackshear/frigate-hass-integration). Tiene **3 capas obligatorias** que trabajan juntas.
+
+### 📌 Capa 1 — `tests/__init__.py`: Datos y Fakes compartidos
+
+Centraliza todos los datos de test y los helpers de creación de doubles en un único módulo importable. Esto evita duplicación y hace que los tests sean más fáciles de mantener.
+
+```python
+# tests/__init__.py  — Patrón Frigate adaptado a ev-trip-planner
+
+from unittest.mock import AsyncMock, MagicMock
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_NAME
+from custom_components.ev_trip_planner.const import DOMAIN
+
+# ――― Constantes de test compartidas (Fixtures de datos) ―――
+TEST_VEHICLE_ID = "coche1"
+TEST_ENTRY_ID = "test_entry_id_abc123"
+TEST_URL = "http://emhass.local:5000"
+
+TEST_CONFIG = {
+    "vehicle_name": "Coche 1",
+    "vehicle_id": TEST_VEHICLE_ID,
+    "soc_sensor": "sensor.coche1_soc",
+    "battery_capacity_kwh": 60,
+    "max_charge_power_kw": 11,
+}
+
+TEST_TRIPS = {
+    "recurring": [
+        {"id": "trip_001", "km": 50, "dia_semana": "lunes", "hora": "08:00"},
+        {"id": "trip_002", "km": 30, "dia_semana": "viernes", "hora": "09:00"},
+    ],
+    "punctual": [
+        {"id": "trip_003", "km": 120, "datetime": "2026-05-01T10:00:00"},
+    ],
+}
+
+TEST_COORDINATOR_DATA = {
+    "recurring_trips": {"trip_001": TEST_TRIPS["recurring"][0]},
+    "punctual_trips": {"trip_003": TEST_TRIPS["punctual"][0]},
+    "kwh_today": 5.2,
+    "next_trip": TEST_TRIPS["recurring"][0],
+    "soc": 80,
+}
+
+
+# ――― Capa 1: Stub del TripManager (respuestas realistas precargadas) ―――
+def create_mock_trip_manager() -> AsyncMock:
+    """Create a stub TripManager with realistic pre-configured responses."""
+    mock = AsyncMock()
+    mock.async_get_recurring_trips = AsyncMock(return_value=TEST_TRIPS["recurring"])
+    mock.async_get_punctual_trips = AsyncMock(return_value=TEST_TRIPS["punctual"])
+    mock.get_all_trips = MagicMock(return_value=TEST_TRIPS)
+    mock.async_add_recurring_trip = AsyncMock(return_value=True)
+    mock.async_add_punctual_trip = AsyncMock(return_value=True)
+    mock.async_update_trip = AsyncMock(return_value=True)
+    mock.async_remove_trip = AsyncMock(return_value=True)
+    mock.async_setup = AsyncMock(return_value=None)
+    return mock
+
+
+# ――― Capa 1: Fake del Coordinator (datos en memoria) ―――
+def create_mock_coordinator(hass: HomeAssistant, entry=None, trip_manager=None):
+    """Create a fake coordinator with in-memory data."""
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    coordinator = MagicMock(spec=TripPlannerCoordinator)  # spec OBLIGATORIO
+    coordinator.data = dict(TEST_COORDINATOR_DATA)  # copia para mutabilidad
+    coordinator.hass = hass
+    coordinator._trip_manager = trip_manager or create_mock_trip_manager()
+    coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)
+    return coordinator
+
+
+# ――― Capa 1: Config entry fake ―――
+def create_mock_ev_config_entry(
+    hass: HomeAssistant,
+    data: dict | None = None,
+    entry_id: str = TEST_ENTRY_ID,
+) -> MockConfigEntry:
+    """Create and register a mock config entry."""
+    config_entry = MockConfigEntry(
+        entry_id=entry_id,
+        domain=DOMAIN,
+        data=data or TEST_CONFIG,
+        version=1,
+    )
+    config_entry.add_to_hass(hass)
+    return config_entry
+
+
+# ――― Capa 3: Setup completo con patch en el boundary de HA ―――
+async def setup_mock_ev_config_entry(
+    hass: HomeAssistant,
+    config_entry=None,
+    trip_manager=None,
+) -> tuple:
+    """Set up a full mock integration entry, patching at the HA boundary."""
+    from unittest.mock import patch
+    config_entry = config_entry or create_mock_ev_config_entry(hass)
+    manager = trip_manager or create_mock_trip_manager()
+
+    with patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=manager,
+    ):
+        await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+    return config_entry, manager
+```
+
+### 📌 Capa 2 — Stubs por método en tests individuales
+
+Cuando un test concreto necesita una respuesta diferente a la del stub base, sobreescribir solo ese método:
+
+```python
+# test_trip_manager.py
+from tests import create_mock_trip_manager
+
+async def test_add_trip_fails_when_duplicate(hass):
+    """Test that adding a duplicate trip raises an error."""
+    manager = create_mock_trip_manager()
+    # Capa 2: stub específico para este test
+    manager.async_add_recurring_trip = AsyncMock(
+        side_effect=ValueError("Trip already exists")
+    )
+    
+    with pytest.raises(ValueError, match="Trip already exists"):
+        await manager.async_add_recurring_trip({"id": "trip_001", "km": 50})
+```
+
+### 📌 Capa 3 — Patch en los boundaries de HA
+
+Usar `patch()` exclusivamente para sustituir factories o dependencias inyectadas por HA, nunca para mockear internals de la integración:
+
+```python
+# test_init.py
+from tests import setup_mock_ev_config_entry
+
+async def test_integration_setup(hass):
+    """Test the integration sets up correctly."""
+    config_entry, manager = await setup_mock_ev_config_entry(hass)
+    
+    # Verificar que HA registró la integración correctamente
+    assert hass.data[DOMAIN][config_entry.entry_id] is not None
+    
+    # Verificar interacción (Mock pattern)
+    manager.async_setup.assert_called_once()
+```
+
+---
+
+## Test Doubles Reference Table
+
+| Double | When to Use | HA Rule of Gold | Example from ev-trip-planner |
+|--------|--------------|-----------------|------------------------------|
+| **Fake** | Simplificar dependencias complejas con implementación real en memoria | Usar Fakes cuando necesitas comportamiento pero sin side effects | `coordinator.data = {"kwh_today": 5.0}` — datos reales en memoria |
+| **Stub** | Respuestas precargadas para métodos concretos | Stub I/O externo (ficheros, red) que tu código llama pero no debe ejecutar realmente | `async def mock_load(): return {"data": "cached"}` — valor predeterminado |
+| **Mock** | Verificar interacciones (call count, argumentos, orden) | **Nunca Mockés la base de datos, filesystem o red en tests de integración** | `coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)` verifica que fue llamado |
+| **Spy** | Envolver objeto real, registrar uso sin cambiar comportamiento | Usar Spies cuando necesitas el comportamiento real más verificación | `MagicMock(spec=DataUpdateCoordinator)` envuelve coordinator real, falla en llamadas inesperadas |
+| **Fixture** | Proporcionar datos de test u objetos helper; código de setup | Las fixtures son para datos de test y objetos helper, NO para verificar comportamiento | `mock_hass()` fixture crea instancia HA consistente |
+| **Patch** | Reemplazar temporalmente atributos/objetos en scope de módulo | Usar `patch()` solo en boundaries (llamadas a subsistemas HA), no dentro de tu código | `patch('custom_components.ev_trip_planner.services.handle_trip_create')` |
+
+### HA Rule of Gold (Strict)
+
+**"Nunca mockear los internals de Home Assistant — solo mockear dependencias externas y boundaries."**
+
+Esto significa:
+- ✅ **SIEMPRE mockear**: Servicios externos (EMHASS API, HTTP endpoints), filesystem calls, `hass.loop`, primitivas `asyncio`
+- ✅ **NUNCA mockear**: `hass.states`, `hass.services`, `entity_registry.async_entries_for_config_entry` — testear con objetos reales o Fakes
+- ⚠️ **CON MODERACIÓN**: Internals de `DataUpdateCoordinator`, config entry APIs — preferir tests de integración
+- ❗ **OBLIGATORIO**: Usar siempre `MagicMock(spec=ClaseReal)` — nunca `MagicMock()` sin `spec` para clases propias
+
+### When to Use Each Test Double
+
+| Scenario | Recommended Double | Example |
+|----------|-------------------|---------|
+| Test service handler delegates to manager | Mock + Spy | `mgr.async_add_recurring_trip = AsyncMock()` then verify called |
+| Test that sensor reads coordinator.data | Fake | `coordinator.data = {"kwh_today": 5.0}` |
+| Test error handling for missing entry | Stub | `_find_entry_by_vehicle = MagicMock(return_value=None)` |
+| Test that exception propagates | Spy | Pass real object, assert exception raised |
+| Test with HomeAssistant state | Fixture | `mock_hass()` creates pre-configured hass object |
+| Replace a function during test | Patch | `patch('homeassistant.helpers.storage.Store')` |
+
+### Common Mistakes with Test Doubles
+
+| Mistake | Why It's Wrong | Correct Approach |
+|---------|----------------|------------------|
+| `MagicMock()` without spec | Catches no errors on wrong API usage | Use `MagicMock(spec=RealClass)` or Spy pattern |
+| Mocking `hass.states.get()` | Breaks HA's state machine contract | Use real states or `hass.states.get = MagicMock(return_value=real_state)` |
+| Stubbing entire class | Test doesn't catch API changes | Stub only the method being called |
+| Mock in unit test that should be integration | Tests don't catch real integration bugs | Use real objects for HA boundaries |
+| Fakes/Stubs in conftest.py | Hard to import from other test files | Define in `tests/__init__.py` for reuse |
+
+### ev-trip-planner Test Double Examples
+
+```python
+# MOCK: Verify async_config_entry_first_refresh is called
+coordinator.async_config_entry_first_refresh = AsyncMock()
+
+# FAKE: In-memory coordinator data
+coordinator.data = {"recurring_trips": {}, "kwh_today": 0.0}
+
+# SPY: Verify method was called on real object
+real_trip_manager.async_add_recurring_trip = AsyncMock(wraps=original_method)
+
+# STUB: Provide fixed response
+trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+
+# PATCH: Temporarily replace Store
+with patch('homeassistant.helpers.storage.Store', return_value=mock_store):
+    await async_cleanup_stale_storage(hass, vehicle_id)
+
+# FIXTURE: Provide test data (en tests/__init__.py, no en conftest.py)
+TEST_TRIPS = {"recurring": [{"id": "trip_001", "km": 50}], "punctual": []}
 ```
 
 ---
@@ -275,6 +505,13 @@ git push origin feature/nueva-funcionalidad
 
 ## 📚 Recursos y Ejemplos
 
+### Integración de referencia — Layered Test Doubles:
+
+- **Frigate** (patrón usado en esta metodología): https://github.com/blakeblackshear/frigate-hass-integration/blob/master/tests/__init__.py
+  - `tests/__init__.py` centraliza Fakes/Stubs: `TEST_CONFIG`, `TEST_STATS`, `create_mock_frigate_client()`
+  - `conftest.py` solo tiene pytest fixtures ligeras
+  - `patch()` solo en `setup_mock_frigate_config_entry()` — boundary de HA
+
 ### Ejemplos de Tests en el Proyecto:
 
 - `tests/test_config_flow_milestone3.py` - Tests de config flow Milestone 3
@@ -283,96 +520,35 @@ git push origin feature/nueva-funcionalidad
 
 ### Patrones Comunes:
 
-**Mock de Home Assistant:**
+**Mock de Home Assistant (usando pytest-homeassistant-custom-component):**
 ```python
+# conftest.py — solo fixtures ligeras
 @pytest.fixture
-def hass():
-    """Create mock Home Assistant instance."""
-    hass = MagicMock()
-    hass.states = MagicMock()
-    hass.services = MagicMock()
-    return hass
+def mock_config_entry(hass):
+    """Return a mock config entry registered in hass."""
+    from tests import create_mock_ev_config_entry
+    return create_mock_ev_config_entry(hass)
 ```
 
-**Test de Servicio:**
+**Test de Servicio con Layered Strategy:**
 ```python
+# test_services.py
+from tests import create_mock_trip_manager, setup_mock_ev_config_entry
+
 async def test_service_add_trip(hass):
-    """Test add trip service."""
-    # Arrange
-    call = ServiceCall(domain=DOMAIN, service="add_recurring_trip", data={...})
-
+    """Test add trip service delegates to TripManager."""
+    # Arrange — usar helpers de tests/__init__.py
+    config_entry, manager = await setup_mock_ev_config_entry(hass)
+    
     # Act
-    await handle_add_recurring_trip(call)
-
-    # Assert
-    assert hass.states.get("sensor.test_trips") is not None
-```
-
----
-
-## Test Doubles Reference Table
-
-| Double | When to Use | HA Rule of Gold | Example from ev-trip-planner |
-|--------|--------------|-----------------|------------------------------|
-| **Fake** | Simplify complex dependencies with working implementations (in-memory DB, stub HTTP) | Use Fakes when you need behavior but not side effects | `MagicMock()` without spec acts as fake - works but ignores unexpected calls |
-| **Stub** | Provide pre-programmed responses to specific method calls | Stub external I/O (files, network) that your code calls but shouldn't actually execute | `async def mock_load(): return {"data": "cached"}` - returns predetermined value |
-| **Mock** | Verify interactions happened (call count, arguments, call order) | **Never Mock the database, file system, or network in integration tests** | `coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)` verifies method was called |
-| **Spy** | Wrap real object, record how it's used while letting calls pass through | Use Spies when you need the real behavior plus verification | `MagicMock(spec=DataUpdateCoordinator)` wraps real coordinator, failing on unexpected calls |
-| **Fixture** | Provide test data or helper objects to tests; setup code | Fixtures are for test data and helper objects, NOT for verifying behavior | `mock_hass()` fixture creates consistent mock HA instance |
-| **Patch** | Temporarily replace attributes/objects in a module scope | Use `patch()` only at boundaries (HA subsystem calls) not inside your code | `patch('custom_components.ev_trip_planner.services.handle_trip_create')` |
-
-### HA Rule of Gold (Strict)
-
-**"Never mock the internals of Home Assistant — only mock external dependencies and boundaries."**
-
-This means:
-- ✅ **ALWAYS mock**: External services (EMHASS API, HTTP endpoints), file system calls, `hass.loop`, `asyncio` primitives
-- ✅ **NEVER mock**: `hass.states`, `hass.services`, `entity_registry.async_entries_for_config_entry` — test with real objects or Fakes
-- ⚠️ **USE SPARINGLY**: `DataUpdateCoordinator` internals, config entry APIs — prefer integration tests
-
-### When to Use Each Test Double
-
-| Scenario | Recommended Double | Example |
-|----------|-------------------|---------|
-| Test service handler delegates to manager | Mock + Spy | `mgr.async_add_recurring_trip = AsyncMock()` then verify called |
-| Test that sensor reads coordinator.data | Fake | `coordinator.data = {"kwh_today": 5.0}` |
-| Test error handling for missing entry | Stub | `_find_entry_by_vehicle = MagicMock(return_value=None)` |
-| Test that exception propagates | Spy | Pass real object, assert exception raised |
-| Test with HomeAssistant state | Fixture | `mock_hass()` creates pre-configured hass object |
-| Replace a function during test | Patch | `patch('homeassistant.helpers.storage.Store')` |
-
-### Common Mistakes with Test Doubles
-
-| Mistake | Why It's Wrong | Correct Approach |
-|---------|----------------|------------------|
-| `MagicMock()` without spec | Catches no errors on wrong API usage | Use `MagicMock(spec=RealClass)` or Spy pattern |
-| Mocking `hass.states.get()` | Breaks HA's state machine contract | Use real states or `hass.states.get = MagicMock(return_value=real_state)` |
-| Stubbing entire class | Test doesn't catch API changes | Stub only the method being called |
-| Mock in unit test that should be integration | Tests don't catch real integration bugs | Use real objects for HA boundaries |
-
-### ev-trip-planner Test Double Examples
-
-```python
-# MOCK: Verify async_config_entry_first_refresh is called
-coordinator.async_config_entry_first_refresh = AsyncMock()
-
-# FAKE: In-memory coordinator data
-coordinator.data = {"recurring_trips": {}, "kwh_today": 0.0}
-
-# SPY: Verify method was called on real object
-real_trip_manager.async_add_recurring_trip = AsyncMock(wraps=original_method)
-
-# STUB: Provide fixed response
-trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-
-# PATCH: Temporarily replace Store
-with patch('homeassistant.helpers.storage.Store', return_value=mock_store):
-    await async_cleanup_stale_storage(hass, vehicle_id)
-
-# FIXTURE: Provide test data
-@pytest.fixture
-def mock_presence_config():
-    return {"home_sensor": "sensor.home", "plugged_sensor": "sensor.plugged"}
+    await hass.services.async_call(
+        DOMAIN, "add_recurring_trip",
+        {"vehicle_id": "coche1", "km": 50, "dia_semana": "lunes"},
+        blocking=True,
+    )
+    
+    # Assert — Mock pattern: verificar que se delego correctamente
+    manager.async_add_recurring_trip.assert_called_once()
 ```
 
 ---
@@ -384,10 +560,11 @@ def mock_presence_config():
 - No se trata de "escribir tests", se trata de "diseñar software a través de tests"
 - Los tests son la especificación ejecutable del comportamiento esperado
 - Si no hay test, la funcionalidad no existe (no importa si el código está escrito)
+- Los test doubles mal usados (`MagicMock()` sin `spec`) son peores que no tener tests — dan falsa confianza
 - **Siempre que reinicies tu contexto, lee este documento primero**
 
 ---
 
-**Documento Version**: 1.0  
-**Last Updated**: 2025-12-08  
+**Documento Version**: 2.0
+**Last Updated**: 2026-04-08
 **Status**: MANDATORY - Must be followed for all development
