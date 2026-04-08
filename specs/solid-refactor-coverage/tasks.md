@@ -16,7 +16,7 @@
 
 ## Pre-requisites
 
-- [ ] T000 [US-E1] Record coverage baseline: `pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing > /tmp/coverage_before.txt` — Coverage after solid-refactor: 86.88% total, baseline saved at /tmp/coverage_after_solid_refactor.txt
+- [x] T000 [US-E1] Record coverage baseline: `pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing > /tmp/coverage_before.txt` — Coverage after solid-refactor: 86.88% total, baseline saved at /tmp/coverage_after_solid_refactor.txt
 
 ---
 
