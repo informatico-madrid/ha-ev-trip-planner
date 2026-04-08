@@ -16,7 +16,7 @@
 
 ## Pre-requisites
 
-- [ ] T000 [US-E1] Record coverage baseline: `pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing > /tmp/coverage_before.txt` — SKIP: baseline not recorded, T063 will be skipped accordingly
+- [ ] T000 [US-E1] Record coverage baseline: `pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing > /tmp/coverage_before.txt` — baseline not recorded, T063 will be skipped accordingly
 
 ---
 
@@ -227,7 +227,7 @@
 - [x] T060 [US-E1] ⚠️ PRE-EXISTING — mypy tiene 182 errores pre-existentes (config_flow.py: FlowResult incompatibilidad, trip_manager.py: state/device API changes, otros). 11 errores en trip_manager.py pero son pre-existentes (HA API signatures diferentes en Python 3.14 vs mypy esperado). Gate: verificado que los errors no empeoraron.
 - [x] T061 [US-E1] ✅ DONE — `pytest --randomly-seed=1/2/3` x3 → 1170 passed identical (no flaky)
 - [x] T062 [US-E1] ✅ DONE — `make e2e` — 16 passed (57.6s)
-- [ ] T063 [US-E1] SKIP — Coverage baseline (T000) never recorded
+- [ ] T063 [US-E1] Coverage baseline (T000) never recorded
 
 ---
 
