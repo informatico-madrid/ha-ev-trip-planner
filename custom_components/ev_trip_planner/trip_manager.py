@@ -27,7 +27,7 @@ from .const import (
 )
 from .emhass_adapter import EMHASSAdapter
 from .protocols import EMHASSPublisherProtocol, TripStorageProtocol
-from .utils import calcular_energia_kwh, generate_trip_id
+from .utils import calcular_energia_kwh, generate_trip_id, is_trip_today as pure_is_trip_today, sanitize_recurring_trips as pure_sanitize_recurring_trips, validate_hora as pure_validate_hora
 from .vehicle_controller import VehicleController
 
 _UNSET = object()
@@ -115,35 +115,23 @@ class TripManager:
     def _validate_hora(hora: str) -> None:
         """Valida que una cadena de hora tenga el formato HH:MM y valores válidos.
 
+        Delegates to pure utils.validate_hora for testability.
+
         Args:
             hora: Cadena de hora en formato HH:MM.
 
         Raises:
             ValueError: Si el formato no es HH:MM o los valores están fuera de rango.
         """
-        parts = hora.split(":")
-        if len(parts) != 2:
-            raise ValueError(f"Formato de hora inválido: '{hora}'. Se esperaba HH:MM")
-        try:
-            hour = int(parts[0])
-            minute = int(parts[1])
-        except ValueError as err:
-            raise ValueError(
-                f"Formato de hora inválido: '{hora}'. Se esperaba HH:MM"
-            ) from err
-        if not (0 <= hour <= 23 and 0 <= minute <= 59):
-            raise ValueError(
-                f"Hora/minuto fuera de rango: {hora}"
-            )
+        pure_validate_hora(hora)
 
     def _sanitize_recurring_trips(
         self, trips: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Elimina viajes recurrentes con formato de hora inválido del almacenamiento.
 
-        Itera sobre los viajes recurrentes cargados y descarta los que tienen
-        una cadena 'hora' con formato o valores fuera de rango, registrando
-        una advertencia descriptiva para cada entrada eliminada.
+        Delegates to pure utils.sanitize_recurring_trips for testability.
+        Logs a summary warning if any trips were removed.
 
         Args:
             trips: Diccionario de viajes recurrentes cargados del almacenamiento.
@@ -151,20 +139,15 @@ class TripManager:
         Returns:
             Diccionario limpio que sólo contiene entradas con hora válida.
         """
-        sanitized: Dict[str, Any] = {}
-        for trip_id, trip in trips.items():
-            hora = trip.get("hora", "")
-            try:
-                self._validate_hora(hora)
-                sanitized[trip_id] = trip
-            except ValueError as err:
-                _LOGGER.warning(
-                    "Viaje recurrente '%s' ignorado por formato de hora inválido "
-                    "('%s'): %s. Elimine o corrija la entrada en el almacenamiento.",
-                    trip_id,
-                    hora,
-                    err,
-                )
+        original_count = len(trips)
+        sanitized = pure_sanitize_recurring_trips(trips)
+        removed_count = original_count - len(sanitized)
+        if removed_count > 0:
+            _LOGGER.warning(
+                "%d recurring trip(s) ignored due to invalid hora format. "
+                "Fix or remove invalid entries from storage.",
+                removed_count,
+            )
         return sanitized
 
     async def _publish_deferrable_loads(self) -> None:
@@ -1104,13 +1087,11 @@ class TripManager:
         return next_trip["trip"] if next_trip else None
 
     def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:
-        """Verifica si un viaje ocurre hoy."""
-        if trip["tipo"] == TRIP_TYPE_RECURRING:
-            # Use weekday index to compare (0=lunes, 6=domingo)
-            return DAYS_OF_WEEK[today.weekday()] == trip["dia_semana"].lower()
-        elif trip["tipo"] == TRIP_TYPE_PUNCTUAL:
-            return datetime.strptime(trip["datetime"], "%Y-%m-%dT%H:%M").date() == today
-        return False
+        """Verifica si un viaje ocurre hoy.
+
+        Delegates to pure utils.is_trip_today for testability.
+        """
+        return pure_is_trip_today(trip, today)
 
     def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Obtiene la fecha y hora del viaje.
