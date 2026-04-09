@@ -777,6 +777,20 @@ async def test_publish_deferrable_loads_no_adapter(mock_hass, vehicle_id):
 
 
 @pytest.mark.asyncio
+async def test_publish_deferrable_loads_public(mock_hass, vehicle_id):
+    """Test publish_deferrable_loads is public (no underscore prefix).
+
+    Task 1.9 RED test: expects manager to have public publish_deferrable_loads method.
+    Currently the method is named _publish_deferrable_loads (private).
+    """
+    manager = TripManager(mock_hass, vehicle_id)
+
+    # publish_deferrable_loads should be a public method (no underscore)
+    assert hasattr(manager, "publish_deferrable_loads")
+    assert callable(manager.publish_deferrable_loads)
+
+
+@pytest.mark.asyncio
 async def test_cancel_punctual_trip_not_found(mock_hass, vehicle_id):
     """Test canceling a non-existent punctual trip logs warning."""
     manager = TripManager(mock_hass, vehicle_id)
