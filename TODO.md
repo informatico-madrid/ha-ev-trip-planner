@@ -1,274 +1,117 @@
-# TODO - EV Trip Planner
+# TODO / BACKLOG — EV Trip Planner
 
-## 🎯 Milestone 3: EMHASS Integration & Smart Charging (COMPLETED)
-
----
-
-### Phase 3C: Vehicle Control Interface (Week 3)
-
-**Priority: HIGH** - Abstraction for different vehicle integrations
-
-- [ ] **3C.1** Create `vehicle_controller.py`:
-  - Base class `VehicleControlStrategy`
-  - Subclasses: `SwitchStrategy`, `ServiceStrategy`, `ScriptStrategy`
-
-- [ ] **3C.2** Implement `SwitchStrategy`:
-  - `async_activate()`: Call `switch.turn_on`
-  - `async_deactivate()`: Call `switch.turn_off`
-  - `async_get_status()`: Read switch state
-
-- [ ] **3C.3** Implement `ServiceStrategy`:
-  - Config: `service_name`, `data_template_on`, `data_template_off`
-  - `async_activate()`: Call custom service with templated data
-  - `async_deactivate()`: Call custom service with templated data
-
-- [ ] **3C.4** Implement `ScriptStrategy`:
-  - `async_activate()`: Call `script.{vehicle}_start_charging`
-  - `async_deactivate()`: Call `script.{vehicle}_stop_charging`
-
-- [ ] **3C.5** Create factory function:
-  - `create_controller(hass, config) -> VehicleControlStrategy`
-  - Select strategy based on `CONF_CONTROL_TYPE`
-
-- [ ] **3C.6** Add validation in config flow:
-  - Verify switch entity exists (if type=switch)
-  - Verify service exists (if type=service)
-  - Test call during setup to ensure it works
-
-- [ ] **3C.7** Add unit tests:
-  - Test each strategy independently
-  - Test factory function selection logic
-
-**Estimated Effort**: 2-3 days
-**Risk**: Low (isolated component, easy to test)
-**Testing**: Unit tests + manual test with real switch/service
+> **Última actualización**: 2026-04-09  
+> **Versión actual**: 0.4.1-dev (rama `feat/solid-refactor-coverage`)  
+> Este fichero refleja el estado real del proyecto. Para el plan detallado de cada milestone, ver los docs en `docs/`.
 
 ---
 
-### Phase 3D: Schedule Monitor & Presence Detection (Week 4)
+## ✅ Completado
 
-**Priority: CRITICAL** - Where everything comes together
+### Milestone 0 — Fundación del Proyecto
+- Estructura de repositorio, config flow inicial, HACS metadata, licencia MIT
 
-- [ ] **3D.1** Create `schedule_monitor.py`:
-  - Class `ScheduleMonitor`
-  - `__init__`: Store hass, vehicle controllers, presence monitors
-  - `async_start()`: Begin monitoring EMHASS schedules
+### Milestone 1 — Infraestructura Core
+- Trip manager (recurrentes + puntuales), servicios CRUD, sensores básicos, dashboard base
+- TDD aplicado: 83% cobertura, 29 tests
 
-- [ ] **3D.2** Discover EMHASS schedules dynamically:
-  - Listen for `state_changed` events on `sensor.emhass_deferrable*`
-  - Build map: `deferrable_index -> vehicle_id`
-  - Handle schedule updates in real-time
+### Milestone 2 — Cálculos de Viaje
+- Sensores: `next_trip`, `next_deadline`, `kwh_today`, `hours_today`
+- Expansión de viajes recurrentes (7 días), manejo de timezone, combinación recurrentes + puntuales
 
-- [ ] **3D.3** Parse schedule format:
-  - EMHASS format: `"02:00-03:00, 05:00-06:00"` or JSON
-  - Extract current hour and determine if should be charging
-  - Handle edge cases: schedule empty, malformed, stale
+### Milestone 3 — Integración EMHASS & Control Inteligente (v0.3.0-dev, dic 2025)
+- `emhass_adapter.py`: asignación dinámica de índices por viaje (pool 0-49), persistencia en HA Storage
+- `vehicle_controller.py`: patrón estrategia (Switch / Service / Script / External)
+- `schedule_monitor.py`: monitorización de schedules EMHASS en tiempo real
+- `presence_monitor.py`: detección por sensor o coordenadas (Haversine), lógica de seguridad pre-acción
+- 156 tests, 93.6% passing
 
-- [ ] **3D.4** Create `presence_monitor.py`:
-  - Class `PresenceMonitor`
-  - `async_check_home_status()`: Read sensor or calculate distance
-  - `async_check_plugged_status()`: Read binary_sensor
-  - `async_check_charging_readiness()`: Combined check + notifications
+### Milestone 3.1 — Mejoras UX de Configuración (v0.3.1-dev, dic 2025)
+- Filtros de entidades en config flow (SOC→battery class, Plugged→binary_sensor...)
+- Textos de ayuda con ejemplos concretos en todos los campos
+- Traducciones completas al español
 
-- [ ] **3D.5** Implement safety logic:
-  ```python
-  async def _async_execute_schedule(self, vehicle_id, action):
-      # 1. Check presence
-      if not await presence_monitor.is_at_home():
-          notify_user("Vehicle not at home")
-          return
-      
-      # 2. Check plugged
-      if not await presence_monitor.is_plugged():
-          notify_user("Vehicle not plugged")
-          return
-      
-      # 3. Execute action
-      await vehicle_controller.execute(action)
-  ```
+### Milestone 3.2 — Configuración Avanzada (v0.4.0-dev, mar 2026)
+- Capacidad de batería dinámica (sensor directo / SOH% + nominal / manual)
+- Perfiles de consumo por tipo de viaje (urbano / autopista / mixto)
+- Auto-limpieza de viajes puntuales pasados (configurable)
+- Config flow completo de 5 pasos
+- 398 tests, 85%+ cobertura
 
-- [ ] **3D.6** Add notification system:
-  - Configurable service (default: persistent_notification)
-  - Messages: "Vehicle not at home", "Not plugged", "Charging started"
-  - Include trip details: description, kWh needed, deadline
+### Milestone 4 — Perfil de Carga Inteligente (completado, mar 2026)
+- Sensor `sensor.{vehicle}_power_profile`: array 168 valores (24h × 7d) en Watts
+- Atributo `deferrables_schedule` con timestamps ISO 8601
+- Estrategia binaria SOC-aware: 0W = sin carga, valor positivo = potencia de carga
+- Dashboard auto-import (full + simple) al completar config flow
+- Retry logic: 3 intentos en ventana de 5 minutos
 
-- [ ] **3D.7** Add integration tests:
-  - Test full flow: trip → EMHASS → schedule → control
-  - Test safety logic (prevent activation when away)
-  - Test notification delivery
-
-**Estimated Effort**: 4-5 days
-**Risk**: **HIGH** (complex interactions, timing issues)
-**Testing**: Integration tests + 24h manual monitoring in test environment
+### Refactorización SOLID (rama actual, abr 2026)
+- `protocols.py`: interfaces formales para desacoplar dependencias
+- `definitions.py`: entidades y tipos centralizados
+- `coordinator.py`: desacoplado mediante inyección de dependencias
+- `diagnostics.py`: soporte de diagnóstico para HACS quality scale
+- Objetivo: cobertura >80% en todos los módulos post-refactor
 
 ---
 
-### Phase 3E: Integration Testing & Migration (Week 5)
+## 🔄 En Curso
 
-**Priority: MEDIUM** - Validation and user adoption
-
-- [ ] **3E.1** Create integration test suite:
-  - Scenario 1: Single recurring trip, full automation
-  - Scenario 2: Multiple vehicles, different schedules
-  - Scenario 3: Presence detection prevents charging
-  - Scenario 4: EMHASS failure → fallback to manual
-  - Scenario 5: Trip added → deferrable updated → schedule changed → control activated
-
-- [ ] **3E.2** Deploy to test environment:
-  - Use real OVMS vehicle
-  - Monitor logs for 48 hours
-  - Measure latency: trip change → control action (< 60s target)
-  - Count errors and warnings
-
-- [ ] **3E.3** Create migration service:
-  - Service: `ev_trip_planner.import_from_sliders`
-  - Read `input_number.{vehicle}_carga_necesaria_{dia}`
-  - Convert to recurring trips
-  - Add `preview: true` mode (show what would be created)
-
-- [ ] **3E.4** Add migration tests:
-  - Test conversion accuracy
-  - Test preview mode
-  - Test idempotency (run twice = no duplicates)
-
-- [ ] **3E.5** Documentation:
-  - Update README.md with EMHASS integration guide
-  - Add configuration examples for OVMS and Renault
-  - Create troubleshooting guide
-  - Document migration process
-
-**Estimated Effort**: 3-4 days
-**Risk**: Low (testing phase, can rollback)
-**Testing**: Manual testing in production-like environment
+- [ ] Alcanzar cobertura >80% en todos los módulos tras la refactorización SOLID
+- [ ] Corregir tests que fallaban por cambio de interfaces tras refactor
+- [ ] Revisar y consolidar documentación (ROADMAP, README, docs/)
 
 ---
 
-## 📊 Development Phases Summary (Updated)
+## 📌 Backlog — Milestone 4.1 (no iniciado)
 
-| Milestone | Duration | Status | Risk | Notes |
-|-----------|----------|--------|------|-------|
-| 0. Foundation | 1 day | ✅ DONE | Low | Repo ready |
-| 1. Infrastructure | 5 days | ✅ DONE | Low | Pure addition |
-| 2. Calculations | 3 days | ✅ DONE | Low | All sensors working |
-| 3A. Config Setup | 1 week | ⚪ Pending | Low | New config options |
-| 3B. EMHASS Adapter | 1 week | ⚪ Pending | Medium | Core integration |
-| 3C. Vehicle Control | 1 week | ⚪ Pending | Low | Abstraction layer |
-| 3D. Schedule Monitor | 1 week | ⚪ Pending | **HIGH** | Complex logic |
-| 3E. Integration | 1 week | ⚪ Pending | Medium | Testing phase |
-| 4. Validation | 3 days | ⚪ Pending | Medium | Polish & docs |
-| 5. Advanced | 5 days | ⚪ Optional | Low | Nice-to-have |
+> Plan detallado en [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)
 
-**Total Estimated Time**: 5-6 weeks for Milestone 3 completion
+- [ ] **Carga distribuida inteligente** (HIGH): distribuir carga en horas baratas (integración precios EMHASS)
+- [ ] **Soporte multi-vehículo** (HIGH): balanceo con límite de potencia del hogar configurable
+- [ ] **Ajuste climático** (MEDIUM): ajustar kWh por temperatura exterior (+20% frío, +10% calor)
+- [ ] **UI de perfil de carga** (MEDIUM): gráfico Lovelace con horas activas y precio por hora
+- [ ] **Notificaciones proactivas** (MEDIUM): recordatorio pre-carga, alerta carga incompleta, resumen semanal
+- [ ] **Modo salud de batería** (LOW): límite SOC diario configurable, preferencia carga lenta
 
 ---
 
-## 🎯 Next Immediate Actions (Priority Order)
+## 🔮 Futuro (post v1.0)
 
-1. **Validate EMHASS Configuration** (Before coding):
-   ```bash
-   # Check current EMHASS deferrable load configuration
-   docker exec homeassistant grep -A 30 "deferrable_load" /config/configuration.yaml
-   
-   # Confirm indices used
-   # Expected: def_total_hours: [4, 3] (index 0=OVMS, 1=Morgan)
-   ```
-
-2. **Verify Presence Sensors** (Before coding):
-   ```bash
-   # Check if sensors exist
-   python3 homeassistant/.vscode/get_live_context.py | grep -E "binary_sensor.*en_casa|binary_sensor.*enchufado"
-   
-   # Expected: binary_sensor.ovms_chispitas_en_casa, binary_sensor.morgan_en_casa
-   ```
-
-3. **Create Feature Branch**:
-   ```bash
-   cd /home/malka/ha-ev-trip-planner
-   git checkout -b milestone-3-emhass-integration
-   ```
-
-4. **Start Phase 3A**: Add constants and extend config flow
+- [ ] Normalización de input (días con/sin tilde, slugs de vehículo)
+- [ ] Origen-destino por dirección / coordenadas (geocoding API)
+- [ ] Interfaz conversacional / voz (HA Assist)
+- [ ] Integración con calendario HA (mostrar viajes como eventos)
+- [ ] Estadísticas e historial de consumo
+- [ ] Soporte para otros optimizadores (no solo EMHASS)
+- [ ] Gestión de flota multi-usuario
 
 ---
 
-## ⚠️ Known Limitations & Future Improvements
+## ⚠️ Limitaciones Conocidas (activas)
 
-### Limitation 1: One EMHASS Index Per Vehicle
-**Current**: Each vehicle occupies one deferrable load index
-**Impact**: Cannot handle multiple simultaneous trips per vehicle
-**Workaround**: Sum kWh of all trips for same vehicle on same day
-**Future**: Support for dynamic index allocation (complex, low priority)
-
-### Limitation 2: Manual EMHASS Configuration Required
-**Current**: User must manually add configuration snippet to EMHASS
-**Impact**: Less "plug and play"
-**Reason**: EMHASS doesn't support auto-discovery of deferrable load configs
-**Future**: Create PR for EMHASS to support auto-discovery (external project)
-
-### Limitation 3: No Support for Multiple Optimizers
-**Current**: Only EMHASS supported
-**Impact**: Users of other optimizers cannot use this module
-**Reason**: Focus on production use case first
-**Future**: Abstract optimizer interface (post v1.0)
-
-### Limitation 4: Fixed Planning Horizon
-**Current**: 7 days by default, configurable but static
-**Impact**: Doesn't adapt to EMHASS horizon changes dynamically
-**Workaround**: User can manually adjust in config
-**Future**: Auto-detect EMHASS horizon and adapt (medium priority)
+| Limitación | Impacto | Workaround |
+|---|---|---|
+| Configuración EMHASS manual requerida | Menos plug-and-play | El README incluye snippet de configuración |
+| Horizonte de planificación fijo (7 días por defecto) | No se adapta dinámicamente | El usuario puede ajustarlo en config |
+| Máximo 50 índices simultáneos (pool EMHASS) | Límite práctico de viajes activos | Suficiente para uso doméstico |
+| Control multi-vehículo sin balanceo de potencia | Puede sobrecargar instalación | Pendiente en M4.1 |
 
 ---
 
-## ✅ Definition of Done (Milestone 3)
+## ☠️ Obsoleto / Ya no aplica
 
-Milestone 3 is complete when:
-
-- [ ] **Functionality**:
-  - Trips are automatically published to EMHASS as deferrable loads
-  - EMHASS schedules are monitored and executed
-  - Charging only activates when vehicle is at home and plugged
-  - Notifications sent when charging needed but not possible
-
-- [ ] **Testing**:
-  - All unit tests pass (coverage >80%)
-  - Integration tests pass (5 scenarios)
-  - 48h manual test in production environment without errors
-  - Latency < 60s from trip change to control action
-
-- [ ] **Documentation**:
-  - README.md updated with EMHASS integration guide
-  - Configuration examples for OVMS and Renault
-  - Migration guide from sliders to trips
-  - Troubleshooting section
-
-- [ ] **User Experience**:
-  - Config flow guides user through setup
-  - Clear error messages for misconfiguration
-  - Migration service with preview mode
-  - No breaking changes to existing functionality
+- **Migración desde sliders** (`import_from_sliders`): La migración es opcional y solo relevante para usuarios con configuración pre-M3. Usuarios nuevos usan directamente el config flow.
+- **Validación manual 48h**: Superada por la suite de 793 tests automáticos + CI/CD.
+- **Selección de tipo de vehículo (híbrido/eléctrico)**: Eliminado del config flow en v0.4.1-dev por irrelevante.
 
 ---
 
-**Last Updated**: 2026-03-29
-**Milestone 3 Start Date**: TBD (pending validation of EMHASS config)
-**Expected Completion**: 5-6 weeks after start
+## 🔧 Notas de Proceso (uso interno)
 
----
+### Agente Goose — Truncación de Output
 
-## 🐛 Known Issues - Ralph Loop
+**Síntoma**: Al usar `RALPH_AGENT=claude`, el log solo muestra la respuesta final (`TASK_COMPLETE`), no el razonamiento completo.
 
-### Issue: Goose Agent Output Truncation
+**Causa**: El modelo vLLM (qwen3-5-35b-a3b-nvfp4) trunca la respuesta. El prompt completo se envía correctamente pero el output queda limitado por el tokenizador.
 
-**Symptom**: When using `RALPH_AGENT=claude`, the log only shows the final response (e.g., "TASK_COMPLETE"), not the full output with thinking, commands, and reasoning.
-
-**Cause**: The vLLM model (qwen3-5-35b-a3b-nvfp4) has a tokenizer that truncates the output. The full prompt (instructions + context) is sent, but the response is limited.
-
-**Impact**: Harder to debug goose iterations compared to Claude, which shows the complete output.
-
-**Workaround**: Use Claude for debugging complex tasks. Goose is suitable for simpler tasks where only the final output matters.
-
-**Future Fix**: Consider using a larger model or adjusting the tokenizer settings for goose iterations.
-
----
-
-**Last Updated**: 2026-03-17
+**Workaround**: Usar Claude para tareas complejas donde el razonamiento importa. Goose es adecuado para tareas simples donde solo importa el resultado final.
