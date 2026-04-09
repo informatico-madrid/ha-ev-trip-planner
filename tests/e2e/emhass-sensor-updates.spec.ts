@@ -60,12 +60,8 @@ test.describe('EMHASS Sensor Updates', () => {
   });
 
   test('should navigate to Developer Tools > States to inspect EMHASS sensor', async ({ page }) => {
-    // Navigate to Developer Tools
-    await page.getByRole('button', { name: 'More' }).click();
-    await page.getByRole('menuitem', { name: 'Developer tools' }).click();
-
-    // Click on States tab
-    await page.getByRole('tab', { name: 'States' }).click();
+    // Navigate directly to Developer Tools > States
+    await page.goto('/developer-tools/state');
 
     // Wait for states panel to load
     await expect(page.locator(DEVELOPER_TOOLS_STATES)).toBeVisible();
@@ -79,8 +75,12 @@ test.describe('EMHASS Sensor Updates', () => {
 
   test('should inspect EMHASS sensor attributes in Developer Tools', async ({ page }) => {
     // Navigate to Developer Tools > States
-    await page.getByRole('button', { name: 'More' }).click();
-    await page.getByRole('menuitem', { name: 'Developer tools' }).click();
+    await page.goto('/developer-tools/state');
+
+    // Wait for states panel to load
+    await expect(page.locator(DEVELOPER_TOOLS_STATES)).toBeVisible();
+
+    // Click on States tab
     await page.getByRole('tab', { name: 'States' }).click();
 
     // Search for EMHASS sensor
@@ -104,9 +104,7 @@ test.describe('EMHASS Sensor Updates', () => {
 
   test('should verify single device for vehicle in Developer Tools > Devices', async ({ page }) => {
     // Navigate to Developer Tools > Devices
-    await page.getByRole('button', { name: 'More' }).click();
-    await page.getByRole('menuitem', { name: 'Developer tools' }).click();
-    await page.getByRole('tab', { name: 'Devices' }).click();
+    await page.goto('/config/devices/list');
 
     // Wait for devices panel
     await expect(page.locator(DEVELOPER_TOOLS_DEVICES)).toBeVisible();

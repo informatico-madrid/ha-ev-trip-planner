@@ -315,7 +315,7 @@
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
   - **Done when**: Test file created with proper selectors (EMHASS_STATE_SELECTOR, DEVELOPER_TOOLS_STATES, DEVELOPER_TOOLS_DEVICES)
   - **Verify**: `grep -q "EMHASS_STATE_SELECTOR" tests/e2e/emhass-sensor-updates.spec.ts && echo VE0_PASS`
-  - **Commit**: `test(e2e): create EMHASS sensor updates E2E test file with selectors`
+  - **Commit**: (included in main fix commit)
   - _Requirements: AC-T2.2, AC-2.1_
 
 - [x] 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update
