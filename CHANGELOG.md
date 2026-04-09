@@ -105,6 +105,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Device duplication bug**: Fixed critical issue where multiple devices were created for the same `vehicle_id`. Added unique device tracking in `presence_monitor.py` to ensure only one device exists per vehicle.
+- **Empty sensor attributes bug**: Fixed EMHASS deferrable load sensors being published with empty/missing attributes. Properly initialized all required attributes (`deferrable_loads`, `vehicle_id`, `entry_id`) when publishing sensors.
+
 ### Added
 - **Milestone 3 Preparation**: Complete architectural redesign for EMHASS integration
   - New documentation: `docs/MILESTONE_3_ARCHITECTURE_ANALYSIS.md` (375 lines)
