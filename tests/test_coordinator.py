@@ -34,6 +34,21 @@ def mock_logger():
     return MagicMock(spec=logging.Logger)
 
 
+@pytest.fixture
+def mock_emhass_adapter():
+    """Create a mock EMHASS adapter with cached data."""
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.const import EMHASS_STATE_READY
+
+    mock = MagicMock()
+    mock.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": [0.0] * 24,
+        "emhass_deferrables_schedule": [{"trip_id": "1", "power": 7400}],
+        "emhass_status": EMHASS_STATE_READY,
+    }
+    return mock
+
+
 async def test_coordinator_initialization(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
     """Test that coordinator initializes correctly."""
     coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
@@ -251,6 +266,36 @@ class TestSensorAsyncAddedToHassRestore:
             await sensor.async_added_to_hass()
             # async_get_last_state should NOT be called when data is not None
             mock_get_last.assert_not_called()
+
+
+# =============================================================================
+# coordinator.py - EMHASS data propagation (Task 1.18 RED, Task 1.19 GREEN)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_coordinator_data_emhass_cache(mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter):
+    """coordinator.data includes EMHASS fields from adapter cache.
+
+    Task 1.18 RED test: expects coordinator.data to have emhass_power_profile,
+    emhass_deferrables_schedule, and emhass_status populated from adapter cache.
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+
+    # Create coordinator with EMHASS adapter
+    coordinator = TripPlannerCoordinator(
+        mock_config_entry.hass, mock_config_entry, mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter, logger=mock_logger
+    )
+
+    # Call coordinator refresh
+    await coordinator.async_refresh()
+
+    # coordinator.data should have EMHASS fields populated from adapter cache
+    assert coordinator.data is not None
+    assert "emhass_power_profile" in coordinator.data
+    assert "emhass_deferrables_schedule" in coordinator.data
+    assert "emhass_status" in coordinator.data
+    assert coordinator.data["emhass_status"] is not None
 
 
 # =============================================================================

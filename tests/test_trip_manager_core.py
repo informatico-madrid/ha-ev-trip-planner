@@ -1896,7 +1896,7 @@ async def test_async_sync_trip_to_emhass_with_km_change_triggers_recalculate(moc
 
     # Should call both update and publish_all for critical updates
     mock_adapter.async_update_deferrable_load.assert_called()
-    mock_adapter.async_publish_all_deferrable_loads.assert_called()
+    mock_adapter.publish_deferrable_loads.assert_called()
 
 
 @pytest.mark.asyncio

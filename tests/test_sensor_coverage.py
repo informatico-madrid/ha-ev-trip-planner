@@ -331,7 +331,7 @@ class TestSensorDeviceInfo:
         assert device_info["model"] == "EV Trip Planner"
 
     def test_emhass_deferrable_load_sensor_device_info(self):
-        """EmhassDeferrableLoadSensor.device_info uses entry_id for identifiers."""
+        """EmhassDeferrableLoadSensor.device_info uses vehicle_id for identifiers."""
         from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 
         mock_coordinator = MagicMock()
@@ -342,8 +342,8 @@ class TestSensorDeviceInfo:
 
         device_info = sensor.device_info
 
-        # identifiers use entry_id
-        assert ("ev_trip_planner", "entry_abc") in device_info["identifiers"]
+        # identifiers use vehicle_id from coordinator (fixed behavior)
+        assert ("ev_trip_planner", "coordinator_vehicle") in device_info["identifiers"]
         # name uses vehicle_id from coordinator
         assert "EV Trip Planner coordinator_vehicle" in device_info["name"]
 
