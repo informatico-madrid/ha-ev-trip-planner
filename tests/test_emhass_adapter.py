@@ -2452,6 +2452,56 @@ class TestPublishDeferrableLoadsCoordinatorPath:
             # Should not raise - coordinator is None
             await adapter.publish_deferrable_loads(trips)
 
+    @pytest.mark.asyncio
+    async def test_publish_deferrable_loads_sets_cache_and_triggers_refresh(self, hass):
+        """publish_deferrable_loads sets _cached_* attributes and triggers coordinator refresh.
+
+        This test validates the caching contract in publish_deferrable_loads (lines 531-543):
+        - _cached_power_profile is set to computed value
+        - _cached_deferrables_schedule is set to computed value
+        - _cached_emhass_status is set to EMHASS_STATE_READY
+        - coordinator.async_request_refresh() is called
+        """
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_request_refresh = AsyncMock()
+        entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+            adapter.hass.states.async_set = AsyncMock()
+
+            # Mock _get_coordinator to return our mock
+            adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+            trips = [{"id": "trip_1", "kwh": 7.4, "hora": "09:00"}]
+
+            # Call publish_deferrable_loads
+            await adapter.publish_deferrable_loads(trips)
+
+            # Verify cache was set
+            assert adapter._cached_power_profile is not None
+            assert len(adapter._cached_power_profile) > 0
+            assert adapter._cached_deferrables_schedule is not None
+            assert adapter._cached_emhass_status == EMHASS_STATE_READY
+
+            # Verify coordinator refresh was triggered
+            mock_coordinator.async_request_refresh.assert_called_once()
+
 
 class TestVerifyShellCommandIntegrationCoverage:
     """Tests for async_verify_shell_command_integration coverage (line 643)."""
