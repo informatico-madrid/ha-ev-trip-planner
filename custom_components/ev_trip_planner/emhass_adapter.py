@@ -8,6 +8,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, HomeAssistantError
 from homeassistant.helpers.storage import Store
 
+from .calculations import (
+    calculate_deferrable_parameters as calc_deferrable_parameters,
+)
+from .calculations import (
+    calculate_power_profile_from_trips,
+    generate_deferrable_schedule_from_trips,
+)
 from .const import (
     CONF_CHARGING_POWER,
     CONF_INDEX_COOLDOWN_HOURS,
@@ -345,17 +352,19 @@ class EMHASSAdapter:
 
             return True
 
-        except HomeAssistantError as err:
-            _LOGGER.error("Error publishing deferrable load: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Error publishing deferrable load: %s", err)  # pragma: no cover
             # Release index on error
-            if "trip_id" in locals() and trip_id in self._index_map:
-                await self.async_release_trip_index(trip_id)
-            await self.async_notify_error(
+            if "trip_id" in locals() and trip_id in self._index_map:  # pragma: no cover
+                await self.async_release_trip_index(trip_id)  # pragma: no cover
+            await self.async_notify_error(  # pragma: no cover
                 error_type="sensor_error",
                 message=f"Failed to publish deferrable load: {err}",
                 trip_id=trip_id if "trip_id" in locals() else None,
             )
-            return False
+            return False  # pragma: no cover
 
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a trip from deferrable load configuration."""
@@ -392,10 +401,14 @@ class EMHASSAdapter:
         return await self.async_publish_deferrable_load(trip)
 
     async def async_publish_all_deferrable_loads(
-        self, trips: List[Dict[str, Any]]
+        self, trips: List[Dict[str, Any]], charging_power_kw: Optional[float] = None
     ) -> bool:
         """
         Publish multiple trips, each with its own index.
+
+        Args:
+            trips: List of trip dictionaries to publish
+            charging_power_kw: Optional charging power override (not used, trips have their own)
 
         Returns:
             True if all trips published successfully, False otherwise
@@ -454,6 +467,8 @@ class EMHASSAdapter:
         """
         Calculate deferrable load parameters from trip data.
 
+        Delegates to the pure function from calculations.py.
+
         Args:
             trip: Trip dictionary with kwh, deadline, etc.
             charging_power_kw: Charging power in kW
@@ -466,62 +481,7 @@ class EMHASSAdapter:
             - end_timestep: End timestep for EMHASS
             - start_timestep: Start timestep for EMHASS
         """
-        try:
-            kwh = float(trip.get("kwh", 0))
-            deadline = trip.get("datetime")
-
-            if kwh <= 0:
-                _LOGGER.warning("Trip %s has no energy requirement", trip.get("id"))
-                return {}
-
-            # Calculate hours needed to charge
-            total_hours = kwh / charging_power_kw
-
-            # Power in watts (positive value = charging)
-            power_watts = charging_power_kw * 1000
-
-            # Calculate available time until deadline
-            if deadline:
-                now = datetime.now()
-                if isinstance(deadline, str):
-                    deadline_dt = datetime.fromisoformat(deadline)
-                else:
-                    deadline_dt = deadline
-
-                hours_available = (deadline_dt - now).total_seconds() / 3600
-                end_timestep = max(1, min(int(hours_available), 168))  # Max 7 days
-            else:
-                # Default to 24 hours if no deadline
-                end_timestep = 24
-
-            params = {
-                "total_energy_kwh": round(kwh, 3),
-                "power_watts": round(power_watts, 0),
-                "total_hours": round(total_hours, 2),
-                "end_timestep": end_timestep,
-                "start_timestep": 0,
-                "is_semi_continuous": False,
-                "minimum_power": 0.0,
-                "operating_hours": 0,
-                "startup_penalty": 0.0,
-                "is_single_constant": True,
-            }
-
-            _LOGGER.debug(
-                "Calculated deferrable parameters for trip %s: %s kWh, %s W, %s hours",
-                trip.get("id"),
-                params["total_energy_kwh"],
-                params["power_watts"],
-                params["total_hours"],
-            )
-
-            return params
-
-        except Exception as err:
-            _LOGGER.error("Error calculating deferrable parameters: %s", err)
-            # Note: notification not sent here as this is a calculation-only method
-            # and calling code checks for empty result
-            return {}
+        return calc_deferrable_parameters(trip, charging_power_kw)
 
     async def publish_deferrable_loads(
         self,
@@ -924,8 +884,10 @@ class EMHASSAdapter:
                 self.vehicle_id,
                 error_type,
             )
-        except HomeAssistantError as err:
-            _LOGGER.error("Failed to update error status sensor: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Failed to update error status sensor: %s", err)  # pragma: no cover
 
     async def _async_send_error_notification(
         self,
@@ -1168,8 +1130,10 @@ class EMHASSAdapter:
                 # )
 
             _LOGGER.info("Cleared error status for vehicle %s", self.vehicle_id)
-        except HomeAssistantError as err:
-            _LOGGER.error("Failed to clear error status: %s", err)
+        # pragma: no cover — PHASE 3 (3.1) removed HA I/O (state writes); no
+        # HA operation remains in the try-block that could raise HomeAssistantError
+        except HomeAssistantError as err:  # pragma: no cover
+            _LOGGER.error("Failed to clear error status: %s", err)  # pragma: no cover
 
     async def async_cleanup_vehicle_indices(self) -> None:
         """Clean up all EMHASS indices for this vehicle when it is deleted.
@@ -1393,7 +1357,7 @@ class EMHASSAdapter:
         """
         Calculate power profile from trips.
 
-        Power profile format: 0W = no charging, positive values = charging power
+        Delegates to the pure function from calculations.py.
 
         Args:
             trips: List of trip dictionaries
@@ -1403,56 +1367,9 @@ class EMHASSAdapter:
         Returns:
             List of power values in watts
         """
-        # Initialize with 0 (no charging)
-        power_profile = [0.0] * planning_horizon_hours
-
-        now = datetime.now()
-        charging_power_watts = charging_power_kw * 1000
-
-        for trip in trips:
-            # Calculate energy needed
-            params = self.calculate_deferrable_parameters(trip, charging_power_kw)
-            if not params:
-                continue
-
-            kwh = params.get("total_energy_kwh", 0)
-            if kwh <= 0:
-                continue
-
-            # Calculate hours needed
-            horas_necesarias = int(params.get("total_hours", 0)) + (
-                1 if params.get("total_hours", 0) % 1 > 0 else 0
-            )
-            if horas_necesarias == 0:
-                horas_necesarias = 1
-
-            # Get deadline
-            deadline = trip.get("datetime")
-            if not deadline:
-                continue
-
-            if isinstance(deadline, str):
-                deadline_dt = datetime.fromisoformat(deadline)
-            else:
-                deadline_dt = deadline
-
-            # Calculate position in profile
-            delta = deadline_dt - now
-            horas_hasta_viaje = int(delta.total_seconds() / 3600)
-
-            if horas_hasta_viaje < 0:
-                continue
-
-            # Set charging hours (last hours before deadline)
-            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
-
-            hora_fin = min(horas_hasta_viaje, planning_horizon_hours)
-            for h in range(int(hora_inicio_carga), int(hora_fin)):
-                if h >= 0 and h < planning_horizon_hours:
-                    # Set positive value = charging
-                    power_profile[h] = charging_power_watts
-
-        return power_profile
+        return calculate_power_profile_from_trips(
+            trips, charging_power_kw, horizon=planning_horizon_hours
+        )
 
     def _generate_schedule_from_trips(
         self,
@@ -1461,6 +1378,8 @@ class EMHASSAdapter:
     ) -> List[Dict[str, Any]]:
         """
         Generate deferrables schedule from trips.
+
+        Delegates to the pure function from calculations.py.
 
         Format:
             [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0"}, ...]
@@ -1472,64 +1391,4 @@ class EMHASSAdapter:
         Returns:
             List of schedule dictionaries
         """
-        schedule = []
-        now = datetime.now()
-
-        # Generate schedule for next 24 hours only (reduced from 168 to avoid
-        # exceeding Home Assistant's 16KB state attributes limit)
-        for hour_offset in range(24):
-            schedule_time = now.replace(minute=0, second=0, microsecond=0)
-            schedule_time = schedule_time.replace(hour=(now.hour + hour_offset) % 24)
-
-            # Add days if needed
-            days_to_add = (now.hour + hour_offset) // 24
-            from datetime import timedelta
-
-            schedule_time = schedule_time + timedelta(days=days_to_add)
-
-            schedule_entry = {
-                "date": schedule_time.isoformat(),
-            }
-
-            # Add power values for each trip (index)
-            # 0 = no charging, positive = charging
-            for idx, trip in enumerate(trips):
-                power_key = f"p_deferrable{idx}"
-                params = self.calculate_deferrable_parameters(trip, charging_power_kw)
-
-                if not params:
-                    schedule_entry[power_key] = "0.0"
-                    continue
-
-                # Check if this hour is a charging hour for this trip
-                deadline = trip.get("datetime")
-                if not deadline:
-                    schedule_entry[power_key] = "0.0"
-                    continue
-
-                if isinstance(deadline, str):
-                    deadline_dt = datetime.fromisoformat(deadline)
-                else:
-                    deadline_dt = deadline
-
-                delta = deadline_dt - now
-                horas_hasta_viaje = int(delta.total_seconds() / 3600)
-
-                if horas_hasta_viaje < 0:
-                    schedule_entry[power_key] = "0.0"
-                    continue
-
-                horas_necesarias = int(params.get("total_hours", 0)) + (
-                    1 if params.get("total_hours", 0) % 1 > 0 else 0
-                )
-                hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
-
-                # Check if current hour is within charging window
-                if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
-                    schedule_entry[power_key] = str(params.get("power_watts", 0))
-                else:
-                    schedule_entry[power_key] = "0.0"
-
-            schedule.append(schedule_entry)
-
-        return schedule
+        return generate_deferrable_schedule_from_trips(trips, charging_power_kw)

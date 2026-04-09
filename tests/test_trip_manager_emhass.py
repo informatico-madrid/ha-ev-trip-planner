@@ -51,7 +51,7 @@ def mock_emhass_adapter():
     adapter.async_update_deferrable_load = AsyncMock()
     adapter.async_remove_deferrable_load = AsyncMock()
     adapter.async_publish_deferrable_load = AsyncMock()
-    adapter.publish_deferrable_loads = AsyncMock(return_value=True)
+    adapter.async_publish_all_deferrable_loads = AsyncMock(return_value=True)
     adapter.async_get_deferrable_params = AsyncMock(return_value={
         "treat_as_deferrable": 1,
         "optimization_cost_fun": "cost",
@@ -243,7 +243,7 @@ class TestTripManagerEMHASSMethods:
         await manager._async_sync_trip_to_emhass("trip_1", {"km": 50.0}, {"km": 100.0})
 
         # Should call publish to recalculate
-        mock_emhass_adapter.publish_deferrable_loads.assert_called()
+        mock_emhass_adapter.async_publish_all_deferrable_loads.assert_called()
 
     @pytest.mark.asyncio
     async def test_remove_trip_from_emhass(
@@ -264,7 +264,7 @@ class TestTripManagerEMHASSMethods:
         await manager._async_remove_trip_from_emhass("trip_1")
 
         mock_emhass_adapter.async_remove_deferrable_load.assert_called_once_with("trip_1")
-        mock_emhass_adapter.publish_deferrable_loads.assert_called()
+        mock_emhass_adapter.async_publish_all_deferrable_loads.assert_called()
 
     @pytest.mark.asyncio
     async def test_publish_new_trip_to_emhass(
@@ -285,7 +285,7 @@ class TestTripManagerEMHASSMethods:
 
         # Should call async_publish_deferrable_load
         mock_emhass_adapter.async_publish_deferrable_load.assert_called()
-        mock_emhass_adapter.publish_deferrable_loads.assert_called()
+        mock_emhass_adapter.async_publish_all_deferrable_loads.assert_called()
 
 
 class TestTripManagerHelperMethods:

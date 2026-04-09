@@ -8,8 +8,8 @@ Phase 1: Defines full data contract with EMHASS keys as None placeholders.
 Phase 3: EMHASS keys are populated from emhass_adapter computation results.
 """
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry

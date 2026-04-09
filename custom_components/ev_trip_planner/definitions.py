@@ -4,6 +4,7 @@ Contains TripSensorEntityDescription dataclass and TRIP_SENSORS tuple.
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -11,7 +12,6 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfEnergy
-from typing import Any, Callable
 
 
 def default_attrs_fn(data: dict) -> dict:

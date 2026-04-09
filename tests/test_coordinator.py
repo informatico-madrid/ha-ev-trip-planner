@@ -185,7 +185,7 @@ class TestSensorAsyncAddedToHassRestore:
         from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
 
         # Create mock coordinator with None data (simulating HA restart before first refresh)
-        mock_coordinator = MagicMock()
+        mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
         mock_coordinator.data = None  # data is None -> restore path should trigger
 
         # Create entity description with restore=True
@@ -230,7 +230,7 @@ class TestSensorAsyncAddedToHassRestore:
         from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
 
         # Create mock coordinator WITH data (normal operation, no restore needed)
-        mock_coordinator = MagicMock()
+        mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
         mock_coordinator.data = {"kwh_today": 30.0}  # data is available
 
         desc = TripSensorEntityDescription(

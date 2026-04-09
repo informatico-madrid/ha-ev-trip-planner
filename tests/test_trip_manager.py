@@ -1037,6 +1037,71 @@ class TestTripManagerEMHASSAdapter:
 
 
 
+class TestEMHASSAdapterConstructorInjection:
+    """T036: Tests for EMHASS adapter constructor injection (Phase C refactor).
+
+    These tests verify that after the Phase C refactor:
+    1. emhass_adapter can be passed to TripManager constructor
+    2. get_emhass_adapter() returns the adapter set via constructor
+    3. set_emhass_adapter() still works for backward compatibility
+    4. set_emhass_adapter() can override constructor-set adapter
+
+    These tests should FAIL in RED phase (before T037-T040 implementation).
+    """
+
+    @pytest.mark.asyncio
+    async def test_emhass_adapter_via_constructor(self, mock_hass_with_storage):
+        """TripManager accepts emhass_adapter in constructor and get_emhass_adapter returns it.
+
+        T036 RED phase: This test should fail because constructor doesn't accept
+        emhass_adapter parameter yet. After T037-T040, it should pass.
+        """
+        mock_adapter = MagicMock()
+
+        # After Phase C refactor, TripManager should accept emhass_adapter as 3rd parameter
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            emhass_adapter=mock_adapter,
+        )
+
+        # get_emhass_adapter should return the adapter set via constructor
+        assert trip_manager.get_emhass_adapter() is mock_adapter
+
+    @pytest.mark.asyncio
+    async def test_set_emhass_adapter_still_works_after_refactor(self, mock_hass_with_storage):
+        """set_emhass_adapter() still works after Phase C refactor (backward compatibility).
+
+        T036 RED phase: This test should fail because the refactor hasn't been done.
+        After T037-T040, the set_emhass_adapter() method should still be preserved.
+        """
+        # Create TripManager with emhass_adapter via constructor
+        mock_adapter_constructor = MagicMock()
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            emhass_adapter=mock_adapter_constructor,
+        )
+
+        # Override with set_emhass_adapter
+        mock_adapter_setter = MagicMock()
+        trip_manager.set_emhass_adapter(mock_adapter_setter)
+
+        # get_emhass_adapter should return the adapter set via setter (override)
+        assert trip_manager.get_emhass_adapter() is mock_adapter_setter
+
+    @pytest.mark.asyncio
+    async def test_get_emhass_adapter_returns_none_when_not_set(self, mock_hass_with_storage):
+        """get_emhass_adapter returns None when no adapter is set (via constructor or setter).
+
+        T036 RED phase: This test verifies baseline behavior is preserved.
+        """
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
+        assert trip_manager.get_emhass_adapter() is None
+
+
+
 class TestTripManagerVehicleSOC:
     """Tests for vehicle SOC methods."""
 
@@ -1257,4 +1322,116 @@ class TestCalcularSocObjetivoBase:
         """Test SOC target calculation with various trip data and battery capacities."""
         result = trip_manager._calcular_soc_objetivo_base(trip, battery_capacity_kwh, consumption)
         assert abs(result - expected_soc) < 0.001, f"Expected {expected_soc}, got {result}"
+
+
+class TestTripManagerConstructorInjection:
+    """Tests for TripManager constructor injection (Phase C, T035).
+
+    These tests verify that TripManager.__init__ accepts storage and emhass_adapter
+    parameters with _UNSET sentinel defaults. This is a TDD RED phase - the tests
+    should FAIL because the constructor doesn't accept these parameters yet.
+    """
+
+    def test_constructor_accepts_storage_parameter(self, mock_hass_with_storage):
+        """TripManager constructor should accept storage: TripStorageProtocol parameter.
+
+        This test FAILS with TypeError because current constructor does not
+        accept a storage parameter.
+        """
+        from custom_components.ev_trip_planner.protocols import (
+            TripStorageProtocol,
+            EMHASSPublisherProtocol,
+        )
+
+        # Create mock protocol implementations
+        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage.async_load = AsyncMock(return_value={})
+        mock_storage.async_save = AsyncMock(return_value=None)
+
+        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
+        mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
+
+        # This should raise TypeError because constructor doesn't accept storage/emhass_adapter
+        # Currently TripManager.__init__(self, hass, vehicle_id, presence_config=None)
+        # After T037/T038 it will be:
+        #   TripManager.__init__(self, hass, vehicle_id, presence_config=None,
+        #                        storage=_UNSET, emhass_adapter=_UNSET)
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            storage=mock_storage,
+        )
+        # If we get here, storage was accepted - verify it was set
+        assert hasattr(trip_manager, "_storage")
+        assert trip_manager._storage is mock_storage
+
+    def test_constructor_accepts_emhass_adapter_parameter(self, mock_hass_with_storage):
+        """TripManager constructor should accept emhass_adapter: EMHASSPublisherProtocol parameter.
+
+        This test FAILS with TypeError because current constructor does not
+        accept an emhass_adapter parameter.
+        """
+        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
+
+        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
+        mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
+
+        # This should raise TypeError - constructor doesn't accept emhass_adapter
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            emhass_adapter=mock_emhass,
+        )
+        # If we get here, emhass_adapter was accepted
+        assert hasattr(trip_manager, "_emhass_adapter")
+        assert trip_manager._emhass_adapter is mock_emhass
+
+    def test_constructor_accepts_both_storage_and_emhass_adapter(self, mock_hass_with_storage):
+        """TripManager constructor should accept both storage and emhass_adapter parameters.
+
+        This test FAILS with TypeError because current constructor does not
+        accept these parameters.
+        """
+        from custom_components.ev_trip_planner.protocols import (
+            TripStorageProtocol,
+            EMHASSPublisherProtocol,
+        )
+
+        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage.async_load = AsyncMock(return_value={})
+        mock_storage.async_save = AsyncMock(return_value=None)
+
+        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
+        mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
+
+        # This should raise TypeError - constructor doesn't accept these params
+        trip_manager = TripManager(
+            mock_hass_with_storage,
+            "test_vehicle",
+            storage=mock_storage,
+            emhass_adapter=mock_emhass,
+        )
+        assert trip_manager._storage is mock_storage
+        assert trip_manager._emhass_adapter is mock_emhass
+
+    def test_unset_sentinel_default_behavior(self, mock_hass_with_storage):
+        """TripManager should use _UNSET sentinel for storage/emhass_adapter defaults.
+
+        When not provided, the constructor should use _UNSET as the default value
+        for both parameters. This test verifies the sentinel pattern is in place.
+        """
+        from custom_components.ev_trip_planner import trip_manager as tm_module
+
+        # Verify _UNSET sentinel exists in the module
+        assert hasattr(tm_module, "_UNSET"), "TripManager module should define _UNSET sentinel"
+
+        # When called without storage/emhass_adapter, they should default to _UNSET
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+
+        # After T039, the internal vars should be set to the sentinel or resolved to defaults
+        # For now, this just verifies the sentinel pattern is documented
+        assert trip_manager is not None
 

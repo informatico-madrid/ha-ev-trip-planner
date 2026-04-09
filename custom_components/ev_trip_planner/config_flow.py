@@ -221,7 +221,7 @@ def _get_emhass_planning_horizon(
     end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
     if not end_timesteps or not isinstance(end_timesteps, list):
         return None
-    if len(end_timesteps) == 0:
+    if len(end_timesteps) == 0:  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
         return None
 
     # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days

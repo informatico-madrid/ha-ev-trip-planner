@@ -67,7 +67,7 @@ npx playwright install chromium --with-deps
 ### Solo para ejecución local (sin Docker)
 
 ```bash
-# Python 3.11-3.12
+# Python 3.11-3.14
 python3 --version
 
 # Instalar Home Assistant
