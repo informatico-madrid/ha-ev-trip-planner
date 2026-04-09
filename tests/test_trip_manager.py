@@ -1435,3 +1435,79 @@ class TestTripManagerConstructorInjection:
         # For now, this just verifies the sentinel pattern is documented
         assert trip_manager is not None
 
+
+class TestTripManagerLoadErrors:
+    """Test suite for TripManager error handling during trip loading.
+
+    Covers the generic exception handler in _load_trips that catches
+    any exception (except CancelledError) and resets trip state.
+    """
+
+    @pytest.mark.asyncio
+    async def test_load_trips_generic_exception_handler(
+        self, mock_hass_no_storage, caplog
+    ):
+        """Test that generic exceptions during trip loading are caught and handled.
+
+        This test covers lines 270-275 in trip_manager.py which were
+        previously uncovered (0.16% missing coverage).
+        """
+        caplog.set_level("ERROR")
+
+        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
+
+        # Create a mock storage that raises a generic exception
+        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage.async_load = AsyncMock(
+            side_effect=RuntimeError("Storage read error - disk full")
+        )
+
+        trip_manager = TripManager(
+            mock_hass_no_storage, "test_vehicle", storage=mock_storage
+        )
+
+        # Trigger the load - should catch the exception and reset state
+        await trip_manager._load_trips()
+
+        # Verify the exception was caught and logged
+        assert any("Error cargando viajes" in record.message for record in caplog.records)
+
+        # Verify trip state was reset to empty
+        assert trip_manager._trips == {}
+        assert trip_manager._recurring_trips == {}
+        assert trip_manager._punctual_trips == {}
+        assert trip_manager._last_update is None
+
+    @pytest.mark.asyncio
+    async def test_load_trips_value_error_handler(
+        self, mock_hass_no_storage, caplog
+    ):
+        """Test that ValueError during trip loading is caught and handled.
+
+        Tests another type of exception that could occur during storage load.
+        """
+        caplog.set_level("ERROR")
+
+        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
+
+        # Create a mock storage that raises ValueError
+        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage.async_load = AsyncMock(
+            side_effect=ValueError("Invalid data format in storage")
+        )
+
+        trip_manager = TripManager(
+            mock_hass_no_storage, "test_vehicle", storage=mock_storage
+        )
+
+        # Trigger the load - should catch the exception
+        await trip_manager._load_trips()
+
+        # Verify the exception was caught
+        assert any("Error cargando viajes" in record.message for record in caplog.records)
+
+        # Verify state was reset
+        assert trip_manager._trips == {}
+        assert trip_manager._recurring_trips == {}
+        assert trip_manager._punctual_trips == {}
+
