@@ -1,0 +1,35 @@
+{
+  "source": "spec",
+  "name": "fix-emhass-sensor-attributes",
+  "basePath": "specs/fix-emhass-sensor-attributes",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [
+    {
+      "name": "context-auditor",
+      "source": "/home/malka/.claude/plugins/cache/smart-ralph/ralph-specum/4.9.6/skills/context-auditor/SKILL.md",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "python-testing-patterns",
+      "source": ".claude/skills/python-testing-patterns",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "home-assistant-best-practices",
+      "source": ".claude/skills/home-assistant-best-practices",
+      "matchedAt": "start",
+      "invoked": true
+    }
+  ],
+  "awaitingApproval": false
+}

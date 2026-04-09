@@ -1,0 +1,72 @@
+
+# Sensor de perfil de carga diferible para OVMS Chispitas (EMHASS)
+# esto es un ejemplo no valido de otra integracion diferente. pero es una ejemplo valioso para entender lo que se pretende. 
+- name: "EMHASS Perfil Diferible OVMS Chispitas"
+  unique_id: emhass_perfil_diferible_ovms_chispitas
+  state: >
+    {% set kwh = states('input_number.ovms_kwh_restantes_para_carga') | float(0) %}
+    {% set en_carga = is_state('binary_sensor.ovms_chispitas_metric_v_c_charging', 'on') %}
+    {% if kwh > 0 and en_carga %}
+      active
+    {% elif kwh > 0 %}
+      ready
+    {% else %}
+      idle
+    {% endif %}
+  icon: mdi:car-electric
+  unit_of_measurement: "W"
+  attributes:
+    power_profile_watts: >
+      {% set potencia_carga_w = 3600.0 %}
+      {% set kwh_needed = states('input_number.ovms_kwh_restantes_para_carga') | float(0) %}
+      {% set horas_necesarias = (kwh_needed / 3.6) | int %}
+      {% set ahora = now() %}
+      {% set horas_total = 168 %}
+      {% set profile = [] %}
+      {% for h in range(168) %}
+        {% if h >= (horas_total - horas_necesarias) and h < horas_total %}
+          {{- potencia_carga_w -}}
+        {% else %}
+          0.0
+        {% endif %}
+        {% if h < 167 %},{% endif %}
+      {% endfor %}
+    deferrables_schedule: |
+      [
+        {"date": "2026-03-29T00:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T01:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T02:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T03:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T04:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T05:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T06:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T07:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T08:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T09:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T10:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T11:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T12:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T13:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T14:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T15:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T16:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T17:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T18:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T19:00:00+01:00", "p_deferrable0": "0.0"},
+        {"date": "2026-03-29T20:00:00+01:00", "p_deferrable0": "3600.0"},
+        {"date": "2026-03-29T21:00:00+01:00", "p_deferrable0": "3600.0"},
+        {"date": "2026-03-29T22:00:00+01:00", "p_deferrable0": "3600.0"},
+        {"date": "2026-03-29T23:00:00+01:00", "p_deferrable0": "3600.0"}
+      ]
+    def_total_hours: >
+      {{ ((states('input_number.ovms_kwh_restantes_para_carga') | float(0)) / 3.6) | round(2) }}
+    P_deferrable_nom: 3600
+    treat_deferrable_load_as_semi_cont: true
+    set_deferrable_load_single_constant: true
+    status: >
+      {% set kwh = states('input_number.ovms_kwh_restantes_para_carga') | float(0) %}
+      {% if kwh > 0 %}
+        Carga diferible: {{ ((kwh / 3.6) | round(2)) }} horas necesarias
+      {% else %}
+        Sin carga diferible pendiente
+      {% endif %}
