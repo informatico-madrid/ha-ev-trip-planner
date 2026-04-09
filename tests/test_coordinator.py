@@ -264,7 +264,7 @@ async def test_vehicle_id_property(mock_config_entry, mock_logger):
     This tests the happy path for Task 1.1/1.2.
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.config import CONF_VEHICLE_NAME
+    from custom_components.ev_trip_planner.const import CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
         mock_config_entry.hass, mock_config_entry, mock_trip_manager,
