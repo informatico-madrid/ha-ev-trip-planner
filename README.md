@@ -8,6 +8,8 @@
   ?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
 [![Licencia](https://img.shields.io/badge/license-MIT-green.svg
   ?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet.svg
+  ?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
 
 ## 📋 Tabla de Contenidos
 
@@ -23,6 +25,7 @@
 - [🗑️ Desinstalación](#️-desinstalación)
 - [🔧 Solución de Problemas](#-solución-de-problemas)
 - [📊 Desarrollo](#-desarrollo)
+  - [🤖 Metodología Smart Ralph](#-metodología-smart-ralph)
 
 ---
 
@@ -465,6 +468,24 @@ Cuando la carga sea necesaria pero no se pueda ejecutar:
 
 ## 📊 Desarrollo
 
+### 🤖 Metodología Smart Ralph
+
+Este plugin se desarrolló con **[`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)**,
+un fork de [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) que implementa
+un loop de desarrollo spec-driven con agentes IA especializados en paralelo revisando
+y ejecutando cada spec.
+
+Cada feature, fix o refactor pasó por un ciclo completo:
+`Research → Requirements → Design → Tasks → Implement → Verificación agéntica`
+
+El proyecto fue deliberadamente el laboratorio de pruebas del propio plugin — y a la vez
+resultó en un componente funcional y en producción. Más de 20 specs generadas a lo largo
+del desarrollo están en `specs/`.
+
+→ **[Ver metodología completa](docs/RALPH_METHODOLOGY.md)**
+
+---
+
 La guía completa de testing E2E está en [docs/TESTING_E2E.md](docs/TESTING_E2E.md).
 
 ### Estructura del proyecto
@@ -482,6 +503,8 @@ ha-ev-trip-planner/
 │   ├── test_coordinator.py  # Tests coordinator
 │   ├── test_sensors.py      # Tests sensores
 │   └── test_trip_manager.py # Tests manager
+├── specs/                   # Historial de specs Smart Ralph
+├── .agents/skills/          # Skills de dominio HA para los agentes
 ├── .github/workflows/
 │   └── python-tests.yml     # Python pytest tests
 ├── hacs.json                # Metadata HACS
