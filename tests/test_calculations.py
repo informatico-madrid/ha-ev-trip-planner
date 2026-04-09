@@ -7,7 +7,6 @@ All functions are synchronous and deterministic given the same inputs.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
 
 import pytest
 
@@ -869,7 +868,6 @@ class TestGenerateDeferrableScheduleFromTrips:
         result = generate_deferrable_schedule_from_trips(trips=trips, power_kw=7.4)
         assert len(result) > 0
         # date should be parseable as ISO format
-        from datetime import datetime
         for entry in result:
             date_str = entry.get("date", "")
             # Should be parseable (contains date and time info)

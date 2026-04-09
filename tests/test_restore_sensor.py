@@ -10,7 +10,7 @@ Currently FAILS because TripPlannerSensor does not inherit RestoreSensor.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

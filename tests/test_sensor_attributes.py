@@ -1,7 +1,6 @@
 """Tests for sensor attributes validation (Dashboard compatibility)."""
 
-from unittest.mock import Mock, patch, MagicMock
-import pytest
+from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.sensor import TripPlannerSensor
 from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription

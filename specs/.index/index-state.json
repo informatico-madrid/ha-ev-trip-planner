@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-09T17:28:19Z",
+  "updated": "2026-04-09T22:04:54Z",
   "directories": [
     {
       "path": "./specs",
@@ -182,8 +182,8 @@
       "name": "fix-emhass-sensor-attributes",
       "path": "./specs/fix-emhass-sensor-attributes",
       "phase": "execution",
-      "taskIndex": 0,
-      "totalTasks": 38
+      "taskIndex": 32,
+      "totalTasks": 39
     }
   ]
 }

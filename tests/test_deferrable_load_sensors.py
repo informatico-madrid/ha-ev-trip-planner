@@ -12,7 +12,7 @@ coordinator.data instead of calling trip_manager methods directly.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator

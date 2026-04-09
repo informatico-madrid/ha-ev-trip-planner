@@ -470,7 +470,6 @@ class TestDashboardMissingCoverage:
         """
         from custom_components.ev_trip_planner.dashboard import (
             _save_lovelace_dashboard,
-            DashboardStorageError,
         )
 
         mock_hass = MagicMock()

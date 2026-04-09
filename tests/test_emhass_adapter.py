@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistantError
 
@@ -105,8 +105,8 @@ async def test_async_assign_index_to_trip_returns_none_when_no_indices(hass, moc
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        idx1 = await adapter.async_assign_index_to_trip("trip_001")
-        idx2 = await adapter.async_assign_index_to_trip("trip_002")
+        await adapter.async_assign_index_to_trip("trip_001")
+        await adapter.async_assign_index_to_trip("trip_002")
 
         # All indices exhausted
         idx3 = await adapter.async_assign_index_to_trip("trip_003")
@@ -1518,7 +1518,7 @@ async def test_handle_emhass_unavailable_sends_notification(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_emhass_unavailable(
+            await adapter.async_handle_emhass_unavailable(
                 "Connection refused", trip_id="trip_abc"
             )
 
@@ -1548,7 +1548,7 @@ async def test_handle_sensor_error_calls_notify(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_sensor_error(
+            await adapter.async_handle_sensor_error(
                 "Sensor data invalid", "sensor.test"
             )
 
@@ -1576,7 +1576,7 @@ async def test_handle_shell_command_failure_calls_notify(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_shell_command_failure(
+            await adapter.async_handle_shell_command_failure(
                 trip_id="trip_xyz"
             )
 

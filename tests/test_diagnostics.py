@@ -1,8 +1,7 @@
 """Tests for diagnostics module."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock
-from homeassistant.core import HomeAssistant
+from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.diagnostics import async_get_config_entry_diagnostics
 

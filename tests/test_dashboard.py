@@ -2426,7 +2426,7 @@ class TestDashboardErrorPaths:
             str(Path(__file__).parent.parent / "custom_components")
         )
 
-        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback, _call_async_executor_sync
+        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)

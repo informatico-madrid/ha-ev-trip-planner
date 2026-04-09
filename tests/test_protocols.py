@@ -4,9 +4,7 @@ These tests verify that YamlTripStorage implements TripStorageProtocol
 and EMHASSAdapter implements EMHASSPublisherProtocol structurally via isinstance().
 """
 
-import pytest
 
-from typing import Any, Dict
 from unittest.mock import MagicMock
 from pathlib import Path
 
@@ -50,7 +48,6 @@ class TestYamlTripStorageImplementsTripStorageProtocol:
 
     def test_trip_storage_protocol_is_runtime_checkable(self):
         """TripStorageProtocol should be marked with @runtime_checkable."""
-        from typing import Protocol, runtime_checkable
         from custom_components.ev_trip_planner.protocols import TripStorageProtocol
 
         # Verify it's actually runtime_checkable

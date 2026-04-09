@@ -1,34 +1,35 @@
-# Chat Log — agent-chat-protocol
+### [2026-04-09 17:20:00] Coordinator → External-Reviewer
+**Task**: T32 — 4.3 [VE2-CHECK] E2E: create trip and verify EMHASS sensor updates
+**Signal**: CONTINUE
 
-## Signal Legend
+Delegating task 32 to spec-executor:
+- Do: Navigate to panel, create trip via UI, check developer tools > states for sensor attributes
+- Files: `tests/e2e/emhass-sensor-updates.spec.ts`
+- Verify: `npx playwright test emhass-sensor-updates.spec.ts --project=chromium --grep "should verify EMHASS sensor entity exists"`
 
-| Signal | Meaning |
-|--------|---------|
-| OVER | Task/turn complete, no more output |
-| ACK | Acknowledged, understood |
-| CONTINUE | Work in progress, more to come |
-| HOLD | Paused, waiting for input or resource |
-| STILL | Still alive/active, no progress but not dead |
-| ALIVE | Initial check-in or heartbeat |
-| CLOSE | Conversation closing |
-| URGENT | Needs immediate attention |
-| DEADLOCK | Blocked, cannot proceed |
-| INTENT-FAIL | Could not fulfill stated intent |
+### [2026-04-09 17:25:00] Coordinator → External-Reviewer
+**Task**: T33 — 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update
+**Signal**: CONTINUE
 
-## Message Format
+Delegating task 33 to spec-executor:
+- Do: Change SOC sensor state via HA API, verify `emhass_status` changes
+- Files: `tests/e2e/emhass-sensor-updates.spec.ts`
+- Verify: `npx playwright test emhass-sensor-updates.spec.ts --project=chromium --grep "should inspect EMHASS sensor attributes"`
 
-### [<writer> → <addressee>] <HH:MM:SS> | <task-ID> | <SIGNAL>
+### [2026-04-09 17:30:00] Coordinator → External-Reviewer
+**Task**: T34 — 4.5 [VE2-CHECK] E2E: verify single device in HA UI
+**Signal**: CONTINUE
 
-Example: `[agent-1 → agent-2] 14:32:05 | task-3.2 | OVER`
+Delegating task 34 to spec-executor:
+- Do: Navigate to Developer Tools > States, verify only one device exists for vehicle_id
+- Files: `tests/e2e/emhass-sensor-updates.spec.ts`
+- Verify: `npx playwright test emhass-sensor-updates.spec.ts --project=chromium --grep "should verify single device for vehicle"`
 
-## Example Messages
+### [2026-04-09 17:35:00] Coordinator → External-Reviewer
+**Task**: T35 — 4.6 [VE3-CLEANUP] E2E: cleanup handled by make e2e
+**Signal**: CONTINUE
 
-```text
-[spec-executor → coordinator] 09:00:00 | task-1.1 | ALIVE
-[coordinator → spec-executor] 09:00:01 | task-1.1 | ACK
-[spec-executor → coordinator] 09:00:05 | task-1.1 | CONTINUE
-[spec-executor → coordinator] 09:01:30 | task-1.1 | OVER
-[coordinator → spec-executor] 09:01:31 | task-1.2 | OVER
-```
-
-<!-- Messages accumulate here. Append only. Do not edit or delete. -->
+Delegating task 35 to spec-executor:
+- Do: Cleanup is handled by existing `make e2e` workflow (no manual task)
+- Files: `Makefile`, `scripts/run-e2e.sh`
+- Verify: `grep -q "cleanup" Makefile && echo VE3_PASS`

@@ -2301,7 +2301,6 @@ async def test_async_get_vehicle_soc_with_async_entries_domain(mock_hass, vehicl
 @pytest.mark.asyncio
 async def test_async_get_vehicle_soc_with_exception(mock_hass, vehicle_id):
     """Test async_get_vehicle_soc handles exception (lines 1154-1155)."""
-    from custom_components.ev_trip_planner.const import DOMAIN
 
     # Set up mock entry that raises exception when data.get is called
     mock_entry = MagicMock()

@@ -37,7 +37,6 @@ def mock_logger():
 @pytest.fixture
 def mock_emhass_adapter():
     """Create a mock EMHASS adapter with cached data."""
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from custom_components.ev_trip_planner.const import EMHASS_STATE_READY
 
     mock = MagicMock()
@@ -309,7 +308,6 @@ async def test_vehicle_id_property(mock_config_entry, mock_logger):
     This tests the happy path for Task 1.1/1.2.
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.const import CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
         mock_config_entry.hass, mock_config_entry, mock_trip_manager,

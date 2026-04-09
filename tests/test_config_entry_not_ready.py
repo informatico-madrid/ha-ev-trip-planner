@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
 
 import pytest
 from homeassistant.config_entries import ConfigEntryNotReady, ConfigEntryState
@@ -47,7 +46,6 @@ async def test_config_entry_not_ready_propagates_from_async_setup_entry():
     ConfigEntryNotReady and not properly re-raise it.
     """
     from custom_components.ev_trip_planner import async_setup_entry
-    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
     # Create mock hass
     mock_hass = MagicMock()

@@ -884,7 +884,7 @@ class TripManager:
             await self._emhass_adapter.async_remove_deferrable_load(trip_id)
 
             # Update all deferrable loads to reflect the removal
-            await self._publish_deferrable_loads()
+            await self.publish_deferrable_loads()
 
             _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
         except Exception as err:
@@ -900,7 +900,7 @@ class TripManager:
             await self._emhass_adapter.async_publish_deferrable_load(trip)
 
             # Also publish all trips to recalculate the schedule
-            await self._publish_deferrable_loads()
+            await self.publish_deferrable_loads()
 
             _LOGGER.info(
                 "Published new trip %s to EMHASS deferrable loads",

@@ -6,7 +6,6 @@ Tests verify that the panel correctly filters EMHASS sensors by vehicle_id:
 - Non-EMHASS sensors still work correctly"""
 
 import pytest
-from unittest.mock import MagicMock
 
 # Import panel.js logic (simulated in Python for testing)
 
