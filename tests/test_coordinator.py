@@ -252,3 +252,47 @@ class TestSensorAsyncAddedToHassRestore:
             # async_get_last_state should NOT be called when data is not None
             mock_get_last.assert_not_called()
 
+
+# =============================================================================
+# coordinator.py - vehicle_id property (Task 1.1 RED, Task 1.2 GREEN)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_vehicle_id_property(mock_config_entry, mock_logger):
+    """coordinator.vehicle_id returns normalized vehicle_id from entry.data[CONF_VEHICLE_NAME].
+
+    This tests the happy path for Task 1.1/1.2.
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from custom_components.ev_trip_planner.config import CONF_VEHICLE_NAME
+
+    coordinator = TripPlannerCoordinator(
+        mock_config_entry.hass, mock_config_entry, mock_trip_manager,
+        logger=mock_logger
+    )
+
+    # vehicle_id should return normalized (lowercase, spaces replaced) vehicle_name
+    assert coordinator.vehicle_id == "test_vehicle"
+
+
+@pytest.mark.asyncio
+async def test_vehicle_id_fallback(mock_trip_manager, mock_logger):
+    """coordinator.vehicle_id returns 'unknown' when CONF_VEHICLE_NAME is missing from entry.data.
+
+    This tests the fallback path for Task 1.1/1.2.
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+
+    # Create entry without vehicle_name
+    entry_without_vehicle = MagicMock()
+    entry_without_vehicle.entry_id = "test_entry_no_vehicle"
+    entry_without_vehicle.data = {}  # Missing CONF_VEHICLE_NAME
+
+    coordinator = TripPlannerCoordinator(
+        entry_without_vehicle.hass, entry_without_vehicle, mock_trip_manager,
+        logger=mock_logger
+    )
+
+    # Should fallback to "unknown" when vehicle_name is missing
+    assert coordinator.vehicle_id == "unknown"
+
