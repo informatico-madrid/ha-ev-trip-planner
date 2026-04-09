@@ -152,7 +152,8 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         self.coordinator = coordinator
         self._entry_id = entry_id
         self._attr_unique_id = f"emhass_perfil_diferible_{entry_id}"
-        self._attr_name = f"EMHASS Perfil Diferible {entry_id}"
+        vehicle_id = getattr(coordinator, 'vehicle_id', entry_id)
+        self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
         self._attr_has_entity_name = True
 
     @property

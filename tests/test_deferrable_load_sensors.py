@@ -331,6 +331,14 @@ class TestEmhassDeferrableLoadSensor:
         assert sensor.native_value == "error"
         assert sensor.extra_state_attributes["emhass_status"] == "error"
 
+    async def test_sensor_name_uses_vehicle_id(self, mock_coordinator, sensor):
+        """Test sensor _attr_name uses vehicle_id from coordinator, not entry_id.
+
+        Task 1.7 RED test: expects sensor name to use vehicle_id, not entry_id UUID.
+        """
+        assert sensor._attr_name == "EMHASS Perfil Diferible test_vehicle"
+        assert "test_entry_id" not in sensor._attr_name
+
 
 class TestPowerProfileSemantics:
     """Tests for power_profile_watts semantic meaning: 0W = no charging, positive = charging."""
