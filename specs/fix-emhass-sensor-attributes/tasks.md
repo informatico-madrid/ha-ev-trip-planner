@@ -2,7 +2,7 @@
 
 **Intent**: BUG_FIX (fixes two bugs in EMHASS sensor)
 **Workflow**: Bug TDD (Phase 0 + TDD Red-Green-Yellow phases)
-**Total Tasks**: 39
+**Total Tasks**: 38
 
 ## Phase 0: Bug Reproduction (Document Current State)
 
@@ -29,21 +29,25 @@
 ### Cycle 1.1: Coordinator vehicle_id Property
 
 - [ ] 1.1 [RED] Failing test: coordinator exposes vehicle_id property
-  - **Do**: Write test asserting `coordinator.vehicle_id` returns vehicle_id from entry.data
+  - **Do**: Write TWO tests:
+    1. `test_vehicle_id_property`: Assert `coordinator.vehicle_id` returns normalized vehicle_id from entry.data[CONF_VEHICLE_NAME]
+    2. `test_vehicle_id_fallback`: Assert `coordinator.vehicle_id` returns `"unknown"` when CONF_VEHICLE_NAME is missing from entry.data
   - **Files**: `tests/test_coordinator.py`
-  - **Done when**: Test exists AND fails with `AttributeError: 'TripPlannerCoordinator' object has no attribute 'vehicle_id'`
-  - **Verify**: `pytest tests/test_coordinator.py -k "test_vehicle_id_property" -v 2>&1 | grep -q "AttributeError\|FAIL" && echo RED_PASS`
-  - **Commit**: `test(coordinator): red - failing test for vehicle_id property`
+  - **Done when**: Both tests exist AND fail with `AttributeError: 'TripPlannerCoordinator' object has no attribute 'vehicle_id'`
+  - **Verify**: `pytest tests/test_coordinator.py -k "test_vehicle_id" -v 2>&1 | grep -q "AttributeError\|FAIL" && echo RED_PASS`
+  - **Commit**: `test(coordinator): red - failing tests for vehicle_id property and fallback`
   - _Requirements: FR-9, AC-1.1_
+  - **Note**: Both branches of `entry.data.get(CONF_VEHICLE_NAME, "unknown")` must be tested for 100% coverage
 
 - [ ] 1.2 [GREEN] Add vehicle_id property to TripPlannerCoordinator
-  - **Do**: Implement `vehicle_id` property in coordinator.py that reads from entry.data[CONF_VEHICLE_NAME]
+  - **Do**: Implement `vehicle_id` property in coordinator.py:
+    - Store `self._vehicle_id = self._entry.data.get(CONF_VEHICLE_NAME, "unknown").lower().replace(" ", "_")` in `__init__`
+    - Add `@property def vehicle_id(self) -> str` returning `self._vehicle_id`
   - **Files**: `custom_components/ev_trip_planner/coordinator.py`
-  - **Done when**: Previously failing test now passes
-  - **Verify**: `pytest tests/test_coordinator.py -k "test_vehicle_id_property" -v`
-  - **Commit**: `fix(coordinator): green - add vehicle_id property`
+  - **Done when**: Both previously failing tests now pass (happy path AND fallback)
+  - **Verify**: `pytest tests/test_coordinator.py -k "test_vehicle_id" -v`
+  - **Commit**: `fix(coordinator): green - add vehicle_id property with fallback`
   - _Requirements: FR-9, AC-1.1_
-  - **Note**: Fallback already implemented in sensor.py via `getattr(coordinator, 'vehicle_id', entry_id)`
 
 ### Cycle 1.2: Fix sensor device_info to use vehicle_id
 
@@ -161,24 +165,21 @@
   - **Commit**: `refactor(presence_monitor): yellow - add debug logging for data flow`
   - _Requirements: FR-4, AC-3.5_
 
-### Cycle 1.7: EMHASSAdapter publish_deferrable_loads caching
+### Cycle 1.7: EMHASSAdapter publish_deferrable_loads caching verification
 
-- [ ] 1.16 [RED] Failing test: publish_deferrable_loads sets cache
-  - **Do**: Write test asserting `_cached_power_profile` is set after calling `publish_deferrable_loads()`
+- [ ] 1.16 [TEST] Verify publish_deferrable_loads sets cache and triggers refresh
+  - **Do**: Write integration-style test that:
+    1. Creates EMHASSAdapter with a stub coordinator
+    2. Calls `publish_deferrable_loads(trips)` with test trips
+    3. Asserts `_cached_power_profile` is set (not None)
+    4. Asserts `_cached_deferrables_schedule` is set (not None)
+    5. Asserts `coordinator.async_request_refresh()` was called
   - **Files**: `tests/test_emhass_adapter.py`
-  - **Done when**: Test exists AND fails (cache is None after call)
-  - **Verify**: `pytest tests/test_emhass_adapter.py -k "test_publish_deferrable_loads_sets_cache" -v 2>&1 | grep -q "AssertionError\|FAIL" && echo RED_PASS`
-  - **Commit**: `test(emhass_adapter): red - failing test for cache setting`
-  - _Requirements: FR-3, AC-2.4_
-
-- [ ] 1.17 [GREEN] Verify publish_deferrable_loads sets cache (already implemented)
-  - **Do**: Verify existing implementation already sets cache correctly (lines 531-533)
-  - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
-  - **Done when**: Test confirms cache is set
+  - **Done when**: Test passes confirming the caching method works correctly
   - **Verify**: `pytest tests/test_emhass_adapter.py -k "test_publish_deferrable_loads_sets_cache" -v`
-  - **Commit**: `test(emhass_adapter): green - verify cache setting behavior`
+  - **Commit**: `test(emhass_adapter): verify publish_deferrable_loads caching and coordinator refresh`
   - _Requirements: FR-3, AC-2.4_
-  - **Note**: No YELLOW refactor needed - cache validation is YAGNI for production code
+  - **Note**: This method ALREADY works (lines 531-533) — the bug is that nobody calls it (fixed in tasks 1.10 and 1.13). This test is a safety net, not TDD RED/GREEN — the method is not broken, it's just unreachable. The test validates the contract we depend on.
 
 ### Cycle 1.8: Coordinator data propagation from EMHASSAdapter
 
@@ -353,9 +354,9 @@
 
 ## Task Summary
 
-**Total Tasks**: 39 (reduced from 53 by removing YAGNI tasks, merging atomic changes, and eliminating duplicates)
+**Total Tasks**: 38 (reduced from 53 by removing YAGNI tasks, merging atomic changes, and eliminating duplicates)
 **Phase 0**: 2 tasks (bug reproduction - document current state)
-**Phase 1**: 17 tasks (TDD cycles - reduced by removing 5 YAGNI refactor tasks)
+**Phase 1**: 16 tasks (TDD cycles - 1.16/1.17 merged into single contract verification test)
 **Phase 2**: 5 tasks (update existing tests - 2.4/2.5 removed as covered by 1.14)
 **Phase 3**: 3 tasks (quality gates)
 **Phase 4**: 6 tasks (E2E testing)
@@ -400,5 +401,7 @@
 4. **Existing Tests Updated**: Phase 2 tasks UPDATE existing tests, not create new ones (tasks 2.4/2.5 removed as covered by 1.14)
 5. **YAGNI Tasks Removed**: 5 refactor tasks removed (1.3, 1.6, 1.9, 1.26, 1.29) - speculative validation/helpers not needed
 6. **E2E Testing**: Tasks 4.2 and 4.6 delegate to `make e2e` workflow - no manual startup/cleanup needed
-7. **Coverage**: Affected modules must maintain 100% line coverage (NFR-2)
-8. **Total**: 39 tasks (reduced from 53 by removing YAGNI, merging atomic changes, and eliminating duplicates)
+7. **Coverage**: Affected modules must maintain 100% line coverage (NFR-2). Task 1.1 includes fallback branch test for vehicle_id.
+8. **Task 1.16 is NOT TDD RED/GREEN**: `publish_deferrable_loads()` already works — the bug is nobody calls it. Task 1.16 is a contract verification test, not a bug fix test.
+9. **Double-Processing**: 3 of 4 internal callers do individual + bulk publish (pre-existing, not a regression). TODO: optimize in a future spec to avoid publishing the same trip twice.
+10. **US-5 (Hourly Rotation)**: Marked as OUT OF SCOPE in requirements.md (see US-5 note). The power profile already uses `reference_dt=datetime.now()` where index 0 = current hour offset. With the data flow fix (FR-2/FR-4), the coordinator refreshes every 30s, keeping the profile current. No explicit rotation logic is needed — it's implicit in the recalculation.

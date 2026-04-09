@@ -67,11 +67,18 @@ Arreglar el sensor EMHASS de perfil diferible que muestra atributos vacíos y cr
 
 ### US-5: EMHASS Sensor Updates with Time (Hourly Rotation)
 
+> **⚠️ OUT OF SCOPE** — This User Story is documented for context but **NOT implemented in this spec**.
+> The power profile already uses `reference_dt=datetime.now()` where index 0 = current hour offset.
+> With the data flow fix (FR-2/FR-4), the coordinator refreshes every 30s, keeping the profile current.
+> No explicit rotation logic is needed — `calculate_power_profile_from_trips()` recalculates relative
+> positions on every coordinator refresh cycle. If fine-grained hourly alignment is needed later,
+> it should be a separate spec.
+
 **As a** Home Assistant user
 **I want** the power profile to rotate hourly so index 0 always represents the next full hour
 **So that** my charging schedule stays synchronized with actual time
 
-**Acceptance Criteria:**
+**Acceptance Criteria (deferred):**
 - [ ] AC-5.1: `power_profile_watts[0]` represents the next full hour (e.g., at 9:30, index 0 = 10:00-11:00)
 - [ ] AC-5.2: Profile rotates automatically on coordinator refresh (hourly or on trigger)
 - [ ] AC-5.3: Time-based updates trigger via `ScheduleMonitor` or coordinator polling
@@ -124,7 +131,7 @@ Arreglar el sensor EMHASS de perfil diferible que muestra atributos vacíos y cr
 | FR-3 | `publish_deferrable_loads()` must cache values before calling `coordinator.async_request_refresh()` | High | AC-2.4 |
 | FR-4 | SOC changes >=5% MUST trigger full EMHASS recalculation (currently broken - needs routing fix) | High | AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5 |
 | FR-5 | Trip CRUD operations trigger EMHASS recalculation via service handlers | High | AC-4.1, AC-4.2, AC-4.3, AC-4.4 |
-| FR-6 | Power profile rotates hourly to keep index 0 aligned with next full hour | Medium | AC-5.1, AC-5.2, AC-5.3 |
+| FR-6 | ~~Power profile rotates hourly to keep index 0 aligned with next full hour~~ | ~~Medium~~ | ~~AC-5.1, AC-5.2, AC-5.3~~ | **OUT OF SCOPE** — implicit via FR-2 data flow recalculation |
 | FR-7 | Unit test for `device_info` updated to expect correct `vehicle_id` behavior | High | AC-T1.2, AC-T1.3 |
 | FR-8 | E2E test validates EMHASS sensor updates visible in HA UI | High | AC-T2.1, AC-T2.2, AC-T2.3, AC-T2.4, AC-T2.5 |
 | FR-9 | `TripPlannerCoordinator` must expose `vehicle_id` property OR `EmhassDeferrableLoadSensor` must receive `vehicle_id` as constructor parameter | High | AC-1.1, AC-1.3 |
