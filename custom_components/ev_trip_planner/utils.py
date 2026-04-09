@@ -238,9 +238,12 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
 
     Args:
         trip: A trip dictionary containing:
-            - tipo: "recurrente" or "punctual"
-            - dia: For recurring trips, the day name (e.g., "lunes", "monday")
-            - fecha: For punctual trips, the date (date object or string YYYYMMDD/ISO/slashed)
+            - tipo: "recurrente", "puntual", or "punctual"
+            - dia / dia_semana: For recurring trips, the day name
+              (e.g., "lunes", "monday"). Both keys are checked.
+            - datetime / fecha: For punctual trips, the date (date object or
+              string in YYYYMMDD, ISO, or slash-separated format). Both keys
+              are checked.
         today: The date to check against.
 
     Returns:
