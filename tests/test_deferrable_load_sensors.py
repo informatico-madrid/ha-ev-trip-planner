@@ -281,10 +281,13 @@ class TestEmhassDeferrableLoadSensor:
         assert sensor.native_value == "error"
 
     async def test_sensor_device_info(self, mock_coordinator, sensor):
-        """Test sensor device info."""
+        """Test sensor device info uses vehicle_id from coordinator.
+
+        Task 1.4 RED test: expects device_info to use vehicle_id, not entry_id.
+        """
         device_info = sensor.device_info
 
-        assert device_info["identifiers"] == {(DOMAIN, "test_entry_id")}
+        assert device_info["identifiers"] == {(DOMAIN, "test_vehicle")}
         assert device_info["name"] == "EV Trip Planner test_vehicle"
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"

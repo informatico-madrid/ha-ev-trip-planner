@@ -182,7 +182,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
 
         return {
-            "identifiers": {(DOMAIN, self._entry_id)},
+            "identifiers": {(DOMAIN, vehicle_id)},
             "name": f"EV Trip Planner {vehicle_id}",
             "manufacturer": "Home Assistant",
             "model": "EV Trip Planner",
