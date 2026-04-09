@@ -1,10 +1,15 @@
 # 🚀 Milestone 4.1: Mejoras de Perfil de Carga Inteligente - Plan de Implementación
 
 **Documento de Planificación**  
-**Versión**: 1.0  
+**Versión**: 1.1  
 **Fecha**: 2025-12-14  
-**Estado**: 📋 PLANIFICADO  
-**Target**: v0.4.1-dev
+**Última Revisión**: 2026-04-09  
+**Estado**: 📋 **PLANIFICADO — NO INICIADO**  
+**Target**: v0.5.0
+
+> ⚠️ **Este documento es un plan de trabajo futuro. Nada de lo descrito aquí está implementado aún.**  
+> El código actual cubre hasta Milestone 4 (perfil de carga binario SOC-aware).  
+> Ver [`ROADMAP.md`](../ROADMAP.md) para el estado global del proyecto.
 
 ---
 
@@ -13,6 +18,8 @@
 Milestone 4.1 extiende la funcionalidad de Perfil de Carga Inteligente (Milestone 4) con mejoras basadas en feedback de producción y análisis de casos de uso avanzados. Este milestone se enfoca en **optimización de costes**, **soporte multi-vehículo**, y **experiencia de usuario mejorada**.
 
 **Valor Añadido**: Reducción de costes de carga hasta 30%, soporte para hogares con múltiples EVs, y UI interactiva para monitoreo en tiempo real.
+
+**Punto de partida**: Milestone 4 implementado y en producción — perfil binario de 168 valores (24h × 7d), integración EMHASS con índice dinámico por viaje, SOC-aware, coordinado con `presence_monitor` y `schedule_monitor`.
 
 ---
 
@@ -221,12 +228,12 @@ notifications:
 
 | Mejora | Impacto Usuario | Complejidad Técnica | ROI Costes | Prioridad | Versión Target |
 |--------|----------------|-------------------|------------|-----------|----------------|
-| Carga Distribuida Inteligente | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **HIGH** | v0.4.1 |
-| Múltiples Vehículos | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **HIGH** | v0.4.1 |
-| Predicción Climática | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.4.2 |
-| UI Mejorada | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.4.2 |
-| Salud de Batería | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | LOW | v0.4.3 |
-| Notificaciones | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | MEDIUM | v0.4.2 |
+| Carga Distribuida Inteligente | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **HIGH** | v0.5.0 |
+| Múltiples Vehículos | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **HIGH** | v0.5.0 |
+| Predicción Climática | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.5.1 |
+| UI Mejorada | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.5.1 |
+| Salud de Batería | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | LOW | v0.5.2 |
+| Notificaciones | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | MEDIUM | v0.5.1 |
 
 ---
 
@@ -375,7 +382,7 @@ async def test_ajuste_consumo_temperatura_optima(hass):
 
 ### Consideraciones de Seguridad
 - **Validación de límites**: Siempre respetar `home_max_power_kw`
-- **Fallback**: Si optimización falla, usar estrategia binaria actual
+- **Fallback**: Si optimización falla, usar estrategia binaria actual (Milestone 4)
 - **Override manual**: Usuario siempre puede forzar carga manualmente
 
 ### Compatibilidad Hacia Atrás
@@ -392,11 +399,12 @@ async def test_ajuste_consumo_temperatura_optima(hass):
 
 ## 📚 Documentación Relacionada
 
-- [`MILESTONE_4_POWER_PROFILE.md`](MILESTONE_4_POWER_PROFILE.md) - Implementación actual
-- [`MILESTONE_3_IMPLEMENTATION_PLAN.md`](MILESTONE_3_IMPLEMENTATION_PLAN.md) - Plan general
-- [`TDD_METHODOLOGY.md`](TDD_METHODOLOGY.md) - Metodología de testing
-- [`SERVICIOS.md`](SERVICIOS.md) - Servicios existentes
-- [`DASHBOARD.md`](DASHBOARD.md) - Dashboard actual
+- [`MILESTONE_4_POWER_PROFILE.md`](MILESTONE_4_POWER_PROFILE.md) — Implementación base de Milestone 4 (perfil binario)
+- [`TDD_METHODOLOGY.md`](TDD_METHODOLOGY.md) — Metodología de testing TDD aplicada en el proyecto
+- [`../ROADMAP.md`](../ROADMAP.md) — Estado global del proyecto y priorización de milestones
+
+> 📌 Nota: `MILESTONE_3_IMPLEMENTATION_PLAN.md`, `MILESTONE_3_ARCHITECTURE_ANALYSIS.md` y `MILESTONE_3_REFINEMENT.md`
+> existieron durante el desarrollo de M3 pero no están presentes en esta rama. El CHANGELOG documenta su contenido.
 
 ---
 
@@ -405,7 +413,7 @@ async def test_ajuste_consumo_temperatura_optima(hass):
 ### Pre-Desarrollo
 - [ ] Validar requisitos con usuarios piloto
 - [ ] Crear issues en GitHub para cada mejora
-- [ ] Actualizar ROADMAP.md con Milestone 4.1
+- [ ] Actualizar ROADMAP.md con estado de Milestone 4.1
 - [ ] Configurar entorno de testing para múltiples vehículos
 
 ### Desarrollo
@@ -434,15 +442,14 @@ async def test_ajuste_consumo_temperatura_optima(hass):
   - [ ] Validación completa
 
 ### Post-Desarrollo
-- [ ] Actualizar CHANGELOG.md
-- [ ] Actualizar version a v0.4.1-dev
+- [ ] Actualizar CHANGELOG.md con entrada v0.5.0
+- [ ] Actualizar ROADMAP.md marcando M4.1 completado
 - [ ] Crear release en GitHub
-- [ ] Documentar en ISSUES_CLOSED.md
 - [ ] Encuesta de satisfacción a usuarios
 
 ---
 
-**Documento Version**: 1.0  
-**Last Updated**: 2025-12-14  
-**Status**: 📋 PLANIFICADO - Listo para desarrollo  
+**Documento Version**: 1.1  
+**Last Updated**: 2026-04-09  
+**Status**: 📋 PLANIFICADO — NO INICIADO  
 **Next Review**: Inicio de Sprint 1 (Carga Distribuida)

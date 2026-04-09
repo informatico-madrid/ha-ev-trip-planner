@@ -66,7 +66,7 @@
 - **Opcional**: EMHASS instalado para optimización energética
 
 ### Para Desarrolladores
-- Python 3.11+
+- Python 3.14
 - Git
 - Docker (opcional, para testing)
 - Conocimientos básicos de YAML y comandos Linux
