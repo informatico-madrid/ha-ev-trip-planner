@@ -4,7 +4,7 @@
   "basePath": "specs/fix-emhass-sensor-attributes",
   "phase": "tasks",
   "taskIndex": 0,
-  "totalTasks": 0,
+  "totalTasks": 39,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
@@ -31,5 +31,5 @@
       "invoked": true
     }
   ],
-  "awaitingApproval": false
+  "awaitingApproval": true
 }
