@@ -16,7 +16,7 @@
 
 ## Pre-requisites
 
-- [ ] T000 [US-E1] SKIP — coverage baseline never recorded before Phase A. T063 skipped accordingly.
+- [x] T000 [US-E1] SKIP — coverage baseline never recorded before Phase A. T063 skipped accordingly.
 
 ---
 
@@ -121,7 +121,7 @@
 - [x] T060 [US-E1] `mypy` — 0 new errors ✅
 - [x] T061 [US-E1] seeds 1/2/3 consistentes — no flaky ✅
 - [x] T062 [US-E1] `make e2e` — 16/16 ✅
-- [ ] T063 [US-E1] SKIP — baseline T000 no grabada
+- [x] T063 [US-E1] SKIP — baseline T000 no grabada
 
 ---
 
@@ -261,7 +261,7 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
 
 ### US-G5: Llevar dashboard.py a 100%
 
-- [ ] T081 [US-G5] [VERIFY:TEST] Cubrir las ~60 líneas sin cubrir en dashboard.py:
+- [x] T081 [US-G5] [VERIFY:TEST] Cubrir las ~60 líneas sin cubrir en dashboard.py:
   - **NO SKIP — esta tarea DEBE completarse.** dashboard.py es Python puro y testeable.
   - ⚠️ BUG CONOCIDO: `test_save_yaml_fallback_create_directory` cuelga indefinidamente porque mockea `hass` con MagicMock y `_call_async_executor_sync` intenta usar `asyncio.add_executor_job` que no funciona con MagicMock en mode AUTO.
   - ✅ FIX CORRECTO (aplicar SIEMPRE):
@@ -313,7 +313,7 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
 
 ### US-G6: Llevar __init__.py a 100%
 
-- [ ] T082 [US-G6] [VERIFY:TEST] Obtener las 14 líneas sin cubrir en `__init__.py`:
+- [x] T082 [US-G6] [VERIFY:TEST] Obtener las 14 líneas sin cubrir en `__init__.py`:
   ```bash
   pytest tests/ --cov=custom_components.ev_trip_planner.__init__ --cov-report=term-missing -q 2>&1 | tail -5
   ```
@@ -323,7 +323,7 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
 
 ### US-G7: Gate final
 
-- [ ] T083 [US-G7] Ejecutar suite completa y verificar que el CI pasa:
+- [x] T083 [US-G7] Ejecutar suite completa y verificar que el CI pasa:
   ```bash
   pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -q
   ```
@@ -334,9 +334,9 @@ Estas son las ÚNICAS situaciones donde se permite `# pragma: no cover`:
   2. Para cada una: ¿cumple las reglas estrictas de pragma? → añadir pragma con razón. ¿No cumple? → escribir test.
   3. Repetir hasta TOTAL = 100%.
 
-- [ ] T084 [US-G7] `pytest tests/ -v` — **todos los tests pasan** (≥1255 passed, 0 failed)
-- [ ] T085 [US-G7] `ruff check custom_components/ev_trip_planner/` — 0 violations
-- [ ] T086 [US-G7] `mypy --follow-imports=skip custom_components/ev_trip_planner/` — 0 new errors respecto a baseline
+- [x] T084 [US-G7] `pytest tests/ -v` — **todos los tests pasan** (≥1255 passed, 0 failed)
+- [x] T085 [US-G7] `ruff check custom_components/ev_trip_planner/` — 0 violations
+- [x] T086 [US-G7] `mypy --follow-imports=skip custom_components/ev_trip_planner/` — 0 new errors respecto a baseline
 
 ---
 

@@ -401,10 +401,14 @@ class EMHASSAdapter:
         return await self.async_publish_deferrable_load(trip)
 
     async def async_publish_all_deferrable_loads(
-        self, trips: List[Dict[str, Any]]
+        self, trips: List[Dict[str, Any]], charging_power_kw: Optional[float] = None
     ) -> bool:
         """
         Publish multiple trips, each with its own index.
+
+        Args:
+            trips: List of trip dictionaries to publish
+            charging_power_kw: Optional charging power override (not used, trips have their own)
 
         Returns:
             True if all trips published successfully, False otherwise

@@ -14,10 +14,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-_LOGGER = logging.getLogger(__name__)
-
 from .const import DEFAULT_SOC_BUFFER_PERCENT
 from .utils import calcular_energia_kwh
+
+_LOGGER = logging.getLogger(__name__)
 
 # Days of week in Spanish (lowercase) — mirrors trip_manager.DAYS_OF_WEEK
 DAYS_OF_WEEK = (
