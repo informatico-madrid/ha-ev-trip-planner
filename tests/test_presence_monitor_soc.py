@@ -623,6 +623,9 @@ async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_ma
     monitor._store = AsyncMock()
     monitor._last_processed_soc = 50.0
 
+    # Mock publish_deferrable_loads as async
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+
     # Simulate SOC change event: 50% -> 60% (10% delta, exceeds 5% threshold)
     old_soc_state = Mock()
     old_soc_state.state = "50"
