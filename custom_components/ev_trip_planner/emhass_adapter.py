@@ -13,6 +13,7 @@ from .calculations import (
 )
 from .calculations import (
     calculate_power_profile_from_trips,
+    calculate_trip_time,
     generate_deferrable_schedule_from_trips,
 )
 from .const import (
@@ -26,6 +27,7 @@ from .const import (
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     EMHASS_STATE_READY,
+    TRIP_TYPE_RECURRING,
 )
 
 DATA_RUNTIME = f"{DOMAIN}_runtime_data"
@@ -505,6 +507,33 @@ class EMHASSAdapter:
         """
         if charging_power_kw is None:
             charging_power_kw = self._charging_power_kw
+
+        # Enrich recurring trips: compute datetime from dia_semana + hora
+        enriched_trips: List[Dict[str, Any]] = []
+        now = datetime.now()
+        for trip in trips:
+            if (
+                trip.get("tipo") == TRIP_TYPE_RECURRING
+                and not trip.get("datetime")
+            ):
+                computed_dt = calculate_trip_time(
+                    trip_tipo=TRIP_TYPE_RECURRING,
+                    hora=trip.get("hora"),
+                    dia_semana=trip.get("dia_semana"),
+                    datetime_str=None,
+                    reference_dt=now,
+                )
+                if computed_dt is None:
+                    _LOGGER.warning(
+                        "Skipping recurring trip %s: cannot compute datetime",
+                        trip.get("id", "unknown"),
+                    )
+                    continue
+                enriched = {**trip, "datetime": computed_dt.isoformat()}
+                enriched_trips.append(enriched)
+            else:
+                enriched_trips.append(trip)
+        trips = enriched_trips
 
         # FR-3.1: Store trips for reactive republish when charging power changes
         self._published_trips = list(trips)

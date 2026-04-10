@@ -1251,6 +1251,43 @@ class TestCalculatePowerProfileFromTrips:
         assert len(result) == 168
         assert all(v == 0.0 for v in result)
 
+    def test_trip_with_km_instead_of_kwh(self):
+        """Trip with km (no kwh) calculates energy from distance. Covers lines 689-690."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trip = {
+            "id": "trip_km",
+            "datetime": "2026-04-06T18:00",
+            "km": 100,  # 100 km * 0.15 kWh/km = 15 kWh
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
+        )
+        non_zero = [v for v in result if v > 0]
+        # 15 kWh / 7.4 kW ≈ 2.03 → 3 hours
+        assert len(non_zero) >= 1
+        assert all(v == 7400.0 for v in non_zero)
+
+    def test_trip_with_zero_kwh_skipped(self):
+        """Trip with kwh=0 is skipped. Covers line 693."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        trip = {
+            "id": "trip_zero",
+            "datetime": "2026-04-06T18:00",
+            "kwh": 0,
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
+        )
+        assert all(v == 0.0 for v in result)
+
 
 class TestGenerateDeferrableScheduleEdgeCases:
     """Edge case tests for generate_deferrable_schedule_from_trips to cover uncovered lines."""

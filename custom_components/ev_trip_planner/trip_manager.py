@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 
 import yaml
-from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -1936,10 +1935,6 @@ class TripManager:
                 platform=DOMAIN,
                 unique_id=unique_id,
                 suggested_object_id=f"trip_{trip_id}",
-                capabilities={
-                    "state_class": None,
-                },
-                device_class=SensorDeviceClass.ENUM,
             )
 
             _LOGGER.info(

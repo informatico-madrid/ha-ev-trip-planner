@@ -3946,3 +3946,128 @@ class TestVerifyCleanupPerTripConfigSensorsInRegistry:
 
                 # Should detect per-trip config sensor in registry (lines 1256-1260)
                 assert result["registry_clean"] is False
+
+
+# =============================================================================
+# Recurring trip enrichment in publish_deferrable_loads
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_publish_enriches_recurring_trip_with_datetime(hass, mock_store):
+    """publish_deferrable_loads enriches recurring trips with computed datetime."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+    entry = MockConfigEntry("test_vehicle", config)
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh = AsyncMock()
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+        adapter.hass.states.async_set = AsyncMock()
+
+        trips = [
+            {
+                "id": "rec_1",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "kwh": 20,
+                "activo": True,
+            }
+        ]
+
+        await adapter.publish_deferrable_loads(trips)
+
+        # The enriched trip should have a datetime in _published_trips
+        assert len(adapter._published_trips) == 1
+        assert "datetime" in adapter._published_trips[0]
+        # Verify cached profile was set
+        assert adapter._cached_power_profile is not None
+
+
+@pytest.mark.asyncio
+async def test_publish_skips_recurring_trip_without_hora(hass, mock_store):
+    """publish_deferrable_loads skips recurring trips that cannot compute datetime."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+    entry = MockConfigEntry("test_vehicle", config)
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh = AsyncMock()
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+        adapter.hass.states.async_set = AsyncMock()
+
+        trips = [
+            {
+                "id": "rec_bad",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                # No hora → calculate_trip_time returns None
+                "kwh": 20,
+                "activo": True,
+            }
+        ]
+
+        await adapter.publish_deferrable_loads(trips)
+
+        # Trip should be skipped
+        assert len(adapter._published_trips) == 0
+
+
+@pytest.mark.asyncio
+async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
+    """publish_deferrable_loads passes punctual trips without modification."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+    entry = MockConfigEntry("test_vehicle", config)
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh = AsyncMock()
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+        adapter.hass.states.async_set = AsyncMock()
+
+        trips = [
+            {
+                "id": "punct_1",
+                "tipo": "puntual",
+                "datetime": "2026-04-15T10:00",
+                "kwh": 20,
+                "estado": "pendiente",
+            }
+        ]
+
+        await adapter.publish_deferrable_loads(trips)
+
+        # Punctual trip should pass through unchanged
+        assert len(adapter._published_trips) == 1
+        assert adapter._published_trips[0]["datetime"] == "2026-04-15T10:00"

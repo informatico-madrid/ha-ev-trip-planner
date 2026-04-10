@@ -348,6 +348,100 @@ test.describe('EMHASS Sensor Updates', () => {
     console.log('Sensor attributes verified: VALUES changed across trip lifecycle (non-zero → zeros)');
   });
 
+  test('should verify recurring trip updates sensor attributes with non-zero values (Task 4.4b)', async ({
+    page,
+  }) => {
+    // Helper: get sensor last_updated timestamp from HA frontend's hass.states object
+    const getSensorLastUpdated = async (entityId: string): Promise<string> => {
+      await page.goto('/developer-tools/state');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+
+      return await page.evaluate((eid: string) => {
+        const haMain = document.querySelector('home-assistant') as any;
+        if (!haMain?.hass?.states?.[eid]) {
+          throw new Error(`Entity ${eid} not found in hass.states`);
+        }
+        return haMain.hass.states[eid].last_updated;
+      }, entityId);
+    };
+
+    // Helper: get sensor attributes from HA frontend hass.states object
+    const getSensorAttributes = async (entityId: string): Promise<Record<string, any>> => {
+      return await page.evaluate((eid: string) => {
+        const haMain = document.querySelector('home-assistant') as any;
+        if (!haMain?.hass?.states?.[eid]) {
+          throw new Error(`Entity ${eid} not found in hass.states`);
+        }
+        return haMain.hass.states[eid].attributes;
+      }, entityId);
+    };
+
+    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+
+    // Step 1: Compute a day value for "tomorrow" in the frontend format (0=Domingo, 1=Lunes, etc.)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // JavaScript getDay(): 0=Sunday, 1=Monday, ... 6=Saturday — matches frontend option values
+    const tomorrowDayValue = String(tomorrow.getDay());
+    const tripTime = '10:00';
+
+    await createTestTrip(
+      page,
+      'recurrente',
+      '', // datetime not used for recurring
+      200,
+      50,
+      'E2E Recurring SOC Test Trip',
+      { day: tomorrowDayValue, time: tripTime },
+    );
+
+    // Step 2: Wait for EMHASS initial population
+    await page.waitForTimeout(5000);
+
+    // Step 3: Read BEFORE attributes and verify power_profile has values
+    const beforeAttrs = await getSensorAttributes(sensorEntityId);
+    console.log('RECURRING BEFORE - power_profile_watts (first 5):', JSON.stringify(beforeAttrs.power_profile_watts?.slice(0, 5)));
+    console.log('RECURRING BEFORE - emhass_status:', beforeAttrs.emhass_status);
+
+    // Verify power_profile_watts has non-zero values after recurring trip creation
+    expect(beforeAttrs.power_profile_watts).toBeDefined();
+    expect(Array.isArray(beforeAttrs.power_profile_watts)).toBe(true);
+    const hasNonZeroBefore = beforeAttrs.power_profile_watts.some((v: number) => v > 0);
+    expect(hasNonZeroBefore).toBe(true);
+
+    const beforeLastUpdated = await getSensorLastUpdated(sensorEntityId);
+    console.log('RECURRING BEFORE - last_updated:', beforeLastUpdated);
+
+    // Step 4: Clean up trip — then verify attributes change after deletion
+    await navigateToPanel(page);
+    const deleteBtn = page.getByRole('button', { name: /eliminar/i }).last();
+    if (await deleteBtn.isVisible().catch(() => false)) {
+      const confirmPromise = page.waitForEvent('dialog').then(async dialog => {
+        await dialog.accept();
+      });
+      await deleteBtn.click();
+      await confirmPromise;
+      await page.waitForTimeout(1000);
+    }
+
+    // Step 5: Wait for recalculation after trip deletion
+    await page.waitForTimeout(5000);
+
+    // Step 6: Read attributes AFTER deletion — values must have changed
+    const afterDeleteAttrs = await getSensorAttributes(sensorEntityId);
+    console.log('RECURRING AFTER deletion - power_profile_watts (first 5):', JSON.stringify(afterDeleteAttrs.power_profile_watts?.slice(0, 5)));
+
+    // After deleting the only trip, power_profile_watts should be all zeros
+    const hasNonZeroAfterDelete = (afterDeleteAttrs.power_profile_watts || []).some((v: number) => v > 0);
+    expect(hasNonZeroAfterDelete).toBe(false);
+
+    // FINAL: Prove recurring trip produced non-zero values that went to zero after deletion
+    expect(hasNonZeroBefore).not.toBe(hasNonZeroAfterDelete);
+
+    console.log('Recurring trip sensor attributes verified: VALUES changed (non-zero → zeros)');
+  });
+
   test('should verify single device in HA UI (no duplication) (Task 4.5)', async ({ page }) => {
     // Step 1: Create a trip to initialize the device
     await createTestTrip(

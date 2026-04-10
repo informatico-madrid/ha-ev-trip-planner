@@ -681,19 +681,19 @@ def calculate_power_profile_from_trips(
         else:
             deadline_dt = deadline
 
-        # Calculate energy needed for this trip
-        # Use calculate_energy_needed to get kwh_necesarios
-        battery_capacity_kwh = 50.0  # Default for pure function
-        soc_current = 0.0  # Assume empty battery for worst-case
-        energia_info = calculate_energy_needed(
-            trip, battery_capacity_kwh, soc_current, power_kw
-        )
-        kwh = energia_info.get("energia_necesaria_kwh", 0.0)
-        if kwh <= 0:  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure sets es_suficiente=True only when energy > 0
+        # Calculate energy needed directly from trip kwh/km
+        # Use trip's declared energy need — consistent with schedule generation
+        if "kwh" in trip:
+            kwh = float(trip.get("kwh", 0))
+        else:
+            distance_km = float(trip.get("km", 0))
+            kwh = calcular_energia_kwh(distance_km, 0.15)
+
+        if kwh <= 0:
             continue
 
         # Calculate hours needed to charge
-        total_hours = energia_info.get("horas_carga_necesarias", 0.0)
+        total_hours = kwh / power_kw if power_kw > 0 else 0
         horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
         if horas_necesarias == 0:
             horas_necesarias = 1
