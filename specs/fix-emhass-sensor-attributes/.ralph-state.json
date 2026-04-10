@@ -7,7 +7,7 @@
   "totalTasks": 39,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 2,
+  "globalIteration": 4,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": false,
@@ -28,7 +28,7 @@
   "nativeSyncFailureCount": 0,
   "chat": {
     "reviewer": {
-      "lastReadLine": 245
+      "lastReadLine": 364
     },
     "executor": {
       "lastReadLine": 0
@@ -38,7 +38,6 @@
     "1.10": 2,
     "3.1": 1,
     "4.1": 1,
-    "4.3": 1,
     "4.4": 1,
     "4.5": 1
   }

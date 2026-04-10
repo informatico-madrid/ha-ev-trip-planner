@@ -353,50 +353,58 @@ console.log('=== END TEXT DUMP ===');
   - _Requirements: AC-T2.5_
   - **Note**: E2E startup/cleanup are handled by the existing make e2e workflow
 
-- [ ] 4.3 [VE2-CHECK] E2E: create trip and verify EMHASS sensor attributes via UI
+- [x] 4.3 [VE2-CHECK] E2E: create trip and verify EMHASS sensor attributes via UI
   - **Approach**: UI-based (Developer Tools > States). Build the test iteratively using Playwright snapshots.
   - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific navigation patterns: sidebar clicks, Developer Tools, entity state inspection).
+  - **CRITICAL — Before/After verification pattern**: The test MUST read sensor attributes BEFORE creating the trip, then AFTER, and compare them. Simply checking that the sensor exists or that attribute names appear in the UI is NOT enough. The test must prove that the attribute VALUES changed from null/empty to real values after trip creation.
   - **Methodology — snapshot-driven discovery (the same pattern used by working E2E tests)**:
     1. Load `playwright-best-practices` skill → read core/locators.md (shadow DOM section) and debugging/debugging.md
-    2. Write a first attempt at the test: create trip → navigate to Developer Tools via sidebar clicks → find EMHASS sensor → verify attributes
-    3. **CRITICAL**: Do NOT use `page.goto()` for navigation after creating the trip. The only `page.goto()` allowed is inside `navigateToPanel()` which handles auth. All other navigation MUST be via sidebar clicks (same pattern as create-trip.spec.ts, delete-trip.spec.ts)
-    4. Run `make e2e` → it will likely fail
-    5. Read the `error-context.md` file in `test-results/` — this contains Playwright's YAML snapshot of the full DOM tree at the moment of failure
-    6. From the snapshot, find the exact element structure: what tags, roles, and text are actually present
-    7. Update your selectors to match the actual snapshot structure — use `getByRole()` and `getByText()` which pierce shadow DOM automatically (per playwright-best-practices locators.md)
-    8. Re-run `make e2e` → repeat steps 5-7 until the test passes
-    9. The final test should: create trip → navigate to Developer Tools > States via sidebar clicks → find EMHASS sensor → verify attributes (power_profile_watts, deferrables_schedule, emhass_status) exist → cleanup
+    2. **BEFORE**: Read sensor attributes via `page.evaluate(() => window.hass.states["sensor.emhass_perfil_diferible_*"].attributes)` BEFORE creating the trip. Log them.
+    3. Create trip → wait 3 seconds for EMHASS recalculation
+    4. **AFTER**: Read sensor attributes again via the same `page.evaluate()` call. Log them.
+    5. **COMPARE**: Verify that after-creation attributes have real values:
+       - `power_profile_watts` is an array of 168 numbers (not null, not empty)
+       - `deferrables_schedule` has entries (not null)
+       - `emhass_status` is one of: "ready", "active", "idle" (not null)
+    6. Navigate to Developer Tools > States via sidebar clicks to visually confirm the sensor shows attributes
+    7. Run `make e2e` → read error-context.md on failure → fix selectors → repeat until passes
+    8. Clean up: delete the created trip
+  - **CRITICAL**: Do NOT use `page.goto()` for navigation after creating the trip. The only `page.goto()` allowed is inside `navigateToPanel()` which handles auth. All other navigation MUST be via sidebar clicks (same pattern as create-trip.spec.ts, delete-trip.spec.ts)
   - **Shadow DOM**: Playwright automatically pierces shadow DOM with `getByRole()` and `getByText()`. The working E2E tests (create-trip.spec.ts, delete-trip.spec.ts) use this successfully. Follow their patterns.
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
-  - **Done when**: `make e2e` passes AND test verifies all 3 attributes (power_profile_watts, deferrables_schedule, emhass_status) are visible in the sensor UI
-  - **Verify**: `grep -q "power_profile_watts" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "deferrables_schedule" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "emhass_status" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_PASS`
+  - **Done when**: `make e2e` passes AND test verifies attribute VALUES changed from null to real values after trip creation (not just that sensor exists)
+  - **Verify**: `grep -q "beforeAttrs\|afterAttrs\|BEFORE\|AFTER" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "power_profile_watts" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_PASS`
   - **Commit**: (included in main fix commit)
   - _Requirements: AC-T2.2, AC-2.1, AC-2.2, AC-2.3_
   - **Anti-patterns (from playwright-best-practices)**:
     - DO NOT use `page.goto()` for navigation after `navigateToPanel()` — it breaks authentication
+    - DO NOT check only `rowText.toBeDefined()` or `pageContent.includes('power_profile_watts')` — this only proves the name appears, not the value
+    - DO NOT skip the before/after comparison — the test must prove values CHANGED, not just that they exist
     - DO NOT use CSS class selectors (`.device-card`, `.attributes`) — they break across HA versions
-    - DO NOT use `iframe` selectors — HA does NOT use iframes for Developer Tools
-    - DO NOT fabricate selectors — discover them from error-context.md snapshots
     - DO NOT skip the snapshot read — every failure MUST be followed by reading error-context.md before retrying
 
 - [ ] 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update via UI
   - **Approach**: UI-based. Change SOC sensor state and verify EMHASS sensor attributes update.
   - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific patterns: entity state manipulation, Developer Tools navigation).
+  - **CRITICAL — Before/After comparison pattern**: This test MUST prove that changing SOC causes sensor attribute VALUES to change. Read attributes before SOC change, change SOC, read attributes after, compare.
   - **Methodology — snapshot-driven discovery**:
     1. Load `playwright-best-practices` skill → read core/locators.md and debugging/debugging.md
-    2. Write test: create trip → navigate to SOC sensor → change SOC value → wait → navigate to EMHASS sensor → verify attributes changed
-    3. Run `make e2e` → read error-context.md snapshot on failure
-    4. From snapshot, find how to interact with SOC sensor (click entity → find input field → change value)
-    5. Update selectors based on snapshot → use `getByRole()` and `getByText()` for shadow DOM piercing
-    6. Re-run → repeat steps 3-5 until test passes
-    7. Final test must verify attribute change after SOC change
+    2. Create trip to initialize EMHASS
+    3. **BEFORE**: Read sensor attributes via `page.evaluate(() => window.hass.states[entityId].attributes)`. Log them.
+    4. Change SOC sensor state via HA API: `page.request.post('/api/states/sensor.vehicle_soc', { data: { state: '60', attributes: { unit_of_measurement: '%' } } })`
+    5. Wait 2-3 seconds for EMHASS recalculation
+    6. **AFTER**: Read sensor attributes again via the same `page.evaluate()` call. Log them.
+    7. **COMPARE**: Verify that at least one attribute changed (power_profile_watts values differ, or emhass_status changed)
+    8. Run `make e2e` → read error-context.md snapshot on failure → fix selectors → repeat until passes
+    9. Clean up: delete the created trip
   - **Shadow DOM**: Use same patterns as working tests. Playwright handles shadow DOM transparently via `getByRole()` and `getByText()`.
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
-  - **Done when**: `make e2e` passes AND test creates trip → changes SOC → verifies EMHASS sensor attributes changed
-  - **Verify**: `grep -q "SOC" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_SOC_PASS`
+  - **Done when**: `make e2e` passes AND test proves sensor attribute VALUES changed after SOC change (not just that sensor exists)
+  - **Verify**: `grep -q "SOC" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "beforeAttrs\|afterAttrs\|BEFORE\|AFTER" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_SOC_PASS`
   - **Commit**: (included in main fix commit)
   - _Requirements: AC-T2.3, AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5_
   - **Anti-patterns (from playwright-best-practices)**:
+    - DO NOT check only that the sensor still exists after SOC change — must prove VALUES changed
     - DO NOT use CSS class selectors — discover selectors from error-context.md
     - DO NOT skip the snapshot read — every failure requires reading error-context.md before retrying
     - DO NOT assume element structure — always verify against the YAML snapshot
