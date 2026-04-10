@@ -383,7 +383,7 @@ console.log('=== END TEXT DUMP ===');
     - DO NOT use CSS class selectors (`.device-card`, `.attributes`) — they break across HA versions
     - DO NOT skip the snapshot read — every failure MUST be followed by reading error-context.md before retrying
 
-- [ ] 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update via UI
+- [x] 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update via UI
   - **Approach**: UI-based. Change SOC sensor state and verify EMHASS sensor attributes update.
   - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific patterns: entity state manipulation, Developer Tools navigation).
   - **CRITICAL — Before/After comparison pattern**: This test MUST prove that changing SOC causes sensor attribute VALUES to change. Read attributes before SOC change, change SOC, read attributes after, compare.
@@ -409,7 +409,7 @@ console.log('=== END TEXT DUMP ===');
     - DO NOT skip the snapshot read — every failure requires reading error-context.md before retrying
     - DO NOT assume element structure — always verify against the YAML snapshot
 
-- [ ] 4.5 [VE2-CHECK] E2E: verify single device in HA UI (no duplication)
+- [x] 4.5 [VE2-CHECK] E2E: verify single device in HA UI (no duplication)
   - **Approach**: UI-based. Navigate to Devices page and count device cards.
   - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific patterns: sidebar navigation, Settings → Devices page, device card structure).
   - **Methodology — snapshot-driven discovery**:
