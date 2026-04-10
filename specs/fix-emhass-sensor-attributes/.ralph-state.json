@@ -3,7 +3,7 @@
   "name": "fix-emhass-sensor-attributes",
   "basePath": "specs/fix-emhass-sensor-attributes",
   "phase": "execution",
-  "taskIndex": 30,
+  "taskIndex": 33,
   "totalTasks": 39,
   "taskIteration": 1,
   "maxTaskIterations": 5,
