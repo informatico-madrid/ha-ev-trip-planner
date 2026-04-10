@@ -363,34 +363,59 @@ Review entry template:
   No fabricated iframe/ha-entity-toggle/.device-card selectors.
 
 ### [task-4.3] VE2-CHECK - E2E: create trip and verify EMHASS sensor updates
-- status: PASS
-- severity: none
-- reviewed_at: 2026-04-09T17:15:00+02:00
-- criterion_failed: none
+- status: WARNING
+- severity: major
+- reviewed_at: 2026-04-09T18:00:00+02:00
+- criterion_failed: Test only verifies sensor EXISTS, not that attributes have correct values
 - evidence: |
-  E2E test file exists with real content: tests/e2e/emhass-sensor-updates.spec.ts
-  6 E2E test files exist total in tests/e2e/.
-- fix_hint: Task complete.
+  Test "should create a trip and verify EMHASS sensor state is available" only checks:
+  1. Sensor row is visible in Developer Tools > States (isVisible === true)
+  2. Does NOT check power_profile_watts has 168 non-null values
+  3. Does NOT check deferrables_schedule has timestamps
+  4. Does NOT check emhass_status is "ready"/"active"/"idle"
+  Per requirements AC-2.1/AC-2.2/AC-2.3: sensor attributes must contain actual data.
+  Current test would pass even if all attributes are null.
+- fix_hint: Test should navigate to sensor detail page and verify attributes panel shows:
+  - power_profile_watts: array of 168 values (not null)
+  - deferrables_schedule: list with timestamps (not null)
+  - emhass_status: state string (not null)
+  Use page.evaluate(() => window.hass.states["sensor.emhass_perfil_diferible_*"].attributes) to inspect attributes.
 - resolved_at: 
 
 ### [task-4.4] VE2-CHECK - E2E: simulate SOC change and verify sensor update
-- status: PASS
-- severity: none
-- reviewed_at: 2026-04-09T17:15:00+02:00
-- criterion_failed: none
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-09T18:00:00+02:00
+- criterion_failed: Test does not exist
 - evidence: |
-  E2E test file exists. Phase 4 E2E tests created.
-- fix_hint: Task complete.
+  No test in emhass-sensor-updates.spec.ts simulates SOC change and verifies sensor update.
+  Requirements AC-3.1 through AC-3.5 require: SOC change >= 5% → sensor attributes update within 2 seconds.
+  Current file has only 3 tests: sensor exists, one device, sensor state not unavailable.
+  None test SOC change flow.
+- fix_hint: Add test that:
+  1. Creates a trip
+  2. Records current sensor attributes
+  3. Changes SOC sensor state via HA API (callWS service call)
+  4. Waits for sensor attributes to change
+  5. Verifies power_profile_watts values changed
 - resolved_at: 
 
 ### [task-4.5] VE2-CHECK - E2E: verify single device in HA UI
-- status: PASS
-- severity: none
-- reviewed_at: 2026-04-09T17:15:00+02:00
-- criterion_failed: none
+- status: WARNING
+- severity: major
+- reviewed_at: 2026-04-09T18:00:00+02:00
+- criterion_failed: Test counts text rows, not actual HA devices
 - evidence: |
-  E2E test file exists. Phase 4 E2E complete.
-- fix_hint: Task complete.
+  Test "should show only one device entity per vehicle" counts page.getByText(/emhass_perfil_diferible/i) rows.
+  This counts SENSOR entities, not DEVICES. Bug #1 was about device duplication in HA UI
+  (two devices: one with vehicle_id, one with entry_id UUID).
+  Counting sensor rows doesn't verify device structure.
+  Should navigate to /config/devices/list and verify only ONE device card exists for the vehicle.
+- fix_hint: Test should:
+  1. Navigate to /config/devices/list
+  2. Filter for "EV Trip Planner"
+  3. Count device cards (expect exactly 1)
+  4. Verify device name contains vehicle_id, not entry_id UUID
 - resolved_at: 
 
 ### [task-4.6] VE3-CLEANUP - E2E: cleanup handled by make e2e
