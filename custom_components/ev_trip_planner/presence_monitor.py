@@ -457,6 +457,7 @@ class PresenceMonitor:
         Args:
             event: The state change event from Home Assistant
         """
+        _LOGGER.debug("SOC change event received for %s", self.vehicle_id)
         if not self._trip_manager:
             _LOGGER.debug(
                 "SOC change detected for %s but no trip_manager available, skipping",

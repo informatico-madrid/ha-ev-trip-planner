@@ -106,8 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Device duplication bug**: Fixed critical issue where multiple devices were created for the same `vehicle_id`. Added unique device tracking in `presence_monitor.py` to ensure only one device exists per vehicle.
-- **Empty sensor attributes bug**: Fixed EMHASS deferrable load sensors being published with empty/missing attributes. Properly initialized all required attributes (`deferrable_loads`, `vehicle_id`, `entry_id`) when publishing sensors.
+- **Device duplication bug**: Fixed multiple Home Assistant devices being created for one vehicle by using a stable normalized `vehicle_id` for sensor device identifiers (`(DOMAIN, vehicle_id)`) in `sensor.py`, ensuring a single device per vehicle.
+- **Empty sensor attributes bug**: Fixed EMHASS deferrable-load sensors publishing empty attributes by routing SOC-change updates through `TripManager.publish_deferrable_loads()` so EMHASS data is cached before coordinator refresh (`power_profile_watts`, `deferrables_schedule`, `emhass_status`).
 
 ### Added
 - **Milestone 3 Preparation**: Complete architectural redesign for EMHASS integration

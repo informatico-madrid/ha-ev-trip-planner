@@ -1,6 +1,6 @@
 
 # Sensor de perfil de carga diferible para OVMS Chispitas (EMHASS)
-# esto es un ejemplo no valido de otra integracion diferente. pero es una ejemplo valioso para entender lo que se pretende. 
+# Esto es un ejemplo no válido de otra integración diferente, pero es un ejemplo valioso para entender lo que se pretende. 
 - name: "EMHASS Perfil Diferible OVMS Chispitas"
   unique_id: emhass_perfil_diferible_ovms_chispitas
   state: >

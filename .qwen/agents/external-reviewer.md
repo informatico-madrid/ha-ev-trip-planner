@@ -138,7 +138,7 @@ When the reviewer must escalate an issue to the executor, it uses the structured
 **Expected Response**: Human resolves, then CONTINUE
 ```
 
-## Section 1c — Human as Participant
+## Section 1d — Human as Participant
 
 The human is a full participant in the review process with special privileges.
 

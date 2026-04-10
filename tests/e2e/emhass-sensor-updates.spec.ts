@@ -176,100 +176,148 @@ test.describe('EMHASS Sensor Updates', () => {
     // Step 4: Find the filter/search input
     const searchInput = page.getByRole('textbox', { name: /filter/i }).first();
     if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await searchInput.fill('emhass_deferrable_load');
+      await searchInput.fill('emhass_perfil_diferible');
       await page.waitForTimeout(1000);
     }
 
-    // Step 5: Check if the sensor row exists
-    const sensorRow = page.getByText(/emhass_deferrable_load/i).first();
-    const exists = await sensorRow.isVisible({ timeout: 10000 }).catch(() => false);
+    // Step 5: Check if the sensor row exists — must exist, test fails if missing
+    const sensorRow = page.getByText(/emhass_perfil_diferible/i).first();
+    await expect(sensorRow).toBeVisible({ timeout: 10000 });
 
-    if (exists) {
-      // Sensor exists -- verify it has a state value
-      const rowText = await sensorRow.textContent();
-      expect(rowText).not.toContain('unavailable');
-      expect(rowText).not.toContain('unknown');
-    } else {
-      console.log('EMHASS sensor not found in States page');
-    }
+    // Sensor exists — verify it has a state value (not "unavailable" or "unknown")
+    const rowText = ((await sensorRow.textContent()) ?? '').toLowerCase();
+    expect(rowText).not.toContain('unavailable');
+    expect(rowText).not.toContain('unknown');
   });
 
   test('should simulate SOC change and verify sensor attributes update (Task 4.4)', async ({
     page,
   }) => {
-    // Step 1: Create a trip to initialize EMHASS
+    // Helper: get sensor last_updated timestamp from HA frontend's hass.states object
+    const getSensorLastUpdated = async (entityId: string): Promise<string> => {
+      await page.goto('/developer-tools/state');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+
+      return await page.evaluate((eid: string) => {
+        const haMain = document.querySelector('home-assistant') as any;
+        if (!haMain?.hass?.states?.[eid]) {
+          throw new Error(`Entity ${eid} not found in hass.states`);
+        }
+        return haMain.hass.states[eid].last_updated;
+      }, entityId);
+    };
+
+    // Helper: verify sensor attributes are present via Developer Tools > States UI
+    const verifyAttributesViaUI = async (filter: string): Promise<void> => {
+      await page.goto('/developer-tools/state');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+      await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10000 });
+
+      const searchInput = page.getByRole('textbox', { name: /filter/i }).first();
+      if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await searchInput.fill(filter);
+        await page.waitForTimeout(1000);
+      }
+      const attributesLocator = page.getByText('power_profile_watts:').first();
+      await expect(attributesLocator).toBeVisible({ timeout: 10000 });
+    };
+
+    // Helper: change input_number value via HA frontend websocket (callService)
+    // This uses the authenticated HA frontend connection — same mechanism as
+    // clicking a slider or calling a service from a Lovelace card.
+    const changeSOCViaUI = async (newValue: number) => {
+      await page.goto('/developer-tools/state');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(1000);
+
+      await page.evaluate(async (value: number) => {
+        const haMain = document.querySelector('home-assistant') as any;
+        if (!haMain?.hass) {
+          throw new Error('HA frontend hass object not found');
+        }
+        await haMain.hass.callService('input_number', 'set_value', {
+          entity_id: 'input_number.test_vehicle_soc',
+          value: value,
+        });
+      }, newValue);
+
+      // Wait for state propagation (template sensor + SOC listener + EMHASS recalc)
+      await page.waitForTimeout(3000);
+    };
+
+    // Helper: get sensor attributes from HA frontend hass.states object
+    const getSensorAttributes = async (entityId: string): Promise<Record<string, any>> => {
+      return await page.evaluate((eid: string) => {
+        const haMain = document.querySelector('home-assistant') as any;
+        if (!haMain?.hass?.states?.[eid]) {
+          throw new Error(`Entity ${eid} not found in hass.states`);
+        }
+        return haMain.hass.states[eid].attributes;
+      }, entityId);
+    };
+
+    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+
+    // Step 1: Create a trip WITHIN the 7-day planning horizon to get non-zero power_profile
+    // Use tomorrow's date so the charging window falls within the 168-hour horizon
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tripDatetime = `${tomorrow.toISOString().slice(0, 10)}T10:00`;
+
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
-      30,
-      12,
+      tripDatetime,
+      200,
+      50,
       'E2E SOC Change Test Trip',
     );
 
-    // Step 2: Wait for EMHASS to be ready
-    await page.waitForTimeout(3000);
+    // Step 2: Wait for EMHASS initial population
+    await page.waitForTimeout(5000);
 
-    // Step 3: Navigate to Developer Tools > States via direct URL (same pattern as task 4.3)
-    await page.goto('/developer-tools/state');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    // Step 3: Read BEFORE attributes and verify power_profile has values
+    const beforeAttrs = await getSensorAttributes(sensorEntityId);
+    console.log('BEFORE SOC change - power_profile_watts (first 5):', JSON.stringify(beforeAttrs.power_profile_watts?.slice(0, 5)));
+    console.log('BEFORE SOC change - emhass_status:', beforeAttrs.emhass_status);
 
-    // Step 4: Wait for the states page to load
-    await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10000 });
+    // Verify power_profile_watts has non-zero values after trip creation
+    expect(beforeAttrs.power_profile_watts).toBeDefined();
+    expect(Array.isArray(beforeAttrs.power_profile_watts)).toBe(true);
+    const hasNonZeroBefore = beforeAttrs.power_profile_watts.some((v: number) => v > 0);
+    expect(hasNonZeroBefore).toBe(true);
 
-    // Step 5: Filter for the EMHASS sensor
-    const searchInput = page.getByRole('textbox', { name: /filter entities/i }).first();
-    if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await searchInput.fill('emhass_perfil_diferible');
-      await page.waitForTimeout(1000);
-    }
+    const beforeLastUpdated = await getSensorLastUpdated(sensorEntityId);
+    console.log('BEFORE SOC change - last_updated:', beforeLastUpdated);
 
-    // Step 6: BEFORE - Read sensor attributes before SOC change
-    const beforeAttributesLocator = page.getByText('power_profile_watts:').first();
-    await expect(beforeAttributesLocator).toBeVisible({ timeout: 10000 });
-    const beforeAttributes = await beforeAttributesLocator.textContent();
+    // Step 4: Change SOC value from 80 → 20 (delta >= 5% to pass debounce)
+    // Uses input_number.test_vehicle_soc which feeds sensor.test_vehicle_soc (template)
+    // The presence_monitor's SOC listener triggers publish_deferrable_loads()
+    await changeSOCViaUI(20);
 
-    console.log('BEFORE SOC change - attributes present');
+    // Step 5: Wait for recalculation to propagate
+    await page.waitForTimeout(5000);
 
-    // Step 7: Change SOC sensor via HA API
-    await page.request.post(
-      '/api/states/sensor.test_vehicle_soc',
-      {
-        data: {
-          state: '60',
-          attributes: { unit_of_measurement: '%' },
-        },
-      },
-    );
+    // Step 6: Record last_updated AFTER SOC change
+    const afterLastUpdated = await getSensorLastUpdated(sensorEntityId);
+    console.log('AFTER SOC change - last_updated:', afterLastUpdated);
 
-    // Step 8: Wait for EMHASS recalculation (2-3 seconds)
-    await page.waitForTimeout(3000);
+    // Step 7: Verify the sensor was refreshed — last_updated must be newer
+    // This proves the SOC change triggered a recalculation
+    expect(afterLastUpdated).not.toBe(beforeLastUpdated);
 
-    // Step 9: Reload to get updated attributes
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    // Step 8: Read AFTER attributes and verify still populated
+    const afterAttrs = await getSensorAttributes(sensorEntityId);
+    console.log('AFTER SOC change - power_profile_watts (first 5):', JSON.stringify(afterAttrs.power_profile_watts?.slice(0, 5)));
+    console.log('AFTER SOC change - emhass_status:', afterAttrs.emhass_status);
 
-    // Filter for the EMHASS sensor again
-    const searchInput2 = page.getByRole('textbox', { name: /filter entities/i }).first();
-    if (await searchInput2.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await searchInput2.fill('emhass_perfil_diferible');
-      await page.waitForTimeout(1000);
-    }
+    // Verify attributes remain populated after SOC-triggered recalculation
+    expect(afterAttrs.power_profile_watts).toBeDefined();
+    expect(Array.isArray(afterAttrs.power_profile_watts)).toBe(true);
 
-    // Step 10: AFTER - Read sensor attributes after SOC change
-    const afterAttributesLocator = page.getByText('power_profile_watts:').first();
-    await expect(afterAttributesLocator).toBeVisible({ timeout: 10000 });
-    const afterAttributes = await afterAttributesLocator.textContent();
-
-    console.log('AFTER SOC change - attributes present');
-
-    // Step 11: Verify that attributes exist (showing SOC change triggered recalculation)
-    expect(beforeAttributes).toBeDefined();
-    expect(afterAttributes).toBeDefined();
-
-    // Step 12: Clean up trip
+    // Step 9: Clean up trip — then verify attributes change after deletion
     await navigateToPanel(page);
     const deleteBtn = page.getByRole('button', { name: /eliminar/i }).last();
     if (await deleteBtn.isVisible().catch(() => false)) {
@@ -281,7 +329,23 @@ test.describe('EMHASS Sensor Updates', () => {
       await page.waitForTimeout(1000);
     }
 
-    console.log('SOC change and sensor update verified via Playwright UI');
+    // Step 10: Wait for recalculation after trip deletion
+    await page.waitForTimeout(5000);
+
+    // Step 11: Read attributes AFTER deletion — values must have changed
+    const afterDeleteAttrs = await getSensorAttributes(sensorEntityId);
+    console.log('AFTER deletion - power_profile_watts (first 5):', JSON.stringify(afterDeleteAttrs.power_profile_watts?.slice(0, 5)));
+    console.log('AFTER deletion - emhass_status:', afterDeleteAttrs.emhass_status);
+
+    // After deleting the only trip, power_profile_watts should be all zeros
+    const hasNonZeroAfterDelete = (afterDeleteAttrs.power_profile_watts || []).some((v: number) => v > 0);
+    expect(hasNonZeroAfterDelete).toBe(false);
+
+    // FINAL: Prove attribute VALUES changed — not just timestamps
+    // With trip: non-zero values.  Without trip: all zeros.
+    expect(hasNonZeroBefore).not.toBe(hasNonZeroAfterDelete);
+
+    console.log('Sensor attributes verified: VALUES changed across trip lifecycle (non-zero → zeros)');
   });
 
   test('should verify single device in HA UI (no duplication) (Task 4.5)', async ({ page }) => {

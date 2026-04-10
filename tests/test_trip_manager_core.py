@@ -2087,9 +2087,9 @@ async def test_async_sync_trip_to_emhass_non_critical_change(mock_hass, vehicle_
         "trip_1", {"activo": True}, {"activo": True}  # No actual change, but still non-critical
     )
 
-    # Should call async_update_deferrable_load but NOT async_publish_all_deferrable_loads
+    # Should call async_update_deferrable_load but NOT publish_deferrable_loads
     mock_adapter.async_update_deferrable_load.assert_called()
-    mock_adapter.async_publish_all_deferrable_loads.assert_not_called()
+    mock_adapter.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio

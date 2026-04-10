@@ -272,7 +272,7 @@ class TestSensorAsyncAddedToHassRestore:
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_coordinator_data_emhass_cache(mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter):
+async def test_coordinator_data_emhass_cache(hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter):
     """coordinator.data includes EMHASS fields from adapter cache.
 
     Task 1.18 RED test: expects coordinator.data to have emhass_power_profile,
@@ -282,7 +282,7 @@ async def test_coordinator_data_emhass_cache(mock_config_entry, mock_trip_manage
 
     # Create coordinator with EMHASS adapter
     coordinator = TripPlannerCoordinator(
-        mock_config_entry.hass, mock_config_entry, mock_trip_manager,
+        hass, mock_config_entry, mock_trip_manager,
         emhass_adapter=mock_emhass_adapter, logger=mock_logger
     )
 
@@ -302,7 +302,7 @@ async def test_coordinator_data_emhass_cache(mock_config_entry, mock_trip_manage
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_vehicle_id_property(mock_config_entry, mock_logger):
+async def test_vehicle_id_property(hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger):
     """coordinator.vehicle_id returns normalized vehicle_id from entry.data[CONF_VEHICLE_NAME].
 
     This tests the happy path for Task 1.1/1.2.
@@ -310,7 +310,7 @@ async def test_vehicle_id_property(mock_config_entry, mock_logger):
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
     coordinator = TripPlannerCoordinator(
-        mock_config_entry.hass, mock_config_entry, mock_trip_manager,
+        hass, mock_config_entry, mock_trip_manager,
         logger=mock_logger
     )
 
@@ -319,7 +319,7 @@ async def test_vehicle_id_property(mock_config_entry, mock_logger):
 
 
 @pytest.mark.asyncio
-async def test_vehicle_id_fallback(mock_trip_manager, mock_logger):
+async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_logger):
     """coordinator.vehicle_id returns 'unknown' when CONF_VEHICLE_NAME is missing from entry.data.
 
     This tests the fallback path for Task 1.1/1.2.
@@ -332,7 +332,7 @@ async def test_vehicle_id_fallback(mock_trip_manager, mock_logger):
     entry_without_vehicle.data = {}  # Missing CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
-        entry_without_vehicle.hass, entry_without_vehicle, mock_trip_manager,
+        hass, entry_without_vehicle, mock_trip_manager,
         logger=mock_logger
     )
 

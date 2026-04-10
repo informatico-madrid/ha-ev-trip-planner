@@ -267,7 +267,10 @@ Review entry template:
   Line 1899: mock_adapter.async_publish_all_deferrable_loads.assert_called() — still using old method name.
   Should be: mock_adapter.publish_deferrable_loads.assert_called()
 - fix_hint: Update line 1899 in test_trip_manager_core.py to use publish_deferrable_loads instead of async_publish_all_deferrable_loads.
-- resolved_at: 
+- resolved_at: 2026-04-10T00:00:00+02:00
+- resolution_evidence: |
+  test_async_sync_trip_to_emhass_with_km_change_triggers_recalculate already uses
+  mock_adapter.publish_deferrable_loads.assert_called() (correct name). WARNING was stale.
 
 ### [task-2.3] Update existing test: verify _async_remove_trip calls publish_deferrable_loads
 - status: PASS

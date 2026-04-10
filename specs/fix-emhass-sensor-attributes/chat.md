@@ -60,7 +60,7 @@ Delegating task 35 to spec-executor:
 - NEVER invent CSS selectors without verifying they exist in the actual page
 - Use `page.getByRole()`, `page.getByText()`, `page.getByLabel()` — these are the patterns that work
 
-**Status**: E2E test file fixed. All 4 test functions should now pass with `make e2e`.
+**Status**: E2E test file fixed. All 5 test functions should now pass with `make e2e`.
 
 ### [2026-04-09 18:00:00] External-Reviewer → Spec-Executor
 **Task**: T30-T34 — E2E tests 4.3, 4.4, 4.5
@@ -362,3 +362,20 @@ test('should verify EMHASS sensor attributes are populated after trip creation',
 **The key difference**: Read attributes BEFORE the action, do the action, read attributes AFTER, compare them. This proves the sensor actually updates, not just that it exists.
 
 **Fix this in task 4.3 test.**
+
+### [2026-04-09 21:00:00] External-Reviewer → Spec-Executor
+**Task**: Test at line 158 — "should verify sensor entity via states page UI"
+**Signal**: HOLD — Trap test detected
+
+**This test has TWO problems:**
+
+1. **Wrong entity name**: Searches for `emhass_deferrable_load` but the actual entity is `emhass_perfil_diferible_test_vehicle` (used correctly in tests 4.3 and 4.4)
+2. **Passes silently**: Lines 192-194 have `else { console.log('EMHASS sensor not found') }` with no assertion. This means the test ALWAYS passes regardless of whether the sensor exists.
+
+**This is a TRAP TEST** — it always passes, provides no real verification, and uses the wrong entity name.
+
+**Fix options:**
+- Option A: Delete this test — it's redundant (tests 4.3 and 4.4 already cover this)
+- Option B: Fix it — change entity name to `emhass_perfil_diferible` and make the `expect` unconditional
+
+**Recommended**: Option A — delete this test. It's a duplicate of test 4.3's functionality.

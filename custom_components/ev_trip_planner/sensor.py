@@ -155,6 +155,10 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         vehicle_id = getattr(coordinator, 'vehicle_id', entry_id)
         self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
         self._attr_has_entity_name = True
+        # Force HA to record state updates even when values are identical.
+        # Coordinator refreshes are only triggered by meaningful events
+        # (SOC change, trip CRUD, config change) so every refresh matters.
+        self._attr_force_update = True
 
     @property
     def native_value(self) -> str:
@@ -289,13 +293,13 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: Any
 ) -> bool:
     """Set up sensors from config entry."""
-    vehicle_id = entry.data.get("vehicle_name", "")
     entry_id = entry.entry_id
 
     # Use entry.runtime_data set by __init__.py::async_setup_entry
     runtime_data = entry.runtime_data
     trip_manager = runtime_data.trip_manager
     coordinator = runtime_data.coordinator
+    vehicle_id = coordinator.vehicle_id
 
     if not trip_manager:
         _LOGGER.error(
@@ -474,8 +478,7 @@ async def async_create_trip_sensor(
         )
         return False
 
-    # Get vehicle_id from entry data
-    vehicle_id = entry.data.get("vehicle_name", "").lower().replace(" ", "_")
+    vehicle_id = coordinator.vehicle_id
 
     # Create the trip sensor (new signature: coordinator, vehicle_id, trip_id)
     try:

@@ -265,6 +265,7 @@ async function setupIntegration(token: string): Promise<void> {
     charging_power_kw: 11,
     kwh_per_km: 0.17,
     safety_margin_percent: 20,
+    soc_sensor: 'sensor.test_vehicle_soc',
   });
   if (step2.type !== 'form' || step2.step_id !== 'emhass') {
     throw new Error(`[auth.setup] Step 2 unexpected response: ${JSON.stringify(step2)}`);
