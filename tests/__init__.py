@@ -124,7 +124,7 @@ def create_mock_trip_manager(hass=None, vehicle_id: str = TEST_VEHICLE_ID) -> Ma
     mock.async_add_punctual_trip = AsyncMock(return_value=None)
     mock.async_save_trips = AsyncMock(return_value=None)
     mock.async_delete_trip = AsyncMock(return_value=None)
-    mock._publish_deferrable_loads = AsyncMock(return_value=None)
+    mock.publish_deferrable_loads = AsyncMock(return_value=None)
     # T048: async stubs for deterministic datetime-based calculations
     mock.async_get_kwh_needed_today = AsyncMock(return_value=0.0)
     mock.async_get_hours_needed_today = AsyncMock(return_value=0.0)

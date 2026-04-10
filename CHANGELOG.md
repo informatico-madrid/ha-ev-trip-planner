@@ -105,6 +105,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Device duplication bug**: Fixed multiple Home Assistant devices being created for one vehicle by using a stable normalized `vehicle_id` for sensor device identifiers (`(DOMAIN, vehicle_id)`) in `sensor.py`, ensuring a single device per vehicle.
+- **Empty sensor attributes bug**: Fixed EMHASS deferrable-load sensors publishing empty attributes by routing SOC-change updates through `TripManager.publish_deferrable_loads()` so EMHASS data is cached before coordinator refresh (`power_profile_watts`, `deferrables_schedule`, `emhass_status`).
+
 ### Added
 - **Milestone 3 Preparation**: Complete architectural redesign for EMHASS integration
   - New documentation: `docs/MILESTONE_3_ARCHITECTURE_ANALYSIS.md` (375 lines)

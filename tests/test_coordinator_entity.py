@@ -1,15 +1,13 @@
 """Tests for TripPlannerSensor CoordinatorEntity pattern."""
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from homeassistant.core import HomeAssistant
+from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.sensor import (
     TripPlannerSensor,
     EmhassDeferrableLoadSensor,
     TripSensor,
 )
-from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription, TRIP_SENSORS
+from custom_components.ev_trip_planner.definitions import TRIP_SENSORS
 
 
 def make_test_coordinator(data):

@@ -6,7 +6,7 @@ for Home Assistant Event objects.
 
 import inspect
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 

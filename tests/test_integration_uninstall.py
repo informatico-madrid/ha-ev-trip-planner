@@ -6,7 +6,6 @@ Tests that vehicle deletion properly cleans up all trips from TripManager storag
 import pytest
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 
 
 @pytest.fixture
@@ -28,7 +27,6 @@ class TestFullVehicleDeletion:
         - No sensors should remain in state machine
         """
         from unittest.mock import AsyncMock, Mock, patch
-        from homeassistant.core import HomeAssistant
 
         # Create mock entities
         mock_hass = Mock(spec=HomeAssistant)
@@ -83,9 +81,6 @@ class TestEmhassFullUnload:
         sensors that were published should be removed via hass.states.async_remove.
         This is AC-1.4 from the integration points design.
         """
-        # Track removed entity IDs
-        removed_entity_ids = []
-
         # Create mock Home Assistant instance with config_entries attribute
         mock_hass = MagicMock()
         mock_hass.data = {}

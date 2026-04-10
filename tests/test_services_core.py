@@ -76,7 +76,6 @@ def _setup_mock_config_entry(mock_hass, vehicle_id="chispitas"):
 @pytest.mark.asyncio
 async def test_services_use_seeded_trip_manager_instance(mock_hass):
     """If a TripManager is seeded in entry.runtime_data, services reuse it."""
-    from custom_components.ev_trip_planner import DOMAIN
     from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
     # Create a mock config entry with proper structure
@@ -1413,7 +1412,6 @@ class TestHandleTripUpdateWithDescripcionDirect:
 
         Covers line 168 where descripcion is converted to string.
         """
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
         mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
         mock_mgr = MagicMock()
@@ -2395,7 +2393,6 @@ class TestHandleTripUpdatePunctualBranch:
 
         Covers line 197 where async_get_punctual_trips is called.
         """
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
         # Set up mock with manager
         mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")

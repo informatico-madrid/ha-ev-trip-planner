@@ -538,9 +538,11 @@ class EMHASSAdapter:
         # The coordinator will handle EMHASS data via async_request_refresh()
 
         # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
+        # Use async_refresh() for immediate update (not debounced async_request_refresh)
+        # so sensors reflect changes instantly when SOC, trips, etc. change.
         coordinator = self._get_coordinator()
         if coordinator is not None:
-            await coordinator.async_request_refresh()
+            await coordinator.async_refresh()
             _LOGGER.debug(
                 "Triggered coordinator refresh for EMHASS data update for %s",
                 self.vehicle_id,

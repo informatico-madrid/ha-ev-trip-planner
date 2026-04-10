@@ -31,11 +31,9 @@ from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
     CONF_CONSUMPTION,
-    CONF_HOME_SENSOR,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
     CONF_PLANNING_HORIZON,
-    CONF_PLUGGED_SENSOR,
     CONF_SAFETY_MARGIN,
     CONF_VEHICLE_NAME,
 )
@@ -283,7 +281,6 @@ async def test_async_step_emhass_planning_sensor_valid_state():
 @pytest.mark.asyncio
 async def test_async_step_emhass_planning_sensor_unknown_state():
     """Test async_step_emhass with planning sensor in unknown state (line 481-485)."""
-    import logging
 
     flow = EVTripPlannerFlowHandler()
     flow.hass = MagicMock()
@@ -309,7 +306,6 @@ async def test_async_step_emhass_planning_sensor_unknown_state():
 @pytest.mark.asyncio
 async def test_async_step_emhass_planning_sensor_invalid_parse():
     """Test async_step_emhass handles invalid sensor value (line 475-480)."""
-    import logging
 
     flow = EVTripPlannerFlowHandler()
     flow.hass = MagicMock()

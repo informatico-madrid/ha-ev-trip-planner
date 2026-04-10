@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-07T19:51:36Z",
+  "updated": "2026-04-10T12:41:16Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 23,
+      "specsCount": 25,
       "isDefault": true
     }
   ],
@@ -167,9 +167,23 @@
     {
       "name": "regression-orphaned-sensors-ha-core-investigation",
       "path": "./specs/regression-orphaned-sensors-ha-core-investigation",
+      "phase": "tasks",
+      "taskIndex": 78,
+      "totalTasks": 79
+    },
+    {
+      "name": "solid-refactor-coverage",
+      "path": "./specs/solid-refactor-coverage",
+      "phase": "completed",
+      "taskIndex": 90,
+      "totalTasks": 90
+    },
+    {
+      "name": "fix-emhass-sensor-attributes",
+      "path": "./specs/fix-emhass-sensor-attributes",
       "phase": "execution",
-      "taskIndex": 55,
-      "totalTasks": 58
+      "taskIndex": 33,
+      "totalTasks": 39
     }
   ]
 }

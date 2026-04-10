@@ -12,7 +12,7 @@ coordinator.data instead of calling trip_manager methods directly.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
@@ -281,10 +281,13 @@ class TestEmhassDeferrableLoadSensor:
         assert sensor.native_value == "error"
 
     async def test_sensor_device_info(self, mock_coordinator, sensor):
-        """Test sensor device info."""
+        """Test sensor device info uses vehicle_id from coordinator.
+
+        Task 1.4 RED test: expects device_info to use vehicle_id, not entry_id.
+        """
         device_info = sensor.device_info
 
-        assert device_info["identifiers"] == {(DOMAIN, "test_entry_id")}
+        assert device_info["identifiers"] == {(DOMAIN, "test_vehicle")}
         assert device_info["name"] == "EV Trip Planner test_vehicle"
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
@@ -327,6 +330,14 @@ class TestEmhassDeferrableLoadSensor:
 
         assert sensor.native_value == "error"
         assert sensor.extra_state_attributes["emhass_status"] == "error"
+
+    async def test_sensor_name_uses_vehicle_id(self, mock_coordinator, sensor):
+        """Test sensor _attr_name uses vehicle_id from coordinator, not entry_id.
+
+        Task 1.7 RED test: expects sensor name to use vehicle_id, not entry_id UUID.
+        """
+        assert sensor._attr_name == "EMHASS Perfil Diferible test_vehicle"
+        assert "test_entry_id" not in sensor._attr_name
 
 
 class TestPowerProfileSemantics:

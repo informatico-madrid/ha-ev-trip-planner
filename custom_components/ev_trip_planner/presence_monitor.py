@@ -457,6 +457,7 @@ class PresenceMonitor:
         Args:
             event: The state change event from Home Assistant
         """
+        _LOGGER.debug("SOC change event received for %s", self.vehicle_id)
         if not self._trip_manager:
             _LOGGER.debug(
                 "SOC change detected for %s but no trip_manager available, skipping",
@@ -542,9 +543,11 @@ class PresenceMonitor:
         # Update last_processed_soc only when recalculation is triggered
         self._last_processed_soc = new_soc
 
-        # Call the public async methods on trip_manager
-        await self._trip_manager.async_generate_power_profile()
-        await self._trip_manager.async_generate_deferrables_schedule()
+        # Route SOC change through publish_deferrable_loads which:
+        # 1. Caches data in EMHASSAdapter
+        # 2. Triggers coordinator refresh
+        # 3. Makes data available to sensors via coordinator.data
+        await self._trip_manager.publish_deferrable_loads()
 
     async def async_notify_charging_not_possible(
         self,

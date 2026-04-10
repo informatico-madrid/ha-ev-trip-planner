@@ -23,3 +23,24 @@ input_boolean:
     name: "EV Charging Test"
     initial: false
 
+# SOC input_number — used as backing state for test_vehicle SOC sensor
+# E2E test 4.4 changes this value via HA UI to trigger SOC change → EMHASS recalculation
+input_number:
+  test_vehicle_soc:
+    name: "Test Vehicle SOC"
+    initial: 80
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+
+# Template sensor that mirrors the input_number as a real sensor entity
+# This is the soc_sensor configured in the integration config flow
+template:
+  - sensor:
+      - name: "Test Vehicle SOC"
+        unique_id: "test_vehicle_soc_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.test_vehicle_soc') | float(0) | round(0) }}"
+

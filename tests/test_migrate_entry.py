@@ -9,12 +9,10 @@ After G-09.2 implements async_migrate_entries, this test should pass.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import callback
 
 

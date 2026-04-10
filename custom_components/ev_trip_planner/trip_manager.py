@@ -152,12 +152,12 @@ class TripManager:
             )
         return sanitized
 
-    async def _publish_deferrable_loads(self) -> None:
+    async def publish_deferrable_loads(self) -> None:
         """Publish current trips to EMHASS as deferrable loads."""
         if not self._emhass_adapter:
             return
         all_trips = await self._get_all_active_trips()
-        await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
+        await self._emhass_adapter.publish_deferrable_loads(all_trips)
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -372,7 +372,7 @@ class TripManager:
 
             # T019.3: Trigger EMHASS adapter update when trip state changes
             if self._emhass_adapter:
-                await self._publish_deferrable_loads()
+                await self.publish_deferrable_loads()
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err, exc_info=True)
             # Fallback to YAML if HA storage fails (HA I/O bound - pragma)
@@ -856,7 +856,7 @@ class TripManager:
                 await self._emhass_adapter.async_update_deferrable_load(trip)
 
                 # Also update all deferrable loads to recalculate schedule
-                await self._publish_deferrable_loads()
+                await self.publish_deferrable_loads()
 
                 _LOGGER.info(
                     "Trip %s updated in EMHASS (recalculated): changed fields=%s",
@@ -884,7 +884,7 @@ class TripManager:
             await self._emhass_adapter.async_remove_deferrable_load(trip_id)
 
             # Update all deferrable loads to reflect the removal
-            await self._publish_deferrable_loads()
+            await self.publish_deferrable_loads()
 
             _LOGGER.info("Trip %s removed from EMHASS deferrable loads", trip_id)
         except Exception as err:
@@ -900,7 +900,7 @@ class TripManager:
             await self._emhass_adapter.async_publish_deferrable_load(trip)
 
             # Also publish all trips to recalculate the schedule
-            await self._publish_deferrable_loads()
+            await self.publish_deferrable_loads()
 
             _LOGGER.info(
                 "Published new trip %s to EMHASS deferrable loads",

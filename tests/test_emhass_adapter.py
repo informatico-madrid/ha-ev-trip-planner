@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistantError
 
@@ -64,7 +64,7 @@ def mock_coordinator():
         "kwh_today": 0.0,
         "hours_today": 0.0,
     }
-    coordinator.async_request_refresh = AsyncMock()
+    coordinator.async_refresh = AsyncMock()
     return coordinator
 
 
@@ -105,8 +105,8 @@ async def test_async_assign_index_to_trip_returns_none_when_no_indices(hass, moc
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        idx1 = await adapter.async_assign_index_to_trip("trip_001")
-        idx2 = await adapter.async_assign_index_to_trip("trip_002")
+        await adapter.async_assign_index_to_trip("trip_001")
+        await adapter.async_assign_index_to_trip("trip_002")
 
         # All indices exhausted
         idx3 = await adapter.async_assign_index_to_trip("trip_003")
@@ -343,7 +343,7 @@ async def test_async_update_deferrable_load_calls_publish(hass, mock_store, mock
 
         # Mock states and republish
         hass.states.async_set = AsyncMock()
-        mock_coordinator.async_request_refresh = AsyncMock()
+        mock_coordinator.async_refresh = AsyncMock()
 
         trip = {
             "id": "trip_001",
@@ -711,7 +711,7 @@ async def test_async_update_charging_power_updates_value(hass, mock_store):
 
         # Mock coordinator to avoid "can't await MagicMock" error
         mock_coordinator = MagicMock()
-        mock_coordinator.async_request_refresh = AsyncMock()
+        mock_coordinator.async_refresh = AsyncMock()
         # Patch _get_coordinator to return our mock
         with patch.object(adapter, '_get_coordinator', return_value=mock_coordinator):
             # Update charging power - this should update since power changed from 7.4 to 11.0
@@ -1518,7 +1518,7 @@ async def test_handle_emhass_unavailable_sends_notification(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_emhass_unavailable(
+            await adapter.async_handle_emhass_unavailable(
                 "Connection refused", trip_id="trip_abc"
             )
 
@@ -1548,7 +1548,7 @@ async def test_handle_sensor_error_calls_notify(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_sensor_error(
+            await adapter.async_handle_sensor_error(
                 "Sensor data invalid", "sensor.test"
             )
 
@@ -1576,7 +1576,7 @@ async def test_handle_shell_command_failure_calls_notify(hass, mock_store):
             adapter, "async_notify_error", new_callable=AsyncMock
         ) as mock_notify:
             mock_notify.return_value = True
-            result = await adapter.async_handle_shell_command_failure(
+            await adapter.async_handle_shell_command_failure(
                 trip_id="trip_xyz"
             )
 
@@ -2452,6 +2452,56 @@ class TestPublishDeferrableLoadsCoordinatorPath:
             # Should not raise - coordinator is None
             await adapter.publish_deferrable_loads(trips)
 
+    @pytest.mark.asyncio
+    async def test_publish_deferrable_loads_sets_cache_and_triggers_refresh(self, hass):
+        """publish_deferrable_loads sets _cached_* attributes and triggers coordinator refresh.
+
+        This test validates the caching contract in publish_deferrable_loads (lines 531-543):
+        - _cached_power_profile is set to computed value
+        - _cached_deferrables_schedule is set to computed value
+        - _cached_emhass_status is set to EMHASS_STATE_READY
+        - coordinator.async_refresh() is called (immediate, not debounced)
+        """
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+            adapter.hass.states.async_set = AsyncMock()
+
+            # Mock _get_coordinator to return our mock
+            adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+            trips = [{"id": "trip_1", "kwh": 7.4, "hora": "09:00"}]
+
+            # Call publish_deferrable_loads
+            await adapter.publish_deferrable_loads(trips)
+
+            # Verify cache was set
+            assert adapter._cached_power_profile is not None
+            assert len(adapter._cached_power_profile) > 0
+            assert adapter._cached_deferrables_schedule is not None
+            assert adapter._cached_emhass_status == EMHASS_STATE_READY
+
+            # Verify coordinator refresh was triggered immediately
+            mock_coordinator.async_refresh.assert_called_once()
+
 
 class TestVerifyShellCommandIntegrationCoverage:
     """Tests for async_verify_shell_command_integration coverage (line 643)."""
@@ -2969,11 +3019,11 @@ class TestUpdateChargingPowerCoverage:
 
 @pytest.mark.asyncio
 async def test_publish_deferrable_loads_coordinator_refresh_raises(hass, mock_store):
-    """publish_deferrable_loads handles exception when coordinator.async_request_refresh raises.
+    """publish_deferrable_loads handles exception when coordinator.async_refresh raises.
 
     Tests the HTTP error path in publish_deferrable_loads where
-    coordinator.async_request_refresh() raises an exception (EMHASS unavailable).
-    This is line 537 - the call that can fail when EMHASS HTTP endpoint is down.
+    coordinator.async_refresh() raises an exception (EMHASS unavailable).
+    This is line 545 - the call that can fail when EMHASS HTTP endpoint is down.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -2996,15 +3046,15 @@ async def test_publish_deferrable_loads_coordinator_refresh_raises(hass, mock_st
 
         hass.states.async_set = AsyncMock()
 
-        # Create a mock coordinator that raises when async_request_refresh is called
+        # Create a mock coordinator that raises when async_refresh is called
         mock_coordinator = MagicMock()
-        mock_coordinator.async_request_refresh = AsyncMock(
+        mock_coordinator.async_refresh = AsyncMock(
             side_effect=Exception("EMHASS HTTP error")
         )
 
         # Patch _get_coordinator to return our mock
         with patch.object(adapter, '_get_coordinator', return_value=mock_coordinator):
-            # Should raise since there's no try/except around async_request_refresh
+            # Should raise since there's no try/except around async_refresh
             with pytest.raises(Exception, match="EMHASS HTTP error"):
                 await adapter.publish_deferrable_loads(trips)
 

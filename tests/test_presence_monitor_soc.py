@@ -58,8 +58,7 @@ def mock_store_class():
 def mock_trip_manager():
     """Create mock TripManager with async methods."""
     manager = Mock()
-    manager.async_generate_power_profile = AsyncMock()
-    manager.async_generate_deferrables_schedule = AsyncMock()
+    manager.publish_deferrable_loads = AsyncMock()
     return manager
 
 
@@ -112,8 +111,7 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was triggered
-    mock_trip_manager.async_generate_power_profile.assert_called_once()
-    mock_trip_manager.async_generate_deferrables_schedule.assert_called_once()
+    mock_trip_manager.publish_deferrable_loads.assert_called_once()
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 60.0
 
@@ -165,8 +163,7 @@ async def test_soc_change_does_not_trigger_when_away(mock_hass, mock_trip_manage
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not at home)
-    mock_trip_manager.async_generate_power_profile.assert_not_called()
-    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+    mock_trip_manager.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -212,8 +209,7 @@ async def test_soc_change_does_not_trigger_when_unplugged(mock_hass, mock_trip_m
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not plugged)
-    mock_trip_manager.async_generate_power_profile.assert_not_called()
-    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+    mock_trip_manager.publish_deferrable_loads.assert_not_called()
 
 
 # =============================================================================
@@ -361,8 +357,7 @@ async def test_soc_debouncing_5_percent_threshold_blocks_recalculation(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (below 5% threshold)
-    mock_trip_manager.async_generate_power_profile.assert_not_called()
-    mock_trip_manager.async_generate_deferrables_schedule.assert_not_called()
+    mock_trip_manager.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -414,8 +409,7 @@ async def test_soc_debouncing_5_percent_threshold_allows_recalculation(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation WAS triggered (delta >= 5%)
-    mock_trip_manager.async_generate_power_profile.assert_called_once()
-    mock_trip_manager.async_generate_deferrables_schedule.assert_called_once()
+    mock_trip_manager.publish_deferrable_loads.assert_called_once()
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 55.0
 
@@ -585,3 +579,62 @@ async def test_hora_regreso_persistence_across_monitor_lifecycle(
     assert hasattr(monitor2, "_return_info_store")
     assert hasattr(monitor2, "_return_info_entity_id")
     assert monitor2._return_info_entity_id == "sensor.ev_trip_planner_test_vehicle_return_info"
+
+
+@pytest.mark.asyncio
+async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_manager):
+    """Test _async_handle_soc_change calls trip_manager.publish_deferrable_loads().
+
+    Task 1.12 RED test: expects SOC change to route through publish_deferrable_loads.
+    Currently the code calls async_generate_* instead which doesn't cache data.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
+
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+
+    # Set up mocks: home=on, plugged=on
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    # Mock other required attributes
+    monitor._store = AsyncMock()
+    monitor._last_processed_soc = 50.0
+
+    # Mock publish_deferrable_loads as async
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+
+    # Simulate SOC change event: 50% -> 60% (10% delta, exceeds 5% threshold)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "60"
+
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
+    }
+
+    # Process the SOC change event
+    await monitor._async_handle_soc_change(event)
+
+    # publish_deferrable_loads should be called (not async_generate_* methods)
+    mock_trip_manager.publish_deferrable_loads.assert_called_once()

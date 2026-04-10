@@ -16,7 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+from .const import CONF_VEHICLE_NAME, DOMAIN
 from .emhass_adapter import EMHASSAdapter
 from .trip_manager import TripManager
 
@@ -69,6 +69,21 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         self._trip_manager = trip_manager
         self._entry = entry
         self._emhass_adapter = emhass_adapter
+        self._vehicle_id = (
+            self._entry.data.get(CONF_VEHICLE_NAME, "unknown")
+            .lower()
+            .replace(" ", "_")
+        )
+
+    @property
+    def vehicle_id(self) -> str:
+        """Return normalized vehicle_id from config entry.
+
+        Returns:
+            Normalized vehicle_id (lowercase, spaces replaced with underscores),
+            or "unknown" if CONF_VEHICLE_NAME is missing from entry.data.
+        """
+        return self._vehicle_id
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch latest data from TripManager and build coordinator.data dict.
