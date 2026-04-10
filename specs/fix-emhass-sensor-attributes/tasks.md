@@ -318,73 +318,16 @@ const pageText = await page.evaluate(() => document.body?.innerText?.substring(0
 console.log('=== PAGE TEXT DUMP ===');
 console.log(pageText);
 console.log('=== END TEXT DUMP ===');
-
-// Also dump a small HTML snippet near interesting elements:
-const htmlSnippet = await page.evaluate(() => {
-  const els = document.querySelectorAll('body *');
-  for (const el of els) {
-    if (el.textContent?.includes('emhass')) {
-      return el.outerHTML.substring(0, 1000);
-    }
-  }
-  return '(not found)';
-});
-console.log('=== HTML SNIPPET ===');
-console.log(htmlSnippet);
-console.log('=== END HTML SNIPPET ===');
 ```
 
-**Step-by-step iterative discovery process:**
-
-**Step 1: Navigate → dump text → find anchor**
-```typescript
-await page.goto('/developer-tools/state');
-await page.waitForLoadState('networkidle');
-const text = await page.evaluate(() => document.body?.innerText?.substring(0, 5000) ?? '(empty)');
-// ANALYZE text output: look for "EMHASS", "filter", "states", entity IDs
-// This tells you what's actually on the page
-```
-
-**Step 2: Try selector → dump text → verify it matched**
-```typescript
-await page.getByText(/emhass/i).first().click();
-const afterText = await page.evaluate(() => document.body?.innerText?.substring(0, 5000) ?? '(empty)');
-// ANALYZE: Did the page text change? Did a dialog open? What new text appeared?
-// If text didn't change → selector was wrong. Try a different pattern.
-```
-
-**Step 3: If getByText fails, try getByRole**
-```typescript
-// Check what buttons/textboxes exist:
-const roles = await page.evaluate(() => {
-  const buttons = document.querySelectorAll('button');
-  return Array.from(buttons).map(b => ({ text: b.textContent?.trim(), role: b.getAttribute('role') })).slice(0, 20);
-});
-console.log('=== BUTTONS ===');
-console.log(JSON.stringify(roles, null, 2));
-```
-
-**Step 4: If shadow DOM hides content, pierce it**
-```typescript
-// HA uses shadow DOM. Playwright's getByText/getByRole pierce it automatically.
-// But if you need raw HTML, traverse shadow roots:
-const shadowContent = await page.evaluate(() => {
-  const root = document.querySelector('home-assistant')?.shadowRoot;
-  return root?.querySelector('home-assistant-main')?.shadowRoot?.innerText?.substring(0, 3000) ?? '(shadow not accessible)';
-});
-```
-
-**Step 5: Once you SEE the text, write the assertion**
-```typescript
-// Only after the text dump confirms the attribute names exist:
-expect(await page.getByText(/power_profile_watts/).isVisible()).toBe(true);
-```
+**Also read the Playwright snapshot** — when a test fails, Playwright writes a YAML snapshot to `test-results/*/error-context.md`. This snapshot shows the complete DOM tree including shadow DOM elements. Read it to find the exact selectors.
 
 **Key rules:**
 - NEVER use `page.screenshot()` for discovery — the agent can't see images
 - ALWAYS use `page.evaluate(() => document.body?.innerText)` after every step
-- Analyze the console output to decide the next selector to try
-- If a selector fails (error in console), the text dump tells you what IS on the page
+- ALWAYS read `error-context.md` after a test failure — it contains the YAML DOM snapshot
+- Analyze the console output and error-context.md to decide the next selector to try
+- If a selector fails (error in console), the text dump and error-context.md tell you what IS on the page
 - Run `make e2e` after each code change — the console.log outputs appear in the test output
 
 - [x] 4.1 [VE0] E2E: ui-map-init for EMHASS sensor updates
@@ -398,7 +341,7 @@ expect(await page.getByText(/power_profile_watts/).isVisible()).toBe(true);
   - **Verify**: `npx playwright test emhass-sensor-updates.spec.ts --list | grep -q "EMHASS" && echo VE0_PASS`
   - **Commit**: `test(e2e): ui-map-init for EMHASS sensor updates`
   - _Requirements: AC-T2.1_
-  - **NOTE**: Follow the Snapshot Debugging Workflow above. Start with `page.screenshot()` to see what's actually on the page before writing selectors.
+  - **NOTE**: Follow the Text Snapshot Discovery Workflow above. Start with `page.evaluate(() => document.body?.innerText)` to dump page text, NOT `page.screenshot()` — the agent can't see images, only text.
 
 - [x] 4.2 [VE1-STARTUP] E2E: startup handled by make e2e
   - **Note**: Documentation only - no commit needed. E2E startup/cleanup handled by existing make e2e workflow.
@@ -412,51 +355,73 @@ expect(await page.getByText(/power_profile_watts/).isVisible()).toBe(true);
 
 - [ ] 4.3 [VE2-CHECK] E2E: create trip and verify EMHASS sensor attributes via UI
   - **Approach**: UI-based (Developer Tools > States). Build the test iteratively using Playwright snapshots.
+  - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific navigation patterns: sidebar clicks, Developer Tools, entity state inspection).
   - **Methodology — snapshot-driven discovery (the same pattern used by working E2E tests)**:
-    1. Write a first attempt at the test using your best guess for selectors (getByRole, getByText)
-    2. Run `make e2e` → it will likely fail
-    3. Read the `error-context.md` file in `test-results/` — this contains Playwright's YAML snapshot of the full DOM tree at the moment of failure
-    4. From the snapshot, find the exact element structure: what tags, roles, and text are actually present
-    5. Update your selectors to match the actual snapshot structure
-    6. Re-run `make e2e` → repeat steps 3-5 until the test passes
-    7. The final test should: create trip → navigate to Developer Tools > States → find EMHASS sensor → verify attributes (power_profile_watts, deferrables_schedule, emhass_status) exist → cleanup
+    1. Load `playwright-best-practices` skill → read core/locators.md (shadow DOM section) and debugging/debugging.md
+    2. Write a first attempt at the test: create trip → navigate to Developer Tools via sidebar clicks → find EMHASS sensor → verify attributes
+    3. **CRITICAL**: Do NOT use `page.goto()` for navigation after creating the trip. The only `page.goto()` allowed is inside `navigateToPanel()` which handles auth. All other navigation MUST be via sidebar clicks (same pattern as create-trip.spec.ts, delete-trip.spec.ts)
+    4. Run `make e2e` → it will likely fail
+    5. Read the `error-context.md` file in `test-results/` — this contains Playwright's YAML snapshot of the full DOM tree at the moment of failure
+    6. From the snapshot, find the exact element structure: what tags, roles, and text are actually present
+    7. Update your selectors to match the actual snapshot structure — use `getByRole()` and `getByText()` which pierce shadow DOM automatically (per playwright-best-practices locators.md)
+    8. Re-run `make e2e` → repeat steps 5-7 until the test passes
+    9. The final test should: create trip → navigate to Developer Tools > States via sidebar clicks → find EMHASS sensor → verify attributes (power_profile_watts, deferrables_schedule, emhass_status) exist → cleanup
   - **Shadow DOM**: Playwright automatically pierces shadow DOM with `getByRole()` and `getByText()`. The working E2E tests (create-trip.spec.ts, delete-trip.spec.ts) use this successfully. Follow their patterns.
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
   - **Done when**: `make e2e` passes AND test verifies all 3 attributes (power_profile_watts, deferrables_schedule, emhass_status) are visible in the sensor UI
   - **Verify**: `grep -q "power_profile_watts" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "deferrables_schedule" tests/e2e/emhass-sensor-updates.spec.ts && grep -q "emhass_status" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_PASS`
   - **Commit**: (included in main fix commit)
   - _Requirements: AC-T2.2, AC-2.1, AC-2.2, AC-2.3_
+  - **Anti-patterns (from playwright-best-practices)**:
+    - DO NOT use `page.goto()` for navigation after `navigateToPanel()` — it breaks authentication
+    - DO NOT use CSS class selectors (`.device-card`, `.attributes`) — they break across HA versions
+    - DO NOT use `iframe` selectors — HA does NOT use iframes for Developer Tools
+    - DO NOT fabricate selectors — discover them from error-context.md snapshots
+    - DO NOT skip the snapshot read — every failure MUST be followed by reading error-context.md before retrying
 
 - [ ] 4.4 [VE2-CHECK] E2E: simulate SOC change and verify sensor update via UI
   - **Approach**: UI-based. Change SOC sensor state and verify EMHASS sensor attributes update.
+  - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific patterns: entity state manipulation, Developer Tools navigation).
   - **Methodology — snapshot-driven discovery**:
-    1. Write test: create trip → navigate to SOC sensor → change SOC value → wait → navigate to EMHASS sensor → verify attributes changed
-    2. Run `make e2e` → read error-context.md snapshot on failure
-    3. From snapshot, find how to interact with SOC sensor (click entity → find input field → change value)
-    4. Update selectors based on snapshot → re-run
-    5. Final test must verify attribute change after SOC change
-  - **Shadow DOM**: Use same patterns as working tests. Playwright handles shadow DOM transparently.
+    1. Load `playwright-best-practices` skill → read core/locators.md and debugging/debugging.md
+    2. Write test: create trip → navigate to SOC sensor → change SOC value → wait → navigate to EMHASS sensor → verify attributes changed
+    3. Run `make e2e` → read error-context.md snapshot on failure
+    4. From snapshot, find how to interact with SOC sensor (click entity → find input field → change value)
+    5. Update selectors based on snapshot → use `getByRole()` and `getByText()` for shadow DOM piercing
+    6. Re-run → repeat steps 3-5 until test passes
+    7. Final test must verify attribute change after SOC change
+  - **Shadow DOM**: Use same patterns as working tests. Playwright handles shadow DOM transparently via `getByRole()` and `getByText()`.
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
   - **Done when**: `make e2e` passes AND test creates trip → changes SOC → verifies EMHASS sensor attributes changed
   - **Verify**: `grep -q "SOC" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_SOC_PASS`
   - **Commit**: (included in main fix commit)
   - _Requirements: AC-T2.3, AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5_
+  - **Anti-patterns (from playwright-best-practices)**:
+    - DO NOT use CSS class selectors — discover selectors from error-context.md
+    - DO NOT skip the snapshot read — every failure requires reading error-context.md before retrying
+    - DO NOT assume element structure — always verify against the YAML snapshot
 
 - [ ] 4.5 [VE2-CHECK] E2E: verify single device in HA UI (no duplication)
   - **Approach**: UI-based. Navigate to Devices page and count device cards.
+  - **Required skills**: Load `playwright-best-practices` (for shadow DOM piercing, locator resilience, debugging) AND `homeassistant-skill` or `ha-e2e-testing` (for HA-specific patterns: sidebar navigation, Settings → Devices page, device card structure).
   - **Methodology — snapshot-driven discovery**:
-    1. Write test: create trip → navigate to Settings → Devices → filter for vehicle → count devices
-    2. Run `make e2e` → read error-context.md snapshot on failure
-    3. From snapshot, find the correct sidebar navigation path and device page structure
-    4. The snapshot shows you exactly what elements exist: listitems, buttons, text content. Match your selectors to what the snapshot shows
-    5. Update selectors → re-run → repeat until test passes
-    6. Final test must verify exactly 1 device exists with vehicle_id name (not entry_id UUID)
+    1. Load `playwright-best-practices` skill → read core/locators.md and debugging/debugging.md
+    2. Write test: create trip → navigate to Settings → Devices → filter for vehicle → count devices
+    3. Run `make e2e` → read error-context.md snapshot on failure
+    4. From snapshot, find the correct sidebar navigation path and device page structure
+    5. The snapshot shows you exactly what elements exist: listitems, buttons, text content. Match your selectors to what the snapshot shows
+    6. Update selectors → re-run → repeat until test passes
+    7. Final test must verify exactly 1 device exists with vehicle_id name (not entry_id UUID)
   - **Shadow DOM**: The sidebar menu and device cards use shadow DOM. Playwright's `getByRole('listitem')` and `getByText()` pier it automatically. This is how the working E2E tests navigate — follow the same pattern.
   - **Files**: `tests/e2e/emhass-sensor-updates.spec.ts`
   - **Done when**: `make e2e` passes AND test navigates to Devices page, finds exactly 1 device with vehicle_id name
   - **Verify**: `grep -q "/config/devices\|Devices" tests/e2e/emhass-sensor-updates.spec.ts && echo VE2_DEVICE_PASS`
   - **Commit**: `test(e2e): add single device verification test`
   - _Requirements: AC-1.2, AC-1.3, AC-T2.4_
+  - **Anti-patterns (from playwright-best-practices)**:
+    - DO NOT use CSS class selectors (`.device-card`, `.entity-list`) — discover selectors from error-context.md
+    - DO NOT skip the snapshot read — every failure requires reading error-context.md before retrying
+    - DO NOT assume sidebar structure — verify it against the YAML snapshot
 
 - [x] 4.6 [VE3-CLEANUP] E2E: cleanup handled by make e2e
   - **Note**: Cleanup is handled by existing `make e2e` workflow - no manual task needed.

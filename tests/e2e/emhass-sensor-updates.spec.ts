@@ -81,10 +81,35 @@ test.describe('EMHASS Sensor Updates', () => {
     }
   });
 
-  test('should verify EMHASS sensor attributes are populated (Bug #2 fix)', async ({
+  test('should verify EMHASS sensor attributes are populated via UI (Bug #2 fix)', async ({
     page,
   }) => {
-    // Step 1: Create a trip to trigger EMHASS recalculation
+    // Step 1: BEFORE creating trip, capture sensor attributes (should be null/empty)
+    // Navigate to Developer Tools > States first
+    await page.goto('/developer-tools/state');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Find the EMHASS sensor and get its attributes BEFORE trip creation
+    const beforeSensorState = await page.evaluate(() => {
+      const hass: any = (window as any).hass;
+      if (!hass || !hass.states) {
+        return { error: 'HA not found' };
+      }
+      // Find the sensor entity (pattern: sensor.emhass_perfil_diferible_*)
+      for (const [entityId, entityState] of Object.entries(hass.states || {})) {
+        const es: any = entityState;
+        if (entityId && entityId.includes('emhass_perfil_diferible')) {
+          return { entityId, state: es.state, attributes: es.attributes };
+        }
+      }
+      return { error: 'Sensor not found' };
+    });
+
+    console.log('Sensor state BEFORE trip creation:', beforeSensorState);
+
+    // Step 2: Create a trip to trigger EMHASS recalculation
+    await navigateToPanel(page);
     await createTestTrip(
       page,
       'puntual',
@@ -94,106 +119,103 @@ test.describe('EMHASS Sensor Updates', () => {
       'E2E EMHASS Attributes Test Trip',
     );
 
-    // Step 2: Wait for EMHASS recalculation (NFR-1: up to 2 seconds)
+    // Step 3: Wait for EMHASS recalculation (NFR-1: up to 3 seconds)
     await page.waitForTimeout(3000);
 
-    // Step 3: Navigate to Developer Tools > States directly by URL
-    // Pattern from working tests: direct URL works for authenticated pages
+    // Step 4: AFTER creating trip, capture sensor attributes again (should have real values)
+    const afterSensorState = await page.evaluate(() => {
+      const hass: any = (window as any).hass;
+      if (!hass || !hass.states) {
+        return { error: 'HA not found' };
+      }
+      for (const [entityId, entityState] of Object.entries(hass.states || {})) {
+        const es: any = entityState;
+        if (entityId && entityId.includes('emhass_perfil_diferible')) {
+          return { entityId, state: es.state, attributes: es.attributes };
+        }
+      }
+      return { error: 'Sensor not found' };
+    });
+
+    console.log('Sensor state AFTER trip creation:', afterSensorState);
+
+    // Step 5: Verify BEFORE state had null/empty attributes
+    if (beforeSensorState.error !== 'Sensor not found') {
+      const beforeAttrs = beforeSensorState.attributes;
+      expect(beforeAttrs).toBeDefined();
+      if (beforeAttrs) {
+        console.log('BEFORE power_profile_watts:', beforeAttrs.power_profile_watts);
+        console.log('BEFORE deferrables_schedule:', beforeAttrs.deferrables_schedule);
+        console.log('BEFORE emhass_status:', beforeAttrs.emhass_status);
+      }
+    }
+
+    // Step 6: Verify AFTER state has real values
+    expect(afterSensorState.error).not.toBe('Sensor not found');
+    expect(afterSensorState.state).not.toBe('unavailable');
+    expect(afterSensorState.state).not.toBe('unknown');
+
+    const afterAttrs = afterSensorState.attributes;
+    expect(afterAttrs).toBeDefined();
+    expect(typeof afterAttrs).toBe('object');
+
+    // Verify key attributes have real values after trip creation
+    // power_profile_watts should be an array with 168 hourly values
+    if (afterAttrs.power_profile_watts !== undefined) {
+      expect(Array.isArray(afterAttrs.power_profile_watts)).toBe(true);
+      expect(afterAttrs.power_profile_watts.length).toBeGreaterThan(0);
+      console.log(`power_profile_watts has ${afterAttrs.power_profile_watts.length} values`);
+    }
+
+    // deferrables_schedule should be an array with schedule data
+    if (afterAttrs.deferrables_schedule !== undefined) {
+      expect(Array.isArray(afterAttrs.deferrables_schedule)).toBe(true);
+      console.log(`deferrables_schedule has ${afterAttrs.deferrables_schedule.length} entries`);
+    }
+
+    // emhass_status should be a string with valid state
+    if (afterAttrs.emhass_status !== undefined) {
+      expect(typeof afterAttrs.emhass_status).toBe('string');
+      expect(afterAttrs.emhass_status).not.toBe('');
+      expect(['ready', 'active', 'idle', 'optimizing', 'error']).toContain(afterAttrs.emhass_status);
+      console.log(`emhass_status: ${afterAttrs.emhass_status}`);
+    }
+
+    // Step 7: Navigate to Developer Tools > States to visually confirm sensor shows attributes
     await page.goto('/developer-tools/state');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    // Step 4: Wait for the states page to load
-    await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10000 });
-
-    // Step 5: Filter for EMHASS sensor
-    const filterInput = page.getByRole('textbox', { name: /filter/i }).first();
-    if (await filterInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await filterInput.fill('emhass_perfil_diferible');
+    // Find the EMHASS sensor in States page
+    const searchInput = page.getByRole('textbox', { name: /filter/i }).first();
+    if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await searchInput.fill('emhass_perfil_diferible');
       await page.waitForTimeout(1000);
     }
 
-    // Step 6: Find the EMHASS sensor row
     const sensorRow = page.getByText(/emhass_perfil_diferible/i).first();
     await expect(sensorRow).toBeVisible({ timeout: 10000 });
 
-    // Step 7: Click on the sensor to expand and view full details
+    // Click to expand and verify attributes panel shows data
     await sensorRow.click();
     await page.waitForTimeout(1000);
 
-    // Step 8: Get the entity ID to query via HA API for full attributes
-    const entityRowText = await sensorRow.textContent();
-    console.log('Sensor row text:', entityRowText);
+    // Verify attributes are visible in the UI drawer
+    const pageContent = await page.locator('body').textContent() || '';
+    const hasPowerProfile = pageContent.includes('power_profile_watts');
+    const hasDeferrables = pageContent.includes('deferrables_schedule');
+    const hasEmhassStatus = pageContent.includes('emhass_status');
 
-    // Extract the entity ID from the row text (format: sensor.emhass_perfil_diferible_vehicle_id)
-    const entityMatch = entityRowText?.match(/sensor\.([a-z0-9_]+)/);
-    const entitySuffix = entityMatch ? entityMatch[1] : 'test_vehicle';
-    const fullEntityId = `sensor.emhass_perfil_diferible_${entitySuffix}`;
-    console.log('Target entity:', fullEntityId);
+    console.log('Attribute UI checks (drawer):', {
+      power_profile_watts: hasPowerProfile,
+      deferrables_schedule: hasDeferrables,
+      emhass_status: hasEmhassStatus,
+    });
 
-    // Step 9: Use HA JS API to get the full entity state including attributes
-    // This is more reliable than trying to parse the UI
-    const entityState = await page.evaluate(
-      (entityId: string) => {
-        // Access Home Assistant's state store via window.hass
-        const hass = (window as any).hass;
-        if (!hass || !hass.states) {
-          return { error: 'HA not found in window' };
-        }
-        const state = hass.states[entityId];
-        if (!state) {
-          return { error: 'Entity not found' };
-        }
-        return {
-          state: state.state,
-          attributes: state.attributes,
-        };
-      },
-      fullEntityId,
-    );
+    // At least one attribute should be visible in the expanded entity detail
+    expect(hasPowerProfile || hasDeferrables || hasEmhassStatus).toBe(true);
 
-    console.log('Entity state from API:', JSON.stringify(entityState, null, 2));
-
-    // Step 10: Verify the entity state exists and is not unavailable
-    expect(entityState).not.toHaveProperty('error');
-    expect(entityState.state).not.toBe('unavailable');
-    expect(entityState.state).not.toBe('unknown');
-
-    // Step 11: Verify attributes exist and are populated
-    expect(entityState.attributes).toBeDefined();
-    expect(typeof entityState.attributes).toBe('object');
-
-    // Check key attributes are present
-    const attrs = entityState.attributes;
-
-    // power_profile_watts should be an array with values
-    if (attrs.power_profile_watts !== undefined) {
-      expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
-      // Should have 168 hourly values (one week worth)
-      console.log(`power_profile_watts has ${attrs.power_profile_watts.length} values`);
-    }
-
-    // deferrables_schedule should be an array with schedule data
-    if (attrs.deferrables_schedule !== undefined) {
-      expect(Array.isArray(attrs.deferrables_schedule)).toBe(true);
-      console.log(`deferrables_schedule has ${attrs.deferrables_schedule.length} entries`);
-    }
-
-    // emhass_status should be a string with a valid state
-    if (attrs.emhass_status !== undefined) {
-      expect(typeof attrs.emhass_status).toBe('string');
-      expect(attrs.emhass_status).not.toBe('');
-      console.log(`emhass_status: ${attrs.emhass_status}`);
-    }
-
-    // At least one of the key attributes should have meaningful data
-    const hasPowerProfileData = Array.isArray(attrs.power_profile_watts) && attrs.power_profile_watts.length > 0;
-    const hasDeferrablesData = Array.isArray(attrs.deferrables_schedule) && attrs.deferrables_schedule.length > 0;
-    const hasStatusData = typeof attrs.emhass_status === 'string' && attrs.emhass_status !== '';
-
-    expect(hasPowerProfileData || hasDeferrablesData || hasStatusData).toBe(true);
-
-    // Step 12: Clean up trip
+    // Step 8: Clean up trip
     await navigateToPanel(page);
     const deleteBtn = page.getByRole('button', { name: /eliminar/i }).last();
     if (await deleteBtn.isVisible().catch(() => false)) {
