@@ -16,6 +16,8 @@ from custom_components.ev_trip_planner.const import (
     EMHASS_STATE_READY,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
+    TRIP_TYPE_PUNCTUAL,
+    TRIP_TYPE_RECURRING,
 )
 
 
@@ -4425,4 +4427,89 @@ async def test_get_current_soc_sensor_unavailable(mock_store):
         # Should return 0.0 as fallback
         assert soc == 0.0, (
             f"Expected 0.0 when sensor unavailable, got {soc}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_cached_per_trip_params_assignment(mock_store):
+    """_publish_trip_data populates _cached_per_trip_params.
+
+    This is the RED test for per-trip params cache:
+    - publish_deferrable_loads publishes trips
+    - Expected: _cached_per_trip_params populated with per_trip_emhass_params
+    - Current: _cached_per_trip_params assignment does not exist yet
+    - Test must FAIL to confirm the feature doesn't exist
+
+    Design: Component 1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+    mock_index = 5
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh (called at end of publish_deferrable_loads)
+        adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
+
+        # Mock _assign_index_to_trip to return a valid index
+        adapter._assign_index_to_trip = MagicMock(return_value=mock_index)
+
+        # Mock async_publish_deferrable_load to return True
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status (called on failures)
+        adapter._update_error_status = MagicMock()
+
+        # Mock trip data
+        trip = {
+            "trip_id": "trip_001",
+            "name": "Test Trip",
+            "departure_time": "2026-04-12T08:00:00",
+            "duration_minutes": 60,
+            "energy_required_kwh": 10.0,
+            "departure_soc": 50.0,
+            "arrival_soc": 80.0,
+            "origin": "Home",
+            "destination": "Work",
+            "type": TRIP_TYPE_PUNCTUAL,
+            "recurring_rule": None,
+            "weekdays": [],
+        }
+
+        # Publish the trip
+        await adapter.publish_deferrable_loads([trip])
+
+        # This attribute should be populated but doesn't exist yet
+        assert hasattr(adapter, "_cached_per_trip_params"), (
+            "EMHASSAdapter should have _cached_per_trip_params attribute "
+            "to store per-trip EMHASS parameters"
+        )
+
+        # The cache should be populated with the published trip's params
+        assert "trip_001" in adapter._cached_per_trip_params, (
+            f"_cached_per_trip_params should contain trip_001, got: {adapter._cached_per_trip_params.keys()}"
+        )
+
+        # Verify the per_trip_emhass_params structure
+        trip_params = adapter._cached_per_trip_params["trip_001"]
+        assert "per_trip_emhass_params" in trip_params, (
+            "per_trip_emhass_params should contain per_trip_emhass_params key"
+        )
+
+        # Verify emhass_index was cached
+        assert "emhass_index" in trip_params["per_trip_emhass_params"], (
+            "per_trip_emhass_params should include emhass_index"
+        )
+        assert trip_params["per_trip_emhass_params"]["emhass_index"] == mock_index, (
+            f"emhass_index should be {mock_index}, got {trip_params['per_trip_emhass_params'].get('emhass_index')}"
         )
