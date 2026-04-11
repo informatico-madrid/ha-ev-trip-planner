@@ -4187,3 +4187,55 @@ async def test_update_charging_power_fallback_to_data(hass, mock_store):
         assert adapter._charging_power_kw == 11, (
             f"Expected 11 from data fallback, got {adapter._charging_power_kw}"
         )
+
+
+@pytest.mark.asyncio
+async def test_update_charging_power_zero_not_falsy(hass, mock_store):
+    """update_charging_power correctly handles charging_power_kw=0 as a valid value.
+
+    This is a GREEN test for the charging_power_kw=0 edge case:
+    - entry.options = {"charging_power_kw": 0}
+    - entry.data = {"charging_power_kw": 11}
+    - Expected: adapter reads 0 from options (NOT falling through to data's 11)
+    - Note: Using `or` would incorrectly treat 0 as falsy; `is None` is correct
+
+    Requirements: FR-1, NFR-1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+
+    # Setup: Mock config_entries.async_get_entry with 0 in options
+    mock_entry = MagicMock()
+    mock_entry.options = {"charging_power_kw": 0}  # Zero is a valid value
+    mock_entry.data = {"charging_power_kw": 11}  # Would fall through with `or`
+    mock_entry.entry_id = entry.entry_id
+
+    mock_coordinator = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ), patch.object(
+        hass.config_entries,
+        "async_get_entry",
+        return_value=mock_entry,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Set up coordinator mock
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Simulate config entry update
+        await adapter.update_charging_power()
+
+        # Should read 0 from options, NOT fall through to data's 11
+        # This validates the `is None` check — `or` would incorrectly treat 0 as falsy
+        assert adapter._charging_power_kw == 0, (
+            f"Expected 0 from options (not falsy-treated), got {adapter._charging_power_kw}"
+        )
