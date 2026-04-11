@@ -92,7 +92,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `fix(emhass): reload trips from trip_manager when _published_trips is empty`
   - _Requirements: FR-3, AC-1.3_
 
-- [ ] V1 [VERIFY] Quality checkpoint: Gap #5 hotfixes
+- [x] V1 [VERIFY] Quality checkpoint: Gap #5 hotfixes
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py && mypy custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
