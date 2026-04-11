@@ -4284,6 +4284,17 @@ async def test_publish_enriches_recurring_trip_with_datetime(hass, mock_store):
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
         adapter.hass.states.async_set = AsyncMock()
 
+        # Mock _presence_monitor for _get_hora_regreso calls
+        mock_presence_monitor = MagicMock()
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 0, 0)
+        )
+        mock_vehicle_controller = MagicMock()
+        mock_vehicle_controller._presence_monitor = mock_presence_monitor
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.vehicle_controller = mock_vehicle_controller
+        mock_coordinator._trip_manager = mock_trip_manager
+
         trips = [
             {
                 "id": "rec_1",
@@ -4326,6 +4337,17 @@ async def test_publish_skips_recurring_trip_without_hora(hass, mock_store):
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
         adapter.hass.states.async_set = AsyncMock()
 
+        # Mock _presence_monitor for _get_hora_regreso calls
+        mock_presence_monitor = MagicMock()
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 0, 0)
+        )
+        mock_vehicle_controller = MagicMock()
+        mock_vehicle_controller._presence_monitor = mock_presence_monitor
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.vehicle_controller = mock_vehicle_controller
+        mock_coordinator._trip_manager = mock_trip_manager
+
         trips = [
             {
                 "id": "rec_bad",
@@ -4364,6 +4386,17 @@ async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
         await adapter.async_load()
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
         adapter.hass.states.async_set = AsyncMock()
+
+        # Mock _presence_monitor for _get_hora_regreso calls
+        mock_presence_monitor = MagicMock()
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 0, 0)
+        )
+        mock_vehicle_controller = MagicMock()
+        mock_vehicle_controller._presence_monitor = mock_presence_monitor
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.vehicle_controller = mock_vehicle_controller
+        mock_coordinator._trip_manager = mock_trip_manager
 
         trips = [
             {

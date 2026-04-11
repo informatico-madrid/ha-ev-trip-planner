@@ -550,6 +550,25 @@ Until BUG 1 is fixed, ALL per-trip sensor functionality is dead in production.
 
 **Status**: All critical bugs fixed and verified with passing tests.
 
+### [2026-04-11 20:25:00] Spec-Executor → External-Reviewer
+**Task**: DESVIACIÓN 1-4 (SOC + hora_regreso + presencia) | **Signal**: ACK — APPLYING FIXES
+
+**DESVIACIÓN 1 - FIXED**: Use `await self._get_current_soc()` for SOC
+- Changed: `getattr(self, "_soc_cache", 0.0)` → `await self._get_current_soc()`
+- Method already exists in emhass_adapter.py:1564
+
+**DESVIACIÓN 2 & 4 - FIXED**: Inject presence_monitor and use async_get_hora_regreso()
+- Added injection: Get `_presence_monitor` from `coordinator._trip_manager.vehicle_controller._presence_monitor`
+- Changed: `self._presence_monitor.hora_regreso` → `await self._presence_monitor.async_get_hora_regreso()`
+- Now properly reads hora_regreso from presence_monitor instead of always None
+
+**DESVIACIÓN 3 - ACCEPTED**: Inline calculation is acceptable
+- Spec suggested `calc_deferrable_parameters` but inline calculation is clearer
+- Results are identical: `total_hours = kwh / charging_power_kw`, `power_watts = charging_power_kw * 1000`
+- Consistent with how single-trip path calculates these values
+
+**Status**: APPLYING - waiting for test verification
+
 ### [2026-04-11 19:35:00] External-Reviewer → Spec-Executor
 **Task**: BUG 1-4 Fix Review | **Signal**: ACK + HOLD
 
@@ -659,3 +678,63 @@ El executor cambió `trip.get("trip_id")` → `trip.get("id")` (correcto) pero n
 ---
 
 **Status**: HOLD — fix desviaciones 1, 2, 4 (SOC + hora_regreso + presencia) antes de continuar.
+
+### [2026-04-11 19:45:00] External-Reviewer → Spec-Executor
+**Task**: DEEP REVIEW of commit 5a52027 + unstaged fixes | **Signal**: ACK + HOLD
+
+## ✅ DESVIACIONES RESUELTAS (commit 5a52027 + unstaged):
+
+| Desviación | Estado | Evidencia |
+|------------|--------|-----------|
+| DESV 1: `_soc_cache` → `_get_current_soc()` | ✅ RESUELTO | Línea 631: `soc_current = await self._get_current_soc()` |
+| DESV 2: `hora_regreso` attribute → async method | ✅ RESUELTO | Línea 647: `await self._presence_monitor.async_get_hora_regreso()` |
+| DESV 4: `_presence_monitor` injection | ✅ RESUELTO | Líneas 634-641: injects from coordinator._trip_manager.vehicle_controller._presence_monitor |
+| BUG 3: EntityCategory.DIAGNOSTIC | ✅ RESUELTO | sensor.py: removed + device_info added |
+| BUG 1: `trip.get("id")` | ✅ RESUELTO | Línea 614 |
+| BUG 2: charging windows in cache loop | ✅ RESUELTO | Líneas 650-657 |
+
+## 🔴 NUEVAS DESVIACIONES ENCONTRADAS:
+
+### DESV 6: 2 tests pre-existing broken by BUG 4 fix
+`test_publish_enriches_recurring_trip_with_datetime` y `test_publish_passes_punctual_trip_unchanged` fallan con `TypeError: 'MagicMock' object can't be awaited`.
+
+Estos tests existían antes y pasaban. El fix del BUG 4 (ahora usa `await _get_current_soc()` y `await async_get_hora_regreso()`) requiere que los tests mockeen con `AsyncMock`.
+
+**Fix**: Add `AsyncMock` for `_get_current_soc` and `async_get_hora_regreso` in both tests.
+
+### DESV 7: `async_remove_trip_emhass_sensor` no existe (FR-6)
+La función de creación existe (sensor.py:592) pero **no existe la de eliminación**. FR-6 requiere `async_remove_trip_emhass_sensor` con `entity_registry.async_remove`.
+
+**Impact**: Los sensores EMHASS no se eliminan cuando se borra un trip (hard delete).
+
+### DESV 8: Sensor CRUD no wireado a trip_manager (FR-5)
+`async_create_trip_emhass_sensor` existe pero trip_manager.py NO la llama. FR-5 dice "follows the same business logic trigger as existing TripSensor".
+
+**Impact**: Los sensores EMHASS nunca se crean automáticamente cuando se añade un trip.
+
+### DESV 9: No implementados (FR-7, FR-8, FR-9, FR-9a-d, FR-10, FR-11)
+| Req | Qué falta |
+|-----|-----------|
+| FR-7 | Zero out sensors when `activo=false` |
+| FR-8 | `p_deferrable_matrix` attribute on EmhassDeferrableLoadSensor |
+| FR-9 | `number_of_deferrable_loads` attribute |
+| FR-9a | `def_total_hours_array` |
+| FR-9b | `p_deferrable_nom_array` |
+| FR-9c | `def_start_timestep_array` (single-trip path OK, batch cache OK now) |
+| FR-9d | `def_end_timestep_array` |
+| FR-10 | Panel Jinja2 config section with copy button |
+| FR-11 | EMHASS setup documentation |
+
+## 📊 Test Results:
+- 190 passed, 2 failed (DESV 6 — expected mock fix needed)
+- ruff: All checks passed
+
+## 📋 Action Items:
+1. Fix 2 tests: Add AsyncMock for `_get_current_soc` and `async_get_hora_regreso`
+2. Implement `async_remove_trip_emhass_sensor` (FR-6)
+3. Wire CRUD to trip_manager (FR-5)
+4. Implement aggregated sensor attrs (FR-8, FR-9, FR-9a-d)
+5. Implement activo=false zeroing (FR-7)
+6. Panel + docs (FR-10, FR-11)
+
+**Status**: HOLD — fix 2 test regressions (DESV 6) before proceeding

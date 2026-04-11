@@ -599,6 +599,10 @@ class EMHASSAdapter:
         self._cached_deferrables_schedule = deferrables_schedule
         self._cached_emhass_status = EMHASS_STATE_READY
 
+        # PHASE 3 (3.2): Get coordinator early for presence_monitor injection
+        # This must happen before the cache loop so we can inject presence_monitor
+        coordinator = self._get_coordinator()
+
         # FR-3.1: Cache per-trip EMHASS params for coordinator retrieval
         # This enables per-trip sensors to access EMHASS parameters via coordinator.data
         if not hasattr(self, "_cached_per_trip_params"):
@@ -623,12 +627,21 @@ class EMHASSAdapter:
                 deadline_dt = deadline_str or datetime.now()
 
             # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
-            # BUG 4 FIX: Use actual presence_monitor if available, else None (fallback to datetime.now)
-            soc_current = getattr(self, "_soc_cache", 0.0)  # Fallback if _get_current_soc not available
+            # BUG 4 FIX: Use injected presence_monitor with async_get_hora_regreso()
+            soc_current = await self._get_current_soc()
+
+            # Inject presence_monitor from coordinator (done once before cache loop)
+            if self._presence_monitor is None and coordinator is not None:
+                trip_manager = getattr(coordinator, "_trip_manager", None)
+                if trip_manager and hasattr(trip_manager, "vehicle_controller"):
+                    vc = trip_manager.vehicle_controller
+                    if vc and hasattr(vc, "_presence_monitor"):
+                        self._presence_monitor = vc._presence_monitor
+
             hora_regreso = None
             if self._presence_monitor:
                 try:
-                    hora_regreso = self._presence_monitor.hora_regreso
+                    hora_regreso = await self._presence_monitor.async_get_hora_regreso()
                 except Exception:
                     hora_regreso = None
 
@@ -682,7 +695,6 @@ class EMHASSAdapter:
         # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
         # Use async_refresh() for immediate update (not debounced async_request_refresh)
         # so sensors reflect changes instantly when SOC, trips, etc. change.
-        coordinator = self._get_coordinator()
         if coordinator is not None:
             await coordinator.async_refresh()
             _LOGGER.debug(

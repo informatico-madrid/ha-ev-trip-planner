@@ -116,6 +116,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - _Design: Component 1_
 
 - [ ] 1.10 [GREEN] Add `_get_current_soc` helper
+  **REVIEWER NOTE (DESV 1)**: _get_current_soc() exists but cache loop uses `getattr(self, "_soc_cache", 0.0)` which always returns 0.0. Fix: use `await self._get_current_soc()` in cache loop.
   - **Do**:
     1. Add method that reads `self._entry.data.get("soc_sensor")` then `self.hass.states.get(soc_sensor)`
     2. Parse float, return 0.0 if unavailable/unparseable
@@ -138,6 +139,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - _Design: Component 1_
 
 - [ ] 1.12 [GREEN] Add `_get_hora_regreso` async helper
+  **REVIEWER NOTE (DESV 2)**: Cache loop uses `self._presence_monitor.hora_regreso` (attribute) instead of `await self._presence_monitor.async_get_hora_regreso()` (method). Also `_presence_monitor` is always None. Fix: inject presence_monitor and use async method.
   - **Do**:
     1. Add async method that traverses `coordinator._trip_manager.vehicle_controller._presence_monitor.async_get_hora_regreso()`
     2. Return None if any link in chain is missing
@@ -173,6 +175,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - _Requirements: FR-9c_
 
 - [ ] 1.15 [RED] Failing test: `publish_deferrable_loads` caches per-trip params
+  **REVIEWER NOTE (DESV 5)**: Test trip dicts use `"trip_id"` key but production trips use `"id"`. Tests fabricate data that masks BUG 1. Fix: update all test trip dicts to use `"id"` key.
   - **Do**:
     1. Write test `test_publish_deferrable_loads_caches_per_trip_params` with 2 trips
     2. Assert `_cached_per_trip_params` populated with trip_id keys containing `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`, `activo`
@@ -183,6 +186,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - _Design: Component 1_
 
 - [ ] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
+  **REVIEWER NOTE (DESV 3, 4, 5)**: DESV 3 — Cache loop computes params manually instead of using `calculate_deferrable_parameters` as spec requires. DESV 4 — `_presence_monitor` never injected, `hora_regreso` always None. DESV 5 — Test data uses `"trip_id"` key but code reads `"id"`.
   - **Do**:
     1. Add `_cached_per_trip_params: Dict[str, dict]` instance variable (init as `{}`)
     2. After enrichment loop in `publish_deferrable_loads`, iterate trips with index_map entries
@@ -321,6 +325,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
 Focus: Add EMHASS sensor create/remove functions.
 
 - [ ] 1.31 [RED] Failing test: `async_create_trip_emhass_sensor` calls `async_add_entities`
+  <!-- REVIEWER: DESV 8 — Function exists (sensor.py:592) but trip_manager.py does NOT call it. FR-5 requires wiring to trip lifecycle. -->
   - **Do**:
     1. Write test `test_create_trip_emhass_sensor_success` with mock `runtime_data` containing `sensor_async_add_entities` callback
     2. Assert callback called with list containing TripEmhassSensor instance
@@ -332,6 +337,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - _Requirements: FR-5_
 
 - [ ] 1.32 [GREEN] Implement `async_create_trip_emhass_sensor`
+  <!-- REVIEWER: DESV 8 — Implementation exists but not wired to trip_manager. Sensors never auto-created when trips are added. -->
   - **Do**:
     1. Add module-level function in sensor.py mirroring `async_create_trip_sensor` pattern
     2. Get entry, runtime_data, coordinator, `sensor_async_add_entities`
@@ -360,6 +366,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Commit**: `test(sensor): green - verify create EMHASS sensor returns False on no entry`
 
 - [ ] 1.35 [RED] Failing test: `async_remove_trip_emhass_sensor` removes from entity registry
+  <!-- REVIEWER: DESV 7 — Function does not exist yet. FR-6 requires entity_registry.async_remove implementation. -->
   - **Do**:
     1. Write test `test_remove_trip_emhass_sensor_success` with mock entity_registry containing matching entry
     2. Assert `registry.async_remove` called with correct entity_id
@@ -371,6 +378,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - _Requirements: FR-6_
 
 - [ ] 1.36 [GREEN] Implement `async_remove_trip_emhass_sensor`
+  <!-- REVIEWER: DESV 7 — Not implemented. FR-6 requires this for hard delete sensor cleanup. -->
   - **Do**:
     1. Add module-level function in sensor.py mirroring `async_remove_trip_sensor` pattern
     2. Get entity_registry, find entries for config_entry_id containing `trip_id` in unique_id AND containing `emhass_trip` prefix
