@@ -4306,8 +4306,9 @@ async def test_empty_published_trips_guard(hass, mock_store):
         # Set up coordinator mock
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
 
-        # Simulate config entry update
-        await adapter.update_charging_power()
+        # Simulate config entry update via _handle_config_entry_update (not update_charging_power)
+        # _handle_config_entry_update has the guard that reloads trips before calling update_charging_power
+        await adapter._handle_config_entry_update(hass, entry)
 
         # BUG: Current code republishes with empty _published_trips
         # FIX: Should reload trips from trip_manager first

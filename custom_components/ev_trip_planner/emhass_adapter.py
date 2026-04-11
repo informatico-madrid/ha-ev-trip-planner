@@ -1336,11 +1336,27 @@ class EMHASSAdapter:
         Handle config entry update events.
 
         When charging_power_kw changes, we need to recalculate power_profile_watts.
+        FR-3, AC-1.3: Reload trips from trip_manager if _published_trips is empty.
         """
         _LOGGER.info(
             "Config entry updated for vehicle %s, checking charging power",
             self.vehicle_id,
         )
+
+        # FR-3, AC-1.3: If no published trips, reload from trip_manager
+        if not self._published_trips:
+            coordinator = self._get_coordinator()
+            if coordinator is not None and hasattr(coordinator, "trip_manager"):
+                trip_manager = coordinator.trip_manager
+                if trip_manager is not None:
+                    all_trips = trip_manager.get_all_trips()
+                    if all_trips:
+                        _LOGGER.info(
+                            "Reloading %d trips from trip_manager for republish",
+                            len(all_trips),
+                        )
+                        self._published_trips = list(all_trips)
+
         await self.update_charging_power()
 
     async def update_charging_power(self) -> None:
