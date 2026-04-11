@@ -4517,3 +4517,54 @@ async def test_cached_per_trip_params_assignment(mock_store):
         assert trip_params["per_trip_emhass_params"]["emhass_index"] == mock_index, (
             f"emhass_index should be {mock_index}, got {trip_params['per_trip_emhass_params'].get('emhass_index')}"
         )
+
+
+@pytest.mark.asyncio
+async def test_get_hora_regreso_calls_presence_monitor(mock_store):
+    """_get_hora_regreso returns datetime from presence_monitor.get_return_time().
+
+    This is the RED test for per-trip params cache:
+    - adapter has presence_monitor with vehicle_id="test_vehicle"
+    - Mock returns datetime(2026, 4, 12, 18, 30) from get_return_time()
+    - Expected: returns that datetime
+    - Current: _get_hora_regreso method doesn't exist yet
+    - Test must FAIL to confirm the method doesn't exist
+
+    Design: Component 1
+    """
+    from datetime import datetime
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+    mock_entry = MagicMock()
+    mock_entry.options = {"charging_power_kw": 7.4}
+    mock_entry.data = {"charging_power_kw": 7.4}
+
+    # Setup presence_monitor mock
+    mock_presence_monitor = MagicMock()
+    mock_return_time = datetime(2026, 4, 12, 18, 30, 0)
+    mock_presence_monitor.get_return_time = MagicMock(return_value=mock_return_time)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Setup presence_monitor (set after construction)
+        adapter._presence_monitor = mock_presence_monitor
+
+        # Method doesn't exist yet - test must FAIL
+        hora_regreso = adapter._get_hora_regreso()
+
+        # Should call presence_monitor.get_return_time() and return datetime
+        assert hora_regreso == mock_return_time, (
+            f"Expected {mock_return_time} from presence_monitor, got {hora_regreso} "
+            "— _get_hora_regreso should read from presence_monitor"
+        )
