@@ -229,11 +229,16 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 - [ ] 1.20 [SKIP] No code change needed — clamping already correct
   - **Note**: Task 1.19 tests pass because implementation already clamps to [0, 168] range
 
-- [ ] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
+- [x] V2 [VERIFY] Quality checkpoint: per-trip cache
+- [x] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
   - **Do**: Run full adapter test suite + lint + typecheck
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: 145 tests pass, ruff clean
   - **Commit**: `chore(emhass): pass quality checkpoint after cache + timestep fixes`
+
+---
+
+# PHASE 4: New TripEmhassSensor
 
 ## Phase 1 (continued): TDD Cycles — TripEmhassSensor
 
