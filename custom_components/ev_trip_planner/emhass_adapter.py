@@ -562,6 +562,27 @@ class EMHASSAdapter:
         self._cached_deferrables_schedule = deferrables_schedule
         self._cached_emhass_status = EMHASS_STATE_READY
 
+        # FR-3.1: Cache per-trip EMHASS params for coordinator retrieval
+        # This enables per-trip sensors to access EMHASS parameters via coordinator.data
+        if not hasattr(self, "_cached_per_trip_params"):
+            self._cached_per_trip_params = {}
+
+        for trip in trips:
+            trip_id = trip.get("trip_id")
+            if not trip_id:
+                continue
+
+            # Get the assigned index for this trip
+            emhass_index = self._index_map.get(trip_id, -1)
+
+            # Store per-trip EMHASS parameters
+            self._cached_per_trip_params[trip_id] = {
+                "per_trip_emhass_params": {
+                    "emhass_index": emhass_index,
+                    "charging_power_kw": charging_power_kw,
+                }
+            }
+
         # Update the template sensor
         sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
         # PHASE 3 REMOVED (3.1): Remove dual-writing path - data flows via coordinator
