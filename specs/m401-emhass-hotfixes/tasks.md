@@ -244,7 +244,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 
 Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/test_trip_emhass_sensor.py` (SRP — separate from existing sensor tests).
 
-- [ ] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
+- [x] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
   - **Do**:
     1. In `tests/test_trip_emhass_sensor.py`, write test `test_trip_emhass_sensor_native_value` with stub coordinator.data containing `per_trip_emhass_params` with trip having `emhass_index=2`
     2. Assert `sensor.native_value == 2`
@@ -254,7 +254,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor native_value`
   - _Requirements: FR-4, AC-2.1_
 
-- [ ] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
+- [x] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
   - **Do**:
     1. In `sensor.py`, add `TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)`
     2. `__init__(coordinator, vehicle_id, trip_id)` — set `_attr_unique_id = f"emhass_trip_{vehicle_id}_{trip_id}"`
@@ -265,7 +265,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): create TripEmhassSensor class with native_value`
   - _Requirements: FR-4, AC-2.1, AC-2.5_
 
-- [ ] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+- [x] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
   - **Do**:
     1. Write test `test_trip_emhass_sensor_attributes_all_9` with full params dict
     2. Assert attrs dict has keys: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`
