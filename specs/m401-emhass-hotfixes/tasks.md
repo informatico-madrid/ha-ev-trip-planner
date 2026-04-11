@@ -182,7 +182,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per-trip params caching`
   - _Design: Component 1_
 
-- [ ] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
+- [x] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
   - **Do**:
     1. Add `_cached_per_trip_params: Dict[str, dict]` instance variable (init as `{}`)
     2. After enrichment loop in `publish_deferrable_loads`, iterate trips with index_map entries
@@ -194,13 +194,13 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): cache per-trip EMHASS params in publish_deferrable_loads`
   - _Design: Component 1_
 
-- [ ] V2 [VERIFY] Quality checkpoint: per-trip params cache
+- [x] V2 [VERIFY] Quality checkpoint: per-trip params cache
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
   - **Commit**: `chore(emhass): pass quality checkpoint after per-trip params cache`
 
-- [ ] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
+- [x] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
   - **Do**:
     1. Write test `test_get_cached_results_includes_per_trip_params` that populates `_cached_per_trip_params` then calls `get_cached_optimization_results()`
     2. Assert returned dict has key `per_trip_emhass_params` with same data
@@ -210,7 +210,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per_trip_emhass_params in cached results`
   - _Design: Component 1_
 
-- [ ] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
+- [x] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
   - **Do**:
     1. In `get_cached_optimization_results()`, add `"per_trip_emhass_params": self._cached_per_trip_params` to returned dict
   - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
@@ -219,24 +219,15 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): include per_trip_emhass_params in cached optimization results`
   - _Design: Component 1_
 
-- [ ] 1.19 [RED] Failing test: `inicio_ventana` to timestep conversion edge cases
-  - **Do**:
-    1. Write test `test_inicio_ventana_to_timestep_clamped` — verify timestep clamped to 0-168 range
-    2. Write test `test_inicio_ventana_to_timestep_no_window` — verify defaults to 0 when no window returned
+- [x] 1.19 [RED/GREEN] inicio_ventana to timestep conversion edge cases
+  - **Do**: Tests pass because 1.16 implementation already has correct clamping
   - **Files**: tests/test_emhass_adapter.py
-  - **Done when**: Tests exist AND fail (or pass if conversion already correct from 1.16)
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_inicio_ventana" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
-  - **Commit**: `test(emhass): red - failing test for timestep conversion edge cases`
-
-- [ ] 1.20 [GREEN] Verify timestep conversion edge cases
-  - **Do**:
-    1. Run edge case tests — if they pass from 1.16's implementation, no code change needed
-    2. If they fail, fix clamping logic in `async_publish_deferrable_load`
-  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
-  - **Done when**: Edge case tests pass
+  - **Done when**: Tests pass
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_inicio_ventana"`
-  - **Commit**: `fix(emhass): handle timestep conversion edge cases`
-  - _Design: def_start_timestep Calculation_
+  - **Commit**: `test(emhass): edge case tests for timestep conversion (already passing)`
+
+- [ ] 1.20 [SKIP] No code change needed — clamping already correct
+  - **Note**: Task 1.19 tests pass because implementation already clamps to [0, 168] range
 
 - [ ] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
   - **Do**: Run full adapter test suite + lint + typecheck

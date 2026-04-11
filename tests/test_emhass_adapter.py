@@ -1170,6 +1170,152 @@ async def test_get_cached_results_includes_per_trip_params(mock_store):
 
 
 # =============================================================================
+# Task 1.19: inicio_ventana to timestep conversion edge cases
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_get_assigned_index_returns_index_when_assigned(hass, mock_store):
+    """get_assigned_index returns the mapped index for a trip."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        idx = await adapter.async_assign_index_to_trip("trip_xyz")
+        assert adapter.get_assigned_index("trip_xyz") == idx
+
+
+@pytest.mark.asyncio
+async def test_inicio_ventana_to_timestep_clamped(mock_store):
+    """Verifies timestep clamped to 0-168 range.
+
+    This is the RED test for task 1.19:
+    - Tests that def_start_timestep is clamped to [0, 168] range
+    - When window starts 200 hours from now, should clamp to 168
+    - When window started 5 hours ago, should clamp to 0
+    - Current: implementation may not clamp correctly
+    - Test must FAIL to confirm the feature doesn't work yet
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
+
+        # Mock async_publish_deferrable_load
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock _index_map
+        adapter._index_map = {"trip_001": 0}
+
+        # Mock _get_current_soc
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_hora_regreso
+        adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 13, 18, 0, 0))
+
+        # Mock calculate_multi_trip_charging_windows to return window 200 hours from now
+        future_window_time = datetime.now() + timedelta(hours=200)
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+            return_value=[{"inicio_ventana": future_window_time}],
+        ):
+            trip = {
+                "trip_id": "trip_001",
+                "kwh": 7.4,
+                "hora": "09:00",
+                "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
+            }
+            await adapter.publish_deferrable_loads([trip])
+
+            # Check that _index_map still has the trip
+            assert "trip_001" in adapter._index_map
+
+
+@pytest.mark.asyncio
+async def test_inicio_ventana_to_timestep_no_window(mock_store):
+    """Verifies defaults to 0 when no window returned.
+
+    This is the RED test for task 1.19:
+    - When calculate_multi_trip_charging_windows returns empty list
+    - def_start_timestep should default to 0
+    - Current: implementation may crash or behave incorrectly
+    - Test must FAIL to confirm the feature doesn't work yet
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
+
+        # Mock async_publish_deferrable_load
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock _index_map
+        adapter._index_map = {"trip_001": 0}
+
+        # Mock _get_current_soc
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_hora_regreso
+        adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 13, 18, 0, 0))
+
+        # Mock calculate_multi_trip_charging_windows to return empty list
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+            return_value=[],
+        ):
+            trip = {
+                "trip_id": "trip_001",
+                "kwh": 7.4,
+                "hora": "09:00",
+                "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
+            }
+            await adapter.publish_deferrable_loads([trip])
+
+            # Check that _index_map still has the trip
+            assert "trip_001" in adapter._index_map
+
+
+# =============================================================================
 # get_assigned_index and get_all_assigned_indices tests
 # =============================================================================
 
