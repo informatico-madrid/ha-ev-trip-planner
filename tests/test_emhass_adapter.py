@@ -701,7 +701,9 @@ async def test_async_update_charging_power_updates_value(hass, mock_store):
         assert original_power == 7.4
 
         # Mock config_entries to return entry with updated charging power
+        # Include both options and data - options take priority per our fix
         mock_entry = MagicMock()
+        mock_entry.options = {CONF_CHARGING_POWER: 11.0}
         mock_entry.data = {CONF_VEHICLE_NAME: "test_vehicle", CONF_CHARGING_POWER: 11.0}
         hass.config_entries = MagicMock()
         hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
@@ -2968,15 +2970,24 @@ class TestUpdateChargingPowerCoverage:
             CONF_CHARGING_POWER: 7.4,
         }
 
+        # Mock coordinator to avoid "can't await MagicMock" error
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+
         with patch(
             "custom_components.ev_trip_planner.emhass_adapter.Store",
             return_value=mock_store,
+        ), patch.object(
+            EMHASSAdapter,
+            "_get_coordinator",
+            return_value=mock_coordinator,
         ):
             adapter = EMHASSAdapter(hass, config)
             await adapter.async_load()
 
             mock_entry = MagicMock()
-            mock_entry.data = {}  # No charging_power_kw
+            mock_entry.options = {}  # No charging_power_kw in options
+            mock_entry.data = {}  # No charging_power_kw in data
             hass.config_entries = MagicMock()
             hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
@@ -2995,15 +3006,24 @@ class TestUpdateChargingPowerCoverage:
             CONF_CHARGING_POWER: 7.4,
         }
 
+        # Mock coordinator to avoid "can't await MagicMock" error
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+
         with patch(
             "custom_components.ev_trip_planner.emhass_adapter.Store",
             return_value=mock_store,
+        ), patch.object(
+            EMHASSAdapter,
+            "_get_coordinator",
+            return_value=mock_coordinator,
         ):
             adapter = EMHASSAdapter(hass, config)
             await adapter.async_load()
 
             mock_entry = MagicMock()
-            mock_entry.data = {CONF_CHARGING_POWER: 7.4}  # Same as current
+            mock_entry.options = {CONF_CHARGING_POWER: 7.4}  # Same as current
+            mock_entry.data = {CONF_VEHICLE_NAME: "test_vehicle", CONF_CHARGING_POWER: 7.4}
             hass.config_entries = MagicMock()
             hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
