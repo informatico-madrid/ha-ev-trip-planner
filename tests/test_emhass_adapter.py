@@ -4136,3 +4136,54 @@ async def test_update_charging_power_reads_options_first(hass, mock_store):
             f"Expected 3.6 from options, got {adapter._charging_power_kw} "
             "— code must read from options first"
         )
+
+
+@pytest.mark.asyncio
+async def test_update_charging_power_fallback_to_data(hass, mock_store):
+    """update_charging_power falls back to entry.data when options is empty.
+
+    This is a GREEN test for the data fallback path:
+    - entry.options = {} (no charging_power_kw)
+    - entry.data = {"charging_power_kw": 11}
+    - Expected: adapter reads 11 from data fallback
+    - Note: This works with both old and new code (options.get() returns None)
+
+    Requirements: FR-1, AC-1.1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+
+    # Setup: Mock config_entries.async_get_entry with empty options
+    mock_entry = MagicMock()
+    mock_entry.options = {}  # No charging_power_kw in options
+    mock_entry.data = {"charging_power_kw": 11}  # Fallback to data
+    mock_entry.entry_id = entry.entry_id
+
+    mock_coordinator = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ), patch.object(
+        hass.config_entries,
+        "async_get_entry",
+        return_value=mock_entry,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Set up coordinator mock
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Simulate config entry update
+        await adapter.update_charging_power()
+
+        # Should read 11 from data fallback
+        assert adapter._charging_power_kw == 11, (
+            f"Expected 11 from data fallback, got {adapter._charging_power_kw}"
+        )
