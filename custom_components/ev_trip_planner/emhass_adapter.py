@@ -10,6 +10,7 @@ from homeassistant.helpers.storage import Store
 
 from .calculations import (
     calculate_deferrable_parameters as calc_deferrable_parameters,
+    calculate_multi_trip_charging_windows,
 )
 from .calculations import (
     calculate_power_profile_from_trips,
@@ -311,7 +312,7 @@ class EMHASSAdapter:
                 await self.async_release_trip_index(trip_id)
                 return False
 
-            # Calculate hours available
+            # Calculate hours available and def_start_timestep from charging windows
             now = datetime.now()
             if isinstance(deadline, str):
                 deadline_dt = datetime.fromisoformat(deadline)
@@ -325,6 +326,29 @@ class EMHASSAdapter:
                 await self.async_release_trip_index(trip_id)
                 return False
 
+            # Calculate charging window start time for def_start_timestep
+            # FR-9c: Use calculate_multi_trip_charging_windows to compute proper start timestep
+            soc_current = await self._get_current_soc()
+            hora_regreso = await self._get_hora_regreso()
+
+            # Create single-trip charging window
+            charging_windows = calculate_multi_trip_charging_windows(
+                trips=[(deadline_dt, trip)],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=self._charging_power_kw,
+                duration_hours=6.0,
+            )
+
+            # Extract inicio_ventana (datetime) and convert to timestep
+            def_start_timestep = 0
+            if charging_windows:
+                inicio_ventana = charging_windows[0].get("inicio_ventana")
+                if inicio_ventana:
+                    # Convert datetime to hours from now, clamped to 0-168 range
+                    delta_hours = (inicio_ventana - now).total_seconds() / 3600
+                    def_start_timestep = max(0, min(int(delta_hours), 168))
+
             # Calculate EMHASS parameters
             total_hours = kwh / self._charging_power_kw
             power_watts = self._charging_power_kw * 1000  # Convert to Watts
@@ -334,7 +358,7 @@ class EMHASSAdapter:
             attributes = {
                 "def_total_hours": round(total_hours, 2),
                 "P_deferrable_nom": round(power_watts, 0),
-                "def_start_timestep": 0,
+                "def_start_timestep": def_start_timestep,
                 "def_end_timestep": end_timestep,
                 "trip_id": trip_id,
                 "vehicle_id": self.vehicle_id,
@@ -1512,7 +1536,7 @@ class EMHASSAdapter:
             )
             return 0.0
 
-    def _get_hora_regreso(self) -> datetime:
+    async def _get_hora_regreso(self) -> datetime:
         """Get return time from presence_monitor.
 
         Component 1 helper for per-trip params cache.
@@ -1524,4 +1548,5 @@ class EMHASSAdapter:
             _LOGGER.warning("No presence_monitor configured for %s", self.vehicle_id)
             return datetime.now()
 
-        return self._presence_monitor.get_return_time()
+        # Real API: async_get_hora_regreso() (not get_return_time)
+        return await self._presence_monitor.async_get_hora_regreso()

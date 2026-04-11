@@ -4546,9 +4546,10 @@ async def test_get_hora_regreso_calls_presence_monitor(mock_store):
     mock_entry.data = {"charging_power_kw": 7.4}
 
     # Setup presence_monitor mock
+    # Real API: async_get_hora_regreso() returns datetime
     mock_presence_monitor = MagicMock()
     mock_return_time = datetime(2026, 4, 12, 18, 30, 0)
-    mock_presence_monitor.get_return_time = MagicMock(return_value=mock_return_time)
+    mock_presence_monitor.async_get_hora_regreso = AsyncMock(return_value=mock_return_time)
 
     with patch(
         "custom_components.ev_trip_planner.emhass_adapter.Store",
@@ -4561,12 +4562,12 @@ async def test_get_hora_regreso_calls_presence_monitor(mock_store):
         adapter._presence_monitor = mock_presence_monitor
 
         # Method doesn't exist yet - test must FAIL
-        hora_regreso = adapter._get_hora_regreso()
+        hora_regreso = await adapter._get_hora_regreso()
 
-        # Should call presence_monitor.get_return_time() and return datetime
+        # Should call presence_monitor.async_get_hora_regreso() and return datetime
         assert hora_regreso == mock_return_time, (
             f"Expected {mock_return_time} from presence_monitor, got {hora_regreso} "
-            "— _get_hora_regreso should read from presence_monitor"
+            "— _get_hora_regreso should call async_get_hora_regreso"
         )
 
 
@@ -4618,6 +4619,11 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
 
         # Mock _get_current_soc to return 50.0
         adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_hora_regreso to return a datetime
+        # 2026-04-11 18:30:00 - 1.5 hours before deadline (20:00:00)
+        # This means the trip starts at hora_regreso + 1.5 hours = 20:00:00
+        adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 11, 18, 30, 0))
 
         # Mock async_notify_error to prevent errors
         adapter.async_notify_error = AsyncMock()
