@@ -46,6 +46,7 @@ class EMHASSAdapter:
         # Handle both dict (backward compatibility for tests) and ConfigEntry
         if isinstance(entry, dict):
             self.entry_id = entry.get("vehicle_name", "unknown")
+            self._entry_dict = entry  # Keep dict for _get_current_soc
             entry_data = entry
         else:
             self.entry_id = entry.entry_id
@@ -1443,3 +1444,37 @@ class EMHASSAdapter:
             List of schedule dictionaries
         """
         return generate_deferrable_schedule_from_trips(trips, charging_power_kw)
+
+    async def _get_current_soc(self) -> float | None:
+        """Get current SOC from configured sensor.
+
+        Component 1 helper for per-trip params cache.
+
+        Returns:
+            SOC percentage as float, or None if sensor unavailable.
+        """
+        # Handle both dict (tests) and ConfigEntry
+        entry_data = getattr(self, "_entry_dict", None) or (
+            self._entry.data if self._entry else None
+        )
+
+        soc_sensor = entry_data.get("soc_sensor") if entry_data else None
+        if not soc_sensor:
+            _LOGGER.warning("soc_sensor not configured for %s", self.vehicle_id)
+            return None
+
+        state = self.hass.states.get(soc_sensor)
+        if state is None:
+            _LOGGER.warning("SOC sensor %s not found", soc_sensor)
+            return 0.0
+
+        try:
+            return float(state.state)
+        except (ValueError, TypeError) as e:
+            _LOGGER.warning(
+                "SOC sensor %s has invalid value: %s (error: %s)",
+                soc_sensor,
+                state.state,
+                e,
+            )
+            return None
