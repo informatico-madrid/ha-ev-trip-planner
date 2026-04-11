@@ -181,7 +181,7 @@ class EMHASSAdapter:
 
         Returns:
             Dict with emhass_power_profile, emhass_deferrables_schedule,
-            and emhass_status keys.
+            emhass_status, and per_trip_emhass_params keys.
         """
         return {
             "emhass_power_profile": getattr(self, "_cached_power_profile", None),
@@ -189,6 +189,7 @@ class EMHASSAdapter:
                 self, "_cached_deferrables_schedule", None
             ),
             "emhass_status": getattr(self, "_cached_emhass_status", None),
+            "per_trip_emhass_params": getattr(self, "_cached_per_trip_params", {}),
         }
 
     async def async_save(self):
