@@ -51,7 +51,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `test(emhass): verify charging_power_kw=0 edge case for is None check`
   - _Requirements: FR-1, NFR-1_
 
-- [ ] 1.5 [RED] Failing test: `setup_config_entry_listener` is called in `async_setup_entry`
+- [x] 1.5 [RED] Failing test: `setup_config_entry_listener` is called in `async_setup_entry`
   - **Do**:
     1. In `tests/test_init.py`, write test `test_listener_activated_in_setup` that mocks EMHASSAdapter and verifies `setup_config_entry_listener()` is called after adapter creation in `async_setup_entry`
     2. Assert mock method was called once
@@ -62,7 +62,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `test(init): red - failing test for listener activation in setup`
   - _Requirements: FR-2, AC-1.2_
 
-- [ ] 1.6 [GREEN] Activate `setup_config_entry_listener()` in `__init__.py`
+- [x] 1.6 [GREEN] Activate `setup_config_entry_listener()` in `__init__.py`
   - **Do**:
     1. In `__init__.py`, after `await emhass_adapter.async_load()` (~line 119), add `emhass_adapter.setup_config_entry_listener()`
   - **Files**: custom_components/ev_trip_planner/__init__.py
