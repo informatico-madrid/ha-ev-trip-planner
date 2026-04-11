@@ -71,7 +71,7 @@ async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
         # Import and create the sensor (this should fail because class doesn't exist)
         from custom_components.ev_trip_planner.sensor import TripEmhassSensor
 
-        sensor = TripEmhassSensor(hass, adapter, mock_coordinator, "trip_001")
+        sensor = TripEmhassSensor(mock_coordinator, "test_vehicle", "trip_001")
 
         # This should return the emhass_index from per_trip_emhass_params
         assert sensor.native_value == 2, (

@@ -582,3 +582,60 @@ async def async_remove_trip_sensor(
     else:
         _LOGGER.debug("Trip sensor %s not found in registry", trip_id)
         return False
+
+
+# =============================================================================
+# TripEmhassSensor — New per-trip EMHASS sensor (Task 1.24 GREEN)
+# =============================================================================
+
+
+class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
+    """Sensor for per-trip EMHASS parameters.
+
+    This is a new sensor class for PHASE 4, separate from existing trip sensors.
+    It reads emhass_index from coordinator.data["per_trip_emhass_params"].
+
+    Attributes:
+        native_value: The emhass_index for the trip, or -1 if not found
+    """
+
+    def __init__(
+        self,
+        coordinator: TripPlannerCoordinator,
+        vehicle_id: str,
+        trip_id: str,
+    ) -> None:
+        """Initialize the sensor.
+
+        Args:
+            coordinator: TripPlannerCoordinator instance.
+            vehicle_id: Vehicle identifier.
+            trip_id: Trip identifier.
+        """
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self._vehicle_id = vehicle_id
+        self._trip_id = trip_id
+        self._attr_unique_id = f"emhass_trip_{vehicle_id}_{trip_id}"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_has_entity_name = True
+        self._attr_name = f"EMHASS Index for {trip_id}"
+
+    @property
+    def native_value(self) -> int:
+        """Return the emhass_index for this trip.
+
+        Reads from coordinator.data["per_trip_emhass_params"][trip_id]["emhass_index"].
+        Returns -1 if trip not found or emhass_index not available.
+
+        Returns:
+            The emhass_index integer, or -1 if not found.
+        """
+        if self.coordinator.data is None:
+            return -1
+
+        per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
+        trip_params = per_trip_params.get(self._trip_id, {})
+        emhass_index = trip_params.get("emhass_index", -1)
+
+        return emhass_index if emhass_index is not None else -1
