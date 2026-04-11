@@ -4105,18 +4105,33 @@ async def test_update_charging_power_reads_options_first(hass, mock_store):
     mock_coordinator.async_refresh = AsyncMock()
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
+    # Setup: Mock config_entries.async_get_entry to return our test entry
+    mock_entry = MagicMock()
+    mock_entry.options = {"charging_power_kw": 3.6}  # Options should take priority
+    mock_entry.data = {"charging_power_kw": 11}  # Data fallback
+    mock_entry.entry_id = entry.entry_id
+
+    mock_coordinator = AsyncMock()
+
     with patch(
         "custom_components.ev_trip_planner.emhass_adapter.Store",
         return_value=mock_store,
+    ), patch.object(
+        hass.config_entries,
+        "async_get_entry",
+        return_value=mock_entry,
     ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
+        # Set up coordinator mock
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
         # Simulate config entry update
         await adapter.update_charging_power()
 
-        # Should read 3.6 from options, but current code reads 11 from data
-        # This assertion should FAIL to confirm the bug
+        # Should read 3.6 from options, not 11 from data
+        # This assertion will FAIL in RED phase, PASS after GREEN fix
         assert adapter._charging_power_kw == 3.6, (
             f"Expected 3.6 from options, got {adapter._charging_power_kw} "
             "— code must read from options first"

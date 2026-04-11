@@ -1356,7 +1356,11 @@ class EMHASSAdapter:
             _LOGGER.warning("Config entry %s not found", self.entry_id)
             return
 
-        new_power = entry.data.get("charging_power_kw")
+        # FR-1, AC-1.1: Read from options first, fallback to data
+        # Use `is None` check (NOT `or`) to correctly handle `charging_power_kw=0` edge case
+        new_power = entry.options.get("charging_power_kw")
+        if new_power is None:
+            new_power = entry.data.get("charging_power_kw")
         if new_power is None:
             _LOGGER.warning("charging_power_kw not found in config entry")
             return
