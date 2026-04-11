@@ -156,3 +156,75 @@ async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssista
         assert not missing_keys, (
             f"Missing required keys in extra_state_attributes: {missing_keys}. Got: {actual_keys}"
         )
+
+
+@pytest.mark.asyncio
+async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
+    """TripEmhassSensor returns zeroed attrs when trip not found.
+
+    This is the RED test for task 1.27:
+    - Create sensor with non-existent trip_id
+    - Assert extra_state_attributes returns zeroed values
+    - Current: _get_params() may return None/empty, _zeroed_attributes() not called
+    - Test must FAIL to confirm the feature doesn't work yet
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Mock async_publish_deferrable_load
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock _index_map
+        adapter._index_map = {"trip_001": 2}
+
+        # Publish the trip
+        trip = {
+            "trip_id": "trip_001",
+            "kwh": 7.4,
+            "hora": "09:00",
+            "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
+        }
+        await adapter.publish_deferrable_loads([trip])
+
+        # Get cached results (this is what coordinator.data will have)
+        cached_results = adapter.get_cached_optimization_results()
+
+        # Create mock coordinator with this data
+        mock_coordinator.data = cached_results
+
+        # Import and create sensor for NON-EXISTENT trip
+        from custom_components.ev_trip_planner.sensor import TripEmhassSensor
+
+        sensor = TripEmhassSensor(mock_coordinator, "test_vehicle", "nonexistent_trip")
+
+        # Get attributes
+        attrs = sensor.extra_state_attributes
+
+        # Verify zeroed values
+        assert attrs["emhass_index"] == -1, (
+            f"emhass_index should be -1, got {attrs['emhass_index']}"
+        )
+        assert attrs["kwh_needed"] == 0.0, (
+            f"kwh_needed should be 0.0, got {attrs['kwh_needed']}"
+        )
+        assert attrs["power_profile_watts"] == [], (
+            f"power_profile_watts should be [], got {attrs['power_profile_watts']}"
+        )
