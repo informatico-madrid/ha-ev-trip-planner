@@ -117,6 +117,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get("planning_horizon_days") or entry.data.get("max_deferrable_loads"):
         emhass_adapter = EMHASSAdapter(hass, entry)
         await emhass_adapter.async_load()
+        # FR-2, AC-1.2: Set up config entry listener for charging power updates
+        emhass_adapter.setup_config_entry_listener()
         trip_manager.set_emhass_adapter(emhass_adapter)
 
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)

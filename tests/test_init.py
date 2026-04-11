@@ -1194,62 +1194,78 @@ class TestAsyncRemoveEntry:
 async def test_listener_activated_in_setup(mock_hass):
     """setup_config_entry_listener is called in async_setup_entry.
 
-    This is the RED test for Gap #5 hotfix:
+    This is the GREEN test for Gap #5 hotfix:
     - The listener should be set up after adapter creation
-    - Currently the listener activation code is not yet added to __init__.py
-    - Test must FAIL to confirm the bug exists
+    - We verify that setup_config_entry_listener() IS called
+    - Requires FR-2, AC-1.2 implementation in __init__.py
 
-    Requirements: FR-2, AC-1.2
+    Verification approach: Patch the adapter's setup_config_entry_listener
+    and verify it gets called during async_setup_entry execution.
     """
     from custom_components.ev_trip_planner import async_setup_entry
 
-    # Create a mock config entry
     entry = MagicMock()
-    entry.entry_id = "test_listener_entry"
+    entry.entry_id = "test_listener_001"
     entry.data = {
-        "vehicle_name": "Test Vehicle",
+        "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power_kw": 7.4,
     }
-    entry.options = {}
 
-    # Create mock coordinator
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_setup = AsyncMock()
+    mock_trip_manager.set_emhass_adapter = MagicMock()
+
     mock_coordinator = MagicMock()
-    mock_coordinator.data = {
-        "recurring_trips": {},
-        "punctual_trips": {},
-        "kwh_today": 0.0,
-        "hours_today": 0.0,
-    }
-    mock_coordinator.async_refresh = AsyncMock()
+    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
 
-    # Setup: Add runtime_data to entry
-    entry.runtime_data = MagicMock()
-    entry.runtime_data.coordinator = mock_coordinator
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter.async_load = AsyncMock()
+    mock_emhass_adapter.setup_config_entry_listener = MagicMock()
 
-    # Mock Store
-    mock_store = MagicMock()
-    mock_store.async_load = AsyncMock(return_value={})
-    mock_store.async_save = AsyncMock()
+    # Mock hass.config_entries.async_forward_entry_setups
+    mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
 
-    # Patch EMHASSAdapter and setup_config_entry_listener
     with patch(
-        "custom_components.ev_trip_planner.Store",
-        return_value=mock_store,
+        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_static_paths",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.build_presence_config",
+        return_value=MagicMock()
+    ), patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=mock_trip_manager
     ), patch(
         "custom_components.ev_trip_planner.EMHASSAdapter",
-    ) as MockAdapter:
-        # Setup mock adapter
-        mock_adapter = MagicMock()
-        mock_adapter.async_load = AsyncMock()
-        MockAdapter.return_value = mock_adapter
+        return_value=mock_emhass_adapter
+    ), patch(
+        "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        return_value=mock_coordinator
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_panel_for_entry",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.register_services"
+    ), patch(
+        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ), patch(
+        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ):
+        await async_setup_entry(mock_hass, entry)
 
-        # Call async_setup_entry
-        result = await async_setup_entry(mock_hass, entry)
-
-        # Assert setup_config_entry_listener was called on the adapter
-        # This assertion will FAIL until we add the listener activation code
-        mock_adapter.setup_config_entry_listener.assert_called_once(), (
-            "setup_config_entry_listener() should be called after adapter creation "
-            "in async_setup_entry"
-        )
+    # Verify setup_config_entry_listener was called on the emhass_adapter
+    # This validates FR-2, AC-1.2: listener is activated during setup
+    mock_emhass_adapter.setup_config_entry_listener.assert_called_once(), (
+        "setup_config_entry_listener() should be called after adapter creation "
+        "in async_setup_entry"
+    )
