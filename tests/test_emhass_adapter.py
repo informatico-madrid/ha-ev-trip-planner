@@ -2506,6 +2506,81 @@ class TestPublishDeferrableLoadsCoordinatorPath:
             # Verify coordinator refresh was triggered immediately
             mock_coordinator.async_refresh.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_publish_deferrable_loads_caches_per_trip(self, hass):
+        """publish_deferrable_loads caches full per-trip EMHASS params with 10 keys.
+
+        This test validates task 1.16 GREEN: _cached_per_trip_params must contain
+        all 10 keys from calculate_deferrable_parameters per spec.
+
+        Expected keys in _cached_per_trip_params[trip_id]:
+        - def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep
+        - power_profile_watts, trip_id, emhass_index, kwh_needed, deadline, activo
+
+        Current implementation only has: emhass_index, charging_power_kw (2 keys)
+        This test will FAIL until task 1.16 GREEN is implemented.
+        """
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+            adapter.hass.states.async_set = AsyncMock()
+            adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+            trips = [
+                {
+                    "trip_id": "trip_1",
+                    "kwh": 7.4,
+                    "hora": "09:00",
+                    "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
+                }
+            ]
+
+            # Call publish_deferrable_loads
+            await adapter.publish_deferrable_loads(trips)
+
+            # Verify _cached_per_trip_params exists and has the trip
+            assert hasattr(adapter, "_cached_per_trip_params")
+            assert "trip_1" in adapter._cached_per_trip_params
+
+            # Verify all 10 required keys are present
+            expected_keys = {
+                "def_total_hours",
+                "P_deferrable_nom",
+                "def_start_timestep",
+                "def_end_timestep",
+                "power_profile_watts",
+                "trip_id",
+                "emhass_index",
+                "kwh_needed",
+                "deadline",
+                "activo",
+            }
+
+            cached_params = adapter._cached_per_trip_params["trip_1"]
+            actual_keys = set(cached_params.keys())
+
+            missing_keys = expected_keys - actual_keys
+            assert (
+                not missing_keys
+            ), f"Missing required keys in _cached_per_trip_params: {missing_keys}. Got: {actual_keys}"
+
 
 class TestVerifyShellCommandIntegrationCoverage:
     """Tests for async_verify_shell_command_integration coverage (line 643)."""

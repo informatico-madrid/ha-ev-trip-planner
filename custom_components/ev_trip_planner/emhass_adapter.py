@@ -606,12 +606,30 @@ class EMHASSAdapter:
             # Get the assigned index for this trip
             emhass_index = self._index_map.get(trip_id, -1)
 
-            # Store per-trip EMHASS parameters
+            # Calculate per-trip EMHASS parameters with all 10 keys
+            kwh_needed = trip.get("kwh", 0.0)
+            deadline = trip.get("datetime")
+
+            # Calculate deferrable parameters using pure function
+            def_params = calc_deferrable_parameters(
+                trip=trip, power_kw=charging_power_kw, reference_dt=datetime.now()
+            )
+
+            # Calculate power profile for this trip
+            power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
+
+            # Store per-trip EMHASS parameters with all 10 required keys
             self._cached_per_trip_params[trip_id] = {
-                "per_trip_emhass_params": {
-                    "emhass_index": emhass_index,
-                    "charging_power_kw": charging_power_kw,
-                }
+                "def_total_hours": def_params.get("total_hours", 0.0),
+                "P_deferrable_nom": def_params.get("power_watts", 0.0),
+                "def_start_timestep": def_params.get("start_timestep", 0),
+                "def_end_timestep": def_params.get("end_timestep", 24),
+                "power_profile_watts": power_profile,
+                "trip_id": trip_id,
+                "emhass_index": emhass_index,
+                "kwh_needed": kwh_needed,
+                "deadline": deadline,
+                "activo": True,
             }
 
         # Update the template sensor
