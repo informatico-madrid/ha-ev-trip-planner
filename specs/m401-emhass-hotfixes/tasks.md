@@ -30,7 +30,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `fix(emhass): read charging_power_kw from options first, fallback data`
   - _Requirements: FR-1, AC-1.1_
 
-- [ ] 1.3 [GREEN] Verify data fallback path works — write and run fallback test
+- [x] 1.3 [GREEN] Verify data fallback path works — write and run fallback test
   - **Do**:
     1. Write test `test_update_charging_power_fallback_to_data` with `options={}` (no charging_power_kw), `data={"charging_power_kw": 11}`
     2. Assert adapter reads 11 from data fallback
@@ -40,7 +40,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_update_charging_power_fallback_to_data"`
   - **Commit**: `test(emhass): green - verify data fallback for charging power`
 
-- [ ] 1.4 [GREEN] Test edge case: `charging_power_kw=0` is not treated as falsy
+- [x] 1.4 [GREEN] Test edge case: `charging_power_kw=0` is not treated as falsy
   - **Do**:
     1. Write test `test_update_charging_power_zero_not_falsy` with `options={"charging_power_kw": 0}`, `data={"charging_power_kw": 11}`
     2. Assert adapter reads 0 from options (NOT falling through to data's 11)
