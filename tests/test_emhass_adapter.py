@@ -4239,3 +4239,80 @@ async def test_update_charging_power_zero_not_falsy(hass, mock_store):
         assert adapter._charging_power_kw == 0, (
             f"Expected 0 from options (not falsy-treated), got {adapter._charging_power_kw}"
         )
+
+
+# =============================================================================
+# GAP #5 HOTFIX TESTS: Empty published trips guard
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_empty_published_trips_guard(hass, mock_store):
+    """_handle_config_entry_update reloads trips from trip_manager when _published_trips is empty.
+
+    This is the RED test for Gap #5 hotfix:
+    - adapter._published_trips = []
+    - coordinator.trip_manager has trips in storage
+    - Expected: trips are reloaded before republishing
+    - Current buggy behavior: republish with empty trips
+    - Test must FAIL to confirm the bug exists
+
+    Requirements: FR-3, AC-1.3
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+
+    # Setup: Mock config_entries.async_get_entry
+    mock_entry = MagicMock()
+    mock_entry.options = {"charging_power_kw": 7.4}
+    mock_entry.data = {"charging_power_kw": 7.4}
+    mock_entry.entry_id = entry.entry_id
+
+    # Mock coordinator with trip_manager that has trips
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.get_all_trips = MagicMock(return_value=[
+        {
+            "id": "trip_001",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "08:00",
+            "kwh": 20,
+            "activo": True,
+        }
+    ])
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh = AsyncMock()
+    mock_coordinator.trip_manager = mock_trip_manager
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ), patch.object(
+        hass.config_entries,
+        "async_get_entry",
+        return_value=mock_entry,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Start with empty _published_trips
+        adapter._published_trips = []
+
+        # Set up coordinator mock
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Simulate config entry update
+        await adapter.update_charging_power()
+
+        # BUG: Current code republishes with empty _published_trips
+        # FIX: Should reload trips from trip_manager first
+        # This assertion will FAIL until we add the guard
+        assert len(adapter._published_trips) == 1, (
+            f"Expected 1 trip reloaded from trip_manager, got {len(adapter._published_trips)} "
+            "— code must reload trips when _published_trips is empty"
+        )
