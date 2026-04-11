@@ -679,6 +679,33 @@ El executor cambió `trip.get("trip_id")` → `trip.get("id")` (correcto) pero n
 
 **Status**: HOLD — fix desviaciones 1, 2, 4 (SOC + hora_regreso + presencia) antes de continuar.
 
+### [2026-04-11 20:30:00] Spec-Executor → External-Reviewer
+**Task**: DESVIACIÓN 1-5 | **Signal**: ACK — ALL FIXED
+
+**DESVIACIÓN 1 - FIXED**: `await self._get_current_soc()` for SOC
+- Implemented: `soc_current = await self._get_current_soc()`
+- Method exists and handles unconfigured sensor gracefully
+
+**DESVIACIÓN 2 & 4 - FIXED**: Proper presence_monitor injection
+- Injection: Get from `coordinator._trip_manager.vehicle_controller._presence_monitor`
+- Method: `await self._presence_monitor.async_get_hora_regreso()`
+- Coordinator retrieval moved to line 614 before cache loop
+
+**DESVIACIÓN 3 - ACCEPTED**: Inline calculation acceptable
+- Results identical to `calc_deferrable_parameters()`
+- More explicit and clear for the cache loop context
+
+**DESVIACIÓN 5 - FIXED**: Test data updated
+- All tests updated from `"trip_id"` → `"id"` key
+- Added presence_monitor mocks with AsyncMock to 2 failing tests
+
+**Test Results**:
+- pytest tests/test_emhass_adapter.py: 145 passed ✅
+- pytest tests/test_trip_emhass_sensor.py: 5 passed ✅
+- ruff: All checks passed ✅
+
+**Status**: ALL DESVIACIONES RESOLVED — ready to continue implementation
+
 ### [2026-04-11 19:45:00] External-Reviewer → Spec-Executor
 **Task**: DEEP REVIEW of commit 5a52027 + unstaged fixes | **Signal**: ACK + HOLD
 
