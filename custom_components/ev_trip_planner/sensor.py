@@ -639,3 +639,57 @@ class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         emhass_index = trip_params.get("emhass_index", -1)
 
         return emhass_index if emhass_index is not None else -1
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return extra state attributes for this trip.
+
+        Returns all 9 per-trip EMHASS parameters:
+        - def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep
+        - power_profile_watts, trip_id, emhass_index, kwh_needed, deadline
+
+        Returns:
+            Dict with all 9 keys, or zeroed values if trip not found.
+        """
+        if self.coordinator.data is None:
+            return self._zeroed_attributes()
+
+        per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
+        trip_params = per_trip_params.get(self._trip_id)
+
+        if trip_params is None:
+            return self._zeroed_attributes()
+
+        return trip_params
+
+    def _get_params(self) -> Dict[str, Any]:
+        """Helper to read per_trip_emhass_params for this trip.
+
+        Returns:
+            Dict with trip params, or empty dict if not found.
+        """
+        if self.coordinator.data is None:
+            return {}
+
+        per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
+        return per_trip_params.get(self._trip_id, {})
+
+    def _zeroed_attributes(self) -> Dict[str, Any]:
+        """Return zeroed/default values for all 9 attributes.
+
+        Used when trip not found or data unavailable.
+
+        Returns:
+            Dict with all 9 keys set to zero/None/empty values.
+        """
+        return {
+            "def_total_hours": 0.0,
+            "P_deferrable_nom": 0.0,
+            "def_start_timestep": 0,
+            "def_end_timestep": 24,
+            "power_profile_watts": [],
+            "trip_id": self._trip_id,
+            "emhass_index": -1,
+            "kwh_needed": 0.0,
+            "deadline": None,
+        }
