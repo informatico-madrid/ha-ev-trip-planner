@@ -71,7 +71,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `feat(init): activate config entry listener for charging power updates`
   - _Requirements: FR-2, AC-1.2_
 
-- [ ] 1.7 [RED] Failing test: empty `_published_trips` guard reloads from trip_manager
+- [x] 1.7 [RED] Failing test: empty `_published_trips` guard reloads from trip_manager
   - **Do**:
     1. Write test `test_empty_published_trips_guard` with adapter where `_published_trips=[]`, mock coordinator with trip_manager that has trips
     2. Assert trips are reloaded before republish
@@ -81,7 +81,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `test(emhass): red - failing test for empty published trips guard`
   - _Requirements: FR-3, AC-1.3_
 
-- [ ] 1.8 [GREEN] Add empty `_published_trips` guard in `_handle_config_entry_update`
+- [x] 1.8 [GREEN] Add empty `_published_trips` guard in `_handle_config_entry_update`
   - **Do**:
     1. In `_handle_config_entry_update` (emhass_adapter.py:1334), before `await self.update_charging_power()`:
        - If `not self._published_trips`, get coordinator, get trip_manager
