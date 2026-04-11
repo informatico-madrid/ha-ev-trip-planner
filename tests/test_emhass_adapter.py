@@ -4461,8 +4461,8 @@ async def test_cached_per_trip_params_assignment(mock_store):
         # Mock coordinator.async_refresh (called at end of publish_deferrable_loads)
         adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
 
-        # Mock _assign_index_to_trip to return a valid index
-        adapter._assign_index_to_trip = MagicMock(return_value=mock_index)
+        # Mock _index_map directly (used by publish_deferrable_loads for caching)
+        adapter._index_map = {"trip_001": mock_index}
 
         # Mock async_publish_deferrable_load to return True
         adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
