@@ -1511,3 +1511,17 @@ class EMHASSAdapter:
                 e,
             )
             return 0.0
+
+    def _get_hora_regreso(self) -> datetime:
+        """Get return time from presence_monitor.
+
+        Component 1 helper for per-trip params cache.
+
+        Returns:
+            datetime of expected return time.
+        """
+        if self._presence_monitor is None:
+            _LOGGER.warning("No presence_monitor configured for %s", self.vehicle_id)
+            return datetime.now()
+
+        return self._presence_monitor.get_return_time()
