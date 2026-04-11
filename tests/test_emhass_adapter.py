@@ -1147,7 +1147,7 @@ async def test_get_cached_results_includes_per_trip_params(mock_store):
 
         # Publish the trip
         trip = {
-            "trip_id": "trip_001",
+            "id": "trip_001",
             "kwh": 7.4,
             "hora": "09:00",
             "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
@@ -1244,7 +1244,7 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
             return_value=[{"inicio_ventana": future_window_time}],
         ):
             trip = {
-                "trip_id": "trip_001",
+                "id": "trip_001",
                 "kwh": 7.4,
                 "hora": "09:00",
                 "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
@@ -1304,7 +1304,7 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
             return_value=[],
         ):
             trip = {
-                "trip_id": "trip_001",
+                "id": "trip_001",
                 "kwh": 7.4,
                 "hora": "09:00",
                 "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
@@ -2757,7 +2757,7 @@ class TestPublishDeferrableLoadsCoordinatorPath:
 
             trips = [
                 {
-                    "trip_id": "trip_1",
+                    "id": "trip_1",
                     "kwh": 7.4,
                     "hora": "09:00",
                     "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
@@ -4763,7 +4763,7 @@ async def test_cached_per_trip_params_assignment(mock_store):
 
         # Mock trip data
         trip = {
-            "trip_id": "trip_001",
+            "id": "trip_001",
             "name": "Test Trip",
             "departure_time": "2026-04-12T08:00:00",
             "duration_minutes": 60,

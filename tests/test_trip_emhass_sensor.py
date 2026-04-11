@@ -52,9 +52,9 @@ async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
         # Mock _index_map
         adapter._index_map = {"trip_001": 2}
 
-        # Publish the trip
+        # Publish the trip (use "id" key to match production API)
         trip = {
-            "trip_id": "trip_001",
+            "id": "trip_001",
             "kwh": 7.4,
             "hora": "09:00",
             "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
@@ -116,9 +116,9 @@ async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssista
         # Mock _index_map
         adapter._index_map = {"trip_001": 2}
 
-        # Publish the trip
+        # Publish the trip (use "id" key to match production API)
         trip = {
-            "trip_id": "trip_001",
+            "id": "trip_001",
             "kwh": 7.4,
             "hora": "09:00",
             "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
@@ -195,9 +195,9 @@ async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
         # Mock _index_map
         adapter._index_map = {"trip_001": 2}
 
-        # Publish the trip
+        # Publish the trip (use "id" key to match production API)
         trip = {
-            "trip_id": "trip_001",
+            "id": "trip_001",
             "kwh": 7.4,
             "hora": "09:00",
             "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
@@ -227,4 +227,149 @@ async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
         )
         assert attrs["power_profile_watts"] == [], (
             f"power_profile_watts should be [], got {attrs['power_profile_watts']}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
+    """TripEmhassSensor.device_info uses vehicle_id identifiers.
+
+    This is the RED test for task 1.29:
+    - Create sensor with vehicle_id="test_vehicle"
+    - Assert device_info.identifiers={(DOMAIN, vehicle_id)}
+    - Current: device_info not yet implemented
+    - Test must FAIL to confirm the feature doesn't exist
+    """
+    from homeassistant.helpers import device_registry as dr
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Mock async_publish_deferrable_load
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock _index_map
+        adapter._index_map = {"trip_001": 2}
+
+        # Publish the trip (use "id" key to match production API)
+        trip = {
+            "id": "trip_001",
+            "kwh": 7.4,
+            "hora": "09:00",
+            "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
+        }
+        await adapter.publish_deferrable_loads([trip])
+
+        # Get cached results (this is what coordinator.data will have)
+        cached_results = adapter.get_cached_optimization_results()
+
+        # Create mock coordinator with this data
+        mock_coordinator.data = cached_results
+
+        # Import and create the sensor
+        from custom_components.ev_trip_planner.const import DOMAIN
+        from custom_components.ev_trip_planner.sensor import TripEmhassSensor
+
+        sensor = TripEmhassSensor(mock_coordinator, "test_vehicle", "trip_001")
+
+        # This should return device_info with identifiers={(DOMAIN, vehicle_id)}
+        device_info = sensor.device_info
+        assert device_info is not None, "device_info should not be None"
+
+        identifiers = device_info.get("identifiers")
+        assert identifiers is not None, "identifiers should not be None"
+
+        # Check that identifiers contains (DOMAIN, vehicle_id)
+        assert (DOMAIN, "test_vehicle") in identifiers, (
+            f"identifiers should contain {(DOMAIN, 'test_vehicle')}, got {identifiers}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant):
+    """async_create_trip_emhass_sensor calls async_add_entities with TripEmhassSensor.
+
+    This is the RED test for task 1.31:
+    - Create mock runtime_data with sensor_async_add_entities callback
+    - Call async_create_trip_emhass_sensor
+    - Assert callback called with list containing TripEmhassSensor instance
+    - Assert function returns True
+    - Current: async_create_trip_emhass_sensor function does not exist yet
+    - Test must FAIL to confirm the feature doesn't exist
+    """
+    from custom_components.ev_trip_planner.const import DOMAIN
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from custom_components.ev_trip_planner.sensor import TripEmhassSensor
+
+    # Create mock coordinator
+    mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "emhass_index": 2,
+                "kwh_needed": 7.4,
+            }
+        }
+    }
+
+    # Create mock runtime_data with async_add_entities callback
+    mock_add_entities = AsyncMock()
+    mock_runtime_data = MagicMock()
+    mock_runtime_data.sensor_async_add_entities = mock_add_entities
+
+    # Mock ConfigEntry and entity_platform
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    mock_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Set up entry.runtime_data for the function to access
+    mock_entry.runtime_data = mock_runtime_data
+
+    # Patch the config_entries.async_get_entry method on the hass object
+    with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry):
+        # Import and call the function
+        from custom_components.ev_trip_planner.sensor import async_create_trip_emhass_sensor
+
+        result = await async_create_trip_emhass_sensor(
+            hass, mock_entry.entry_id, mock_coordinator, "test_vehicle", "trip_001"
+        )
+
+        # Assert callback was called with TripEmhassSensor instance
+        mock_add_entities.assert_called_once()
+        args, _ = mock_add_entities.call_args
+        sensors = args[0]
+
+        # Assert list contains TripEmhassSensor instance
+        assert len(sensors) == 1, (
+            f"async_add_entities should be called with 1 sensor, got {len(sensors)}"
+        )
+        assert isinstance(sensors[0], TripEmhassSensor), (
+            f"async_add_entities should be called with TripEmhassSensor instance, got {type(sensors[0])}"
+        )
+
+        # Assert function returns True
+        assert result is True, (
+            f"async_create_trip_emhass_sensor should return True, got {result}"
         )

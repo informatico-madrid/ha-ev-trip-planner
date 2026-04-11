@@ -182,7 +182,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per-trip params caching`
   - _Design: Component 1_
 
-- [x] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
+- [ ] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
   - **Do**:
     1. Add `_cached_per_trip_params: Dict[str, dict]` instance variable (init as `{}`)
     2. After enrichment loop in `publish_deferrable_loads`, iterate trips with index_map entries
@@ -194,13 +194,13 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): cache per-trip EMHASS params in publish_deferrable_loads`
   - _Design: Component 1_
 
-- [x] V2 [VERIFY] Quality checkpoint: per-trip params cache
+- [ ] V2 [VERIFY] Quality checkpoint: per-trip params cache
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
   - **Commit**: `chore(emhass): pass quality checkpoint after per-trip params cache`
 
-- [x] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
+- [ ] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
   - **Do**:
     1. Write test `test_get_cached_results_includes_per_trip_params` that populates `_cached_per_trip_params` then calls `get_cached_optimization_results()`
     2. Assert returned dict has key `per_trip_emhass_params` with same data
@@ -210,7 +210,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per_trip_emhass_params in cached results`
   - _Design: Component 1_
 
-- [x] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
+- [ ] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
   - **Do**:
     1. In `get_cached_optimization_results()`, add `"per_trip_emhass_params": self._cached_per_trip_params` to returned dict
   - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
@@ -219,7 +219,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): include per_trip_emhass_params in cached optimization results`
   - _Design: Component 1_
 
-- [x] 1.19 [RED/GREEN] inicio_ventana to timestep conversion edge cases
+- [ ] 1.19 [RED/GREEN] inicio_ventana to timestep conversion edge cases
   - **Do**: Tests pass because 1.16 implementation already has correct clamping
   - **Files**: tests/test_emhass_adapter.py
   - **Done when**: Tests pass
@@ -229,8 +229,8 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 - [ ] 1.20 [SKIP] No code change needed — clamping already correct
   - **Note**: Task 1.19 tests pass because implementation already clamps to [0, 168] range
 
-- [x] V2 [VERIFY] Quality checkpoint: per-trip cache
-- [x] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
+- [ ] V2 [VERIFY] Quality checkpoint: per-trip cache
+- [ ] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
   - **Do**: Run full adapter test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: 145 tests pass, ruff clean
@@ -244,7 +244,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 
 Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/test_trip_emhass_sensor.py` (SRP — separate from existing sensor tests).
 
-- [x] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
+- [ ] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
   - **Do**:
     1. In `tests/test_trip_emhass_sensor.py`, write test `test_trip_emhass_sensor_native_value` with stub coordinator.data containing `per_trip_emhass_params` with trip having `emhass_index=2`
     2. Assert `sensor.native_value == 2`
@@ -254,7 +254,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor native_value`
   - _Requirements: FR-4, AC-2.1_
 
-- [x] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
+- [ ] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
   - **Do**:
     1. In `sensor.py`, add `TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)`
     2. `__init__(coordinator, vehicle_id, trip_id)` — set `_attr_unique_id = f"emhass_trip_{vehicle_id}_{trip_id}"`
@@ -265,7 +265,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): create TripEmhassSensor class with native_value`
   - _Requirements: FR-4, AC-2.1, AC-2.5_
 
-- [x] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+- [ ] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
   - **Do**:
     1. Write test `test_trip_emhass_sensor_attributes_all_9` with full params dict
     2. Assert attrs dict has keys: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`
@@ -276,7 +276,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor 9 attributes`
   - _Requirements: FR-4, AC-2.2_
 
-- [x] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
+- [ ] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
   - **Do**:
     1. Add `_get_params()` helper — reads `coordinator.data["per_trip_emhass_params"][self._trip_id]`
     2. Add `_zeroed_attributes()` — returns all 9 attrs with zeroed values
@@ -287,10 +287,10 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): implement TripEmhassSensor extra_state_attributes with 9 attrs`
   - _Requirements: FR-4, AC-2.2_
 
-- [x] 1.27 [RED/GREEN] `TripEmhassSensor` returns zeroed attributes when trip not found
+- [ ] 1.27 [RED/GREEN] `TripEmhassSensor` returns zeroed attributes when trip not found
   - **Do**: Test passes — 1.26's `_zeroed_attributes()` handles this case
 
-- [x] 1.28 [SKIP] No code change needed — zeroed fallback already implemented in 1.26
+- [ ] 1.28 [SKIP] No code change needed — zeroed fallback already implemented in 1.26
 
 - [ ] 1.29 [RED] Failing test: `TripEmhassSensor.device_info` uses vehicle_id identifiers
   - **Do**:

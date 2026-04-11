@@ -604,8 +604,9 @@ class EMHASSAdapter:
         if not hasattr(self, "_cached_per_trip_params"):
             self._cached_per_trip_params = {}
 
+        # FR-4: Cache per-trip EMHASS params with proper charging window computation
         for trip in trips:
-            trip_id = trip.get("trip_id")
+            trip_id = trip.get("id")
             if not trip_id:
                 continue
 
@@ -614,27 +615,62 @@ class EMHASSAdapter:
 
             # Calculate per-trip EMHASS parameters with all 10 keys
             kwh_needed = trip.get("kwh", 0.0)
-            deadline = trip.get("datetime")
+            deadline_str = trip.get("datetime")
 
-            # Calculate deferrable parameters using pure function
-            def_params = calc_deferrable_parameters(
-                trip=trip, power_kw=charging_power_kw, reference_dt=datetime.now()
+            if isinstance(deadline_str, str):
+                deadline_dt = datetime.fromisoformat(deadline_str)
+            else:
+                deadline_dt = deadline_str or datetime.now()
+
+            # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
+            # BUG 4 FIX: Use actual presence_monitor if available, else None (fallback to datetime.now)
+            soc_current = getattr(self, "_soc_cache", 0.0)  # Fallback if _get_current_soc not available
+            hora_regreso = None
+            if self._presence_monitor:
+                try:
+                    hora_regreso = self._presence_monitor.hora_regreso
+                except Exception:
+                    hora_regreso = None
+
+            # Create single-trip charging window to compute proper def_start_timestep
+            charging_windows = calculate_multi_trip_charging_windows(
+                trips=[(deadline_dt, trip)],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                duration_hours=6.0,
             )
+
+            # Extract def_start_timestep from charging window
+            def_start_timestep = 0
+            if charging_windows:
+                inicio_ventana = charging_windows[0].get("inicio_ventana")
+                if inicio_ventana:
+                    delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
+                    def_start_timestep = max(0, min(int(delta_hours), 168))
+
+            # Calculate def_end_timestep (hours from now to deadline)
+            hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
+            def_end_timestep = min(int(max(0, hours_available)), 168)
+
+            # Calculate other params
+            total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
+            power_watts = charging_power_kw * 1000
 
             # Calculate power profile for this trip
             power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
 
             # Store per-trip EMHASS parameters with all 10 required keys
             self._cached_per_trip_params[trip_id] = {
-                "def_total_hours": def_params.get("total_hours", 0.0),
-                "P_deferrable_nom": def_params.get("power_watts", 0.0),
-                "def_start_timestep": def_params.get("start_timestep", 0),
-                "def_end_timestep": def_params.get("end_timestep", 24),
+                "def_total_hours": round(total_hours, 2),
+                "P_deferrable_nom": round(power_watts, 0),
+                "def_start_timestep": def_start_timestep,
+                "def_end_timestep": def_end_timestep,
                 "power_profile_watts": power_profile,
                 "trip_id": trip_id,
                 "emhass_index": emhass_index,
                 "kwh_needed": kwh_needed,
-                "deadline": deadline,
+                "deadline": deadline_str,
                 "activo": True,
             }
 

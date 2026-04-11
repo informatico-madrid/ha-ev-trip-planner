@@ -585,6 +585,68 @@ async def async_remove_trip_sensor(
 
 
 # =============================================================================
+# async_create_trip_emhass_sensor — FR-5 (Task 1.32 GREEN)
+# =============================================================================
+
+
+async def async_create_trip_emhass_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    coordinator: TripPlannerCoordinator,
+    vehicle_id: str,
+    trip_id: str,
+) -> bool:
+    """Create a sensor entity for a trip's EMHASS parameters.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        coordinator: The TripPlannerCoordinator instance.
+        vehicle_id: The vehicle identifier.
+        trip_id: The trip identifier.
+
+    Returns:
+        True if sensor was created successfully.
+    """
+    _LOGGER.info(
+        "Creating EMHASS sensor for trip %s on vehicle %s", trip_id, vehicle_id
+    )
+
+    # Get entry and runtime_data
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if not entry:
+        _LOGGER.error("No entry found for entry_id %s", entry_id)
+        return False
+
+    runtime_data = entry.runtime_data
+    async_add_entities = runtime_data.sensor_async_add_entities
+
+    if not async_add_entities:
+        _LOGGER.error(
+            "No async_add_entities callback found for entry %s (platform not set up)",
+            entry_id,
+        )
+        return False
+
+    # Create the EMHASS sensor
+    try:
+        sensor = TripEmhassSensor(coordinator, vehicle_id, trip_id)
+        # Register via async_add_entities so entity appears in registry
+        result = async_add_entities([sensor], True)
+        if result is not None:
+            try:
+                await result
+            except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+                # Sync callback
+                pass  # pragma: no cover  # HA entity platform - sync callback error handling
+        _LOGGER.debug("EMHASS sensor created and registered for trip %s", trip_id)
+        return True
+    except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
+        _LOGGER.error("Failed to create EMHASS sensor for trip %s: %s", trip_id, err)
+        return False  # pragma: no cover  # HA entity platform - error return path
+
+
+# =============================================================================
 # TripEmhassSensor — New per-trip EMHASS sensor (Task 1.24 GREEN)
 # =============================================================================
 
@@ -617,7 +679,6 @@ class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         self._vehicle_id = vehicle_id
         self._trip_id = trip_id
         self._attr_unique_id = f"emhass_trip_{vehicle_id}_{trip_id}"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_has_entity_name = True
         self._attr_name = f"EMHASS Index for {trip_id}"
 
@@ -692,4 +753,21 @@ class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
             "emhass_index": -1,
             "kwh_needed": 0.0,
             "deadline": None,
+        }
+
+    @property
+    def device_info(self) -> Dict[str, Any] | None:
+        """Return device info for this sensor.
+
+        Uses device identifiers={(DOMAIN, vehicle_id)} to group
+        all TripEmhassSensor instances under the same vehicle device.
+
+        Returns:
+            Dict with 'identifiers' key containing {(DOMAIN, vehicle_id)},
+            or None if not configured.
+        """
+        from .const import DOMAIN
+
+        return {
+            "identifiers": {(DOMAIN, self._vehicle_id)},
         }
