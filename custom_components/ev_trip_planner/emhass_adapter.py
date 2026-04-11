@@ -94,6 +94,11 @@ class EMHASSAdapter:
         # FR-3.1: Store charging power for reactive updates
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
 
+        # Presence monitor helper for _get_hora_regreso
+        # Note: EMHASSAdapter doesn't have its own presence_monitor
+        # It should get this from trip_manager or vehicle_controller
+        self._presence_monitor = None
+
         _LOGGER.debug(
             "Created EMHASSAdapter for %s, %d indices, "
             "notification_service=%s, charging_power_kw=%.2f",

@@ -4579,18 +4579,31 @@ async def test_cached_per_trip_params_assignment(mock_store):
             f"_cached_per_trip_params should contain trip_001, got: {adapter._cached_per_trip_params.keys()}"
         )
 
-        # Verify the per_trip_emhass_params structure
+        # Verify the flat per-trip params structure (10 keys per spec 1.16)
         trip_params = adapter._cached_per_trip_params["trip_001"]
-        assert "per_trip_emhass_params" in trip_params, (
-            "per_trip_emhass_params should contain per_trip_emhass_params key"
+
+        # Verify all 10 required keys are present
+        expected_keys = {
+            "def_total_hours",
+            "P_deferrable_nom",
+            "def_start_timestep",
+            "def_end_timestep",
+            "power_profile_watts",
+            "trip_id",
+            "emhass_index",
+            "kwh_needed",
+            "deadline",
+            "activo",
+        }
+        actual_keys = set(trip_params.keys())
+        missing_keys = expected_keys - actual_keys
+        assert not missing_keys, (
+            f"Missing required keys: {missing_keys}. Got: {actual_keys}"
         )
 
         # Verify emhass_index was cached
-        assert "emhass_index" in trip_params["per_trip_emhass_params"], (
-            "per_trip_emhass_params should include emhass_index"
-        )
-        assert trip_params["per_trip_emhass_params"]["emhass_index"] == mock_index, (
-            f"emhass_index should be {mock_index}, got {trip_params['per_trip_emhass_params'].get('emhass_index')}"
+        assert trip_params["emhass_index"] == mock_index, (
+            f"emhass_index should be {mock_index}, got {trip_params.get('emhass_index')}"
         )
 
 
