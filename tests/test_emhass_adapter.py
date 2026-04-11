@@ -4071,3 +4071,53 @@ async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
         # Punctual trip should pass through unchanged
         assert len(adapter._published_trips) == 1
         assert adapter._published_trips[0]["datetime"] == "2026-04-15T10:00"
+
+
+# =============================================================================
+# GAP #5 HOTFIX TESTS: Options-first read for charging_power_kw
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_update_charging_power_reads_options_first(hass, mock_store):
+    """update_charging_power reads entry.options first, NOT entry.data.
+
+    This is the RED test for Gap #5 hotfix:
+    - entry.options = {"charging_power_kw": 3.6}
+    - entry.data = {"charging_power_kw": 11}
+    - Expected: adapter reads 3.6 (from options)
+    - Current buggy behavior: adapter reads 11 (from data only)
+    - Test MUST FAIL to confirm the bug exists
+
+    Requirements: FR-1, AC-1.1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create entry with options overriding data
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.options = {"charging_power_kw": 3.6}  # Options should take priority
+    entry.data = {"charging_power_kw": 11}  # Data fallback
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh = AsyncMock()
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Simulate config entry update
+        await adapter.update_charging_power()
+
+        # Should read 3.6 from options, but current code reads 11 from data
+        # This assertion should FAIL to confirm the bug
+        assert adapter._charging_power_kw == 3.6, (
+            f"Expected 3.6 from options, got {adapter._charging_power_kw} "
+            "— code must read from options first"
+        )
