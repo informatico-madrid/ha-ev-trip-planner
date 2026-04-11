@@ -4337,3 +4337,92 @@ async def test_empty_published_trips_guard(hass, mock_store):
             f"Expected 1 trip reloaded from trip_manager, got {len(adapter._published_trips)} "
             "— code must reload trips when _published_trips is empty"
         )
+
+
+# =============================================================================
+# Phase 1 (continued): Per-Trip Params Cache Tests
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_get_current_soc_reads_sensor(mock_store):
+    """_get_current_soc reads SOC from configured sensor.
+
+    This is the RED test for per-trip params cache:
+    - config has soc_sensor="sensor.estimated_soc"
+    - hass.states.get returns state with state="65.0"
+    - Expected: returns 65.0
+    - Current: method does not exist yet
+    - Test must FAIL to confirm the method doesn't exist
+
+    Design: Component 1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.data["soc_sensor"] = "sensor.estimated_soc"
+
+    # Setup hass.states.get to return SOC value
+    mock_soc_state = MagicMock()
+    mock_soc_state.state = "65.0"
+    hass = MagicMock()
+    hass.states.get = MagicMock(return_value=mock_soc_state)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # This method does not exist yet - test must FAIL
+        soc = await adapter._get_current_soc()
+
+        # Should return 65.0 from sensor
+        assert soc == 65.0, (
+            f"Expected 65.0 from sensor, got {soc} "
+            "— _get_current_soc method should read from configured sensor"
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_current_soc_sensor_unavailable(mock_store):
+    """_get_current_soc returns 0.0 when sensor is unavailable.
+
+    This is a GREEN test for the SOC sensor unavailable case:
+    - config has soc_sensor="sensor.estimated_soc"
+    - hass.states.get returns None (sensor unavailable)
+    - Expected: returns 0.0 as fallback
+
+    Design: Component 1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.data["soc_sensor"] = "sensor.estimated_soc"
+
+    # Setup hass.states.get to return None (sensor unavailable)
+    hass = MagicMock()
+    hass.states.get = MagicMock(return_value=None)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Method does not exist yet - test must FAIL
+        soc = await adapter._get_current_soc()
+
+        # Should return 0.0 as fallback
+        assert soc == 0.0, (
+            f"Expected 0.0 when sensor unavailable, got {soc}"
+        )
