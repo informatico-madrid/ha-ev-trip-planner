@@ -1104,6 +1104,72 @@ class TestGetCachedOptimizationResults:
 
 
 # =============================================================================
+# Task 1.17: per_trip_emhass_params in cached results
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_get_cached_results_includes_per_trip_params(mock_store):
+    """get_cached_optimization_results includes per_trip_emhass_params.
+
+    This is the RED test for task 1.17:
+    - Populates _cached_per_trip_params via publish_deferrable_loads
+    - Calls get_cached_optimization_results()
+    - Expects returned dict to have key 'per_trip_emhass_params'
+    - Current: get_cached_optimization_results doesn't include this key
+    - Test must FAIL to confirm the feature doesn't exist yet
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
+
+        # Mock async_publish_deferrable_load to return True
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock _index_map
+        adapter._index_map = {"trip_001": 5}
+
+        # Publish the trip
+        trip = {
+            "trip_id": "trip_001",
+            "kwh": 7.4,
+            "hora": "09:00",
+            "datetime": datetime(2026, 4, 11, 20, 0, 0).isoformat(),
+        }
+        await adapter.publish_deferrable_loads([trip])
+
+        # Get cached results
+        result = adapter.get_cached_optimization_results()
+
+        # This key should exist but doesn't yet (RED test)
+        assert "per_trip_emhass_params" in result, (
+            "get_cached_optimization_results should include 'per_trip_emhass_params' key "
+            "with the same data as _cached_per_trip_params"
+        )
+
+        # Verify the data matches
+        assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
+            "per_trip_emhass_params should match _cached_per_trip_params"
+        )
+
+
+# =============================================================================
 # get_assigned_index and get_all_assigned_indices tests
 # =============================================================================
 
