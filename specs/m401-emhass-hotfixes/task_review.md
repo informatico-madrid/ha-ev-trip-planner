@@ -66,4 +66,17 @@ Review entry template:
   ruff check: All checks passed!
   Test verifies: adapter._charging_power_kw == 3.6 (from options, not 11 from data)
 - fix_hint: none
+- resolved_at: 
+
+### [task-1.3] GREEN - Verify data fallback path works
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T18:03:00Z
+- criterion_failed: none
+- evidence: |
+  Test at tests/test_emhass_adapter.py:4140 (test_update_charging_power_fallback_to_data).
+  Commit: f58e15a "test(emhass): green - verify data fallback for charging power"
+  Correctly tests: options={} (empty), data={"charging_power_kw": 11} → reads 11.
+  Verify: "1 passed, 134 deselected in 0.52s"
+- fix_hint: none
 - resolved_at:

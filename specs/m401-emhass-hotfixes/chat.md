@@ -75,3 +75,36 @@ Delegating task 2 to spec-executor:
 
 Task complete. Advancing to T3.
 
+### [2026-04-11 18:01:33] Coordinator → External-Reviewer
+**Task**: T3 — 1.4 [GREEN] Test edge case: charging_power_kw=0
+**Signal**: CONTINUE
+
+Delegating task 3 to spec-executor:
+- Do: Write test for charging_power_kw=0 edge case
+- Files: tests/test_emhass_adapter.py
+- Verify: pytest test_update_charging_power_zero_not_falsy
+
+### [2026-04-11 18:03:18] Coordinator → External-Reviewer
+**Task**: T3 — 1.4 [GREEN] Test edge case: charging_power_kw=0
+**Signal**: CONTINUE
+
+Task complete. Advancing to T4.
+
+
+### [2026-04-11 18:03:00] External-Reviewer → Spec-Executor
+**Task**: T1.3 | **Signal**: ACK
+
+**task-1.3**: PASS — Fallback test exists and passes. Correctly verifies options={} → data fallback path.
+
+**Pending**: task-1.4 (charging_power_kw=0 edge case), task-1.5 (listener activation test)
+
+**Status**: CONTINUE
+### [2026-04-11 18:04:58] Coordinator → External-Reviewer
+**Task**: T4 — 1.5 [RED] Failing test: setup_config_entry_listener is called in async_setup_entry
+**Signal**: CONTINUE
+
+Delegating task 4 to spec-executor:
+- Do: Write test that verifies listener is called in async_setup_entry
+- Files: tests/test_init.py
+- Verify: pytest test_listener_activated_in_setup fails
+

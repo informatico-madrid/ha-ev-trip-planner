@@ -1184,3 +1184,72 @@ class TestAsyncRemoveEntry:
 
             # Verify async_remove_entry_cleanup was called with correct arguments
             mock_cleanup.assert_called_once_with(mock_hass, entry)
+
+
+# =============================================================================
+# GAP #5 HOTFIX TESTS: Config entry listener activation
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_listener_activated_in_setup(mock_hass):
+    """setup_config_entry_listener is called in async_setup_entry.
+
+    This is the RED test for Gap #5 hotfix:
+    - The listener should be set up after adapter creation
+    - Currently the listener activation code is not yet added to __init__.py
+    - Test must FAIL to confirm the bug exists
+
+    Requirements: FR-2, AC-1.2
+    """
+    from custom_components.ev_trip_planner import async_setup_entry
+
+    # Create a mock config entry
+    entry = MagicMock()
+    entry.entry_id = "test_listener_entry"
+    entry.data = {
+        "vehicle_name": "Test Vehicle",
+        "max_deferrable_loads": 50,
+        "charging_power_kw": 7.4,
+    }
+    entry.options = {}
+
+    # Create mock coordinator
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "recurring_trips": {},
+        "punctual_trips": {},
+        "kwh_today": 0.0,
+        "hours_today": 0.0,
+    }
+    mock_coordinator.async_refresh = AsyncMock()
+
+    # Setup: Add runtime_data to entry
+    entry.runtime_data = MagicMock()
+    entry.runtime_data.coordinator = mock_coordinator
+
+    # Mock Store
+    mock_store = MagicMock()
+    mock_store.async_load = AsyncMock(return_value={})
+    mock_store.async_save = AsyncMock()
+
+    # Patch EMHASSAdapter and setup_config_entry_listener
+    with patch(
+        "custom_components.ev_trip_planner.Store",
+        return_value=mock_store,
+    ), patch(
+        "custom_components.ev_trip_planner.EMHASSAdapter",
+    ) as MockAdapter:
+        # Setup mock adapter
+        mock_adapter = MagicMock()
+        mock_adapter.async_load = AsyncMock()
+        MockAdapter.return_value = mock_adapter
+
+        # Call async_setup_entry
+        result = await async_setup_entry(mock_hass, entry)
+
+        # Assert setup_config_entry_listener was called on the adapter
+        # This assertion will FAIL until we add the listener activation code
+        mock_adapter.setup_config_entry_listener.assert_called_once(), (
+            "setup_config_entry_listener() should be called after adapter creation "
+            "in async_setup_entry"
+        )
