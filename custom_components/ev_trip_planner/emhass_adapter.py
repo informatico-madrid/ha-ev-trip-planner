@@ -41,16 +41,23 @@ class EMHASSAdapter:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         """Initialize adapter."""
         self.hass = hass
-        self._entry = entry if isinstance(entry, ConfigEntry) else None
+        # Always store entry (for _get_current_soc access to soc_sensor)
+        self._entry = entry
 
         # Handle both dict (backward compatibility for tests) and ConfigEntry
         if isinstance(entry, dict):
             self.entry_id = entry.get("vehicle_name", "unknown")
             self._entry_dict = entry  # Keep dict for _get_current_soc
             entry_data = entry
-        else:
+        elif hasattr(entry, "data"):
+            # ConfigEntry or MockConfigEntry with data attribute
             self.entry_id = entry.entry_id
+            self._entry_dict = entry.data  # Keep dict for _get_current_soc
             entry_data = entry.data
+        else:
+            # Fallback
+            self.entry_id = getattr(entry, "entry_id", "unknown")
+            entry_data = entry
 
         self.vehicle_id = entry_data.get(CONF_VEHICLE_NAME)
         self.max_deferrable_loads = entry_data.get(CONF_MAX_DEFERRABLE_LOADS, 50)
@@ -1373,11 +1380,15 @@ class EMHASSAdapter:
                 if trip_manager is not None:
                     all_trips = trip_manager.get_all_trips()
                     if all_trips:
+                        # Flatten dict: {"recurring": [...], "punctual": [...]} → list of trips
+                        all_trips_list = (
+                            all_trips.get("recurring", []) + all_trips.get("punctual", [])
+                        )
                         _LOGGER.info(
                             "Reloading %d trips from trip_manager for republish",
-                            len(all_trips),
+                            len(all_trips_list),
                         )
-                        self._published_trips = list(all_trips)
+                        self._published_trips = all_trips_list
 
         await self.update_charging_power()
 
@@ -1472,17 +1483,18 @@ class EMHASSAdapter:
         Component 1 helper for per-trip params cache.
 
         Returns:
-            SOC percentage as float, or None if sensor unavailable.
+            SOC percentage as float, or 0.0 if sensor unavailable.
         """
-        # Handle both dict (tests) and ConfigEntry
-        entry_data = getattr(self, "_entry_dict", None) or (
-            self._entry.data if self._entry else None
-        )
+        # Use stored dict for soc_sensor access (works for dict, ConfigEntry, MockConfigEntry)
+        entry_data = getattr(self, "_entry_dict", None)
+        if not entry_data:
+            _LOGGER.warning("No entry data available for %s", self.vehicle_id)
+            return 0.0
 
         soc_sensor = entry_data.get("soc_sensor") if entry_data else None
         if not soc_sensor:
             _LOGGER.warning("soc_sensor not configured for %s", self.vehicle_id)
-            return None
+            return 0.0
 
         state = self.hass.states.get(soc_sensor)
         if state is None:
@@ -1498,4 +1510,4 @@ class EMHASSAdapter:
                 state.state,
                 e,
             )
-            return None
+            return 0.0

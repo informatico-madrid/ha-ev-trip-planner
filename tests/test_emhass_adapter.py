@@ -4295,17 +4295,21 @@ async def test_empty_published_trips_guard(hass, mock_store):
     mock_entry.entry_id = entry.entry_id
 
     # Mock coordinator with trip_manager that has trips
+    # Real API: get_all_trips() returns {"recurring": [...], "punctual": [...]}
     mock_trip_manager = MagicMock()
-    mock_trip_manager.get_all_trips = MagicMock(return_value=[
-        {
-            "id": "trip_001",
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "kwh": 20,
-            "activo": True,
-        }
-    ])
+    mock_trip_manager.get_all_trips = MagicMock(return_value={
+        "recurring": [
+            {
+                "id": "trip_001",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "kwh": 20,
+                "activo": True,
+            }
+        ],
+        "punctual": [],
+    })
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_refresh = AsyncMock()
