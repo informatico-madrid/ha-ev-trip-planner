@@ -13,16 +13,16 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+from .coordinator import TripPlannerCoordinator
 from .dashboard import DashboardImportResult
 from .trip_manager import TripManager
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 # Type alias for coordinator
-CoordinatorType = DataUpdateCoordinator[dict[str, Any]]
+CoordinatorType = TripPlannerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1131,7 +1131,7 @@ async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> N
             "=== async_cleanup_stale_storage - Checking for stale storage: %s ===",
             cleanup_key,
         )
-        cleanup_store = ha_storage.Store(hass, version=1, key=cleanup_key)
+        cleanup_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=cleanup_key)
         existing_data = await cleanup_store.async_load()
         if existing_data:
             _LOGGER.warning(
@@ -1289,9 +1289,9 @@ async def async_register_static_paths(
                     try:
                         if isinstance(path_spec, tuple):
                             url_path, file_path, _ = path_spec
-                            hass.http.register_static_path(url_path, file_path)
+                            hass.http.register_static_path(url_path, file_path)  # type: ignore[attr-defined]  # HA HTTP extension method
                         else:
-                            hass.http.register_static_path(
+                            hass.http.register_static_path(  # type: ignore[attr-defined]  # HA HTTP extension method
                                 path_spec.url_path, path_spec.path
                             )
                     except RuntimeError as path_err:  # pragma: no cover — HA infrastructure error path
@@ -1432,7 +1432,7 @@ async def async_unload_entry_cleanup(
         if entity_registry is None:
             entity_registry = er.async_get(hass)
         # Use the registry's async_entries_for_config_entry method directly
-        for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):
+        for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):  # type: ignore[union-attr]  # Checked None above
             # EntityRegistry.async_remove is NOT async - returns None
             # See: homeassistant/helpers/entity_registry.py
             entity_registry.async_remove(entity_entry.entity_id)
@@ -1478,7 +1478,7 @@ async def async_remove_entry_cleanup(
         from homeassistant.helpers import storage as ha_storage
 
         storage_key = f"{DOMAIN}_{vehicle_id}"
-        store = ha_storage.Store(hass, version=1, key=storage_key)
+        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
         try:
             await store.async_remove()
         except Exception as store_err:

@@ -800,7 +800,7 @@ async def _save_lovelace_dashboard(
             # Get current lovelace config using Store API
             _LOGGER.info("Reading current Lovelace config from storage")
 
-            store = ha_storage.Store(
+            store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
                 hass,
                 version=1,
                 key="lovelace",
@@ -852,7 +852,7 @@ async def _save_lovelace_dashboard(
                 _LOGGER.info("Writing dashboard config to storage: lovelace")
 
                 # Use HA's official Store API for persistence
-                store = ha_storage.Store(
+                store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
                     hass,
                     version=1,
                     key="lovelace",
@@ -956,7 +956,7 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
         from homeassistant.helpers import storage as ha_storage
 
         # Try to create a test store to verify it works
-        test_store = ha_storage.Store(
+        test_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
             hass,
             version=1,
             key="test_storage_check",

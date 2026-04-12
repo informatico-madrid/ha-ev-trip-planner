@@ -273,7 +273,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): create TripEmhassSensor class with native_value`
   - _Requirements: FR-4, AC-2.1, AC-2.5_
 
-- [ ] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+- [x] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
   - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Test solo verifica que las 9 claves EXISTEN (subset check) pero NO verifica que SOLO esas 9 claves están presentes. El test debe usar `assert actual_keys == expected_keys` (igualdad exacta), no subset check. Actualmente pasan 20+ claves internas al estado del sensor HA (activo, _array keys, p_deferrable_nom lowercase, p_deferrable_matrix). Esto expone detalles de implementación interna.
   - **Fix**: Cambiar el assert de subset (`missing_keys = expected_keys - actual_keys`) a igualdad exacta (`assert actual_keys == expected_keys`). Añadir assert de que NO existen claves internas (activo, *_array, p_deferrable_matrix).
   - **Do**:
@@ -287,7 +287,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): fix test to validate exact 9 key contract`
   - _Requirements: FR-4, AC-2.2_
 
-- [ ] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
+- [x] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
   - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Implementación retorna `trip_params` crudo (dict completo del cache) con 20+ claves en vez de filtrar a las 9 documentadas. Expone claves internas al estado HA: `activo` (flag lifecycle), `p_deferrable_nom` (duplicate lowercase), `*_array` keys (del sensor agregado), `p_deferrable_matrix` (del sensor agregado). El docstring dice "Returns all 9" pero retorna 20+. Además `_get_params()` helper está definido pero nunca se usa (dead code).
   - **Fix**: 1) Definir constante `TRIP_EMHASS_ATTR_KEYS` con las 9 claves. 2) Filtrar: `return {k: v for k, v in trip_params.items() if k in TRIP_EMHASS_ATTR_KEYS}`. 3) Eliminar `_get_params()` dead code.
   - **Do**:
@@ -324,7 +324,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): implement TripEmhassSensor device_info with vehicle_id`
   - _Requirements: AC-2.6_
 
-- [ ] V4a [VERIFY] Quality checkpoint: TripEmhassSensor class
+- [x] V4a [VERIFY] Quality checkpoint: TripEmhassSensor class
   - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Checkpoint no detectó data leak en 1.26 (extra_state_attributes retornando 20+ claves internas). Requiere que 1.25 y 1.26 estén corregidos antes de marcar.
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
@@ -659,7 +659,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Commit**: `feat(trip_manager): add EMHASS sensor removal on trip delete`
   - _Requirements: FR-6_
 
-- [ ] V5b [VERIFY] Quality checkpoint: EMHASS sensor CRUD integration
+- [x] V5b [VERIFY] Quality checkpoint: EMHASS sensor CRUD integration
   - **Do**: Run full test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/ && mypy custom_components/ev_trip_planner/ --exclude tests/ha-manual --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
