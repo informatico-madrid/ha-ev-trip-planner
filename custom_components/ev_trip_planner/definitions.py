@@ -3,8 +3,11 @@
 Contains TripSensorEntityDescription dataclass and TRIP_SENSORS tuple.
 """
 
-from dataclasses import dataclass
-from typing import Any, Callable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from homeassistant.components.sensor import SensorEntityDescription
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -34,10 +37,10 @@ class TripSensorEntityDescription(SensorEntityDescription):
     custom fields for trip data processing.
     """
 
-    value_fn: Callable[[dict], Any] = lambda data: None
-    attrs_fn: Callable[[dict], dict] = default_attrs_fn
+    value_fn: Callable[[dict], Any] = field(default_factory=lambda: lambda data: None)
+    attrs_fn: Callable[[dict], dict] = field(default_factory=lambda: default_attrs_fn)
     restore: bool = False
-    exists_fn: Callable[[dict], bool] = lambda _: True
+    exists_fn: Callable[[dict], bool] = field(default_factory=lambda: lambda _: True)
 
 
 TRIP_SENSORS = (

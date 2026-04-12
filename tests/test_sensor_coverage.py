@@ -7,9 +7,96 @@ async_setup_entry error paths, and helper function edge cases.
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
+
+# =============================================================================
+# sensor.py - EmhassDeferrableLoadSensor p_deferrable_matrix attribute
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_aggregated_sensor_matrix():
+    """EmhassDeferrableLoadSensor.extra_state_attributes includes p_deferrable_matrix.
+
+    This is the RED test for task 1.39:
+    - Create stub coordinator.data with per_trip_emhass_params containing 2 active trips
+    - Each trip has p_deferrable_matrix with 168 elements
+    - Assert extra_state_attributes["p_deferrable_matrix"] is list[list[float]] with 2 rows
+    - Current: p_deferrable_matrix not yet implemented in EmhassDeferrableLoadSensor
+    - Test must FAIL to confirm the feature doesn't exist
+    """
+    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+    from homeassistant.const import UnitOfPower
+
+    # Create stub coordinator.data with 2 active trips
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "p_deferrable_matrix": [[1.0] * 168],
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [1.5],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,
+            },
+            "trip_002": {
+                "p_deferrable_matrix": [[2.0] * 168],
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [12.0],
+                "p_deferrable_nom_array": [2.0],
+                "def_start_timestep_array": [8],
+                "def_end_timestep_array": [168],
+                "activo": True,
+            },
+        }
+    }
+
+    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    desc = MagicMock(
+        key="emhass_deferrable_loads",
+        name="EMHASS Deferrable Loads",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lightning-bolt",
+    )
+
+    mock_coordinator.vehicle_id = "test_vehicle"
+
+    sensor = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
+    sensor.entity_description = desc
+
+    # This will fail because p_deferrable_matrix is not yet implemented
+    attrs = sensor.extra_state_attributes
+
+    # Assert p_deferrable_matrix is present
+    assert "p_deferrable_matrix" in attrs, (
+        f"p_deferrable_matrix should be in extra_state_attributes, got keys: {attrs.keys()}"
+    )
+
+    # Assert matrix has 2 rows (2 active trips)
+    matrix = attrs["p_deferrable_matrix"]
+    assert isinstance(matrix, list), (
+        f"p_deferrable_matrix should be a list, got {type(matrix)}"
+    )
+    assert len(matrix) == 2, (
+        f"p_deferrable_matrix should have 2 rows (2 active trips), got {len(matrix)}"
+    )
+
+    # Assert each row has 168 elements (24 hours * 7)
+    for row in matrix:
+        assert isinstance(row, list), (
+            f"Each row in p_deferrable_matrix should be a list, got {type(row)}"
+        )
+        assert len(row) == 168, (
+            f"Each row should have 168 elements (24h * 7), got {len(row)}"
+        )
 
 
 # =============================================================================

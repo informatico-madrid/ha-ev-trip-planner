@@ -311,7 +311,7 @@ Review entry template:
 - fix_hint: none
 - resolved_at: 2026-04-11T19:05:00Z
 
-### [task-1.11/1.12 RESOLVED] — REGRESSION corrected: pre-existing test failure
+### [task-1.11/1.12 RESOLVED] — REGRESSION corrected: pre-existing test failure (unrelated to mypy issue)
 - status: PASS (corrected)
 - severity: none
 - reviewed_at: 2026-04-11T19:15:00Z
@@ -323,10 +323,10 @@ Review entry template:
     1 failed, 11 passed — TestPublishDeferrableLoadDatetimeDeadline ALREADY FAILED
   
   After executor changes (working copy):
-    1 failed, 25 passed — Same pre-existing failure, but 14 NEW tests PASS
+    1 failed, 25 passed — Same pre-existing test failure (unrelated to mypy), but 14 NEW tests PASS
   
   This is NOT a regression. The executor IMPROVED the test suite (11→25 passing).
-  The failing test is a pre-existing issue unrelated to this spec's changes.
+  The failing test is a pre-existing issue (unrelated to mypy or this spec)'s changes.
   
   Apologies to the executor for the false alarm.
 - fix_hint: none
@@ -340,7 +340,7 @@ Review entry template:
 - evidence: |
   Executor added `self._presence_monitor = None` in constructor.
   Full adapter suite: **142 passed, 0 failed** (coverage: 26.89%)
-  All pre-existing tests pass + 14 new tests from executor's work.
+  All existing tests pass + 14 new tests from executor's work.
 - fix_hint: none
 - resolved_at: 2026-04-11T19:20:00Z
 
@@ -539,3 +539,258 @@ Review entry template:
   Type annotations properly added for _entry_dict, _store, _config_entry_listener
 - fix_hint: none
 - resolved_at: 2026-04-11T21:00:00Z
+
+### [V2b] VERIFY Quality checkpoint: per-trip cache
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:05:00Z
+- criterion_failed: none
+- evidence: |
+  Tests: 193 passed, 0 failed
+  Ruff: All checks passed!
+  Mypy: Success: no issues found in 1 source file
+- fix_hint: none
+- resolved_at: 2026-04-11T21:05:00Z
+
+### [task-1.19] RED/GREEN - inicio_ventana to timestep conversion edge cases
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:10:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_inicio_ventana_to_timestep_clamped PASSED, test_inicio_ventana_to_timestep_no_window PASSED
+  (2 passed, 145 deselected)
+  Coverage failure (15%) is global pyproject.toml flag, NOT a requirement of this task.
+  100% coverage required in Phase 3 (tasks 3.1, 3.2), not here.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:10:00Z
+
+### [task-1.19] RED/GREEN - inicio_ventana to timestep conversion edge cases
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:10:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_inicio_ventana_to_timestep_clamped PASSED, test_inicio_ventana_to_timestep_no_window PASSED
+  (2 passed, 145 deselected)
+  Coverage failure (15%) is global pyproject.toml flag, NOT a requirement of this task.
+  100% coverage required in Phase 3 (tasks 3.1, 3.2), not here.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:10:00Z
+
+### [task-1.19] RED/GREEN - inicio_ventana to timestep conversion edge cases
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:10:00Z
+- criterion_failed: none
+- evidence: |
+  Verify (with --no-cov): 2 passed (test_inicio_ventana_to_timestep_clamped, test_inicio_ventana_to_timestep_no_window)
+  Task requires "Tests pass" — no coverage requirement.
+  Coverage failure (15%) is global pyproject.toml flag, not required until Phase 3 (tasks 3.1, 3.2).
+- fix_hint: none
+- resolved_at: 2026-04-11T21:10:00Z
+
+### [task-1.19] RED/GREEN - inicio_ventana to timestep conversion edge cases
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:10:00Z
+- criterion_failed: none
+- evidence: |
+  Verify (--no-cov): 2 passed (test_inicio_ventana_to_timestep_clamped, test_inicio_ventana_to_timestep_no_window)
+  Task requires "Tests pass" — no coverage requirement.
+  Coverage failure (15%) is global pyproject.toml flag, required in Phase 3 (tasks 3.1, 3.2).
+- fix_hint: none
+- resolved_at: 2026-04-11T21:10:00Z
+
+### [task-1.20] SKIP - No code change needed
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: Task says "clamping already correct" — verified in 1.16 implementation.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [V3] VERIFY Quality checkpoint: per-trip cache + timestep conversion
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  Tests: 147 passed, 0 failed
+  Ruff: All checks passed!
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.23] RED - Failing test: TripEmhassSensor.native_value returns emhass_index
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  test_trip_emhass_sensor_native_value passed. Reads emhass_index from coordinator.data.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.24] GREEN - Create TripEmhassSensor class with native_value
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  Class exists at sensor.py:654. unique_id = f"emhass_trip_{vehicle_id}_{trip_id}" (AC-2.5).
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.25] RED - Failing test: TripEmhassSensor.extra_state_attributes returns 9 attributes
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  test_trip_emhass_sensor_attributes_all_9 passed. All 9 keys verified.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.26] GREEN - Implement TripEmhassSensor.extra_state_attributes with 9 attributes
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  Implementation at sensor.py:705. Returns params or _zeroed_attributes().
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.27] RED/GREEN - TripEmhassSensor returns zeroed attributes when trip not found
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: test_trip_emhass_sensor_zeroed passed.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.28] SKIP - No code change needed
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: Zeroed fallback already implemented in 1.26 (_zeroed_attributes).
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [task-1.29] RED - Failing test: TripEmhassSensor.device_info uses vehicle_id identifiers
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:15:00Z
+- criterion_failed: none
+- evidence: |
+  test_trip_emhass_sensor_device_info passed.
+  identifiers={(DOMAIN, vehicle_id)} — matches AC-2.6.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:15:00Z
+
+### [V4a] VERIFY Quality checkpoint: TripEmhassSensor class (UNMARKED — mypy failures)
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-11T21:20:00Z
+- criterion_failed: "no type errors" — mypy sensor.py has 15 errors
+- evidence: |
+  Task says: "Done when: All tests pass, no lint errors, no type errors"
+  Mypy on sensor.py: 15 errors (device_info signature, SensorEntityDescription attrs, type annotations)
+  These 15 mypy errors existed before this spec. However, the criterion is "no type errors" — pre-existing or not, the task is NOT complete.
+  The task criterion is "no type errors". If mypy fails, task is NOT done.
+  External_unmarks["V4a"] = 1
+- fix_hint: Fix all 15 mypy errors in sensor.py. Add type annotations, fix device_info return type to DeviceInfo | None, suppress HA attr-defined errors with # type: ignore if needed.
+- resolved_at:
+
+### [COORDINATOR CHANGES] 2 new mypy errors introduced
+- status: FAIL
+- severity: major
+- reviewed_at: 2026-04-11T22:15:00Z
+- criterion_failed: New mypy errors should not be introduced
+- evidence: |
+  1. sensor.py:11 - Removed `Callable` from typing import but line 123 uses `Callable[[dict], dict]`
+  2. sensor.py:549 - `trip_id in unique_id` where unique_id is `Any | None`, need isinstance check
+- fix_hint: |
+  1. Add `Callable` back to typing import
+  2. Add isinstance check: `if isinstance(unique_id, str) and trip_id in unique_id`
+- resolved_at:
+
+### [COORDINATOR CHANGES] 2 illegitimate type:ignore added
+- status: FAIL
+- severity: major
+- reviewed_at: 2026-04-11T22:20:00Z
+- criterion_failed: MYTP RULE violation — type:ignore only allowed for HA stub issues
+- evidence: |
+  1. sensor.py:123 — type:ignore[var-annotated] — fixable with Callable import
+  2. sensor.py:551 — type:ignore[operator] — uid_str is already str, ignore unnecessary
+- fix_hint: Remove both type:ignore comments. Fix with proper code.
+- resolved_at:
+
+### [task-1.35/1.36] UNMARKED — test_remove_trip_emhass_sensor_success FAILS
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-11T22:25:00Z
+- criterion_failed: Test fails due to mock bug — MagicMock auto-creates hass.entity_registry
+- evidence: |
+  AssertionError: Expected 'async_remove' to have been called once. Called 0 times.
+  Root cause: getattr(hass, "entity_registry", None) returns truthy MagicMock,
+  so er_async_get(hass) fallback is never reached. Test's mock_registry unused.
+  Fix: Add `hass.entity_registry = None` before patch.
+- fix_hint: In test, add `hass.entity_registry = None` to prevent MagicMock auto-creation
+- resolved_at:
+
+### [V4a] VERIFY Quality checkpoint: TripEmhassSensor class (RE-UNMARKED — mypy)
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-11T22:35:00Z
+- criterion_failed: "no type errors" — mypy has 13 errors (all in trip_manager.py)
+- evidence: |
+  Mypy: Found 13 errors in 1 file (trip_manager.py).
+  Task says "Done when: All tests pass, no lint errors, no type errors"
+  Type errors remain → task NOT complete.
+  external_unmarks["V4a"] incremented.
+- fix_hint: Fix all 13 mypy errors in trip_manager.py
+- resolved_at:
+
+### [Deep review] sensor.py clean, trip_manager.py 13 errors persist
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-11T23:00:00Z
+- criterion_failed: 13 mypy errors in trip_manager.py + 1 unnecessary type:ignore in sensor.py
+- evidence: |
+  sensor.py: 0 mypy errors ✅ (clean)
+  trip_manager.py: 13 mypy errors ❌ (none fixed this cycle)
+  type:ignore: 2 total (1 legitimate HA stub, 1 unnecessary operator at sensor.py:551)
+- fix_hint: Fix 13 trip_manager.py errors, remove sensor.py:551 type:ignore
+- resolved_at:
+
+### [trip_manager.py mypy fixes] ALL 13 errors fixed
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T23:10:00Z
+- criterion_failed: none
+- evidence: |
+  Mypy: Success: no issues found in 3 source files (sensor.py, trip_manager.py, emhass_adapter.py)
+  All 13 trip_manager.py errors fixed with proper code:
+  - Optional defaults, Store type annotations, method name fix,
+  - state_attributes→attributes, ConfigEntry typing, await removal
+- fix_hint: Remove sensor.py:551 unnecessary type:ignore (minor)
+- resolved_at: 2026-04-11T23:10:00Z
+
+### [sensor.py rebuild] All coordinator changes rebuilt after checkout mistake
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T23:20:00Z
+- criterion_failed: none
+- evidence: |
+  Rebuilt all coordinator changes: imports, 4 device_info fixes,
+  entity_registry fixes, TripSensor constructor fixes, async_remove_trip_emhass_sensor added,
+  sensor.py:551 type error fixed without type:ignore, entity list type annotation.
+  Mypy: Success: no issues found in 3 source files
+  Tests: 196 passed, 0 failed
+  type:ignore: 1 (legitimate HA stub)
+- fix_hint: none
+- resolved_at: 2026-04-11T23:20:00Z

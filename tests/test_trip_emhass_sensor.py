@@ -304,6 +304,64 @@ async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
+async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistant):
+    """async_create_trip_emhass_sensor returns False when entry not found.
+
+    This is the RED test for task 1.33:
+    - Call async_create_trip_emhass_sensor with non-existent entry_id
+    - Assert returns False
+    - Assert callback NOT called
+    - Current: Function exists with entry lookup guard (task 1.32)
+    - Test should PASS if guard is implemented
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from custom_components.ev_trip_planner.sensor import TripEmhassSensor
+
+    # Create mock coordinator
+    mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "emhass_index": 2,
+                "kwh_needed": 7.4,
+            }
+        }
+    }
+
+    # Create mock runtime_data with async_add_entities callback
+    mock_add_entities = AsyncMock()
+    mock_runtime_data = MagicMock()
+    mock_runtime_data.sensor_async_add_entities = mock_add_entities
+
+    # Mock ConfigEntry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    mock_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+    mock_entry.runtime_data = mock_runtime_data
+
+    # Patch async_get_entry to return None (entry not found)
+    with patch.object(hass.config_entries, "async_get_entry", return_value=None):
+        # Import and call the function
+        from custom_components.ev_trip_planner.sensor import async_create_trip_emhass_sensor
+
+        result = await async_create_trip_emhass_sensor(
+            hass, "nonexistent_entry", mock_coordinator, "test_vehicle", "trip_001"
+        )
+
+        # Assert callback was NOT called
+        mock_add_entities.assert_not_called()
+
+        # Assert function returns False
+        assert result is False, (
+            f"async_create_trip_emhass_sensor should return False when entry not found, got {result}"
+        )
+
+
+@pytest.mark.asyncio
 async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant):
     """async_create_trip_emhass_sensor calls async_add_entities with TripEmhassSensor.
 
@@ -372,4 +430,118 @@ async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
         # Assert function returns True
         assert result is True, (
             f"async_create_trip_emhass_sensor should return True, got {result}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant):
+    """async_remove_trip_emhass_sensor removes from entity registry.
+
+    This is the RED test for task 1.35:
+    - Create mock entity_registry with matching entry
+    - Call async_remove_trip_emhass_sensor
+    - Assert registry.async_remove called with correct entity_id
+    - Assert returns True
+    - Current: async_remove_trip_emhass_sensor function does not exist yet
+    - Test must FAIL to confirm the feature doesn't exist
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from homeassistant.helpers import entity_registry as er
+
+    # Create mock coordinator
+    mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "emhass_index": 2,
+                "kwh_needed": 7.4,
+            }
+        }
+    }
+
+    # Create mock entry in entity registry using a simple class
+    class MockRegEntry:
+        entity_id = "sensor.emhass_params_trip_001_test_entry"
+        unique_id = "emhass_params_trip_001_test_entry"
+
+    mock_reg_entry = MockRegEntry()
+
+    mock_registry = MagicMock()
+    mock_registry.async_remove = MagicMock(return_value=None)
+
+    # Mock ConfigEntry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    mock_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry), \
+         patch.object(hass, "entity_registry", mock_registry), \
+         patch("custom_components.ev_trip_planner.sensor.async_entries_for_config_entry", return_value=[mock_reg_entry]):
+        # Import and call the function
+        from custom_components.ev_trip_planner.sensor import async_remove_trip_emhass_sensor
+
+        result = await async_remove_trip_emhass_sensor(
+            hass, mock_entry.entry_id, "test_vehicle", "trip_001"
+        )
+
+        # Assert async_remove was called
+        mock_registry.async_remove.assert_called_once()
+        assert result is True, (
+            f"async_remove_trip_emhass_sensor should return True, got {result}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_remove_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistant):
+    """async_remove_trip_emhass_sensor returns False when sensor not found.
+
+    This is the RED test for task 1.37:
+    - Call async_remove_trip_emhass_sensor for non-existent sensor
+    - Assert returns False
+    - Current: Function may not exist or may not handle not-found case
+    - Test should PASS if error handling implemented
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+
+    # Create mock coordinator
+    mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "emhass_index": 2,
+                "kwh_needed": 7.4,
+            }
+        }
+    }
+
+    # Create empty entity registry
+    mock_registry = MagicMock()
+    mock_registry.async_remove = MagicMock(return_value=None)
+
+    # Mock ConfigEntry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry"
+    mock_entry.data = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry), \
+         patch.object(hass, "entity_registry", mock_registry), \
+         patch("custom_components.ev_trip_planner.sensor.async_entries_for_config_entry", return_value=[]):
+        # Import and call the function
+        from custom_components.ev_trip_planner.sensor import async_remove_trip_emhass_sensor
+
+        result = await async_remove_trip_emhass_sensor(
+            hass, mock_entry.entry_id, "test_vehicle", "nonexistent_trip"
+        )
+
+        # Assert returns False
+        assert result is False, (
+            f"async_remove_trip_emhass_sensor should return False when sensor not found, got {result}"
         )

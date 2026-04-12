@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
+
+if TYPE_CHECKING:
+    from homeassistant.helpers.device_registry import DeviceInfo
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -17,8 +20,13 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.entity_registry import (
+    EntityRegistry,
+    async_entries_for_config_entry,
+    async_get as er_async_get,
+)
+from homeassistant.helpers.entity import EntityCategory  # type: ignore[attr-defined]
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -92,7 +100,8 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor
         Restores state if restore=True and coordinator.data is None.
         """
         await super().async_added_to_hass()
-        if self.entity_description.restore and self.coordinator.data is None:
+        restore_val = getattr(self.entity_description, "restore", False)
+        if restore_val and self.coordinator.data is None:
             # Restore state from previous run
             last_state = await self.async_get_last_state()
             if last_state is not None:
@@ -103,25 +112,27 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor
         """Return sensor value via entity_description.value_fn."""
         if self.coordinator.data is None:
             return None
-        return self.entity_description.value_fn(self.coordinator.data)
+        value_fn = getattr(self.entity_description, "value_fn", lambda _: None)
+        return value_fn(self.coordinator.data)
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return attributes from coordinator.data via entity_description.attrs_fn."""
         if self.coordinator.data is None:
             return {}
-        return self.entity_description.attrs_fn(self.coordinator.data)
+        attrs_fn: Callable[[Dict[str, Any]], Dict[str, Any]] = getattr(self.entity_description, "attrs_fn", lambda _: {})
+        return attrs_fn(self.coordinator.data)
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> DeviceInfo | None:
         """Return device info for the vehicle."""
-        return {
-            "identifiers": {(DOMAIN, self._vehicle_id)},
-            "name": f"EV Trip Planner {self._vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-        }
+        return dr.DeviceInfo(
+            identifiers={(DOMAIN, self._vehicle_id)},
+            name=f"EV Trip Planner {self._vehicle_id}",
+            manufacturer="Home Assistant",
+            model="EV Trip Planner",
+            sw_version="2026.3.0",
+        )
 
 
 class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
@@ -179,20 +190,20 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         }
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> DeviceInfo | None:
         """Return device info.
 
         Returns device info using vehicle_id from coordinator.
         """
         vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
 
-        return {
-            "identifiers": {(DOMAIN, vehicle_id)},
-            "name": f"EV Trip Planner {vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-        }
+        return dr.DeviceInfo(
+            identifiers={(DOMAIN, vehicle_id)},
+            name=f"EV Trip Planner {vehicle_id}",
+            manufacturer="Home Assistant",
+            model="EV Trip Planner",
+            sw_version="2026.3.0",
+        )
 
     async def async_will_remove_from_hass(self) -> None:  # pragma: no cover  # HA entity lifecycle - entity removal triggers cleanup; tested via HA integration tests
         """Clean up when entity is removed from Home Assistant."""
@@ -277,16 +288,16 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         }
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> DeviceInfo | None:
         """Return device info for the trip sensor."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._vehicle_id}_{self._trip_id}")},
-            "name": f"Trip {self._trip_id} - {self._vehicle_id}",
-            "manufacturer": "Home Assistant",
-            "model": "EV Trip Planner",
-            "sw_version": "2026.3.0",
-            "via_device": (DOMAIN, self._vehicle_id),
-        }
+        return dr.DeviceInfo(
+            identifiers={(DOMAIN, f"{self._vehicle_id}_{self._trip_id}")},
+            name=f"Trip {self._trip_id} - {self._vehicle_id}",
+            manufacturer="Home Assistant",
+            model="EV Trip Planner",
+            sw_version="2026.3.0",
+            via_device=(DOMAIN, self._vehicle_id),
+        )
 
 
 async def async_setup_entry(
@@ -317,7 +328,7 @@ async def async_setup_entry(
     )
 
     # Filter sensors based on exists_fn (G-07.4)
-    entities = [
+    entities: list[SensorEntity] = [
         TripPlannerSensor(coordinator, vehicle_id, desc)
         for desc in TRIP_SENSORS
         if desc.exists_fn(coordinator.data)
@@ -326,7 +337,7 @@ async def async_setup_entry(
 
     # Create trip sensors for existing trips
     trip_sensors = await _async_create_trip_sensors(
-        hass, trip_manager, vehicle_id, entry_id
+        coordinator, trip_manager, vehicle_id, entry_id
     )
     entities.extend(trip_sensors)
 
@@ -353,7 +364,7 @@ async def async_setup_entry(
 
 
 async def _async_create_trip_sensors(
-    hass: HomeAssistant,
+    coordinator: TripPlannerCoordinator,
     trip_manager: Any,
     vehicle_id: str,
     entry_id: str,
@@ -361,7 +372,7 @@ async def _async_create_trip_sensors(
     """Create sensor entities for existing trips in the trip manager.
 
     Args:
-        hass: The Home Assistant instance.
+        coordinator: The TripPlannerCoordinator instance.
         trip_manager: The TripManager instance.
         vehicle_id: The vehicle identifier.
         entry_id: The config entry ID.
@@ -386,7 +397,7 @@ async def _async_create_trip_sensors(
         # Create sensors for recurring trips
         for trip_data in recurring_trips:  # pragma: no cover  # HA entity platform - loop creates sensors for all valid trips; no error means all succeed
             try:  # pragma: no cover  # HA entity platform - try block for sensor creation
-                sensor = TripSensor(hass, trip_manager, trip_data)
+                sensor = TripSensor(coordinator, vehicle_id, trip_data.get("id", ""))
                 entities.append(sensor)
                 _LOGGER.debug(  # pragma: no cover  # HA entity platform - debug logging for successful sensor creation
                     "Created trip sensor for recurring trip %s",
@@ -402,7 +413,7 @@ async def _async_create_trip_sensors(
         # Create sensors for punctual trips
         for trip_data in punctual_trips:
             try:
-                sensor = TripSensor(hass, trip_manager, trip_data)
+                sensor = TripSensor(coordinator, vehicle_id, trip_data.get("id", ""))
                 entities.append(sensor)
                 _LOGGER.debug(
                     "Created trip sensor for punctual trip %s",
@@ -447,7 +458,7 @@ async def async_create_trip_sensor(
     Returns:
         True if sensor was created successfully.
     """
-    trip_id = trip_data.get("id")
+    trip_id: str = trip_data.get("id") or ""
     trip_type = trip_data.get("tipo", "recurrente")
 
     _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
@@ -513,7 +524,7 @@ async def async_update_trip_sensor(
     Returns:
         True if sensor was updated successfully.
     """
-    trip_id = trip_data.get("id")
+    trip_id: str = trip_data.get("id") or ""
 
     _LOGGER.debug("Updating trip sensor for trip %s", trip_id)
 
@@ -531,10 +542,11 @@ async def async_update_trip_sensor(
         return False
 
     # Find existing sensor in entity registry
-    entity_registry = getattr(hass, "entity_registry", None) or er.async_get(hass)
+    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
     existing_entity = None
-    for reg_entry in entity_registry.async_entries_for_config_entry(entry_id):
-        if trip_id in reg_entry.unique_id and "trip" in reg_entry.unique_id.lower():
+    for reg_entry in async_entries_for_config_entry(entity_registry, entry_id):
+        unique_id = reg_entry.unique_id
+        if isinstance(unique_id, str) and trip_id in unique_id and "trip" in unique_id.lower():
             existing_entity = reg_entry
             break
 
@@ -569,18 +581,61 @@ async def async_remove_trip_sensor(
     _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
 
     # Remove from Entity Registry
-    entity_registry = getattr(hass, "entity_registry", None) or er.async_get(hass)
+    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
     removed = False
-    for entry in entity_registry.async_entries_for_config_entry(entry_id):
+    for entry in async_entries_for_config_entry(entity_registry, entry_id):
         if trip_id in entry.unique_id:
-            await entity_registry.async_remove(entry.entity_id)
-            _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
+            entity_registry.async_remove(entry.entity_id)
             removed = True
+            _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
+            break
 
     if removed:
         return True
     else:
         _LOGGER.debug("Trip sensor %s not found in registry", trip_id)
+        return False
+
+
+# =============================================================================
+# async_remove_trip_emhass_sensor — FR-6 (Task 1.36 GREEN)
+# =============================================================================
+
+
+async def async_remove_trip_emhass_sensor(
+    hass: HomeAssistant,
+    entry_id: str,
+    vehicle_id: str,
+    trip_id: str,
+) -> bool:
+    """Remove an EMHASS sensor entity.
+
+    Args:
+        hass: The Home Assistant instance.
+        entry_id: The config entry ID.
+        vehicle_id: The vehicle identifier.
+        trip_id: The trip identifier to remove.
+
+    Returns:
+        True if sensor was removed successfully.
+    """
+    _LOGGER.debug("Removing EMHASS sensor for trip %s", trip_id)
+
+    # Remove from Entity Registry
+    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
+    removed = False
+    for entry in async_entries_for_config_entry(entity_registry, entry_id):
+        unique_id = entry.unique_id
+        if isinstance(unique_id, str) and trip_id in unique_id and "emhass" in unique_id:
+            entity_registry.async_remove(entry.entity_id)
+            removed = True
+            _LOGGER.debug("Entity registry entry removed for EMHASS trip %s: %s", trip_id, entry.entity_id)
+            break
+
+    if removed:
+        return True
+    else:
+        _LOGGER.debug("EMHASS sensor %s not found in registry", trip_id)
         return False
 
 
@@ -756,18 +811,18 @@ class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         }
 
     @property
-    def device_info(self) -> Dict[str, Any] | None:
+    def device_info(self) -> DeviceInfo | None:
         """Return device info for this sensor.
 
         Uses device identifiers={(DOMAIN, vehicle_id)} to group
         all TripEmhassSensor instances under the same vehicle device.
 
         Returns:
-            Dict with 'identifiers' key containing {(DOMAIN, vehicle_id)},
+            DeviceInfo with 'identifiers' key containing {(DOMAIN, vehicle_id)},
             or None if not configured.
         """
         from .const import DOMAIN
 
-        return {
-            "identifiers": {(DOMAIN, self._vehicle_id)},
-        }
+        return dr.DeviceInfo(
+            identifiers={(DOMAIN, self._vehicle_id)},
+        )

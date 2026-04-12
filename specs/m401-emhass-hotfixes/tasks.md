@@ -96,6 +96,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py && mypy custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(emhass): pass quality checkpoint after gap-5 hotfixes`
 
 ## Phase 1 (continued): TDD Cycles — Per-Trip Params Cache
@@ -199,6 +200,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(emhass): pass quality checkpoint after per-trip params cache`
 
 - [x] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
@@ -220,18 +222,23 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): include per_trip_emhass_params in cached optimization results`
   - _Design: Component 1_
 
-- [ ] 1.19 [RED/GREEN] inicio_ventana to timestep conversion edge cases
+- [x] 1.19 [RED/GREEN] inicio_ventana to timestep conversion edge cases
   - **Do**: Tests pass because 1.16 implementation already has correct clamping
   - **Files**: tests/test_emhass_adapter.py
   - **Done when**: Tests pass
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_inicio_ventana"`
   - **Commit**: `test(emhass): edge case tests for timestep conversion (already passing)`
 
-- [ ] 1.20 [SKIP] No code change needed — clamping already correct
+- [x] 1.20 [SKIP] No code change needed — clamping already correct
   - **Note**: Task 1.19 tests pass because implementation already clamps to [0, 168] range
+  - **Done when**: No code change needed (1.19 passed)
 
-- [ ] V2b [VERIFY] Quality checkpoint: per-trip cache
-- [ ] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
+- [x] V2b [VERIFY] Quality checkpoint: per-trip cache
+  - **Do**: Run quality commands
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: All tests pass, no lint errors
+  - **Commit**: `chore(emhass): pass quality checkpoint after per-trip cache`
+- [x] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
   - **Do**: Run full adapter test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py`
   - **Done when**: 145 tests pass, ruff clean
@@ -245,7 +252,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 
 Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/test_trip_emhass_sensor.py` (SRP — separate from existing sensor tests).
 
-- [ ] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
+- [x] 1.23 [RED] Failing test: `TripEmhassSensor.native_value` returns emhass_index
   - **Do**:
     1. In `tests/test_trip_emhass_sensor.py`, write test `test_trip_emhass_sensor_native_value` with stub coordinator.data containing `per_trip_emhass_params` with trip having `emhass_index=2`
     2. Assert `sensor.native_value == 2`
@@ -255,7 +262,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor native_value`
   - _Requirements: FR-4, AC-2.1_
 
-- [ ] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
+- [x] 1.24 [GREEN] Create `TripEmhassSensor` class with `native_value`
   - **Do**:
     1. In `sensor.py`, add `TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)`
     2. `__init__(coordinator, vehicle_id, trip_id)` — set `_attr_unique_id = f"emhass_trip_{vehicle_id}_{trip_id}"`
@@ -266,7 +273,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): create TripEmhassSensor class with native_value`
   - _Requirements: FR-4, AC-2.1, AC-2.5_
 
-- [ ] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+- [x] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
   - **Do**:
     1. Write test `test_trip_emhass_sensor_attributes_all_9` with full params dict
     2. Assert attrs dict has keys: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`
@@ -277,7 +284,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor 9 attributes`
   - _Requirements: FR-4, AC-2.2_
 
-- [ ] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
+- [x] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
   - **Do**:
     1. Add `_get_params()` helper — reads `coordinator.data["per_trip_emhass_params"][self._trip_id]`
     2. Add `_zeroed_attributes()` — returns all 9 attrs with zeroed values
@@ -288,12 +295,12 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): implement TripEmhassSensor extra_state_attributes with 9 attrs`
   - _Requirements: FR-4, AC-2.2_
 
-- [ ] 1.27 [RED/GREEN] `TripEmhassSensor` returns zeroed attributes when trip not found
+- [x] 1.27 [RED/GREEN] `TripEmhassSensor` returns zeroed attributes when trip not found
   - **Do**: Test passes — 1.26's `_zeroed_attributes()` handles this case
 
-- [ ] 1.28 [SKIP] No code change needed — zeroed fallback already implemented in 1.26
+- [x] 1.28 [SKIP] No code change needed — zeroed fallback already implemented in 1.26
 
-- [ ] 1.29 [RED] Failing test: `TripEmhassSensor.device_info` uses vehicle_id identifiers
+- [x] 1.29 [RED] Failing test: `TripEmhassSensor.device_info` uses vehicle_id identifiers
   - **Do**:
     1. Write test `test_trip_emhass_sensor_device_info` asserting `identifiers={(DOMAIN, vehicle_id)}`
   - **Files**: tests/test_trip_emhass_sensor.py
@@ -302,7 +309,7 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `test(sensor): red - failing test for TripEmhassSensor device_info`
   - _Requirements: AC-2.6_
 
-- [ ] 1.30 [GREEN] Implement `TripEmhassSensor.device_info`
+- [x] 1.30 [GREEN] Implement `TripEmhassSensor.device_info`
   - **Do**:
     1. Add `device_info` property returning `{identifiers={(DOMAIN, self._vehicle_id)}, ...}` — matches `EmhassDeferrableLoadSensor.device_info` pattern
   - **Files**: custom_components/ev_trip_planner/sensor.py
@@ -315,13 +322,14 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(sensor): pass quality checkpoint after TripEmhassSensor`
 
 ## Phase 1 (continued): TDD Cycles — Sensor CRUD Functions
 
 Focus: Add EMHASS sensor create/remove functions.
 
-- [ ] 1.31 [RED] Failing test: `async_create_trip_emhass_sensor` calls `async_add_entities`
+- [x] 1.31 [RED] Failing test: `async_create_trip_emhass_sensor` calls `async_add_entities`
   <!-- REVIEWER: DESV 8 — Function exists (sensor.py:592) but trip_manager.py does NOT call it. FR-5 requires wiring to trip lifecycle. -->
   - **Do**:
     1. Write test `test_create_trip_emhass_sensor_success` with mock `runtime_data` containing `sensor_async_add_entities` callback
@@ -333,7 +341,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Commit**: `test(sensor): red - failing test for async_create_trip_emhass_sensor`
   - _Requirements: FR-5_
 
-- [ ] 1.32 [GREEN] Implement `async_create_trip_emhass_sensor`
+- [x] 1.32 [GREEN] Implement `async_create_trip_emhass_sensor`
   <!-- REVIEWER: DESV 8 — Implementation exists but not wired to trip_manager. Sensors never auto-created when trips are added. -->
   - **Do**:
     1. Add module-level function in sensor.py mirroring `async_create_trip_sensor` pattern
@@ -346,7 +354,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Commit**: `feat(sensor): implement async_create_trip_emhass_sensor`
   - _Requirements: FR-5_
 
-- [ ] 1.33 [RED] Failing test: `async_create_trip_emhass_sensor` returns False when no entry
+- [x] 1.33 [RED] Failing test: `async_create_trip_emhass_sensor` returns False when no entry
   - **Do**:
     1. Write test `test_create_trip_emhass_sensor_no_entry` with hass returning None for entry
     2. Assert returns False, no callback called
@@ -355,7 +363,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_create_trip_emhass_sensor_no_entry" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
   - **Commit**: `test(sensor): red - failing test for create EMHASS sensor no entry`
 
-- [ ] 1.34 [GREEN] Verify no-entry guard in `async_create_trip_emhass_sensor`
+- [x] 1.34 [GREEN] Verify no-entry guard in `async_create_trip_emhass_sensor`
   - **Do**: Run test — should already pass from 1.32's entry lookup guard
   - **Files**: custom_components/ev_trip_planner/sensor.py
   - **Done when**: Test passes — returns False when entry is None
@@ -387,7 +395,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Commit**: `feat(sensor): implement async_remove_trip_emhass_sensor`
   - _Requirements: FR-6_
 
-- [ ] 1.37 [RED] Failing test: `async_remove_trip_emhass_sensor` returns False when not found
+- [x] 1.37 [RED] Failing test: `async_remove_trip_emhass_sensor` returns False when not found
   - **Do**:
     1. Write test `test_remove_trip_emhass_sensor_not_found` with empty entity_registry
     2. Assert returns False, no removal attempted
@@ -396,24 +404,25 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_remove_trip_emhass_sensor_not_found" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
   - **Commit**: `test(sensor): red - failing test for remove EMHASS sensor not found`
 
-- [ ] 1.38 [GREEN] Verify not-found guard in `async_remove_trip_emhass_sensor`
+- [x] 1.38 [GREEN] Verify not-found guard in `async_remove_trip_emhass_sensor`
   - **Do**: Run test — should already pass from 1.36's not-found guard
   - **Files**: custom_components/ev_trip_planner/sensor.py
   - **Done when**: Test passes — returns False when sensor not found in registry
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_remove_trip_emhass_sensor_not_found"`
   - **Commit**: `test(sensor): green - verify remove EMHASS sensor returns False on not found`
 
-- [ ] V4b [VERIFY] Quality checkpoint: sensor CRUD functions
+- [x] V4b [VERIFY] Quality checkpoint: sensor CRUD functions
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(sensor): pass quality checkpoint after EMHASS sensor CRUD`
 
 ## Phase 1 (continued): TDD Cycles — Aggregated Sensor Extensions
 
 Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
 
-- [ ] 1.39 [RED] Failing test: `EmhassDeferrableLoadSensor` includes `p_deferrable_matrix` attribute
+- [x] 1.39 [RED] Failing test: `EmhassDeferrableLoadSensor` includes `p_deferrable_matrix` attribute
   - **Do**:
     1. Write test `test_aggregated_sensor_matrix` with stub coordinator.data containing `per_trip_emhass_params` with 2 active trips
     2. Assert `extra_state_attributes["p_deferrable_matrix"]` is `list[list[float]]` with 2 rows of 168 elements
@@ -489,6 +498,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(sensor): pass quality checkpoint after aggregated sensor extensions`
 
 ## Phase 1 (continued): TDD Cycles — TripManager Integration + Legacy Refactor
@@ -547,6 +557,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/trip_manager.py && mypy custom_components/ev_trip_planner/trip_manager.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(trip_manager): pass quality checkpoint after legacy refactor`
 
 - [ ] 1.52 [RED] Failing test: trip_manager `async_add_recurring_trip` calls EMHASS sensor create
@@ -606,6 +617,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Do**: Run full test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/ && mypy custom_components/ev_trip_planner/ --exclude tests/ha-manual --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(emhass): pass quality checkpoint after EMHASS sensor CRUD integration`
 
 ## Phase 1 (continued): TDD Cycles — Frontend & Docs
@@ -697,6 +709,7 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Do**: Run full test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check . && mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
+  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(emhass): pass quality checkpoint after additional tests`
 
 ## Phase 3: Quality Gates

@@ -11,7 +11,11 @@ import asyncio
 import logging
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypedDict, cast
+
+from homeassistant.helpers import storage as ha_storage
+from homeassistant.helpers.storage import Store
+from homeassistant.config_entries import ConfigEntry
 
 import yaml
 from homeassistant.core import HomeAssistant
@@ -86,8 +90,8 @@ class TripManager:
         hass: HomeAssistant,
         vehicle_id: str,
         presence_config: Optional[Dict[str, Any]] = None,
-        storage: TripStorageProtocol = _UNSET,  # type: ignore[assignment]
-        emhass_adapter: EMHASSPublisherProtocol = _UNSET,  # type: ignore[assignment]
+        storage: Optional[TripStorageProtocol] = None,
+        emhass_adapter: Optional[EMHASSPublisherProtocol] = None,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
@@ -99,9 +103,8 @@ class TripManager:
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
         self._last_update: Optional[datetime] = None
-        # Inline defaults: use provided instance or create default
-        self._storage = storage if storage is not _UNSET else None
-        self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else None
+        self._storage: Optional[TripStorageProtocol] = storage
+        self._emhass_adapter: Optional[EMHASSPublisherProtocol] = emhass_adapter
 
     def set_emhass_adapter(self, adapter: EMHASSPublisherProtocol) -> None:
         """Set the EMHASS adapter for this trip manager."""
@@ -156,7 +159,7 @@ class TripManager:
         if not self._emhass_adapter:
             return
         all_trips = await self._get_all_active_trips()
-        await self._emhass_adapter.publish_deferrable_loads(all_trips)
+        await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -169,16 +172,15 @@ class TripManager:
         _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
         try:
             # DI: use injected storage if available, otherwise fallback to direct Store
+            stored_data: Optional[Dict[str, Any]] = None
             if self._storage is not None:
                 _LOGGER.warning("=== Using injected storage ===")
                 stored_data = await self._storage.async_load()
             else:
                 _LOGGER.warning("=== Using fallback HA Store ===")
-                from homeassistant.helpers import storage as ha_storage
-
                 storage_key = f"{DOMAIN}_{self.vehicle_id}"
                 _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
-                store = ha_storage.Store(
+                store: Store[Dict[str, Any]] = ha_storage.Store(
                     self.hass,
                     version=1,
                     key=storage_key,
@@ -353,11 +355,9 @@ class TripManager:
                 await self._storage.async_save(data)
             else:
                 _LOGGER.info("=== Using fallback HA Store ===")
-                from homeassistant.helpers import storage as ha_storage
-
                 storage_key = f"{DOMAIN}_{self.vehicle_id}"
                 _LOGGER.info("Creating store with key: %s", storage_key)
-                store = ha_storage.Store(
+                store: Store[Dict[str, Any]] = ha_storage.Store(
                     self.hass,
                     version=1,
                     key=storage_key,
@@ -735,8 +735,7 @@ class TripManager:
             self.hass.states.async_set(
                 entity_id,
                 native_value,
-                state_attributes=state_attributes,
-                device_id=device_id,
+                attributes=state_attributes,
             )
 
             _LOGGER.info(
@@ -943,13 +942,13 @@ class TripManager:
         """Obtiene la potencia de carga desde la configuración."""
         try:
             # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
-            entry = None
+            entry: Optional[ConfigEntry[Any]] = None
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
                 if config_entry.data.get("vehicle_name") == self.vehicle_id:
                     entry = config_entry
                     break
 
-            if entry and entry.data:
+            if entry is not None and entry.data is not None:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 # Ensure we return a valid number
                 if isinstance(power, (int, float)) and power > 0:
@@ -1688,9 +1687,9 @@ class TripManager:
             soc_current = vehicle_config.get("soc_current")
         else:
             try:
-                entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-                if entry and entry.data:
-                    battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+                config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                if config_entry is not None and config_entry.data is not None:
+                    battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
                 else:
                     battery_capacity = 50.0
             except Exception:
@@ -1750,9 +1749,9 @@ class TripManager:
 
         # Obtener configuración
         try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-            if entry and entry.data:
-                entry.data.get("battery_capacity_kwh", 50.0)
+            _config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            if _config_entry is not None and _config_entry.data is not None:
+                _config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
             pass
 
@@ -1807,9 +1806,9 @@ class TripManager:
         battery_capacity = 50.0
         soc_current = 50.0
         try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-            if entry and entry.data:
-                battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+            config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            if config_entry is not None and config_entry.data is not None:
+                battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
             pass
         soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
@@ -1985,7 +1984,7 @@ class TripManager:
                 return
 
             # Remove the entity from the registry
-            await registry.async_remove(entity_id)
+            registry.async_remove(entity_id)
 
             _LOGGER.info(
                 "Removed trip sensor %s for trip %s (vehicle: %s)",
