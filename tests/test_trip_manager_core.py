@@ -904,7 +904,7 @@ async def test_publish_deferrable_loads_with_adapter(mock_hass, vehicle_id):
 
     # Set up mock emhass adapter (not TripManager, so spec not needed)
     mock_adapter = MagicMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Set up some trips
@@ -924,7 +924,7 @@ async def test_publish_deferrable_loads_with_adapter(mock_hass, vehicle_id):
     await manager.publish_deferrable_loads()
 
     # Verify adapter was called
-    mock_adapter.publish_deferrable_loads.assert_called_once()
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -1536,27 +1536,24 @@ async def test_async_add_recurring_trip_with_emhass_adapter(mock_hass, vehicle_i
     """Test that async_add_recurring_trip calls _async_publish_new_trip_to_emhass when adapter is set."""
     manager = TripManager(mock_hass, vehicle_id)
 
-    # Set up mock EMHASS adapter
+    # Set up mock EMHASS adapter with proper async mocks
     mock_adapter = MagicMock()
     mock_adapter.async_publish_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
-    # Mock async_save_trips to avoid storage operations
-    manager.async_save_trips = AsyncMock()
-
-    # Mock async_create_trip_sensor to avoid entity registry operations
-    manager.async_create_trip_sensor = AsyncMock()
-
-    # Add a recurring trip
-    await manager.async_add_recurring_trip(
-        dia_semana="lunes", hora="09:00", km=24.0, kwh=3.6, descripcion="Trabajo"
-    )
+    # Mock sensor.py async_create_trip_sensor to avoid entity registry operations
+    with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new=AsyncMock()):
+        # Add a recurring trip
+        await manager.async_add_recurring_trip(
+            dia_semana="lunes", hora="09:00", km=24.0, kwh=3.6, descripcion="Trabajo"
+        )
 
     # Verify EMHASS adapter was called to publish the new trip
     mock_adapter.async_publish_deferrable_load.assert_called_once()
-    # And that all deferrable loads were republished
-    mock_adapter.publish_deferrable_loads.assert_called_once()
+    # And that all deferrable loads were republished (called twice: once from async_save_trips, once from _async_publish_new_trip_to_emhass)
+    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -1566,7 +1563,6 @@ async def test_async_add_punctual_trip_with_empty_datetime(mock_hass, vehicle_id
 
     # Mock dependencies
     manager.async_save_trips = AsyncMock()
-    manager.async_create_trip_sensor = AsyncMock()
 
     # Add a punctual trip with empty datetime - this exercises line 507 (date_part = "")
     await manager.async_add_punctual_trip(
@@ -1582,26 +1578,24 @@ async def test_async_add_punctual_trip_with_emhass_adapter(mock_hass, vehicle_id
     """Test that async_add_punctual_trip calls _async_publish_new_trip_to_emhass when adapter is set."""
     manager = TripManager(mock_hass, vehicle_id)
 
-    # Set up mock EMHASS adapter
+    # Set up mock EMHASS adapter with proper async mocks
     mock_adapter = MagicMock()
     mock_adapter.async_publish_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
-    # Mock async_save_trips to avoid storage operations
-    manager.async_save_trips = AsyncMock()
-
-    # Mock async_create_trip_sensor to avoid entity registry operations
-    manager.async_create_trip_sensor = AsyncMock()
-
-    # Add a punctual trip
-    await manager.async_add_punctual_trip(
-        datetime="2025-11-19T15:00:00", km=110.0, kwh=16.5, descripcion="Viaje"
-    )
+    # Mock sensor.py async_create_trip_sensor to avoid entity registry operations
+    with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new=AsyncMock()):
+        # Add a punctual trip
+        await manager.async_add_punctual_trip(
+            datetime="2025-11-19T15:00:00", km=110.0, kwh=16.5, descripcion="Viaje"
+        )
 
     # Verify EMHASS adapter was called
     mock_adapter.async_publish_deferrable_load.assert_called_once()
-    mock_adapter.publish_deferrable_loads.assert_called_once()
+    # Called twice: once from async_save_trips, once from _async_publish_new_trip_to_emhass
+    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -1609,9 +1603,9 @@ async def test_async_save_trips_with_emhass_adapter_triggers_publish(mock_hass, 
     """Test that async_save_trips calls publish_deferrable_loads when adapter is set (line 376)."""
     manager = TripManager(mock_hass, vehicle_id)
 
-    # Set up mock EMHASS adapter
+    # Set up mock EMHASS adapter with proper async mocks
     mock_adapter = MagicMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Mock the storage to avoid HA storage operations
@@ -1635,8 +1629,8 @@ async def test_async_save_trips_with_emhass_adapter_triggers_publish(mock_hass, 
     # Call async_save_trips
     await manager.async_save_trips()
 
-    # Verify _publish_deferrable_loads was called (line 376)
-    mock_adapter.publish_deferrable_loads.assert_called_once()
+    # Verify async_publish_all_deferrable_loads was called (line 376)
+    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -1660,7 +1654,7 @@ async def test_async_update_trip_with_emhass_adapter_syncs(mock_hass, vehicle_id
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_update_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
@@ -1695,7 +1689,7 @@ async def test_async_delete_trip_with_emhass_adapter_removes(mock_hass, vehicle_
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Mock async_save_trips and async_remove_trip_sensor
@@ -1727,7 +1721,7 @@ async def test_async_cancel_punctual_trip_with_emhass_adapter_removes(mock_hass,
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Mock async_save_trips
@@ -1854,7 +1848,7 @@ async def test_async_sync_trip_to_emhass_with_inactive_trip(mock_hass, vehicle_i
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Call _async_sync_trip_to_emhass with an update
@@ -1885,7 +1879,7 @@ async def test_async_sync_trip_to_emhass_with_km_change_triggers_recalculate(moc
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_update_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
@@ -1896,7 +1890,7 @@ async def test_async_sync_trip_to_emhass_with_km_change_triggers_recalculate(moc
 
     # Should call both update and publish_all for critical updates
     mock_adapter.async_update_deferrable_load.assert_called()
-    mock_adapter.publish_deferrable_loads.assert_called()
+    mock_adapter.async_publish_all_deferrable_loads.assert_called()
 
 
 @pytest.mark.asyncio
@@ -1920,7 +1914,7 @@ async def test_async_sync_trip_to_emhass_handles_exception(mock_hass, vehicle_id
     # Set up mock EMHASS adapter that raises an exception
     mock_adapter = MagicMock()
     mock_adapter.async_update_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
@@ -1938,7 +1932,7 @@ async def test_async_remove_trip_from_emhass_handles_exception(mock_hass, vehicl
     # Set up mock EMHASS adapter that raises an exception
     mock_adapter = MagicMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Should not raise, should handle gracefully
@@ -1955,7 +1949,7 @@ async def test_async_publish_new_trip_to_emhass_handles_exception(mock_hass, veh
     # Set up mock EMHASS adapter that raises an exception
     mock_adapter = MagicMock()
     mock_adapter.async_publish_deferrable_load = AsyncMock(side_effect=RuntimeError("EMHASS error"))
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     trip = {
@@ -1982,7 +1976,7 @@ async def test_async_sync_trip_to_emhass_trip_not_found(mock_hass, vehicle_id):
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
     # Trip doesn't exist - call sync with non-existent trip
@@ -2078,7 +2072,7 @@ async def test_async_sync_trip_to_emhass_non_critical_change(mock_hass, vehicle_
     # Set up mock EMHASS adapter
     mock_adapter = MagicMock()
     mock_adapter.async_update_deferrable_load = AsyncMock()
-    mock_adapter.publish_deferrable_loads = AsyncMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
     mock_adapter.async_remove_deferrable_load = AsyncMock()
     manager.set_emhass_adapter(mock_adapter)
 
@@ -2089,7 +2083,7 @@ async def test_async_sync_trip_to_emhass_non_critical_change(mock_hass, vehicle_
 
     # Should call async_update_deferrable_load but NOT publish_deferrable_loads
     mock_adapter.async_update_deferrable_load.assert_called()
-    mock_adapter.publish_deferrable_loads.assert_not_called()
+    mock_adapter.async_publish_all_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio

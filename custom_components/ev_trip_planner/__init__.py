@@ -106,7 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await async_register_static_paths(hass)
 
     presence_config = build_presence_config(entry)
-    trip_manager = TripManager(hass, vehicle_id, presence_config)
+    trip_manager = TripManager(hass, vehicle_id, entry.entry_id, presence_config)
     await trip_manager.async_setup()
 
     soc_sensor = entry.data.get("soc_sensor")

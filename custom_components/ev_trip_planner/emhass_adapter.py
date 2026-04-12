@@ -675,13 +675,21 @@ class EMHASSAdapter:
             power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
 
             # Store per-trip EMHASS parameters with all required keys
-            # Note: Arrays use _suffix as per task 1.40 spec for aggregated sensor
+            # Dual format: singular keys for TripEmhassSensor, _array keys for aggregated sensor
             self._cached_per_trip_params[trip_id] = {
+                # Singular keys - used by TripEmhassSensor per-trip display
+                "def_total_hours": round(total_hours, 2),
+                "P_deferrable_nom": round(power_watts, 0),  # uppercase P for backwards compatibility
+                "p_deferrable_nom": round(power_watts, 0),  # lowercase for new code
+                "def_start_timestep": def_start_timestep,
+                "def_end_timestep": def_end_timestep,
+                "power_profile_watts": power_profile,
+                # Array keys - used by EmhassDeferrableLoadSensor aggregated display
                 "def_total_hours_array": [round(total_hours, 2)],  # Single element array
                 "p_deferrable_nom_array": [round(power_watts, 0)],  # Single element array
                 "def_start_timestep_array": [def_start_timestep],  # Single element array
                 "def_end_timestep_array": [def_end_timestep],  # Single element array
-                "p_deferrable_matrix": [power_profile],  # Single row matrix (power_profile_watts)
+                "p_deferrable_matrix": [power_profile],  # Single row matrix
                 "trip_id": trip_id,
                 "emhass_index": emhass_index,
                 "kwh_needed": kwh_needed,

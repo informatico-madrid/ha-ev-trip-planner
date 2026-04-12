@@ -838,6 +838,8 @@ class TestTripManagerAsyncRemoveTripSensor:
     @pytest.mark.asyncio
     async def test_async_remove_trip_sensor_registry_error(self, mock_hass_with_storage):
         """async_remove_trip_sensor handles registry error gracefully."""
+        from custom_components.ev_trip_planner.sensor import async_remove_trip_sensor
+
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
         await trip_manager.async_setup()
 
@@ -847,7 +849,7 @@ class TestTripManagerAsyncRemoveTripSensor:
             side_effect=Exception("Registry error"),
         ):
             # Should not raise - exception is caught and logged
-            await trip_manager.async_remove_trip_sensor("trip_1")
+            await async_remove_trip_sensor(mock_hass_with_storage, "test_entry", "trip_1")
 
 
 
@@ -1175,11 +1177,11 @@ class TestTripManagerAsyncAddRecurringTrip:
     @pytest.mark.asyncio
     async def test_async_add_recurring_trip_generates_id(self, mock_hass_with_storage):
         """async_add_recurring_trip generates trip_id if not provided."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
         # Mock the sensor creation and EMHASS to avoid side effects
-        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
             with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
                 await trip_manager.async_add_recurring_trip(
                     dia_semana="monday",
@@ -1196,10 +1198,10 @@ class TestTripManagerAsyncAddRecurringTrip:
     @pytest.mark.asyncio
     async def test_async_add_recurring_trip_with_custom_id(self, mock_hass_with_storage):
         """async_add_recurring_trip uses provided trip_id."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
-        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
             with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
                 await trip_manager.async_add_recurring_trip(
                     trip_id="custom_recurring_1",
@@ -1211,6 +1213,47 @@ class TestTripManagerAsyncAddRecurringTrip:
 
         assert "custom_recurring_1" in trip_manager._recurring_trips
 
+    @pytest.mark.asyncio
+    async def test_add_recurring_calls_sensor_py_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip calls sensor.py async_create_trip_sensor.
+
+        RED test for task 1.47: Verify trip_manager uses sensor.py CRUD functions
+        instead of internal methods for creating trip sensors.
+
+        Expected behavior:
+        - trip_manager.async_add_recurring_trip should call sensor.async_create_trip_sensor
+        - NOT self.async_create_trip_sensor (internal method)
+
+        Current implementation:
+        - Line 481: await self.async_create_trip_sensor(...)  # calls internal method
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor") as mock_create:
+            # Mock the sensor.py function to return False (no existing entity)
+            mock_create.return_value = False
+
+            # Add a recurring trip
+            await trip_manager.async_add_recurring_trip(
+                dia_semana="lunes",
+                hora="08:00",
+                km=50.0,
+                kwh=10.0,
+                descripcion="Test trip for sensor.py call",
+            )
+
+            # Assert sensor.py async_create_trip_sensor was called (not internal method)
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+            assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+            assert call_args[0][2].get("dia_semana") == "lunes"  # trip_data contains dia_semana="lunes"
+
 
 
 class TestTripManagerAsyncDeleteTrip:
@@ -1219,12 +1262,12 @@ class TestTripManagerAsyncDeleteTrip:
     @pytest.mark.asyncio
     async def test_async_delete_trip_not_found(self, mock_hass_with_storage):
         """async_delete_trip handles missing trip gracefully."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
         # Try to delete a trip that doesn't exist
         with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
-            with patch.object(trip_manager, "async_remove_trip_sensor", new_callable=AsyncMock):
+            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock):
                 with patch.object(trip_manager, "_async_remove_trip_from_emhass", new_callable=AsyncMock):
                     await trip_manager.async_delete_trip("nonexistent_trip")
 
@@ -1510,4 +1553,3 @@ class TestTripManagerLoadErrors:
         assert trip_manager._trips == {}
         assert trip_manager._recurring_trips == {}
         assert trip_manager._punctual_trips == {}
-

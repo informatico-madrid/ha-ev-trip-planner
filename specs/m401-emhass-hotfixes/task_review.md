@@ -834,3 +834,80 @@ Review entry template:
      p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array
   3. Add _get_active_trips_ordered helper that filters activo=True and sorts by emhass_index
 - resolved_at:
+
+### [tasks 1.40, 1.41, 1.43, 1.45] Key mismatch — cache has array keys only
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-12T00:10:00Z
+- criterion_failed: Cache missing singular keys that TripEmhassSensor and tests require
+- evidence: |
+  test_trip_emhass_sensor_attributes_all_9 FAILS:
+  Missing required keys: {'power_profile_watts', 'def_end_timestep', 'P_deferrable_nom', 'def_start_timestep', 'def_total_hours'}
+  Got: {'emhass_index', 'def_end_timestep_array', 'def_start_timestep_array', 'p_deferrable_nom_array', 'activo', 'def_total_hours_array', 'kwh_needed', 'trip_id', 'deadline', 'p_deferrable_matrix'}
+  
+  Cache now stores only array keys (def_total_hours_array, etc.) but TripEmhassSensor
+  and tests expect singular keys (def_total_hours, P_deferrable_nom, etc.)
+- fix_hint: Add BOTH sets of keys to cache — singular for per-trip sensors, array for aggregated sensor
+- resolved_at:
+
+### [tasks 1.40, 1.41, 1.43, 1.45] RESOLVED — dual format cache implemented
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-12T00:15:00Z
+- criterion_failed: none
+- evidence: |
+  Executor fixed key mismatch by adding BOTH sets of keys to cache:
+  - Singular keys: def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep, power_profile_watts
+  - Array keys: def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array, p_deferrable_matrix
+  Tests: 243 passed, 0 failed
+  Mypy: Success: no issues found in 3 source files
+- fix_hint: none
+- resolved_at: 2026-04-12T00:15:00Z
+
+### [trip_manager.py sensor CRUD integration] REGRESSION — _entry_id not defined
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-12T00:20:00Z
+- criterion_failed: TripManager uses self._entry_id but attribute doesn't exist
+- evidence: |
+  Test test_async_add_recurring_trip_generates_id FAILS:
+  AttributeError: 'TripManager' object has no attribute '_entry_id'
+  
+  Lines 482, 526, 577, 608: all use self._entry_id which is never defined in __init__.
+  
+  Mypy also catches this: trip_manager.py:608: error: "TripManager" has no attribute "_entry_id"
+  
+  Also mypy: trip_manager.py:577: error: Argument 3 to "async_update_trip_sensor" 
+  has incompatible type "Any | None"; expected "dict[str, Any]"
+  
+  The coordinator added sensor.py CRUD calls but forgot to:
+  1. Add self._entry_id to TripManager.__init__
+  2. Handle None trip_data in async_update_trip_sensor call
+- fix_hint: |
+  1. Add entry_id parameter to TripManager.__init__: `self._entry_id: str = entry_id`
+  2. Pass entry_id when creating TripManager (from __init__.py async_setup_entry)
+  3. Fix async_update_trip_sensor call to handle None: `trip_data or {}`
+- resolved_at:
+
+### [tasks 1.47-1.50] REGRESSION — existing test broken by sensor CRUD refactor
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-12T00:30:00Z
+- criterion_failed: test_async_add_recurring_trip_generates_id FAILS after refactor
+- evidence: |
+  AttributeError: TripManager object does not have the attribute 'async_create_trip_sensor'
+  
+  The coordinator refactored trip_manager to call sensor.py CRUD functions
+  (async_create_trip_sensor from sensor.py) but removed the internal
+  self.async_create_trip_sensor method. Existing test tries to patch
+  trip_manager.async_create_trip_sensor which no longer exists.
+  
+  Test line 1182: patch.object(trip_manager, "async_create_trip_sensor", ...)
+  This was a PASSING test before the refactor — now it FAILS.
+  
+  Tasks 1.47, 1.48, 1.49, 1.50 marked [x] but they break existing tests.
+- fix_hint: |
+  Update test to patch sensor.py function instead:
+  patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor")
+  instead of patch.object(trip_manager, "async_create_trip_sensor")
+- resolved_at:

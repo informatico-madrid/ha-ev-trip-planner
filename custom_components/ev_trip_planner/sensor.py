@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 if TYPE_CHECKING:
     from homeassistant.helpers.device_registry import DeviceInfo
@@ -651,7 +651,7 @@ async def async_remove_trip_sensor(
     removed = False
     for entry in async_entries_for_config_entry(entity_registry, entry_id):
         if trip_id in entry.unique_id:
-            entity_registry.async_remove(entry.entity_id)
+            await entity_registry.async_remove(entry.entity_id)
             removed = True
             _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
             break

@@ -46,7 +46,7 @@ The reviewer operates under strict tool permissions that define what it can and 
 ### Tools ALLOWED
 - **Read**: Source files, spec files, task files, state files, chat.md
 - **Bash**: Run verify commands, jq for state inspection, git for history
-- **Write**: task_review.md, chat.md (via atomic append), tasks.md (via atomic flock — unmark only)
+- **Write**: task_review.md, chat.md (via atomic append), tasks.md (via atomic flock — unmark + inline reviewer diagnosis)
 - **Task**: Delegate to qa-engineer for verification
 
 ### Tools FORBIDDEN
@@ -66,7 +66,8 @@ When the reviewer must escalate an issue to the executor, it uses the structured
 **HOLD with EVIDENCE** — blocking escalation requiring explicit resolution:
 ```
 ### [YYYY-MM-DD HH:MM:SS] External-Reviewer → Spec-Executor
-**Task**: T<taskIndex> | **Signal**: HOLD
+**Task**: T<taskIndex>
+**Signal**: HOLD
 
 **JUDGE — EVIDENCE REQUIRED**:
 
@@ -86,7 +87,8 @@ When the reviewer must escalate an issue to the executor, it uses the structured
 **DEADLOCK with EVIDENCE** — human escalation when agents cannot resolve:
 ```
 ### [YYYY-MM-DD HH:MM:SS] External-Reviewer → Human
-**Task**: T<taskIndex> | **Signal**: DEADLOCK
+**Task**: T<taskIndex>
+**Signal**: DEADLOCK
 
 **JUDGE — EVIDENCE REQUIRED**:
 
@@ -132,9 +134,11 @@ The human is a full participant in the review process with special privileges.
 - Executor sends DEADLOCK when implementation conflicts with requirements
 - Human responds with CONTINUE (proceed), HOLD (stop until resolved), or direct instruction
 
-## Section 1c — Supervisor Role (CRITICAL — verify coordinator and executor)
+## Section 1d — Supervisor Role (CRITICAL — verify coordinator and executor)
 
 The reviewer MUST verify that BOTH the coordinator and executor are following rules correctly. Do NOT trust their claims—verify independently.
+
+See `implement.md` → "Key Coordinator Behaviors" for the rules the coordinator MUST follow.
 
 ### Supervisor Principles
 
@@ -171,6 +175,10 @@ The reviewer MUST verify that BOTH the coordinator and executor are following ru
 | Executor claims verification passed but verify command fails | Write FAIL to task_review.md + unmark task |
 | Executor claims "N passed" but actual count differs | Write FAIL with FABRICATION label |
 | Same issue debated 3 rounds without resolution | Write DEADLOCK to chat.md |
+
+## Section 2 — Review Principles (Code)
+
+The reviewer evaluates each implemented task against these principles, reading the actual code:
 
 - **SOLID**: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion. Flag concrete violations with line number and reason.
 - **DRY**: Detect duplicated code ≥ 2 occurrences. Propose extraction as helper or base class.
@@ -268,7 +276,8 @@ If test output shows a 404, login page, or unexpected URL at any point:
 For e2e issues, always write INTENT-FAIL to chat.md first:
 ```
 ### [YYYY-MM-DD HH:MM:SS] External-Reviewer → Spec-Executor
-**Task**: T<taskIndex> | **Signal**: INTENT-FAIL
+**Task**: T<taskIndex>
+**Signal**: INTENT-FAIL
 
 **E2E REVIEW — NAVIGATION VIOLATION**:
 **Violation**: <anti-pattern name>
@@ -302,7 +311,8 @@ You have 1 task cycle to fix this before I write a formal FAIL.
 When writing `progress-stuck` FAIL, auto-escalate to DEADLOCK:
 ```
 ### [YYYY-MM-DD HH:MM:SS] External-Reviewer → Human
-**Task**: T<taskIndex> | **Signal**: DEADLOCK
+**Task**: T<taskIndex>
+**Signal**: DEADLOCK
 
 **E2E PROGRESS STALLED**: 3 consecutive review cycles with identical error.
 **Error**: <error from error-context.md>
@@ -361,7 +371,8 @@ The reviewer tracks rounds of unresolved debate. If the same issue is debated fo
 **After 3 rounds without resolution**:
 ```
 ### [YYYY-MM-DD HH:MM:SS] External-Reviewer → Spec-Executor
-**Task**: T<taskIndex> | **Signal**: DEADLOCK
+**Task**: T<taskIndex>
+**Signal**: DEADLOCK
 
 **CONVERGENCE DETECTED**: 3 rounds of unresolved debate on this issue.
 
@@ -462,16 +473,51 @@ After writing any FAIL or WARNING to `task_review.md`, **immediately also**:
    <!-- END REVIEWER INTERVENTION -->
    ```
 
-2. **For FAIL only — unmark directly in tasks.md** using atomic flock (same pattern as chat.md):
+2. **For FAIL only — unmark and annotate directly in tasks.md** using atomic flock:
    ```bash
    (
      exec 201>"${basePath}/tasks.md.lock"
      flock -e 201 || exit 1
-     # Read current content, replace [x] with [ ] for this task only
-     sed -i "s/^- \[x\] ${TASK_ID} /- [ ] ${TASK_ID} /" "${basePath}/tasks.md"
+     # Unmark + annotate inside Python to avoid sed regex issues with dots in TASK_ID
+     # (e.g., "1.3.1" → sed treats "." as any char, matching wrong task)
+     TASKS_MD_PATH="${basePath}/tasks.md" \
+     TASK_ID_VALUE="${TASK_ID}" \
+     WHAT_IS_WRONG_VALUE="${WHAT_IS_WRONG}" \
+     WHY_VALUE="${WHY}" \
+     FIX_HINT_VALUE="${FIX_HINT}" \
+     python3 - <<'PY'
+import os
+tasks_md_path = os.environ['TASKS_MD_PATH']
+task_id = os.environ['TASK_ID_VALUE']
+what_is_wrong = os.environ['WHAT_IS_WRONG_VALUE']
+why = os.environ['WHY_VALUE']
+fix_hint = os.environ['FIX_HINT_VALUE']
+content = open(tasks_md_path).read()
+lines = content.splitlines(keepends=True)
+marker_prefix = f'- [x] {task_id} '
+for i, line in enumerate(lines):
+    stripped = line.lstrip()
+    if stripped.startswith('- [x] ') and task_id in stripped:
+        lines[i] = line.replace('- [x] ', '- [ ] ', 1)
+        # Insert diagnosis block after the unmarked task line
+        diagnosis = (
+            '  <!-- reviewer-diagnosis\n'
+            f'    what: {what_is_wrong}\n'
+            f'    why: {why}\n'
+            f'    fix: {fix_hint}\n'
+            '  -->\n'
+        )
+        lines.insert(i + 1, diagnosis)
+        break
+open(tasks_md_path, 'w').write(''.join(lines))
+PY
    ) 201>"${basePath}/tasks.md.lock"
    ```
    Then increment `.ralph-state.json → external_unmarks[taskId]`.
+
+   > **Purpose of the diagnosis block**: the spec-executor reads tasks.md before each task. The inline diagnosis ensures it sees what failed and how to fix it without needing to cross-reference task_review.md.
+
+   > **If the FAIL is caused by a spec deficiency** (the criterion is impossible to meet cleanly, not a bug in the implementation): additionally write `SPEC-ADJUSTMENT` to chat.md with the proposed amendment. The coordinator will process it before delegating the re-run.
 
    > **Why flock here**: the coordinator reads tasks.md to advance taskIndex concurrently.
    > Without exclusive locking, the coordinator could read a partially-written tasks.md

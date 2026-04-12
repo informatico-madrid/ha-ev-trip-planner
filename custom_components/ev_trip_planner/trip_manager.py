@@ -89,6 +89,7 @@ class TripManager:
         self,
         hass: HomeAssistant,
         vehicle_id: str,
+        entry_id: Optional[str] = None,
         presence_config: Optional[Dict[str, Any]] = None,
         storage: Optional[TripStorageProtocol] = None,
         emhass_adapter: Optional[EMHASSPublisherProtocol] = None,
@@ -96,6 +97,7 @@ class TripManager:
         """Inicializa el gestor de viajes para un vehículo específico."""
         self.hass = hass
         self.vehicle_id = vehicle_id
+        self._entry_id: str = entry_id or ""
         self.vehicle_controller = VehicleController(
             hass, vehicle_id, presence_config, self
         )
@@ -477,8 +479,9 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T034: Create sensor entity for the trip
-        await self.async_create_trip_sensor(trip_id, self._recurring_trips[trip_id])
+        # T034: Create sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
+        await async_create_trip_sensor(self.hass, self._entry_id, self._recurring_trips[trip_id])
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -520,8 +523,9 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T034: Create sensor entity for the trip
-        await self.async_create_trip_sensor(trip_id, self._punctual_trips[trip_id])
+        # T034: Create sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
+        await async_create_trip_sensor(self.hass, self._entry_id, self._punctual_trips[trip_id])
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -570,8 +574,9 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T035: Update the sensor entity for the trip
-        await self.async_update_trip_sensor(trip_id)
+        # T035: Update the sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_update_trip_sensor  # Local import to avoid circular dependency
+        await async_update_trip_sensor(self.hass, self._entry_id, self._recurring_trips.get(trip_id) or self._punctual_trips.get(trip_id))
 
         # T019.3: Detect trip changes and trigger EMHASS update
         if old_trip and self._emhass_adapter:
@@ -600,8 +605,9 @@ class TripManager:
         await self.async_save_trips()
         _LOGGER.info("Deleted trip %s from vehicle %s", trip_id, self.vehicle_id)
 
-        # T034: Remove sensor entity for the trip
-        await self.async_remove_trip_sensor(trip_id)
+        # T034: Remove sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_remove_trip_sensor  # Local import to avoid circular dependency
+        await async_remove_trip_sensor(self.hass, self._entry_id, trip_id)
 
         # T019.3: Remove from EMHASS when deleted
         if self._emhass_adapter:
@@ -1886,117 +1892,3 @@ class TripManager:
                 schedule.append(entry)
 
         return schedule
-
-    async def async_create_trip_sensor(
-        self, trip_id: str, trip_data: Dict[str, Any]
-    ) -> None:
-        """Create a Home Assistant sensor entity for a trip.
-
-        This method creates a sensor entity for each trip when it's added.
-        The sensor is registered in the entity registry so it persists
-        across Home Assistant restarts.
-
-        HA I/O: This method performs Home Assistant entity registry operations
-        that cannot be unit tested. Marked with pragma: no cover.
-
-        Args:
-            trip_id: Unique identifier for the trip
-            trip_data: Complete trip data including id, tipo, etc.
-        """
-        try:  # pragma: no cover
-            # Get the entity registry
-            from homeassistant.helpers import entity_registry as er
-
-            registry = er.async_get(self.hass)
-
-            # Build entity_id from trip_id
-            # Format: sensor.trip_{trip_id}
-            entity_id = f"sensor.trip_{trip_id}"
-
-            # Check if entity already exists
-            existing_entry = registry.async_get(entity_id)
-
-            if existing_entry is not None:
-                # Entity already exists, just update its state
-                _LOGGER.debug(
-                    "Trip sensor %s already exists, skipping creation",
-                    entity_id,
-                )
-                return
-
-            # Create the entity in the registry
-            # We use a unique_id that combines vehicle_id and trip_id
-            unique_id = f"trip_{trip_id}"
-
-            # Register the entity
-            registry.async_get_or_create(
-                domain="sensor",
-                platform=DOMAIN,
-                unique_id=unique_id,
-                suggested_object_id=f"trip_{trip_id}",
-            )
-
-            _LOGGER.info(
-                "Created trip sensor %s for trip %s (vehicle: %s)",
-                entity_id,
-                trip_id,
-                self.vehicle_id,
-            )
-
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error creating trip sensor for trip %s: %s",
-                trip_id,
-                err,
-                exc_info=True,
-            )
-
-    async def async_remove_trip_sensor(self, trip_id: str) -> None:
-        """Remove a Home Assistant sensor entity for a trip.
-
-        This method removes the sensor entity from the entity registry
-        when a trip is deleted.
-
-        HA I/O: This method performs Home Assistant entity registry operations
-        that cannot be unit tested. Marked with pragma: no cover.
-
-        Args:
-            trip_id: Unique identifier for the trip
-        """
-        try:  # pragma: no cover
-            # Get the entity registry
-            from homeassistant.helpers import entity_registry as er
-
-            registry = er.async_get(self.hass)
-
-            # Build entity_id from trip_id
-            entity_id = f"sensor.trip_{trip_id}"
-
-            # Check if entity exists
-            existing_entry = registry.async_get(entity_id)
-
-            if existing_entry is None:
-                # Entity doesn't exist, nothing to remove
-                _LOGGER.debug(
-                    "Trip sensor %s does not exist, nothing to remove",
-                    entity_id,
-                )
-                return
-
-            # Remove the entity from the registry
-            registry.async_remove(entity_id)
-
-            _LOGGER.info(
-                "Removed trip sensor %s for trip %s (vehicle: %s)",
-                entity_id,
-                trip_id,
-                self.vehicle_id,
-            )
-
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error removing trip sensor for trip %s: %s",
-                trip_id,
-                err,
-                exc_info=True,
-            )
