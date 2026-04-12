@@ -751,6 +751,8 @@ class EVTripPlannerPanel extends LitElement {
             ` : html`<p class="no-sensors">No sensors found</p>`}
           </div>
 
+          ${this._renderEmhassConfig()}
+
           <div class="trips-section">
             <div class="trips-header">
               <h2 class="section-title">
@@ -865,6 +867,141 @@ class EVTripPlannerPanel extends LitElement {
       console.error('EV Trip Planner Panel: Error fetching trips:', error);
       return [];
     }
+  }
+
+  /**
+   * Render EMHASS configuration section with Jinja2 template
+   */
+  _renderEmhassConfig() {
+    const lowerVehicleId = this._vehicleId.toLowerCase();
+    const emhassSensorEntityId = `sensor.ev_trip_planner_${lowerVehicleId}_emhass_aggregated`;
+
+    // Get EMHASS sensor state
+    const emhassState = this._hass.states[emhassSensorEntityId];
+    const emhassAvailable = emhassState && emhassState.state !== 'unavailable' && emhassState.state !== 'unknown';
+
+    // Jinja2 template for all 6 EMHASS parameters
+    const jinja2Template = `{% set emhass = states('${emhassSensorEntityId}') %}
+{# EMHASS Configuration for ${this._vehicleId} #}
+{# Generated from EV Trip Planner EMHASS Aggregated Sensor #}
+
+number_of_deferrable_loads: {{ emhass.attributes.number_of_deferrable_loads | default(0) }}
+def_total_hours_array: {{ emhass.attributes.def_total_hours_array | default('[]') | replace("'", '"') }}
+p_deferrable_nom_array: {{ emhass.attributes.p_deferrable_nom_array | default('[]') | replace("'", '"') }}
+def_start_timestep_array: {{ emhass.attributes.def_start_timestep_array | default('[]') | replace("'", '"') }}
+def_end_timestep_array: {{ emhass.attributes.def_end_timestep_array | default('[]') | replace("'", '"') }}
+p_deferrable_matrix: {{ emhass.attributes.p_deferrable_matrix | default('[]') | replace("'", '"') }}`;
+
+    return html`
+      <div class="emhass-config-section">
+        <div class="emhass-header">
+          <h2 class="section-title">
+            <span class="section-icon">⚡</span>
+            <span class="section-title-text">EMHASS Configuration</span>
+          </h2>
+          ${emhassAvailable ? html`
+            <span class="emhass-status emhass-status-available">● Sensor Available</span>
+          ` : html`
+            <span class="emhass-status emhass-status-unavailable">● Sensor Unavailable</span>
+          `}
+        </div>
+
+        <div class="emhass-info">
+          <p class="emhass-description">
+            Use this Jinja2 template in your EMHASS optimization configuration.
+            The template references the <strong>EMHASS Aggregated Sensor</strong> which contains
+            all 6 EMHASS parameters from your active trips.
+          </p>
+          ${!emhassAvailable ? html`
+            <div class="emhass-warning">
+              ⚠️ <strong>EMHASS sensor not available.</strong>
+              Make sure you have active trips with EMHASS data generated.
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="emhass-template-container">
+          <pre class="emhass-template"><code>${this._escapeHtml(jinja2Template)}</code></pre>
+          <button
+            class="copy-button"
+            @click=${async () => {
+              try {
+                await navigator.clipboard.writeText(jinja2Template);
+                this._showCopyConfirmation();
+              } catch (err) {
+                console.error('Failed to copy template:', err);
+              }
+            }}
+            ?disabled=${!emhassAvailable}
+          >
+            📋 Copy Template
+          </button>
+        </div>
+
+        ${this._copyConfirmationVisible ? html`
+          <div class="copy-confirmation">
+            ✓ Template copied to clipboard!
+          </div>
+        ` : ''}
+
+        <div class="emhass-parameters">
+          <h3>EMHASS Parameters Reference</h3>
+          <table class="emhass-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Description</th>
+                <th>Jinja2 Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>number_of_deferrable_loads</code></td>
+                <td>Number of active trips with EMHASS data</td>
+                <td><code>emhass.attributes.number_of_deferrable_loads</code></td>
+              </tr>
+              <tr>
+                <td><code>def_total_hours_array</code></td>
+                <td>Total hours for each deferrable load</td>
+                <td><code>emhass.attributes.def_total_hours_array</code></td>
+              </tr>
+              <tr>
+                <td><code>p_deferrable_nom_array</code></td>
+                <td>Nominal power for each deferrable load (W)</td>
+                <td><code>emhass.attributes.p_deferrable_nom_array</code></td>
+              </tr>
+              <tr>
+                <td><code>def_start_timestep_array</code></td>
+                <td>Start timestep for each deferrable load</td>
+                <td><code>emhass.attributes.def_start_timestep_array</code></td>
+              </tr>
+              <tr>
+                <td><code>def_end_timestep_array</code></td>
+                <td>End timestep for each deferrable load</td>
+                <td><code>emhass.attributes.def_end_timestep_array</code></td>
+              </tr>
+              <tr>
+                <td><code>p_deferrable_matrix</code></td>
+                <td>Power profile matrix (Watts per timestep)</td>
+                <td><code>emhass.attributes.p_deferrable_matrix</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Show copy confirmation for EMHASS template
+   */
+  _showCopyConfirmation() {
+    this._copyConfirmationVisible = true;
+    setTimeout(() => {
+      this._copyConfirmationVisible = false;
+      this.requestUpdate();
+    }, 2000);
+    this.requestUpdate();
   }
 
   /**

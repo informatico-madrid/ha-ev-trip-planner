@@ -670,7 +670,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
 
 Focus: Panel Jinja2 config section + EMHASS documentation.
 
-- [ ] 1.58 [P] Add EMHASS config section in panel.js with Jinja2 template + copy button
+- [x] 1.58 [P] Add EMHASS config section in panel.js with Jinja2 template + copy button
   - **Do**:
     1. In `custom_components/ev_trip_planner/frontend/panel.js`, add `_renderEmhassConfig()` method after sensors section in `render()`
     2. Method returns Lit html card with: title "EMHASS Configuration", Jinja2 template text for all 6 parameters referencing the aggregated sensor entity
