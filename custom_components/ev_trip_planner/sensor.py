@@ -38,6 +38,20 @@ from .definitions import TRIP_SENSORS, TripSensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
+# 9 documented attributes for TripEmhassSensor
+# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
+TRIP_EMHASS_ATTR_KEYS = {
+    "def_total_hours",
+    "P_deferrable_nom",
+    "def_start_timestep",
+    "def_end_timestep",
+    "power_profile_watts",
+    "trip_id",
+    "emhass_index",
+    "kwh_needed",
+    "deadline",
+}
+
 
 def _format_window_time(value: Any) -> str | None:
     """Format window time to HH:MM from datetime or ISO string.
@@ -842,19 +856,8 @@ class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         if trip_params is None:
             return self._zeroed_attributes()
 
-        return trip_params
-
-    def _get_params(self) -> Dict[str, Any]:
-        """Helper to read per_trip_emhass_params for this trip.
-
-        Returns:
-            Dict with trip params, or empty dict if not found.
-        """
-        if self.coordinator.data is None:
-            return {}
-
-        per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
-        return per_trip_params.get(self._trip_id, {})
+        # Filter to ONLY the 9 documented keys — prevents data leak
+        return {k: v for k, v in trip_params.items() if k in TRIP_EMHASS_ATTR_KEYS}
 
     def _zeroed_attributes(self) -> Dict[str, Any]:
         """Return zeroed/default values for all 9 attributes.

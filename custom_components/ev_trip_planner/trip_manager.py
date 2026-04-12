@@ -629,6 +629,10 @@ class TripManager:
         from .sensor import async_remove_trip_sensor  # Local import to avoid circular dependency
         await async_remove_trip_sensor(self.hass, self._entry_id, trip_id)
 
+        # T1.57: Remove EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_remove_trip_emhass_sensor
+        await async_remove_trip_emhass_sensor(self.hass, self._entry_id, self.vehicle_id, trip_id)
+
         # T019.3: Remove from EMHASS when deleted
         if self._emhass_adapter:
             await self._async_remove_trip_from_emhass(trip_id)

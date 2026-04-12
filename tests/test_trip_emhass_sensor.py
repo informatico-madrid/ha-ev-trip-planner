@@ -152,9 +152,11 @@ async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssista
             "deadline",
         }
         actual_keys = set(attrs.keys())
-        missing_keys = expected_keys - actual_keys
-        assert not missing_keys, (
-            f"Missing required keys in extra_state_attributes: {missing_keys}. Got: {actual_keys}"
+        # Assert EXACTLY 9 keys — no extra keys allowed (data leak prevention)
+        assert actual_keys == expected_keys, (
+            f"extra_state_attributes must have EXACTLY 9 keys, no more. "
+            f"Expected: {expected_keys}, Got: {actual_keys}. "
+            f"Extra keys detected: {actual_keys - expected_keys}"
         )
 
 

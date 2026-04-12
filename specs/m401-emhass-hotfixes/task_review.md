@@ -946,3 +946,22 @@ Review entry template:
   Fix call to pass correct args:
   await async_create_trip_emhass_sensor(self.hass, self._entry_id, runtime_data.coordinator, self.vehicle_id, trip_id)
 - resolved_at:
+
+### [task 1.54] RED test — test mock bug, not implementation bug
+- status: FAIL
+- severity: minor
+- reviewed_at: 2026-04-12T00:50:00Z
+- criterion_failed: Test mock setup doesn't match implementation API
+- evidence: |
+  Test sets: mock_entry.runtime_data.coordinator = mock_coordinator
+  Code calls: entry.runtime_data.get("coordinator")
+  
+  MagicMock's .get() returns a new MagicMock, NOT mock_coordinator.
+  Assertion fails: mock.runtime_data.get() is not mock.runtime_data.coordinator
+  
+  Implementation is CORRECT — uses .get("coordinator") which is proper dict access.
+  Test mock is WRONG — should mock runtime_data as a dict or mock .get() to return coordinator.
+- fix_hint: |
+  Fix test mock: mock_entry.runtime_data = {"coordinator": mock_coordinator}
+  OR: mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)
+- resolved_at:
