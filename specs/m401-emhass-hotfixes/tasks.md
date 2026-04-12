@@ -691,7 +691,7 @@ Focus: Panel Jinja2 config section + EMHASS documentation.
   - **Commit**: `docs(emhass): add EMHASS setup documentation with Jinja2 templates`
   - _Requirements: FR-11, AC-5.1-5.3_
 
-- [ ] V5c [VERIFY] Quality checkpoint: frontend + docs
+- [x] V5c [VERIFY] Quality checkpoint: frontend + docs
   - **Do**: Verify panel.js parses and docs exist
   - **Verify**: `node -c custom_components/ev_trip_planner/frontend/panel.js && test -f docs/emhass-setup.md && echo PASS`
   - **Done when**: Panel.js syntax valid, docs file exists
