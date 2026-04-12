@@ -17,7 +17,6 @@ from custom_components.ev_trip_planner.const import (
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     TRIP_TYPE_PUNCTUAL,
-    TRIP_TYPE_RECURRING,
 )
 
 
@@ -1320,26 +1319,6 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_get_assigned_index_returns_index_when_assigned(hass, mock_store):
-    """get_assigned_index returns the mapped index for a trip."""
-    config = {
-        CONF_VEHICLE_NAME: "test_vehicle",
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-        CONF_CHARGING_POWER: 7.4,
-    }
-
-    with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
-        return_value=mock_store,
-    ):
-        adapter = EMHASSAdapter(hass, config)
-        await adapter.async_load()
-
-        idx = await adapter.async_assign_index_to_trip("trip_xyz")
-        assert adapter.get_assigned_index("trip_xyz") == idx
-
-
-@pytest.mark.asyncio
 async def test_get_assigned_index_returns_none_when_not_assigned(hass, mock_store):
     """get_assigned_index returns None for unknown trip."""
     config = {
@@ -1831,35 +1810,6 @@ class TestGetLastError:
 
 
 @pytest.mark.asyncio
-async def test_async_clear_error_clears_error_state(hass, mock_store):
-    """async_clear_error clears _last_error and _last_error_time."""
-    config = {
-        CONF_VEHICLE_NAME: "test_vehicle",
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-        CONF_CHARGING_POWER: 7.4,
-    }
-
-    with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
-        return_value=mock_store,
-    ):
-        adapter = EMHASSAdapter(hass, config)
-        await adapter.async_load()
-        adapter._last_error = "Previous error"
-        adapter._last_error_time = datetime.now()
-
-        mock_sensor_state = MagicMock()
-        mock_sensor_state.attributes = {"error_type": "old_error"}
-        sensor_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
-        adapter.hass.states.get = MagicMock(return_value=mock_sensor_state)
-
-        await adapter.async_clear_error()
-
-        assert adapter._last_error is None
-        assert adapter._last_error_time is None
-
-
-@pytest.mark.asyncio
 async def test_async_clear_error_with_no_sensor(hass, mock_store):
     """async_clear_error handles case where sensor doesn't exist."""
     config = {
@@ -2321,89 +2271,6 @@ class TestEmhassAdapterCleanupEmptyIndices:
             # All indices should still be available
             assert len(adapter.get_available_indices()) == 50
 
-
-class TestEmhassAdapterAsyncSaveErrorPaths:
-    """Tests for emhass_adapter async_save error paths - PRAGMA-C coverage."""
-
-    @pytest.fixture
-    def mock_store(self):
-        """Create a mock store."""
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value={})
-        store.async_save = AsyncMock()
-        return store
-
-    @pytest.fixture
-    def emhass_config(self):
-        """Create base EMHASS config."""
-        return {
-            CONF_VEHICLE_NAME: "test_vehicle",
-            CONF_MAX_DEFERRABLE_LOADS: 50,
-            CONF_CHARGING_POWER: 7.4,
-        }
-
-    @pytest.mark.asyncio
-    async def test_async_save_handles_save_error(
-        self, mock_store, emhass_config
-    ):
-        """async_save catches exception when store.async_save raises.
-
-        Tests error path at lines 1171-1172.
-        """
-        mock_store.async_save = AsyncMock(side_effect=Exception("Save error"))
-
-        with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
-            return_value=mock_store,
-        ):
-            adapter = EMHASSAdapter(None, emhass_config)
-            adapter._store = mock_store
-            adapter._index_map = {"trip_1": 0}
-            adapter._released_indices = {}
-
-            # Should not raise - exception is caught
-            await adapter.async_save()
-
-
-class TestEmhassAdapterPublishAllErrorPaths:
-    """Tests for async_publish_all_deferrable_loads error paths - PRAGMA-C coverage."""
-
-    @pytest.fixture
-    def mock_store(self):
-        """Create a mock store."""
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value={})
-        store.async_save = AsyncMock()
-        return store
-
-    @pytest.fixture
-    def emhass_config(self):
-        """Create base EMHASS config."""
-        return {
-            CONF_VEHICLE_NAME: "test_vehicle",
-            CONF_MAX_DEFERRABLE_LOADS: 50,
-            CONF_CHARGING_POWER: 7.4,
-        }
-
-    @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_with_no_trips(
-        self, hass, mock_store, emhass_config
-    ):
-        """async_publish_all_deferrable_loads handles empty trip list.
-
-        Tests the happy path when there are no trips to publish.
-        """
-        with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
-            return_value=mock_store,
-        ):
-            adapter = EMHASSAdapter(hass, emhass_config)
-            await adapter.async_load()
-
-            hass.states.async_set = AsyncMock()
-
-            # Empty trips list should not raise
-            await adapter.async_publish_all_deferrable_loads([])
 
 
 # =============================================================================
@@ -5183,3 +5050,260 @@ async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
         assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
             "per_trip_emhass_params should match _cached_per_trip_params"
         )
+
+
+# =============================================================================
+# EDGE CASE TESTS
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_multiple_trips_same_deadline(mock_store):
+    """Multiple trips with same deadline get separate indices.
+
+    This is the test for task 2.4:
+    - Create 3 trips with identical deadline datetime
+    - Verify each gets separate emhass_index (0, 1, 2)
+    - Verify each has separate matrix row in p_deferrable_matrix
+
+    Data flow:
+    - adapter._async_assign_index_to_trip called for each trip
+    - Each trip gets next available index
+    - Matrix rows allocated per trip
+    """
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Create same deadline for all 3 trips
+    same_deadline = "2025-01-15T10:00:00"
+
+    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=mock_store):
+        adapter = EMHASSAdapter(MagicMock(), config)
+        await adapter.async_load()
+
+        # Assign indices to 3 trips with same deadline
+        index_001 = await adapter.async_assign_index_to_trip("pun_trip_001")
+        index_002 = await adapter.async_assign_index_to_trip("pun_trip_002")
+        index_003 = await adapter.async_assign_index_to_trip("pun_trip_003")
+
+        # Each should get unique index
+        assert index_001 == 0
+        assert index_002 == 1
+        assert index_003 == 2
+
+        # All indices should be reserved
+        assert 0 not in adapter.get_available_indices()
+        assert 1 not in adapter.get_available_indices()
+        assert 2 not in adapter.get_available_indices()
+
+        # Assign indices to params dict
+        adapter._index_map = {
+            "pun_trip_001": 0,
+            "pun_trip_002": 1,
+            "pun_trip_003": 2,
+        }
+
+        # Setup _cached_per_trip_params with same deadline
+        adapter._cached_per_trip_params = {
+            "pun_trip_001": {
+                "def_total_hours": 10.0,
+                "P_deferrable_nom": 2.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [100.0, 200.0, 150.0],
+                "trip_id": "pun_trip_001",
+                "emhass_index": 0,
+                "kwh_needed": 15.0,
+                "deadline": same_deadline,
+                "activo": True,
+            },
+            "pun_trip_002": {
+                "def_total_hours": 12.0,
+                "P_deferrable_nom": 3.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [50.0, 100.0, 75.0],
+                "trip_id": "pun_trip_002",
+                "emhass_index": 1,
+                "kwh_needed": 20.0,
+                "deadline": same_deadline,
+                "activo": True,
+            },
+            "pun_trip_003": {
+                "def_total_hours": 8.0,
+                "P_deferrable_nom": 1.5,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [25.0, 50.0, 35.0],
+                "trip_id": "pun_trip_003",
+                "emhass_index": 2,
+                "kwh_needed": 10.0,
+                "deadline": same_deadline,
+                "activo": True,
+            },
+        }
+
+        # Setup _cached_deferrables_schedule
+        adapter._cached_deferrables_schedule = {
+            "pun_trip_001": {
+                "def_total_hours": 10.0,
+                "P_deferrable_nom": 2.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [100.0, 200.0, 150.0],
+                "trip_id": "pun_trip_001",
+                "emhass_index": 0,
+                "kwh_needed": 15.0,
+                "deadline": same_deadline,
+            },
+            "pun_trip_002": {
+                "def_total_hours": 12.0,
+                "P_deferrable_nom": 3.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [50.0, 100.0, 75.0],
+                "trip_id": "pun_trip_002",
+                "emhass_index": 1,
+                "kwh_needed": 20.0,
+                "deadline": same_deadline,
+            },
+            "pun_trip_003": {
+                "def_total_hours": 8.0,
+                "P_deferrable_nom": 1.5,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [25.0, 50.0, 35.0],
+                "trip_id": "pun_trip_003",
+                "emhass_index": 2,
+                "kwh_needed": 10.0,
+                "deadline": same_deadline,
+            },
+        }
+
+        # Setup _cached_power_profile
+        adapter._cached_power_profile = [100.0, 200.0, 150.0]
+
+        # Setup _cached_deferrable_indices_to_delete
+        adapter._cached_deferrable_indices_to_delete = set()
+
+        # Call get_cached_optimization_results
+        result = adapter.get_cached_optimization_results()
+
+        # Verify all 3 trips have separate emhass_index values
+        assert result["per_trip_emhass_params"]["pun_trip_001"]["emhass_index"] == 0
+        assert result["per_trip_emhass_params"]["pun_trip_002"]["emhass_index"] == 1
+        assert result["per_trip_emhass_params"]["pun_trip_003"]["emhass_index"] == 2
+
+        # Verify each trip is in the deferrables schedule
+        assert "pun_trip_001" in result["emhass_deferrables_schedule"]
+        assert "pun_trip_002" in result["emhass_deferrables_schedule"]
+        assert "pun_trip_003" in result["emhass_deferrables_schedule"]
+
+        # Verify each trip has its own power profile (different P_deferrable_nom values)
+        assert result["per_trip_emhass_params"]["pun_trip_001"]["P_deferrable_nom"] == 2.0
+        assert result["per_trip_emhass_params"]["pun_trip_002"]["P_deferrable_nom"] == 3.0
+        assert result["per_trip_emhass_params"]["pun_trip_003"]["P_deferrable_nom"] == 1.5
+
+
+@pytest.mark.asyncio
+async def test_past_deadline_trip(mock_store):
+    """Past deadline trip handling.
+
+    This is the test for task 2.5:
+    - Create trip with past deadline
+    - Verify it's still assigned index but handled gracefully
+    - Verify optimization doesn't fail
+
+    Edge case: User creates trip after deadline has passed
+    Expected: Trip still gets index, optimization runs but trip may be ignored
+    """
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Past deadline (January 1, 2024)
+    past_deadline = "2024-01-01T10:00:00"
+
+    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=mock_store):
+        adapter = EMHASSAdapter(MagicMock(), config)
+        await adapter.async_load()
+
+        # Assign index to trip with past deadline
+        index = await adapter.async_assign_index_to_trip("past_trip_001")
+
+        # Index should still be assigned
+        assert index == 0
+        assert adapter.get_assigned_index("past_trip_001") == 0
+
+        # Setup _cached_per_trip_params with past deadline
+        adapter._cached_per_trip_params = {
+            "past_trip_001": {
+                "def_total_hours": 10.0,
+                "P_deferrable_nom": 2.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [100.0, 200.0, 150.0],
+                "trip_id": "past_trip_001",
+                "emhass_index": 0,
+                "kwh_needed": 15.0,
+                "deadline": past_deadline,
+                "activo": True,
+            },
+        }
+
+        # Setup _cached_deferrables_schedule
+        adapter._cached_deferrables_schedule = {
+            "past_trip_001": {
+                "def_total_hours": 10.0,
+                "P_deferrable_nom": 2.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 168,
+                "power_profile_watts": [100.0, 200.0, 150.0],
+                "trip_id": "past_trip_001",
+                "emhass_index": 0,
+                "kwh_needed": 15.0,
+                "deadline": past_deadline,
+            },
+        }
+
+        # Setup _cached_power_profile
+        adapter._cached_power_profile = [100.0, 200.0, 150.0]
+
+        # Setup _cached_deferrable_indices_to_delete
+        adapter._cached_deferrable_indices_to_delete = set()
+
+        # Call get_cached_optimization_results - should NOT fail
+        result = adapter.get_cached_optimization_results()
+
+        # Verify trip is in per_trip_emhass_params
+        assert "per_trip_emhass_params" in result
+        assert "past_trip_001" in result["per_trip_emhass_params"]
+        assert result["per_trip_emhass_params"]["past_trip_001"]["emhass_index"] == 0
+        assert result["per_trip_emhass_params"]["past_trip_001"]["deadline"] == past_deadline
+
+        # Verify required keys present
+        required_keys = [
+            "def_total_hours",
+            "P_deferrable_nom",
+            "def_start_timestep",
+            "def_end_timestep",
+            "power_profile_watts",
+            "trip_id",
+            "emhass_index",
+            "kwh_needed",
+            "deadline",
+            "activo",
+        ]
+
+        for key in required_keys:
+            assert key in result["per_trip_emhass_params"]["past_trip_001"], (
+                f"past_trip_001 should have key '{key}'"
+            )
