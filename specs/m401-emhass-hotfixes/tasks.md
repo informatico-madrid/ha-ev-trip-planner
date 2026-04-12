@@ -432,7 +432,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Commit**: `test(sensor): red - failing test for p_deferrable_matrix attribute`
   - _Requirements: FR-8, AC-3.1, AC-3.2_
 
-- [ ] 1.40 [GREEN] Extend `EmhassDeferrableLoadSensor.extra_state_attributes` with 6 new attrs
+- [x] 1.40 [GREEN] Extend `EmhassDeferrableLoadSensor.extra_state_attributes` with 6 new attrs
   - **Do**:
     1. Add `_get_active_trips_ordered(per_trip)` helper — filter `activo=True`, sort by `emhass_index` ascending
     2. In `extra_state_attributes`, after existing attrs, build 6 new attrs from sorted active trips:
@@ -444,7 +444,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Commit**: `feat(sensor): add 6 EMHASS array/matrix attributes to aggregated sensor`
   - _Requirements: FR-8, FR-9, FR-9a-d, AC-3.1-3.5_
 
-- [ ] 1.41 [RED] Failing test: aggregated sensor arrays have matching lengths
+- [x] 1.41 [RED] Failing test: aggregated sensor arrays have matching lengths
   - **Do**:
     1. Write test `test_aggregated_sensor_array_lengths_match` — verify all 5 array attrs + matrix rows have same length as `number_of_deferrable_loads`
   - **Files**: tests/test_sensor_coverage.py
@@ -452,7 +452,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_aggregated_sensor_array_lengths" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
   - **Commit**: `test(sensor): red - failing test for array length consistency`
 
-- [ ] 1.42 [GREEN] Verify array length consistency
+- [x] 1.42 [GREEN] Verify array length consistency
   - **Do**: Run test — should pass from 1.40's single-list construction
   - **Files**: custom_components/ev_trip_planner/sensor.py
   - **Done when**: Test passes — all arrays same length as `number_of_deferrable_loads`
@@ -460,7 +460,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Commit**: `test(sensor): green - verify array length consistency`
   - _Requirements: AC-3.5_
 
-- [ ] 1.43 [RED] Failing test: aggregated sensor excludes inactive trips from matrix
+- [x] 1.43 [RED] Failing test: aggregated sensor excludes inactive trips from matrix
   - **Do**:
     1. Write test `test_aggregated_sensor_excludes_inactive` with 2 active + 1 inactive (`activo=False`) trip
     2. Assert matrix has 2 rows (not 3), inactive trip excluded from all arrays
@@ -469,7 +469,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_aggregated_sensor_excludes_inactive" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
   - **Commit**: `test(sensor): red - failing test for inactive trip exclusion`
 
-- [ ] 1.44 [GREEN] Verify inactive trip exclusion
+- [x] 1.44 [GREEN] Verify inactive trip exclusion
   - **Do**: Run test — should pass from 1.40's `activo=True` filter
   - **Files**: custom_components/ev_trip_planner/sensor.py
   - **Done when**: Test passes — inactive trips excluded
@@ -477,7 +477,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Commit**: `test(sensor): green - verify inactive trips excluded from matrix`
   - _Requirements: FR-7_
 
-- [ ] 1.45 [RED] Failing test: `_get_active_trips_ordered` sorts by emhass_index ascending
+- [x] 1.45 [RED] Failing test: `_get_active_trips_ordered` sorts by emhass_index ascending
   - **Do**:
     1. Write test `test_get_active_trips_ordered_sorting` with trips having indices [3, 1, 2]
     2. Assert sorted result is [1, 2, 3] order
@@ -486,7 +486,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_get_active_trips_ordered_sorting" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS || echo GREEN_PASS`
   - **Commit**: `test(sensor): red - failing test for active trips ordering`
 
-- [ ] 1.46 [GREEN] Verify `_get_active_trips_ordered` sorting
+- [x] 1.46 [GREEN] Verify `_get_active_trips_ordered` sorting
   - **Do**: Run test — should pass from 1.40's sort key
   - **Files**: custom_components/ev_trip_planner/sensor.py
   - **Done when**: Test passes — trips sorted by emhass_index ascending

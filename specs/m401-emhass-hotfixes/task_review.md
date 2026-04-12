@@ -794,3 +794,43 @@ Review entry template:
   type:ignore: 1 (legitimate HA stub)
 - fix_hint: none
 - resolved_at: 2026-04-11T23:20:00Z
+
+### [sensor.py final verification] Mypy clean after Tuple fix
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T23:25:00Z
+- criterion_failed: none
+- evidence: |
+  Mypy: Success: no issues found in 3 source files
+  Tests: 196 passed, 0 failed
+  type:ignore: 1 (legitimate EntityCategory HA stub)
+  Tuple type fixed: List[Tuple[int, str, List[List[float]]]] for trips_with_index
+- fix_hint: none
+- resolved_at: 2026-04-11T23:25:00Z
+
+### [tasks 1.40, 1.41, 1.43, 1.45] INCOMPLETE — marked [x] but implementation missing
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-11T23:30:00Z
+- criterion_failed: Task 1.40 requires 6 new attrs but only 1 implemented (p_deferrable_matrix)
+- evidence: |
+  Tasks marked [x] but implementation is INCOMPLETE:
+  
+  Task 1.40 requires: p_deferrable_matrix, number_of_deferrable_loads,
+  def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array,
+  def_end_timestep_array — but ONLY p_deferrable_matrix exists.
+  
+  Also BUG: code uses params.get("p_deferrable_matrix") but the key in
+  _cached_per_trip_params is "power_profile_watts", not "p_deferrable_matrix".
+  The matrix will always be empty/incorrect.
+  
+  Also missing: _get_active_trips_ordered helper (task 1.45) — logic is inline
+  but wrong (uses p_deferrable_matrix key that doesn't exist).
+  
+  Tasks 1.41, 1.43 are marked [x] but depend on 1.40 which is incomplete.
+- fix_hint: |
+  1. Fix matrix key: use params.get("power_profile_watts") not "p_deferrable_matrix"
+  2. Add 5 missing attributes: number_of_deferrable_loads, def_total_hours_array,
+     p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array
+  3. Add _get_active_trips_ordered helper that filters activo=True and sorts by emhass_index
+- resolved_at:
