@@ -2748,3 +2748,66 @@ Result: PASS ✅
 
 **Status**: Task 1.58 COMPLETE. Ready for commit.
 
+
+### [2026-04-12 20:00:00] Spec-Executor → External-Reviewer
+**Task**: Continuing with Task 1.59 [P]
+**Signal**: ACK — Moving to next unmarked task
+
+**Completed**: Task 1.58 [P]
+- Added EMHASS config section in panel.js
+- Implemented copy button with visual confirmation
+- Added parameter reference table
+
+**Next**: Task 1.59 [P] Create EMHASS setup documentation
+
+**Status**: STARTING Task 1.59
+
+
+### [2026-04-12 20:05:00] Spec-Executor → External-Reviewer
+**Task**: Task 1.59 [P] — COMPLETE
+**Signal**: TASK_COMPLETE
+
+**Task 1.59 [P]** ✅ COMPLETE:
+- Created comprehensive EMHASS setup documentation at `docs/emhass-setup.md`
+- Documentation includes all required sections:
+  1. ✅ Introduction to EMHASS and EV Trip Planner integration
+  2. ✅ Prerequisites (EMHASS installation, EV Trip Planner config, requirements)
+  3. ✅ Sensor reference table (aggregated and per-trip sensors)
+  4. ✅ Complete EMHASS parameters reference (all 6 parameters with examples)
+  5. ✅ Jinja2 templates for all 6 params:
+     - Basic template (all parameters)
+     - Template with fallback values
+     - Individual parameter templates
+  6. ✅ EMHASS optimize configuration example
+  7. ✅ Comprehensive troubleshooting section
+  8. ✅ Advanced configuration (multiple vehicles, solar PV, TOU tariffs)
+  9. ✅ Support and documentation links
+  10. ✅ Changelog
+
+**Documentation highlights**:
+- **6 EMHASS parameters** fully documented with examples
+- **3 Jinja2 template variants** for different use cases
+- **10+ troubleshooting scenarios** with solutions
+- **Complete EMHASS optimize.yaml example** with all parameters
+- **Frontend panel integration** documented (Method 1: Copy button)
+- **Multiple vehicle support** with template examples
+- **Solar PV and TOU tariff** configuration examples
+
+**Verification**: `test -f docs/emhass-setup.md && grep -q "P_deferrable" docs/emhass-setup.md && echo PASS`
+Result: PASS ✅
+
+**Documentation sections created**:
+1. Introduction - What is EMHASS and how it integrates
+2. Prerequisites - Installation and configuration requirements
+3. EV Trip Planner EMHASS Sensors - Aggregated and per-trip sensors
+4. EMHASS Parameters Reference - All 6 parameters with detailed examples
+5. Jinja2 Templates for EMHASS - 3 template variants
+6. EMHASS Configuration Example - Complete optimize.yaml
+7. Getting the Template - Frontend panel and manual methods
+8. Troubleshooting - 10+ common issues and solutions
+9. Advanced Configuration - Multiple vehicles, solar PV, TOU tariffs
+10. Support and Documentation - Links and resources
+11. Changelog - Version history
+
+**Status**: Task 1.59 COMPLETE. Ready for commit.
+

@@ -682,7 +682,7 @@ Focus: Panel Jinja2 config section + EMHASS documentation.
   - **Commit**: `feat(panel): add EMHASS Jinja2 config section with copy button`
   - _Requirements: FR-10, AC-4.1-4.4_
 
-- [ ] 1.59 [P] Create EMHASS setup documentation
+- [x] 1.59 [P] Create EMHASS setup documentation
   - **Do**:
     1. Create `docs/emhass-setup.md` with: introduction, prerequisites, sensor reference table, complete Jinja2 templates for all 6 params, EMHASS optimize configuration example, troubleshooting section
   - **Files**: docs/emhass-setup.md
