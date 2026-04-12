@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypedDict, cast
+from typing import Any, Dict, List, Optional, TypedDict
 
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
@@ -483,6 +483,15 @@ class TripManager:
         from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
         await async_create_trip_sensor(self.hass, self._entry_id, self._recurring_trips[trip_id])
 
+        # T1.53: Create EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_create_trip_emhass_sensor
+        # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry and entry.runtime_data:
+            coordinator = entry.runtime_data.get("coordinator")
+            if coordinator:
+                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
+
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
             await self._async_publish_new_trip_to_emhass(self._recurring_trips[trip_id])
@@ -526,6 +535,15 @@ class TripManager:
         # T034: Create sensor entity for the trip (using sensor.py CRUD function)
         from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
         await async_create_trip_sensor(self.hass, self._entry_id, self._punctual_trips[trip_id])
+
+        # T1.55: Create EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_create_trip_emhass_sensor
+        # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry and entry.runtime_data:
+            coordinator = entry.runtime_data.get("coordinator")
+            if coordinator:
+                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -576,7 +594,9 @@ class TripManager:
 
         # T035: Update the sensor entity for the trip (using sensor.py CRUD function)
         from .sensor import async_update_trip_sensor  # Local import to avoid circular dependency
-        await async_update_trip_sensor(self.hass, self._entry_id, self._recurring_trips.get(trip_id) or self._punctual_trips.get(trip_id))
+        trip_data = self._recurring_trips.get(trip_id) or self._punctual_trips.get(trip_id)
+        if trip_data:
+            await async_update_trip_sensor(self.hass, self._entry_id, trip_data)
 
         # T019.3: Detect trip changes and trigger EMHASS update
         if old_trip and self._emhass_adapter:
@@ -707,17 +727,6 @@ class TripManager:
                     self.vehicle_id,
                 )
                 return
-
-            # Update the sensor state via Home Assistant API
-            from homeassistant.helpers import device_registry
-
-            # Get the device ID for this vehicle
-            device_reg = device_registry.async_get(self.hass)
-            device_id = None
-            for dev in device_reg.devices.values():
-                if dev.identifiers and (DOMAIN, self.vehicle_id) in dev.identifiers:
-                    device_id = dev.id
-                    break
 
             # Update the entity state with new trip data
             state_attributes = {

@@ -1254,6 +1254,114 @@ class TestTripManagerAsyncAddRecurringTrip:
             assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
             assert call_args[0][2].get("dia_semana") == "lunes"  # trip_data contains dia_semana="lunes"
 
+    @pytest.mark.asyncio
+    async def test_add_recurring_calls_emhass_sensor_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip calls sensor.py async_create_trip_emhass_sensor.
+
+        RED test for task 1.52: Verify trip_manager creates EMHASS sensor alongside TripSensor.
+
+        Expected behavior:
+        - trip_manager.async_add_recurring_trip should call sensor.async_create_trip_emhass_sensor
+        - After calling async_create_trip_sensor (TripSensor comes first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor CRUD not yet added
+        - Only TripSensor is created via async_create_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Mock both sensor CRUD functions
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                mock_trip_sensor.return_value = False  # No existing entity
+                mock_emhass_sensor.return_value = None  # EMHASS sensor void return
+
+                # Add a recurring trip
+                await trip_manager.async_add_recurring_trip(
+                    dia_semana="lunes",
+                    hora="08:00",
+                    km=50.0,
+                    kwh=10.0,
+                    descripcion="Test trip for EMHASS sensor creation",
+                )
+
+                # Assert TripSensor was created
+                mock_trip_sensor.assert_called_once()
+
+                # Assert EMHASS sensor was created AFTER TripSensor
+                # This will FAIL until task 1.53 implementation
+                mock_emhass_sensor.assert_called_once()
+                call_args = mock_emhass_sensor.call_args
+                assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                assert call_args[0][2].get("dia_semana") == "lunes"  # trip_data contains dia_semana="lunes"
+
+
+class TestTripManagerAsyncAddPunctualTrip:
+    """Tests for async_add_punctual_trip EMHASS sensor integration."""
+
+    @pytest.mark.asyncio
+    async def test_add_punctual_calls_emhass_sensor_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_punctual_trip calls sensor.py async_create_trip_emhass_sensor.
+
+        RED test for task 1.54: Verify trip_manager creates EMHASS sensor alongside TripSensor
+        for punctual trips.
+
+        Expected behavior:
+        - trip_manager.async_add_punctual_trip should call sensor.async_create_trip_emhass_sensor
+        - After calling async_create_trip_sensor (TripSensor comes first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor CRUD not yet added for punctual trips
+        - Only TripSensor is created via async_create_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up mock entry.runtime_data.coordinator (required for EMHASS sensor creation)
+        mock_coordinator = MagicMock()
+        mock_entry = mock_hass_with_storage.config_entries.async_get_entry("test_entry")
+        if mock_entry:
+            mock_entry.runtime_data = MagicMock()
+            mock_entry.runtime_data.coordinator = mock_coordinator
+
+        # Mock both sensor CRUD functions
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                mock_trip_sensor.return_value = False  # No existing entity
+                mock_emhass_sensor.return_value = None  # EMHASS sensor void return
+
+                # Add a punctual trip
+                await trip_manager.async_add_punctual_trip(
+                    datetime="2024-01-15T08:00:00",
+                    km=25.0,
+                    kwh=5.0,
+                    descripcion="Test punctual trip for EMHASS sensor creation",
+                )
+
+                # Assert TripSensor was created
+                mock_trip_sensor.assert_called_once()
+
+                # Assert EMHASS sensor was created AFTER TripSensor
+                # This will FAIL until task 1.55 implementation
+                mock_emhass_sensor.assert_called_once()
+                call_args = mock_emhass_sensor.call_args
+                assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                assert call_args[0][2] is mock_coordinator  # third arg is coordinator
+                assert call_args[0][3] == "morgan"  # fourth arg is vehicle_id
+                # The fifth arg should be the trip_id (extracted from the trip that was created)
+                assert call_args[0][4] in trip_manager._punctual_trips or trip_manager._recurring_trips
+
 
 
 class TestTripManagerAsyncDeleteTrip:
@@ -1272,6 +1380,58 @@ class TestTripManagerAsyncDeleteTrip:
                     await trip_manager.async_delete_trip("nonexistent_trip")
 
         # No error should be raised - just returns early
+
+    @pytest.mark.asyncio
+    async def test_delete_calls_emhass_sensor_remove(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_delete_trip calls sensor.py async_remove_trip_emhass_sensor.
+
+        RED test for task 1.56: Verify trip_manager removes EMHASS sensor alongside TripSensor
+        when deleting trips.
+
+        Expected behavior:
+        - trip_manager.async_delete_trip should call sensor.async_remove_trip_emhass_sensor
+        - After calling async_remove_trip_sensor (TripSensor removed first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor removal not yet added
+        - Only TripSensor is removed via async_remove_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Create a trip first
+        await trip_manager.async_add_recurring_trip(
+            dia_semana="lunes",
+            hora="08:00",
+            km=50.0,
+            kwh=10.0,
+            descripcion="Test trip for EMHASS sensor removal",
+        )
+
+        # Mock both sensor CRUD functions
+        with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                mock_trip_sensor.return_value = True  # Successfully removed
+                mock_emhass_sensor.return_value = True  # Successfully removed
+
+                # Delete the trip
+                await trip_manager.async_delete_trip(list(trip_manager._recurring_trips.keys())[0])
+
+                # Assert TripSensor was removed
+                mock_trip_sensor.assert_called_once()
+
+                # Assert EMHASS sensor was removed AFTER TripSensor
+                # This will FAIL until task 1.57 implementation
+                mock_emhass_sensor.assert_called_once()
+                call_args = mock_emhass_sensor.call_args
+                assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                # The third arg should be the trip_id
+                assert call_args[0][2] in trip_manager._recurring_trips or trip_manager._punctual_trips
 
 
 

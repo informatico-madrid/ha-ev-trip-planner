@@ -4,7 +4,7 @@
 
 Focus: Fix 3 root causes for charging power updates being silently ignored. Each fix starts with a failing test.
 
-- [ ] 1.1 [RED] Failing test: `update_charging_power` reads `entry.options` first
+- [x] 1.1 [RED] Failing test: `update_charging_power` reads `entry.options` first
   - **Do**:
     1. In `tests/test_emhass_adapter.py`, write test `test_update_charging_power_reads_options_first` that creates `MockConfigEntry` with `options={"charging_power_kw": 3.6}`, `data={"charging_power_kw": 11}`
     2. Assert adapter reads 3.6 (options) not 11 (data)
@@ -15,7 +15,7 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
   - **Commit**: `test(emhass): red - failing test for options-first read`
   - _Requirements: FR-1, AC-1.1_
 
-- [ ] 1.2 [GREEN] Fix `update_charging_power` to read `entry.options` first, fallback `entry.data`
+- [x] 1.2 [GREEN] Fix `update_charging_power` to read `entry.options` first, fallback `entry.data`
   - **Do**:
     1. In `emhass_adapter.py:1359`, change to use `is None` check (NOT `or`) to correctly handle `charging_power_kw=0` edge case:
        ```python
@@ -273,26 +273,38 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **Commit**: `feat(sensor): create TripEmhassSensor class with native_value`
   - _Requirements: FR-4, AC-2.1, AC-2.5_
 
-- [x] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+- [ ] 1.25 [RED] Failing test: `TripEmhassSensor.extra_state_attributes` returns 9 attributes
+  - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Test solo verifica que las 9 claves EXISTEN (subset check) pero NO verifica que SOLO esas 9 claves están presentes. El test debe usar `assert actual_keys == expected_keys` (igualdad exacta), no subset check. Actualmente pasan 20+ claves internas al estado del sensor HA (activo, _array keys, p_deferrable_nom lowercase, p_deferrable_matrix). Esto expone detalles de implementación interna.
+  - **Fix**: Cambiar el assert de subset (`missing_keys = expected_keys - actual_keys`) a igualdad exacta (`assert actual_keys == expected_keys`). Añadir assert de que NO existen claves internas (activo, *_array, p_deferrable_matrix).
   - **Do**:
     1. Write test `test_trip_emhass_sensor_attributes_all_9` with full params dict
     2. Assert attrs dict has keys: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`
     3. Assert `power_profile_watts` is list of 168 elements
+    4. **Assert actual_keys == expected_keys** — NO claves extra permitidas
   - **Files**: tests/test_trip_emhass_sensor.py
-  - **Done when**: Test exists AND fails — `extra_state_attributes` not yet implemented
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_attributes_all_9" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS`
-  - **Commit**: `test(sensor): red - failing test for TripEmhassSensor 9 attributes`
-  - _Requirements: FR-4, AC-2.2_
-
-- [x] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
-  - **Do**:
-    1. Add `_get_params()` helper — reads `coordinator.data["per_trip_emhass_params"][self._trip_id]`
-    2. Add `_zeroed_attributes()` — returns all 9 attrs with zeroed values
-    3. `extra_state_attributes` — returns params if available, else zeroed
-  - **Files**: custom_components/ev_trip_planner/sensor.py
-  - **Done when**: Test passes — all 9 attrs present with correct values
+  - **Done when**: Test validates EXACTLY 9 keys, no more
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_attributes_all_9"`
-  - **Commit**: `feat(sensor): implement TripEmhassSensor extra_state_attributes with 9 attrs`
+  - **Commit**: `test(sensor): fix test to validate exact 9 key contract
+  - **Done when**: Test validates EXACTLY 9 keys, no more
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_attributes_all_9"`
+  - ] 1.26 [GREEN] Implement `TripEmhassSensor.extra_state_attributes` with 9 attributes
+  - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Implementación retorna `trip_params` crudo (dict completo del cache) con 20+ claves en vez de filtrar a las 9 documentadas. Expone claves internas al estado HA: `activo` (flag lifecycle), `p_deferrable_nom` (duplicate lowercase), `*_array` keys (del sensor agregado), `p_deferrable_matrix` (del sensor agregado). El docstring dice "Returns all 9" pero retorna 20+. Además `_get_params()` helper está definido pero nunca se usa (dead code).
+  - **Fix**: 1) Definir constante `TRIP_EMHASS_ATTR_KEYS` con las 9 claves. 2) Filtrar: `return {k: v for k, v in trip_params.items() if k in TRIP_EMHASS_ATTR_KEYS}`. 3) Eliminar `_get_params()` dead code.
+  - **Do**:
+    1. Add `TRIP_EMHASS_ATTR_KEYS` set constant with 9 keys
+    2. `extra_state_attributes` — filter trip_params to ONLY the 9 documented keys
+    3. Remove unused `_get_params()` helper (dead code)
+    4. `_zeroed_attributes()` — returns all 9 attrs with zeroed values (already correct)
+  - **Files**: custom_components/ev_trip_planner/sensor.py
+  - **Done when**: Test 1.25 passes with exact key validation — ONLY 9 keys returned
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_attributes_all_9"`
+  - **Commit**: `fix(sensor): filter TripEmhassSensor attrs to 9 documented keys only
+    3. Remove unused `_get_params()` helper (dead code)
+    4. `_zeroed_attributes()` — returns all 9 attrs with zeroed values (already correct)
+  - **Files**: custom_components/ev_trip_planner/sensor.py
+  - **Done when**: Test 1.25 passes with exact key validation — ONLY 9 keys returned
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_attributes_all_9"`
+  - **Commit**: `fix(sensor): filter TripEmhassSensor attrs to 9 documented keys only`
   - _Requirements: FR-4, AC-2.2_
 
 - [x] 1.27 [RED/GREEN] `TripEmhassSensor` returns zeroed attributes when trip not found
@@ -312,16 +324,18 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
 - [x] 1.30 [GREEN] Implement `TripEmhassSensor.device_info`
   - **Do**:
     1. Add `device_info` property returning `{identifiers={(DOMAIN, self._vehicle_id)}, ...}` — matches `EmhassDeferrableLoadSensor.device_info` pattern
-  - **Files**: custom_components/ev_trip_planner/sensor.py
-  - **Done when**: Test passes — correct device identifiers
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_trip_emhass_sensor_device_info"`
-  - **Commit**: `feat(sensor): implement TripEmhassSensor device_info with vehicle_id`
+  - ] V4a [VERIFY] Quality checkpoint: TripEmhassSensor class
+  - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Checkpoint no detectó data leak en 1.26 (extra_state_attributes retornando 20+ claves internas). Requiere que 1.25 y 1.26 estén corregidos antes de marcar.
+  - **Do**: Run quality commands
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
+  - **Done when**: All tests pass with exact key validationplement TripEmhassSensor device_info with vehicle_id`
   - _Requirements: AC-2.6_
 
 - [ ] V4a [VERIFY] Quality checkpoint: TripEmhassSensor class
+  - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Checkpoint no detectó data leak en 1.26 (extra_state_attributes retornando 20+ claves internas). Requiere que 1.25 y 1.26 estén corregidos antes de marcar.
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
+  - **Done when**: All tests pass with exact key validation, no lint errors, no type errors
   - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(sensor): pass quality checkpoint after TripEmhassSensor`
 
@@ -370,7 +384,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x -k "test_create_trip_emhass_sensor_no_entry"`
   - **Commit**: `test(sensor): green - verify create EMHASS sensor returns False on no entry`
 
-- [ ] 1.35 [RED] Failing test: `async_remove_trip_emhass_sensor` removes from entity registry
+- [x] 1.35 [RED] Failing test: `async_remove_trip_emhass_sensor` removes from entity registry
   <!-- REVIEWER: DESV 7 — Function does not exist yet. FR-6 requires entity_registry.async_remove implementation. -->
   - **Do**:
     1. Write test `test_remove_trip_emhass_sensor_success` with mock entity_registry containing matching entry
@@ -382,7 +396,7 @@ Focus: Add EMHASS sensor create/remove functions.
   - **Commit**: `test(sensor): red - failing test for async_remove_trip_emhass_sensor`
   - _Requirements: FR-6_
 
-- [ ] 1.36 [GREEN] Implement `async_remove_trip_emhass_sensor`
+- [x] 1.36 [GREEN] Implement `async_remove_trip_emhass_sensor`
   <!-- REVIEWER: DESV 7 — Not implemented. FR-6 requires this for hard delete sensor cleanup. -->
   - **Do**:
     1. Add module-level function in sensor.py mirroring `async_remove_trip_sensor` pattern
@@ -525,7 +539,7 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
 
 Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor CRUD calls.
 
-- [ ] 1.47 [RED] Failing test: trip_manager `async_add_recurring_trip` calls sensor.py `async_create_trip_sensor`
+- [x] 1.47 [RED] Failing test: trip_manager `async_add_recurring_trip` calls sensor.py `async_create_trip_sensor`
   <!-- reviewer-diagnosis
     what: Existing test test_async_add_recurring_trip_generates_id FAILS: AttributeError — TripManager no longer has async_create_trip_sensor attribute after refactor to use sensor.py functions
     why: Coordinator removed internal async_create_trip_sensor method but test still patches it. Test was PASSING before refactor.
@@ -539,7 +553,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager.py -x -k "test_add_recurring_calls_sensor_py_create" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS`
   - **Commit**: `test(trip_manager): red - failing test for sensor.py create call refactor`
 
-- [ ] 1.48 [GREEN] Refactor recurring trip sensor CRUD to use sensor.py functions
+- [x] 1.48 [GREEN] Refactor recurring trip sensor CRUD to use sensor.py functions
   <!-- reviewer-diagnosis
     what: Existing test test_async_add_recurring_trip_generates_id FAILS: AttributeError — TripManager no longer has async_create_trip_sensor attribute after refactor to use sensor.py functions
     why: Coordinator removed internal async_create_trip_sensor method but test still patches it. Test was PASSING before refactor.
@@ -554,7 +568,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Commit**: `refactor(trip_manager): use sensor.py async_create_trip_sensor for recurring trips`
   - _Design: Component 6_
 
-- [ ] 1.49 [GREEN] Refactor punctual trip sensor CRUD at line 524
+- [x] 1.49 [GREEN] Refactor punctual trip sensor CRUD at line 524
   <!-- reviewer-diagnosis
     what: Existing test test_async_add_recurring_trip_generates_id FAILS: AttributeError — TripManager no longer has async_create_trip_sensor attribute after refactor to use sensor.py functions
     why: Coordinator removed internal async_create_trip_sensor method but test still patches it. Test was PASSING before refactor.
@@ -567,7 +581,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Verify**: `grep -n "async_create_trip_sensor" custom_components/ev_trip_planner/trip_manager.py | grep -v "import" | head -5`
   - **Commit**: `refactor(trip_manager): use sensor.py async_create_trip_sensor for punctual trips`
 
-- [ ] 1.50 [GREEN] Refactor trip delete sensor CRUD at line 604
+- [x] 1.50 [GREEN] Refactor trip delete sensor CRUD at line 604
   <!-- reviewer-diagnosis
     what: Existing test test_async_add_recurring_trip_generates_id FAILS: AttributeError — TripManager no longer has async_create_trip_sensor attribute after refactor to use sensor.py functions
     why: Coordinator removed internal async_create_trip_sensor method but test still patches it. Test was PASSING before refactor.
@@ -581,7 +595,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Verify**: `grep -n "async_remove_trip_sensor" custom_components/ev_trip_planner/trip_manager.py | grep -v "import\|async def" | head -5`
   - **Commit**: `refactor(trip_manager): use sensor.py async_remove_trip_sensor for trip deletion`
 
-- [ ] 1.51 [GREEN] Remove dead internal CRUD methods (lines 1891-1993)
+- [x] 1.51 [GREEN] Remove dead internal CRUD methods (lines 1891-1993)
   - **Do**:
     1. Delete `TripManager.async_create_trip_sensor` (lines 1890-1952)
     2. Delete `TripManager.async_remove_trip_sensor` (lines 1954-2002)
@@ -592,14 +606,14 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Commit**: `refactor(trip_manager): remove dead internal sensor CRUD methods`
   - _Design: Component 6_
 
-- [ ] V5a [VERIFY] Quality checkpoint: legacy refactor
+- [x] V5a [VERIFY] Quality checkpoint: legacy refactor
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/trip_manager.py && mypy custom_components/ev_trip_planner/trip_manager.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
   - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
   - **Commit**: `chore(trip_manager): pass quality checkpoint after legacy refactor`
 
-- [ ] 1.52 [RED] Failing test: trip_manager `async_add_recurring_trip` calls EMHASS sensor create
+- [x] 1.52 [RED] Failing test: trip_manager `async_add_recurring_trip` calls EMHASS sensor create
   - **Do**:
     1. Write test `test_add_recurring_calls_emhass_sensor_create` asserting `async_create_trip_emhass_sensor` is called after `async_create_trip_sensor`
   - **Files**: tests/test_trip_manager.py
@@ -608,7 +622,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Commit**: `test(trip_manager): red - failing test for EMHASS sensor create on recurring add`
   - _Requirements: FR-5_
 
-- [ ] 1.53 [GREEN] Add EMHASS sensor CRUD calls for recurring trip creation
+- [x] 1.53 [GREEN] Add EMHASS sensor CRUD calls for recurring trip creation
   - **Do**:
     1. At trip_manager.py:481, after `async_create_trip_sensor` call, add `await async_create_trip_emhass_sensor(self.hass, self._entry_id, trip_data)`
     2. Import `async_create_trip_emhass_sensor` from sensor.py
@@ -618,7 +632,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Commit**: `feat(trip_manager): add EMHASS sensor create for recurring trips`
   - _Requirements: FR-5_
 
-- [ ] 1.54 [RED] Failing test: trip_manager `async_add_punctual_trip` calls EMHASS sensor create
+- [x] 1.54 [RED] Failing test: trip_manager `async_add_punctual_trip` calls EMHASS sensor create
   - **Do**:
     1. Write test `test_add_punctual_calls_emhass_sensor_create` asserting `async_create_trip_emhass_sensor` called
   - **Files**: tests/test_trip_manager.py
@@ -626,7 +640,7 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager.py -x -k "test_add_punctual_calls_emhass_sensor_create" 2>&1 | grep -qi "fail\|error\|assert" && echo RED_PASS`
   - **Commit**: `test(trip_manager): red - failing test for EMHASS sensor create on punctual add`
 
-- [ ] 1.55 [GREEN] Add EMHASS sensor CRUD calls for punctual trip creation
+- [x] 1.55 [GREEN] Add EMHASS sensor CRUD calls for punctual trip creation
   - **Do**:
     1. At trip_manager.py:524, after `async_create_trip_sensor` call, add `await async_create_trip_emhass_sensor(self.hass, self._entry_id, trip_data)`
   - **Files**: custom_components/ev_trip_planner/trip_manager.py

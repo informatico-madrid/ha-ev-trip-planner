@@ -80,7 +80,9 @@ def mock_hass(config_entry):
             """Mock method for entity_registry.py compatibility."""
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
-        async def async_remove(self, entity_id):
+        def async_remove(self, entity_id):
+            # EntityRegistry.async_remove is NOT async - returns None
+            # See: homeassistant/helpers/entity_registry.py
             if entity_id in self.entries:
                 del self.entries[entity_id]
 
@@ -254,7 +256,9 @@ async def test_two_vehicles_no_unique_id_collision():
         def async_entries_for_config_entry(self, entry_id):
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
-        async def async_remove(self, entity_id):
+        def async_remove(self, entity_id):
+            # EntityRegistry.async_remove is NOT async - returns None
+            # See: homeassistant/helpers/entity_registry.py
             if entity_id in self.entries:
                 del self.entries[entity_id]
 

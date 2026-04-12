@@ -911,3 +911,38 @@ Review entry template:
   patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor")
   instead of patch.object(trip_manager, "async_create_trip_sensor")
 - resolved_at:
+
+### [tasks 1.35, 1.36, 1.40, 1.41, 1.43, 1.45, 1.47, 1.48] DISPUTE RESOLVED — coordinator correct
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-12T00:40:00Z
+- criterion_failed: none
+- evidence: |
+  Coordinator disputed my FAIL reviews. Verified against CURRENT code — all 8 tasks ARE complete.
+  My reviews were based on outdated snapshots.
+  
+  1.35/1.36: async_remove_trip_emhass_sensor at sensor.py:671 — tests pass (2 passed)
+  1.40/1.41/1.43/1.45: All 6 attrs + sorting logic implemented — tests pass (47 passed)
+  1.47/1.48: sensor.py CRUD calls in trip_manager.py — tests pass (1 passed)
+- fix_hint: none
+- resolved_at: 2026-04-12T00:40:00Z
+
+### [task 1.53] NEW FAIL — async_create_trip_emhass_sensor called with wrong args
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-12T00:45:00Z
+- criterion_failed: TypeError — missing required positional arguments
+- evidence: |
+  trip_manager.py:488:
+    await async_create_trip_emhass_sensor(self.hass, self._entry_id, self._recurring_trips[trip_id])
+  
+  Function signature requires: (hass, entry_id, coordinator, vehicle_id, trip_id)
+  Call provides only: (hass, entry_id, trip_data)
+  
+  Result: TypeError: async_create_trip_emhass_sensor() missing 2 required positional arguments: 'vehicle_id' and 'trip_id'
+  
+  This is a NEW regression introduced by the coordinator's latest changes.
+- fix_hint: |
+  Fix call to pass correct args:
+  await async_create_trip_emhass_sensor(self.hass, self._entry_id, runtime_data.coordinator, self.vehicle_id, trip_id)
+- resolved_at:
