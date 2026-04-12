@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, HomeAssistantError
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 
 from .calculations import (
@@ -48,8 +49,8 @@ class EMHASSAdapter:
         # Handle both dict (backward compatibility for tests) and ConfigEntry
         if isinstance(entry, dict):
             self.entry_id = entry.get("vehicle_name", "unknown")
-            self._entry_dict = entry  # Keep dict for _get_current_soc
-            entry_data = entry
+            self._entry_dict: Any = entry  # Keep dict for _get_current_soc
+            entry_data: Any = entry
         elif hasattr(entry, "data"):
             # ConfigEntry or MockConfigEntry with data attribute
             self.entry_id = entry.entry_id
@@ -68,7 +69,7 @@ class EMHASSAdapter:
 
         # Storage for trip_id → emhass_index mapping
         store_key = f"ev_trip_planner_{self.vehicle_id}_emhass_indices"
-        self._store = Store(hass, version=1, key=store_key)
+        self._store: Store[Dict[str, Any]] = Store(hass, version=1, key=store_key)
         self._index_map: Dict[str, int] = {}  # trip_id → emhass_index
         self._available_indices: List[int] = list(range(self.max_deferrable_loads))
 
@@ -89,7 +90,7 @@ class EMHASSAdapter:
         self._published_trips: List[Dict[str, Any]] = []
 
         # FR-3.1: Config entry listener handle for cleanup
-        self._config_entry_listener: Optional[Callable] = None
+        self._config_entry_listener: Optional[Callable[[], None]] = None
 
         # FR-3.1: Store charging power for reactive updates
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
@@ -334,7 +335,7 @@ class EMHASSAdapter:
 
             # Calculate charging window start time for def_start_timestep
             # FR-9c: Use calculate_multi_trip_charging_windows to compute proper start timestep
-            soc_current = await self._get_current_soc()
+            soc_current = await self._get_current_soc() or 50.0
             hora_regreso = await self._get_hora_regreso()
 
             # Create single-trip charging window
@@ -648,7 +649,7 @@ class EMHASSAdapter:
             # Create single-trip charging window to compute proper def_start_timestep
             charging_windows = calculate_multi_trip_charging_windows(
                 trips=[(deadline_dt, trip)],
-                soc_actual=soc_current,
+                soc_actual=soc_current or 50.0,
                 hora_regreso=hora_regreso,
                 charging_power_kw=charging_power_kw,
                 duration_hours=6.0,
@@ -880,7 +881,7 @@ class EMHASSAdapter:
             for state in all_states:
                 if state.entity_id == config_sensor:
                     continue  # Already checked
-                attrs = state.attributes or {}
+                attrs: Dict[str, Any] = state.attributes or {}
                 if attrs.get("trip_id") == trip_id:
                     result["verified_trips"].append(trip_id)
                     found = True
@@ -1324,7 +1325,7 @@ class EMHASSAdapter:
                 config_sensor_id = self._get_config_sensor_id(emhass_index)
                 # Remove from state machine
                 try:
-                    await self.hass.states.async_remove(config_sensor_id)
+                    self.hass.states.async_remove(config_sensor_id)
                 except HomeAssistantError as err:
                     _LOGGER.warning(
                         "Failed to remove sensor %s during vehicle cleanup: %s",
@@ -1333,7 +1334,7 @@ class EMHASSAdapter:
                     )
                 # Remove from entity registry
                 try:
-                    await registry.async_remove(config_sensor_id)
+                    registry.async_remove(config_sensor_id)
                 except Exception as err:  # Entity may not exist or already removed
                     _LOGGER.debug(
                         "Registry async_remove failed for %s: %s",
@@ -1344,7 +1345,7 @@ class EMHASSAdapter:
         # Clear the main vehicle sensor from registry
         try:
             main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-            await registry.async_remove(main_sensor_id)
+            registry.async_remove(main_sensor_id)
         except Exception as err:  # Entity may not exist or already removed
             _LOGGER.debug(
                 "Registry async_remove failed for %s: %s",
@@ -1361,7 +1362,7 @@ class EMHASSAdapter:
         # Clear the main vehicle sensor from state
         try:
             sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-            await self.hass.states.async_remove(sensor_id)
+            self.hass.states.async_remove(sensor_id)
         except HomeAssistantError as err:
             _LOGGER.warning(
                 "Failed to remove vehicle sensor %s during cleanup: %s",

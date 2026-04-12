@@ -422,3 +422,120 @@ Review entry template:
   4 channels synced: tasks.md, .ralph-state.json, chat.md, .progress.md
 - fix_hint: See chat.md line 388+ for full action plan with specific fixes
 - resolved_at:
+
+### [task-1.15] RED - Failing test: publish_deferrable_loads caches per-trip params
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T20:15:00Z
+- criterion_failed: none
+- evidence: |
+  Test: test_publish_deferrable_loads_caches_per_trip_params
+  Coordinator fixed AsyncMock for _get_current_soc and _get_hora_regreso.
+  Verify: "2 passed, 144 deselected in 0.54s"
+  external_unmarks cleared for 1.15.
+- fix_hint: none
+- resolved_at: 2026-04-11T20:15:00Z
+
+### [task-1.16] GREEN - Cache per-trip params in publish_deferrable_loads
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T20:15:00Z
+- criterion_failed: none
+- evidence: |
+  Implementation: _cached_per_trip_params populated with all 10 keys per trip.
+  Uses _get_current_soc() and calculate_multi_trip_charging_windows() correctly.
+  Verify: "2 passed, 144 deselected in 0.54s"
+  external_unmarks cleared for 1.16.
+- fix_hint: none
+- resolved_at: 2026-04-11T20:15:00Z
+
+### [V2a] VERIFY Quality checkpoint: per-trip params cache
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T20:55:00Z
+- criterion_failed: none
+- evidence: |
+  Mypy: Success: no issues found in 1 source file
+  Tests: 193 passed, 0 failed
+  Type annotations added for _entry_dict, _store, _config_entry_listener
+  HomeAssistantError import fixed to use homeassistant.exceptions
+- fix_hint: none
+- resolved_at: 2026-04-11T20:55:00Z
+
+### [task-1.6] GREEN - Activate setup_config_entry_listener() in __init__.py
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_listener_activated_in_setup passed (1 passed in test_init.py)
+  emhass_adapter.setup_config_entry_listener() called in __init__.py:129
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [task-1.8] GREEN - Add empty _published_trips guard in _handle_config_entry_update
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_empty_published_trips_guard passed (1 passed)
+  Guard reloads trips from trip_manager when _published_trips is empty
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [V1] VERIFY Quality checkpoint: Gap #5 hotfixes
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  All Gap #5 tests pass (1.3-1.8). Mypy clean after type annotation fixes.
+  193 passed total across all test modules.
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [task-1.10] GREEN - Add _get_current_soc helper
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_get_current_soc_reads_sensor + test_get_current_soc_sensor_unavailable passed (2 passed)
+  Method reads SOC from configured sensor, returns 0.0 if unavailable
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [task-1.13] RED - Failing test: async_publish_deferrable_load computes def_start_timestep
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: test_publish_deferrable_load_computes_start_timestep passed (1 passed)
+  def_start_timestep computed from charging windows, not hardcoded 0
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [task-1.14] GREEN - Fix def_start_timestep in async_publish_deferrable_load to use charging windows
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Implementation uses calculate_multi_trip_charging_windows() for def_start_timestep.
+  Verify: test_publish_deferrable_load_computes_start_timestep passed (1 passed)
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z
+
+### [V2a] VERIFY Quality checkpoint: per-trip params cache (REVIEW ENTRY)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-11T21:00:00Z
+- criterion_failed: none
+- evidence: |
+  Mypy: Success: no issues found in 1 source file
+  Tests: 193 passed, 0 failed
+  Type annotations properly added for _entry_dict, _store, _config_entry_listener
+- fix_hint: none
+- resolved_at: 2026-04-11T21:00:00Z

@@ -4986,3 +4986,200 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
         assert adapter._get_current_soc.called, (
             "_get_current_soc should be called for def_start_timestep calculation"
         )
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
+    """publish_deferrable_loads caches per-trip params with 10 keys.
+
+    This is the RED test for task 1.15/FR-4:
+    - publish_deferrable_loads should cache per-trip params with keys:
+      def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep,
+      power_profile_watts, trip_id, emhass_index, kwh_needed, deadline, activo
+    - Test must FAIL to confirm _cached_per_trip_params not yet populated
+
+    Design: Component 1
+    """
+    from datetime import datetime
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Setup presence_monitor mock
+        mock_presence_monitor = MagicMock()
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 30, 0)
+        )
+        adapter._presence_monitor = mock_presence_monitor
+
+        # Mock _get_current_soc to return 50.0
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock async_assign_index_to_trip to return valid indices
+        adapter._index_map = {"trip_001": 0, "trip_002": 1}
+        adapter._assign_index_to_trip = AsyncMock(side_effect=[0, 1])
+
+        # Mock async_notify_error to prevent errors
+        adapter.async_notify_error = AsyncMock()
+
+        # Mock _get_coordinator to return AsyncMock for async_refresh
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Two trips to test caching
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 10.0,
+                "datetime": "2026-04-12T10:00:00",
+                "descripcion": "Trip 1",
+            },
+            {
+                "id": "trip_002",
+                "kwh": 15.0,
+                "datetime": "2026-04-12T15:00:00",
+                "descripcion": "Trip 2",
+            },
+        ]
+
+        # Call publish_deferrable_loads
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # _cached_per_trip_params should be populated with trip_id keys
+        assert hasattr(adapter, "_cached_per_trip_params"), (
+            "adapter should have _cached_per_trip_params attribute"
+        )
+
+        # Should have cached params for both trips
+        assert len(adapter._cached_per_trip_params) == 2, (
+            f"Expected 2 cached trips, got {len(adapter._cached_per_trip_params)}"
+        )
+
+        # Verify trip_001 has all 10 required keys
+        assert "trip_001" in adapter._cached_per_trip_params, (
+            "trip_001 should be in _cached_per_trip_params"
+        )
+
+        params = adapter._cached_per_trip_params["trip_001"]
+        required_keys = [
+            "def_total_hours",
+            "P_deferrable_nom",
+            "def_start_timestep",
+            "def_end_timestep",
+            "power_profile_watts",
+            "trip_id",
+            "emhass_index",
+            "kwh_needed",
+            "deadline",
+            "activo",
+        ]
+
+        for key in required_keys:
+            assert key in params, (
+                f"params for trip_001 should have key '{key}'"
+            )
+
+        # Verify key values
+        assert params["trip_id"] == "trip_001"
+        assert params["emhass_index"] == 0
+        assert params["kwh_needed"] == 10.0
+        assert params["activo"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
+    """get_cached_optimization_results includes 'per_trip_emhass_params'.
+
+    This is the RED test for task 1.17/FR-4:
+    - get_cached_optimization_results should return dict with 'per_trip_emhass_params' key
+    - Test must FAIL to confirm per_trip_emhass_params not yet in return dict
+
+    Design: Component 1
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Setup presence_monitor mock
+        mock_presence_monitor = MagicMock()
+        from datetime import datetime
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 30, 0)
+        )
+        adapter._presence_monitor = mock_presence_monitor
+
+        # Mock _get_current_soc to return 50.0
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_coordinator
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Mock async_notify_error to prevent errors
+        adapter.async_notify_error = AsyncMock()
+
+        # Setup _cached_per_trip_params
+        adapter._cached_per_trip_params = {
+            "trip_001": {
+                "def_total_hours": 1.35,
+                "P_deferrable_nom": 7400.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 22,
+                "power_profile_watts": 1,
+                "trip_id": "trip_001",
+                "emhass_index": 0,
+                "kwh_needed": 10.0,
+                "deadline": "2026-04-12T10:00:00",
+                "activo": True,
+            }
+        }
+
+        # Mock _get_power_profile from cache
+        adapter._cached_power_profile = [1]
+
+        # Mock async_assign_index_to_trip
+        adapter._index_map = {"trip_001": 0}
+
+        # Call get_cached_optimization_results (sync, NOT async)
+        result = adapter.get_cached_optimization_results()
+
+        # Result should have 'per_trip_emhass_params' key
+        assert "per_trip_emhass_params" in result, (
+            "get_cached_optimization_results should include 'per_trip_emhass_params' key"
+        )
+
+        # Verify value matches _cached_per_trip_params
+        assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
+            "per_trip_emhass_params should match _cached_per_trip_params"
+        )

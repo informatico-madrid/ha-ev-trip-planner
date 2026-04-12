@@ -104,7 +104,7 @@ Focus: Add per-trip EMHASS param caching infrastructure. Each helper starts with
 
 Note: No new `_calculate_individual_power_profile` method needed — the existing `_calculate_power_profile_from_trips([trip], power)` already does exactly this. Per-trip caching uses it directly.
 
-- [ ] 1.9 [RED] Failing test: `_get_current_soc` reads from configured sensor
+- [x] 1.9 [RED] Failing test: `_get_current_soc` reads from configured sensor
   - **Do**:
     1. Write test `test_get_current_soc_reads_sensor` with mock `hass.states.get` returning state with `state="65.0"`
     2. Assert returns 65.0
@@ -115,8 +115,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for _get_current_soc helper`
   - _Design: Component 1_
 
-- [ ] 1.10 [GREEN] Add `_get_current_soc` helper
-  **REVIEWER NOTE (DESV 1)**: _get_current_soc() exists but cache loop uses `getattr(self, "_soc_cache", 0.0)` which always returns 0.0. Fix: use `await self._get_current_soc()` in cache loop.
+- [x] 1.10 [GREEN] Add `_get_current_soc` helper
   - **Do**:
     1. Add method that reads `self._entry.data.get("soc_sensor")` then `self.hass.states.get(soc_sensor)`
     2. Parse float, return 0.0 if unavailable/unparseable
@@ -127,7 +126,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): add _get_current_soc helper for sensor SOC reads`
   - _Design: Component 1_
 
-- [ ] 1.11 [RED] Failing test: `_get_hora_regreso` returns datetime from presence_monitor
+- [x] 1.11 [RED] Failing test: `_get_hora_regreso` returns datetime from presence_monitor
   - **Do**:
     1. Write test `test_get_hora_regreso_success` with mock coordinator chain returning a datetime
     2. Write test `test_get_hora_regreso_no_coordinator` returning None
@@ -138,8 +137,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for _get_hora_regreso helper`
   - _Design: Component 1_
 
-- [ ] 1.12 [GREEN] Add `_get_hora_regreso` async helper
-  **REVIEWER NOTE (DESV 2)**: Cache loop uses `self._presence_monitor.hora_regreso` (attribute) instead of `await self._presence_monitor.async_get_hora_regreso()` (method). Also `_presence_monitor` is always None. Fix: inject presence_monitor and use async method.
+- [x] 1.12 [GREEN] Add `_get_hora_regreso` async helper
   - **Do**:
     1. Add async method that traverses `coordinator._trip_manager.vehicle_controller._presence_monitor.async_get_hora_regreso()`
     2. Return None if any link in chain is missing
@@ -149,7 +147,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): add _get_hora_regreso helper for presence monitor chain`
   - _Design: Component 1_
 
-- [ ] 1.13 [RED] Failing test: `async_publish_deferrable_load` computes `def_start_timestep` from charging windows
+- [x] 1.13 [RED] Failing test: `async_publish_deferrable_load` computes `def_start_timestep` from charging windows
   - **Do**:
     1. Write test `test_publish_deferrable_load_computes_start_timestep` with a trip that should have start_timestep > 0 (e.g., second trip with later window)
     2. Mock `_get_current_soc` returning 50.0, `_get_hora_regreso` returning a datetime
@@ -161,7 +159,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for computed def_start_timestep`
   - _Requirements: FR-9c_
 
-- [ ] 1.14 [GREEN] Fix `def_start_timestep` in `async_publish_deferrable_load` to use charging windows
+- [x] 1.14 [GREEN] Fix `def_start_timestep` in `async_publish_deferrable_load` to use charging windows
   - **Do**:
     1. Import `calculate_multi_trip_charging_windows` from calculations.py
     2. In `async_publish_deferrable_load`, call `self._get_current_soc()` and `await self._get_hora_regreso()`
@@ -174,8 +172,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `fix(emhass): compute def_start_timestep from charging windows instead of hardcoding 0`
   - _Requirements: FR-9c_
 
-- [ ] 1.15 [RED] Failing test: `publish_deferrable_loads` caches per-trip params
-  **REVIEWER NOTE (DESV 5)**: Test trip dicts use `"trip_id"` key but production trips use `"id"`. Tests fabricate data that masks BUG 1. Fix: update all test trip dicts to use `"id"` key.
+- [x] 1.15 [RED] Failing test: `publish_deferrable_loads` caches per-trip params
   - **Do**:
     1. Write test `test_publish_deferrable_loads_caches_per_trip_params` with 2 trips
     2. Assert `_cached_per_trip_params` populated with trip_id keys containing `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `trip_id`, `emhass_index`, `kwh_needed`, `deadline`, `activo`
@@ -185,8 +182,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per-trip params caching`
   - _Design: Component 1_
 
-- [ ] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
-  **REVIEWER NOTE (DESV 3, 4, 5)**: DESV 3 — Cache loop computes params manually instead of using `calculate_deferrable_parameters` as spec requires. DESV 4 — `_presence_monitor` never injected, `hora_regreso` always None. DESV 5 — Test data uses `"trip_id"` key but code reads `"id"`.
+- [x] 1.16 [GREEN] Cache per-trip params in `publish_deferrable_loads`
   - **Do**:
     1. Add `_cached_per_trip_params: Dict[str, dict]` instance variable (init as `{}`)
     2. After enrichment loop in `publish_deferrable_loads`, iterate trips with index_map entries
@@ -198,13 +194,14 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `feat(emhass): cache per-trip EMHASS params in publish_deferrable_loads`
   - _Design: Component 1_
 
-- [ ] V2 [VERIFY] Quality checkpoint: per-trip params cache
+
+- [x] V2a [VERIFY] Quality checkpoint: per-trip params cache
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
   - **Done when**: All tests pass, no lint errors, no type errors
   - **Commit**: `chore(emhass): pass quality checkpoint after per-trip params cache`
 
-- [ ] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
+- [x] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
   - **Do**:
     1. Write test `test_get_cached_results_includes_per_trip_params` that populates `_cached_per_trip_params` then calls `get_cached_optimization_results()`
     2. Assert returned dict has key `per_trip_emhass_params` with same data
@@ -214,7 +211,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
   - **Commit**: `test(emhass): red - failing test for per_trip_emhass_params in cached results`
   - _Design: Component 1_
 
-- [ ] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
+- [x] 1.18 [GREEN] Add `per_trip_emhass_params` to `get_cached_optimization_results`
   - **Do**:
     1. In `get_cached_optimization_results()`, add `"per_trip_emhass_params": self._cached_per_trip_params` to returned dict
   - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
@@ -233,7 +230,7 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 - [ ] 1.20 [SKIP] No code change needed — clamping already correct
   - **Note**: Task 1.19 tests pass because implementation already clamps to [0, 168] range
 
-- [ ] V2 [VERIFY] Quality checkpoint: per-trip cache
+- [ ] V2b [VERIFY] Quality checkpoint: per-trip cache
 - [ ] V3 [VERIFY] Quality checkpoint: per-trip cache + timestep conversion
   - **Do**: Run full adapter test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py`
