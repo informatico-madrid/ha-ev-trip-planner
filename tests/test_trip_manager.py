@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.ev_trip_planner import EVTripRuntimeData
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -1275,12 +1276,15 @@ class TestTripManagerAsyncAddRecurringTrip:
         trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
         await trip_manager.async_setup()
 
-        # Set up mock coordinator and entry with proper runtime_data
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
         mock_coordinator = MagicMock()
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
-        mock_entry.runtime_data = MagicMock()
-        mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
 
         # Mock both sensor CRUD functions and config_entries.async_get_entry
         with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
@@ -1338,12 +1342,15 @@ class TestTripManagerAsyncAddPunctualTrip:
         trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
         await trip_manager.async_setup()
 
-        # Set up mock coordinator and entry with proper runtime_data
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
         mock_coordinator = MagicMock()
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
-        mock_entry.runtime_data = MagicMock()
-        mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
 
         # Mock both sensor CRUD functions and config_entries.async_get_entry
         with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
@@ -1416,12 +1423,15 @@ class TestTripManagerAsyncDeleteTrip:
         trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
         await trip_manager.async_setup()
 
-        # Set up mock coordinator and entry with proper runtime_data
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
         mock_coordinator = MagicMock()
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
-        mock_entry.runtime_data = MagicMock()
-        mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
 
         # Mock config_entries.async_get_entry to return our properly configured entry
         # This ensures that both trip creation and deletion use the same mock entry
@@ -1737,3 +1747,74 @@ class TestTripManagerLoadErrors:
         assert trip_manager._trips == {}
         assert trip_manager._recurring_trips == {}
         assert trip_manager._punctual_trips == {}
+
+
+class TestRuntimeDataAttributeAccess:
+    """Tests for proper EVTripRuntimeData attribute access (not dict-style .get()).
+
+    RED tests for tasks 2.7 and 2.8: Verify that runtime_data access uses attribute
+    access (entry.runtime_data.coordinator) instead of dict-style .get().
+
+    EVTripRuntimeData is a @dataclass with attributes, NOT a dict. Using .get()
+    causes AttributeError in production but is hidden by MagicMock in tests.
+    """
+
+    @pytest.mark.asyncio
+    async def test_add_recurring_trip_uses_runtime_data_attribute_access(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip accesses runtime_data.coordinator as attribute.
+
+        RED test for task 2.7: This test FAILS with the current implementation.
+
+        Expected behavior:
+        - entry.runtime_data is an EVTripRuntimeData dataclass
+        - Coordinator should be accessed via: entry.runtime_data.coordinator
+        - NOT via: entry.runtime_data.get("coordinator") (dict-style, causes crash)
+
+        Current implementation (BUG):
+        - trip_manager.py:491 uses: entry.runtime_data.get("coordinator")
+        - EVTripRuntimeData is a dataclass with .coordinator attribute (no .get() method)
+        - In production: AttributeError: 'EVTripRuntimeData' object has no attribute 'get'
+
+        Why existing tests hide this bug:
+        - Existing tests (line ~1282) use: mock_entry.runtime_data = MagicMock()
+        - MagicMock.autocreates .get() as a callable
+        - This makes the test pass even though the code is wrong
+
+        Fix (2.8):
+        - Change line 491 from: entry.runtime_data.get("coordinator")
+        - To: entry.runtime_data.coordinator
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug: dataclass has .coordinator attribute, NO .get() method
+        mock_coordinator = MagicMock()
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry"
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
+
+        # Mock config_entries.async_get_entry to return our properly configured entry
+        with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+            # Mock async_create_trip_sensor to avoid needing full sensor setup
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+                mock_trip_sensor.return_value = False  # No existing entity
+
+                # This will FAIL with: AttributeError: 'EVTripRuntimeData' object has no attribute 'get'
+                # until task 2.8 fix is applied
+                await trip_manager.async_add_recurring_trip(
+                    dia_semana="lunes",
+                    hora="08:00",
+                    km=50.0,
+                    kwh=10.0,
+                    descripcion="Test trip for runtime_data attribute access",
+                )
+
+                # If we reach here without AttributeError, the bug is fixed
+                # The test passes when runtime_data.coordinator is accessed correctly

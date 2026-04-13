@@ -1552,8 +1552,9 @@ async def test_async_add_recurring_trip_with_emhass_adapter(mock_hass, vehicle_i
 
     # Verify EMHASS adapter was called to publish the new trip
     mock_adapter.async_publish_deferrable_load.assert_called_once()
-    # And that all deferrable loads were republished (called twice: once from async_save_trips, once from _async_publish_new_trip_to_emhass)
-    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 2
+    # And that all deferrable loads were republished from _async_publish_new_trip_to_emhass
+    # (removed from async_save_trips in m401 to prevent race condition)
+    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -1594,8 +1595,9 @@ async def test_async_add_punctual_trip_with_emhass_adapter(mock_hass, vehicle_id
 
     # Verify EMHASS adapter was called
     mock_adapter.async_publish_deferrable_load.assert_called_once()
-    # Called twice: once from async_save_trips, once from _async_publish_new_trip_to_emhass
-    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 2
+    # Called once from _async_publish_new_trip_to_emhass
+    # (removed from async_save_trips in m401 to prevent race condition)
+    assert mock_adapter.async_publish_all_deferrable_loads.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -1629,8 +1631,9 @@ async def test_async_save_trips_with_emhass_adapter_triggers_publish(mock_hass, 
     # Call async_save_trips
     await manager.async_save_trips()
 
-    # Verify async_publish_all_deferrable_loads was called (line 376)
-    mock_adapter.async_publish_all_deferrable_loads.assert_called_once()
+    # Verify async_publish_all_deferrable_loads was NOT called
+    # (removed in m401 to prevent race condition - callers now handle publishing)
+    mock_adapter.async_publish_all_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio

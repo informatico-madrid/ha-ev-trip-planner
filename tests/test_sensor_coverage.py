@@ -1448,62 +1448,65 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         "emhass_status": "ready",
         "per_trip_emhass_params": mock_emhass_adapter._cached_per_trip_params,
     }
-    type(coordinator).vehicle_id = PropertyMock(return_value="test_vehicle")
+    # Use context manager to temporarily override vehicle_id property
+    # This prevents class-level pollution that causes flakiness when tests run in random order
+    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+        mock_vid.return_value = "test_vehicle"
 
-    # Create aggregated sensor
-    sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
-    attrs = sensor.extra_state_attributes
+        # Create aggregated sensor
+        sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
+        attrs = sensor.extra_state_attributes
 
-    # Assert basic attrs are always present (power_profile, schedule, status)
-    assert "power_profile_watts" in attrs, (
-        "power_profile_watts should always be present"
-    )
-    assert "deferrables_schedule" in attrs, (
-        "deferrables_schedule should always be present"
-    )
-    assert "emhass_status" in attrs, (
-        "emhass_status should always be present"
-    )
+        # Assert basic attrs are always present (power_profile, schedule, status)
+        assert "power_profile_watts" in attrs, (
+            "power_profile_watts should always be present"
+        )
+        assert "deferrables_schedule" in attrs, (
+            "deferrables_schedule should always be present"
+        )
+        assert "emhass_status" in attrs, (
+            "emhass_status should always be present"
+        )
 
-    # Assert array attrs behavior when no active trips:
-    # - power_profile_watts, deferrables_schedule, emhass_status always present
-    # - number_of_deferrable_loads always present (0 when no active trips)
-    # - other array attrs only present when there's data
-    assert "power_profile_watts" in attrs, (
-        "power_profile_watts should always be present"
-    )
-    assert attrs["power_profile_watts"] == [100.0, 200.0, 150.0], (
-        f"power_profile_watts should always show profile, got {attrs['power_profile_watts']}"
-    )
-    assert "deferrables_schedule" in attrs, (
-        "deferrables_schedule should always be present"
-    )
-    assert "emhass_status" in attrs, (
-        "emhass_status should always be present"
-    )
-    assert attrs["emhass_status"] == "ready", (
-        f"emhass_status should be 'ready', got {attrs['emhass_status']}"
-    )
-    assert "number_of_deferrable_loads" in attrs, (
-        "number_of_deferrable_loads should always be present"
-    )
-    assert attrs["number_of_deferrable_loads"] == 0, (
-        f"number_of_deferrable_loads should be 0 when no active trips, got {attrs['number_of_deferrable_loads']}"
-    )
+        # Assert array attrs behavior when no active trips:
+        # - power_profile_watts, deferrables_schedule, emhass_status always present
+        # - number_of_deferrable_loads always present (0 when no active trips)
+        # - other array attrs only present when there's data
+        assert "power_profile_watts" in attrs, (
+            "power_profile_watts should always be present"
+        )
+        assert attrs["power_profile_watts"] == [100.0, 200.0, 150.0], (
+            f"power_profile_watts should always show profile, got {attrs['power_profile_watts']}"
+        )
+        assert "deferrables_schedule" in attrs, (
+            "deferrables_schedule should always be present"
+        )
+        assert "emhass_status" in attrs, (
+            "emhass_status should always be present"
+        )
+        assert attrs["emhass_status"] == "ready", (
+            f"emhass_status should be 'ready', got {attrs['emhass_status']}"
+        )
+        assert "number_of_deferrable_loads" in attrs, (
+            "number_of_deferrable_loads should always be present"
+        )
+        assert attrs["number_of_deferrable_loads"] == 0, (
+            f"number_of_deferrable_loads should be 0 when no active trips, got {attrs['number_of_deferrable_loads']}"
+        )
 
-    # Array attrs are NOT present when no active trips (sensor only adds when there's data)
-    assert "p_deferrable_matrix" not in attrs, (
-        f"p_deferrable_matrix should NOT be present when no active trips, got {attrs.keys()}"
-    )
-    assert "def_total_hours_array" not in attrs, (
-        f"def_total_hours_array should NOT be present when no active trips"
-    )
-    assert "p_deferrable_nom_array" not in attrs, (
-        f"p_deferrable_nom_array should NOT be present when no active trips"
-    )
-    assert "def_start_timestep_array" not in attrs, (
-        f"def_start_timestep_array should NOT be present when no active trips"
-    )
+        # Array attrs are NOT present when no active trips (sensor only adds when there's data)
+        assert "p_deferrable_matrix" not in attrs, (
+            f"p_deferrable_matrix should NOT be present when no active trips, got {attrs.keys()}"
+        )
+        assert "def_total_hours_array" not in attrs, (
+            f"def_total_hours_array should NOT be present when no active trips"
+        )
+        assert "p_deferrable_nom_array" not in attrs, (
+            f"p_deferrable_nom_array should NOT be present when no active trips"
+        )
+        assert "def_start_timestep_array" not in attrs, (
+            f"def_start_timestep_array should NOT be present when no active trips"
+        )
     assert "def_end_timestep_array" not in attrs, (
         f"def_end_timestep_array should NOT be present when no active trips"
     )
@@ -1626,121 +1629,125 @@ async def test_data_flow_adapter_to_sensors():
         "emhass_status": "ready",
         "per_trip_emhass_params": mock_emhass_adapter._cached_per_trip_params,
     }
-    type(coordinator).vehicle_id = PropertyMock(return_value="test_vehicle")
+    # Use context manager to temporarily override vehicle_id property
+    # This prevents class-level pollution that causes flakiness when tests run in random order
+    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+        mock_vid.return_value = "test_vehicle"
 
-    # Test 1: Per-trip sensor (TripEmhassSensor)
-    # This sensor is created for each trip and shows per-trip EMHASS data
-    per_trip_sensor = TripEmhassSensor(coordinator, "test_vehicle", "pun_trip_1")
+        # Test 1: Per-trip sensor (TripEmhassSensor)
+        # This sensor is created for each trip and shows per-trip EMHASS data
+        per_trip_sensor = TripEmhassSensor(coordinator, "test_vehicle", "pun_trip_1")
 
-    # Assert native_value is the emhass_index (not the trip_id)
-    assert per_trip_sensor.native_value == 0, (
-        f"Per-trip sensor native_value should be emhass_index=0, got {per_trip_sensor.native_value}"
-    )
-
-    # Assert per-trip sensor has correct extra_state_attributes from coordinator.data
-    # Uses TRIP_EMHASS_ATTR_KEYS: def_total_hours, P_deferrable_nom, def_start_timestep,
-    # def_end_timestep, power_profile_watts, trip_id, emhass_index, kwh_needed, deadline
-    per_trip_attrs = per_trip_sensor.extra_state_attributes
-    assert "def_total_hours" in per_trip_attrs, (
-        "Per-trip sensor should have def_total_hours attribute"
-    )
-    assert "P_deferrable_nom" in per_trip_attrs, (
-        "Per-trip sensor should have P_deferrable_nom attribute"
-    )
-    assert "def_start_timestep" in per_trip_attrs, (
-        "Per-trip sensor should have def_start_timestep attribute"
-    )
-    assert "def_end_timestep" in per_trip_attrs, (
-        "Per-trip sensor should have def_end_timestep attribute"
-    )
-    assert "power_profile_watts" in per_trip_attrs, (
-        "Per-trip sensor should have power_profile_watts attribute"
-    )
-    assert "trip_id" in per_trip_attrs, (
-        "Per-trip sensor should have trip_id attribute"
-    )
-    assert "emhass_index" in per_trip_attrs, (
-        "Per-trip sensor should have emhass_index attribute"
-    )
-    assert "kwh_needed" in per_trip_attrs, (
-        "Per-trip sensor should have kwh_needed attribute"
-    )
-    assert "deadline" in per_trip_attrs, (
-        "Per-trip sensor should have deadline attribute"
-    )
-
-    # Assert per-trip values are correct
-    assert per_trip_attrs["trip_id"] == "pun_trip_1", (
-        f"trip_id should be 'pun_trip_1', got {per_trip_attrs['trip_id']}"
-    )
-    assert per_trip_attrs["emhass_index"] == 0, (
-        f"emhass_index should be 0, got {per_trip_attrs['emhass_index']}"
-    )
-    assert per_trip_attrs["def_total_hours"] == 10.0, (
-        f"def_total_hours should be 10.0, got {per_trip_attrs['def_total_hours']}"
-    )
-    assert per_trip_attrs["P_deferrable_nom"] == 2.0, (
-        f"P_deferrable_nom should be 2.0, got {per_trip_attrs['P_deferrable_nom']}"
-    )
-
-    # Test 2: Aggregated sensor (EmhassDeferrableLoadSensor)
-    # This sensor aggregates data from all active trips
-    aggregated_sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
-
-    # Assert native_value is the emhass_status from coordinator.data
-    assert aggregated_sensor.native_value == "ready", (
-        f"Aggregated sensor native_value should be 'ready', got {aggregated_sensor.native_value}"
-    )
-
-    # Assert aggregated sensor has correct extra_state_attributes
-    # EmhassDeferrableLoadSensor has 6 attrs: p_deferrable_matrix, number_of_deferrable_loads,
-    # def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array
-    aggregated_attrs = aggregated_sensor.extra_state_attributes
-    assert "power_profile_watts" in aggregated_attrs, (
-        "Aggregated sensor should have power_profile_watts attribute"
-    )
-    assert "deferrables_schedule" in aggregated_attrs, (
-        "Aggregated sensor should have deferrables_schedule attribute"
-    )
-    assert "emhass_status" in aggregated_attrs, (
-        "Aggregated sensor should have emhass_status attribute"
-    )
-    assert "p_deferrable_matrix" in aggregated_attrs, (
-        "Aggregated sensor should have p_deferrable_matrix attribute"
-    )
-    assert "number_of_deferrable_loads" in aggregated_attrs, (
-        "Aggregated sensor should have number_of_deferrable_loads attribute"
-    )
-    assert "def_total_hours_array" in aggregated_attrs, (
-        "Aggregated sensor should have def_total_hours_array attribute"
-    )
-    assert "p_deferrable_nom_array" in aggregated_attrs, (
-        "Aggregated sensor should have p_deferrable_nom_array attribute"
-    )
-    assert "def_start_timestep_array" in aggregated_attrs, (
-        "Aggregated sensor should have def_start_timestep_array attribute"
-    )
-    assert "def_end_timestep_array" in aggregated_attrs, (
-        "Aggregated sensor should have def_end_timestep_array attribute"
-    )
-
-    # Assert aggregated values are correct (from all active trips)
-    agg_matrix = aggregated_attrs["p_deferrable_matrix"]
-    assert isinstance(agg_matrix, list), (
-        f"Aggregated p_deferrable_matrix should be a list, got {type(agg_matrix)}"
-    )
-    assert len(agg_matrix) == 1, (
-        f"Aggregated matrix should have 1 row (1 active trip), got {len(agg_matrix)}"
-    )
-    for row in agg_matrix:
-        assert len(row) == 168, (
-            f"Aggregated matrix row should have 168 elements, got {len(row)}"
+        # Assert native_value is the emhass_index (not the trip_id)
+        assert per_trip_sensor.native_value == 0, (
+            f"Per-trip sensor native_value should be emhass_index=0, got {per_trip_sensor.native_value}"
         )
 
-    # Verify data flow: aggregated sensor sees the same data as adapter computed
-    assert aggregated_attrs["p_deferrable_nom_array"] == [2.0], (
-        f"Aggregated sensor should have correct nominal power from adapter cache, got {aggregated_attrs['p_deferrable_nom_array']}"
-    )
-    assert aggregated_attrs["def_total_hours_array"] == [10.0], (
-        f"Aggregated sensor should have correct total hours from adapter cache, got {aggregated_attrs['def_total_hours_array']}"
-    )
+        # Assert per-trip sensor has correct extra_state_attributes from coordinator.data
+        # Uses TRIP_EMHASS_ATTR_KEYS: def_total_hours, P_deferrable_nom, def_start_timestep,
+        # def_end_timestep, power_profile_watts, trip_id, emhass_index, kwh_needed, deadline
+        per_trip_attrs = per_trip_sensor.extra_state_attributes
+        assert "def_total_hours" in per_trip_attrs, (
+            "Per-trip sensor should have def_total_hours attribute"
+        )
+        assert "P_deferrable_nom" in per_trip_attrs, (
+            "Per-trip sensor should have P_deferrable_nom attribute"
+        )
+        assert "def_start_timestep" in per_trip_attrs, (
+            "Per-trip sensor should have def_start_timestep attribute"
+        )
+        assert "def_end_timestep" in per_trip_attrs, (
+            "Per-trip sensor should have def_end_timestep attribute"
+        )
+        assert "power_profile_watts" in per_trip_attrs, (
+            "Per-trip sensor should have power_profile_watts attribute"
+        )
+        assert "trip_id" in per_trip_attrs, (
+            "Per-trip sensor should have trip_id attribute"
+        )
+        assert "emhass_index" in per_trip_attrs, (
+            "Per-trip sensor should have emhass_index attribute"
+        )
+        assert "kwh_needed" in per_trip_attrs, (
+            "Per-trip sensor should have kwh_needed attribute"
+        )
+        assert "deadline" in per_trip_attrs, (
+            "Per-trip sensor should have deadline attribute"
+        )
+
+        # Assert per-trip values are correct
+        assert per_trip_attrs["trip_id"] == "pun_trip_1", (
+            f"trip_id should be 'pun_trip_1', got {per_trip_attrs['trip_id']}"
+        )
+        assert per_trip_attrs["emhass_index"] == 0, (
+            f"emhass_index should be 0, got {per_trip_attrs['emhass_index']}"
+        )
+        assert per_trip_attrs["def_total_hours"] == 10.0, (
+            f"def_total_hours should be 10.0, got {per_trip_attrs['def_total_hours']}"
+        )
+        assert per_trip_attrs["P_deferrable_nom"] == 2.0, (
+            f"P_deferrable_nom should be 2.0, got {per_trip_attrs['P_deferrable_nom']}"
+        )
+
+        # Test 2: Aggregated sensor (EmhassDeferrableLoadSensor)
+        # This sensor aggregates data from all active trips
+        aggregated_sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
+
+        # Assert native_value is the emhass_status from coordinator.data
+        assert aggregated_sensor.native_value == "ready", (
+            f"Aggregated sensor native_value should be 'ready', got {aggregated_sensor.native_value}"
+        )
+
+        # Assert aggregated sensor has correct extra_state_attributes
+        # EmhassDeferrableLoadSensor has 6 attrs: p_deferrable_matrix, number_of_deferrable_loads,
+        # def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array
+        aggregated_attrs = aggregated_sensor.extra_state_attributes
+
+        assert "power_profile_watts" in aggregated_attrs, (
+            "Aggregated sensor should have power_profile_watts attribute"
+        )
+        assert "deferrables_schedule" in aggregated_attrs, (
+            "Aggregated sensor should have deferrables_schedule attribute"
+        )
+        assert "emhass_status" in aggregated_attrs, (
+            "Aggregated sensor should have emhass_status attribute"
+        )
+        assert "p_deferrable_matrix" in aggregated_attrs, (
+            "Aggregated sensor should have p_deferrable_matrix attribute"
+        )
+        assert "number_of_deferrable_loads" in aggregated_attrs, (
+            "Aggregated sensor should have number_of_deferrable_loads attribute"
+        )
+        assert "def_total_hours_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_total_hours_array attribute"
+        )
+        assert "p_deferrable_nom_array" in aggregated_attrs, (
+            "Aggregated sensor should have p_deferrable_nom_array attribute"
+        )
+        assert "def_start_timestep_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_start_timestep_array attribute"
+        )
+        assert "def_end_timestep_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_end_timestep_array attribute"
+        )
+
+        # Assert aggregated values are correct (from all active trips)
+        agg_matrix = aggregated_attrs["p_deferrable_matrix"]
+        assert isinstance(agg_matrix, list), (
+            f"Aggregated p_deferrable_matrix should be a list, got {type(agg_matrix)}"
+        )
+        assert len(agg_matrix) == 1, (
+            f"Aggregated matrix should have 1 row (1 active trip), got {len(agg_matrix)}"
+        )
+        for row in agg_matrix:
+            assert len(row) == 168, (
+                f"Aggregated matrix row should have 168 elements, got {len(row)}"
+            )
+
+        # Verify data flow: aggregated sensor sees the same data as adapter computed
+        assert aggregated_attrs["p_deferrable_nom_array"] == [2.0], (
+            f"Aggregated sensor should have correct nominal power from adapter cache, got {aggregated_attrs['p_deferrable_nom_array']}"
+        )
+        assert aggregated_attrs["def_total_hours_array"] == [10.0], (
+            f"Aggregated sensor should have correct total hours from adapter cache, got {aggregated_attrs['def_total_hours_array']}"
+        )

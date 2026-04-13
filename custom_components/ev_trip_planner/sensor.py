@@ -26,7 +26,7 @@ from homeassistant.helpers.entity_registry import (
     async_entries_for_config_entry,
     async_get as er_async_get,
 )
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity import EntityCategory  # type: ignore[attr-defined] # HA stub: EntityCategory not explicitly exported
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -636,6 +636,15 @@ async def async_update_trip_sensor(
         if state:
             # Update internal trip data
             _LOGGER.debug("Trip sensor found in registry for trip %s, state=%s", trip_id, state)
+
+        # FIX: Trigger coordinator refresh to update sensor immediately
+        # Sensor data comes from coordinator.data via CoordinatorEntity.
+        # This refresh ensures sensors reflect changes immediately (not wait 30s for periodic refresh).
+        coordinator = runtime_data.coordinator
+        if coordinator:
+            await coordinator.async_request_refresh()
+            _LOGGER.debug("Coordinator refresh triggered for trip %s sensor update", trip_id)
+
         _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
         return True
     else:

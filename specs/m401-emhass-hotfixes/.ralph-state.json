@@ -3,11 +3,11 @@
   "name": "m401-emhass-hotfixes",
   "basePath": "specs/m401-emhass-hotfixes",
   "phase": "execution",
-  "taskIndex": 7,
-  "totalTasks": 90,
+  "taskIndex": 20,
+  "totalTasks": 91,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 1,
+  "globalIteration": 7,
   "maxGlobalIterations": 100,
   "awaitingApproval": false,
   "granularity": "fine",
@@ -26,7 +26,7 @@
   "nativeSyncFailureCount": 0,
   "chat": {
     "reviewer": {
-      "lastReadLine": 3746
+      "lastReadLine": 1676
     },
     "executor": {
       "lastReadLine": 3427

@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -85,6 +85,10 @@ class EMHASSAdapter:
 
         # Entity tracking for cleanup (FR-1, AC-1.4)
         self._published_entity_ids: Set[str] = set()
+
+        # FR-3.1: Cache per-trip EMHASS params for coordinator retrieval
+        # Initialized here (not lazily) to prevent stale entries bug
+        self._cached_per_trip_params: Dict[str, Any] = {}
 
         # FR-3.1: Store last published trips for reactive republish when charging power changes
         self._published_trips: List[Dict[str, Any]] = []
@@ -456,6 +460,12 @@ class EMHASSAdapter:
         Returns:
             True if all trips published successfully, False otherwise
         """
+        # DEBUG LOGGING - Investigate why power_profile_watts is [0,0,0,0,0]
+        _LOGGER.warning("DEBUG: trips count=%d, kwh values=%s", len(trips), [t.get("kwh") for t in trips])
+        if charging_power_kw is None:
+            charging_power_kw = self._charging_power_kw
+        _LOGGER.warning("DEBUG: charging_power_kw=%.2f", charging_power_kw)
+
         success_count = 0
 
         for trip in trips:
@@ -467,6 +477,32 @@ class EMHASSAdapter:
             success_count,
             len(trips),
             self.vehicle_id,
+        )
+
+        # CRITICAL FIX: Populate cache after publishing all trips
+        # This ensures coordinator.data has the aggregated EMHASS data
+        # Without this, sensors return None/undefined for power_profile_watts and emhass_status
+        if charging_power_kw is None:
+            charging_power_kw = self._charging_power_kw
+
+        # Calculate aggregated power profile and schedule for all trips
+        power_profile = self._calculate_power_profile_from_trips(
+            trips, charging_power_kw
+        )
+        deferrables_schedule = self._generate_schedule_from_trips(
+            trips, charging_power_kw
+        )
+
+        # Populate cache for coordinator retrieval
+        self._cached_power_profile = power_profile
+        self._cached_deferrables_schedule = deferrables_schedule
+        self._cached_emhass_status = EMHASS_STATE_READY
+
+        _LOGGER.debug(
+            "Populated EMHASS cache: power_profile_length=%d, schedule_length=%d, status=%s",
+            len(power_profile),
+            len(deferrables_schedule),
+            EMHASS_STATE_READY,
         )
 
         return success_count == len(trips)
@@ -608,8 +644,20 @@ class EMHASSAdapter:
 
         # FR-3.1: Cache per-trip EMHASS params for coordinator retrieval
         # This enables per-trip sensors to access EMHASS parameters via coordinator.data
-        if not hasattr(self, "_cached_per_trip_params"):
-            self._cached_per_trip_params = {}
+
+        # FIX for task 2.15: Clear stale cache entries before republish
+        # When trips are deleted, their entries remain in _cached_per_trip_params
+        # Compute current trip IDs from published trips
+        current_trip_ids = {trip.get("id") for trip in trips if trip.get("id")}
+        stale_ids = set(self._cached_per_trip_params.keys()) - current_trip_ids
+        for stale_id in stale_ids:
+            del self._cached_per_trip_params[stale_id]
+            _LOGGER.debug("Cleared stale cache entry for trip %s", stale_id)
+
+        # FIX for task 2.17: Get SOC ONCE before the loop (not per-trip)
+        # This ensures consistency when SOC changes during async publish,
+        # and avoids redundant I/O calls.
+        soc_current = await self._get_current_soc()
 
         # FR-4: Cache per-trip EMHASS params with proper charging window computation
         for trip in trips:
@@ -617,7 +665,10 @@ class EMHASSAdapter:
             if not trip_id:
                 continue
 
-            # Get the assigned index for this trip
+            # BUG FIX: Assign index BEFORE reading from map (was causing -1 for new trips)
+            # This ensures new trips get their real index (0,1,2...) not -1
+            if trip_id not in self._index_map:
+                await self.async_assign_index_to_trip(trip_id)
             emhass_index = self._index_map.get(trip_id, -1)
 
             # Calculate per-trip EMHASS parameters with all 10 keys
@@ -631,7 +682,7 @@ class EMHASSAdapter:
 
             # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
             # BUG 4 FIX: Use injected presence_monitor with async_get_hora_regreso()
-            soc_current = await self._get_current_soc()
+            # Note: soc_current already fetched once before loop (task 2.17 fix)
 
             # Inject presence_monitor from coordinator (done once before cache loop)
             if self._presence_monitor is None and coordinator is not None:
@@ -1593,23 +1644,23 @@ class EMHASSAdapter:
         Component 1 helper for per-trip params cache.
 
         Returns:
-            SOC percentage as float, or 0.0 if sensor unavailable.
+            SOC percentage as float, or None if sensor unavailable.
         """
         # Use stored dict for soc_sensor access (works for dict, ConfigEntry, MockConfigEntry)
         entry_data = getattr(self, "_entry_dict", None)
         if not entry_data:
             _LOGGER.warning("No entry data available for %s", self.vehicle_id)
-            return 0.0
+            return None
 
         soc_sensor = entry_data.get("soc_sensor") if entry_data else None
         if not soc_sensor:
             _LOGGER.warning("soc_sensor not configured for %s", self.vehicle_id)
-            return 0.0
+            return None
 
         state = self.hass.states.get(soc_sensor)
         if state is None:
             _LOGGER.warning("SOC sensor %s not found", soc_sensor)
-            return 0.0
+            return None
 
         try:
             return float(state.state)
@@ -1620,7 +1671,7 @@ class EMHASSAdapter:
                 state.state,
                 e,
             )
-            return 0.0
+            return None
 
     async def _get_hora_regreso(self) -> datetime | None:
         """Get return time from presence_monitor.

@@ -39,6 +39,9 @@ _UNSET = object()
 
 _LOGGER = logging.getLogger(__name__)
 
+# Instance counter for debugging
+_trip_manager_instance_count = 0
+
 # Days of week in Spanish (lowercase)
 DAYS_OF_WEEK = (
     "lunes",
@@ -95,6 +98,11 @@ class TripManager:
         emhass_adapter: Optional[EMHASSPublisherProtocol] = None,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
+        global _trip_manager_instance_count
+        _trip_manager_instance_count += 1
+        self._instance_id = _trip_manager_instance_count
+        _LOGGER.warning("=== TripManager instance created: id=%d, vehicle=%s ===", self._instance_id, vehicle_id)
+
         self.hass = hass
         self.vehicle_id = vehicle_id
         self._entry_id: str = entry_id or ""
@@ -157,11 +165,25 @@ class TripManager:
         return sanitized
 
     async def publish_deferrable_loads(self) -> None:
-        """Publish current trips to EMHASS as deferrable loads."""
+        """Publish current trips to EMHASS as deferrable loads and trigger coordinator refresh."""
         if not self._emhass_adapter:
             return
         all_trips = await self._get_all_active_trips()
         await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
+
+        # Trigger coordinator refresh to update sensor attributes and last_updated timestamp
+        # This is critical for SOC change tests - when SOC changes, publish_deferrable_loads()
+        # is called and must trigger a refresh so sensors show new data with updated timestamps
+        try:
+            entry = self.hass.config_entries.async_get_entry(self._entry_id)
+            if entry and entry.runtime_data:
+                coordinator = entry.runtime_data.coordinator
+                if coordinator and hasattr(coordinator, 'async_request_refresh'):
+                    await coordinator.async_request_refresh()
+        except Exception as err:
+            # Don't fail publish_deferrable_loads if coordinator refresh fails
+            # Coordinator might not be available in tests or during initialization
+            _LOGGER.debug("Coordinator refresh skipped: %s", err)
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -170,8 +192,25 @@ class TripManager:
         await self._load_trips()
 
     async def _load_trips(self) -> None:
-        """Carga los viajes desde el almacenamiento persistente."""
+        """Carga los viajes desde el almacenamiento persistente.
+
+        Only loads if memory is empty (first load). This prevents overwriting
+        in-memory data with stale storage data during service calls.
+        """
+        # Skip loading if we already have data in memory
+        if self._punctual_trips or self._recurring_trips or self._trips:
+            _LOGGER.debug(
+                "Skipping _load_trips for %s: already have %d punctual, %d recurring trips in memory",
+                self.vehicle_id,
+                len(self._punctual_trips),
+                len(self._recurring_trips)
+            )
+            return
+
+        # DEBUG: Add stack trace to see who is calling _load_trips()
+        import traceback
         _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
+        _LOGGER.warning("=== _load_trips CALLED FROM ===\n%s", traceback.format_stack()[-3])
         try:
             # DI: use injected storage if available, otherwise fallback to direct Store
             stored_data: Optional[Dict[str, Any]] = None
@@ -371,9 +410,9 @@ class TripManager:
                 len(self._punctual_trips),
             )
 
-            # T019.3: Trigger EMHASS adapter update when trip state changes
-            if self._emhass_adapter:
-                await self.publish_deferrable_loads()
+            # NOTE: publish_deferrable_loads() removed from here to prevent race condition
+            # The caller (async_add_punctual_trip, etc.) is responsible for calling
+            # publish_deferrable_loads() AFTER async_save_trips() completes
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err, exc_info=True)
             # Fallback to YAML if HA storage fails (HA I/O bound - pragma)
@@ -488,7 +527,8 @@ class TripManager:
         # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
         entry = self.hass.config_entries.async_get_entry(self._entry_id)
         if entry and entry.runtime_data:
-            coordinator = entry.runtime_data.get("coordinator")
+            # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
+            coordinator = entry.runtime_data.coordinator
             if coordinator:
                 await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
 
@@ -541,7 +581,8 @@ class TripManager:
         # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
         entry = self.hass.config_entries.async_get_entry(self._entry_id)
         if entry and entry.runtime_data:
-            coordinator = entry.runtime_data.get("coordinator")
+            # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
+            coordinator = entry.runtime_data.coordinator
             if coordinator:
                 await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
 
@@ -928,13 +969,24 @@ class TripManager:
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
         """Get all active trips for EMHASS publishing."""
+        # DEBUG LOGGING - Investigate why trips list is empty
+        import traceback
+        _LOGGER.warning("DEBUG _get_all_active_trips: _recurring_trips count=%d", len(self._recurring_trips))
+        _LOGGER.warning("DEBUG _get_all_active_trips: _punctual_trips count=%d", len(self._punctual_trips))
+        _LOGGER.warning("DEBUG _get_all_active_trips: CALLED FROM\n%s", traceback.format_stack()[-3])
+
         all_trips = []
         for trip in self._recurring_trips.values():
             if trip.get("activo", True):
                 all_trips.append(trip)
-        for trip in self._punctual_trips.values():
-            if trip.get("estado") == "pendiente":
+
+        for trip_id, trip in self._punctual_trips.items():
+            estado = trip.get("estado")
+            _LOGGER.warning("DEBUG _get_all_active_trips: punctual trip %s estado=%s", trip_id, estado)
+            if estado == "pendiente":
                 all_trips.append(trip)
+
+        _LOGGER.warning("DEBUG _get_all_active_trips: returning %d trips", len(all_trips))
         return all_trips
 
     async def async_get_kwh_needed_today(self) -> float:

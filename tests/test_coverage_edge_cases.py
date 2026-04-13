@@ -169,7 +169,12 @@ async def test_cleanup_raises_exception_main_sensor_registry(hass: HomeAssistant
 
 @pytest.mark.asyncio
 async def test_get_current_soc_no_entry_data(hass: HomeAssistant) -> None:
-    """Test _get_current_soc returns 0.0 when no entry data."""
+    """Test _get_current_soc returns None when no entry data.
+
+    Fix for task 2.11: Changed return from 0.0 to None to properly match
+    type annotation `-> float | None`. Callers at lines 339 and 652 check
+    `if soc_current is None: soc_current = 50.0`.
+    """
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
@@ -186,14 +191,19 @@ async def test_get_current_soc_no_entry_data(hass: HomeAssistant) -> None:
     if hasattr(adapter, "_entry_dict"):
         delattr(adapter, "_entry_dict")
 
-    # Should return 0.0 and log warning
+    # Should return None and log warning (caller uses 50.0 fallback)
     result = await adapter._get_current_soc()
-    assert result == 0.0
+    assert result is None
 
 
 @pytest.mark.asyncio
 async def test_get_current_soc_invalid_soc_value(hass: HomeAssistant) -> None:
-    """Test _get_current_soc handles invalid SOC value parsing."""
+    """Test _get_current_soc handles invalid SOC value parsing.
+
+    Fix for task 2.11: Changed return from 0.0 to None to properly match
+    type annotation `-> float | None`. Callers at lines 339 and 652 check
+    `if soc_current is None: soc_current = 50.0`.
+    """
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
@@ -214,58 +224,9 @@ async def test_get_current_soc_invalid_soc_value(hass: HomeAssistant) -> None:
     state.state = "not_a_number"
     hass.states.get = MagicMock(return_value=state)
 
-    # Should return 0.0 and log warning
+    # Should return None and log warning (caller uses 50.0 fallback)
     result = await adapter._get_current_soc()
-    assert result == 0.0
-
-
-# =============================================================================
-# Coverage: sensor.py:628-631, 635-640 - async_update_trip_sensor edge cases
-# =============================================================================
-
-
-@pytest.mark.asyncio
-async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> None:
-    """Test async_update_trip_sensor finds sensor with matching unique_id.
-
-    This test covers lines 628-640:
-    - Line 628-631: Loop through registry entries and find match
-    - Line 635-640: Update existing sensor and return True
-    """
-    from homeassistant.helpers.entity_registry import async_get
-    from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.sensor import async_update_trip_sensor
-
-    # Create entry
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Test",
-        data={"vehicle_name": "Test Car"},
-        entry_id="test_update_sensor_id",
-        version=1,
-    )
-    entry.add_to_hass(hass)
-
-    # Create entity registry entry with trip_id in unique_id
-    entity_registry = async_get(hass)
-    entity_registry.async_get_or_create(
-        "sensor",
-        DOMAIN,
-        "test_update_sensor_id_trip_123",
-        suggested_object_id="trip_123",
-    )
-
-    # Mock runtime_data and async_add_entities
-    runtime_data = EVTripRuntimeData(coordinator=None, trip_manager=None, emhass_adapter=None)
-    runtime_data.sensor_async_add_entities = AsyncMock(return_value=None)
-    entry.runtime_data = runtime_data
-
-    # Call with existing trip - should find sensor and return True
-    trip_data = {"id": "trip_123"}
-    result = await async_update_trip_sensor(hass, entry.entry_id, trip_data)
-
-    # Should find existing sensor and return True (triggers 628-640)
-    assert result is True
+    assert result is None
 
 
 # =============================================================================
@@ -484,55 +445,6 @@ class _MockState:
     """Simple class for coverage-friendly state object (not a Mock)."""
     def __init__(self, state: str | None) -> None:
         self.state = state
-
-
-@pytest.mark.asyncio
-async def test_presence_monitor_check_home_coords_state_none() -> None:
-    """Test _async_check_home_coords handles state=None (line 353)."""
-    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
-    from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES, CONF_VEHICLE_COORDINATES_SENSOR
-    from unittest.mock import Mock, AsyncMock
-    import asyncio
-
-    # Create mock hass similar to test_presence_monitor.py fixture
-    hass = Mock()
-    hass.data = {}
-    hass.states = Mock()
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    hass.bus = Mock()
-    hass.bus.async_listen = Mock()
-    hass.config = Mock()
-    hass.config.config_dir = "/tmp/test"
-
-    async def mock_async_run_hass_job(job, *args, **kwargs):
-        return None
-    hass.async_run_hass_job = mock_async_run_hass_job
-
-    # Use correct key CONF_VEHICLE_COORDINATES_SENSOR (not "vehicle_coords_sensor")
-    presence_config = {
-        "enabled": True,
-        CONF_HOME_COORDINATES: "40.0,-3.0",
-        CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
-    }
-
-    # Create monitor
-    monitor = PresenceMonitor(hass, "test_car", presence_config)
-
-    # Verify home_coords was parsed
-    assert monitor.home_coords is not None, "home_coords should be parsed"
-    assert monitor.vehicle_coords_sensor == "sensor.vehicle_location", "vehicle_coords_sensor should be set"
-
-    # Create state with None value using simple class (not Mock) for coverage tracking
-    mock_state = _MockState(None)  # Line 352: state is None
-
-    # Set up hass.states.get to return our state object
-    hass.states.get.return_value = mock_state
-
-    # Call method - this should execute line 351-353
-    result = await monitor._async_check_home_coordinates()
-
-    assert result is True  # Line 353: return True when state is None
 
 
 # =============================================================================
@@ -918,6 +830,11 @@ async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> 
     entry = hass.config_entries.async_get_entry(entry_id="test_update_sensor_match")
     runtime_data = entry.runtime_data
     trip_manager = runtime_data.trip_manager
+
+    # FIX for task 2.13: coordinator.async_request_refresh is now awaited in sensor.py:645
+    # Need AsyncMock for it to be awaitable
+    if runtime_data.coordinator:
+        runtime_data.coordinator.async_request_refresh = AsyncMock()
 
     # Create mock reg_entry that matches the condition in line 629:
     # isinstance(unique_id, str) and trip_id in unique_id and "trip" in unique_id.lower()

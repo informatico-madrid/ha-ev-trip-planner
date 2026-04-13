@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-13T14:46:52Z",
+  "updated": "2026-04-13T21:08:47Z",
   "directories": [
     {
       "path": "./specs",
@@ -13,56 +13,58 @@
       "name": "001-milestone-3-2-complete",
       "path": "./specs/001-milestone-3-2-complete",
       "phase": "completed",
-      "taskIndex": 8,
+      "taskIndex": 81,
       "totalTasks": 81
     },
     {
       "name": "007-complete-milestone-3-verify-1-2",
       "path": "./specs/007-complete-milestone-3-verify-1-2",
       "phase": "completed",
-      "taskIndex": 9,
+      "taskIndex": 96,
       "totalTasks": 96
     },
     {
       "name": "008-fix-config-flow-dashboard-sensors",
       "path": "./specs/008-fix-config-flow-dashboard-sensors",
       "phase": "completed",
-      "taskIndex": 6,
+      "taskIndex": 63,
       "totalTasks": 63
     },
     {
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
       "phase": "tasks",
-      "taskIndex": 0,
+      "taskIndex": 0
+0,
       "totalTasks": 158
     },
     {
       "name": "010-fix-sensor-errors-dashboard-issues",
       "path": "./specs/010-fix-sensor-errors-dashboard-issues",
       "phase": "completed",
-      "taskIndex": 2,
+      "taskIndex": 24,
       "totalTasks": 24
     },
     {
       "name": "011-fix-production-errors",
       "path": "./specs/011-fix-production-errors",
       "phase": "completed",
-      "taskIndex": 2,
+      "taskIndex": 21,
       "totalTasks": 21
     },
     {
       "name": "012-dashboard-crud-verify",
       "path": "./specs/012-dashboard-crud-verify",
       "phase": "completed",
-      "taskIndex": 5,
+      "taskIndex": 50,
       "totalTasks": 50
     },
     {
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
       "phase": "tasks",
-      "taskIndex": 0,
+      "taskIndex": 0
+0,
       "totalTasks": 68
     },
     {
@@ -88,28 +90,28 @@
       "name": "soc-integration-baseline",
       "path": "./specs/soc-integration-baseline",
       "phase": "completed",
-      "taskIndex": 1,
+      "taskIndex": 11,
       "totalTasks": 11
     },
     {
       "name": "charging-window-calculation",
       "path": "./specs/charging-window-calculation",
       "phase": "completed",
-      "taskIndex": 1,
+      "taskIndex": 13,
       "totalTasks": 13
     },
     {
       "name": "soc-milestone-algorithm",
       "path": "./specs/soc-milestone-algorithm",
       "phase": "tasks",
-      "taskIndex": 3,
+      "taskIndex": 34,
       "totalTasks": 47
     },
     {
       "name": "emhass-sensor-enhancement",
       "path": "./specs/emhass-sensor-enhancement",
       "phase": "completed",
-      "taskIndex": 2,
+      "taskIndex": 24,
       "totalTasks": 24
     },
     {
@@ -123,14 +125,14 @@
       "name": "automation-template",
       "path": "./specs/automation-template",
       "phase": "completed",
-      "taskIndex": 2,
+      "taskIndex": 21,
       "totalTasks": 21
     },
     {
       "name": "emhass-integration-with-fixes",
       "path": "./specs/emhass-integration-with-fixes",
       "phase": "execution",
-      "taskIndex": 1,
+      "taskIndex": 10,
       "totalTasks": 23,
       "awaitingApproval": true
     },
@@ -145,51 +147,50 @@
       "name": "e2e-trip-crud",
       "path": "./specs/e2e-trip-crud",
       "phase": "tasks",
-      "taskIndex": 4,
+      "taskIndex": 48,
       "totalTasks": 52
     },
     {
       "name": "duplicate-emhass-sensor-fix",
       "path": "./specs/duplicate-emhass-sensor-fix",
       "phase": "tasks",
-      "taskIndex": 1,
+      "taskIndex": 19,
       "totalTasks": 25
     },
     {
       "name": "emhass-sensor-entity-lifecycle",
       "path": "./specs/emhass-sensor-entity-lifecycle",
       "phase": "completed",
-      "taskIndex": 7,
+      "taskIndex": 72,
       "totalTasks": 72
     },
     {
       "name": "regression-orphaned-sensors-ha-core-investigation",
       "path": "./specs/regression-orphaned-sensors-ha-core-investigation",
       "phase": "tasks",
-      "taskIndex": 7,
+      "taskIndex": 78,
       "totalTasks": 79
     },
     {
       "name": "solid-refactor-coverage",
       "path": "./specs/solid-refactor-coverage",
       "phase": "completed",
-      "taskIndex": 9,
+      "taskIndex": 90,
       "totalTasks": 90
     },
     {
       "name": "fix-emhass-sensor-attributes",
       "path": "./specs/fix-emhass-sensor-attributes",
       "phase": "execution",
-      "taskIndex": 3,
+      "taskIndex": 36,
       "totalTasks": 39
     },
     {
       "name": "m401-emhass-hotfixes",
       "path": "./specs/m401-emhass-hotfixes",
       "phase": "execution",
-      "taskIndex": 7,
-      "totalTasks": 89,
-      "status": "7/89 tasks (Phase 2b: Bug Fixes added)"
+      "taskIndex": 20,
+      "totalTasks": 91
     }
   ]
 }

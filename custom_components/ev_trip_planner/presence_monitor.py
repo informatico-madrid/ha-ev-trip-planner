@@ -459,7 +459,7 @@ class PresenceMonitor:
         self._soc_listener_unsub = async_track_state_change_event(
             self.hass,
             self.soc_sensor,
-            self._async_handle_soc_change,
+            self._async_handle_soc_change,  # type: ignore[arg-type] # HA stub: Event type mismatch - Mapping[str, Any] vs EventStateChangedData
         )
 
     async def _async_handle_soc_change(self, event: Event[Mapping[str, Any]]) -> None:

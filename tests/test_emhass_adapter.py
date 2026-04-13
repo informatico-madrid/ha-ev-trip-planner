@@ -4692,14 +4692,19 @@ async def test_get_current_soc_reads_sensor(mock_store):
 
 @pytest.mark.asyncio
 async def test_get_current_soc_sensor_unavailable(mock_store):
-    """_get_current_soc returns 0.0 when sensor is unavailable.
+    """_get_current_soc returns None when sensor is unavailable.
 
     This is a GREEN test for the SOC sensor unavailable case:
     - config has soc_sensor="sensor.estimated_soc"
     - hass.states.get returns None (sensor unavailable)
-    - Expected: returns 0.0 as fallback
+    - Expected: returns None as fallback (callers then use 50.0)
 
-    Design: Component 1
+    Fix for task 2.11: Changed return type annotation `-> float | None` to
+    actually return None on error paths (was returning 0.0). Callers at
+    lines 338-340 and 634-653 already have the correct logic:
+      soc_current = await self._get_current_soc()
+      if soc_current is None:
+          soc_current = 50.0
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -4721,12 +4726,12 @@ async def test_get_current_soc_sensor_unavailable(mock_store):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
-        # Method does not exist yet - test must FAIL
+        # Method now returns None when sensor unavailable (not 0.0)
         soc = await adapter._get_current_soc()
 
-        # Should return 0.0 as fallback
-        assert soc == 0.0, (
-            f"Expected 0.0 when sensor unavailable, got {soc}"
+        # Should return None when sensor unavailable (caller uses 50.0 fallback)
+        assert soc is None, (
+            f"Expected None when sensor unavailable, got {soc}"
         )
 
 
@@ -5416,3 +5421,130 @@ async def test_past_deadline_trip(mock_store):
             assert key in result["per_trip_emhass_params"]["past_trip_001"], (
                 f"past_trip_001 should have key '{key}'"
             )
+
+
+# =============================================================================
+# Coverage: emhass_adapter.py:609-602 - Stale cache entries when re-publishing
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_stale_cache_cleared_on_republish(mock_store):
+    """Test that stale _cached_per_trip_params entries are cleared on re-publish.
+
+    This is the RED test for task 2.15:
+    - Publish 2 trips → cache has {"trip_A": ..., "trip_B": ...}
+    - Publish only 1 trip (trip_A) → cache should ONLY have trip_A
+    - Current BUG: cache still has {"trip_A": ..., "trip_B": ...} ← trip_B is stale
+    - Test must FAIL to confirm the bug exists
+
+    Scenario: User adds trip A and B, then deletes B. When we re-publish with only A,
+    the stale entry for B remains in cache, causing sensors to show incorrect data.
+    """
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.const import CONF_VEHICLE_NAME, CONF_MAX_DEFERRABLE_LOADS, CONF_CHARGING_POWER
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    # Initial state with 2 trips
+    trips_2 = [
+        {
+            "id": "trip_A",
+            "name": "Trip A",
+            "departure_time": "2026-04-12T08:00:00",
+            "duration_minutes": 60,
+            "energy_required_kwh": 10.0,
+            "departure_soc": 50.0,
+            "arrival_soc": 80.0,
+            "origin": "Home",
+            "destination": "Work",
+            "type": "punctual",
+            "recurring_rule": None,
+            "weekdays": [],
+        },
+        {
+            "id": "trip_B",
+            "name": "Trip B",
+            "departure_time": "2026-04-13T09:00:00",
+            "duration_minutes": 90,
+            "energy_required_kwh": 15.0,
+            "departure_soc": 60.0,
+            "arrival_soc": 85.0,
+            "origin": "Home",
+            "destination": "Office",
+            "type": "punctual",
+            "recurring_rule": None,
+            "weekdays": [],
+        },
+    ]
+
+    # Single trip (B was deleted)
+    trips_1 = [
+        {
+            "id": "trip_A",
+            "name": "Trip A",
+            "departure_time": "2026-04-12T08:00:00",
+            "duration_minutes": 60,
+            "energy_required_kwh": 10.0,
+            "departure_soc": 50.0,
+            "arrival_soc": 80.0,
+            "origin": "Home",
+            "destination": "Work",
+            "type": "punctual",
+            "recurring_rule": None,
+            "weekdays": [],
+        },
+    ]
+
+    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=mock_store):
+        adapter = EMHASSAdapter(MagicMock(), config)
+        await adapter.async_load()
+
+        # Mock coordinator.async_refresh
+        mock_coordinator = MagicMock(async_refresh=AsyncMock())
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Assign indices
+        adapter._index_map = {"trip_A": 0, "trip_B": 1}
+
+        # Mock async_publish_deferrable_load to return True
+        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+        adapter._update_error_status = MagicMock()
+
+        # Step 1: Publish 2 trips
+        await adapter.publish_deferrable_loads(trips_2)
+
+        # Cache should have both trips
+        assert hasattr(adapter, "_cached_per_trip_params"), (
+            "_cached_per_trip_params should exist after first publish"
+        )
+        assert "trip_A" in adapter._cached_per_trip_params, (
+            f"_cached_per_trip_params should have trip_A, got: {adapter._cached_per_trip_params.keys()}"
+        )
+        assert "trip_B" in adapter._cached_per_trip_params, (
+            f"_cached_per_trip_params should have trip_B, got: {adapter._cached_per_trip_params.keys()}"
+        )
+
+        # Step 2: Re-publish with only 1 trip (simulating trip_B deletion)
+        await adapter.publish_deferrable_loads(trips_1)
+
+        # BUG: Cache should ONLY have trip_A now, but it still has trip_B (stale entry)
+        # This test will FAIL if the stale entry is not cleared
+        assert "trip_B" not in adapter._cached_per_trip_params, (
+            f"_cached_per_trip_params should NOT have stale trip_B entry after republish. "
+            f"Current cache: {adapter._cached_per_trip_params.keys()}"
+        )
+
+        # Verify trip_A still exists
+        assert "trip_A" in adapter._cached_per_trip_params, (
+            f"_cached_per_trip_params should still have trip_A after republish"
+        )
+
+        # Verify only 1 entry in cache
+        assert len(adapter._cached_per_trip_params) == 1, (
+            f"_cached_per_trip_params should have exactly 1 entry after republish, got {len(adapter._cached_per_trip_params)}"
+        )
