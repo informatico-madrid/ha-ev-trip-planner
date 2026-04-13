@@ -55,8 +55,11 @@ async def async_register_panel(
     try:
         # First, try to unregister any existing panel to avoid "Overwriting panel" error
         try:
-            await frontend.async_remove_panel(hass, frontend_url_path)
-            _LOGGER.debug("Removed existing panel at path %s", frontend_url_path)
+            # Check if async_remove_panel is available
+            remove_fn = getattr(frontend, "async_remove_panel", None)
+            if remove_fn is not None and callable(remove_fn):
+                await remove_fn(hass, frontend_url_path)
+                _LOGGER.debug("Removed existing panel at path %s", frontend_url_path)
         except Exception:
             # It's OK if there's no existing panel to remove
             pass
@@ -124,7 +127,9 @@ async def async_unregister_panel(
 
     try:
         # Remove the panel from frontend
-        await frontend.async_remove_panel(hass, frontend_url_path)
+        remove_fn = getattr(frontend, "async_remove_panel", None)
+        if remove_fn is not None and callable(remove_fn):
+            await remove_fn(hass, frontend_url_path)
 
         # Remove from vehicle-to-panel mapping
         _remove_vehicle_panel_mapping(hass, vehicle_id)

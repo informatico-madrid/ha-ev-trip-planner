@@ -3,7 +3,7 @@
   "name": "m401-emhass-hotfixes",
   "basePath": "specs/m401-emhass-hotfixes",
   "phase": "execution",
-  "taskIndex": 43,
+  "taskIndex": 75,
   "totalTasks": 81,
   "taskIteration": 1,
   "maxTaskIterations": 5,
@@ -26,10 +26,10 @@
   "nativeSyncFailureCount": 0,
   "chat": {
     "reviewer": {
-      "lastReadLine": 2240
+      "lastReadLine": 3595
     },
     "executor": {
-      "lastReadLine": 2390
+      "lastReadLine": 3427
     }
   },
   "external_unmarks": {
@@ -49,6 +49,8 @@
     "V4a": 3,
     "sensor_mypy": 29,
     "1.49": 1,
-    "1.50": 1
+    "1.50": 1,
+    "V5b": 2,
+    "V1": 1
   }
 }

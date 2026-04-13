@@ -269,8 +269,8 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     def _get_vehicle_data(self) -> Dict[str, Any]:
         """Get or initialize vehicle data from context."""
         if "vehicle_data" not in self.context:
-            self.context["vehicle_data"] = {}
-        return self.context["vehicle_data"]
+            self.context["vehicle_data"] = {}  # type: ignore[typeddict-unknown-key] # HA stub: ConfigFlowContext missing vehicle_data in stubs
+        return self.context["vehicle_data"]  # type: ignore[typeddict-item] # HA stub: TypedDict item access not in stubs
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -700,7 +700,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             # as entities in the entity registry (notify.<entity_name>)
             available_services = []
             try:
-                entity_registry_obj = await er.async_get(self.hass)
+                entity_registry_obj = er.async_get(self.hass)
                 notify_entities = [
                     entity.entity_id
                     for entity in entity_registry_obj.entities.values()
@@ -798,9 +798,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
     async def _async_create_entry(self) -> FlowResult:
         """Crea la entrada de configuración."""
+        vehicle_name_for_log = self.context.get("vehicle_data", {}).get("vehicle_name", "unknown")
         _LOGGER.info(
             "Starting _async_create_entry for vehicle: %s",
-            self.context.get("vehicle_data", {}).get("vehicle_name", "unknown"),
+            vehicle_name_for_log,
         )
 
         vehicle_data = self._get_vehicle_data()
@@ -873,7 +874,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             )
 
         _LOGGER.info("Returning FlowResult for %s", vehicle_name)
-        return result  # Returns FlowResult with entry created
+        return result
 
     @staticmethod
     @callback
@@ -922,7 +923,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Get current values from config entry with safe defaults
         # Use .get() with safe handling for None data
-        config_data = self._config_entry.data or {}
+        config_data: dict[str, Any] = dict(self._config_entry.data or {})
         current_battery = config_data.get(CONF_BATTERY_CAPACITY, 60.0)
         current_charging = config_data.get(CONF_CHARGING_POWER, 11.0)
         current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)

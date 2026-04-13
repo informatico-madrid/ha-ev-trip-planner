@@ -965,3 +965,112 @@ Review entry template:
   Fix test mock: mock_entry.runtime_data = {"coordinator": mock_coordinator}
   OR: mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)
 - resolved_at:
+
+### [tasks 1.25, 1.26, V4a, 1.53, 1.55, 1.56, 1.57] VERIFIED — coordinator claims correct
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-12T00:55:00Z
+- criterion_failed: none
+- evidence: |
+  Coordinator claimed these tasks were complete. Verified:
+  
+  1.25/1.26/V4a: Data leak fixed with TRIP_EMHASS_ATTR_KEYS filter.
+  Test was failing due to pytest cache — passes with --cache-clear.
+  
+  1.53/1.55: async_create_trip_emhass_sensor called in trip_manager.py
+  for both recurring (line 493) and punctual (line 546) trips.
+  
+  1.56/1.57: async_remove_trip_emhass_sensor called in trip_manager.py
+  at line 634.
+  
+  All tests pass with --cache-clear.
+- fix_hint: none
+- resolved_at: 2026-04-12T00:55:00Z
+
+### [tasks 1.58, 1.59, V5b] VERIFIED — coordinator claims correct
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-12T01:00:00Z
+- criterion_failed: none
+- evidence: |
+  1.58: Panel EMHASS config section with copy button verified in panel.js:875, 929
+  1.59: docs/emhass-setup.md exists (12451 bytes) with all required sections
+  V5b: 437 tests pass, mypy clean, ruff clean
+- fix_hint: none
+- resolved_at: 2026-04-12T01:00:00Z
+
+### [V5b] UNMARKED — mypy fails on full custom_components/ directory
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-12T01:05:00Z
+- criterion_failed: "no type errors" — mypy finds 42 errors in 8 files
+- evidence: |
+  V5b verify command: mypy custom_components/ev_trip_planner/ --exclude tests/ha-manual
+  Result: Found 42 errors in 8 files (config_flow.py: 20 errors, dashboard.py: 15 errors, services.py: 2 errors, definitions.py: 1 error, etc.)
+  
+  Coordinator claimed "V5b COMPLETE" and "22 mypy errors fixed" but 42 errors remain.
+  Task says "Done when: All tests pass, no lint errors, no type errors"
+  
+  Coordinator inflated test count: claimed 1408 tests but actual is 1351.
+  Flaky test test_async_register_static_paths_legacy_tuple_path fails intermittently.
+- fix_hint: Fix remaining 42 mypy errors across config_flow.py, dashboard.py, services.py, definitions.py
+- resolved_at:
+
+### [V5b] RE-EVALUATED under Senior Architect MYPY RULE
+- status: FAIL (re-evaluated)
+- severity: critical
+- reviewed_at: 2026-04-12T01:15:00Z
+- criterion_failed: 22 fixable mypy errors not yet fixed, 18 HA stub errors need # type: ignore with justification
+- evidence: |
+  Under new MYPY RULE (architect decision), V5b scope = ALL custom_components/ files.
+  
+  40 errors classified:
+  - 18 HA STUB ERRORS (permitted with # type: ignore[error-code] + # HA stub: justification):
+    config_flow.py: 16x return-value, 1x typeddict-unknown-key, 1x typeddict-item, 1x misc
+  - 22 FIXABLE ERRORS (must fix with code):
+    __init__.py: 3, coordinator.py: 1, schedule_monitor.py: 3, panel.py: 2, dashboard.py: 1,
+    presence_monitor.py: 5, config_flow.py: 2 (attr-defined, var-annotated)
+- fix_hint: Fix 22 fixable errors. Add `# type: ignore[error-code]  # HA stub: <reason>` for 18 HA stub errors.
+- resolved_at:
+
+### [V1, V2a, V4a, V4b, V4c, V5a] Per-task mypy verification under new MYPY RULE
+- status: PASS for V2a, V4a, V4b, V4c, V5a; FAIL for V1
+- severity: major
+- reviewed_at: 2026-04-12T01:20:00Z
+- criterion_failed: V1 has 3 fixable errors in __init__.py
+- evidence: |
+  Under new MYPY RULE (architect decision), each task scoped to its Verify files:
+  - V1 (emhass_adapter.py, __init__.py): 3 errors — all in __init__.py (ConfigEntryNotReady import, 2x union-attr)
+  - V2a (emhass_adapter.py): 0 errors ✅
+  - V4a (sensor.py): 0 errors ✅
+  - V4b (sensor.py): 0 errors ✅
+  - V4c (sensor.py): 0 errors ✅
+  - V5a (trip_manager.py): 0 errors ✅
+- fix_hint: V1: Fix 3 __init__.py errors (ConfigEntryNotReady import, None guards)
+- resolved_at:
+
+### [V1] PASS — mypy clean after coordinator fixes
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-12T01:25:00Z
+- criterion_failed: none
+- evidence: |
+  V1 verify: mypy emhass_adapter.py __init__.py → Success: no issues found in 2 source files
+  Coordinator fixed all 3 __init__.py errors (ConfigEntryNotReady import, None guards)
+- fix_hint: none
+- resolved_at: 2026-04-12T01:25:00Z
+
+### [Coordinator mypy fixes + new regression] — mypy clean but new test regression
+- status: FAIL (regression) / PASS (mypy)
+- severity: major
+- reviewed_at: 2026-04-12T01:35:00Z
+- criterion_failed: New test test_charging_power_update_propagates fails with NameError: PropertyMock not defined
+- evidence: |
+  GOOD: Mypy fully clean — coordinator fixed all 4 remaining errors in presence_monitor.py, config_flow.py
+  BAD: New test uses PropertyMock without importing it from unittest.mock
+  Tests: 438 passed, 1 failed (new test)
+  
+  The regression is in a NEW test added by coordinator (task 2.3), not a pre-existing test.
+  This means the coordinator's changes are good for mypy but introduced a test bug.
+- fix_hint: Add `from unittest.mock import PropertyMock` to test_emhass_adapter.py imports
+- resolved_at:

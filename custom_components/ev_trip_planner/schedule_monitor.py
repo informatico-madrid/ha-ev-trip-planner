@@ -109,7 +109,7 @@ class VehicleScheduleMonitor:
     async def async_stop(self):
         """Stop monitoring all schedules."""
         for unsub in self._unsub_handlers.values():
-            if unsub:
+            if bool(unsub):
                 unsub()
         self._unsub_handlers.clear()
         self._last_actions.clear()
@@ -278,6 +278,8 @@ class VehicleScheduleMonitor:
     async def _async_notify(self, title: str, message: str):
         """Send notification."""
         try:
+            if self.notification_service is None:
+                return
             domain, service = self.notification_service.split(".", 1)
             await self.hass.services.async_call(
                 domain,
@@ -309,7 +311,7 @@ class VehicleScheduleMonitor:
             return
 
         unsub = self._unsub_handlers.pop(emhass_index)
-        if unsub:
+        if bool(unsub):
             unsub()
 
         self._last_actions.pop(emhass_index, None)

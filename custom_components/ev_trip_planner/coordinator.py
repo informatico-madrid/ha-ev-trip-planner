@@ -49,7 +49,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         entry: ConfigEntry,
         trip_manager: TripManager,
         emhass_adapter: EMHASSAdapter | None = None,
-        logger: logging.Logger = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """Initialize the coordinator.
 

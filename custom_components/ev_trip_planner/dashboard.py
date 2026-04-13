@@ -852,13 +852,13 @@ async def _save_lovelace_dashboard(
                 _LOGGER.info("Writing dashboard config to storage: lovelace")
 
                 # Use HA's official Store API for persistence
-                store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
+                lovelace_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
                     hass,
                     version=1,
                     key="lovelace",
                 )
 
-                await store.async_save(
+                await lovelace_store.async_save(
                     {
                         "version": 1,
                         "data": {**current_data, "views": views},

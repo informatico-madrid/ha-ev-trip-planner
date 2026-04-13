@@ -7,7 +7,7 @@ Contains all service handlers and helper functions for trip management services.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -1289,16 +1289,16 @@ async def async_register_static_paths(
                     try:
                         if isinstance(path_spec, tuple):
                             url_path, file_path, _ = path_spec
-                            hass.http.register_static_path(url_path, file_path)  # type: ignore[attr-defined]  # HA HTTP extension method
+                            hass.http.register_static_path(url_path, file_path)
                         else:
-                            hass.http.register_static_path(  # type: ignore[attr-defined]  # HA HTTP extension method
+                            hass.http.register_static_path(
                                 path_spec.url_path, path_spec.path
                             )
                     except RuntimeError as path_err:  # pragma: no cover — HA infrastructure error path
                         if "already registered" in str(path_err).lower():
                             continue
                         raise
-                _LOGGER.info("Registered static paths using legacy method (early)")  # pragma: no cover — reached only after HA infrastructure error
+                _LOGGER.info("Registered static paths using legacy method (early)")  # pragma: no cover — reached only after HA infrastructure error path
             except Exception as legacy_err:  # pragma: no cover — HA infrastructure error path
                 _LOGGER.error("Failed to register static paths (early): %s", legacy_err)
     elif static_paths:
@@ -1432,7 +1432,8 @@ async def async_unload_entry_cleanup(
         if entity_registry is None:
             entity_registry = er.async_get(hass)
         # Use the registry's async_entries_for_config_entry method directly
-        for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):  # type: ignore[union-attr]  # Checked None above
+        registry = cast(er.EntityRegistry, entity_registry)
+        for entity_entry in registry.async_entries_for_config_entry(entry.entry_id):
             # EntityRegistry.async_remove is NOT async - returns None
             # See: homeassistant/helpers/entity_registry.py
             entity_registry.async_remove(entity_entry.entity_id)

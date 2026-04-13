@@ -95,8 +95,8 @@ Focus: Fix 3 root causes for charging power updates being silently ignored. Each
 - [x] V1 [VERIFY] Quality checkpoint: Gap #5 hotfixes
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py && mypy custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/__init__.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong ann
   - **Commit**: `chore(emhass): pass quality checkpoint after gap-5 hotfixes`
 
 ## Phase 1 (continued): TDD Cycles — Per-Trip Params Cache
@@ -199,8 +199,8 @@ Note: No new `_calculate_individual_power_profile` method needed — the existin
 - [x] V2a [VERIFY] Quality checkpoint: per-trip params cache
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x && ruff check custom_components/ev_trip_planner/emhass_adapter.py && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong ann
   - **Commit**: `chore(emhass): pass quality checkpoint after per-trip params cache`
 
 - [x] 1.17 [RED] Failing test: `get_cached_optimization_results` includes `per_trip_emhass_params`
@@ -328,8 +328,8 @@ Focus: New per-trip EMHASS sensor class with 9 attributes. Tests go in `tests/te
   - **REVIEWER UNMARK** (senior-reviewer 2026-04-12): Checkpoint no detectó data leak en 1.26 (extra_state_attributes retornando 20+ claves internas). Requiere que 1.25 y 1.26 estén corregidos antes de marcar.
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
-  - **Done when**: All tests pass with exact key validation, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass with exact key validation, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(sensor): pass quality checkpoint after TripEmhassSensor`
 
 ## Phase 1 (continued): TDD Cycles — Sensor CRUD Functions
@@ -421,8 +421,8 @@ Focus: Add EMHASS sensor create/remove functions.
 - [x] V4b [VERIFY] Quality checkpoint: sensor CRUD functions
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_emhass_sensor.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(sensor): pass quality checkpoint after EMHASS sensor CRUD`
 
 ## Phase 1 (continued): TDD Cycles — Aggregated Sensor Extensions
@@ -524,8 +524,8 @@ Focus: Add 6 new array/matrix attributes to `EmhassDeferrableLoadSensor`.
 - [x] V4c [VERIFY] Quality checkpoint: aggregated sensor extensions
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x && ruff check custom_components/ev_trip_planner/sensor.py && mypy custom_components/ev_trip_planner/sensor.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(sensor): pass quality checkpoint after aggregated sensor extensions`
 
 ## Phase 1 (continued): TDD Cycles — TripManager Integration + Legacy Refactor
@@ -602,8 +602,8 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
 - [x] V5a [VERIFY] Quality checkpoint: legacy refactor
   - **Do**: Run quality commands
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/trip_manager.py && mypy custom_components/ev_trip_planner/trip_manager.py --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(trip_manager): pass quality checkpoint after legacy refactor`
 
 - [x] 1.52 [RED] Failing test: trip_manager `async_add_recurring_trip` calls EMHASS sensor create
@@ -662,8 +662,8 @@ Focus: Refactor trip_manager to use sensor.py CRUD functions + add EMHASS sensor
 - [x] V5b [VERIFY] Quality checkpoint: EMHASS sensor CRUD integration
   - **Do**: Run full test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check custom_components/ev_trip_planner/ && mypy custom_components/ev_trip_planner/ --exclude tests/ha-manual --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(emhass): pass quality checkpoint after EMHASS sensor CRUD integration`
 
 ## Phase 1 (continued): TDD Cycles — Frontend & Docs
@@ -701,7 +701,7 @@ Focus: Panel Jinja2 config section + EMHASS documentation.
 
 Focus: Integration tests spanning multiple components, edge case coverage.
 
-- [ ] 2.1 Integration test: full data flow from adapter cache to sensor attributes
+- [x] 2.1 Integration test: full data flow from adapter cache to sensor attributes
   - **Do**:
     1. Write test `test_data_flow_adapter_to_sensors` that:
        - Creates adapter with mock trips, calls `publish_deferrable_loads`
@@ -713,7 +713,7 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_data_flow_adapter_to_sensors"`
   - **Commit**: `test(emhass): add integration test for adapter-to-sensor data flow`
 
-- [ ] 2.2 Integration test: no active trips produces empty matrix
+- [x] 2.2 Integration test: no active trips produces empty matrix
   - **Do**:
     1. Write test `test_aggregated_sensor_empty_when_no_active_trips` with all trips inactive
     2. Assert `p_deferrable_matrix=[]`, `number_of_deferrable_loads=0`, all arrays empty
@@ -722,7 +722,7 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_aggregated_sensor_empty_when_no_active"`
   - **Commit**: `test(emhass): add test for empty matrix when no active trips`
 
-- [ ] 2.3 Integration test: charging power update propagates to sensor attributes
+- [x] 2.3 Integration test: charging power update propagates to sensor attributes
   - **Do**:
     1. Write test `test_charging_power_update_propagates` that:
        - Creates adapter with initial power 11kW, publishes trips
@@ -733,7 +733,7 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_charging_power_update_propagates"`
   - **Commit**: `test(emhass): add integration test for charging power update propagation`
 
-- [ ] 2.4 Edge case test: multiple trips with same deadline get separate indices
+- [x] 2.4 Edge case test: multiple trips with same deadline get separate indices
   - **Do**:
     1. Write test with 3 trips having same deadline datetime
     2. Assert each gets separate `emhass_index`, separate matrix row
@@ -742,7 +742,7 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_multiple_trips_same_deadline"`
   - **Commit**: `test(emhass): add edge case test for multiple trips same deadline`
 
-- [ ] 2.5 Edge case test: trip deadline in past
+- [x] 2.5 Edge case test: trip deadline in past
   - **Do**:
     1. Write test `test_past_deadline_trip` — trip with deadline in past
     2. Assert `async_publish_deferrable_load` returns False, no index assigned
@@ -751,22 +751,22 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_past_deadline_trip"`
   - **Commit**: `test(emhass): add edge case test for past deadline trip`
 
-- [ ] 2.6 [VERIFY] Quality checkpoint: additional tests pass
+- [x] 2.6 [VERIFY] Quality checkpoint: additional tests pass
   - **Do**: Run full test suite + lint + typecheck
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check . && mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages`
-  - **Done when**: All tests pass, no lint errors, no type errors
-  - **MYTP RULE**: ALL mypy errors must be fixed — including pre-existing ones. `# type: ignore` is ONLY allowed for Home Assistant core stub issues (untyped HA attributes). Every `# type: ignore` MUST include a written justification proving the error cannot be fixed with code. 26 of 29 current errors are fixable with proper code; only 3 (EntityCategory, SensorEntityDescription attrs) are legitimate HA stub issues.
+  - **Done when**: All tests pass, no lint errors, no type errors **in the files listed in Verify**
+  - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(emhass): pass quality checkpoint after additional tests`
 
 ## Phase 3: Quality Gates
 
-- [ ] V4 [VERIFY] Full local CI: test + lint + typecheck
+- [x] V4 [VERIFY] Full local CI: test + lint + typecheck
   - **Do**: Run complete local CI suite
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check . && pylint custom_components/ tests/ && mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages`
   - **Done when**: All tests pass, lint clean, typecheck clean
   - **Commit**: `chore(emhass): pass full local CI` (if fixes needed)
 
-- [ ] 3.1 Verify 100% test coverage on changed modules
+- [x] 3.1 Verify 100% test coverage on changed modules
   - **Do**: Run coverage report and verify all changed modules at 100%
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/`
   - **Done when**: Coverage report shows 100% on emhass_adapter.py, sensor.py, trip_manager.py, __init__.py

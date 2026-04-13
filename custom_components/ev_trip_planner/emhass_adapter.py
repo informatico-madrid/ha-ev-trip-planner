@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
