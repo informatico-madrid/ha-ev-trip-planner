@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-12T18:20:19Z",
+  "updated": "2026-04-13T08:37:30Z",
   "directories": [
     {
       "path": "./specs",
@@ -189,7 +189,7 @@
       "name": "m401-emhass-hotfixes",
       "path": "./specs/m401-emhass-hotfixes",
       "phase": "execution",
-      "taskIndex": 43,
+      "taskIndex": 75,
       "totalTasks": 81
     }
   ]
