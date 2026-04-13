@@ -42,7 +42,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | regression-orphaned-sensors-ha-core-investigation | ./specs | tasks | 78/79 tasks |
 | solid-refactor-coverage | ./specs | completed | done |
 | fix-emhass-sensor-attributes | ./specs | execution | 36/39 tasks |
-| m401-emhass-hotfixes | ./specs | execution | 76/81 tasks |
+| m401-emhass-hotfixes | ./specs | execution | 81/81 tasks |
 
 ---
 
