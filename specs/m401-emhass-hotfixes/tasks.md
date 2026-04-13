@@ -762,45 +762,451 @@ Focus: Integration tests spanning multiple components, edge case coverage.
   - **MYPY RULE**: Mypy must pass on the files listed in the Verify command. `# type: ignore[error-code]` is ALLOWED ONLY for HA core type stub incompatibilities (e.g., `ConfigFlowResult` vs `FlowResult`, HA `TypedDict` missing custom keys, HA base class signature mismatches). Every `# type: ignore` MUST include a `# HA stub: <reason>` justification. Fixable errors (wrong import path, missing None guard, wrong annotation) must be fixed with code, NOT suppressed. Example fixable: `EntityCategory` → import from `homeassistant.const`; `ConfigEntryNotReady` → import from `homeassistant.exceptions`
   - **Commit**: `chore(emhass): pass quality checkpoint after additional tests`
 
+## Phase 2b: Bug Fixes (Reviewer-identified, 2026-04-13)
+
+Focus: Fix critical bugs discovered during external review that cause production crashes, data corruption, or test unreliability. Each fix must start with a failing test.
+
+- [ ] 2.7 [RED] Failing test: `async_add_recurring_trip` crashes con `runtime_data.get("coordinator")`
+  <!-- ANÁLISIS VERIFICADO (senior-reviewer 2026-04-13):
+    CONFIRMADO. trip_manager.py:491 contiene `entry.runtime_data.get("coordinator")`.
+    EVTripRuntimeData es @dataclass (ver __init__.py:47-57) con campo `.coordinator` (atributo de objeto).
+    Los tests existentes (test_trip_manager.py:1282-1283) usan `mock_entry.runtime_data = MagicMock()` +
+    `mock_entry.runtime_data.get = MagicMock(return_value=mock_coordinator)` — patrón de trap test clásico:
+    MagicMock autocrea .get() como callable, ocultando que DataClass no tiene .get().
+    En producción: `AttributeError: 'EVTripRuntimeData' object has no attribute 'get'` cada vez
+    que un usuario añade un viaje recurrente con EMHASS habilitado.
+    Misma línea de producción en trip_manager.py:544 para viajes puntuales.
+  -->
+  - **Do**:
+    1. Importar `EVTripRuntimeData` desde `custom_components.ev_trip_planner`
+    2. Crear `real_runtime_data = EVTripRuntimeData(coordinator=mock_coordinator, trip_manager=None)`
+    3. Configurar `mock_entry.runtime_data = real_runtime_data` (NO MagicMock)
+    4. Llamar `async_add_recurring_trip` y verificar que NO lanza AttributeError
+    5. Test DEBE FALLAR con código actual: `AttributeError: 'EVTripRuntimeData' object has no attribute 'get'`
+  - **Files**: tests/test_trip_manager.py
+  - **Done when**: Test existe Y falla con `AttributeError` antes del fix, pasa después
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager.py -x -k "test_add_recurring_trip_uses_runtime_data_attribute_access" 2>&1 | grep -qi "fail\|error\|attribute" && echo RED_PASS`
+  - **Commit**: `test(trip_manager): red - failing test for runtime_data attribute access`
+
+- [ ] 2.8 [GREEN] Fix `runtime_data.get("coordinator")` → `runtime_data.coordinator`
+  <!-- ANÁLISIS VERIFICADO:
+    Líneas exactas confirmadas: trip_manager.py:491 (viaje recurrente) y :544 (viaje puntual).
+    EVTripRuntimeData tiene exactamente estos atributos (ver __init__.py:47-57):
+      - coordinator: Any
+      - trip_manager: TripManager | None
+      - sensor_async_add_entities: Callable | None
+      - emhass_adapter: Any
+    Cambio de 2 líneas que elimina el crash de producción.
+    También hay que actualizar los 3 tests trap que mockeaban .get():
+      test_trip_manager.py:1282-1283, :1345-1346, :1423-1424
+  -->
+  - **Do**:
+    1. En `trip_manager.py:491`: cambiar `entry.runtime_data.get("coordinator")` → `entry.runtime_data.coordinator`
+    2. En `trip_manager.py:544`: mismo cambio
+    3. Actualizar los 3 tests trap (líneas 1282-1283, 1345-1346, 1423-1424): eliminar `mock_entry.runtime_data.get = MagicMock(...)` y reemplazar por `mock_entry.runtime_data = EVTripRuntimeData(coordinator=mock_coordinator, ...)`
+    4. Verificar que no queden otros usos de `runtime_data.get` en custom_components/
+  - **Files**: custom_components/ev_trip_planner/trip_manager.py, tests/test_trip_manager.py
+  - **Done when**: Test 2.7 pasa, `grep -rn "runtime_data\.get" custom_components/ev_trip_planner/` devuelve 0 resultados
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager.py -x -k "test_add_recurring_trip_uses_runtime_data_attribute_access" && grep -rn "runtime_data\.get" custom_components/ev_trip_planner/ | wc -l`
+  - **Commit**: `fix(trip_manager): use attribute access for runtime_data.coordinator (dataclass, not dict)`
+
+- [ ] 2.9 [RED] Failing test: `async_add_punctual_trip` mismo crash runtime_data
+  <!-- ANÁLISIS VERIFICADO: trip_manager.py:544 tiene el mismo `.get("coordinator")` pattern.
+    El fix 2.8 debería corregir ambas líneas (491 y 544) en el mismo commit.
+    Este test confirma la cobertura del path puntual antes del fix. -->
+  - **Do**:
+    1. Escribir test `test_add_punctual_trip_uses_runtime_data_attribute_access` con `EVTripRuntimeData` real
+    2. Mismo patrón que 2.7 pero para viajes puntuales (valida línea 544)
+    3. Tras el fix 2.8, ambos tests deben pasar
+  - **Files**: tests/test_trip_manager.py
+  - **Done when**: Test existe Y falla antes del fix 2.8, pasa después
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager.py -x -k "test_add_punctual_trip_uses_runtime_data_attribute_access" 2>&1 | grep -qi "fail\|error\|attribute" && echo RED_PASS`
+  - **Commit**: `test(trip_manager): red - failing test for punctual trip runtime_data access`
+
+- [ ] 2.10 [GREEN] Fix test_vehicle_id_fallback + limpiar class-level property pollution
+  <!-- ANÁLISIS VERIFICADO — CAUSA RAÍZ EXACTA IDENTIFICADA (senior-reviewer 2026-04-13):
+    La flakiness de test_vehicle_id_fallback NO es "state pollution" genérica. Es CONTAMINACIÓN
+    DE CLASE ESPECÍFICA:
+    
+    tests/test_sensor_coverage.py:1451 y :1629 hacen:
+      `type(coordinator).vehicle_id = PropertyMock(return_value="test_vehicle")`
+    donde `coordinator` es una instancia real de `TripPlannerCoordinator`.
+    
+    `type(coordinator)` = `TripPlannerCoordinator` (la clase real).
+    Esto REEMPLAZA el @property `vehicle_id` en la CLASE con un PropertyMock.
+    La modificación es PERMANENTE para todo el proceso pytest (no se restaura).
+    
+    Cuando test_vehicle_id_fallback corre DESPUÉS de esos tests en orden aleatorio:
+    - `coordinator = TripPlannerCoordinator(hass, entry_without_vehicle, ...)` crea instancia
+    - `coordinator.vehicle_id` llama el PropertyMock (no el @property original) → "test_vehicle"
+    - Test falla con `assert 'test_vehicle' == 'unknown'`
+    
+    Reproducido con: `pytest tests/test_coordinator.py tests/test_sensor_coverage.py -p randomly`
+    Pasa con: `pytest test_coordinator.py tests/test_sensor_coverage.py -p no:randomly`
+    
+    Confirmado con grep: test_sensor_coverage.py:1451,1629 hacen la modificación; coordinator es
+    una instancia real de TripPlannerCoordinator, NO un MagicMock.
+    
+    TAMBIÉN: test_coverage_edge_cases.py tiene un test duplicado con mismo nombre en líneas
+    490 y 724 (Python sobrecribe la primera con la segunda — la de línea 490 es dead code).
+  -->
+  - **Do**:
+    1. En `tests/test_sensor_coverage.py` cerca de líneas 1451 y 1629:
+       REEMPLAZAR `type(coordinator).vehicle_id = PropertyMock(return_value="test_vehicle")` por
+       un context manager:
+       ```python
+       with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+           mock_vid.return_value = "test_vehicle"
+           # ...resto del test...
+       ```
+       Esto restaura el @property original al salir del `with`, previniendo la contaminación.
+    2. Eliminar definición duplicada de `test_presence_monitor_check_home_coords_state_none`
+       en test_coverage_edge_cases.py línea 490 (mantener solo la de línea 724).
+  - **Files**: tests/test_sensor_coverage.py, tests/test_coverage_edge_cases.py
+  - **Done when**: `pytest tests/test_coordinator.py tests/test_sensor_coverage.py -p randomly` pasa 100% en 3 ejecuciones consecutivas
+  - **Verify**: `for i in 1 2 3; do PYTHONPATH=. .venv/bin/python -m pytest tests/test_coordinator.py tests/test_sensor_coverage.py --no-cov -p randomly -q 2>&1 | tail -1; done`
+  - **Commit**: `fix(test): restore TripPlannerCoordinator.vehicle_id after class-level mock in sensor tests`
+
+- [ ] 2.11 [GREEN] Fix `_get_current_soc` — type annotation Y bug funcional
+  <!-- ANÁLISIS VERIFICADO (senior-reviewer 2026-04-13):
+    Doble problema: de tipo Y funcional.
+    
+    TIPO: emhass_adapter.py:1590 declara `-> float | None` pero TODOS los return paths
+    retornan float (0.0 cuando sensor no disponible/inválido). Nunca retorna None.
+    Ver emhass_adapter.py:1601-1623 — todos los casos de error hacen `return 0.0`.
+    
+    BUG FUNCIONAL: Los 2 callers del método usan:
+      - emhass_adapter.py:338: `soc_current = await self._get_current_soc(); if soc_current is None: soc_current = 50.0`
+      - emhass_adapter.py:634: mismo patrón dentro de publish_deferrable_loads
+    Como _get_current_soc NUNCA retorna None, el `if soc_current is None: soc_current = 50.0`
+    NUNCA se ejecuta. Cuando SOC no está configurado/disponible, se usa 0.0 en vez de 50.0.
+    Esto afecta calculate_multi_trip_charging_windows() y def_start_timestep.
+    
+    DECISIÓN: Opción B — cambiar tipo a `-> float | None` + retornar None en paths de error.
+    Razón: Los callers YA tienen la lógica correcta `if is None: use 50.0`.
+    Cambiar a None-return preserva la intención del código sin tocar los callers.
+    
+    ALTERNATIVA: Opción A — cambiar tipo a `-> float` + cambiar callers a `if soc == 0.0: use 50.0`
+    Pero esto es ambiguo (¿0% SOC real vs. no disponible?). Opción B es más semántica.
+  -->
+  - **Do**:
+    1. En `emhass_adapter.py:_get_current_soc()`, cambiar todos los `return 0.0` en paths de error a `return None`.
+       Paths a cambiar (ver emhass_adapter.py:1596-1623):
+       - `if not entry_data: return None` (era 0.0)
+       - `if not soc_sensor: return None` (era 0.0)
+       - `if state is None: return None` (era 0.0)
+       - `except (ValueError, TypeError): return None` (era 0.0)
+    2. El `return float(state.state)` en el path happy path queda igual.
+    3. La anotación ya dice `-> float | None`, no cambiarla.
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
+  - **Done when**: `_get_current_soc()` retorna `None` cuando SOC no está disponible, callers reciben 50.0 como fallback
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "soc" && mypy custom_components/ev_trip_planner/emhass_adapter.py --no-namespace-packages`
+  - **Commit**: `fix(emhass): _get_current_soc returns None on unavailable sensor so callers use 50.0 fallback`
+
+- [ ] 2.12 [GREEN] Fix `emhass_index = -1` para nuevos viajes en el cache
+  <!-- ANÁLISIS VERIFICADO (senior-reviewer 2026-04-13):
+    CONFIRMADO. El flujo en publish_deferrable_loads es:
+    
+    1. Cache loop (emhass_adapter.py:615-701):
+       `emhass_index = self._index_map.get(trip_id, -1)` ← Lee el mapa ANTES de asignar
+       → Para viajes NUEVOS (no en _index_map): emhass_index = -1
+       → Almacena _cached_per_trip_params[trip_id]["emhass_index"] = -1
+    
+    2. Individual publish loop DESPUÉS del cache (emhass_adapter.py:730-735):
+       `await self.async_publish_deferrable_load(trip)` ← AQUÍ se llama async_assign_index_to_trip
+       → Esto asigna el índice real en _index_map
+       → PERO el cache ya fue escrito con -1
+    
+    Resultado: primera vez que se publica un viaje, TripEmhassSensor.native_value = -1.
+    En la SEGUNDA llamada a publish_deferrable_loads, el viaje YA está en _index_map
+    y se obtiene el índice correcto.
+    
+    FIX: Reordenar para que async_publish_deferrable_load se llame ANTES del cache loop,
+    O llamar async_assign_index_to_trip al inicio del cache loop antes de almacenar.
+    Preferir opción 2 (llamar en loop) para no romper el flujo de publish_deferrable_loads.
+  -->
+  - **Do**:
+    1. En el cache loop de `publish_deferrable_loads` (emhass_adapter.py:~619):
+       ANTES de `emhass_index = self._index_map.get(trip_id, -1)`, añadir:
+       ```python
+       if trip_id not in self._index_map:
+           await self.async_assign_index_to_trip(trip_id)
+       emhass_index = self._index_map.get(trip_id, -1)
+       ```
+    2. Dado que `async_publish_deferrable_load` también llama `async_assign_index_to_trip`,
+       el segundo call es idempotente (ya existe en _index_map → retorna index existente).
+    3. Escribir test RED: `test_new_trip_has_correct_emhass_index_in_cache` — crear viaje nuevo,
+       llamar publish_deferrable_loads, verificar que cache tiene emhass_index != -1.
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py, tests/test_emhass_adapter.py
+  - **Done when**: `_cached_per_trip_params[trip_id]["emhass_index"]` es el índice real (0,1,...) en la primera llamada
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_new_trip_has_correct_emhass_index"`
+  - **Commit**: `fix(emhass): assign trip index before caching per-trip params`
+
+- [ ] 2.13 [GREEN] Fix `async_update_trip_sensor` no-op
+  <!-- ANÁLISIS VERIFICADO (senior-reviewer 2026-04-13):
+    CONFIRMADO. sensor.py:592-650 — async_update_trip_sensor:
+    
+    Si encuentra el sensor registrado (existing_entity != None):
+    - Lee `hass.states.get(existing_entity.entity_id)` → obtiene estado actual
+    - Loggea debug messages
+    - `return True` — NUNCA actualiza nada, no llama coordinator refresh
+    
+    Si NO encuentra el sensor: llama `async_create_trip_sensor()` (comportamiento correcto).
+    
+    Impacto: cuando se actualiza un viaje existente (ej. se cambia kwh o datetime),
+    `async_update_trip_sensor` es llamado pero el sensor HA nunca refleja los cambios
+    hasta que el coordinator hace su refresh periódico (30 segundos).
+    
+    ANÁLISIS ADICIONAL: En realidad, los datos del sensor provienen de `coordinator.data`
+    via `CoordinatorEntity`. Cuando coordinator hace refresh, el sensor se actualiza
+    automáticamente. La función async_update_trip_sensor es redundante — el refresh del
+    coordinator YA maneja todo. La llamada explícita solo acelera la actualización.
+    
+    FIX RECOMENDADO: Añadir `coordinator.async_request_refresh()` para actualización
+    inmediata. Alternativa: mantener como no-op con comentario explicando que el
+    coordinator refresh cubre esto. Preferir la primera opción.
+  -->
+  - **Do**:
+    1. En `sensor.py:async_update_trip_sensor`, cuando `existing_entity` es encontrado:
+       ```python
+       # Get coordinator for refresh
+       runtime_data = entry.runtime_data
+       coordinator = runtime_data.coordinator
+       if coordinator:
+           await coordinator.async_request_refresh()
+       ```
+    2. Añadir test: `test_update_trip_sensor_triggers_coordinator_refresh` que verifique
+       que `coordinator.async_request_refresh` es llamado cuando el sensor existe.
+  - **Files**: custom_components/ev_trip_planner/sensor.py, tests/test_sensor_coverage.py
+  - **Done when**: Coordinator refresh es llamado cuando sensor existente es actualizado
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_sensor_coverage.py -x -k "test_update_trip_sensor"`
+  - **Commit**: `fix(sensor): async_update_trip_sensor triggers coordinator refresh on update`
+
+- [ ] 2.14 [GREEN] Reduce warnings from 26 to < 10
+  <!-- ANÁLISIS (senior-reviewer 2026-04-13):
+    `make test` muestra 26 warnings. La mayoría son ResourceWarning (coroutines sin awaitar)
+    que vienen de tests que crean mocks async pero no los awaitan. Los warnings de HA core
+    (acme, http) son de terceros y no se pueden corregir.
+  -->
+  - **Do**:
+    1. Ejecutar `make test 2>&1 | grep Warning | sort | uniq -c | sort -rn` para categorizar
+    2. RuntimeWarning: coroutine never awaited — buscar tests que llaman funciones async
+       sin await. Frecuentemente son callbacks o mocks que devuelven coroutines sin consumir.
+    3. DeprecationWarning de HA core (acme/crypto_util.py, http/__init__.py) — añadir a
+       `pytest.ini` o `pyproject.toml` filterwarnings para ignorarlos explícitamente
+    4. Cualquier otro warning del proyecto — analizar y corregir case-by-case
+  - **Files**: tests/, pyproject.toml
+  - **Done when**: `make test` shows ≤ 5 warnings
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --ignore=tests/e2e/ --ignore=tests/ha-manual/ 2>&1 | grep -c "Warning"`
+  - **Commit**: `test(emhass): reduce test warnings from 26 to < 10`
+
+- [ ] 2.15 [NEW BUG - RED/GREEN] Fix `_cached_per_trip_params` stale entries al re-publicar
+  <!-- NUEVO BUG identificado por senior-reviewer 2026-04-13.
+    NO reportado en review history. Bug de producción silencioso.
+    
+    DESCRIPCIÓN: `publish_deferrable_loads` no limpia _cached_per_trip_params antes de
+    recalcular. El cache solo AÑADE y ACTUALIZA entradas — nunca ELIMINA.
+    
+    CÓDIGO PROBLEMÁTICO (emhass_adapter.py:611-612):
+    ```python
+    if not hasattr(self, "_cached_per_trip_params"):
+        self._cached_per_trip_params = {}  # Solo inicializa si no existe
+    # Luego en el loop: self._cached_per_trip_params[trip_id] = {...}
+    ```
+    
+    ESCENARIO: Usuario añade viaje A y B → cache tiene {"A": ..., "B": ...}
+    Usuario elimina viaje B → publish_deferrable_loads se llama con [A]
+    → cache queda {"A": ..., "B": ...}  ← B sigue en el cache
+    → EmhassDeferrableLoadSensor muestra matriz con 2 filas (A y B) en vez de 1
+    → TripEmhassSensor para B sigue mostrando datos en vez de zeros
+    
+    También hay un code smell: `_cached_per_trip_params` NO se inicializa en `__init__`.
+    Solo se protege con `hasattr` — antipatrón que oculta bugs de inicialización.
+  -->
+  - **Do**:
+    1. Agregar `self._cached_per_trip_params: Dict[str, Any] = {}` en `EMHASSAdapter.__init__`
+       junto a los otros atributos de cache (cerca de línea 73-100)
+    2. Al inicio de `publish_deferrable_loads`, añadir limpieza de viajes que ya no están:
+       ```python
+       current_trip_ids = {trip.get("id") for trip in trips if trip.get("id")}
+       stale_ids = set(self._cached_per_trip_params.keys()) - current_trip_ids
+       for stale_id in stale_ids:
+           del self._cached_per_trip_params[stale_id]
+       ```
+    3. Eliminar el `if not hasattr(self, "_cached_per_trip_params"):` guard (ahora innecesario)
+    4. Escribir test RED → GREEN: crear adapter con 2 viajes, publicar, eliminar uno,
+       re-publicar con solo 1 viaje, verificar que cache solo tiene 1 entrada
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py, tests/test_emhass_adapter.py
+  - **Done when**: Re-publicar con menos viajes limpia entradas obsoletas del cache
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_stale_cache_cleared"`
+  - **Commit**: `fix(emhass): clear stale per-trip cache entries on re-publish`
+
+- [ ] 2.16 [NEW BUG - GREEN] Inicializar `_cached_per_trip_params` en `__init__`
+  <!-- NUEVO BUG (code smell → bug latente) identificado por senior-reviewer 2026-04-13.
+    
+    `_cached_per_trip_params` no está en el `__init__` de EMHASSAdapter.
+    Solo se crea con `hasattr` guard en `publish_deferrable_loads`.
+    `get_cached_optimization_results()` usa `getattr(self, "_cached_per_trip_params", {})`
+    como workaround defensivo.
+    
+    Esto es un antipatrón: todos los atributos de instancia deben definirse en __init__
+    para que sean predecibles y visibles. Si se llama `get_cached_optimization_results()`
+    antes de `publish_deferrable_loads`, el resultado no incluye `per_trip_emhass_params`
+    correctamente (devuelve {} silenciosamente en vez de señalar el error).
+    
+    Este task se integra con 2.15: al mover la inicialización a __init__, eliminar
+    los workarounds hasattr y getattr-with-default.
+  -->
+  - **Do**: (INTEGRAR CON 2.15)
+    1. En `EMHASSAdapter.__init__`, añadir: `self._cached_per_trip_params: Dict[str, Any] = {}`
+    2. Eliminar `if not hasattr(self, "_cached_per_trip_params"): self._cached_per_trip_params = {}`
+       en `publish_deferrable_loads` (emhass_adapter.py:611-612)
+    3. Cambiar `get_cached_optimization_results()` de `getattr(self, "_cached_per_trip_params", {})`
+       a `self._cached_per_trip_params`
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
+  - **Done when**: `_cached_per_trip_params` inicializado en `__init__`, sin `hasattr` ni `getattr` defensivos
+  - **Verify**: `grep -n "hasattr.*_cached_per_trip\|getattr.*_cached_per_trip" custom_components/ev_trip_planner/emhass_adapter.py | wc -l | grep -q "^0$"`
+  - **Commit**: `refactor(emhass): initialize _cached_per_trip_params in __init__ (remove hasattr guard)`
+
+- [ ] 2.17 [NEW BUG - GREEN] Mover `_get_current_soc()` fuera del loop por-viaje
+  <!-- NUEVO BUG de rendimiento y consistencia identificado por senior-reviewer 2026-04-13.
+    
+    DESCRIPCIÓN: emhass_adapter.py:632 — `soc_current = await self._get_current_soc()` está
+    DENTRO del `for trip in trips:` loop en `publish_deferrable_loads`.
+    
+    _get_current_soc() llama a `hass.states.get(soc_sensor)` — es una operación I/O.
+    Si hay 5 viajes, se llama 5 veces en el mismo publish. El SOC no cambia entre iteraciones.
+    
+    BUG DE CONSISTENCIA: Python's asyncio puede ceder el control en cada `await`.
+    Si el estado del SOC cambia entre iteraciones (race condition durante un publish async con
+    muchos viajes), distintos viajes del MISMO batch usan diferentes valores de SOC.
+    Esto hace que def_start_timestep sea instable e inconsistente dentro de un batch.
+    
+    CÓDIGO PROBLEMÁTICO:
+    ```python
+    for trip in trips:
+        ...
+        soc_current = await self._get_current_soc()  # DENTRO del loop
+        if soc_current is None:
+            soc_current = 50.0
+    ```
+    
+    FIX: Mover before del loop:
+    ```python
+    soc_current = await self._get_current_soc()
+    if soc_current is None:
+        soc_current = 50.0
+    for trip in trips:
+        ...  # usar soc_current ya calculado
+    ```
+  -->
+  - **Do**:
+    1. En `emhass_adapter.py:publish_deferrable_loads`, mover:
+       ```python
+       soc_current = await self._get_current_soc()
+       if soc_current is None:
+           soc_current = 50.0
+       ```
+       a ANTES del `for trip in trips:` loop (eliminar del interior del loop)
+    2. Verificar que `soc_current` sigue siendo accesible dentro del loop
+    3. Escribir test que verifique que `_get_current_soc` es llamado UNA sola vez
+       incluso con múltiples viajes (`side_effect` + contador de calls)
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py, tests/test_emhass_adapter.py
+  - **Done when**: `_get_current_soc` llamado exactamente 1 vez por invocación de publish_deferrable_loads
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k \"test_soc_called_once_per_publish\"`
+  - **Commit**: `fix(emhass): read SOC once before per-trip loop for consistency`
+
 ## Phase 3: Quality Gates
 
 - [ ] V4 [VERIFY] Full local CI: test + lint + typecheck
-  <!-- REVIEWER UNMARK (2026-04-13): make test shows 2 FAILED tests. Coverage is 99.90% not 100%. Must fix broken tests in test_coverage_edge_cases.py before marking complete. -->
-  - **Do**: Run complete local CI suite
+  <!-- REVIEWER UNMARK (2026-04-13 — ACTUALIZADO con análisis verificado):
+    BLOQUEADORES CONFIRMADOS:
+    1. CRÍTICO: trip_manager.py:491,544 — runtime_data.get("coordinator") crashea en producción.
+       EVTripRuntimeData es @dataclass con atributo .coordinator (verificado __init__.py:47-57).
+    2. CRÍTICO: test_vehicle_id_fallback flaky — NO es "state pollution genérica" sino
+       contaminación de clase específica: test_sensor_coverage.py:1451,1629 hacen
+       `type(coordinator).vehicle_id = PropertyMock(...)` sin context manager → reemplaza
+       permanentemente el @property en TripPlannerCoordinator. Fix: usar patch.object() con with.
+    3. MAYOR: test_coverage_edge_cases.py:490 — test duplicado (dead code, sobrescrito por línea 724).
+    4. MAYOR: _get_current_soc -> float | None pero retorna float siempre → callers nunca usan
+       fallback 50.0 → def_start_timestep calculado con SOC=0.0 en vez de SOC=50.0.
+    5. MAYOR: emhass_index = -1 primera vez que se publica un viaje → TripEmhassSensor muestra -1.
+    6. NUEVO-CRÍTICO: _cached_per_trip_params retiene entradas al eliminar viajes → sensor
+       agrega viajes borrados en p_deferrable_matrix.
+  -->
+  - **Do**: Run complete local CI suite. Fix ALL blocking issues listed below BEFORE running verify.
+  - **Done when**: 
+    1. `make test` shows 0 FAILED tests
+    2. Warnings reduced from 26 to < 10
+    3. Coverage reaches 100% (or only config_flow.py:727 with pragma:no cover)
+    4. ruff clean, pylint clean, mypy clean
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x --ignore=tests/e2e/ --ignore=tests/ha-manual/ && ruff check . && pylint custom_components/ tests/ && mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages`
-  - **Done when**: All tests pass, lint clean, typecheck clean
   - **Commit**: `chore(emhass): pass full local CI` (if fixes needed)
+  - **BLOCKING ISSUES** (must fix in order):
+    1. **CRITICAL**: trip_manager.py:491 and :544 — change `entry.runtime_data.get("coordinator")` to `entry.runtime_data.coordinator` — EVTripRuntimeData is a @dataclass, NOT a dict
+    2. **CRITICAL**: Fix test_coverage_edge_cases.py: test_presence_monitor_check_home_coords_state_none patches non-existent `presence_monitor.Store` — remove the patch
+    3. **CRITICAL**: Fix test_coverage_edge_cases.py: test_vehicle_id_fallback is flaky — isolate from state pollution
+    4. **CRITICAL**: Remove duplicate test_presence_monitor_check_home_coords_state_none (lines 490 and 724 — keep only one)
+    5. **MAJOR**: Fix _get_current_soc return type — currently typed `-> float | None` but always returns float. Either change type to `-> float` or return None in error paths
+    6. **MAJOR**: Fix emhass_index = -1 for new trips — publish_deferrable_loads reads _index_map before async_assign_index_to_trip is called
+    7. **MINOR**: Add coordinator.async_request_refresh() to async_update_trip_sensor (currently no-op)
+    8. **MINOR**: Clean up 26 warnings (see make test output)
 
-- [x] 3.1 Verify 100% test coverage on changed modules
-  - **Do**: Run coverage report and verify all changed modules at 100%
+- [ ] 3.1 Verify 100% test coverage on changed modules
+  <!-- REVIEWER UNMARK (2026-04-13): Coverage verification FAILS. make test shows 2 FAILED tests. Coverage is 99.90% NOT 100%. emhass_adapter.py has 17 lines uncovered (lines 61-62, 618, 653, 1342-1343, 1351-1352, 1362-1363, 1379-1380, 1601-1602, 1616-1623). sensor.py has 13 lines uncovered (628-631, 635-640, 760-764, 831, 851). presence_monitor.py has 5 lines (307, 319, 336-340, 353). schedule_monitor.py has 1 line (282). trip_manager.py has 1 line (1713). config_flow.py has 1 line (727). Coordinator claimed "100% coverage (4002/4002), removed Nabu Casa dead code" but reality shows 4005 statements with 38 missing. -->
+  - **Do**: Run coverage report and verify all changed modules at 100%. Fix broken tests in test_coverage_edge_cases.py FIRST (see task 3.2).
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/`
-  - **Done when**: Coverage report shows 100% on emhass_adapter.py, sensor.py, trip_manager.py, __init__.py
+  - **Done when**: Coverage report shows 100% on emhass_adapter.py, sensor.py, trip_manager.py, __init__.py AND make test shows 0 failed tests
   - **Commit**: `chore(emhass): ensure 100% test coverage on changed modules`
-  - _Requirements: NFR-1_
+  - **Requirements**: NFR-1
+  - **Missing lines to cover**:
+    - emhass_adapter.py:61-62 (fallback entry handling), 618 (trip without id continue), 653 (SOC fallback 50.0), 1342-1343 (HomeAssistantError in cleanup), 1351-1352 (registry remove error), 1362-1363 (state remove error), 1379-1380 (_get_current_soc no entry), 1601-1602 (SOC sensor not configured), 1616-1623 (SOC parse error)
+    - sensor.py:628-631 (existing sensor unique_id match loop), 635-640 (existing sensor update path), 760-764 (async_create_trip_emhass_sensor no callback), 831 (TripEmhassSensor native_value no data), 851 (TripEmhassSensor attributes no data)
+    - presence_monitor.py:307 (home_sensor None), 319 (state None), 336-340 (vehicle_coords_sensor None), 353 (coord state None)
+    - schedule_monitor.py:282 (notification_service None)
+    - trip_manager.py:1713 (battery_capacity fallback when config_entry.data is None)
+    - config_flow.py:727 (Nabu Casa logging) — acceptable to mark as `# pragma: no cover` with justification
 
-- [x] 3.2 [P] Fix any coverage gaps found in 3.1
-  - **Do**: Add tests for any uncovered lines/branches identified by coverage report
-  - **Files**: tests/test_emhass_adapter.py, tests/test_coverage_edge_cases.py
-  - **Done when**: `make test-cover` passes with 100% coverage
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/`
-  - **Commit**: `test(emhass): fix coverage gaps to reach 100%`
-  - **Result**: **100% coverage achieved (4002/4002 statements)**
-    - All modifiable code at 100%
-    - Removed dead debugging code from config_flow.py (Nabu Casa logging lines 720-730)
-    - All tests pass (1439 tests)
-  - **Requirements**: NFR-1_
+- [ ] 3.2 [P] Fix any coverage gaps found in 3.1
+  <!-- REVIEWER UNMARK (2026-04-13 — ACTUALIZADO):
+    CONFIRMADO con make test: 1 FAILED test (test_vehicle_id_fallback — flaky).
+    Causa: test_sensor_coverage.py:1451,1629 hacen `type(coordinator).vehicle_id = PropertyMock(...)`
+    sin context manager → contaminación de clase permanente.  
+    test_coverage_edge_cases.py duplicado en línea 490 (dead code bajo pytest — sobrescrito por 724).
+    Cobertura actual con pytest -p no:randomly: 100% (1439/1439 passing).
+    Cobertura con random ordering: 1 failed (el flaky).
+  -->
+  - **Do**:
+    1. FIRST: Fix or remove the 2 broken tests in test_coverage_edge_cases.py that cause make test to FAIL
+    2. Then: Add tests for each uncovered line listed in task 3.1
+    3. Remove dead duplicate test (line 490 duplicate of line 724)
+    4. Fix test_presence_monitor_check_home_coords_state_none: remove the `patch("presence_monitor.Store")` — Store is not imported in presence_monitor.py. Use the real `hass` fixture instead.
+    5. Fix test_vehicle_id_fallback: ensure test is isolated from state pollution (use fresh mocks, no shared fixtures)
+    6. Add tests for emhass_adapter.py uncovered lines: SOC fallback paths, cleanup exception handling, _get_current_soc edge cases
+    7. Add tests for sensor.py uncovered lines: async_update_trip_sensor unique_id match path, async_create_trip_emhass_sensor no callback path, TripEmhassSensor no-data paths
+    8. Add tests for presence_monitor.py: home_sensor=None, state=None, vehicle_coords_sensor=None
+    9. Add test for schedule_monitor.py: notification_service=None
+    10. Add test for trip_manager.py: battery_capacity fallback
+  - **Files**: tests/test_emhass_adapter.py, tests/test_coverage_edge_cases.py, tests/test_sensor_coverage.py, tests/test_presence_monitor.py
+  - **Done when**: `make test` shows 0 FAILED tests AND `make test-cover` passes with 100% coverage (or acceptable pragma:no cover for config_flow.py:727 only)
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/ && make test`
+  - **Commit**: `test(emhass): fix broken tests and cover remaining gaps`
+  - **Requirements**: NFR-1
 
 - [ ] V5 [VERIFY] CI pipeline passes
+  <!-- REVIEWER NOTE (2026-04-13): DO NOT push to GitHub until V4 passes. Pushing broken code will fail CI and waste time. -->
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
-    2. Push branch: `git push -u origin <branch-name>`
+    2. Push branch: `git push -u origin <branch-name>` — ONLY after V4 passes
     3. Create PR using gh CLI
     4. Verify CI passes
   - **Verify**: `gh pr checks`
-  - **Done when**: All CI checks green
+  - **Done when**: All CI checks green AND make test shows 0 failures
   - **Commit**: None
+  - **PREREQUISITE**: V4 MUST pass first
 
 - [ ] V6 [VERIFY] AC checklist: programmatically verify all acceptance criteria
+  <!-- REVIEWER NOTE (2026-04-13): Cannot pass until AC-2.3 is met — TripEmhassSensor creation crashes in production due to runtime_data.get bug. -->
   - **Do**:
     1. AC-1.1: `grep -q "entry.options.get" custom_components/ev_trip_planner/emhass_adapter.py`
     2. AC-1.2: `grep -q "setup_config_entry_listener" custom_components/ev_trip_planner/__init__.py`
@@ -809,10 +1215,26 @@ Focus: Integration tests spanning multiple components, edge case coverage.
     5. AC-3.1-3.5: `grep -q "p_deferrable_matrix" custom_components/ev_trip_planner/sensor.py`
     6. AC-4.1-4.4: `grep -q "_renderEmhassConfig" custom_components/ev_trip_planner/frontend/panel.js`
     7. AC-5.1-5.3: `test -f docs/emhass-setup.md`
-    8. Run all tests: `make test`
-  - **Verify**: All grep commands return 0 and all tests pass
+    8. Run all tests: `make test` — MUST show 0 failures
+  - **Verify**: All grep commands return 0 AND `make test` shows 0 failures
   - **Done when**: All acceptance criteria confirmed met via automated checks
   - **Commit**: None
+
+- [ ] V7 [VERIFY] E2E tests pass — Playwright
+  <!-- REVIEWER ADDED (2026-04-13): E2E tests exist (tests/e2e/) including emhass-sensor-updates.spec.ts (21KB, specific to this spec) but NO task runs them. All verify commands use --ignore=tests/e2e/. This is a critical gap — unit tests can pass with mocked data while the real HA UI fails. -->
+  - **Do**:
+    1. Ensure Home Assistant is running locally (docker compose up -d or hass)
+    2. Run E2E test suite: `npx playwright test tests/e2e/ --workers=1`
+    3. Key tests for this spec:
+       - `emhass-sensor-updates.spec.ts` — verifies EMHASS sensor updates when charging power changes (Gap #5)
+       - `create-trip.spec.ts` — verifies TripEmhassSensor created when trip added (Gap #8)
+       - `edit-trip.spec.ts` — verifies sensor updates when trip edited (Gap #8)
+       - `delete-trip.spec.ts` — verifies sensor removed when trip deleted (Gap #8)
+    4. If E2E tests fail, read logs, fix locally, rerun
+  - **Verify**: `npx playwright test tests/e2e/ --workers=1` OR `make e2e`
+  - **Done when**: All E2E tests pass (0 failures)
+  - **Commit**: `fix(emhass): fix E2E test failures` (if fixes needed)
+  - **PREREQUISITE**: V4 MUST pass first (unit tests, lint, mypy)
 
 ## Phase 4: PR Lifecycle
 
