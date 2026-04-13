@@ -1269,3 +1269,120 @@ async def test_listener_activated_in_setup(mock_hass):
         "setup_config_entry_listener() should be called after adapter creation "
         "in async_setup_entry"
     )
+
+
+# =============================================================================
+# Coverage gap: __init__.py:104, 153 - vehicle_name_raw None handling
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_vehicle_name_none(mock_hass):
+    """Test lines 104, 153: async_setup_entry handles vehicle_name=None.
+
+    This covers the None fallback case where vehicle_name_raw is None and
+    needs to be set to empty string "" before creating vehicle_id.
+    """
+    from custom_components.ev_trip_planner import async_setup_entry
+
+    entry = MagicMock()
+    entry.entry_id = "test_vehicle_name_none"
+    entry.data = {
+        "vehicle_name": None,  # This is the key case for line 104
+        "planning_horizon_days": 7,
+    }
+
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_setup = AsyncMock()
+    mock_trip_manager.set_emhass_adapter = MagicMock()
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
+
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter.async_load = AsyncMock()
+    mock_emhass_adapter.setup_config_entry_listener = MagicMock()
+
+    mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_static_paths",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.build_presence_config",
+        return_value=MagicMock()
+    ), patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=mock_trip_manager
+    ), patch(
+        "custom_components.ev_trip_planner.EMHASSAdapter",
+        return_value=mock_emhass_adapter
+    ), patch(
+        "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        return_value=mock_coordinator
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_panel_for_entry",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.register_services"
+    ), patch(
+        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ), patch(
+        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ):
+        # Should handle None vehicle_name gracefully, using empty string fallback
+        result = await async_setup_entry(mock_hass, entry)
+
+    assert result is True
+    # Verify the setup completed without error
+    mock_emhass_adapter.async_load.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_vehicle_name_none(mock_hass):
+    """Test line 153: async_unload_entry handles vehicle_name=None.
+
+    This covers the same None fallback case in the unload path.
+    """
+    from custom_components.ev_trip_planner import async_unload_entry
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+    entry = MagicMock()
+    entry.entry_id = "test_unload_vehicle_name_none"
+    entry.data = {
+        "vehicle_name": None,  # Line 153 case - None value
+    }
+
+    # Properly mock runtime_data with async_delete_all_trips as AsyncMock
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_delete_all_trips = AsyncMock()
+    mock_trip_manager._recurring_trips = {}
+    mock_trip_manager._punctual_trips = {}
+
+    entry.runtime_data = EVTripRuntimeData(
+        coordinator=MagicMock(),
+        trip_manager=mock_trip_manager,
+        emhass_adapter=None,
+    )
+
+    mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+    with patch(
+        "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+        new_callable=AsyncMock,
+        return_value=True
+    ) as mock_cleanup:
+        result = await async_unload_entry(mock_hass, entry)
+
+    assert result is True
+    mock_cleanup.assert_called_once()
