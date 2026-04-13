@@ -3,7 +3,7 @@
   "name": "m401-emhass-hotfixes",
   "basePath": "specs/m401-emhass-hotfixes",
   "phase": "execution",
-  "taskIndex": 75,
+  "taskIndex": 76,
   "totalTasks": 81,
   "taskIteration": 1,
   "maxTaskIterations": 5,

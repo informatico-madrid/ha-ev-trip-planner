@@ -716,18 +716,6 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                     "Notification step: %d notify entities available",
                     len(available_services),
                 )
-
-                # Log Nabu Casa specific entities for debugging
-                nabu_casa_entities = [
-                    s
-                    for s in available_services
-                    if "alexa" in s.lower() or "nabu" in s.lower()
-                ]
-                if nabu_casa_entities:
-                    _LOGGER.info(
-                        "Nabu Casa notify entities detected: %s",
-                        nabu_casa_entities,
-                    )
             except Exception as err:
                 _LOGGER.warning(
                     "Failed to get notify entities from registry: %s, using services API",

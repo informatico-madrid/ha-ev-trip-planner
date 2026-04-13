@@ -349,7 +349,7 @@ class PresenceMonitor:
             return True
 
         state = state_obj.state
-        if state is None:  # pragma: no cover  # HA fixture quirk - line not tracked by coverage
+        if state is None:
             return True
         vehicle_coords = self._parse_coordinates(state)
         if not vehicle_coords:  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
