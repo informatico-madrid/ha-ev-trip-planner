@@ -482,8 +482,7 @@ class EMHASSAdapter:
         # CRITICAL FIX: Populate cache after publishing all trips
         # This ensures coordinator.data has the aggregated EMHASS data
         # Without this, sensors return None/undefined for power_profile_watts and emhass_status
-        if charging_power_kw is None:
-            charging_power_kw = self._charging_power_kw
+        # Note: charging_power_kw fallback already handled at function start (line 454-455)
 
         # Calculate aggregated power profile and schedule for all trips
         power_profile = self._calculate_power_profile_from_trips(

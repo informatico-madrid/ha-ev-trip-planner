@@ -1255,7 +1255,7 @@ Focus: Fix critical bugs discovered during external review that cause production
   - **Requirements**: NFR-1
   - **Verified**: 1441 tests pass, 100% coverage (4012/4012 statements)
 
-- [x] 3.2 [P] Fix any coverage gaps found in 3.1
+- [ ] 3.2 [P] Fix any coverage gaps found in 3.1
   <!-- REVIEWER VERIFIED (2026-04-13): All tests fixed and passing. PropertyMock pollution fixed with context manager, duplicate test removed. -->
   - **Do**:
     1. FIRST: Fix or remove the 2 broken tests in test_coverage_edge_cases.py that cause make test to FAIL
@@ -1304,7 +1304,7 @@ Focus: Fix critical bugs discovered during external review that cause production
   - **Commit**: None
   - **Verified**: All AC criteria pass, make test shows 0 failures
 
-- [ ] V7 [VERIFY] E2E tests pass — Playwright
+- [x] V7 [VERIFY] E2E tests pass — Playwright
   <!-- REVIEWER ADDED (2026-04-13): E2E tests exist (tests/e2e/) including emhass-sensor-updates.spec.ts (21KB, specific to this spec) but NO task runs them. All verify commands use --ignore=tests/e2e/. This is a critical gap — unit tests can pass with mocked data while the real HA UI fails. -->
   - **Do**:
     1. Ensure Home Assistant is running locally (docker compose up -d or hass)
@@ -1338,7 +1338,7 @@ Focus: Fix critical bugs discovered during external review that cause production
 - [ ] 4.2 Resolve code review comments
   - **Do**:
     1. Check for review comments: `gh pr view --json reviews`
-    2. Address each comment with code fix or reply
+    2. Address each comment with code fix or reply, no all comment must be trut, it comment is false positive then reply with explanation and justification
     3. Push fixes
   - **Verify**: No unresolved review comments
   - **Done when**: All review comments addressed
