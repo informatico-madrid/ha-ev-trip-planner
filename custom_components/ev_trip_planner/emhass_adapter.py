@@ -335,7 +335,9 @@ class EMHASSAdapter:
 
             # Calculate charging window start time for def_start_timestep
             # FR-9c: Use calculate_multi_trip_charging_windows to compute proper start timestep
-            soc_current = await self._get_current_soc() or 50.0
+            soc_current = await self._get_current_soc()
+            if soc_current is None:
+                soc_current = 50.0
             hora_regreso = await self._get_hora_regreso()
 
             # Create single-trip charging window
@@ -647,9 +649,11 @@ class EMHASSAdapter:
                     hora_regreso = None
 
             # Create single-trip charging window to compute proper def_start_timestep
+            if soc_current is None:
+                soc_current = 50.0
             charging_windows = calculate_multi_trip_charging_windows(
                 trips=[(deadline_dt, trip)],
-                soc_actual=soc_current or 50.0,
+                soc_actual=soc_current,
                 hora_regreso=hora_regreso,
                 charging_power_kw=charging_power_kw,
                 duration_hours=6.0,
@@ -1618,17 +1622,17 @@ class EMHASSAdapter:
             )
             return 0.0
 
-    async def _get_hora_regreso(self) -> datetime:
+    async def _get_hora_regreso(self) -> datetime | None:
         """Get return time from presence_monitor.
 
         Component 1 helper for per-trip params cache.
 
         Returns:
-            datetime of expected return time.
+            datetime of expected return time, or None if unavailable.
         """
         if self._presence_monitor is None:
             _LOGGER.warning("No presence_monitor configured for %s", self.vehicle_id)
-            return datetime.now()
+            return None
 
         # Real API: async_get_hora_regreso() (not get_return_time)
         return await self._presence_monitor.async_get_hora_regreso()
