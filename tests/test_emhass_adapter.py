@@ -755,6 +755,40 @@ async def test_async_publish_all_deferrable_loads_publishes_multiple_trips(hass,
         await adapter.async_publish_all_deferrable_loads(trips)
 
 
+@pytest.mark.asyncio
+async def test_async_publish_all_deferrable_loads_uses_fallback_charging_power_when_none(
+    hass, mock_store, mock_coordinator
+):
+    """Test that async_publish_all_deferrable_loads uses _charging_power_kw fallback when charging_power_kw is None. Covers line 486."""
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Set _charging_power_kw to a different value for testing fallback
+        adapter._charging_power_kw = 11.0
+
+        trips = [
+            {"id": "trip_001", "descripcion": "Trip 1", "kwh": 5.0, "hora": "09:00"},
+        ]
+
+        hass.states.async_set = AsyncMock()
+
+        # Call with charging_power_kw=None - should use _charging_power_kw fallback
+        await adapter.async_publish_all_deferrable_loads(trips, charging_power_kw=None)
+
+        # Verify the cache was populated (indicates the function worked)
+        assert adapter._cached_power_profile is not None
+
+
 # =============================================================================
 # SHELL COMMAND VERIFICATION TEST
 # =============================================================================

@@ -147,6 +147,47 @@ async def test_async_load_trips_with_data(mock_hass, vehicle_id):
 
 
 @pytest.mark.asyncio
+async def test_async_load_trips_skips_when_data_in_memory(mock_hass, vehicle_id, caplog):
+    """Test that _load_trips skips loading when data already in memory. Covers lines 202, 208."""
+    from homeassistant.helpers import storage as ha_storage
+    import logging
+
+    existing_recurring = {
+        "rec_lun_123": {
+            "id": "rec_lun_123",
+            "tipo": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+        },
+    }
+
+    # Patch Store.async_load to return test data
+    with patch.object(ha_storage.Store, 'async_load', new_callable=lambda: AsyncMock(return_value={
+        "data": {
+            "trips": existing_recurring,
+            "recurring_trips": existing_recurring,
+            "punctual_trips": {}
+        }
+    })):
+        manager = TripManager(mock_hass, vehicle_id)
+        # Pre-populate memory with data
+        manager._recurring_trips = existing_recurring
+        manager._punctual_trips = {}
+
+        # Capture log output
+        with caplog.at_level(logging.DEBUG):
+            await manager._load_trips()
+
+        # Verify the skip log was emitted (line 202-207)
+        assert "Skipping _load_trips" in caplog.text
+        assert "already have" in caplog.text
+
+        # Verify data was not overwritten
+        assert len(manager._recurring_trips) == 1
+        assert "rec_lun_123" in manager._recurring_trips
+
+
+@pytest.mark.asyncio
 async def test_async_save_trips_calls_store_save(mock_hass, vehicle_id):
     """Test that async_save_trips saves to HA storage."""
     from homeassistant.helpers import storage as ha_storage

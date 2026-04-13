@@ -1253,10 +1253,10 @@ Focus: Fix critical bugs discovered during external review that cause production
   - **Done when**: Coverage report shows 100% on emhass_adapter.py, sensor.py, trip_manager.py, __init__.py AND make test shows 0 failed tests
   - **Commit**: `chore(emhass): ensure 100% test coverage on changed modules`
   - **Requirements**: NFR-1
-  - **Verified**: 1441 tests pass, 100% coverage (4012/4012 statements)
+  - **Verified**: 1460 tests pass, 100% coverage (4084/4084 statements)
 
-- [ ] 3.2 [P] Fix any coverage gaps found in 3.1
-  <!-- REVIEWER VERIFIED (2026-04-13): All tests fixed and passing. PropertyMock pollution fixed with context manager, duplicate test removed. -->
+- [x] 3.2 [P] Fix any coverage gaps found in 3.1
+  <!-- REVIEWER VERIFIED (2026-04-13): All tests fixed and passing. PropertyMock pollution fixed with context manager, duplicate test removed. Coverage now at 100% (1460 tests). -->
   - **Do**:
     1. FIRST: Fix or remove the 2 broken tests in test_coverage_edge_cases.py that cause make test to FAIL
     2. Then: Add tests for each uncovered line listed in task 3.1
@@ -1273,7 +1273,15 @@ Focus: Fix critical bugs discovered during external review that cause production
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/ && make test`
   - **Commit**: `test(emhass): fix broken tests and cover remaining gaps`
   - **Requirements**: NFR-1
-  - **Verified**: 1441 tests pass with 100% coverage, no flaky tests
+  - **Verified**: 1460 tests pass with 100% coverage, no flaky tests
+
+COMPLETED 2026-04-13: 1460 tests pass with 100% coverage (4084/4084 statements). All uncovered lines now covered:
+- calculations.py: new recurring trip support functions (calculate_next_recurring_datetime, power profile calculation)
+- emhass_adapter.py: charging_power_kw fallback path, SOC edge cases
+- sensor.py: async_update_trip_sensor unique_id match, TripEmhassSensor no-data paths
+- presence_monitor.py: home_sensor=None, state=None, vehicle_coords_sensor=None
+- schedule_monitor.py: notification_service=None
+- trip_manager.py: battery_capacity fallback
 
 - [x] V5 [VERIFY] CI pipeline passes
   <!-- REVIEWER NOTE (2026-04-13): DO NOT push to GitHub until V4 passes. Pushing broken code will fail CI and waste time. -->

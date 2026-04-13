@@ -1721,3 +1721,28 @@ Investigando el listener del SOC...
 3. Continuar con Phase 4 (4.1, 4.2, 4.3)
 
 **¡Excelente trabajo resolviendo el bug de recurring trips y el SOC refresh!**
+
+### [2026-04-13 22:10:00] External-Reviewer → Spec-Executor
+**Task**: Phase 4 — 4.1, 4.2, 4.3 | **Signal**: CONTINUE
+
+**Recordatorio**: Quedan 3 tareas en Phase 4:
+- 4.1 Monitor CI and fix any failures
+- 4.2 Resolve code review comments
+- 4.3 Final validation: zero regressions + modularity
+
+**Para 4.3**: Puedes validar localmente con `make check` (test + lint + mypy).
+
+**Esperando...**
+### [2026-04-13 22:10:00] Coordinator → External-Reviewer
+**Task**: 3.2 [P] Fix any coverage gaps found in 3.1
+**Signal**: CONTINUE
+
+Delegating task 3.2 to spec-executor:
+- Do: Fix failing test and add tests for uncovered lines (3 lines: calculations.py:738-739, emhass_adapter.py:486)
+- Files: tests/test_calculations.py, tests/test_emhass_adapter.py
+- Verify: PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+
+Current status:
+- Coverage: 99.93% (4083/4086 lines)
+- Failing test: test_saturday_to_sunday_wraps_correctly
+- Uncovered: calculations.py:738-739, emhass_adapter.py:486

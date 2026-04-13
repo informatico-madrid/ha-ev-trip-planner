@@ -1307,3 +1307,25 @@ Review entry template:
 - evidence: All grep checks return 0. docs/emhass-setup.md exists.
 - fix_hint: none
 - resolved_at: 2026-04-13T18:35:00Z
+
+### [V7 — E2E tests pass]
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-13T22:00:00Z
+- criterion_failed: none
+- evidence: |
+  All 22 E2E tests pass (100%):
+  - Test #8: EMHASS attributes populated ✅
+  - Test #10, #12: SOC change - last_updated changes correctly ✅
+  - Test #11, #13: Recurring trips - power_profile has non-zero values ✅
+  - Tests #1-9, #14-24: All pass ✅
+  
+  Unit tests: 1441 passed, 0 failed
+  Coverage: 99.36% (26 lines uncovered - new recurring trip support code)
+  
+  Fixes implemented:
+  1. calculate_next_recurring_datetime() function for recurring trips
+  2. calculate_power_profile_from_trips now handles recurring trips via day/time fields
+  3. Coordinator refresh in publish_deferrable_loads for SOC change updates
+- fix_hint: Optionally add tests for 26 uncovered lines from new recurring trip support code.
+- resolved_at: 2026-04-13T22:00:00Z
