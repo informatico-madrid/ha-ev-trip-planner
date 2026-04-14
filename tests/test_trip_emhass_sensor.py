@@ -242,7 +242,6 @@ async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
     - Current: device_info not yet implemented
     - Test must FAIL to confirm the feature doesn't exist
     """
-    from homeassistant.helpers import device_registry as dr
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -317,7 +316,6 @@ async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
     - Test should PASS if guard is implemented
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.sensor import TripEmhassSensor
 
     # Create mock coordinator
     mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
@@ -375,7 +373,6 @@ async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
     - Current: async_create_trip_emhass_sensor function does not exist yet
     - Test must FAIL to confirm the feature doesn't exist
     """
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from custom_components.ev_trip_planner.sensor import TripEmhassSensor
 
@@ -448,7 +445,6 @@ async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
     - Test must FAIL to confirm the feature doesn't exist
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from homeassistant.helpers import entity_registry as er
 
     # Create mock coordinator
     mock_coordinator = MagicMock(spec=TripPlannerCoordinator)

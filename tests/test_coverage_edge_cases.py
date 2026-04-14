@@ -343,10 +343,10 @@ async def test_generate_power_profile_exception_fallback(
     trip_manager._presence_monitor = None
 
     # Mock config_entries.async_get_entry to raise exception
-    async def mock_raise_exception(*args, **kwargs):
+    def mock_raise_exception(*args, **kwargs):
         raise Exception("Simulated config error")
 
-    hass.config_entries.async_get_entry = AsyncMock(side_effect=mock_raise_exception)
+    hass.config_entries.async_get_entry = MagicMock(side_effect=mock_raise_exception)
 
     # Should use fallback battery_capacity=50.0 (triggers 1713)
     from custom_components.ev_trip_planner.trip_manager import TripManager

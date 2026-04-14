@@ -40,7 +40,7 @@ def mock_hass():
     hass.config_entries = MagicMock()
     hass.bus = MagicMock()
     hass.states = MagicMock()
-    hass.states.async_remove = AsyncMock(return_value=None)
+    hass.states.async_remove = MagicMock(return_value=None)
     return hass
 
 

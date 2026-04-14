@@ -1329,3 +1329,47 @@ Review entry template:
   3. Coordinator refresh in publish_deferrable_loads for SOC change updates
 - fix_hint: Optionally add tests for 26 uncovered lines from new recurring trip support code.
 - resolved_at: 2026-04-13T22:00:00Z
+
+### [V4 — UNMARKED for 26 warnings]
+- status: FAIL
+- severity: major
+- reviewed_at: 2026-04-13T22:20:00Z
+- criterion_failed: "All tests pass, lint clean, typecheck clean" — 26 RuntimeWarnings/DeprecationWarnings en `make test` NO están fixeados ni documentados
+- evidence: |
+  Clasificación de 26 warnings:
+  - ~18: AsyncMockMixin._execute_mock_call never awaited (emhass_adapter.py:1391,1400,1411,1428 + services.py:1441) — tests usan MagicMock para métodos async
+  - ~5: HA Core DeprecationWarning (homeassistant/components/http/__init__.py:321)
+  - ~3: pytest stash RuntimeWarning (_pytest/stash.py:108)
+  
+  Los 18 warnings de AsyncMockMixin son FIXABLES: cambiar MagicMock→AsyncMock en tests para `hass.states.async_remove` y `registry.async_remove`.
+  Los 5 warnings de HA Core son NO-FIXABLES: código externo de Home Assistant. Deben documentarse como "aceptable" en pyproject.toml filterwarnings.
+- fix_hint: 
+  1. emhass_adapter.py cleanup tests: hass.states.async_remove = AsyncMock(), registry.async_remove = AsyncMock()
+  2. services.py cleanup tests: entity_registry.async_remove = AsyncMock()
+  3. HA Core DeprecationWarning: agregar filterwarnings = ["ignore:.*aiohttp.*:DeprecationWarning"] a pyproject.toml
+- resolved_at:
+
+### [V5 — UNMARKED for warnings]
+- status: FAIL
+- severity: major
+- reviewed_at: 2026-04-13T22:20:00Z
+- criterion_failed: CI pipeline no puede pasar con 26 warnings — V4 debe pasar primero
+- evidence: V4 unmarked for 26 warnings. V5 depends on V4.
+- fix_hint: Fix V4 warnings first, then re-evaluate V5.
+- resolved_at:
+
+### [V4 — WARNINGS FIXED]
+- status: PASS
+- severity: none
+- reviewed_at: 2026-04-14T05:35:00Z
+- criterion_failed: none
+- evidence: |
+  make test: 1460 passed, 0 failed, 0 warnings
+  Coverage: 100% (4084/4084)
+  
+  Fixes applied by coordinator:
+  - AsyncMock→MagicMock for sync methods (hass.states.async_remove, registry.async_remove)
+  - pyproject.toml filterwarnings for HA Core DeprecationWarning
+  - All 26 warnings eliminated
+- fix_hint: none
+- resolved_at: 2026-04-14T05:35:00Z

@@ -52,6 +52,9 @@ python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --cov=custom_components/ev_trip_planner --cov-report=html --cov-report=term"
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore:Inheritance class HomeAssistantApplication:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["custom_components/ev_trip_planner"]

@@ -255,7 +255,7 @@ async def test_async_remove_deferrable_load_cleans_up_sensor(hass, mock_store):
 
         # Mock entity registry
         mock_er = MagicMock()
-        mock_er.async_remove = AsyncMock()
+        mock_er.async_remove = MagicMock()
         hass.data["entity_registry"] = mock_er
 
         result = await adapter.async_remove_deferrable_load("trip_001")
@@ -622,7 +622,7 @@ async def test_async_cleanup_vehicle_indices_cleans_up_all_indices(hass, mock_st
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch('homeassistant.helpers.entity_registry.async_get', return_value=mock_registry):
             # Assign some indices
@@ -630,7 +630,7 @@ async def test_async_cleanup_vehicle_indices_cleans_up_all_indices(hass, mock_st
             await adapter.async_assign_index_to_trip("trip_002")
 
             # Mock hass.states.async_remove
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             # Cleanup
             await adapter.async_cleanup_vehicle_indices()
@@ -2144,14 +2144,14 @@ async def test_async_cleanup_vehicle_indices_handles_state_remove_error(hass, mo
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
         ):
             # Make hass.states.async_remove raise HomeAssistantError
-            hass.states.async_remove = AsyncMock(
+            hass.states.async_remove = MagicMock(
                 side_effect=HomeAssistantError("State not found")
             )
 
@@ -2184,11 +2184,11 @@ async def test_async_cleanup_vehicle_indices_handles_registry_remove_error(
         await adapter.async_assign_index_to_trip("trip_001")
 
         # Mock hass.states.async_remove to succeed
-        hass.states.async_remove = AsyncMock()
+        hass.states.async_remove = MagicMock()
 
-        # Mock registry.async_remove to raise Exception (now awaited, so needs AsyncMock)
+        # Mock registry.async_remove to raise Exception (sync method, so MagicMock)
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock(
+        mock_registry.async_remove = MagicMock(
             side_effect=Exception("Registry entry not found")
         )
 
@@ -2226,11 +2226,11 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         call_count = 0
 
-        async def state_remove_side_effect(sensor_id):
+        def state_remove_side_effect(sensor_id):
             nonlocal call_count
             call_count += 1
             # First call (trip index cleanup) succeeds, second (main sensor) fails
@@ -2238,7 +2238,7 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
                 return  # First call succeeds
             raise HomeAssistantError("Main sensor not found")
 
-        hass.states.async_remove = AsyncMock(side_effect=state_remove_side_effect)
+        hass.states.async_remove = MagicMock(side_effect=state_remove_side_effect)
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
@@ -2291,13 +2291,13 @@ class TestEmhassAdapterCleanupEmptyIndices:
 
             # Mock entity registry
             mock_registry = MagicMock()
-            mock_registry.async_remove = AsyncMock()
+            mock_registry.async_remove = MagicMock()
 
             with patch(
                 "homeassistant.helpers.entity_registry.async_get",
                 return_value=mock_registry,
             ):
-                hass.states.async_remove = AsyncMock()
+                hass.states.async_remove = MagicMock()
 
                 # Should NOT raise even with empty _index_map
                 await adapter.async_cleanup_vehicle_indices()
@@ -3323,19 +3323,19 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_registry_remova
 
         # Create a custom async_remove that succeeds for trip sensors
         # but raises for the main vehicle sensor
-        async def registry_remove_side_effect(sensor_id):
+        def registry_remove_side_effect(sensor_id):
             if "emhass_perfil_diferible_" in sensor_id and "deferrable_load_config" not in sensor_id:
                 raise Exception("Storage error removing main sensor")
             # Trip sensors succeed (return None)
 
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock(side_effect=registry_remove_side_effect)
+        mock_registry.async_remove = MagicMock(side_effect=registry_remove_side_effect)
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
         ):
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             # Should NOT raise - error is caught at lines 1182-1187
             await adapter.async_cleanup_vehicle_indices()
@@ -4643,7 +4643,7 @@ async def test_empty_published_trips_guard(hass, mock_store):
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_refresh = AsyncMock()
-    mock_coordinator.trip_manager = mock_trip_manager
+    mock_coordinator._trip_manager = mock_trip_manager
 
     with patch(
         "custom_components.ev_trip_planner.emhass_adapter.Store",

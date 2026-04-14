@@ -1535,8 +1535,8 @@ class EMHASSAdapter:
         # FR-3, AC-1.3: If no published trips, reload from trip_manager
         if not self._published_trips:
             coordinator = self._get_coordinator()
-            if coordinator is not None and hasattr(coordinator, "trip_manager"):
-                trip_manager = coordinator.trip_manager
+            if coordinator is not None and hasattr(coordinator, "_trip_manager"):
+                trip_manager = coordinator._trip_manager
                 if trip_manager is not None:
                     all_trips = trip_manager.get_all_trips()
                     if all_trips:

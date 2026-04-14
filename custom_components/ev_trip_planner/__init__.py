@@ -103,7 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if vehicle_name_raw is None:
         vehicle_name_raw = ""
     vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
-    vehicle_name = entry.data.get("vehicle_name", vehicle_id)
+    vehicle_name = vehicle_name_raw or vehicle_id
 
     await async_cleanup_stale_storage(hass, vehicle_id)
     await async_cleanup_orphaned_emhass_sensors(hass)
@@ -152,7 +152,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if vehicle_name_raw is None:
         vehicle_name_raw = ""
     vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
-    vehicle_name = entry.data.get("vehicle_name", vehicle_id)
+    vehicle_name = vehicle_name_raw or vehicle_id
     unload_ok = await async_unload_entry_cleanup(hass, entry, vehicle_id, vehicle_name)
     return unload_ok
 

@@ -114,27 +114,27 @@ The following table describes all 6 EMHASS parameters provided by EV Trip Planne
 Use this template in your EMHASS `optimize.yaml` configuration:
 
 ```yaml
-{% set emhass = states('sensor.ev_trip_planner_your_vehicle_id_emhass_aggregated') %}
 {# EMHASS Configuration for EV Trip Planner #}
 {# Generated from EV Trip Planner EMHASS Aggregated Sensor #}
+{% set sensor_id = 'sensor.ev_trip_planner_your_vehicle_id_emhass_aggregated' %}
 
 # Number of deferrable loads (active trips)
-number_of_deferrable_loads: {{ emhass.attributes.number_of_deferrable_loads | default(0) }}
+number_of_deferrable_loads: {{ state_attr(sensor_id, 'number_of_deferrable_loads') | default(0) }}
 
 # Total hours for each deferrable load
-def_total_hours_array: {{ emhass.attributes.def_total_hours_array | default('[]') | replace("'", '"') }}
+def_total_hours_array: {{ state_attr(sensor_id, 'def_total_hours_array') | default([], true) | tojson }}
 
 # Nominal power for each deferrable load (Watts)
-p_deferrable_nom_array: {{ emhass.attributes.p_deferrable_nom_array | default('[]') | replace("'", '"') }}
+p_deferrable_nom_array: {{ state_attr(sensor_id, 'p_deferrable_nom_array') | default([], true) | tojson }}
 
 # Start timestep for each deferrable load
-def_start_timestep_array: {{ emhass.attributes.def_start_timestep_array | default('[]') | replace("'", '"') }}
+def_start_timestep_array: {{ state_attr(sensor_id, 'def_start_timestep_array') | default([], true) | tojson }}
 
 # End timestep for each deferrable load
-def_end_timestep_array: {{ emhass.attributes.def_end_timestep_array | default('[]') | replace("'", '"') }}
+def_end_timestep_array: {{ state_attr(sensor_id, 'def_end_timestep_array') | default([], true) | tojson }}
 
 # Power profile matrix (Watts per timestep)
-p_deferrable_matrix: {{ emhass.attributes.p_deferrable_matrix | default('[]') | replace("'", '"') }}
+p_deferrable_matrix: {{ state_attr(sensor_id, 'p_deferrable_matrix') | default([], true) | tojson }}
 ```
 
 ### Template with Fallback Values
@@ -142,29 +142,30 @@ p_deferrable_matrix: {{ emhass.attributes.p_deferrable_matrix | default('[]') | 
 This template includes default values if the sensor is unavailable:
 
 ```yaml
-{% set emhass = states('sensor.ev_trip_planner_your_vehicle_id_emhass_aggregated') %}
+{% set sensor_id = 'sensor.ev_trip_planner_your_vehicle_id_emhass_aggregated' %}
 {% set na_loads = 0 %}
-{% set na_hours = '[]' %}
-{% set na_power = '[]' %}
-{% set na_start = '[]' %}
-{% set na_end = '[]' %}
-{% set na_matrix = '[]' %}
+{% set na_hours = [] %}
+{% set na_power = [] %}
+{% set na_start = [] %}
+{% set na_end = [] %}
+{% set na_matrix = [] %}
 
-{% if emhass and emhass != 'unknown' and emhass != 'unavailable' %}
-  {% set na_loads = emhass.attributes.number_of_deferrable_loads | default(0) %}
-  {% set na_hours = emhass.attributes.def_total_hours_array | default('[]') | replace("'", '"') %}
-  {% set na_power = emhass.attributes.p_deferrable_nom_array | default('[]') | replace("'", '"') %}
-  {% set na_start = emhass.attributes.def_start_timestep_array | default('[]') | replace("'", '"') %}
-  {% set na_end = emhass.attributes.def_end_timestep_array | default('[]') | replace("'", '"') %}
-  {% set na_matrix = emhass.attributes.p_deferrable_matrix | default('[]') | replace("'", '"') %}
+{% set emhass_state = states(sensor_id) %}
+{% if emhass_state and emhass_state != 'unknown' and emhass_state != 'unavailable' %}
+  {% set na_loads = state_attr(sensor_id, 'number_of_deferrable_loads') | default(0) %}
+  {% set na_hours = state_attr(sensor_id, 'def_total_hours_array') | default([], true) %}
+  {% set na_power = state_attr(sensor_id, 'p_deferrable_nom_array') | default([], true) %}
+  {% set na_start = state_attr(sensor_id, 'def_start_timestep_array') | default([], true) %}
+  {% set na_end = state_attr(sensor_id, 'def_end_timestep_array') | default([], true) %}
+  {% set na_matrix = state_attr(sensor_id, 'p_deferrable_matrix') | default([], true) %}
 {% endif %}
 
 number_of_deferrable_loads: {{ na_loads }}
-def_total_hours_array: {{ na_hours }}
-p_deferrable_nom_array: {{ na_power }}
-def_start_timestep_array: {{ na_start }}
-def_end_timestep_array: {{ na_end }}
-p_deferrable_matrix: {{ na_matrix }}
+def_total_hours_array: {{ na_hours | tojson }}
+p_deferrable_nom_array: {{ na_power | tojson }}
+def_start_timestep_array: {{ na_start | tojson }}
+def_end_timestep_array: {{ na_end | tojson }}
+p_deferrable_matrix: {{ na_matrix | tojson }}
 ```
 
 ### Individual Parameter Templates

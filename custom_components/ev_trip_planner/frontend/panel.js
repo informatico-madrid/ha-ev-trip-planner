@@ -881,16 +881,17 @@ class EVTripPlannerPanel extends LitElement {
     const emhassAvailable = emhassState && emhassState.state !== 'unavailable' && emhassState.state !== 'unknown';
 
     // Jinja2 template for all 6 EMHASS parameters
-    const jinja2Template = `{% set emhass = states('${emhassSensorEntityId}') %}
+    // Note: Use state_attr() instead of states().attributes - Home Assistant
+    const jinja2Template = `
 {# EMHASS Configuration for ${this._vehicleId} #}
 {# Generated from EV Trip Planner EMHASS Aggregated Sensor #}
 
-number_of_deferrable_loads: {{ emhass.attributes.number_of_deferrable_loads | default(0) }}
-def_total_hours_array: {{ emhass.attributes.def_total_hours_array | default('[]') | replace("'", '"') }}
-p_deferrable_nom_array: {{ emhass.attributes.p_deferrable_nom_array | default('[]') | replace("'", '"') }}
-def_start_timestep_array: {{ emhass.attributes.def_start_timestep_array | default('[]') | replace("'", '"') }}
-def_end_timestep_array: {{ emhass.attributes.def_end_timestep_array | default('[]') | replace("'", '"') }}
-p_deferrable_matrix: {{ emhass.attributes.p_deferrable_matrix | default('[]') | replace("'", '"') }}`;
+number_of_deferrable_loads: {{ state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0) }}
+def_total_hours_array: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array') | default([], true) }}
+p_deferrable_nom_array: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
+def_start_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
+def_end_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
+p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}`;
 
     return html`
       <div class="emhass-config-section">

@@ -2509,21 +2509,21 @@ class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
         mock_entity_entry = MagicMock()
         mock_entity_entry.entity_id = "sensor.test"
         mock_registry = MagicMock()
-        mock_registry.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_entity_entry]
-        )
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
-        ):
+        ), patch(
+            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            return_value=[mock_entity_entry],
+        ) as mock_async_entries:
             await svcs.async_unload_entry_cleanup(
                 mock_hass, mock_entry, "chispitas", "Chispitas"
             )
 
-        # Verify async_get was called (line 1432)
-        mock_registry.async_entries_for_config_entry.assert_called()
+        # Verify async_entries_for_config_entry was called (line 1438 - module-level API)
+        mock_async_entries.assert_called_once()
 
 
 class TestAsyncUnloadEntryCleanupWithTripManager:

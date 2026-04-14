@@ -1433,9 +1433,9 @@ async def async_unload_entry_cleanup(
         entity_registry = getattr(hass, "entity_registry", None)
         if entity_registry is None:
             entity_registry = er.async_get(hass)
-        # Use the registry's async_entries_for_config_entry method directly
+        # Use module-level async_entries_for_config_entry helper (HA API)
         registry = cast(er.EntityRegistry, entity_registry)
-        for entity_entry in registry.async_entries_for_config_entry(entry.entry_id):  # type: ignore[attr-defined] # HA stub: EntityRegistry has async_entries_for_config_entry
+        for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
             # EntityRegistry.async_remove is NOT async - returns None
             # See: homeassistant/helpers/entity_registry.py
             entity_registry.async_remove(entity_entry.entity_id)
