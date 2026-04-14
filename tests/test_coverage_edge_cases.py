@@ -20,7 +20,6 @@ from custom_components.ev_trip_planner import EVTripRuntimeData
 
 def test_emhass_adapter_fallback_entry_handling(hass: HomeAssistant) -> None:
     """Test EMHASSAdapter handles entries without proper data attribute."""
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     # Create entry-like object without 'data' attribute to trigger fallback (lines 61-62)
@@ -362,7 +361,6 @@ async def test_generate_power_profile_exception_fallback(
 @pytest.mark.asyncio
 async def test_presence_monitor_check_home_sensor_none(hass: HomeAssistant) -> None:
     """Test _async_check_home_sensor handles home_sensor=None (line 307)."""
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
     # home_sensor = config.get(CONF_HOME_SENSOR) - use CONF_HOME_SENSOR key
@@ -408,7 +406,6 @@ async def test_presence_monitor_check_home_sensor_state_none(hass: HomeAssistant
 async def test_presence_monitor_check_home_coords_no_coords(hass: HomeAssistant) -> None:
     """Test _async_check_home_coords handles missing home_coords (lines 331-333)."""
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
-    from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES
 
     presence_config = {
         "enabled": True,
@@ -426,7 +423,7 @@ async def test_presence_monitor_check_home_coords_no_coords(hass: HomeAssistant)
 async def test_presence_monitor_check_home_coords_vehicle_sensor_none(hass: HomeAssistant) -> None:
     """Test _async_check_home_coords handles vehicle_coords_sensor=None (lines 336-340)."""
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
-    from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES, CONF_VEHICLE_COORDINATES_SENSOR
+    from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES
 
     presence_config = {
         "enabled": True,
@@ -681,7 +678,6 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
     when _get_current_soc() returns None.
     """
     from homeassistant.helpers import storage as ha_storage
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from unittest.mock import patch, MagicMock, AsyncMock
 
@@ -726,7 +722,7 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
         # The method may return False for other mock-related reasons,
         # but the key is it doesn't crash when soc_current is None
         try:
-            result = await adapter.async_publish_deferrable_load(trip_data)
+            await adapter.async_publish_deferrable_load(trip_data)
         except Exception:
             # Method may fail for other reasons due to mocks,
             # but the SOC fallback at line 339-340 should have executed
@@ -744,7 +740,6 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
     when soc_current is None in the caching loop of publish_deferrable_loads.
     """
     from homeassistant.helpers import storage as ha_storage
-    from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from unittest.mock import patch, MagicMock, AsyncMock
@@ -829,7 +824,6 @@ async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> 
     # Get entry and runtime_data
     entry = hass.config_entries.async_get_entry(entry_id="test_update_sensor_match")
     runtime_data = entry.runtime_data
-    trip_manager = runtime_data.trip_manager
 
     # FIX for task 2.13: coordinator.async_request_refresh is now awaited in sensor.py:645
     # Need AsyncMock for it to be awaitable

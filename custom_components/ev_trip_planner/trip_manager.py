@@ -969,7 +969,6 @@ class TripManager:
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
         """Get all active trips for EMHASS publishing."""
-        # DEBUG LOGGING - Investigate why trips list is empty
         import traceback
         _LOGGER.warning("DEBUG _get_all_active_trips: _recurring_trips count=%d", len(self._recurring_trips))
         _LOGGER.warning("DEBUG _get_all_active_trips: _punctual_trips count=%d", len(self._punctual_trips))
@@ -978,15 +977,16 @@ class TripManager:
         all_trips = []
         for trip in self._recurring_trips.values():
             if trip.get("activo", True):
+                _LOGGER.warning("DEBUG _get_all_active_trips: adding recurring trip id=%s, trip=%s", trip.get("id"), trip)
                 all_trips.append(trip)
 
         for trip_id, trip in self._punctual_trips.items():
             estado = trip.get("estado")
-            _LOGGER.warning("DEBUG _get_all_active_trips: punctual trip %s estado=%s", trip_id, estado)
+            _LOGGER.warning("DEBUG _get_all_active_trips: punctual trip %s estado=%s, trip=%s", trip_id, estado, trip)
             if estado == "pendiente":
                 all_trips.append(trip)
 
-        _LOGGER.warning("DEBUG _get_all_active_trips: returning %d trips", len(all_trips))
+        _LOGGER.warning("DEBUG _get_all_active_trips: returning %d trips: %s", len(all_trips), [t.get("id") for t in all_trips])
         return all_trips
 
     async def async_get_kwh_needed_today(self) -> float:

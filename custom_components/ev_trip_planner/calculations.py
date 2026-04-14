@@ -721,7 +721,7 @@ def calculate_power_profile_from_trips(
     logger.warning("DEBUG calculate_power_profile: now=%s", now.isoformat())
 
     for trip in trips:
-        logger.warning("DEBUG calculate_power_profile: Processing trip id=%s", trip.get("id"))
+        logger.warning("DEBUG calculate_power_profile: Processing trip id=%s, trip=%s", trip.get("id"), trip)
 
         # Get deadline
         deadline = trip.get("datetime")
@@ -753,7 +753,7 @@ def calculate_power_profile_from_trips(
             else:
                 deadline_dt = deadline
 
-        logger.warning("DEBUG calculate_power_profile: trip %s deadline=%s", trip.get("id"), deadline_dt.isoformat())
+        logger.warning("DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s", trip.get("id"), deadline, now, deadline_dt)
 
         # Calculate energy needed directly from trip kwh/km
         # Use trip's declared energy need — consistent with schedule generation
@@ -781,7 +781,8 @@ def calculate_power_profile_from_trips(
         delta = deadline_dt - now
         horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
-        logger.warning("DEBUG calculate_power_profile: trip %s delta_seconds=%d, horas_hasta_viaje=%d", trip.get("id"), delta.total_seconds(), horas_hasta_viaje)
+        logger.warning("DEBUG calculate_power_profile: trip %s delta_seconds=%d, horas_hasta_viaje=%d, now=%s, deadline=%s",
+                      trip.get("id"), delta.total_seconds(), horas_hasta_viaje, now, deadline_dt)
 
         if horas_hasta_viaje < 0:
             logger.warning("DEBUG calculate_power_profile: trip %s is in the past, skipping", trip.get("id"))
@@ -791,12 +792,14 @@ def calculate_power_profile_from_trips(
         hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
         hora_fin = min(horas_hasta_viaje, horizon)
 
-        logger.warning("DEBUG calculate_power_profile: trip %s charging_window=[%d, %d)", trip.get("id"), hora_inicio_carga, hora_fin)
+        logger.warning("DEBUG calculate_power_profile: trip %s charging_window=[%d, %d), horizon=%d",
+                      trip.get("id"), hora_inicio_carga, hora_fin, horizon)
 
         for h in range(int(hora_inicio_carga), int(hora_fin)):
             if 0 <= h < horizon:
                 power_profile[h] = charging_power_watts
-                logger.warning("DEBUG calculate_power_profile: trip %s setting power_profile[%d]=%d", trip.get("id"), h, charging_power_watts)
+                logger.warning("DEBUG calculate_power_profile: trip %s setting power_profile[%d]=%d (total non_zero=%d)",
+                              trip.get("id"), h, charging_power_watts, sum(1 for x in power_profile if x > 0))
 
     logger.warning("DEBUG calculate_power_profile: final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
     return power_profile

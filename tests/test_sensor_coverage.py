@@ -55,7 +55,6 @@ async def test_aggregated_sensor_matrix():
         }
     }
 
-    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
     from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 
     desc = MagicMock(
@@ -133,7 +132,7 @@ class TestAsyncWillRemoveFromHass:
             value_fn=lambda data: data.get("test_key") if data else None,
             attrs_fn=lambda data: {},
         )
-        sensor = TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
+        TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
 
         # Directly invoke the method logic to cover the branch
         # The actual hasattr check on trip_manager may not work with mock
@@ -164,14 +163,14 @@ class TestAsyncCreateTripSensorsExceptionHandling:
         # Make TripSensor constructor raise
         with pytest.MonkeyPatch.context() as m:
             import custom_components.ev_trip_planner.sensor as sensor_module
-            original = sensor_module.TripSensor
-            class BrokenTripSensor(TripSensor if "TripSensor" in dir() else object):
+            # Use object as base since TripSensor may not be in dir() at class definition time
+            class BrokenTripSensor(object):
                 def __init__(self, *args, **kwargs):
                     raise RuntimeError("Simulated sensor creation failure")
             # Patch at module level
             m.setattr(sensor_module, "TripSensor", BrokenTripSensor)
 
-            result = await _async_create_trip_sensors(
+            await _async_create_trip_sensors(
                 mock_hass, mock_trip_manager, "vehicle_test", "entry_test"
             )
             # Should return empty list when all fail
@@ -779,9 +778,6 @@ async def test_aggregated_sensor_array_lengths_match():
     - Currently: arrays may not be properly constructed
     - Test must FAIL to confirm the issue exists
     """
-    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-    from homeassistant.const import UnitOfPower
-
     # Create stub coordinator.data with 2 active trips, 2 deferrable loads each
     mock_coordinator = MagicMock()
     mock_coordinator.data = {
@@ -1496,20 +1492,12 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
 
         # Array attrs are NOT present when no active trips (sensor only adds when there's data)
         assert "p_deferrable_matrix" not in attrs, (
-            f"p_deferrable_matrix should NOT be present when no active trips, got {attrs.keys()}"
+            f"p_deferrable_matrix should NOT be present when no active trips, got {list(attrs.keys())}"
         )
-        assert "def_total_hours_array" not in attrs, (
-            f"def_total_hours_array should NOT be present when no active trips"
-        )
-        assert "p_deferrable_nom_array" not in attrs, (
-            f"p_deferrable_nom_array should NOT be present when no active trips"
-        )
-        assert "def_start_timestep_array" not in attrs, (
-            f"def_start_timestep_array should NOT be present when no active trips"
-        )
-    assert "def_end_timestep_array" not in attrs, (
-        f"def_end_timestep_array should NOT be present when no active trips"
-    )
+        assert "def_total_hours_array" not in attrs, "def_total_hours_array should NOT be present when no active trips"
+        assert "p_deferrable_nom_array" not in attrs, "p_deferrable_nom_array should NOT be present when no active trips"
+        assert "def_start_timestep_array" not in attrs, "def_start_timestep_array should NOT be present when no active trips"
+    assert "def_end_timestep_array" not in attrs, "def_end_timestep_array should NOT be present when no active trips"
 
 
 # =============================================================================

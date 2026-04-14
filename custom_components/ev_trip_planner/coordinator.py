@@ -125,6 +125,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             emhass_data = (
                 self._emhass_adapter.get_cached_optimization_results()
             )
+            # DEBUG: Log cache state when reading
+            _LOGGER.warning(
+                "DEBUG coordinator: read emhass_power_profile non_zero=%d",
+                sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0) if emhass_data.get("emhass_power_profile") else 0,
+            )
         else:
             emhass_data = {
                 "emhass_power_profile": None,

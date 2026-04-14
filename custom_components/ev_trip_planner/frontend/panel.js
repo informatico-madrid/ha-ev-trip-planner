@@ -873,11 +873,14 @@ class EVTripPlannerPanel extends LitElement {
    * Render EMHASS configuration section with Jinja2 template
    */
   _renderEmhassConfig() {
-    const lowerVehicleId = this._vehicleId.toLowerCase();
-    const emhassSensorEntityId = `sensor.ev_trip_planner_${lowerVehicleId}_emhass_aggregated`;
+    // Search for EMHASS sensor by prefix since panel has vehicle_id but sensor uses entry_id
+    // Entity ID pattern: sensor.emhass_perfil_diferible_{entry_id}
+    const emhassSensorEntityId = Object.keys(this._hass.states).find(
+      id => id.startsWith('sensor.emhass_perfil_diferible_')
+    );
 
     // Get EMHASS sensor state
-    const emhassState = this._hass.states[emhassSensorEntityId];
+    const emhassState = emhassSensorEntityId ? this._hass.states[emhassSensorEntityId] : null;
     const emhassAvailable = emhassState && emhassState.state !== 'unavailable' && emhassState.state !== 'unknown';
 
     // Jinja2 template for all 6 EMHASS parameters

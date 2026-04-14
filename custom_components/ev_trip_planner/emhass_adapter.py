@@ -318,22 +318,59 @@ class EMHASSAdapter:
             kwh = float(trip.get("kwh", 0))
             deadline = trip.get("datetime")
 
-            if not deadline:
+            # Initialize deadline_dt - will be set for both punctual and recurring trips
+            deadline_dt: Optional[datetime] = None
+
+            # Handle recurring trips (no datetime, uses dia_semana/hora)
+            trip_type = trip.get("tipo", "")
+            is_recurring = trip_type in ("recurrente", "recurring")
+
+            if not deadline and is_recurring:
+                # Recurring trip: calculate next deadline from day/time
+                day = trip.get("day") or trip.get("dia_semana")
+                time_str = trip.get("time") or trip.get("hora")
+                if day is not None and time_str is not None:
+                    # Use same logic as calculate_power_profile_from_trips
+                    from .calculations import calculate_next_recurring_datetime
+
+                    deadline_dt = calculate_next_recurring_datetime(day, time_str, datetime.now())
+                    if deadline_dt is None:
+                        _LOGGER.error("Trip %s has invalid day/time", trip_id)
+                        await self.async_release_trip_index(trip_id)
+                        return False
+                    _LOGGER.debug(
+                        "Recurring trip %s: day=%s, time=%s, calculated deadline=%s",
+                        trip_id, day, time_str, deadline_dt.isoformat()
+                    )
+                else:
+                    _LOGGER.error("Trip missing deadline: %s", trip_id)
+                    await self.async_release_trip_index(trip_id)
+                    return False
+            elif not deadline:
                 _LOGGER.error("Trip missing deadline: %s", trip_id)
                 await self.async_release_trip_index(trip_id)
                 return False
 
             # Calculate hours available and def_start_timestep from charging windows
             now = datetime.now()
-            if isinstance(deadline, str):
-                deadline_dt = datetime.fromisoformat(deadline)
-            else:
-                deadline_dt = deadline
+
+            # For punctual trips, deadline_dt is still None - set it from deadline
+            if deadline_dt is None and deadline is not None:
+                if isinstance(deadline, str):
+                    deadline_dt = datetime.fromisoformat(deadline)
+                else:
+                    deadline_dt = deadline
 
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
+            # DEBUG: Log trip details before rejection check
+            _LOGGER.warning(
+                "DEBUG async_publish_deferrable_load: trip_id=%s, deadline=%s, deadline_dt=%s, now=%s, hours_available=%.2f, kwh=%s, is_recurring=%s",
+                trip_id, deadline, deadline_dt, now, hours_available, trip.get("kwh"), is_recurring
+            )
+
             if hours_available <= 0:
-                _LOGGER.warning("Trip deadline in past: %s", trip_id)
+                _LOGGER.warning("Trip deadline in past: %s (hours_available=%.2f)", trip_id, hours_available)
                 await self.async_release_trip_index(trip_id)
                 return False
 
@@ -468,6 +505,12 @@ class EMHASSAdapter:
 
         success_count = 0
 
+        # Clear stale cache entries before republish
+        current_trip_ids = {trip.get("id") for trip in trips if trip.get("id")}
+        stale_ids = set(self._cached_per_trip_params.keys()) - current_trip_ids
+        for stale_id in stale_ids:
+            del self._cached_per_trip_params[stale_id]
+
         for trip in trips:
             if await self.async_publish_deferrable_load(trip):
                 success_count += 1
@@ -479,10 +522,93 @@ class EMHASSAdapter:
             self.vehicle_id,
         )
 
-        # CRITICAL FIX: Populate cache after publishing all trips
-        # This ensures coordinator.data has the aggregated EMHASS data
-        # Without this, sensors return None/undefined for power_profile_watts and emhass_status
-        # Note: charging_power_kw fallback already handled at function start (line 454-455)
+        # CRITICAL FIX: Populate per-trip cache after publishing all trips
+        # async_publish_deferrable_load only calls publish_deferrable_load which
+        # publishes the trip but doesn't populate _cached_per_trip_params.
+        # This loop ensures per-trip params are cached for coordinator retrieval.
+        coordinator = self._get_coordinator()
+
+        # Get SOC once before loop for consistency
+        soc_current = await self._get_current_soc()
+        if soc_current is None:
+            soc_current = 50.0
+
+        # Inject presence_monitor if not already injected
+        if self._presence_monitor is None and coordinator is not None:
+            trip_manager = getattr(coordinator, "_trip_manager", None)
+            if trip_manager and hasattr(trip_manager, "vehicle_controller"):
+                vc = trip_manager.vehicle_controller
+                if vc and hasattr(vc, "_presence_monitor"):
+                    self._presence_monitor = vc._presence_monitor
+
+        hora_regreso = None
+        if self._presence_monitor:
+            try:
+                hora_regreso = await self._presence_monitor.async_get_hora_regreso()
+            except Exception:
+                hora_regreso = None
+
+        # Publish each trip and populate per-trip cache
+        for trip in trips:
+            trip_id = trip.get("id")
+            if not trip_id:
+                continue
+
+            # Assign index if not already assigned
+            if trip_id not in self._index_map:
+                await self.async_assign_index_to_trip(trip_id)
+            emhass_index = self._index_map.get(trip_id, -1)
+
+            # Calculate per-trip params with charging windows
+            kwh_needed = trip.get("kwh", 0.0)
+            deadline_str = trip.get("datetime")
+
+            if isinstance(deadline_str, str):
+                deadline_dt = datetime.fromisoformat(deadline_str)
+            else:
+                deadline_dt = deadline_str or datetime.now()
+
+            # Calculate charging windows for def_start_timestep
+            charging_windows = calculate_multi_trip_charging_windows(
+                trips=[(deadline_dt, trip)],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                duration_hours=6.0,
+            )
+
+            def_start_timestep = 0
+            if charging_windows:
+                inicio_ventana = charging_windows[0].get("inicio_ventana")
+                if inicio_ventana:
+                    delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
+                    def_start_timestep = max(0, min(int(delta_hours), 168))
+
+            hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
+            def_end_timestep = min(int(max(0, hours_available)), 168)
+            total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
+            power_watts = charging_power_kw * 1000
+            power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
+
+            # Cache per-trip params
+            self._cached_per_trip_params[trip_id] = {
+                "def_total_hours": round(total_hours, 2),
+                "P_deferrable_nom": round(power_watts, 0),
+                "p_deferrable_nom": round(power_watts, 0),
+                "def_start_timestep": def_start_timestep,
+                "def_end_timestep": def_end_timestep,
+                "power_profile_watts": power_profile,
+                "def_total_hours_array": [round(total_hours, 2)],
+                "p_deferrable_nom_array": [round(power_watts, 0)],
+                "def_start_timestep_array": [def_start_timestep],
+                "def_end_timestep_array": [def_end_timestep],
+                "p_deferrable_matrix": [power_profile],
+                "trip_id": trip_id,
+                "emhass_index": emhass_index,
+                "kwh_needed": kwh_needed,
+                "deadline": deadline_str,
+                "activo": True,
+            }
 
         # Calculate aggregated power profile and schedule for all trips
         power_profile = self._calculate_power_profile_from_trips(
@@ -492,17 +618,45 @@ class EMHASSAdapter:
             trips, charging_power_kw
         )
 
+        # DEBUG: Log power profile and trips
+        _LOGGER.warning(
+            "DEBUG async_publish_all_deferrable_loads: calculated power_profile=%s, non_zero=%d",
+            power_profile[:10] if power_profile else [],
+            sum(1 for x in power_profile if x > 0) if power_profile else 0
+        )
+        _LOGGER.warning(
+            "DEBUG async_publish_all_deferrable_loads: trips for profile calculation: count=%d, trip_ids=%s",
+            len(trips),
+            [t.get("id") for t in trips]
+        )
+
         # Populate cache for coordinator retrieval
         self._cached_power_profile = power_profile
         self._cached_deferrables_schedule = deferrables_schedule
         self._cached_emhass_status = EMHASS_STATE_READY
 
-        _LOGGER.debug(
-            "Populated EMHASS cache: power_profile_length=%d, schedule_length=%d, status=%s",
+        _LOGGER.warning(
+            "Populated EMHASS cache: power_profile_length=%d, non_zero=%d, schedule_length=%d, status=%s",
             len(power_profile),
+            sum(1 for x in power_profile if x > 0),
             len(deferrables_schedule),
             EMHASS_STATE_READY,
         )
+
+        # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
+        # Use async_refresh() for immediate update (not debounced async_request_refresh)
+        # so sensors reflect changes instantly when SOC, trips, etc. change.
+        if coordinator is not None:
+            await coordinator.async_refresh()
+            _LOGGER.debug(
+                "Triggered coordinator refresh for EMHASS data update for %s",
+                self.vehicle_id,
+            )
+        else:
+            _LOGGER.warning(
+                "No coordinator found for %s, EMHASS data update delayed",
+                self.vehicle_id,
+            )
 
         return success_count == len(trips)
 

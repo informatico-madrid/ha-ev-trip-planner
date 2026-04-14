@@ -1320,6 +1320,94 @@ COMPLETED 2026-04-13: 1460 tests pass with 100% coverage (4084/4084 statements).
     - ✅ form-validation.spec.ts: form validation and trip type switching
     - ✅ trip-list-view.spec.ts: panel display and trip list
 
+## Phase 4b: Critical Bug Fixes (TDD)
+
+Focus: Fix 3 critical production bugs discovered during PR review using TDD approach. Each bug starts with a RED test that fails with current code, then GREEN fix.
+
+- [x] 4.4 [RED] Failing test: utils.py generate_trip_id with "puntual" (not "punctual")
+  - **Do**:
+    1. In `tests/test_trip_id_generation.py`, add test `test_punctual_with_spanish_puntual` that calls `generate_trip_id("puntual", "20251119")` and asserts it returns ID starting with `pun_` (not `trip_`)
+    2. This test must FAIL with current code because line 90 checks `trip_type == "punctual"` (English) but production passes `"puntual"` (Spanish)
+  - **Files**: tests/test_trip_id_generation.py
+  - **Done when**: Test exists AND fails with current code (returns `trip_` prefix instead of `pun_`)
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_id_generation.py -x -k "test_punctual_with_spanish_puntual" 2>&1 | grep -qi "fail\|assert" && echo RED_PASS`
+  - **Commit**: `test(utils): red - failing test for spanish puntual trip ID generation`
+
+- [x] 4.5 [GREEN] Fix utils.py generate_trip_id "punctual" → "puntual"
+  - **Do**:
+    1. In `custom_components/ev_trip_planner/utils.py` line 90, change `elif trip_type == "punctual":` to `elif trip_type in ("puntual", "punctual"):` to support both
+    2. Also update docstring examples to use "puntual" (matching the type annotation)
+  - **Files**: custom_components/ev_trip_planner/utils.py
+  - **Done when**: Previously failing test passes, and all existing punctual tests still pass
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_id_generation.py -x`
+  - **Commit**: `fix(utils): support both "puntual" and "punctual" in generate_trip_id`
+
+- [x] 4.6 [RED] Failing test: async_publish_all_deferrable_loads populates _cached_per_trip_params
+  - **Do**:
+    1. In `tests/test_emhass_adapter.py`, add test `test_async_publish_all_deferrable_loads_populates_per_trip_cache`
+    2. Call `adapter.async_publish_all_deferrable_loads([trip])` with a trip
+    3. Assert `trip_id` in `adapter._cached_per_trip_params` AND that it has all 10 required keys
+    4. This test must FAIL with current code because `async_publish_all_deferrable_loads` does NOT populate `_cached_per_trip_params`
+  - **Files**: tests/test_emhass_adapter.py
+  - **Done when**: Test exists AND fails (KeyError or AssertionError on _cached_per_trip_params)
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_async_publish_all_deferrable_loads_populates_per_trip_cache" 2>&1 | grep -qi "fail\|assert\|keyerror" && echo RED_PASS`
+  - **Commit**: `test(emhass): red - failing test for async_publish_all_deferrable_loads per-trip cache`
+
+- [ ] 4.7 [GREEN] Fix async_publish_all_deferrable_loads to populate _cached_per_trip_params
+  - **Do**:
+    1. In `custom_components/ev_trip_planner/emhass_adapter.py`, modify `async_publish_all_deferrable_loads` to populate `_cached_per_trip_params` for each trip, same as `publish_deferrable_loads` does
+    2. Ensure it calls the same cache population logic (lines ~700-750 in publish_deferrable_loads)
+    3. OR: refactor so `async_publish_all_deferrable_loads` delegates to `publish_deferrable_loads`
+  - **Files**: custom_components/ev_trip_planner/emhass_adapter.py
+  - **Done when**: Previously failing test passes AND all existing tests still pass
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_async_publish_all_deferrable_loads_populates_per_trip_cache" && PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x`
+  - **Commit**: `fix(emhass): async_publish_all_deferrable_loads now populates _cached_per_trip_params`
+
+- [ ] 4.8 [RED] Failing test: panel.js uses correct EMHASS sensor entity ID
+  - **Do**:
+    1. Create a simple Node.js/JS test in `tests/e2e/panel-sensor-entity-id.test.js` or inline test
+    2. Test that panel.js line 877 constructs entity ID matching the actual sensor created by sensor.py
+    3. Expected entity ID: `sensor.emhass_perfil_diferible_{entry_id}` (from sensor.py line 179)
+    4. Actual entity ID in panel.js: `sensor.ev_trip_planner_${lowerVehicleId}_emhass_aggregated`
+    5. This test must FAIL with current code (entity IDs don't match)
+  - **Files**: tests/e2e/ (new file) OR inline JS test in panel.js
+  - **Done when**: Test exists AND fails (entity ID mismatch)
+  - **Verify**: Run test and verify it fails due to entity ID mismatch
+  - **Commit**: `test(panel): red - failing test for EMHASS sensor entity ID mismatch`
+
+- [x] 4.9 [GREEN] Fix panel.js EMHASS sensor entity ID
+
+- [x] 4.4b [GREEN] Fix test timing - E2E tests use polling instead of fixed timeout
+  - **Do**:
+    1. In `tests/e2e/emhass-sensor-updates.spec.ts`, modify tests to use `expect().toPass()` polling instead of `await page.waitForTimeout()`
+    2. Replace fixed 5-second timeout with 15-second polling for sensor attribute updates
+    3. This fixes race conditions where tests read sensor data before EMHASS adapter populates it
+  - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
+  - **Done when**: All 26 E2E tests pass
+  - **Verify**: `make e2e`
+  - **Commit**: `fix(e2e): use polling instead of fixed timeout for sensor attribute tests`
+  - **Do**:
+    1. In `custom_components/ev_trip_planner/frontend/panel.js` line 877, change entity ID from `sensor.ev_trip_planner_${lowerVehicleId}_emhass_aggregated` to `sensor.emhass_perfil_diferible_${entryId}`
+    2. Also update `docs/emhass-setup.md` to use correct entity ID throughout
+  - **Files**: custom_components/ev_trip_planner/frontend/panel.js, docs/emhass-setup.md
+  - **Done when**: Previously failing test passes AND panel finds the correct sensor
+  - **Verify**: `make e2e` (E2E tests verify panel finds sensor) AND `grep "emhass_perfil_diferible" docs/emhass-setup.md`
+  - **Commit**: `fix(panel): use correct EMHASS sensor entity ID (emhass_perfil_diferible_{entry_id})`
+
+- [x] 4.10 [REVIEW] Audit ALL existing tests for similar hidden bugs
+  - **Do**:
+    1. Review all test files in `tests/` for patterns where tests pass but don't verify production behavior:
+       - Tests that use English strings ("punctual") when production uses Spanish ("puntual")
+       - Tests that call method A but verify results from method B
+       - Tests that mock too much, hiding real API mismatches
+       - Tests that don't assert on key return values (only verify no crash)
+    2. For each issue found, create a RED test that would have caught the bug
+    3. Fix the test to verify actual production behavior
+  - **Files**: tests/ (all test files)
+  - **Done when**: All tests verified to actually test production behavior, not just mock behavior
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/ -x` AND manual review of test assertions
+  - **Commit**: `test(all): audit and fix tests that don't verify production behavior`
+
 ## Phase 4: PR Lifecycle
 
 - [x] 4.1 Monitor CI and fix any failures

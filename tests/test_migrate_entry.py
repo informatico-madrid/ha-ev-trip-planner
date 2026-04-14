@@ -178,7 +178,7 @@ async def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
         assert entity.unique_id in old_unique_ids, f"Expected old format, got {entity.unique_id}"
 
     # Migrate
-    updated = await async_migrate_entry(mock_hass, entry)
+    await async_migrate_entry(mock_hass, entry)
 
     # Verify: entity unique_ids should be migrated to NEW format (with vehicle_id)
     migrated = mock_registry.async_entries_for_config_entry(entry.entry_id)

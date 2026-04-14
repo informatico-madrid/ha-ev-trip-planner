@@ -789,6 +789,89 @@ async def test_async_publish_all_deferrable_loads_uses_fallback_charging_power_w
         assert adapter._cached_power_profile is not None
 
 
+@pytest.mark.asyncio
+async def test_async_publish_all_deferrable_loads_populates_per_trip_cache(hass, mock_store, mock_coordinator):
+    """Test that async_publish_all_deferrable_loads populates _cached_per_trip_params.
+
+    BUG #8/#15: async_publish_all_deferrable_loads only calls async_publish_deferrable_load
+    for each trip, which populates _cached_power_profile and _cached_deferrable_schedule,
+    but DOES NOT populate _cached_per_trip_params[trip_id] with the 10 required keys:
+        - def_total_hours
+        - P_deferrable_nom
+        - def_start_timestep
+        - def_end_timestep
+        - power_profile_watts
+        - trip_id
+        - emhass_index
+        - kwh_needed
+        - deadline
+        - activo
+
+    After fix, this test will PASS. Before fix, it FAILS because _cached_per_trip_params
+    is empty even after calling async_publish_all_deferrable_loads.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        trips = [
+            {
+                "id": "trip_001",
+                "descripcion": "Trip 1",
+                "kwh": 5.0,
+                "hora": "09:00",
+                "dias_semana": [],
+            },
+        ]
+
+        hass.states.async_set = AsyncMock()
+
+        # Publish trips
+        await adapter.async_publish_all_deferrable_loads(trips)
+
+        # BUG VERIFICATION: _cached_per_trip_params should be populated with trip_001 key
+        # and contain all 10 required keys
+        required_keys = {
+            "def_total_hours",
+            "P_deferrable_nom",
+            "def_start_timestep",
+            "def_end_timestep",
+            "power_profile_watts",
+            "trip_id",
+            "emhass_index",
+            "kwh_needed",
+            "deadline",
+            "activo",
+        }
+
+        assert "trip_001" in adapter._cached_per_trip_params, (
+            f"async_publish_all_deferrable_loads did NOT populate _cached_per_trip_params. "
+            f"Expected key 'trip_001' but got: {list(adapter._cached_per_trip_params.keys())}. "
+            f"This is BUG #8/#15: async_publish_all_deferrable_loads does not call "
+            f"async_publish_deferrable_load for individual trips, so _cached_per_trip_params "
+            f"remains empty. Fix: add per-trip cache population similar to "
+            f"async_publish_deferrable_load."
+        )
+
+        # Verify all 10 required keys are present
+        params = adapter._cached_per_trip_params["trip_001"]
+        missing_keys = required_keys - set(params.keys())
+        if missing_keys:
+            raise AssertionError(
+                f"_cached_per_trip_params['trip_001'] missing required keys: {missing_keys}. "
+                f"Has: {set(params.keys())}"
+            )
+
+
 # =============================================================================
 # SHELL COMMAND VERIFICATION TEST
 # =============================================================================
@@ -2886,7 +2969,7 @@ class TestAsyncSendErrorNotificationCoverage:
             adapter.hass.services.async_call = AsyncMock()
 
             # Should use emhass_unavailable error type
-            result = await adapter._async_send_error_notification(
+            await adapter._async_send_error_notification(
                 error_type="emhass_unavailable",
                 message="EMHASS not available",
             )
@@ -2914,7 +2997,7 @@ class TestAsyncSendErrorNotificationCoverage:
 
             adapter.hass.services.async_call = AsyncMock()
 
-            result = await adapter._async_send_error_notification(
+            await adapter._async_send_error_notification(
                 error_type="sensor_missing",
                 message="Sensor not found",
             )
@@ -2941,7 +3024,7 @@ class TestAsyncSendErrorNotificationCoverage:
 
             adapter.hass.services.async_call = AsyncMock()
 
-            result = await adapter._async_send_error_notification(
+            await adapter._async_send_error_notification(
                 error_type="shell_command_failure",
                 message="Shell command failed",
             )
@@ -2999,7 +3082,6 @@ class TestAsyncClearErrorCoverage:
 
             mock_state = MagicMock()
             mock_state.attributes = {"error_type": "old_error"}
-            sensor_id = f"sensor.emhass_perfil_diferible_{adapter.entry_id}"
             adapter.hass.states.get = MagicMock(return_value=mock_state)
             adapter.hass.states.async_set = AsyncMock(
                 side_effect=HomeAssistantError("Failed to update")
@@ -4931,7 +5013,6 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
 
     Requirements: FR-9c
     """
-    from datetime import datetime, timedelta
     from freezegun import freeze_time
 
     config = {
@@ -5574,9 +5655,7 @@ async def test_stale_cache_cleared_on_republish(mock_store):
         )
 
         # Verify trip_A still exists
-        assert "trip_A" in adapter._cached_per_trip_params, (
-            f"_cached_per_trip_params should still have trip_A after republish"
-        )
+        assert "trip_A" in adapter._cached_per_trip_params, "_cached_per_trip_params should still have trip_A after republish"
 
         # Verify only 1 entry in cache
         assert len(adapter._cached_per_trip_params) == 1, (
