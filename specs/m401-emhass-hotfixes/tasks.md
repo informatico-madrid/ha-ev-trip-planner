@@ -1353,7 +1353,7 @@ Focus: Fix 3 critical production bugs discovered during PR review using TDD appr
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_async_publish_all_deferrable_loads_populates_per_trip_cache" 2>&1 | grep -qi "fail\|assert\|keyerror" && echo RED_PASS`
   - **Commit**: `test(emhass): red - failing test for async_publish_all_deferrable_loads per-trip cache`
 
-- [ ] 4.7 [GREEN] Fix async_publish_all_deferrable_loads to populate _cached_per_trip_params
+- [x] 4.7 [GREEN] Fix async_publish_all_deferrable_loads to populate _cached_per_trip_params
   - **Do**:
     1. In `custom_components/ev_trip_planner/emhass_adapter.py`, modify `async_publish_all_deferrable_loads` to populate `_cached_per_trip_params` for each trip, same as `publish_deferrable_loads` does
     2. Ensure it calls the same cache population logic (lines ~700-750 in publish_deferrable_loads)
@@ -1363,7 +1363,7 @@ Focus: Fix 3 critical production bugs discovered during PR review using TDD appr
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x -k "test_async_publish_all_deferrable_loads_populates_per_trip_cache" && PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -x`
   - **Commit**: `fix(emhass): async_publish_all_deferrable_loads now populates _cached_per_trip_params`
 
-- [ ] 4.8 [RED] Failing test: panel.js uses correct EMHASS sensor entity ID
+- [x] 4.8 [RED] Failing test: panel.js uses correct EMHASS sensor entity ID
   - **Do**:
     1. Create a simple Node.js/JS test in `tests/e2e/panel-sensor-entity-id.test.js` or inline test
     2. Test that panel.js line 877 constructs entity ID matching the actual sensor created by sensor.py
