@@ -1,6 +1,7 @@
 """EMHASS Adapter for EV Trip Planner."""
 
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
@@ -376,7 +377,7 @@ class EMHASSAdapter:
 
             # Create attributes
             attributes = {
-                "def_total_hours": round(total_hours, 2),
+                "def_total_hours": math.ceil(total_hours),
                 "P_deferrable_nom": round(power_watts, 0),
                 "def_start_timestep": def_start_timestep,
                 "def_end_timestep": end_timestep,
@@ -542,13 +543,13 @@ class EMHASSAdapter:
 
         # Cache per-trip params
         self._cached_per_trip_params[trip_id] = {
-            "def_total_hours": round(total_hours, 2),
+            "def_total_hours": math.ceil(total_hours),
             "P_deferrable_nom": round(power_watts, 0),
             "p_deferrable_nom": round(power_watts, 0),
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": def_end_timestep,
             "power_profile_watts": power_profile,
-            "def_total_hours_array": [round(total_hours, 2)],
+            "def_total_hours_array": [math.ceil(total_hours)],
             "p_deferrable_nom_array": [round(power_watts, 0)],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],

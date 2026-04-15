@@ -720,7 +720,7 @@ class EVTripPlannerPanel extends LitElement {
     const hasValidSensors = Object.values(filteredGroupedSensors).some(s => s.length > 0);
 
     return html`
-      <link rel="stylesheet" href="/ev_trip_planner/panel.css?v=${Date.now()}">
+      <link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${Date.now()}">
       <div class="panel-container">
         <header class="panel-header">
           <h1>🚗 EV Trip Planner - ${this._vehicleId}</h1>
@@ -880,7 +880,7 @@ class EVTripPlannerPanel extends LitElement {
     
     if (states instanceof Map) {
       for (const [entityId, state] of states) {
-        if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+        if (entityId.includes('emhass_perfil_diferible_')) {
           const vehicleId = state.attributes?.vehicle_id;
           if (vehicleId === this._vehicleId) {
             emhassSensorEntityId = entityId;
@@ -890,7 +890,7 @@ class EVTripPlannerPanel extends LitElement {
       }
     } else {
       for (const [entityId, state] of Object.entries(states)) {
-        if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+        if (entityId.includes('emhass_perfil_diferible_')) {
           const vehicleId = state.attributes?.vehicle_id;
           if (vehicleId === this._vehicleId) {
             emhassSensorEntityId = entityId;
@@ -911,11 +911,11 @@ class EVTripPlannerPanel extends LitElement {
 {# Generated from EV Trip Planner EMHASS Aggregated Sensor #}
 
 number_of_deferrable_loads: {{ state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0) }}
-def_total_hours_array: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array') | default([], true) }}
-p_deferrable_nom_array: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
-def_start_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
-def_end_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
-p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}`;
+def_total_hours: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array') | default([], true) }}
+P_deferrable_nom: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
+def_start_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
+def_end_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
+P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}`;
 
     return html`
       <div class="emhass-config-section">
@@ -937,12 +937,6 @@ p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matr
             The template references the <strong>EMHASS Aggregated Sensor</strong> which contains
             all 6 EMHASS parameters from your active trips.
           </p>
-          ${!emhassAvailable ? html`
-            <div class="emhass-warning">
-              ⚠️ <strong>EMHASS sensor not available.</strong>
-              Make sure you have active trips with EMHASS data generated.
-            </div>
-          ` : ''}
         </div>
 
         <div class="emhass-template-container">
@@ -1212,10 +1206,10 @@ p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matr
 
     if (states instanceof Map) {
       for (const [entityId, state] of states) {
-        if (patterns.some(pattern => entityId.startsWith(pattern))) {
+        if (patterns.some(pattern => entityId.includes(pattern))) {
           // FR-2.1: For EMHASS sensors, verify vehicle_id attribute matches current vehicle
           // Compare vehicle_id (the vehicle name slug) with this._vehicleId from URL
-          if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+          if (entityId.includes('emhass_perfil_diferible_')) {
             const vehicleId = state.attributes?.vehicle_id;
             if (vehicleId === this._vehicleId) {
               result[entityId] = state;
@@ -1227,10 +1221,10 @@ p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matr
       }
     } else {
       for (const [entityId, state] of Object.entries(states)) {
-        if (patterns.some(pattern => entityId.startsWith(pattern))) {
+        if (patterns.some(pattern => entityId.includes(pattern))) {
           // FR-2.1: For EMHASS sensors, verify vehicle_id attribute matches current vehicle
           // Compare vehicle_id (the vehicle name slug) with this._vehicleId from URL
-          if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+          if (entityId.includes('emhass_perfil_diferible_')) {
             const vehicleId = state.attributes?.vehicle_id;
             if (vehicleId === this._vehicleId) {
               result[entityId] = state;
@@ -1634,7 +1628,8 @@ p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matr
     this._editingTrip = trip;
     this._showForm = true;
     // Determine trip type for form visibility
-    this._formType = trip.type === 'puntual' ? 'puntual' : 'recurrente';
+    const isPunctual = trip.tipo === 'puntual' || trip.type === 'puntual' || trip.recurring === false;
+    this._formType = isPunctual ? 'puntual' : 'recurrente';
   }
 
   /**

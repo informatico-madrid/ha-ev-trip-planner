@@ -63,7 +63,7 @@ class TestPanelEntityIdMatch:
 
         CORRECT pattern (updated for multi-vehicle safety):
           for (const [entityId, state] of Object.entries(states)) {
-            if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+            if (entityId.includes('emhass_perfil_diferible_')) {
               const vehicleId = state.attributes?.vehicle_id;
               if (vehicleId === this._vehicleId) {
                 emhassSensorEntityId = entityId;
@@ -73,19 +73,19 @@ class TestPanelEntityIdMatch:
           }
 
         This test verifies:
-        1. Panel searches for sensor by prefix 'sensor.emhass_perfil_diferible_'
+        1. Panel searches for sensor by prefix 'emhass_perfil_diferible_' using includes
         2. Panel filters by vehicle_id attribute (multi-vehicle safety)
         3. Pattern matches _getVehicleStates() filtering for consistency
         """
         panel_js_path = Path("custom_components/ev_trip_planner/frontend/panel.js")
         content = panel_js_path.read_text()
 
-        # Verify panel uses startsWith to find EMHASS sensor by prefix
-        starts_with = r"startsWith\(['\"]sensor\.emhass_perfil_diferible_['\"]"
-        has_starts_with = re.search(starts_with, content) is not None
+        # Verify panel uses includes to find EMHASS sensor by pattern
+        includes_pattern = r"includes\(['\"]emhass_perfil_diferible_['\"]"
+        has_includes = re.search(includes_pattern, content) is not None
 
-        assert has_starts_with, (
-            f"Panel.js must filter EMHASS sensors by prefix 'sensor.emhass_perfil_diferible_'.\n"
+        assert has_includes, (
+            f"Panel.js must filter EMHASS sensors using includes('emhass_perfil_diferible_').\n"
             f"Available patterns in panel.js:\n"
             f"  {self._extract_entity_id_patterns(content)}"
         )
@@ -116,29 +116,29 @@ class TestPanelEntityIdMatch:
 
         REQUIREMENT: Panel emhass sensor lookup in _renderEmhassConfig() must match
         the filtering pattern used in _getVehicleStates():
-        1. Filter by prefix 'sensor.emhass_perfil_diferible_'
+        1. Filter by pattern 'emhass_perfil_diferible_' using includes
         2. Verify vehicle_id attribute matches this._vehicleId
         3. Return first matching sensor (break out of loop)
         """
         panel_js_path = Path("custom_components/ev_trip_planner/frontend/panel.js")
         content = panel_js_path.read_text()
 
-        # Find where panel filters by entity ID prefix
-        filter_pattern = r"['\"]sensor\.emhass_perfil_diferible_['\"]"
+        # Find where panel filters by entity ID pattern using includes
+        filter_pattern = r"includes\(['\"]emhass_perfil_diferible_['\"]"
         matches = re.findall(filter_pattern, content)
 
         assert len(matches) >= 1, (
-            f"panel.js should filter entities by `sensor.emhass_perfil_diferible_` prefix.\n"
+            f"panel.js should filter entities using includes('emhass_perfil_diferible_') pattern.\n"
             f"This pattern was found {len(matches)} times, but at least 1 expected."
         )
 
         # Verify the filter is used correctly in entity iteration (FR-2.1 multi-vehicle check)
-        # Look for code that checks entity ID prefix AND extracts/verifies vehicle ID
-        check_pattern = r"if\s+.*entityId.*startsWith\s*\(.*['\"]sensor\.emhass_perfil_diferible_['\"].*\)"
+        # Look for code that checks entity ID pattern AND extracts/verifies vehicle ID
+        check_pattern = r"if\s+.*entityId.*includes\s*\(.*['\"]emhass_perfil_diferible_['\"].*\)"
         matches = re.findall(check_pattern, content, re.IGNORECASE)
 
         assert len(matches) >= 1, (
-            f"panel.js should check if entityId starts with `sensor.emhass_perfil_diferible_`\n"
+            f"panel.js should check if entityId includes `emhass_perfil_diferible_`\n"
             f"to extract vehicle ID. Found {len(matches)} matches, expected at least 1."
         )
 
