@@ -1,12 +1,33 @@
 # Design: Fix EMHASS Aggregated Sensor
 
-## Architecture Overview
+## Overview
 
-This design addresses 10 critical problems in the EMHASS Aggregated Sensor integration through targeted modifications to 3 files:
+Correcciones quirúrgicas a 2 archivos (`emhass_adapter.py`, `panel.js`) para resolver 7 bugs en la integración EMHASS. La causa raíz principal es `datetime.now()` (offset-naive) usado en restas contra datetimes offset-aware. Los fixes son autocontenidos y no requieren cambios arquitecturales.
 
-- **emhass_adapter.py** - Fix datetime handling and def_total_hours formatting
-- **panel.js** - Fix entity pattern, template keys, CSS route, and modal trip type
-- **sensor.py** - No changes required (already correct)
+## Architecture
+
+### Component Diagram
+
+```mermaid
+graph TB
+    subgraph Backend["Python Backend"]
+        TM[TripManager] --> EA[EMHASSAdapter]
+        EA --> COORD[Coordinator]
+        COORD --> SENSOR[EmhassDeferrableLoadSensor]
+    end
+    subgraph Frontend["JS Frontend"]
+        PANEL[panel.js] -->|reads| SENSOR
+        PANEL -->|displays| TEMPLATE[Jinja2 Template]
+        PANEL -->|loads| CSS[panel.css]
+    end
+    EA -->|fix datetime.now| FIX1["FR-1: timezone.utc"]
+    EA -->|fix def_total_hours| FIX2["FR-2: math.ceil"]
+    PANEL -->|fix entity search| FIX3["FR-3: includes()"]
+    PANEL -->|fix template keys| FIX4["FR-4: sin _array"]
+    PANEL -->|fix CSS path| FIX5["FR-5: guiones"]
+    PANEL -->|fix warning| FIX6["FR-6: siempre visible"]
+    PANEL -->|fix modal| FIX7["FR-7: 3 campos"]
+```
 
 ### Data Flow
 
@@ -16,384 +37,185 @@ sequenceDiagram
     participant TripManager
     participant EMHASSAdapter
     participant Coordinator
-    participant AggregatedSensor
-    participant Panel
+    participant Sensor as EmhassDeferrableLoadSensor
+    participant Panel as panel.js
 
-    User->>TripManager: Create trip
-    TripManager->>EMHASSAdapter: async_publish_deferrable_load()
-    EMHASSAdapter->>EMHASSAdapter: Calculate with timezone-aware datetime
-    EMHASSAdapter->>EMHASSAdapter: Publish to EMHASS with int def_total_hours
-    EMHASSAdapter->>Coordinator: Update cache
-    Coordinator->>AggregatedSensor: async_refresh()
-    AggregatedSensor->>AggregatedSensor: Read from per_trip_params
-    AggregatedSensor->>Panel: Emit state update
-    Panel->>Panel: Render with correct template keys
+    User->>TripManager: Crear viaje
+    TripManager->>EMHASSAdapter: async_publish_deferrable_load(trip)
+    Note over EMHASSAdapter: FR-1: datetime.now(timezone.utc)
+    Note over EMHASSAdapter: FR-2: math.ceil(total_hours)
+    EMHASSAdapter->>EMHASSAdapter: _populate_per_trip_cache_entry()
+    EMHASSAdapter->>Coordinator: coordinator.async_refresh()
+    Coordinator->>Sensor: data["per_trip_emhass_params"]
+    Sensor->>Sensor: Agregar arrays de todos los viajes
+    Panel->>Panel: FR-3: includes('emhass_perfil_diferible_')
+    Panel->>Sensor: Read state_attr()
+    Panel->>Panel: FR-4: Render template con keys sin _array
 ```
 
-## Component-by-Component Fixes
+## Technical Decisions
 
-### 1. emhass_adapter.py
+| Decision | Options Considered | Choice | Rationale |
+|----------|-------------------|--------|-----------|
+| def_total_hours rounding | `int()` (truncate), `round()` (float), `math.ceil()` (round up) | `math.ceil()` | `int(1.94)=1` deja el EV sin carga. `ceil(1.94)=2` sobreestima ligeramente pero garantiza carga suficiente |
+| Entity ID search | `startsWith('sensor.trip_planner_')`, `startsWith('sensor.ev_trip_planner_')`, `includes('emhass_perfil_diferible_')` | `includes()` | El prefijo depende de device_name en HA y puede variar por config de usuario. `includes()` es robusto |
+| datetime fix scope | Solo línea 333, Todas las restas (5 puntos) | Todas las restas | Un fix parcial dejaría bugs latentes en `_populate_per_trip_cache_entry()` y `get_available_indices()` |
+| Warning EMHASS removal | Mantener con lógica mejorada, Eliminar warning | Eliminar warning | El Jinja2 `default()` ya maneja sensores vacíos. El warning confunde más que ayuda |
 
-#### Fix 1.1: Datetime Offset Error (AC 1, blocks AC 5, AC 6, AC 9)
+## File Structure
 
-**Location:** Line 334
+| File | Action | Purpose |
+|------|--------|---------|
+| `custom_components/ev_trip_planner/emhass_adapter.py` | Modify | FR-1: timezone.utc (5 puntos), FR-2: math.ceil (2 puntos) |
+| `custom_components/ev_trip_planner/frontend/panel.js` | Modify | FR-3: entity search (5 puntos), FR-4: template keys, FR-5: CSS path, FR-6: warning, FR-7: modal |
+| `custom_components/ev_trip_planner/sensor.py` | None | Ya correcto — no requiere cambios |
 
-**Current Code:**
+## Interfaces
+
+### emhass_adapter.py — Cambios puntuales
+
 ```python
-now = datetime.now()  # offset-naive
-hours_available = (deadline_dt - now).total_seconds() / 3600  # CRASH if deadline_dt is offset-aware
+# FR-1: Import fix (línea 3)
+from datetime import datetime, timezone  # Añadir timezone
+
+# FR-2: Import fix (nuevo)
+import math  # Para math.ceil
+
+# FR-1: 5 puntos de datetime.now() → datetime.now(timezone.utc)
+# Línea 126: async_load
+now = datetime.now(timezone.utc)
+
+# Línea 333: async_publish_deferrable_load
+now = datetime.now(timezone.utc)
+
+# Línea 534: _populate_per_trip_cache_entry
+delta_hours = (inicio_ventana - datetime.now(timezone.utc)).total_seconds() / 3600
+
+# Línea 537: _populate_per_trip_cache_entry
+hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
+
+# Línea 721: get_available_indices
+now = datetime.now(timezone.utc)
+
+# FR-2: 2 puntos de round() → math.ceil()
+# Línea ~379: async_publish_deferrable_load
+"def_total_hours": math.ceil(total_hours),
+
+# Línea ~549: _populate_per_trip_cache_entry
+"def_total_hours": math.ceil(total_hours),
+"def_total_hours_array": [math.ceil(total_hours)],
 ```
 
-**Fixed Code:**
-```python
-from datetime import datetime, timezone
+### panel.js — Cambios puntuales
 
-now = datetime.now(timezone.utc)  # offset-aware
-hours_available = (deadline_dt - now).total_seconds() / 3600  # Works with offset-aware deadline_dt
-```
-
-**Rationale:**
-- EMHASS returns datetime objects with timezone info (offset-aware)
-- Python cannot subtract offset-naive from offset-aware datetimes
-- Using `datetime.now(timezone.utc)` ensures both sides are offset-aware
-- This fix cascades to resolve AC 5 (second trip aggregation) and AC 6 (emhass_index assignment)
-
-#### Fix 1.2: def_total_hours as Integer (AC 3)
-
-**Location:** Lines 379 and 545
-
-**Current Code:**
-```python
-"def_total_hours": round(total_hours, 2),  # Returns 1.94 (float)
-```
-
-**Fixed Code:**
-```python
-"def_total_hours": int(total_hours),  # Returns 1 (integer)
-```
-
-**Rationale:**
-- EMHASS validation requires integer values for def_total_hours
-- Float values like 1.94 fail EMHASS schema validation
-- Using `int()` truncates to whole hours (1 hour from 1.94)
-- This matches EMHASS's expected format for deferrable load scheduling
-
-### 2. panel.js
-
-#### Fix 2.1: Entity ID Search Pattern (AC 2)
-
-**Location:** Lines 883-886
-
-**Current Code:**
 ```javascript
-if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+// FR-3: 5 puntos — cambiar startsWith a includes
+// Líneas 883, 893, 1218, 1233:
+if (entityId.includes('emhass_perfil_diferible_')) {
+
+// Línea 1210: En array de patterns
+'sensor.emhass_perfil_diferible_',  // Reemplazar por lógica includes en el filter
+
+// FR-4: Template keys (líneas ~914-918)
+def_total_hours: {{ state_attr('...', 'def_total_hours_array') | default([], true) }}
+P_deferrable_nom: {{ state_attr('...', 'p_deferrable_nom_array') | default([], true) }}
+def_start_timestep: {{ state_attr('...', 'def_start_timestep_array') | default([], true) }}
+def_end_timestep: {{ state_attr('...', 'def_end_timestep_array') | default([], true) }}
+P_deferrable: {{ state_attr('...', 'p_deferrable_matrix') | default([], true) }}
+
+// FR-5: CSS path (línea 723)
+href="/ev-trip-planner/panel.css?v=${Date.now()}"
+
+// FR-6: Eliminar bloque warning (línea ~942)
+// Eliminar: ${!emhassAvailable ? html`<div class="emhass-warning">...` : ''}
+
+// FR-7: Modal trip type (línea ~1637)
+const isPunctual = trip.tipo === 'puntual' || trip.type === 'puntual' || trip.recurring === false;
+this._formType = isPunctual ? 'puntual' : 'recurrente';
 ```
-
-**Fixed Code:**
-```javascript
-if (entityId.startsWith('sensor.trip_planner_') && entityId.includes('emhass_perfil_diferible')) {
-```
-
-**Rationale:**
-- Real sensor entity IDs follow pattern: `sensor.trip_planner_{name}_emhass_perfil_diferible_{name}`
-- Old pattern only matches sensors starting with `sensor.emhass_perfil_diferible_` which don't exist
-- New pattern correctly identifies trip-planner EMHASS sensors
-- Uses `startsWith` + `includes` for efficient prefix + substring matching
-
-#### Fix 2.2: Template Keys Correction (AC 9)
-
-**Location:** Lines 914-945
-
-**Current Code (INCORRECT - keys have _array suffix):**
-```jinja2
-def_total_hours_array: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array') | default([], true) }}
-p_deferrable_nom_array: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
-def_start_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
-def_end_timestep_array: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
-p_deferrable_matrix: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}
-```
-
-**Fixed Code (KEYS without _array, attributes with _array):**
-```jinja2
-{# Keys (left of :) without _array, attribute (2nd param) with _array #}
-def_total_hours: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array') | default([], true) }}
-P_deferrable_nom: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
-def_start_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
-def_end_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
-P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}
-```
-
-**Rationale:**
-- EMHASS shell command expects keys WITHOUT `_array` suffix (verified from actual EMHASS output)
-- The sensor aggregates trips and exposes attributes WITH `_array` suffix as lists
-- Template must read from `def_total_hours_array` but output as `def_total_hours` in the Jinja2 map
-- Key naming: EMHASS uses `P_deferrable_nom` (capital P), code uses `p_deferrable_nom_array` (lowercase p)
-- The `default([], true)` provides empty list fallback when sensor unavailable
-
-#### Fix 2.3: CSS Route (AC 4)
-
-**Location:** Line 723
-
-**Current Code:**
-```javascript
-<link rel="stylesheet" href="/ev_trip_planner/panel.css?v=${Date.now()}">
-```
-
-**Fixed Code:**
-```javascript
-<link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${Date.now()}">
-```
-
-**Rationale:**
-- services.py registers static path as `/ev-trip-planner/` (with hyphens)
-- panel.js was requesting `/ev_trip_planner/` (with underscores)
-- This mismatch caused 404 errors and "Refused to apply style" console errors
-- Unified to hyphens to match services.py registration
-
-#### Fix 2.4: EMHASS Section Always Visible (AC 7)
-
-**Location:** Lines 905-945
-
-**Current Code:**
-```javascript
-const emhassAvailable = emhassState && 
-                        emhassState.state !== 'unavailable' && 
-                        emhassState.state !== 'unknown';
-
-// Later in template:
-${if (!emhassAvailable)}
-<div class="alert">⚠️ EMHASS sensor not available. Make sure you have active trips...</div>
-${/if}
-```
-
-**Fixed Code:**
-```javascript
-// Remove emhassAvailable check entirely
-// Always render EMHASS configuration section
-
-<div class="emhass-config-section">
-  <h3>EMHASS Configuration</h3>
-  ${/* Jinja2 template renders actual data or empty defaults */}
-</div>
-```
-
-**Rationale:**
-- Warning message is confusing - appears even when trips exist with EMHASS data
-- Jinja2 `default()` already handles empty/unavailable sensors gracefully
-- With no trips: shows `number_of_deferrable_loads: 0`, empty arrays
-- With trips: shows actual EMHASS data from sensor
-- Always visible = better UX, no confusion about "why isn't this showing?"
-
-#### Fix 2.5: Modal Trip Type Display (AC 10)
-
-**Location:** Line ~1637
-
-**Current Code:**
-```javascript
-this._formType = trip.type === 'puntual' ? 'puntual' : 'recurrente';
-```
-
-**Fixed Code:**
-```javascript
-// Check all possible trip type fields for robust detection
-if (trip.tipo === 'puntual' || trip.type === 'puntual' || trip.recurring === false) {
-  this._formType = 'puntual';
-} else {
-  this._formType = 'recurrente';
-}
-```
-
-**Rationale:**
-- Trip objects may use different field names: `trip.tipo`, `trip.type`, or `trip.recurring`
-- Old code only checked `trip.type`, missing cases where `tipo === 'puntual'` or `recurring === false`
-- New code checks all three possibilities for puntual detection
-- Aligns with existing pattern at line 1068-1069 which already uses this multi-field approach
-
-### 3. sensor.py
-
-**No changes required.**
-
-The `EmhassDeferrableLoadSensor` correctly:
-- Defines `_array` attributes as `List` types (lines 234-237)
-- Populates attributes with arrays in `async_update()`
-- Aggregates data from `per_trip_emhass_params` in `extra_state_attributes`
-
-The confusion about `_array` was user observability UI confusion - when viewing attributes in Home Assistant's basic UI, individual elements appear as scalars. But the full attribute view shows them as arrays with 1 element (or N elements for multiple trips).
-
-## Technical Decisions with Rationale
-
-### Decision 1: Use `int()` vs `round()` for def_total_hours
-
-**Choice:** `int(total_hours)` (truncate)
-
-**Why:**
-- EMHASS schema validation explicitly requires integer type for def_total_hours
-- Float values fail validation: `"1.94"` vs `"1"`
-- Truncation is acceptable because EMHASS schedules in hourly windows anyway
-- `round()` would be semantically more accurate but breaks validation
-
-### Decision 2: Template Keys Differ from Attribute Names
-
-**Choice:** Keys without `_array`, attributes with `_array`
-
-**Why:**
-- EMHASS expects specific key names in JSON payload (verified from shell command output)
-- Home Assistant sensor attributes use `_array` suffix to distinguish aggregated lists from scalars
-- Template acts as transformer: reads `def_total_hours_array`, outputs as `def_total_hours` in Jinja2 map
-- This is a mapping layer between HA's naming convention and EMHASS's expectations
-
-### Decision 3: Entity Pattern is More Permissive
-
-**Choice:** `startsWith('sensor.trip_planner_') && includes('emhass_perfil_diferible')`
-
-**Why:**
-- Sensor naming includes vehicle name at both start and end
-- Pattern must handle: `sensor.trip_planner_chispitas_emhass_perfil_diferible_chispitas`
-- Prefix + substring is efficient O(n) string matching
-- Allows future vehicle names without hardcoding all possibilities
-
-### Decision 4: Always Show EMHASS Section
-
-**Choice:** Remove availability check, always render section
-
-**Why:**
-- Warning message creates user confusion ("but I have trips!")
-- Empty state (0 loads, empty arrays) is valid and informative
-- Better UX to show "nothing scheduled" than "sensor not available"
-- Aligns with Home Assistant's pattern of always showing entities, even if unavailable
-
-## File Structure Changes
-
-| File | Lines | Change Type | Description |
-|------|-------|-------------|-------------|
-| `custom_components/ev_trip_planner/emhass_adapter.py` | ~334 | MODIFY | Add `timezone` import, use `datetime.now(timezone.utc)` |
-| `custom_components/ev_trip_planner/emhass_adapter.py` | ~379, ~545 | MODIFY | Change `round(total_hours, 2)` to `int(total_hours)` |
-| `custom_components/ev_trip_planner/frontend/panel.js` | ~883-886 | MODIFY | Update entity ID search pattern |
-| `custom_components/ev_trip_planner/frontend/panel.js` | ~914-945 | MODIFY | Fix template keys (remove _array from keys) |
-| `custom_components/ev_trip_planner/frontend/panel.js` | ~723 | MODIFY | Change CSS path to `/ev-trip-planner/` |
-| `custom_components/ev_trip_planner/frontend/panel.js` | ~905-945 | MODIFY | Remove EMHASS availability check and warning |
-| `custom_components/ev_trip_planner/frontend/panel.js` | ~1637 | MODIFY | Fix modal trip type detection |
-| `custom_components/ev_trip_planner/sensor.py` | N/A | NONE | Already correct |
 
 ## Error Handling
 
-### Datetime Handling
-- **Before fix:** `TypeError: can't subtract offset-naive and offset-aware datetimes` crashes trip sync
-- **After fix:** Both `now` and `deadline_dt` are offset-aware (UTC), subtraction works correctly
-- **Impact:** Trips sync successfully, emhass_index assigned, aggregated sensor includes new trips
+| Error Scenario | Handling Strategy | User Impact |
+|----------------|-------------------|-------------|
+| deadline_dt offset-aware vs now offset-naive | `datetime.now(timezone.utc)` asegura compatibilidad | Viajes se publican correctamente |
+| Sensor no encontrado por entity_id pattern | `includes()` busca substring en cualquier entity_id | Panel muestra datos EMHASS |
+| CSS 404 por ruta incorrecta | Ruta unificada con guiones `/ev-trip-planner/` | Panel con estilos correctos |
+| Template keys incorrectas para EMHASS | Keys sin `_array` suffix | EMHASS REST API recibe parámetros correctos |
 
-### Jinja2 Default Values
-- **Before:** If sensor unavailable, template might show undefined errors
-- **After:** `| default([], true)` ensures empty list fallback for all array attributes
-- **Impact:** Panel renders gracefully with `number_of_deferrable_loads: 0` when no trips exist
+## Edge Cases
 
-### Template Key Mapping
-- **Before:** EMHASS received `def_total_hours_array` instead of `def_total_hours`, causing optimization to fail or use wrong values
-- **After:** EMHASS receives correctly named keys matching shell command format
-- **Impact:** EMHASS dayahead-optimization uses correct deferrable load parameters
+- **Trip sin timezone en ISO string**: `_calculate_deadline_from_trip()` devuelve naive datetime → `datetime.now(timezone.utc) - naive_dt` sigue fallando. Se debe asegurar que `deadline_dt` sea aware. Verificar si `datetime.fromisoformat()` devuelve naive/aware dependiendo del input.
+- **Entity renombrada por usuario**: Con `includes()` funciona mientras el entity_id contenga `emhass_perfil_diferible_`.
+- **`math.ceil(0.0) = 0`**: Si `kwh = 0`, `total_hours = 0`, `def_total_hours = 0`. EMHASS podría ignorar cargas de 0h — esto es correcto.
+
+## Security Considerations
+
+- Sin impacto de seguridad — los cambios son lógica interna sin inputs de usuario no validados
+
+## Performance Considerations
+
+- Sin impacto — `math.ceil()` y `datetime.now(timezone.utc)` tienen complejidad O(1)
+- `includes()` en vez de `startsWith()` es O(n) en longitud de string pero entity_ids son cortos (~60 chars)
+
+## Concurrency & Ordering Risks
+
+| Operation | Required Order | Risk if Inverted |
+|---|---|---|
+| `datetime.now(timezone.utc)` antes de resta | `now` debe calcularse antes de `deadline_dt - now` | TypeError si `now` es naive y `deadline_dt` es aware |
+| Entity search antes de template render | Sensor encontrado antes de leer attrs | `state_attr(null, ...)` devuelve undefined — mitigado por `default()` |
 
 ## Test Strategy
 
-### Existing Tests to Verify
+### Test Double Policy
 
-| Test File | Test Name | Verifies |
-|-----------|-----------|----------|
-| `test_emhass_adapter.py` | `test_async_publish_deferrable_load_uses_fallback_when_no_trip_data` | Datetime fix (should not crash) |
-| `test_emhass_adapter.py` | `test_get_cached_optimization_results_returns_dict` | Template keys output format |
-| `test_aggregated_sensor_bug.py` | `test_async_publish_all_deferrable_loads_populates_non_empty_power_profile` | Second trip aggregation (AC 5) |
+| Type | What it does | When to use |
+|---|---|---|
+| **Stub** | Returns predefined data, no behavior | Aislar emhass_adapter de HA para datetime tests |
+| **Mock** | Verifies interactions (call args, call count) | Verificar que `datetime.now(timezone.utc)` se llama correctamente |
+| **Fixture** | Predefined data state, not code | Trip dicts y sensor attrs para tests |
 
-### New Verification Steps
+### Mock Boundary
 
-#### AC 1 (Datetime)
-```
-1. Create trip in test environment
-2. Check logs for no "offset-naive/offset-aware" errors
-3. Verify trip.emhass_index is non-negative
-```
+| Component (from this design) | Unit test | Integration test | Rationale |
+|---|---|---|---|
+| `EMHASSAdapter.async_publish_deferrable_load` | stub (hass, store) | none | Aislar del HA runtime |
+| `EMHASSAdapter._populate_per_trip_cache_entry` | stub (hass, store) | none | Mismas dependencias |
+| `EMHASSAdapter.get_available_indices` | none | none | Lógica pura sobre dict en memoria |
+| `panel.js` entity search | N/A (JS) | E2E (Playwright) | No testeable como unit en Python |
 
-#### AC 2 (Entity Pattern)
-```
-1. Confirm sensor exists: sensor.trip_planner_chispitas_emhass_perfil_diferible_chispitas
-2. Panel.js scans entity registry
-3. Sensor is found and data displays
-```
+### Fixtures & Test Data
 
-#### AC 3 (def_total_hours int)
-```
-1. Create trip with 1.94 hour duration
-2. Check sensor attribute: def_total_hours = 1 (not 1.94)
-3. EMHASS optimization accepts value
-```
+| Component | Required state | Form |
+|---|---|---|
+| `EMHASSAdapter` tests | Trip dict con `datetime: "2026-04-20T10:00:00+02:00"` (aware) | Inline dict en test |
+| `EMHASSAdapter` tests | Trip dict con `kwh: 14.37`, `charging_power_kw: 7.4` → `total_hours = 1.94` | Inline dict |
+| Entity search tests | E2E con sensor activo | Seed via HA test config |
 
-#### AC 4 (CSS Route)
-```
-1. Navigate to http://192.168.1.100:8123/ev-trip-planner/panel.css
-2. Verify CSS loads (status 200, not 404)
-3. Check console for no "Refused to apply style" errors
-```
+### Test Coverage Table
 
-#### AC 5 (Second Trip)
-```
-1. Create first trip, verify in aggregated sensor
-2. Create second trip
-3. Verify both trips in def_total_hours_array (length = 2)
-```
+| Component / Function | Test type | What to assert | Test double |
+|---|---|---|---|
+| `async_publish_deferrable_load` datetime | unit | `now` es offset-aware, no TypeError en resta | stub hass |
+| `_populate_per_trip_cache_entry` datetime | unit | Líneas 534, 537 usan `timezone.utc` | stub hass |
+| `async_publish_deferrable_load` ceil | unit | `def_total_hours` es `int` y `== math.ceil(total_hours)` | stub hass |
+| `get_available_indices` datetime | unit | No error con `released_time` aware | none |
+| Entity search (panel.js) | e2e | Panel encuentra sensor con prefijo `ev_trip_planner_` | none (real env) |
+| Template keys (panel.js) | e2e | Keys no tienen suffix `_array` | none (real env) |
+| CSS loading | e2e | HTTP 200 para `/ev-trip-planner/panel.css` | none |
+| Modal trip type | e2e | Editar trip puntual muestra "puntual" seleccionado | none |
 
-#### AC 6 (emhass_index)
-```
-1. Create new trip
-2. Check sensor.emhass_index shows 0 (not -1)
-```
+### Skip Policy
 
-#### AC 7 (EMHASS Section)
-```
-1. Clear all trips
-2. Panel should NOT show "sensor not available" warning
-3. EMHASS section shows: number_of_deferrable_loads: 0, empty arrays
-```
+Tests marked `.skip` / `@pytest.mark.skip` son PROHIBIDOS a menos que:
+1. La funcionalidad no está implementada aún
+2. Hay referencia a GitHub issue en el skip reason
 
-#### AC 9 (Template Keys)
-```
-1. Generate Jinja2 template output
-2. Verify keys are: def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep, P_deferrable
-3. Keys should NOT have _array suffix
-```
+### Test File Conventions
 
-#### AC 10 (Modal Trip Type)
-```
-1. Create puntual trip
-2. Click edit
-3. Modal opens with "puntual" selected (not "recurrente")
-```
-
-## Acceptance Criteria Mapping
-
-| AC | Description | Files Changed | Verification Status |
-|----|-------------|---------------|---------------------|
-| AC 1 | Datetime offset error fixed | emhass_adapter.py:334 | Pending |
-| AC 2 | Entity ID pattern updated | panel.js:883-886 | Pending |
-| AC 3 | def_total_hours as integer | emhass_adapter.py:379,545 | Pending |
-| AC 4 | panel.css route fixed | panel.js:723 | Pending |
-| AC 5 | Second trip updates sensor | emhass_adapter.py:334 (cascade) | Pending |
-| AC 6 | emhass_index assigned | emhass_adapter.py:334 (cascade) | Pending |
-| AC 7 | EMHASS section always visible | panel.js:905-945 | Pending |
-| AC 8 | Panel reactivity | (verify existing Lit) | Pending |
-| AC 9 | Template keys correct | panel.js:914-945 | Pending |
-| AC 10 | Modal trip type correct | panel.js:1637 | Pending |
-
-## Feasibility: High | Risk: Medium | Effort: Small
-
-**Why High Feasibility:**
-- All changes are targeted modifications to existing code
-- No new abstractions or architectural changes
-- Existing tests provide coverage baseline
-
-**Why Medium Risk:**
-- Datetime fix is critical path (blocks other fixes)
-- Template key change affects EMHASS integration directly
-- CSS route fix requires Home Assistant restart
-
-**Why Small Effort:**
-- ~7 files to modify, ~15 line changes total
-- No new files to create
-- Changes are localized and self-contained
+- Test runner: `pytest`
+- Test file location: `tests/test_*.py`
+- Integration test pattern: `tests/test_*_integration.py` (si aplica)
+- E2E test pattern: `playwright/*.spec.ts`
+- Mock cleanup: `@pytest.fixture` con scope adecuado
+- Fixture location: Dentro de cada test file o `conftest.py`

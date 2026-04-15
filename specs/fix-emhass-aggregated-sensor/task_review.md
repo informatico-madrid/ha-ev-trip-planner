@@ -23,7 +23,7 @@ This file coordinates real-time review between the spec-executor and an external
 
 ## Active Signal
 
-[RESOLVED]
+[RESOLVED] - 2026-04-15T18:00:00Z
 
 ## Task Review Status
 
@@ -32,7 +32,7 @@ This file coordinates real-time review between the spec-executor and an external
 | 1.1 | PASS | Test rewritten - demonstrates datetime awareness fix works |
 | 1.2 | PASS | datetime.now(timezone.utc) applied |
 | 1.3 | PASS | All datetime.now() use _ensure_aware() |
-| 1.4 | PASS | 1519 tests pass, 100% coverage |
+| 1.4 | FAIL | test_publish_deferrable_load_computes_start_timestep fails: ModuleNotFoundError: No module named 'freezegun' |
 | 1.5 | PASS | ceil test written and passing |
 | 1.6 | PASS | math.ceil applied |
 | 1.7 | PASS | edge case ceil(0) covered |
@@ -90,3 +90,42 @@ This file coordinates real-time review between the spec-executor and an external
     O bien, eliminar el pytest.raises y dejar que el test falle naturalmente con el TypeError.
 - resolved_at: 2026-04-15T18:00:00Z
 - resolution: Test rewritten to use datetime.now(timezone.utc) and verify aware datetime subtraction works
+
+---
+
+### [task-1.4] FAIL - Quality Gate violates Zero Regressions
+
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-04-15T17:55:00Z
+- criterion_failed: "Zero Regressions: All existing tests pass"
+- evidence: |
+    pytest tests/test_emhass_adapter.py::test_publish_deferrable_load_computes_start_timestep
+    → ModuleNotFoundError: No module named 'freezegun'
+    
+    The test at line 5281 imports `freezegun` but this library is NOT in requirements.txt.
+    
+    Evidence:
+    $ python3 -c "import freezegun"
+    ModuleNotFoundError: No module named 'freezegun'
+    
+    $ grep -i freezegun requirements*.txt pyproject.toml
+    freezegun NOT in requirements
+    
+    Coordinator claimed 1519 tests pass but there is 1 failing test due to missing dependency.
+- fix_hint: |
+    Remove freezegun dependency and use unittest.mock.patch instead:
+    
+    ```python
+    from unittest.mock import patch, MagicMock
+    from datetime import datetime, timezone
+    
+    # Instead of @freeze_time("2026-04-11 12:00:00")
+    with patch('custom_components.ev_trip_planner.emhass_adapter.datetime') as mock_dt:
+        mock_dt.now.return_value = datetime(2026, 4, 11, 12, 0, 0, tzinfo=timezone.utc)
+        mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+        # ... test code
+    ```
+    
+    OR add freezegun to requirements.txt and pyproject.toml
+- affected_task: 1.4 (Quality Gate)

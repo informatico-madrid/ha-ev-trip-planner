@@ -2,6 +2,129 @@
 
 ## Goal
 
+Corregir los bugs que impiden la correcta publicación de viajes EV a EMHASS, la visualización del panel frontend, y la generación del template Jinja2 para la configuración de EMHASS.
+
+## User Stories
+
+### US-1: Publicación de viajes a EMHASS sin errores
+
+**As a** usuario de EV Trip Planner con integración EMHASS
+**I want to** crear viajes y que se publiquen correctamente en EMHASS
+**So that** la optimización de carga considere todos mis viajes activos
+
+**Acceptance Criteria:**
+- AC-1.1: Crear un viaje no genera errores `offset-naive/offset-aware` en logs
+- AC-1.2: El `emhass_index` del viaje creado es ≥ 0 (no -1)
+- AC-1.3: El sensor agregado incluye los datos del nuevo viaje
+- AC-1.4: `def_total_hours` es un entero redondeado hacia arriba (`ceil`), no un float
+
+### US-2: Panel muestra datos EMHASS correctos
+
+**As a** usuario del panel EV Trip Planner
+**I want to** ver la sección EMHASS siempre con datos actualizados y template correcto
+**So that** pueda copiar el template Jinja2 funcional para mi configuración EMHASS
+
+**Acceptance Criteria:**
+- AC-2.1: El panel encuentra y muestra el sensor EMHASS sin importar el prefijo del entity_id
+- AC-2.2: El template Jinja2 usa keys sin suffix `_array` (ej: `def_total_hours:`, no `def_total_hours_array:`)
+- AC-2.3: Panel.css se carga correctamente (sin 404)
+- AC-2.4: No aparece warning "EMHASS sensor not available" — la sección siempre es visible
+
+### US-3: Formulario de edición muestra datos correctos
+
+**As a** usuario que edita un viaje puntual
+**I want to** ver "puntual" seleccionado en el modal
+**So that** no cambie accidentalmente el tipo de viaje
+
+**Acceptance Criteria:**
+- AC-3.1: Al editar un viaje puntual, el dropdown muestra "puntual" seleccionado
+
+## Functional Requirements
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| FR-1 | `datetime.now(timezone.utc)` en todas las restas de datetime en emhass_adapter.py (líneas 126, 333, 534, 537, 721) | P0-Critical | Sin `TypeError` en logs al crear viajes |
+| FR-2 | `math.ceil(total_hours)` en vez de `round(total_hours, 2)` para def_total_hours (líneas ~379, ~549) | P1-High | Valor entero redondeado hacia arriba (ej: 1.94→2) |
+| FR-3 | Búsqueda de sensor EMHASS con `includes('emhass_perfil_diferible_')` en panel.js (5 ocurrencias: líneas 883, 893, 1210, 1218, 1233) | P0-Critical | Panel encuentra sensor con cualquier prefijo |
+| FR-4 | Template Jinja2 keys sin suffix `_array` (panel.js líneas ~914-918) | P0-Critical | Keys: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `P_deferrable` |
+| FR-5 | CSS path `/ev-trip-planner/panel.css` (guiones) en panel.js línea 723 | P1-High | CSS carga con HTTP 200, sin errores en consola |
+| FR-6 | Eliminar warning "EMHASS sensor not available" (panel.js líneas ~942) | P2-Medium | Sección EMHASS siempre visible |
+| FR-7 | Modal detecta trip type con 3 campos (panel.js línea ~1637) | P2-Medium | Usa `trip.tipo`, `trip.type`, `trip.recurring` |
+
+## Non-Functional Requirements
+
+| ID | Requirement | Metric | Target |
+|----|-------------|--------|--------|
+| NFR-1 | Rendimiento del sensor EMHASS | Tiempo de actualización | < 2 segundos |
+| NFR-2 | Sin regresión en tests existentes | pytest suite completa | 0 fallos |
+| NFR-3 | Compatibilidad | HA version | 2024.x+ |
+
+## Glossary
+
+- **offset-naive**: Datetime de Python sin información de timezone (`datetime.now()`)
+- **offset-aware**: Datetime con timezone (`datetime.now(timezone.utc)`, o con `+01:00`)
+- **def_total_hours**: Horas totales que EMHASS debe programar para carga diferible
+- **P_deferrable_nom**: Potencia nominal del cargador en watts
+- **entity_id**: Identificador único de un sensor en Home Assistant
+- **Jinja2 template**: Template generado por panel.js que el usuario copia a su config EMHASS
+- **`math.ceil()`**: Redondeo hacia arriba — `ceil(1.94) = 2`, `ceil(0.5) = 1`
+
+## Out of Scope
+
+- Cambios en EMHASS core
+- Modificaciones al Home Assistant core
+- Nuevas features de integración EMHASS
+- Cambios a la lógica de sensores individuales por viaje
+- Cambios al coordinator o trip_manager (solo emhass_adapter.py y panel.js)
+
+## Dependencies
+
+- FR-1 (datetime fix) es root cause para: viajes no publicados, `emhass_index = -1`, sensor agregado incompleto
+- FR-3 (entity search) causa que el warning de FR-6 aparezca (sensor no encontrado → warning visible)
+- FR-4 (template keys) depende de FR-3 (sin sensor encontrado, no hay datos que mostrar)
+- FR-2, FR-5, FR-7 son independientes entre sí
+
+## Success Criteria
+
+- `pytest tests/` pasa sin fallos (0 regresiones)
+- Crear un viaje → `emhass_index ≥ 0` en el sensor del viaje
+- Crear 2 viajes → `number_of_deferrable_loads = 2` en sensor agregado
+- Panel se abre sin errores JS en consola
+- Template Jinja2 copiable funciona con EMHASS REST API
+
+## Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Entity ID varía por config de usuario | Medium | Usar `includes()` en vez de `startsWith()` |
+| `math.ceil()` podría sobreestimar horas | Low | Mejor sobrecargar que dejar el coche sin carga |
+| Múltiples `datetime.now()` a fixear (5 puntos) | Medium | Verificar con grep que todas las ocurrencias están cubiertas |
+
+## Verification Contract
+
+> Populated by product-manager agent. Tells qa-engineer *what to observe*, not *how to test*.
+
+**Project type**: fullstack (Python backend + JS frontend panel)
+
+**Entry points**:
+- `emhass_adapter.py`: `async_publish_deferrable_load()`, `_populate_per_trip_cache_entry()`, `async_load()`, `get_available_indices()`
+- `panel.js`: Sección EMHASS (template, entity search, CSS, modal edit form)
+
+**Observable signals**:
+- PASS: Viaje creado → `emhass_index ≥ 0`, sensor agregado muestra N viajes, panel sin errores JS, template keys sin `_array`
+- FAIL: `TypeError: can't subtract offset-naive and offset-aware datetimes` en logs, `emhass_index = -1`, CSS 404
+
+**Hard invariants**: No romper tests existentes, no romper sensores individuales por viaje, no modificar sensor.py
+
+**Seed data**: Al menos 1 vehículo configurado con 1+ trip activo con datetime ISO incluyendo timezone offset
+
+**Dependency map**: `trip_manager.py` → `emhass_adapter.py` → `coordinator.py` → `sensor.py` → `panel.js`
+
+**Escalate if**: El entity_id real en producción no contiene la substring `emhass_perfil_diferible_`
+# Requirements: Fix EMHASS Aggregated Sensor
+
+## Goal
+
 Fix the EMHASS Aggregated Sensor integration to correctly display sensor values, properly publish trip data to EMHASS, and ensure the panel displays correctly with real-time updates.
 
 ---
