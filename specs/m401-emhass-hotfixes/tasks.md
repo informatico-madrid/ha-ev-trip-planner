@@ -1325,6 +1325,7 @@ COMPLETED 2026-04-13: 1460 tests pass with 100% coverage (4084/4084 statements).
 Focus: Fix 3 critical production bugs discovered during PR review using TDD approach. Each bug starts with a RED test that fails with current code, then GREEN fix.
 
 - [x] 4.4 [RED] Failing test: utils.py generate_trip_id with "puntual" (not "punctual")
+- [x] 4.4b [GREEN] Fix test timing - E2E tests use polling instead of fixed timeout
   - **Do**:
     1. In `tests/test_trip_id_generation.py`, add test `test_punctual_with_spanish_puntual` that calls `generate_trip_id("puntual", "20251119")` and asserts it returns ID starting with `pun_` (not `trip_`)
     2. This test must FAIL with current code because line 90 checks `trip_type == "punctual"` (English) but production passes `"puntual"` (Spanish)

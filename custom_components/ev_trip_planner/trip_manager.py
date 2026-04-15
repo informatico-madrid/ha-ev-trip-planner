@@ -178,8 +178,12 @@ class TripManager:
             entry = self.hass.config_entries.async_get_entry(self._entry_id)
             if entry and entry.runtime_data:
                 coordinator = entry.runtime_data.coordinator
-                if coordinator and hasattr(coordinator, 'async_request_refresh'):
-                    await coordinator.async_request_refresh()
+                if coordinator:
+                    # Use async_refresh() instead of async_request_refresh() to ensure
+                    # immediate update of sensor attributes and last_updated timestamp
+                    # async_request_refresh() is debounced and asynchronous, which causes
+                    # race conditions in tests that read sensor state immediately after changes
+                    await coordinator.async_refresh()
         except Exception as err:
             # Don't fail publish_deferrable_loads if coordinator refresh fails
             # Coordinator might not be available in tests or during initialization

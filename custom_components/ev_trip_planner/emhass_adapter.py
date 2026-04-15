@@ -643,21 +643,6 @@ class EMHASSAdapter:
             EMHASS_STATE_READY,
         )
 
-        # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
-        # Use async_refresh() for immediate update (not debounced async_request_refresh)
-        # so sensors reflect changes instantly when SOC, trips, etc. change.
-        if coordinator is not None:
-            await coordinator.async_refresh()
-            _LOGGER.debug(
-                "Triggered coordinator refresh for EMHASS data update for %s",
-                self.vehicle_id,
-            )
-        else:
-            _LOGGER.warning(
-                "No coordinator found for %s, EMHASS data update delayed",
-                self.vehicle_id,
-            )
-
         return success_count == len(trips)
 
     def get_assigned_index(self, trip_id: str) -> Optional[int]:
