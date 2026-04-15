@@ -873,11 +873,32 @@ class EVTripPlannerPanel extends LitElement {
    * Render EMHASS configuration section with Jinja2 template
    */
   _renderEmhassConfig() {
-    // Search for EMHASS sensor by prefix since panel has vehicle_id but sensor uses entry_id
-    // Entity ID pattern: sensor.emhass_perfil_diferible_{entry_id}
-    const emhassSensorEntityId = Object.keys(this._hass.states).find(
-      id => id.startsWith('sensor.emhass_perfil_diferible_')
-    );
+    // Search for EMHASS sensor scoped to current vehicle by vehicle_id attribute
+    // FR-2.1: Multi-vehicle safety - filter EMHASS sensors by vehicle_id attribute, not just prefix
+    let emhassSensorEntityId = null;
+    const states = this._hass && this._hass.states ? this._hass.states : {};
+    
+    if (states instanceof Map) {
+      for (const [entityId, state] of states) {
+        if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+          const vehicleId = state.attributes?.vehicle_id;
+          if (vehicleId === this._vehicleId) {
+            emhassSensorEntityId = entityId;
+            break;
+          }
+        }
+      }
+    } else {
+      for (const [entityId, state] of Object.entries(states)) {
+        if (entityId.startsWith('sensor.emhass_perfil_diferible_')) {
+          const vehicleId = state.attributes?.vehicle_id;
+          if (vehicleId === this._vehicleId) {
+            emhassSensorEntityId = entityId;
+            break;
+          }
+        }
+      }
+    }
 
     // Get EMHASS sensor state
     const emhassState = emhassSensorEntityId ? this._hass.states[emhassSensorEntityId] : null;

@@ -450,6 +450,87 @@ class EMHASSAdapter:
             )
             return False  # pragma: no cover
 
+    async def _populate_per_trip_cache_entry(
+        self,
+        trip: dict[str, Any],
+        trip_id: str,
+        charging_power_kw: float,
+        soc_current: float,
+        hora_regreso: Optional[datetime],
+    ) -> None:
+        """Build and cache per-trip EMHASS parameters.
+
+        Encapsulates the logic for assigning trip index, calculating charging windows,
+        and populating the _cached_per_trip_params dictionary. This eliminates
+        duplicate code that was causing logic drift (e.g., recurring deadline bug).
+
+        Args:
+            trip: Trip dictionary.
+            trip_id: Trip ID.
+            charging_power_kw: Charging power in kW.
+            soc_current: Current SOC percentage (or fallback 50.0).
+            hora_regreso: Return time from presence_monitor or None.
+        """
+        # Assign index if not already assigned
+        if trip_id not in self._index_map:
+            await self.async_assign_index_to_trip(trip_id)
+        emhass_index = self._index_map.get(trip_id, -1)
+
+        # Ensure soc_current has a fallback (BUG FIX: task 2.17)
+        if soc_current is None:
+            soc_current = 50.0
+
+        # Calculate per-trip params with charging windows
+        kwh_needed = trip.get("kwh", 0.0)
+        deadline_str = trip.get("datetime")
+
+        if isinstance(deadline_str, str):
+            deadline_dt = datetime.fromisoformat(deadline_str)
+        else:  # pragma: no cover - fallback for non-string deadline
+            deadline_dt = deadline_str or datetime.now()
+
+        # Calculate charging windows for def_start_timestep
+        charging_windows = calculate_multi_trip_charging_windows(
+            trips=[(deadline_dt, trip)],
+            soc_actual=soc_current,
+            hora_regreso=hora_regreso,
+            charging_power_kw=charging_power_kw,
+            duration_hours=6.0,
+        )
+
+        def_start_timestep = 0
+        if charging_windows:
+            inicio_ventana = charging_windows[0].get("inicio_ventana")
+            if inicio_ventana:
+                delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
+                def_start_timestep = max(0, min(int(delta_hours), 168))
+
+        hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
+        def_end_timestep = min(int(max(0, hours_available)), 168)
+        total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
+        power_watts = charging_power_kw * 1000
+        power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
+
+        # Cache per-trip params
+        self._cached_per_trip_params[trip_id] = {
+            "def_total_hours": round(total_hours, 2),
+            "P_deferrable_nom": round(power_watts, 0),
+            "p_deferrable_nom": round(power_watts, 0),
+            "def_start_timestep": def_start_timestep,
+            "def_end_timestep": def_end_timestep,
+            "power_profile_watts": power_profile,
+            "def_total_hours_array": [round(total_hours, 2)],
+            "p_deferrable_nom_array": [round(power_watts, 0)],
+            "def_start_timestep_array": [def_start_timestep],
+            "def_end_timestep_array": [def_end_timestep],
+            "p_deferrable_matrix": [power_profile],
+            "trip_id": trip_id,
+            "emhass_index": emhass_index,
+            "kwh_needed": kwh_needed,
+            "deadline": deadline_str,
+            "activo": True,
+        }
+
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a trip from deferrable load configuration."""
         try:
@@ -553,62 +634,9 @@ class EMHASSAdapter:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
-
-            # Assign index if not already assigned
-            if trip_id not in self._index_map:
-                await self.async_assign_index_to_trip(trip_id)
-            emhass_index = self._index_map.get(trip_id, -1)
-
-            # Calculate per-trip params with charging windows
-            kwh_needed = trip.get("kwh", 0.0)
-            deadline_str = trip.get("datetime")
-
-            if isinstance(deadline_str, str):
-                deadline_dt = datetime.fromisoformat(deadline_str)
-            else:  # pragma: no cover - fallback for non-string deadline
-                deadline_dt = deadline_str or datetime.now()
-
-            # Calculate charging windows for def_start_timestep
-            charging_windows = calculate_multi_trip_charging_windows(
-                trips=[(deadline_dt, trip)],
-                soc_actual=soc_current,
-                hora_regreso=hora_regreso,
-                charging_power_kw=charging_power_kw,
-                duration_hours=6.0,
+            await self._populate_per_trip_cache_entry(
+                trip, trip_id, charging_power_kw, soc_current, hora_regreso
             )
-
-            def_start_timestep = 0
-            if charging_windows:
-                inicio_ventana = charging_windows[0].get("inicio_ventana")
-                if inicio_ventana:
-                    delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
-                    def_start_timestep = max(0, min(int(delta_hours), 168))
-
-            hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
-            def_end_timestep = min(int(max(0, hours_available)), 168)
-            total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
-            power_watts = charging_power_kw * 1000
-            power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
-
-            # Cache per-trip params
-            self._cached_per_trip_params[trip_id] = {
-                "def_total_hours": round(total_hours, 2),
-                "P_deferrable_nom": round(power_watts, 0),
-                "p_deferrable_nom": round(power_watts, 0),
-                "def_start_timestep": def_start_timestep,
-                "def_end_timestep": def_end_timestep,
-                "power_profile_watts": power_profile,
-                "def_total_hours_array": [round(total_hours, 2)],
-                "p_deferrable_nom_array": [round(power_watts, 0)],
-                "def_start_timestep_array": [def_start_timestep],
-                "def_end_timestep_array": [def_end_timestep],
-                "p_deferrable_matrix": [power_profile],
-                "trip_id": trip_id,
-                "emhass_index": emhass_index,
-                "kwh_needed": kwh_needed,
-                "deadline": deadline_str,
-                "activo": True,
-            }
 
         # Calculate aggregated power profile and schedule for all trips
         power_profile = self._calculate_power_profile_from_trips(
@@ -797,98 +825,33 @@ class EMHASSAdapter:
         # and avoids redundant I/O calls.
         soc_current = await self._get_current_soc()
 
+        # BUG 4 FIX: Get hora_regreso ONCE before the loop (not per-trip)
+        # Inject presence_monitor from coordinator if not already cached
+        if self._presence_monitor is None and coordinator is not None:
+            trip_manager = getattr(coordinator, "_trip_manager", None)
+            if trip_manager and hasattr(trip_manager, "vehicle_controller"):
+                vc = trip_manager.vehicle_controller
+                if vc and hasattr(vc, "_presence_monitor"):
+                    self._presence_monitor = vc._presence_monitor
+
+        hora_regreso = None
+        if self._presence_monitor:
+            try:
+                hora_regreso = await self._presence_monitor.async_get_hora_regreso()
+            except Exception:  # pragma: no cover - defensive: presence monitor unavailable
+                hora_regreso = None
+
         # FR-4: Cache per-trip EMHASS params with proper charging window computation
+        # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
+        # BUG 4 FIX: Use injected presence_monitor with async_get_hora_regreso()
+        # Note: soc_current and hora_regreso already fetched once before loop
         for trip in trips:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
-
-            # BUG FIX: Assign index BEFORE reading from map (was causing -1 for new trips)
-            # This ensures new trips get their real index (0,1,2...) not -1
-            if trip_id not in self._index_map:
-                await self.async_assign_index_to_trip(trip_id)
-            emhass_index = self._index_map.get(trip_id, -1)
-
-            # Calculate per-trip EMHASS parameters with all 10 keys
-            kwh_needed = trip.get("kwh", 0.0)
-            deadline_str = trip.get("datetime")
-
-            if isinstance(deadline_str, str):
-                deadline_dt = datetime.fromisoformat(deadline_str)
-            else:
-                deadline_dt = deadline_str or datetime.now()
-
-            # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
-            # BUG 4 FIX: Use injected presence_monitor with async_get_hora_regreso()
-            # Note: soc_current already fetched once before loop (task 2.17 fix)
-
-            # Inject presence_monitor from coordinator (done once before cache loop)
-            if self._presence_monitor is None and coordinator is not None:
-                trip_manager = getattr(coordinator, "_trip_manager", None)
-                if trip_manager and hasattr(trip_manager, "vehicle_controller"):
-                    vc = trip_manager.vehicle_controller
-                    if vc and hasattr(vc, "_presence_monitor"):
-                        self._presence_monitor = vc._presence_monitor
-
-            hora_regreso = None
-            if self._presence_monitor:
-                try:
-                    hora_regreso = await self._presence_monitor.async_get_hora_regreso()
-                except Exception:
-                    hora_regreso = None
-
-            # Create single-trip charging window to compute proper def_start_timestep
-            if soc_current is None:
-                soc_current = 50.0
-            charging_windows = calculate_multi_trip_charging_windows(
-                trips=[(deadline_dt, trip)],
-                soc_actual=soc_current,
-                hora_regreso=hora_regreso,
-                charging_power_kw=charging_power_kw,
-                duration_hours=6.0,
+            await self._populate_per_trip_cache_entry(
+                trip, trip_id, charging_power_kw, soc_current, hora_regreso
             )
-
-            # Extract def_start_timestep from charging window
-            def_start_timestep = 0
-            if charging_windows:
-                inicio_ventana = charging_windows[0].get("inicio_ventana")
-                if inicio_ventana:
-                    delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
-                    def_start_timestep = max(0, min(int(delta_hours), 168))
-
-            # Calculate def_end_timestep (hours from now to deadline)
-            hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
-            def_end_timestep = min(int(max(0, hours_available)), 168)
-
-            # Calculate other params
-            total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
-            power_watts = charging_power_kw * 1000
-
-            # Calculate power profile for this trip
-            power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
-
-            # Store per-trip EMHASS parameters with all required keys
-            # Dual format: singular keys for TripEmhassSensor, _array keys for aggregated sensor
-            self._cached_per_trip_params[trip_id] = {
-                # Singular keys - used by TripEmhassSensor per-trip display
-                "def_total_hours": round(total_hours, 2),
-                "P_deferrable_nom": round(power_watts, 0),  # uppercase P for backwards compatibility
-                "p_deferrable_nom": round(power_watts, 0),  # lowercase for new code
-                "def_start_timestep": def_start_timestep,
-                "def_end_timestep": def_end_timestep,
-                "power_profile_watts": power_profile,
-                # Array keys - used by EmhassDeferrableLoadSensor aggregated display
-                "def_total_hours_array": [round(total_hours, 2)],  # Single element array
-                "p_deferrable_nom_array": [round(power_watts, 0)],  # Single element array
-                "def_start_timestep_array": [def_start_timestep],  # Single element array
-                "def_end_timestep_array": [def_end_timestep],  # Single element array
-                "p_deferrable_matrix": [power_profile],  # Single row matrix
-                "trip_id": trip_id,
-                "emhass_index": emhass_index,
-                "kwh_needed": kwh_needed,
-                "deadline": deadline_str,
-                "activo": True,
-            }
 
         # Update the template sensor
         sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"

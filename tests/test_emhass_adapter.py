@@ -873,6 +873,132 @@ async def test_async_publish_all_deferrable_loads_populates_per_trip_cache(hass,
 
 
 # =============================================================================
+# BUG #8/#15: RECURRING TRIPS CACHE BUG - Should FAIL before fix
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_recurring_trip_cache_builder_has_valid_deadline(mock_store, hass):
+    """RECURRING TRIP BUG: Cache builder should calculate deadline from day/time.
+
+    BUG DESCRIPTION:
+    When async_publish_all_deferrable_loads() processes a recurring trip:
+    1. async_publish_deferrable_load() WORKS - it calculates deadline_dt from dia_semana/hora
+    2. BUT the per-trip cache builder (lines 562-611) FAILS - it reads trip["datetime"] which doesn't exist
+
+    For recurring trips:
+    - TRIP DICT: {"id": "rec_lunes_001", "tipo": "recurrente", "dia_semana": "lunes", "hora": "09:00", "kwh": 10.0}
+    - NO "datetime" FIELD EXISTS
+
+    CACHE BUILDER BUG (lines 564-569):
+        deadline_str = trip.get("datetime")  # None for recurring trips!
+        if isinstance(deadline_str, str):
+            deadline_dt = datetime.fromisoformat(deadline_str)
+        else:
+            deadline_dt = deadline_str or datetime.now()  # FALLS BACK TO NOW!
+
+    RESULT: def_end_timestep = 0, deadline = datetime.now() (bogus!)
+
+    This test MUST FAIL before the fix because the cache builder doesn't handle recurring trips.
+
+    EXPECTED BEHAVIOR AFTER FIX:
+    - deadline_dt should be calculated from dia_semana/hora (like async_publish_deferrable_load does)
+    - def_end_timestep should be > 0 (hours until deadline)
+    - deadline attribute should be the ISO string of the calculated deadline
+    """
+    from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+    from datetime import datetime as dt, timedelta
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.runtime_data = MockRuntimeData()
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Mock coordinator - REQUIRED for cache builder to run
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Mock _get_current_soc - REQUIRED for charging window calculation
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_hora_regreso - REQUIRED for charging window calculation
+        adapter._get_hora_regreso = AsyncMock(return_value=None)
+
+        # CRITICAL: Create a REAL recurring trip (with "tipo": "recurrente")
+        # NO "datetime" field - recurring trips use dia_semana/hora
+        # IMPORTANT: Use Spanish day names as the codebase expects them
+        recurring_trip = {
+            "id": "rec_lunes_001",
+            "tipo": TRIP_TYPE_RECURRING,  # This marks it as recurring
+            "dia_semana": "lunes",  # Spanish day name (codebase expects Spanish)
+            "hora": "09:00",
+            "kwh": 10.0,
+            "descripcion": "Recurring Monday Trip",
+            "activo": True,
+        }
+
+        # Mock async_publish_deferrable_load to succeed (skip index assignment)
+        # BUT we need to ensure the cache builder still runs
+        async def mock_publish_deferrable_load(trip):
+            # Simulate what the real function does - assign index
+            trip_id = trip.get("id")
+            if trip_id not in adapter._index_map:
+                adapter._index_map[trip_id] = len(adapter._index_map)
+            return True
+
+        adapter.async_publish_deferrable_load = mock_publish_deferrable_load
+
+        # Publish trips - this triggers both async_publish_deferrable_load AND cache builder
+        await adapter.async_publish_all_deferrable_loads([recurring_trip])
+
+        # ==================================================================
+        # BUG VERIFICATION: Check if cache builder calculated deadline correctly
+        # ==================================================================
+
+        # The bug: cache builder falls back to datetime.now() because trip["datetime"] is None
+        assert "rec_lunes_001" in adapter._cached_per_trip_params, (
+            f"Cache should be populated. Expected key 'rec_lunes_001' but got: {list(adapter._cached_per_trip_params.keys())}"
+        )
+
+        params = adapter._cached_per_trip_params["rec_lunes_001"]
+
+        # THE BUG: deadline will be datetime.now() instead of calculated from day/time
+        # This assertion will FAIL before fix, PASS after fix
+        deadline_str = params.get("deadline")
+        assert deadline_str is not None, (
+            "BUG: deadline is None in cache. Recurring trip should have deadline calculated from dia_semana/hora"
+        )
+
+        # THE BUG: deadline will be "now" (0 hours available) instead of future
+        # This assertion will FAIL before fix, PASS after fix
+        deadline_dt = dt.fromisoformat(deadline_str.replace('Z', '+00:00')) if isinstance(deadline_str, str) else deadline_str
+        hours_available = (deadline_dt - dt.now()).total_seconds() / 3600
+        assert hours_available > 1, (
+            f"BUG: def_end_timestep is bogus. deadline={deadline_str}, hours_available={hours_available:.2f}. "
+            f"Recurring trip deadline should be calculated from dia_semana/hora, not datetime.now(). "
+            f"Expected hours_available > 1, got {hours_available:.2f}. "
+            f"This means def_end_timestep will be 0 or negative (clamped to 0)."
+        )
+
+        # THE BUG: def_end_timestep will be 0 because deadline is "now"
+        # This assertion will FAIL before fix, PASS after fix
+        def_end_timestep = params.get("def_end_timestep", -999)
+        assert def_end_timestep > 0, (
+            f"BUG: def_end_timestep={def_end_timestep}. "
+            f"Recurring trip should have hours_until_deadline > 0, but cache builder used datetime.now() as deadline. "
+            f"This is BUG #8/#15: cache builder doesn't handle recurring trips (no datetime field)."
+        )
+
+
+# =============================================================================
 # SHELL COMMAND VERIFICATION TEST
 # =============================================================================
 
