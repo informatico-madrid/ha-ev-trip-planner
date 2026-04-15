@@ -18,12 +18,10 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
     """TripEmhassSensor.native_value returns emhass_index from per_trip_emhass_params.
 
-    This is the RED test for task 1.23:
+    This is the GREEN test for task 1.23:
     - Create stub coordinator.data with per_trip_emhass_params
     - Trip has emhass_index=2
     - Sensor.native_value should return 2
-    - Current: TripEmhassSensor class does not exist yet
-    - Test must FAIL to confirm the feature doesn't exist
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -83,11 +81,9 @@ async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
 async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssistant):
     """TripEmhassSensor.extra_state_attributes returns all 9 attributes.
 
-    This is the RED test for task 1.25:
+    This is the GREEN test for task 1.25:
     - Create sensor with full per_trip_emhass_params dict
     - Assert extra_state_attributes has all 9 keys
-    - Current: TripEmhassSensor doesn't have extra_state_attributes
-    - Test must FAIL to confirm the feature doesn't exist
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -164,11 +160,9 @@ async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssista
 async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
     """TripEmhassSensor returns zeroed attrs when trip not found.
 
-    This is the RED test for task 1.27:
+    This is the GREEN test for task 1.27:
     - Create sensor with non-existent trip_id
     - Assert extra_state_attributes returns zeroed values
-    - Current: _get_params() may return None/empty, _zeroed_attributes() not called
-    - Test must FAIL to confirm the feature doesn't work yet
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -236,11 +230,9 @@ async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
 async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
     """TripEmhassSensor.device_info uses vehicle_id identifiers.
 
-    This is the RED test for task 1.29:
+    This is the GREEN test for task 1.29:
     - Create sensor with vehicle_id="test_vehicle"
     - Assert device_info.identifiers={(DOMAIN, vehicle_id)}
-    - Current: device_info not yet implemented
-    - Test must FAIL to confirm the feature doesn't exist
     """
 
     config = {
@@ -308,12 +300,10 @@ async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
 async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistant):
     """async_create_trip_emhass_sensor returns False when entry not found.
 
-    This is the RED test for task 1.33:
+    This is the GREEN test for task 1.33:
     - Call async_create_trip_emhass_sensor with non-existent entry_id
     - Assert returns False
     - Assert callback NOT called
-    - Current: Function exists with entry lookup guard (task 1.32)
-    - Test should PASS if guard is implemented
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
@@ -365,13 +355,11 @@ async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
 async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant):
     """async_create_trip_emhass_sensor calls async_add_entities with TripEmhassSensor.
 
-    This is the RED test for task 1.31:
+    This is the GREEN test for task 1.31:
     - Create mock runtime_data with sensor_async_add_entities callback
     - Call async_create_trip_emhass_sensor
     - Assert callback called with list containing TripEmhassSensor instance
     - Assert function returns True
-    - Current: async_create_trip_emhass_sensor function does not exist yet
-    - Test must FAIL to confirm the feature doesn't exist
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from custom_components.ev_trip_planner.sensor import TripEmhassSensor
@@ -436,13 +424,11 @@ async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
 async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant):
     """async_remove_trip_emhass_sensor removes from entity registry.
 
-    This is the RED test for task 1.35:
+    This is the GREEN test for task 1.35:
     - Create mock entity_registry with matching entry
     - Call async_remove_trip_emhass_sensor
     - Assert registry.async_remove called with correct entity_id
     - Assert returns True
-    - Current: async_remove_trip_emhass_sensor function does not exist yet
-    - Test must FAIL to confirm the feature doesn't exist
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
@@ -497,11 +483,9 @@ async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
 async def test_remove_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistant):
     """async_remove_trip_emhass_sensor returns False when sensor not found.
 
-    This is the RED test for task 1.37:
+    This is the GREEN test for task 1.37:
     - Call async_remove_trip_emhass_sensor for non-existent sensor
     - Assert returns False
-    - Current: Function may not exist or may not handle not-found case
-    - Test should PASS if error handling implemented
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
