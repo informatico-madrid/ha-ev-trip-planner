@@ -560,7 +560,7 @@ class TestAsyncUnloadEntry:
     async def test_unload_entry_calls_cleanup_before_platforms_unload(self, mock_hass):
         """Test that async_unload_entry calls emhass_adapter.async_cleanup_vehicle_indices before unloading platforms.
 
-        This is a RED test that documents the expected behavior: emhass_adapter cleanup
+        This test documents the expected behavior: emhass_adapter cleanup
         MUST be called before async_unload_platforms to ensure entity state still exists
         when async_remove is called.
         """

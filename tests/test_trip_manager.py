@@ -1262,7 +1262,7 @@ class TestTripManagerAsyncAddRecurringTrip:
     ):
         """Test that async_add_recurring_trip calls sensor.py async_create_trip_emhass_sensor.
 
-        RED test for task 1.52: Verify trip_manager creates EMHASS sensor alongside TripSensor.
+        Test for task 1.52: Verify trip_manager creates EMHASS sensor alongside TripSensor.
 
         Expected behavior:
         - trip_manager.async_add_recurring_trip should call sensor.async_create_trip_emhass_sensor
@@ -1327,7 +1327,7 @@ class TestTripManagerAsyncAddPunctualTrip:
     ):
         """Test that async_add_punctual_trip calls sensor.py async_create_trip_emhass_sensor.
 
-        RED test for task 1.54: Verify trip_manager creates EMHASS sensor alongside TripSensor
+        Test for task 1.54: Verify trip_manager creates EMHASS sensor alongside TripSensor
         for punctual trips.
 
         Expected behavior:
@@ -1408,7 +1408,7 @@ class TestTripManagerAsyncDeleteTrip:
     ):
         """Test that async_delete_trip calls sensor.py async_remove_trip_emhass_sensor.
 
-        RED test for task 1.56: Verify trip_manager removes EMHASS sensor alongside TripSensor
+        Test for task 1.56: Verify trip_manager removes EMHASS sensor alongside TripSensor
         when deleting trips.
 
         Expected behavior:
@@ -1753,7 +1753,7 @@ class TestTripManagerLoadErrors:
 class TestRuntimeDataAttributeAccess:
     """Tests for proper EVTripRuntimeData attribute access (not dict-style .get()).
 
-    RED tests for tasks 2.7 and 2.8: Verify that runtime_data access uses attribute
+    Tests for tasks 2.7 and 2.8: Verify that runtime_data access uses attribute
     access (entry.runtime_data.coordinator) instead of dict-style .get().
 
     EVTripRuntimeData is a @dataclass with attributes, NOT a dict. Using .get()
@@ -1766,7 +1766,7 @@ class TestRuntimeDataAttributeAccess:
     ):
         """Test that async_add_recurring_trip accesses runtime_data.coordinator as attribute.
 
-        RED test for task 2.7: This test FAILS with the current implementation.
+        Test for task 2.7: This test FAILS with the current implementation.
 
         Expected behavior:
         - entry.runtime_data is an EVTripRuntimeData dataclass

@@ -5,7 +5,8 @@
 **Versión actual**: 0.4.2-dev  
 **Fase de desarrollo**: Milestone 4.0.1 planificado — pendiente de inicio  
 **Target Release**: v1.0.0 (Q2 2026)  
-**Tests**: 793 Python (pytest) + 10 E2E (Playwright) pasando  
+**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) pasando
+**Quality Assurance**: Mutation testing (mutmut) configurado para Milestone 4.0.1  
 **Gaps detectados**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
 
 ---
@@ -148,11 +149,23 @@ P_deferrable:
 - [ ] Validar hipótesis de causas en [`doc/gaps/gaps.md`](doc/gaps/gaps.md)
 - [ ] Confirmar que los gaps #5 y #8 son reproducibles
 - [ ] Verificar que el fix de arquitectura (#8) no rompe la integración EMHASS existente
+- [ ] **Configurar mutation testing (mutmut)** en CI/CD para validar calidad de tests
+
+### Mejoras de Testing (NUEVO para M4.0.1)
+
+- **🧪 Mutation Testing (mutmut)**
+  - **Objetivo**: Añadir mutation testing al pipeline CI/CD para validar que los tests detectan cambios en el código
+  - **Beneficio**: Detectar tests que no son lo suficientemente estrictos (tests que pasan aunque el código sea incorrecto)
+  - **Configuración**: Añadir `mutmut` a `pyproject.toml`, configurar `test_command` con los tests críticos
+  - **Integración CI**: Ejecutar mutmut en PRs de alta prioridad, resultados solo informativos en PRs menores
+  - **Impacto**: Mejorar calidad de tests y confianza en el suite existente
+  - **Archivos**: `pyproject.toml`, `.github/workflows/ci.yml`
 
 ### Estimación
 - **Tiempo**: 1-2 semanas
 - **Complejidad**: Media-Alta (la refactorización del sensor EMHASS requiere cuidado)
 - **Tests**: TDD — añadir tests antes de implementar fixes
+- **Mutation Testing**: Configurar mutmut, ejecutar baseline, integrar en CI
 
 ---
 

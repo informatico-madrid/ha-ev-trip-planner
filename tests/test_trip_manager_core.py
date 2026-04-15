@@ -821,7 +821,7 @@ async def test_publish_deferrable_loads_no_adapter(mock_hass, vehicle_id):
 async def test_publish_deferrable_loads_public(mock_hass, vehicle_id):
     """Test publish_deferrable_loads is public (no underscore prefix).
 
-    Task 1.9 RED test: expects manager to have public publish_deferrable_loads method.
+    Task 1.9 test: expects manager to have public publish_deferrable_loads method.
     Currently the method is named _publish_deferrable_loads (private).
     """
     manager = TripManager(mock_hass, vehicle_id)

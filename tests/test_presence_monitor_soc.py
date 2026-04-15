@@ -585,7 +585,7 @@ async def test_hora_regreso_persistence_across_monitor_lifecycle(
 async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_manager):
     """Test _async_handle_soc_change calls trip_manager.publish_deferrable_loads().
 
-    Task 1.12 RED test: expects SOC change to route through publish_deferrable_loads.
+    Task 1.12 test: expects SOC change to route through publish_deferrable_loads.
     Currently the code calls async_generate_* instead which doesn't cache data.
     """
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor

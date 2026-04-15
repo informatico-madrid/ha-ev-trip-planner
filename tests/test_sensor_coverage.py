@@ -20,7 +20,7 @@ import pytest
 async def test_aggregated_sensor_matrix():
     """EmhassDeferrableLoadSensor.extra_state_attributes includes p_deferrable_matrix.
 
-    This is the RED test for task 1.39:
+    This is the test for task 1.39:
     - Create stub coordinator.data with per_trip_emhass_params containing 2 active trips
     - Each trip has p_deferrable_matrix with 168 elements
     - Assert extra_state_attributes["p_deferrable_matrix"] is list[list[float]] with 2 rows
@@ -770,7 +770,7 @@ class TestEmhassDeferrableLoadSensor:
 async def test_aggregated_sensor_array_lengths_match():
     """All array attributes have same length as number_of_deferrable_loads.
 
-    This is the RED test for task 1.41:
+    This is the test for task 1.41:
     - Create stub coordinator.data with 2 active trips
     - Each trip has number_of_deferrable_loads = 2
     - Verify p_deferrable_matrix has 2 rows
@@ -887,7 +887,7 @@ async def test_aggregated_sensor_array_lengths_match():
 async def test_aggregated_sensor_excludes_inactive():
     """Aggregated sensor excludes inactive trips from matrix.
 
-    This is the RED test for task 1.43:
+    This is the test for task 1.43:
     - Create stub coordinator.data with 2 active + 1 inactive trip
     - Assert matrix has 2 rows (not 3), inactive trip excluded
     - Currently: inactive trips may still be included
@@ -1244,7 +1244,7 @@ class TestGetManager:
 async def test_get_active_trips_ordered_sorting():
     """Aggregated sensor sorts trips by emhass_index ascending.
 
-    This is the RED test for task 1.45:
+    This is the test for task 1.45:
     - Create stub coordinator.data with 3 trips having indices [3, 1, 2]
     - Assert output matrix rows are in order 1, 2, 3
     - Currently: trips may not be sorted correctly

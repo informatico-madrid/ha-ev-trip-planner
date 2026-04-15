@@ -275,7 +275,7 @@ class TestSensorAsyncAddedToHassRestore:
 async def test_coordinator_data_emhass_cache(hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter):
     """coordinator.data includes EMHASS fields from adapter cache.
 
-    Task 1.18 RED test: expects coordinator.data to have emhass_power_profile,
+    Task 1.18 test: expects coordinator.data to have emhass_power_profile,
     emhass_deferrables_schedule, and emhass_status populated from adapter cache.
     """
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator

@@ -1227,7 +1227,7 @@ class TestGetCachedOptimizationResults:
 async def test_get_cached_results_includes_per_trip_params(mock_store):
     """get_cached_optimization_results includes per_trip_emhass_params.
 
-    This is the RED test for task 1.17:
+    This is the test for task 1.17:
     - Populates _cached_per_trip_params via publish_deferrable_loads
     - Calls get_cached_optimization_results()
     - Expects returned dict to have key 'per_trip_emhass_params'
@@ -1273,7 +1273,7 @@ async def test_get_cached_results_includes_per_trip_params(mock_store):
         # Get cached results
         result = adapter.get_cached_optimization_results()
 
-        # This key should exist but doesn't yet (RED test)
+        # This key should exist
         assert "per_trip_emhass_params" in result, (
             "get_cached_optimization_results should include 'per_trip_emhass_params' key "
             "with the same data as _cached_per_trip_params"
@@ -1313,7 +1313,7 @@ async def test_get_assigned_index_returns_index_when_assigned(hass, mock_store):
 async def test_inicio_ventana_to_timestep_clamped(mock_store):
     """Verifies timestep clamped to 0-168 range.
 
-    This is the RED test for task 1.19:
+    This is the test for task 1.19:
     - Tests that def_start_timestep is clamped to [0, 168] range
     - When window starts 200 hours from now, should clamp to 168
     - When window started 5 hours ago, should clamp to 0
@@ -1375,7 +1375,7 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
 async def test_inicio_ventana_to_timestep_no_window(mock_store):
     """Verifies defaults to 0 when no window returned.
 
-    This is the RED test for task 1.19:
+    This is the test for task 1.19:
     - When calculate_multi_trip_charging_windows returns empty list
     - def_start_timestep should default to 0
     - Current: implementation may crash or behave incorrectly
@@ -4515,7 +4515,7 @@ async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
 async def test_update_charging_power_reads_options_first(hass, mock_store):
     """update_charging_power reads entry.options first, NOT entry.data.
 
-    This is the RED test for Gap #5 hotfix:
+    This is the test for Gap #5 hotfix:
     - entry.options = {"charging_power_kw": 3.6}
     - entry.data = {"charging_power_kw": 11}
     - Expected: adapter reads 3.6 (from options)
@@ -4683,7 +4683,7 @@ async def test_update_charging_power_zero_not_falsy(hass, mock_store):
 async def test_empty_published_trips_guard(hass, mock_store):
     """_handle_config_entry_update reloads trips from trip_manager when _published_trips is empty.
 
-    This is the RED test for Gap #5 hotfix:
+    This is the test for Gap #5 hotfix:
     - adapter._published_trips = []
     - coordinator.trip_manager has trips in storage
     - Expected: trips are reloaded before republishing
@@ -4765,7 +4765,7 @@ async def test_empty_published_trips_guard(hass, mock_store):
 async def test_get_current_soc_reads_sensor(mock_store):
     """_get_current_soc reads SOC from configured sensor.
 
-    This is the RED test for per-trip params cache:
+    This is the test for per-trip params cache:
     - config has soc_sensor="sensor.estimated_soc"
     - hass.states.get returns state with state="65.0"
     - Expected: returns 65.0
@@ -4855,7 +4855,7 @@ async def test_get_current_soc_sensor_unavailable(mock_store):
 async def test_cached_per_trip_params_assignment(mock_store):
     """_publish_trip_data populates _cached_per_trip_params.
 
-    This is the RED test for per-trip params cache:
+    This is the test for per-trip params cache:
     - publish_deferrable_loads publishes trips
     - Expected: _cached_per_trip_params populated with per_trip_emhass_params
     - Current: _cached_per_trip_params assignment does not exist yet
@@ -4953,7 +4953,7 @@ async def test_cached_per_trip_params_assignment(mock_store):
 async def test_get_hora_regreso_calls_presence_monitor(mock_store):
     """_get_hora_regreso returns datetime from presence_monitor.get_return_time().
 
-    This is the RED test for per-trip params cache:
+    This is the test for per-trip params cache:
     - adapter has presence_monitor with vehicle_id="test_vehicle"
     - Mock returns datetime(2026, 4, 12, 18, 30) from get_return_time()
     - Expected: returns that datetime
@@ -5005,7 +5005,7 @@ async def test_get_hora_regreso_calls_presence_monitor(mock_store):
 async def test_publish_deferrable_load_computes_start_timestep(mock_store):
     """async_publish_deferrable_load computes def_start_timestep from charging windows.
 
-    This is the RED test for task 1.13/FR-9c:
+    This is the test for task 1.13/FR-9c:
     - publish_deferrable_load currently hardcodes def_start_timestep: 0
     - Should compute from charging windows using calculate_multi_trip_charging_windows
     - Need to mock _get_current_soc, _get_hora_regreso for deterministic test
@@ -5088,7 +5088,7 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
 async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
     """publish_deferrable_loads caches per-trip params with 10 keys.
 
-    This is the RED test for task 1.15/FR-4:
+    This is the test for task 1.15/FR-4:
     - publish_deferrable_loads should cache per-trip params with keys:
       def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep,
       power_profile_watts, trip_id, emhass_index, kwh_needed, deadline, activo
@@ -5202,7 +5202,7 @@ async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
 async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
     """get_cached_optimization_results includes 'per_trip_emhass_params'.
 
-    This is the RED test for task 1.17/FR-4:
+    This is the test for task 1.17/FR-4:
     - get_cached_optimization_results should return dict with 'per_trip_emhass_params' key
     - Test must FAIL to confirm per_trip_emhass_params not yet in return dict
 
@@ -5547,7 +5547,7 @@ async def test_past_deadline_trip(mock_store):
 async def test_stale_cache_cleared_on_republish(mock_store):
     """Test that stale _cached_per_trip_params entries are cleared on re-publish.
 
-    This is the RED test for task 2.15:
+    This is the test for task 2.15:
     - Publish 2 trips → cache has {"trip_A": ..., "trip_B": ...}
     - Publish only 1 trip (trip_A) → cache should ONLY have trip_A
     - Current BUG: cache still has {"trip_A": ..., "trip_B": ...} ← trip_B is stale
