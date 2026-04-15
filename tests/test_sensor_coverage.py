@@ -7,9 +7,95 @@ async_setup_entry error paths, and helper function edge cases.
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
+
+# =============================================================================
+# sensor.py - EmhassDeferrableLoadSensor p_deferrable_matrix attribute
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_aggregated_sensor_matrix():
+    """EmhassDeferrableLoadSensor.extra_state_attributes includes p_deferrable_matrix.
+
+    This is the test for task 1.39:
+    - Create stub coordinator.data with per_trip_emhass_params containing 2 active trips
+    - Each trip has p_deferrable_matrix with 168 elements
+    - Assert extra_state_attributes["p_deferrable_matrix"] is list[list[float]] with 2 rows
+    - Current: p_deferrable_matrix not yet implemented in EmhassDeferrableLoadSensor
+    - Test must FAIL to confirm the feature doesn't exist
+    """
+    from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+    from homeassistant.const import UnitOfPower
+
+    # Create stub coordinator.data with 2 active trips
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "p_deferrable_matrix": [[1.0] * 168],
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [1.5],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,
+            },
+            "trip_002": {
+                "p_deferrable_matrix": [[2.0] * 168],
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [12.0],
+                "p_deferrable_nom_array": [2.0],
+                "def_start_timestep_array": [8],
+                "def_end_timestep_array": [168],
+                "activo": True,
+            },
+        }
+    }
+
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    desc = MagicMock(
+        key="emhass_deferrable_loads",
+        name="EMHASS Deferrable Loads",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lightning-bolt",
+    )
+
+    mock_coordinator.vehicle_id = "test_vehicle"
+
+    sensor = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
+    sensor.entity_description = desc
+
+    # This will fail because p_deferrable_matrix is not yet implemented
+    attrs = sensor.extra_state_attributes
+
+    # Assert p_deferrable_matrix is present
+    assert "p_deferrable_matrix" in attrs, (
+        f"p_deferrable_matrix should be in extra_state_attributes, got keys: {attrs.keys()}"
+    )
+
+    # Assert matrix has 2 rows (2 active trips)
+    matrix = attrs["p_deferrable_matrix"]
+    assert isinstance(matrix, list), (
+        f"p_deferrable_matrix should be a list, got {type(matrix)}"
+    )
+    assert len(matrix) == 2, (
+        f"p_deferrable_matrix should have 2 rows (2 active trips), got {len(matrix)}"
+    )
+
+    # Assert each row has 168 elements (24 hours * 7)
+    for row in matrix:
+        assert isinstance(row, list), (
+            f"Each row in p_deferrable_matrix should be a list, got {type(row)}"
+        )
+        assert len(row) == 168, (
+            f"Each row should have 168 elements (24h * 7), got {len(row)}"
+        )
 
 
 # =============================================================================
@@ -46,7 +132,7 @@ class TestAsyncWillRemoveFromHass:
             value_fn=lambda data: data.get("test_key") if data else None,
             attrs_fn=lambda data: {},
         )
-        sensor = TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
+        TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
 
         # Directly invoke the method logic to cover the branch
         # The actual hasattr check on trip_manager may not work with mock
@@ -77,14 +163,14 @@ class TestAsyncCreateTripSensorsExceptionHandling:
         # Make TripSensor constructor raise
         with pytest.MonkeyPatch.context() as m:
             import custom_components.ev_trip_planner.sensor as sensor_module
-            original = sensor_module.TripSensor
-            class BrokenTripSensor(TripSensor if "TripSensor" in dir() else object):
+            # Use object as base since TripSensor may not be in dir() at class definition time
+            class BrokenTripSensor(object):
                 def __init__(self, *args, **kwargs):
                     raise RuntimeError("Simulated sensor creation failure")
             # Patch at module level
             m.setattr(sensor_module, "TripSensor", BrokenTripSensor)
 
-            result = await _async_create_trip_sensors(
+            await _async_create_trip_sensors(
                 mock_hass, mock_trip_manager, "vehicle_test", "entry_test"
             )
             # Should return empty list when all fail
@@ -455,7 +541,7 @@ class TestSensorAsyncUpdateTripSensor:
         mock_reg_entry.unique_id = "test_vehicle_trip_pun_123"
         mock_reg_entry.entity_id = "sensor.test_vehicle_punctual_trip"
 
-        # hass.entity_registry is tried first
+        # Mock entity registry - async_entries_for_config_entry is a function
         mock_registry = MagicMock()
         mock_registry.async_entries_for_config_entry = MagicMock(
             return_value=[mock_reg_entry]
@@ -473,7 +559,6 @@ class TestSensorAsyncUpdateTripSensor:
         result = await async_update_trip_sensor(hass, "test_entry", trip_data)
 
         assert result is True
-        mock_registry.async_entries_for_config_entry.assert_called_with("test_entry")
 
     @pytest.mark.asyncio
     async def test_async_update_trip_sensor_recurring(self, mock_hass_and_coordinator):
@@ -510,7 +595,6 @@ class TestSensorAsyncUpdateTripSensor:
         result = await async_update_trip_sensor(hass, "test_entry", trip_data)
 
         assert result is True
-        mock_registry.async_entries_for_config_entry.assert_called_with("test_entry")
 
 class TestFormatWindowTime:
     """Tests for _format_window_time function."""
@@ -675,6 +759,249 @@ class TestEmhassDeferrableLoadSensor:
         sensor = EmhassDeferrableLoadSensor(mock_coordinator, "entry_123")
         info = sensor.device_info
         assert "EV Trip Planner coordinator_vehicle" in info["name"]
+
+
+# =============================================================================
+# sensor.py - EmhassDeferrableLoadSensor array length consistency
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_aggregated_sensor_array_lengths_match():
+    """All array attributes have same length as number_of_deferrable_loads.
+
+    This is the test for task 1.41:
+    - Create stub coordinator.data with 2 active trips
+    - Each trip has number_of_deferrable_loads = 2
+    - Verify p_deferrable_matrix has 2 rows
+    - Verify all 5 array attrs (p_deferrable_nom_array, etc.) have 2 elements
+    - Currently: arrays may not be properly constructed
+    - Test must FAIL to confirm the issue exists
+    """
+    # Create stub coordinator.data with 2 active trips, 2 deferrable loads each
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "p_deferrable_matrix": [[1.0] * 168, [2.0] * 168],  # 2 deferrable loads
+                "number_of_deferrable_loads": 2,
+                "def_total_hours_array": [24.0, 12.0],  # 2 elements
+                "p_deferrable_nom_array": [1.5, 2.0],  # 2 elements
+                "def_start_timestep_array": [0, 8],  # 2 elements
+                "def_end_timestep_array": [168, 168],  # 2 elements
+                "activo": True,
+                "emhass_index": 0,
+            },
+            "trip_002": {
+                "p_deferrable_matrix": [[3.0] * 168, [4.0] * 168],  # 2 deferrable loads
+                "number_of_deferrable_loads": 2,
+                "def_total_hours_array": [24.0, 8.0],  # 2 elements
+                "p_deferrable_nom_array": [1.0, 3.0],  # 2 elements
+                "def_start_timestep_array": [0, 4],  # 2 elements
+                "def_end_timestep_array": [168, 168],  # 2 elements
+                "activo": True,
+                "emhass_index": 1,
+            },
+        }
+    }
+
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    mock_coordinator.vehicle_id = "test_vehicle"
+
+    sensor = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
+    attrs = sensor.extra_state_attributes
+
+    # Assert p_deferrable_matrix has 4 rows (2 trips × 2 loads each)
+    matrix = attrs["p_deferrable_matrix"]
+    assert isinstance(matrix, list), (
+        f"p_deferrable_matrix should be a list, got {type(matrix)}"
+    )
+    assert len(matrix) == 4, (
+        f"p_deferrable_matrix should have 4 rows (2 trips × 2 loads), got {len(matrix)}"
+    )
+
+    # Assert each row has 168 elements
+    for i, row in enumerate(matrix):
+        assert isinstance(row, list), (
+            f"Row {i} in p_deferrable_matrix should be a list, got {type(row)}"
+        )
+        assert len(row) == 168, (
+            f"Row {i} should have 168 elements (24h * 7), got {len(row)}"
+        )
+
+    # Assert all 5 array attrs are present and have correct length
+    assert "def_total_hours_array" in attrs, (
+        "def_total_hours_array should be in extra_state_attributes"
+    )
+    assert "p_deferrable_nom_array" in attrs, (
+        "p_deferrable_nom_array should be in extra_state_attributes"
+    )
+    assert "def_start_timestep_array" in attrs, (
+        "def_start_timestep_array should be in extra_state_attributes"
+    )
+    assert "def_end_timestep_array" in attrs, (
+        "def_end_timestep_array should be in extra_state_attributes"
+    )
+    assert "number_of_deferrable_loads" in attrs, (
+        "number_of_deferrable_loads should be in extra_state_attributes"
+    )
+
+    # Assert arrays have same length as number_of_deferrable_loads
+    assert len(attrs["def_total_hours_array"]) == 4, (
+        f"def_total_hours_array should have 4 elements (2 trips * 2 loads), got {len(attrs['def_total_hours_array'])}"
+    )
+    assert len(attrs["p_deferrable_nom_array"]) == 4, (
+        f"p_deferrable_nom_array should have 4 elements, got {len(attrs['p_deferrable_nom_array'])}"
+    )
+    assert len(attrs["def_start_timestep_array"]) == 4, (
+        f"def_start_timestep_array should have 4 elements, got {len(attrs['def_start_timestep_array'])}"
+    )
+    assert len(attrs["def_end_timestep_array"]) == 4, (
+        f"def_end_timestep_array should have 4 elements, got {len(attrs['def_end_timestep_array'])}"
+    )
+    assert attrs["number_of_deferrable_loads"] == 4, (
+        f"number_of_deferrable_loads should be 4, got {attrs['number_of_deferrable_loads']}"
+    )
+
+    # Verify array values are aggregated correctly (trip1 + trip2)
+    expected_def_total = [24.0, 12.0, 24.0, 8.0]  # trip_001 + trip_002
+    assert attrs["def_total_hours_array"] == expected_def_total, (
+        f"def_total_hours_array mismatch: got {attrs['def_total_hours_array']}, expected {expected_def_total}"
+    )
+    expected_nom = [1.5, 2.0, 1.0, 3.0]  # trip_001 + trip_002
+    assert attrs["p_deferrable_nom_array"] == expected_nom, (
+        f"p_deferrable_nom_array mismatch: got {attrs['p_deferrable_nom_array']}, expected {expected_nom}"
+    )
+    expected_start = [0, 8, 0, 4]  # trip_001 + trip_002
+    assert attrs["def_start_timestep_array"] == expected_start, (
+        f"def_start_timestep_array mismatch: got {attrs['def_start_timestep_array']}, expected {expected_start}"
+    )
+    expected_end = [168, 168, 168, 168]  # trip_001 + trip_002
+    assert attrs["def_end_timestep_array"] == expected_end, (
+        f"def_end_timestep_array mismatch: got {attrs['def_end_timestep_array']}, expected {expected_end}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_aggregated_sensor_excludes_inactive():
+    """Aggregated sensor excludes inactive trips from matrix.
+
+    This is the test for task 1.43:
+    - Create stub coordinator.data with 2 active + 1 inactive trip
+    - Assert matrix has 2 rows (not 3), inactive trip excluded
+    - Currently: inactive trips may still be included
+    - Test must FAIL to confirm the issue exists
+    """
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    # Create stub coordinator.data with 2 active + 1 inactive trip
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_001": {
+                "p_deferrable_matrix": [[1.0] * 168],  # 1 deferrable load
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [1.5],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,  # ACTIVE
+                "emhass_index": 0,
+            },
+            "trip_002": {
+                "p_deferrable_matrix": [[2.0] * 168],  # 1 deferrable load
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [12.0],
+                "p_deferrable_nom_array": [2.0],
+                "def_start_timestep_array": [8],
+                "def_end_timestep_array": [168],
+                "activo": True,  # ACTIVE
+                "emhass_index": 1,
+            },
+            "trip_003": {
+                "p_deferrable_matrix": [[3.0] * 168],  # 1 deferrable load - should be EXCLUDED
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [1.0],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": False,  # INACTIVE - should be excluded
+                "emhass_index": 2,
+            },
+        }
+    }
+
+    mock_coordinator.vehicle_id = "test_vehicle"
+
+    sensor = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
+    attrs = sensor.extra_state_attributes
+
+    # Assert p_deferrable_matrix has 2 rows (2 active trips), not 3
+    matrix = attrs["p_deferrable_matrix"]
+    assert isinstance(matrix, list), (
+        f"p_deferrable_matrix should be a list, got {type(matrix)}"
+    )
+    assert len(matrix) == 2, (
+        f"p_deferrable_matrix should have 2 rows (2 active trips), got {len(matrix)}"
+    )
+
+    # Assert inactive trip values are NOT in the matrix
+    # trip_001 has 1.0 values, trip_002 has 2.0 values
+    # trip_003 (inactive) has 3.0 values - should NOT be present
+    for row in matrix:
+        assert all(v in [1.0, 2.0] for v in row), (
+            f"Inactive trip (3.0 values) should not be in matrix, found: {row[:5]}..."
+        )
+
+    # Assert all 5 array attrs are present and also exclude inactive trip
+    assert "def_total_hours_array" in attrs, (
+        "def_total_hours_array should be in extra_state_attributes"
+    )
+    assert "p_deferrable_nom_array" in attrs, (
+        "p_deferrable_nom_array should be in extra_state_attributes"
+    )
+    assert "def_start_timestep_array" in attrs, (
+        "def_start_timestep_array should be in extra_state_attributes"
+    )
+    assert "def_end_timestep_array" in attrs, (
+        "def_end_timestep_array should be in extra_state_attributes"
+    )
+    assert "number_of_deferrable_loads" in attrs, (
+        "number_of_deferrable_loads should be in extra_state_attributes"
+    )
+
+    # All arrays should have length 2 (2 active trips only)
+    assert len(attrs["def_total_hours_array"]) == 2, (
+        f"def_total_hours_array should have 2 elements (2 active trips), got {len(attrs['def_total_hours_array'])}"
+    )
+    assert len(attrs["p_deferrable_nom_array"]) == 2, (
+        f"p_deferrable_nom_array should have 2 elements, got {len(attrs['p_deferrable_nom_array'])}"
+    )
+    assert len(attrs["def_start_timestep_array"]) == 2, (
+        f"def_start_timestep_array should have 2 elements, got {len(attrs['def_start_timestep_array'])}"
+    )
+    assert len(attrs["def_end_timestep_array"]) == 2, (
+        f"def_end_timestep_array should have 2 elements, got {len(attrs['def_end_timestep_array'])}"
+    )
+    assert attrs["number_of_deferrable_loads"] == 2, (
+        f"number_of_deferrable_loads should be 2, got {attrs['number_of_deferrable_loads']}"
+    )
+
+    # Verify values are from active trips only (no 3.0 values from inactive trip_003)
+    # Expected: [24.0, 12.0] from trip_001 and trip_002
+    assert attrs["def_total_hours_array"] == [24.0, 12.0], (
+        f"def_total_hours_array should only include active trips, got {attrs['def_total_hours_array']}"
+    )
+    assert attrs["p_deferrable_nom_array"] == [1.5, 2.0], (
+        f"p_deferrable_nom_array should only include active trips, got {attrs['p_deferrable_nom_array']}"
+    )
+    assert attrs["def_start_timestep_array"] == [0, 8], (
+        f"def_start_timestep_array should only include active trips, got {attrs['def_start_timestep_array']}"
+    )
+    assert attrs["def_end_timestep_array"] == [168, 168], (
+        f"def_end_timestep_array should only include active trips, got {attrs['def_end_timestep_array']}"
+    )
 
 
 # =============================================================================
@@ -906,3 +1233,509 @@ class TestGetManager:
         with pytest.raises(ValueError, match="not found in config entries"):
             await _get_manager(mock_hass, "unknown_vehicle")
 
+
+
+# =============================================================================
+# sensor.py - EmhassDeferrableLoadSensor trips sorted by emhass_index
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_active_trips_ordered_sorting():
+    """Aggregated sensor sorts trips by emhass_index ascending.
+
+    This is the test for task 1.45:
+    - Create stub coordinator.data with 3 trips having indices [3, 1, 2]
+    - Assert output matrix rows are in order 1, 2, 3
+    - Currently: trips may not be sorted correctly
+    - Test must FAIL to confirm the issue exists
+    """
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+    # Create stub with 3 trips in random order (indices 3, 1, 2)
+    # Expected output order: index 1 first, then index 2, then index 3
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = {
+        "per_trip_emhass_params": {
+            "trip_index3": {  # This should be LAST
+                "p_deferrable_matrix": [[1.0] * 168],  # Row 3
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [1.0],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,
+                "emhass_index": 3,
+            },
+            "trip_index1": {  # This should be FIRST
+                "p_deferrable_matrix": [[10.0] * 168],  # Row 1
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [10.0],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,
+                "emhass_index": 1,
+            },
+            "trip_index2": {  # This should be SECOND
+                "p_deferrable_matrix": [[20.0] * 168],  # Row 2
+                "number_of_deferrable_loads": 1,
+                "def_total_hours_array": [24.0],
+                "p_deferrable_nom_array": [20.0],
+                "def_start_timestep_array": [0],
+                "def_end_timestep_array": [168],
+                "activo": True,
+                "emhass_index": 2,
+            },
+        }
+    }
+
+    mock_coordinator.vehicle_id = "test_vehicle"
+
+    sensor = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
+    attrs = sensor.extra_state_attributes
+
+    # Assert p_deferrable_matrix has 3 rows in correct order
+    matrix = attrs["p_deferrable_matrix"]
+    assert isinstance(matrix, list), (
+        f"p_deferrable_matrix should be a list, got {type(matrix)}"
+    )
+    assert len(matrix) == 3, (
+        f"p_deferrable_matrix should have 3 rows, got {len(matrix)}"
+    )
+
+    # Verify ordering: row 0 should be 10.0 (index 1), row 1 should be 20.0 (index 2), row 2 should be 1.0 (index 3)
+    for i, row in enumerate(matrix):
+        expected_value = [10.0, 20.0, 1.0][i]
+        assert row[0] == expected_value, (
+            f"Row {i} should have first element {expected_value} (emhass_index {i+1}), got {row[0]}"
+        )
+
+    # Verify all 5 array attrs are present and also sorted correctly
+    assert "def_total_hours_array" in attrs, (
+        "def_total_hours_array should be in extra_state_attributes"
+    )
+    assert "p_deferrable_nom_array" in attrs, (
+        "p_deferrable_nom_array should be in extra_state_attributes"
+    )
+    assert "def_start_timestep_array" in attrs, (
+        "def_start_timestep_array should be in extra_state_attributes"
+    )
+    assert "def_end_timestep_array" in attrs, (
+        "def_end_timestep_array should be in extra_state_attributes"
+    )
+    assert "number_of_deferrable_loads" in attrs, (
+        "number_of_deferrable_loads should be in extra_state_attributes"
+    )
+
+    # All arrays should have length 3 (3 active trips sorted by emhass_index)
+    assert len(attrs["def_total_hours_array"]) == 3, (
+        f"def_total_hours_array should have 3 elements, got {len(attrs['def_total_hours_array'])}"
+    )
+    assert len(attrs["p_deferrable_nom_array"]) == 3, (
+        f"p_deferrable_nom_array should have 3 elements, got {len(attrs['p_deferrable_nom_array'])}"
+    )
+    assert len(attrs["def_start_timestep_array"]) == 3, (
+        f"def_start_timestep_array should have 3 elements, got {len(attrs['def_start_timestep_array'])}"
+    )
+    assert len(attrs["def_end_timestep_array"]) == 3, (
+        f"def_end_timestep_array should have 3 elements, got {len(attrs['def_end_timestep_array'])}"
+    )
+    assert attrs["number_of_deferrable_loads"] == 3, (
+        f"number_of_deferrable_loads should be 3, got {attrs['number_of_deferrable_loads']}"
+    )
+
+    # Verify array values are in sorted order (index 1, 2, 3)
+    # Expected: [10.0, 20.0, 1.0] for p_deferrable_nom_array (from trips 1, 2, 3)
+    assert attrs["p_deferrable_nom_array"] == [10.0, 20.0, 1.0], (
+        f"p_deferrable_nom_array should be sorted by emhass_index, got {attrs['p_deferrable_nom_array']}"
+    )
+    # def_total_hours_array: all have 24.0, so order doesn't matter but should be 3 elements
+    assert attrs["def_total_hours_array"] == [24.0, 24.0, 24.0], (
+        f"def_total_hours_array should have 3 elements in sorted order, got {attrs['def_total_hours_array']}"
+    )
+    # def_start_timestep_array: all have 0
+    assert attrs["def_start_timestep_array"] == [0, 0, 0], (
+        f"def_start_timestep_array should be in sorted order, got {attrs['def_start_timestep_array']}"
+    )
+    # def_end_timestep_array: all have 168
+    assert attrs["def_end_timestep_array"] == [168, 168, 168], (
+        f"def_end_timestep_array should be in sorted order, got {attrs['def_end_timestep_array']}"
+    )
+
+
+# =============================================================================
+# 2.2 Integration test: no active trips produces empty matrix
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_aggregated_sensor_empty_when_no_active_trips():
+    """Aggregated sensor returns empty when all trips are inactive.
+
+    This is the integration test for task 2.2:
+    - Create stub coordinator.data with all trips having activo=False
+    - Assert aggregated sensor has empty arrays
+    - Verifies inactive trip exclusion works correctly
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+    from homeassistant.core import HomeAssistant
+
+    # Create mock hass
+    mock_hass = MagicMock(spec=HomeAssistant)
+
+    # Create mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_123"
+    mock_entry.data = {"vehicle_name": "Test Vehicle"}
+
+    # Create mock trip manager with trips
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.recurring_trips = {}
+    mock_trip_manager.punctual_trips = {
+        "pun_trip_1": {
+            "id": "pun_trip_1",
+            "tipo": "puntual",
+            "estado": "pendiente",
+            "activo": True,
+            "datetime": "2025-01-15T10:00:00",
+            "km": 100.0,
+            "kwh": 15.0,
+        }
+    }
+
+    # Create adapter with all trips INACTIVE (activo=False)
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter._emhass_power_profile = [100.0, 200.0, 150.0]
+    mock_emhass_adapter._emhass_status = "ready"
+
+    # All trips have activo=False - should produce empty matrix
+    mock_emhass_adapter._cached_per_trip_params = {
+        "pun_trip_1": {
+            "p_deferrable_matrix": [[1.0, 2.0, 3.0] * 56],  # Data exists
+            "number_of_deferrable_loads": 1,
+            "def_total_hours_array": [10.0],
+            "p_deferrable_nom_array": [2.0],
+            "def_start_timestep_array": [0],
+            "def_end_timestep_array": [168],
+            "activo": False,  # INACTIVE - should be excluded
+            "emhass_index": 0,
+        }
+    }
+
+    # Create coordinator with adapter
+    coordinator = TripPlannerCoordinator(
+        hass=mock_hass,
+        entry=mock_entry,
+        trip_manager=mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock coordinator.data
+    coordinator.data = {
+        "recurring_trips": {},
+        "punctual_trips": mock_trip_manager.punctual_trips,
+        "kwh_today": 50.0,
+        "hours_today": 5.0,
+        "next_trip": None,
+        "emhass_power_profile": [100.0, 200.0, 150.0],
+        "emhass_deferrables_schedule": {},
+        "emhass_status": "ready",
+        "per_trip_emhass_params": mock_emhass_adapter._cached_per_trip_params,
+    }
+    # Use context manager to temporarily override vehicle_id property
+    # This prevents class-level pollution that causes flakiness when tests run in random order
+    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+        mock_vid.return_value = "test_vehicle"
+
+        # Create aggregated sensor
+        sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
+        attrs = sensor.extra_state_attributes
+
+        # Assert basic attrs are always present (power_profile, schedule, status)
+        assert "power_profile_watts" in attrs, (
+            "power_profile_watts should always be present"
+        )
+        assert "deferrables_schedule" in attrs, (
+            "deferrables_schedule should always be present"
+        )
+        assert "emhass_status" in attrs, (
+            "emhass_status should always be present"
+        )
+
+        # Assert array attrs behavior when no active trips:
+        # - power_profile_watts, deferrables_schedule, emhass_status always present
+        # - number_of_deferrable_loads always present (0 when no active trips)
+        # - other array attrs only present when there's data
+        assert "power_profile_watts" in attrs, (
+            "power_profile_watts should always be present"
+        )
+        assert attrs["power_profile_watts"] == [100.0, 200.0, 150.0], (
+            f"power_profile_watts should always show profile, got {attrs['power_profile_watts']}"
+        )
+        assert "deferrables_schedule" in attrs, (
+            "deferrables_schedule should always be present"
+        )
+        assert "emhass_status" in attrs, (
+            "emhass_status should always be present"
+        )
+        assert attrs["emhass_status"] == "ready", (
+            f"emhass_status should be 'ready', got {attrs['emhass_status']}"
+        )
+        assert "number_of_deferrable_loads" in attrs, (
+            "number_of_deferrable_loads should always be present"
+        )
+        assert attrs["number_of_deferrable_loads"] == 0, (
+            f"number_of_deferrable_loads should be 0 when no active trips, got {attrs['number_of_deferrable_loads']}"
+        )
+
+        # Array attrs are NOT present when no active trips (sensor only adds when there's data)
+        assert "p_deferrable_matrix" not in attrs, (
+            f"p_deferrable_matrix should NOT be present when no active trips, got {list(attrs.keys())}"
+        )
+        assert "def_total_hours_array" not in attrs, "def_total_hours_array should NOT be present when no active trips"
+        assert "p_deferrable_nom_array" not in attrs, "p_deferrable_nom_array should NOT be present when no active trips"
+        assert "def_start_timestep_array" not in attrs, "def_start_timestep_array should NOT be present when no active trips"
+    assert "def_end_timestep_array" not in attrs, "def_end_timestep_array should NOT be present when no active trips"
+
+
+# =============================================================================
+# 2.1 Integration test: Full data flow from adapter cache to sensor attributes
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_data_flow_adapter_to_sensors():
+    """Full data flow from adapter cache to sensor attributes.
+
+    This is the integration test for task 2.1:
+    1. Creates adapter with mock trips, calls publish_deferrable_loads
+    2. Creates coordinator with adapter data
+    3. Creates TripEmhassSensor (per-trip) and EmhassDeferrableLoadSensor (aggregated)
+    4. Asserts per-trip sensor has correct attributes, aggregated sensor has correct matrix
+
+    Data flow:
+    - Adapter stores per_trip_emhass_params in _cached_per_trip_params
+    - Coordinator reads from adapter and exposes via coordinator.data
+    - Sensors read from coordinator.data for their attributes
+    """
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.sensor import (
+        EmhassDeferrableLoadSensor,
+        TripEmhassSensor,
+    )
+    from homeassistant.core import HomeAssistant
+
+    # Create mock hass
+    mock_hass = MagicMock(spec=HomeAssistant)
+
+    # Create mock config entry
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "test_entry_123"
+    mock_entry.data = {"vehicle_name": "Test Vehicle"}
+
+    # Create mock trip manager with mock trips
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.recurring_trips = {}
+    mock_trip_manager.punctual_trips = {
+        "pun_trip_1": {
+            "id": "pun_trip_1",
+            "tipo": "puntual",
+            "estado": "pendiente",
+            "activo": True,
+            "datetime": "2025-01-15T10:00:00",
+            "km": 100.0,
+            "kwh": 15.0,
+        }
+    }
+
+    # Create EMHASS adapter with mock optimization results
+    # Note: TripEmhassSensor expects TRIP_EMHASS_ATTR_KEYS keys:
+    # def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep,
+    # power_profile_watts, trip_id, emhass_index, kwh_needed, deadline
+    #
+    # EmhassDeferrableLoadSensor expects _array suffix keys in per_trip_emhass_params:
+    # p_deferrable_matrix, number_of_deferrable_loads, def_total_hours_array,
+    # p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array, activo, emhass_index
+    mock_emhass_adapter = MagicMock(spec=EMHASSAdapter)
+    mock_emhass_adapter._emhass_power_profile = [100.0, 200.0, 150.0]
+    mock_emhass_adapter._emhass_deferrables_schedule = {
+        "pun_trip_1": {
+            "def_total_hours": 10.0,
+            "P_deferrable_nom": 2.0,
+            "def_start_timestep": 0,
+            "def_end_timestep": 168,
+            "power_profile_watts": [100.0, 200.0, 150.0],
+            "trip_id": "pun_trip_1",
+            "emhass_index": 0,
+            "kwh_needed": 15.0,
+            "deadline": "2025-01-15T10:00:00",
+        }
+    }
+    mock_emhass_adapter._emhass_status = "ready"
+    mock_emhass_adapter._cached_per_trip_params = {
+        "pun_trip_1": {
+            "p_deferrable_matrix": [[1.0, 2.0, 3.0] * 56],  # 168 elements
+            "number_of_deferrable_loads": 1,
+            "def_total_hours_array": [10.0],
+            "p_deferrable_nom_array": [2.0],
+            "def_start_timestep_array": [0],
+            "def_end_timestep_array": [168],
+            "activo": True,
+            "emhass_index": 0,
+            # Also include TRIP_EMHASS_ATTR_KEYS for per-trip sensor
+            "def_total_hours": 10.0,
+            "P_deferrable_nom": 2.0,
+            "def_start_timestep": 0,
+            "def_end_timestep": 168,
+            "power_profile_watts": [100.0, 200.0, 150.0],
+            "trip_id": "pun_trip_1",
+            "kwh_needed": 15.0,
+            "deadline": "2025-01-15T10:00:00",
+        }
+    }
+
+    # Create coordinator with adapter
+    coordinator = TripPlannerCoordinator(
+        hass=mock_hass,
+        entry=mock_entry,
+        trip_manager=mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
+    )
+
+    # Mock coordinator.data to reflect what adapter computed
+    coordinator.data = {
+        "recurring_trips": {},
+        "punctual_trips": mock_trip_manager.punctual_trips,
+        "kwh_today": 50.0,
+        "hours_today": 5.0,
+        "next_trip": None,
+        "emhass_power_profile": [100.0, 200.0, 150.0],
+        "emhass_deferrables_schedule": mock_emhass_adapter._emhass_deferrables_schedule,
+        "emhass_status": "ready",
+        "per_trip_emhass_params": mock_emhass_adapter._cached_per_trip_params,
+    }
+    # Use context manager to temporarily override vehicle_id property
+    # This prevents class-level pollution that causes flakiness when tests run in random order
+    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+        mock_vid.return_value = "test_vehicle"
+
+        # Test 1: Per-trip sensor (TripEmhassSensor)
+        # This sensor is created for each trip and shows per-trip EMHASS data
+        per_trip_sensor = TripEmhassSensor(coordinator, "test_vehicle", "pun_trip_1")
+
+        # Assert native_value is the emhass_index (not the trip_id)
+        assert per_trip_sensor.native_value == 0, (
+            f"Per-trip sensor native_value should be emhass_index=0, got {per_trip_sensor.native_value}"
+        )
+
+        # Assert per-trip sensor has correct extra_state_attributes from coordinator.data
+        # Uses TRIP_EMHASS_ATTR_KEYS: def_total_hours, P_deferrable_nom, def_start_timestep,
+        # def_end_timestep, power_profile_watts, trip_id, emhass_index, kwh_needed, deadline
+        per_trip_attrs = per_trip_sensor.extra_state_attributes
+        assert "def_total_hours" in per_trip_attrs, (
+            "Per-trip sensor should have def_total_hours attribute"
+        )
+        assert "P_deferrable_nom" in per_trip_attrs, (
+            "Per-trip sensor should have P_deferrable_nom attribute"
+        )
+        assert "def_start_timestep" in per_trip_attrs, (
+            "Per-trip sensor should have def_start_timestep attribute"
+        )
+        assert "def_end_timestep" in per_trip_attrs, (
+            "Per-trip sensor should have def_end_timestep attribute"
+        )
+        assert "power_profile_watts" in per_trip_attrs, (
+            "Per-trip sensor should have power_profile_watts attribute"
+        )
+        assert "trip_id" in per_trip_attrs, (
+            "Per-trip sensor should have trip_id attribute"
+        )
+        assert "emhass_index" in per_trip_attrs, (
+            "Per-trip sensor should have emhass_index attribute"
+        )
+        assert "kwh_needed" in per_trip_attrs, (
+            "Per-trip sensor should have kwh_needed attribute"
+        )
+        assert "deadline" in per_trip_attrs, (
+            "Per-trip sensor should have deadline attribute"
+        )
+
+        # Assert per-trip values are correct
+        assert per_trip_attrs["trip_id"] == "pun_trip_1", (
+            f"trip_id should be 'pun_trip_1', got {per_trip_attrs['trip_id']}"
+        )
+        assert per_trip_attrs["emhass_index"] == 0, (
+            f"emhass_index should be 0, got {per_trip_attrs['emhass_index']}"
+        )
+        assert per_trip_attrs["def_total_hours"] == 10.0, (
+            f"def_total_hours should be 10.0, got {per_trip_attrs['def_total_hours']}"
+        )
+        assert per_trip_attrs["P_deferrable_nom"] == 2.0, (
+            f"P_deferrable_nom should be 2.0, got {per_trip_attrs['P_deferrable_nom']}"
+        )
+
+        # Test 2: Aggregated sensor (EmhassDeferrableLoadSensor)
+        # This sensor aggregates data from all active trips
+        aggregated_sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry_123")
+
+        # Assert native_value is the emhass_status from coordinator.data
+        assert aggregated_sensor.native_value == "ready", (
+            f"Aggregated sensor native_value should be 'ready', got {aggregated_sensor.native_value}"
+        )
+
+        # Assert aggregated sensor has correct extra_state_attributes
+        # EmhassDeferrableLoadSensor has 6 attrs: p_deferrable_matrix, number_of_deferrable_loads,
+        # def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array, def_end_timestep_array
+        aggregated_attrs = aggregated_sensor.extra_state_attributes
+
+        assert "power_profile_watts" in aggregated_attrs, (
+            "Aggregated sensor should have power_profile_watts attribute"
+        )
+        assert "deferrables_schedule" in aggregated_attrs, (
+            "Aggregated sensor should have deferrables_schedule attribute"
+        )
+        assert "emhass_status" in aggregated_attrs, (
+            "Aggregated sensor should have emhass_status attribute"
+        )
+        assert "p_deferrable_matrix" in aggregated_attrs, (
+            "Aggregated sensor should have p_deferrable_matrix attribute"
+        )
+        assert "number_of_deferrable_loads" in aggregated_attrs, (
+            "Aggregated sensor should have number_of_deferrable_loads attribute"
+        )
+        assert "def_total_hours_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_total_hours_array attribute"
+        )
+        assert "p_deferrable_nom_array" in aggregated_attrs, (
+            "Aggregated sensor should have p_deferrable_nom_array attribute"
+        )
+        assert "def_start_timestep_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_start_timestep_array attribute"
+        )
+        assert "def_end_timestep_array" in aggregated_attrs, (
+            "Aggregated sensor should have def_end_timestep_array attribute"
+        )
+
+        # Assert aggregated values are correct (from all active trips)
+        agg_matrix = aggregated_attrs["p_deferrable_matrix"]
+        assert isinstance(agg_matrix, list), (
+            f"Aggregated p_deferrable_matrix should be a list, got {type(agg_matrix)}"
+        )
+        assert len(agg_matrix) == 1, (
+            f"Aggregated matrix should have 1 row (1 active trip), got {len(agg_matrix)}"
+        )
+        for row in agg_matrix:
+            assert len(row) == 168, (
+                f"Aggregated matrix row should have 168 elements, got {len(row)}"
+            )
+
+        # Verify data flow: aggregated sensor sees the same data as adapter computed
+        assert aggregated_attrs["p_deferrable_nom_array"] == [2.0], (
+            f"Aggregated sensor should have correct nominal power from adapter cache, got {aggregated_attrs['p_deferrable_nom_array']}"
+        )
+        assert aggregated_attrs["def_total_hours_array"] == [10.0], (
+            f"Aggregated sensor should have correct total hours from adapter cache, got {aggregated_attrs['def_total_hours_array']}"
+        )

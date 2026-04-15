@@ -1,6 +1,6 @@
 """TDD: TripPlannerSensor checks exists_fn before creating entity.
 
-RED test: Verifies that when a sensor's exists_fn returns False,
+Test: Verifies that when a sensor's exists_fn returns False,
 the sensor is NOT added via async_setup_entry.
 
 Currently FAILS because async_setup_entry creates all sensors from TRIP_SENSORS

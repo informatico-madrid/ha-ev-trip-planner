@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-10T12:41:16Z",
+  "updated": "2026-04-14T14:50:36Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 25,
+      "specsCount": 26,
       "isDefault": true
     }
   ],
@@ -182,8 +182,15 @@
       "name": "fix-emhass-sensor-attributes",
       "path": "./specs/fix-emhass-sensor-attributes",
       "phase": "execution",
-      "taskIndex": 33,
+      "taskIndex": 36,
       "totalTasks": 39
+    },
+    {
+      "name": "m401-emhass-hotfixes",
+      "path": "./specs/m401-emhass-hotfixes",
+      "phase": "completed",
+      "taskIndex": 102,
+      "totalTasks": 102
     }
   ]
 }

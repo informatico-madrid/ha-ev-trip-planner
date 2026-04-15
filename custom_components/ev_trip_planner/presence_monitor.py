@@ -3,9 +3,9 @@
 import logging
 from datetime import datetime
 from math import atan2, cos, radians, sin, sqrt
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Tuple
 
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
@@ -73,10 +73,11 @@ class PresenceMonitor:
         self._last_processed_soc: Optional[float] = None
 
         # SOC listener registration guard - prevents duplicate listener registration
-        self._soc_listener_unsub: Optional[callback] = None
+        from homeassistant.core import CALLBACK_TYPE
+        self._soc_listener_unsub: Optional[CALLBACK_TYPE] = None
 
         # Persistence store for return info (ha_storage.Store API)
-        self._return_info_store = ha_storage.Store(
+        self._return_info_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
             hass,
             version=1,
             key=f"{DOMAIN}_{vehicle_id}_return_info",
@@ -302,8 +303,10 @@ class PresenceMonitor:
 
     async def _async_check_home_sensor(self) -> bool:
         """Check home status using sensor."""
-        state = self.hass.states.get(self.home_sensor)
-        if not state:
+        if self.home_sensor is None:
+            return False
+        state_obj = self.hass.states.get(self.home_sensor)
+        if not state_obj:
             _LOGGER.warning(
                 "Home sensor %s not found for %s, returning False",
                 self.home_sensor,
@@ -311,7 +314,10 @@ class PresenceMonitor:
             )
             return False
 
-        is_home = state.state.lower() in ["on", "true", "yes", "home"]
+        state = state_obj.state
+        if state is None:
+            return False
+        is_home = state.lower() in ["on", "true", "yes", "home"]
         _LOGGER.debug(
             "Home status for %s: %s = %s",
             self.vehicle_id,
@@ -326,8 +332,15 @@ class PresenceMonitor:
             _LOGGER.error("Home coordinates not set for %s", self.vehicle_id)
             return False
 
-        state = self.hass.states.get(self.vehicle_coords_sensor)
-        if not state:  # pragma: no cover  # HA sensor I/O - sensor entity may not exist if vehicle not yet detected
+        if self.vehicle_coords_sensor is None:
+            _LOGGER.warning(
+                "Vehicle coordinates sensor not configured for %s, assuming at home",
+                self.vehicle_id,
+            )
+            return True
+
+        state_obj = self.hass.states.get(self.vehicle_coords_sensor)
+        if not state_obj:  # pragma: no cover  # HA sensor I/O - sensor entity may not exist if vehicle not yet detected
             _LOGGER.warning(
                 "Vehicle coordinates sensor %s not found for %s, assuming at home",
                 self.vehicle_coords_sensor,
@@ -335,11 +348,14 @@ class PresenceMonitor:
             )
             return True
 
-        vehicle_coords = self._parse_coordinates(state.state)
+        state = state_obj.state
+        if state is None:
+            return True
+        vehicle_coords = self._parse_coordinates(state)
         if not vehicle_coords:  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
             _LOGGER.warning(
                 "Could not parse vehicle coordinates from %s for %s, assuming at home",
-                state.state,
+                state,
                 self.vehicle_id,
             )
             return True
@@ -443,10 +459,10 @@ class PresenceMonitor:
         self._soc_listener_unsub = async_track_state_change_event(
             self.hass,
             self.soc_sensor,
-            self._async_handle_soc_change,
+            self._async_handle_soc_change,  # type: ignore[arg-type] # HA stub: Event type mismatch - Mapping[str, Any] vs EventStateChangedData
         )
 
-    async def _async_handle_soc_change(self, event: Event) -> None:
+    async def _async_handle_soc_change(self, event: Event[Mapping[str, Any]]) -> None:
         """Handle SOC state change event.
 
         Called when the SOC sensor state changes. If the vehicle is home

@@ -1,6 +1,6 @@
 """TDD: TripPlannerSensor inherits RestoreSensor when description.restore=True.
 
-RED test: Verifies that a TripPlannerSensor with restore=True
+Test: Verifies that a TripPlannerSensor with restore=True
 calls RestoreSensor.async_get_last_sensor_data() and restores _attr_native_value
 when coordinator.data is None (simulating HA restart before first refresh).
 
@@ -35,7 +35,7 @@ def mock_coordinator():
 def test_trip_planner_sensor_inherits_restore_sensor(mock_coordinator):
     """TripPlannerSensor with restore=True should inherit RestoreSensor.
 
-    This test FAILS in RED state because TripPlannerSensor does not
+    This test previously failed because TripPlannerSensor did not
     inherit RestoreSensor.
     """
     from custom_components.ev_trip_planner.definitions import (

@@ -99,22 +99,23 @@ class TestImportDashboard:
     async def test_import_dashboard_async_import_dashboard(self, mock_hass):
         """Test dashboard import using storage API."""
         mock_hass.config.components = ["lovelace", "core"]
+        # Mock the Store API used by homeassistant.helpers.storage.Store
+        mock_store = Mock()
+        mock_store.async_load = AsyncMock(return_value={"data": {"views": []}})
+        mock_store.async_save = AsyncMock(return_value=None)
 
-        # Mock the storage API with async methods
-        mock_hass.storage = Mock()
-        mock_hass.storage.async_read = AsyncMock(return_value={"data": {"views": []}})
-        mock_hass.storage.async_write_dict = AsyncMock(return_value=True)
-        mock_hass.services = Mock()
-        mock_hass.services.has_service = Mock(return_value=False)
+        with patch("homeassistant.helpers.storage.Store", return_value=mock_store):
+            mock_hass.services = Mock()
+            mock_hass.services.has_service = Mock(return_value=False)
 
-        result = await import_dashboard(
-            mock_hass,
-            vehicle_id="test_vehicle",
-            vehicle_name="Test Vehicle",
-            use_charts=True,
-        )
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="test_vehicle",
+                vehicle_name="Test Vehicle",
+                use_charts=True,
+            )
 
-        assert result.success is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_import_dashboard_no_import_method(self, mock_hass):
@@ -147,6 +148,116 @@ class TestImportDashboard:
 
         # Exception triggers YAML fallback which should succeed
         assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_respects_structured_result_true(self, mock_hass):
+        """If _save_lovelace_dashboard returns a DashboardImportResult(success=True) it is returned as-is."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        result_obj = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=result_obj),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "storage_api"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_respects_structured_result_false_and_falls_back(self, mock_hass):
+        """If _save_lovelace_dashboard returns a DashboardImportResult(success=False) import_dashboard falls back to YAML helper result."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        fail_obj = DashboardImportResult(
+            success=False,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        yaml_obj = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="yaml_fallback",
+        )
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=fail_obj),
+        ), patch(
+            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+            AsyncMock(return_value=yaml_obj),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "yaml_fallback"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_handles_legacy_true(self, mock_hass):
+        """If _save_lovelace_dashboard returns bare True treat as storage_api success."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=True),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "storage_api"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_legacy_false_and_yaml_bool(self, mock_hass):
+        """If _save_lovelace_dashboard returns bare False and YAML fallback returns bool True, wrap boolean correctly."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=False),
+        ), patch(
+            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+            AsyncMock(return_value=True),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "yaml_fallback"
 
 
 class TestLoadDashboardTemplate:
@@ -560,7 +671,7 @@ class TestAsyncUnloadEntry:
     async def test_unload_entry_calls_cleanup_before_platforms_unload(self, mock_hass):
         """Test that async_unload_entry calls emhass_adapter.async_cleanup_vehicle_indices before unloading platforms.
 
-        This is a RED test that documents the expected behavior: emhass_adapter cleanup
+        This test documents the expected behavior: emhass_adapter cleanup
         MUST be called before async_unload_platforms to ensure entity state still exists
         when async_remove is called.
         """
@@ -1184,3 +1295,205 @@ class TestAsyncRemoveEntry:
 
             # Verify async_remove_entry_cleanup was called with correct arguments
             mock_cleanup.assert_called_once_with(mock_hass, entry)
+
+
+# =============================================================================
+# GAP #5 HOTFIX TESTS: Config entry listener activation
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_listener_activated_in_setup(mock_hass):
+    """setup_config_entry_listener is called in async_setup_entry.
+
+    This is the GREEN test for Gap #5 hotfix:
+    - The listener should be set up after adapter creation
+    - We verify that setup_config_entry_listener() IS called
+    - Requires FR-2, AC-1.2 implementation in __init__.py
+
+    Verification approach: Patch the adapter's setup_config_entry_listener
+    and verify it gets called during async_setup_entry execution.
+    """
+    from custom_components.ev_trip_planner import async_setup_entry
+
+    entry = MagicMock()
+    entry.entry_id = "test_listener_001"
+    entry.data = {
+        "vehicle_name": "test_vehicle",
+        "max_deferrable_loads": 50,
+        "charging_power_kw": 7.4,
+    }
+
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_setup = AsyncMock()
+    mock_trip_manager.set_emhass_adapter = MagicMock()
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
+
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter.async_load = AsyncMock()
+    mock_emhass_adapter.setup_config_entry_listener = MagicMock()
+
+    # Mock hass.config_entries.async_forward_entry_setups
+    mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_static_paths",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.build_presence_config",
+        return_value=MagicMock()
+    ), patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=mock_trip_manager
+    ), patch(
+        "custom_components.ev_trip_planner.EMHASSAdapter",
+        return_value=mock_emhass_adapter
+    ), patch(
+        "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        return_value=mock_coordinator
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_panel_for_entry",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.register_services"
+    ), patch(
+        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ), patch(
+        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ):
+        await async_setup_entry(mock_hass, entry)
+
+    # Verify setup_config_entry_listener was called on the emhass_adapter
+    # This validates FR-2, AC-1.2: listener is activated during setup
+    mock_emhass_adapter.setup_config_entry_listener.assert_called_once(), (
+        "setup_config_entry_listener() should be called after adapter creation "
+        "in async_setup_entry"
+    )
+
+
+# =============================================================================
+# Coverage gap: __init__.py:104, 153 - vehicle_name_raw None handling
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_vehicle_name_none(mock_hass):
+    """Test lines 104, 153: async_setup_entry handles vehicle_name=None.
+
+    This covers the None fallback case where vehicle_name_raw is None and
+    needs to be set to empty string "" before creating vehicle_id.
+    """
+    from custom_components.ev_trip_planner import async_setup_entry
+
+    entry = MagicMock()
+    entry.entry_id = "test_vehicle_name_none"
+    entry.data = {
+        "vehicle_name": None,  # This is the key case for line 104
+        "planning_horizon_days": 7,
+    }
+
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_setup = AsyncMock()
+    mock_trip_manager.set_emhass_adapter = MagicMock()
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
+
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter.async_load = AsyncMock()
+    mock_emhass_adapter.setup_config_entry_listener = MagicMock()
+
+    mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+    with patch(
+        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_static_paths",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.build_presence_config",
+        return_value=MagicMock()
+    ), patch(
+        "custom_components.ev_trip_planner.TripManager",
+        return_value=mock_trip_manager
+    ), patch(
+        "custom_components.ev_trip_planner.EMHASSAdapter",
+        return_value=mock_emhass_adapter
+    ), patch(
+        "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        return_value=mock_coordinator
+    ), patch(
+        "custom_components.ev_trip_planner.async_register_panel_for_entry",
+        new_callable=AsyncMock
+    ), patch(
+        "custom_components.ev_trip_planner.register_services"
+    ), patch(
+        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ), patch(
+        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+        new_callable=AsyncMock,
+        return_value=MagicMock(success=True)
+    ):
+        # Should handle None vehicle_name gracefully, using empty string fallback
+        result = await async_setup_entry(mock_hass, entry)
+
+    assert result is True
+    # Verify the setup completed without error
+    mock_emhass_adapter.async_load.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_async_unload_entry_vehicle_name_none(mock_hass):
+    """Test line 153: async_unload_entry handles vehicle_name=None.
+
+    This covers the same None fallback case in the unload path.
+    """
+    from custom_components.ev_trip_planner import async_unload_entry
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+    entry = MagicMock()
+    entry.entry_id = "test_unload_vehicle_name_none"
+    entry.data = {
+        "vehicle_name": None,  # Line 153 case - None value
+    }
+
+    # Properly mock runtime_data with async_delete_all_trips as AsyncMock
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_delete_all_trips = AsyncMock()
+    mock_trip_manager._recurring_trips = {}
+    mock_trip_manager._punctual_trips = {}
+
+    entry.runtime_data = EVTripRuntimeData(
+        coordinator=MagicMock(),
+        trip_manager=mock_trip_manager,
+        emhass_adapter=None,
+    )
+
+    mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+    with patch(
+        "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+        new_callable=AsyncMock,
+        return_value=True
+    ) as mock_cleanup:
+        result = await async_unload_entry(mock_hass, entry)
+
+    assert result is True
+    mock_cleanup.assert_called_once()

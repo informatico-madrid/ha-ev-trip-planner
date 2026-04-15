@@ -40,7 +40,7 @@ def mock_hass():
     hass.config_entries = MagicMock()
     hass.bus = MagicMock()
     hass.states = MagicMock()
-    hass.states.async_remove = AsyncMock(return_value=None)
+    hass.states.async_remove = MagicMock(return_value=None)
     return hass
 
 
@@ -79,12 +79,21 @@ async def test_config_update_triggers_republish(mock_hass: HomeAssistant, mock_s
         adapter.vehicle_id = "test_vehicle"
 
         # Mock config entry with new power value
+        class MockConfigEntryData(dict):
+            """Dict subclass that properly implements .get()"""
+            pass
+
         new_entry = MagicMock()
         new_entry.entry_id = "test_entry_id_123"
-        new_entry.data = {
+        # Create a dict subclass that works properly
+        new_entry.data = MockConfigEntryData({
             "vehicle_name": "test_vehicle",
             "charging_power_kw": 7.4,  # Changed from 3.6
-        }
+        })
+        # Also mock options since code checks options first (line 1516)
+        new_entry.options = MockConfigEntryData({
+            "charging_power_kw": 7.4,
+        })
 
         # Mock async_get_entry to return new entry
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
@@ -123,12 +132,21 @@ async def test_no_republish_when_no_change(mock_hass: HomeAssistant, mock_store)
         adapter._charging_power_kw = 7.4  # Same as config
 
         # Mock config entry with SAME power value
+        class MockConfigEntryData(dict):
+            """Dict subclass that properly implements .get()"""
+            pass
+
         new_entry = MagicMock()
         new_entry.entry_id = "test_entry_id_123"
-        new_entry.data = {
+        # Create a dict subclass that works properly
+        new_entry.data = MockConfigEntryData({
             "vehicle_name": "test_vehicle",
             "charging_power_kw": 7.4,  # Unchanged
-        }
+        })
+        # Also mock options since code checks options first (line 1516)
+        new_entry.options = MockConfigEntryData({
+            "charging_power_kw": 7.4,
+        })
 
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
 

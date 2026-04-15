@@ -1,6 +1,6 @@
 """TDD: ConfigEntryNotReady properly propagates from async_setup_entry.
 
-RED test: Verifies that when coordinator.async_config_entry_first_refresh()
+Test: Verifies that when coordinator.async_config_entry_first_refresh()
 raises ConfigEntryNotReady, the exception propagates to the caller in
 async_setup_entry (not caught/swallowed).
 

@@ -3,8 +3,11 @@
 Contains TripSensorEntityDescription dataclass and TRIP_SENSORS tuple.
 """
 
-from dataclasses import dataclass
-from typing import Any, Callable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from homeassistant.components.sensor import SensorEntityDescription
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -14,7 +17,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfEnergy
 
 
-def default_attrs_fn(data: dict) -> dict:
+def default_attrs_fn(data: dict[str, Any]) -> dict[str, Any]:
     """Default attrs_fn that includes recurring and punctual trips.
 
     Returns trips data from coordinator.data for use as sensor attributes.
@@ -34,10 +37,10 @@ class TripSensorEntityDescription(SensorEntityDescription):
     custom fields for trip data processing.
     """
 
-    value_fn: Callable[[dict], Any] = lambda data: None
-    attrs_fn: Callable[[dict], dict] = default_attrs_fn
+    value_fn: Callable[[dict[str, Any]], Any] = field(default_factory=lambda: lambda data: None)
+    attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] = field(default_factory=lambda: default_attrs_fn)
     restore: bool = False
-    exists_fn: Callable[[dict], bool] = lambda _: True
+    exists_fn: Callable[[dict[str, Any]], bool] = field(default_factory=lambda: lambda _: True)
 
 
 TRIP_SENSORS = (

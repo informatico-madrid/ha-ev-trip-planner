@@ -95,3 +95,5 @@ doc/## Test Failure Review Protocol (MANDATO.md
 .qwen/settings.json
 .qwen/settings.json.orig
 .claude/settings copy.json
+specs/.current-spec
+**/.progress.md

@@ -7,22 +7,22 @@ Contains all service handlers and helper functions for trip management services.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+from .coordinator import TripPlannerCoordinator
 from .dashboard import DashboardImportResult
 from .trip_manager import TripManager
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 # Type alias for coordinator
-CoordinatorType = DataUpdateCoordinator[dict[str, Any]]
+CoordinatorType = TripPlannerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -724,11 +724,11 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
 
     # Use entry.runtime_data set by __init__.py::async_setup_entry
     runtime_data = entry.runtime_data
-    _LOGGER.info("=== _get_manager - runtime_data: %s ===", runtime_data)
+    _LOGGER.warning("=== _get_manager - runtime_data: %s ===", runtime_data)
 
     # Retrieve trip_manager from entry.runtime_data
-    trip_manager = runtime_data.trip_manager
-    _LOGGER.info(
+    trip_manager = runtime_data.trip_manager if runtime_data else None
+    _LOGGER.warning(
         "=== _get_manager - trip_manager from runtime_data: %s ===", trip_manager
     )
 
@@ -786,12 +786,14 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
 
 
 async def _ensure_setup(mgr: TripManager) -> None:
-    """Ensure TripManager is set up before operations."""
-    # Check if manager needs setup - call async_setup if not already done
-    try:
-        await mgr.async_setup()
-    except Exception as err:
-        _LOGGER.debug("TripManager async_setup raised (may already be set up): %s", err)
+    """Ensure TripManager is set up before operations.
+
+    The trip_manager from runtime_data should already be set up by the coordinator.
+    We no longer call async_setup() here to prevent _load_trips() from overwriting
+    in-memory data with stale storage data.
+    """
+    # No-op - trip_manager from coordinator is already set up
+    pass
 
 
 @callback
@@ -1131,7 +1133,7 @@ async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> N
             "=== async_cleanup_stale_storage - Checking for stale storage: %s ===",
             cleanup_key,
         )
-        cleanup_store = ha_storage.Store(hass, version=1, key=cleanup_key)
+        cleanup_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=cleanup_key)
         existing_data = await cleanup_store.async_load()
         if existing_data:
             _LOGGER.warning(
@@ -1289,16 +1291,16 @@ async def async_register_static_paths(
                     try:
                         if isinstance(path_spec, tuple):
                             url_path, file_path, _ = path_spec
-                            hass.http.register_static_path(url_path, file_path)
+                            hass.http.register_static_path(url_path, file_path)  # type: ignore[attr-defined] # HA stub: HomeAssistantHTTP has register_static_path
                         else:
-                            hass.http.register_static_path(
+                            hass.http.register_static_path(  # type: ignore[attr-defined] # HA stub: HomeAssistantHTTP has register_static_path
                                 path_spec.url_path, path_spec.path
                             )
                     except RuntimeError as path_err:  # pragma: no cover — HA infrastructure error path
                         if "already registered" in str(path_err).lower():
                             continue
                         raise
-                _LOGGER.info("Registered static paths using legacy method (early)")  # pragma: no cover — reached only after HA infrastructure error
+                _LOGGER.info("Registered static paths using legacy method (early)")  # pragma: no cover — reached only after HA infrastructure error path
             except Exception as legacy_err:  # pragma: no cover — HA infrastructure error path
                 _LOGGER.error("Failed to register static paths (early): %s", legacy_err)
     elif static_paths:
@@ -1431,9 +1433,12 @@ async def async_unload_entry_cleanup(
         entity_registry = getattr(hass, "entity_registry", None)
         if entity_registry is None:
             entity_registry = er.async_get(hass)
-        # Use the registry's async_entries_for_config_entry method directly
-        for entity_entry in entity_registry.async_entries_for_config_entry(entry.entry_id):
-            await entity_registry.async_remove(entity_entry.entity_id)
+        # Use module-level async_entries_for_config_entry helper (HA API)
+        registry = cast(er.EntityRegistry, entity_registry)
+        for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+            # EntityRegistry.async_remove is NOT async - returns None
+            # See: homeassistant/helpers/entity_registry.py
+            entity_registry.async_remove(entity_entry.entity_id)
     except Exception as ex:
         _LOGGER.warning("Failed to clean up entity registry: %s", ex)
 
@@ -1476,7 +1481,7 @@ async def async_remove_entry_cleanup(
         from homeassistant.helpers import storage as ha_storage
 
         storage_key = f"{DOMAIN}_{vehicle_id}"
-        store = ha_storage.Store(hass, version=1, key=storage_key)
+        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
         try:
             await store.async_remove()
         except Exception as store_err:

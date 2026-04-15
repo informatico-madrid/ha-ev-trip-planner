@@ -1354,3 +1354,233 @@ class TestGenerateDeferrableScheduleEdgeCases:
             assert entry.get("p_deferrable0", "0.0") == "0.0"
 
 
+class TestCalculateNextRecurringDatetime:
+    """Tests for calculate_next_recurring_datetime function."""
+
+    def test_returns_tomorrow_when_day_is_tomorrow(self):
+        """Returns tomorrow at specified time when day is tomorrow. Covers lines 651-683."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # Monday 2026-04-13 10:00
+        reference = datetime(2026, 4, 13, 10, 0, 0)
+        # Tuesday (day=2 in JS format: 0=Sun, 1=Mon, 2=Tue)
+        result = calculate_next_recurring_datetime(2, "10:00", reference)
+        assert result is not None
+        assert result == datetime(2026, 4, 14, 10, 0, 0)
+
+    def test_returns_today_when_time_not_passed(self):
+        """Returns today at specified time when time hasn't passed yet. Covers lines 651-683."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # Monday 2026-04-13 08:00
+        reference = datetime(2026, 4, 13, 8, 0, 0)
+        # Monday (day=1 in JS format)
+        result = calculate_next_recurring_datetime(1, "10:00", reference)
+        assert result is not None
+        assert result == datetime(2026, 4, 13, 10, 0, 0)
+
+    def test_returns_next_week_when_time_passed_today(self):
+        """Returns next week when time has passed for today. Covers lines 651-683."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # Monday 2026-04-13 12:00
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Monday (day=1 in JS format) but time 10:00 already passed
+        result = calculate_next_recurring_datetime(1, "10:00", reference)
+        assert result is not None
+        # Should be next Monday (April 20)
+        assert result == datetime(2026, 4, 20, 10, 0, 0)
+
+    def test_handles_string_day_conversion(self):
+        """Converts string day to int correctly. Covers lines 657-661."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        reference = datetime(2026, 4, 13, 10, 0, 0)
+        result = calculate_next_recurring_datetime("2", "10:00", reference)
+        assert result is not None
+        assert result == datetime(2026, 4, 14, 10, 0, 0)
+
+    def test_returns_none_for_invalid_day_string(self):
+        """Returns None when day string cannot be converted to int. Covers lines 658-661."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        result = calculate_next_recurring_datetime("invalid", "10:00")
+        assert result is None
+
+    def test_returns_none_for_invalid_time_format(self):
+        """Returns None when time format is invalid. Covers lines 663-666."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        result = calculate_next_recurring_datetime(2, "invalid-time")
+        assert result is None
+
+    def test_returns_none_for_none_day(self):
+        """Returns None when day is None. Covers line 654."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        result = calculate_next_recurring_datetime(None, "10:00")
+        assert result is None
+
+    def test_returns_none_for_none_time(self):
+        """Returns None when time_str is None. Covers line 654."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        result = calculate_next_recurring_datetime(2, None)
+        assert result is None
+
+    def test_uses_current_time_when_reference_is_none(self):
+        """Uses datetime.now() when reference_dt is None. Covers lines 651-652."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # When reference is None, function uses datetime.now()
+        # We can't mock datetime.now() in a pure function test, so we verify
+        # that passing None doesn't crash and returns a valid datetime
+        result = calculate_next_recurring_datetime(1, "14:00", None)
+        assert result is not None
+        # Just verify it's a valid datetime in the future
+        assert result > datetime.now() - timedelta(days=1)
+
+    def test_sunday_to_monday_wraps_correctly(self):
+        """Sunday (0) to Monday (1) wraps correctly using modulo. Covers lines 675-676."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # Sunday 2026-04-12 12:00 (April 12, 2026 is a Sunday)
+        reference = datetime(2026, 4, 12, 12, 0, 0)
+        result = calculate_next_recurring_datetime(1, "10:00", reference)
+        assert result is not None
+        # Monday April 13
+        assert result == datetime(2026, 4, 13, 10, 0, 0)
+
+    def test_saturday_to_sunday_wraps_correctly(self):
+        """Saturday (5) to Sunday (0) wraps correctly using modulo. Covers lines 738-739."""
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        # Saturday January 3, 2026 at 12:00 (weekday 5)
+        reference = datetime(2026, 1, 3, 12, 0, 0)
+        result = calculate_next_recurring_datetime(0, "10:00", reference)
+        assert result is not None
+        # Sunday January 4
+        assert result == datetime(2026, 1, 4, 10, 0, 0)
+
+
+class TestCalculatePowerProfileRecurringTrips:
+    """Tests for calculate_power_profile_from_trips with recurring trips."""
+
+    def test_recurring_trip_with_numeric_day_string_calculates_power(self):
+        """Recurring trip with numeric day string (from E2E test) calculates power profile. Covers lines 731-741."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        # Tuesday April 14, 2026 at 12:00
+        reference = datetime(2026, 4, 14, 12, 0, 0)
+        # Recurring trip for Tuesday (day=2) at 10:00 - time already passed
+        trips = [{
+            "id": "rec_test",
+            "dia_semana": "2",  # Tuesday (numeric string from panel selector)
+            "hora": "10:00",
+            "kwh": 50.0
+        }]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        # Should have calculated power for next Tuesday (April 21)
+        assert len(result) == 168
+        # Should have non-zero values somewhere in the profile
+        has_non_zero = any(v > 0 for v in result)
+        assert has_non_zero
+
+    def test_recurring_trip_with_english_field_names(self):
+        """Recurring trip with English field names (day/time) calculates power. Covers lines 731-733."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        # Monday April 13, 2026 at 12:00
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Recurring trip for Tuesday (day=2) at 10:00
+        trips = [{
+            "id": "rec_test",
+            "day": 2,  # English field name, numeric
+            "time": "10:00",
+            "kwh": 50.0
+        }]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        assert len(result) == 168
+        has_non_zero = any(v > 0 for v in result)
+        assert has_non_zero
+
+    def test_recurring_trip_with_spanish_field_names(self):
+        """Recurring trip with Spanish field names (dia_semana/hora) calculates power. Covers lines 731-733."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        # Monday April 13, 2026 at 12:00
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Recurring trip for Tuesday (dia_semana="2")
+        trips = [{
+            "id": "rec_test",
+            "dia_semana": "2",
+            "hora": "10:00",
+            "kwh": 50.0
+        }]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        assert len(result) == 168
+        has_non_zero = any(v > 0 for v in result)
+        assert has_non_zero
+
+    def test_recurring_trip_with_no_day_or_time_skipped(self):
+        """Recurring trip without day or time fields is skipped. Covers line 740."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Trip without day field (or time field)
+        trips = [{
+            "id": "rec_test",
+            "hora": "10:00",  # Missing day
+            "kwh": 50.0
+        }]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        # Should return all zeros since trip was skipped
+        assert all(v == 0.0 for v in result)
+
+    def test_recurring_trip_with_invalid_day_time_skipped(self):
+        """Recurring trip with invalid day/time is skipped. Covers lines 738-739."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Trip with invalid day (non-numeric string)
+        trips = [{
+            "id": "rec_invalid",
+            "dia_semana": "invalid-day",  # Invalid - can't convert to int
+            "hora": "10:00",
+            "kwh": 50.0
+        }]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        # Should return all zeros since trip was skipped due to invalid day
+        assert all(v == 0.0 for v in result)
+
+    def test_mixed_punctual_and_recurring_trips(self):
+        """Mixed punctual and recurring trips both calculate power. Covers integration."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        trips = [
+            {
+                "id": "punc_test",
+                "datetime": "2026-04-14T10:00",
+                "kwh": 30.0
+            },
+            {
+                "id": "rec_test",
+                "dia_semana": "2",
+                "hora": "15:00",
+                "kwh": 20.0
+            }
+        ]
+
+        result = calculate_power_profile_from_trips(trips, power_kw=11.0, reference_dt=reference)
+        assert len(result) == 168
+        # Should have non-zero values from both trips
+        has_non_zero = any(v > 0 for v in result)
+        assert has_non_zero
+
+

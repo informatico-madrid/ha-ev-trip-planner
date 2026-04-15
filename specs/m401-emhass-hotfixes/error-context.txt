@@ -1,0 +1,97 @@
+# E2E Test Execution Results
+
+**Command**: `make e2e`
+**Timestamp**: 2026-04-14 12:07 UTC
+**Environment**: Home Assistant with EV Trip Planner integration, pre-authenticated test setup
+
+## Summary
+- **Total Tests**: 26
+- **PASSED**: 24
+- **FAILED**: 2
+
+## Failing Tests
+
+### Test 1: emhass-sensor-updates.spec.ts:193
+**Test Name**: should simulate SOC change and verify sensor attributes update (Task 4.4)
+
+**Error**:
+```javascript
+Error: expect(Array.isArray(beforeAttrs.power_profile_watts)).toBe(true);
+const hasNonZeroBefore = beforeAttrs.power_profile_watts.some((v: number) => v > 0);
+expect(hasNonZeroBefore).toBe(true);
+
+Expected: true
+Received: false
+
+BEFORE SOC change - power_profile_watts (first 5): [0,0,0,0,0]
+BEFORE SOC change - emhass_status: ready
+BEFORE SOC change - last_updated: 2026-04-14T12:07:46.588Z
+```
+
+**Test Flow**:
+1. Creates punctual trip for "tomorrow at 10:00" with 200km, 50kWh
+2. Waits 5 seconds for EMHASS population
+3. Reads sensor attributes expecting non-zero power_profile_watts
+4. Receives [0,0,0,0,0] instead
+
+### Test 2: emhass-sensor-updates.spec.ts:351
+**Test Name**: should verify recurring trip updates sensor attributes with non-zero values (Task 4.4b)
+
+**Error**:
+```javascript
+BEFORE SOC change - power_profile_watts (first 5): [0,0,0,0,0]
+BEFORE SOC change - emhass_status: ready
+```
+
+**Test Flow**:
+1. Creates recurring trip for "tomorrow" on day 2 (Tuesday) at 10:00
+2. Expects power_profile_watts to be populated with non-zero values
+3. Receives [0,0,0,0,0] instead
+
+## Root Cause Analysis
+
+### Data Flow:
+1. Trip created via `panel.js:trip_create` service call
+2. `services.py:handle_trip_create()` → `trip_manager.async_add_punctual_trip()`
+3. `trip_manager._async_publish_new_trip_to_emhass()` → `emhass_adapter.async_publish_deferrable_load()`
+4. `emhass_adapter.async_publish_all_deferrable_loads()` calculates power profile
+5. `emhass_adapter._calculate_power_profile_from_trips()` → `calculations.calculate_power_profile_from_trips()`
+6. Result stored in `emhass_adapter._cached_power_profile`
+7. `coordinator._async_update_data()` reads via `emhass_adapter.get_cached_optimization_results()`
+8. Sensor reads from `coordinator.data.get("emhass_power_profile")`
+
+### Issue:
+The sensor exists with `emhass_status: ready` but `power_profile_watts: [0,0,0,0,0]`.
+
+This means:
+- EMHASS adapter is initialized and running
+- The sensor entity is created
+- But the power profile calculation returns zeros
+
+### Hypothesis:
+Looking at `emhass_adapter.py:335-338`:
+```python
+hours_available = (deadline_dt - now).total_seconds() / 3600
+
+if hours_available <= 0:
+    _LOGGER.warning("Trip deadline in past: %s", trip_id)
+    await self.async_release_trip_index(trip_id)
+    return False  # Trip is rejected
+```
+
+If trips are rejected here due to deadline being calculated as "in the past", they never reach the power profile calculation.
+
+### Potential Causes:
+1. **Timezone mismatch**: Test runs in UTC, but `datetime.now()` might use local timezone
+2. **Datetime format issue**: The `datetime` field from HTML5 datetime-local input is `YYYY-MM-DDTHH:MM` without seconds
+3. **Timing issue**: The trip's "tomorrow" deadline is calculated relative to test start time, but power profile is computed at test read time (5+ seconds later)
+
+## Debug Observations
+- Sensor `emhass_status: ready` - confirms EMHASS adapter is active
+- `power_profile_watts: [0,0,0,0,0]` - confirms power profile calculation is returning zeros
+- `last_updated` timestamp shows sensor was refreshed - confirms data flow is reaching the coordinator
+
+## Next Steps
+1. Add detailed debug logging to `_get_all_active_trips()` to see what trips are being passed
+2. Add debug logging to `async_publish_deferrable_load()` to check if trips are being rejected
+3. Verify the datetime format and timezone handling in the calculation functions

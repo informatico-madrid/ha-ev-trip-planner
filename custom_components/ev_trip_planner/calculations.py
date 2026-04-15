@@ -636,6 +636,53 @@ def calculate_deficit_propagation(
 # =============================================================================
 
 
+def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_dt: Optional[datetime] = None) -> Optional[datetime]:
+    """Calculate the next occurrence of a recurring trip.
+
+    Args:
+        day: Day of week (0=Sunday, 6=Saturday) - JavaScript getDay() format.
+             Can be int or string (will be converted to int).
+        time_str: Time in HH:MM format.
+        reference_dt: Reference datetime for calculation (default datetime.now()).
+
+    Returns:
+        datetime of next occurrence, or None if inputs are invalid.
+    """
+    if reference_dt is None:
+        reference_dt = datetime.now()
+
+    if day is None or time_str is None:
+        return None
+
+    # Convert day to int if it's a string (E2E tests pass day as string)
+    try:
+        day = int(day)
+    except (ValueError, TypeError):
+        return None
+
+    try:
+        hour, minute = map(int, time_str.split(':'))
+    except (ValueError, AttributeError):
+        return None
+
+    # Create candidate datetime for today
+    candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    # Get current day of week (0=Sunday to match JavaScript getDay())
+    # isoweekday() returns 1=Monday, 7=Sunday, so we convert
+    current_day = reference_dt.isoweekday() % 7
+
+    # Calculate days ahead
+    days_ahead = (day - current_day) % 7
+
+    # If the time for today has passed, move to next week
+    if days_ahead == 0 and candidate < reference_dt:
+        days_ahead = 7
+
+    # Add days to reach the target day
+    return candidate + timedelta(days=days_ahead)
+
+
 def calculate_power_profile_from_trips(
     trips: List[Dict[str, Any]],
     power_kw: float,
@@ -649,7 +696,8 @@ def calculate_power_profile_from_trips(
 
     Args:
         trips: List of trip dicts with 'datetime' and 'kwh' or 'km' keys.
-               Trips without datetime are skipped.
+               Recurring trips use 'day' (0=Sunday, 6=Saturday) and 'time' (HH:MM).
+               Trips without datetime or day/time are skipped.
         power_kw: Charging power in kilowatts.
         horizon: Number of hours in the profile (default 168 = 1 week).
         reference_dt: Reference datetime for computing positions (default datetime.now()).
@@ -657,6 +705,9 @@ def calculate_power_profile_from_trips(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     from datetime import datetime
 
     if reference_dt is None:
@@ -666,20 +717,43 @@ def calculate_power_profile_from_trips(
     now = reference_dt
     charging_power_watts = power_kw * 1000
 
+    logger.warning("DEBUG calculate_power_profile: trips=%d, power_kw=%.2f", len(trips), power_kw)
+    logger.warning("DEBUG calculate_power_profile: now=%s", now.isoformat())
+
     for trip in trips:
+        logger.warning("DEBUG calculate_power_profile: Processing trip id=%s, trip=%s", trip.get("id"), trip)
+
         # Get deadline
         deadline = trip.get("datetime")
-        if not deadline:
-            continue
 
-        # Parse deadline
-        if isinstance(deadline, str):
-            try:
-                deadline_dt = datetime.fromisoformat(deadline)
-            except ValueError:
+        # Handle recurring trips (day + time instead of datetime)
+        # Support both English (day/time) and Spanish (dia_semana/hora) field names
+        if not deadline:
+            # Try English field names first, then Spanish
+            day = trip.get("day") or trip.get("dia_semana")
+            time_str = trip.get("time") or trip.get("hora")
+            if day is not None and time_str is not None:
+                deadline_dt = calculate_next_recurring_datetime(day, time_str, now)
+                if deadline_dt is None:
+                    logger.warning("DEBUG calculate_power_profile: trip %s has invalid day/time, skipping", trip.get("id"))
+                    continue
+                logger.warning("DEBUG calculate_power_profile: trip %s is recurring (day=%s, time=%s), calculated deadline=%s",
+                              trip.get("id"), day, time_str, deadline_dt.isoformat())
+            else:
+                logger.warning("DEBUG calculate_power_profile: trip %s has no datetime or day/time fields, skipping", trip.get("id"))
                 continue
         else:
-            deadline_dt = deadline
+            # Parse deadline for punctual trips
+            if isinstance(deadline, str):
+                try:
+                    deadline_dt = datetime.fromisoformat(deadline)
+                except ValueError:
+                    logger.warning("DEBUG calculate_power_profile: trip %s has invalid datetime, skipping", trip.get("id"))
+                    continue
+            else:
+                deadline_dt = deadline
+
+        logger.warning("DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s", trip.get("id"), deadline, now, deadline_dt)
 
         # Calculate energy needed directly from trip kwh/km
         # Use trip's declared energy need — consistent with schedule generation
@@ -689,7 +763,10 @@ def calculate_power_profile_from_trips(
             distance_km = float(trip.get("km", 0))
             kwh = calcular_energia_kwh(distance_km, 0.15)
 
+        logger.warning("DEBUG calculate_power_profile: trip %s kwh=%.2f", trip.get("id"), kwh)
+
         if kwh <= 0:
+            logger.warning("DEBUG calculate_power_profile: trip %s kwh <= 0, skipping", trip.get("id"))
             continue
 
         # Calculate hours needed to charge
@@ -698,21 +775,33 @@ def calculate_power_profile_from_trips(
         if horas_necesarias == 0:
             horas_necesarias = 1
 
+        logger.warning("DEBUG calculate_power_profile: trip %s total_hours=%.2f, horas_necesarias=%d", trip.get("id"), total_hours, horas_necesarias)
+
         # Calculate position in profile
         delta = deadline_dt - now
         horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
+        logger.warning("DEBUG calculate_power_profile: trip %s delta_seconds=%d, horas_hasta_viaje=%d, now=%s, deadline=%s",
+                      trip.get("id"), delta.total_seconds(), horas_hasta_viaje, now, deadline_dt)
+
         if horas_hasta_viaje < 0:
+            logger.warning("DEBUG calculate_power_profile: trip %s is in the past, skipping", trip.get("id"))
             continue
 
         # Set charging hours (last hours before deadline)
         hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
         hora_fin = min(horas_hasta_viaje, horizon)
 
+        logger.warning("DEBUG calculate_power_profile: trip %s charging_window=[%d, %d), horizon=%d",
+                      trip.get("id"), hora_inicio_carga, hora_fin, horizon)
+
         for h in range(int(hora_inicio_carga), int(hora_fin)):
             if 0 <= h < horizon:
                 power_profile[h] = charging_power_watts
+                logger.warning("DEBUG calculate_power_profile: trip %s setting power_profile[%d]=%d (total non_zero=%d)",
+                              trip.get("id"), h, charging_power_watts, sum(1 for x in power_profile if x > 0))
 
+    logger.warning("DEBUG calculate_power_profile: final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
     return power_profile
 
 

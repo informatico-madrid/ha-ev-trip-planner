@@ -34,7 +34,7 @@ class YamlTripStorage:
         from homeassistant.helpers import storage as ha_storage
 
         storage_key = f"{DOMAIN}_{self._vehicle_id}"
-        store = ha_storage.Store(self._hass, version=1, key=storage_key)
+        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(self._hass, version=1, key=storage_key)
         stored_data = await store.async_load()
 
         if stored_data:
@@ -57,7 +57,7 @@ class YamlTripStorage:
         from homeassistant.helpers import storage as ha_storage
 
         storage_key = f"{DOMAIN}_{self._vehicle_id}"
-        store = ha_storage.Store(self._hass, version=1, key=storage_key)
+        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(self._hass, version=1, key=storage_key)
 
         save_data = {
             "trips": data.get("trips", {}),

@@ -5,6 +5,7 @@ This module contains comprehensive tests for recurrent and punctual trip ID gene
 
 from datetime import date, datetime
 
+from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
 from custom_components.ev_trip_planner.utils import (
     generate_trip_id,
     is_valid_trip_id,
@@ -244,3 +245,34 @@ class TestTripIdEdgeCases:
         """Test with datetime object (should work like date)."""
         trip_id = generate_trip_id("punctual", datetime(2025, 11, 19, 14, 30))
         assert trip_id.startswith("pun_20251119_")
+
+
+class TestProductionConstantMismatch:
+    """Test that constants used in production match generate_trip_id expectations.
+
+    BUG #16: Production uses TRIP_TYPE_PUNCTUAL = "puntual" (Spanish) but utils.py
+    line 90 checks for "punctual" (English). This causes punctual trips to fall
+    through to the fallback and get trip_{random} instead of pun_{date}_{random}.
+
+    This test uses the PRODUCTION constant to verify the bug exists.
+    """
+
+    def test_punctual_with_spanish_puntual_constant(self):
+        """Test that TRIP_TYPE_PUNCTUAL constant generates correct pun_ prefix.
+
+        This test uses the actual production constant TRIP_TYPE_PUNCTUAL which
+        equals "puntual" (Spanish). With the current buggy code, this returns
+        "trip_{random}" instead of "pun_{date}_{random}" because line 90 checks
+        for "punctual" (English) not "puntual" (Spanish).
+
+        Expected: trip_id starts with "pun_" (correct)
+        Actual: trip_id starts with "trip_" (BUG)
+        """
+        trip_id = generate_trip_id(TRIP_TYPE_PUNCTUAL, "20251119")
+        assert trip_id.startswith("pun_20251119_"), (
+            f"Production constant TRIP_TYPE_PUNCTUAL='puntual' generated {trip_id!r} "
+            f"instead of pun_20251119_*. This is BUG #16: utils.py line 90 checks "
+            f'for "punctual" (English) but production uses "puntual" (Spanish). '
+            f"Fix: change utils.py:90 from 'trip_type == \"punctual\"' to "
+            f'\'trip_type in ("puntual", "punctual")\''
+        )

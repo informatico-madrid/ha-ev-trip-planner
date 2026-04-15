@@ -3,9 +3,11 @@
 ## 📊 Estado del Proyecto
 
 **Versión actual**: 0.4.2-dev  
-**Fase de desarrollo**: Milestone 4.1 planificado — pendiente de inicio  
+**Fase de desarrollo**: Milestone 4.0.1 planificado — pendiente de inicio  
 **Target Release**: v1.0.0 (Q2 2026)  
-**Tests**: 793 Python (pytest) + 10 E2E (Playwright) pasando  
+**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) pasando
+**Quality Assurance**: Mutation testing (mutmut) configurado para Milestone 4.0.1  
+**Gaps detectados**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
 
 ---
 
@@ -73,7 +75,101 @@
 
 ---
 
-## 🚧 Próximo: Milestone 4.1 — Optimización Avanzada de Carga
+## 🚧 Próximo: Milestone 4.0.1 — Hotfixes Críticos M4
+
+**Estado**: 📋 PLANIFICADO — no comenzado  
+**Detalle de problemas**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
+**Target**: v0.4.3-dev  
+**Prioridad**: Bloquea el inicio de M4.1 — estos problemas hacen que la integración EMHASS no funcione correctamente en producción
+
+### Problemas detectados en producción
+
+Tras validación en producción de Milestone 4, se han detectado problemas críticos documentados en [`doc/gaps/gaps.md`](doc/gaps/gaps.md).
+
+### Funcionalidades / Fixes previstos
+
+#### P0 — Críticos (bloquean EMHASS)
+
+- **🔧 Arquitectura EMHASS incorrecta** (Gap #8)
+  - **Problema**: El sensor `EmhassDeferrableLoadSensor` agrega todos los viajes en un único `power_profile_watts`. EMHASS necesita perfiles diferibles separados por viaje para optimizar cada carga independientemente.
+  - **Hipótesis de solución**: Crear `TripEmhassDeferrableSensor` — un sensor por viaje con atributos `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`
+  - **Impacto**: Sin este fix, EMHASS optimiza todos los viajes como una sola carga
+  - **Archivos**: `sensor.py`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
+
+- **🔧 Potencia de carga no actualiza el perfil** (Gap #5)
+  - **Problema**: Al cambiar `charging_power_kw` en options (ej: 11kW → 3.6kW), el sensor de planificación no se actualiza
+  - **Hipótesis de solución**: Fix en `update_charging_power()` — leer de `entry.options` además de `entry.data`, republish con trips frescos
+  - **Impacto**: El usuario ve perfil incorrecto tras cambiar configuración
+  - **Archivos**: `emhass_adapter.py:1346-1380`
+
+#### P0 — Críticos (bloquean UX)
+
+- **🔧 Options flow incompleto** (Gap #4)
+  - **Problema**: Solo 4 campos editables de 20+. El usuario no puede corregir sensores sin borrar toda la integración
+  - **Hipótesis de solución**: Añadir entity selectors para sensores críticos al options flow
+  - **Archivos**: `config_flow.py:887-951`
+
+#### P2 — Menor
+
+- **🔧 Sidebar no se elimina al borrar vehículo** (Gap #1)
+  - **Problema**: Falta llamada a `async_unregister_panel` en `async_remove_entry_cleanup`
+  - **Hipótesis de solución**: 1 línea en `services.py:1495`
+  - **Archivos**: `services.py`
+
+### Panel de control: configuración EMHASS para copiar
+
+Como parte del fix de arquitectura (#8), el panel mostrará código YAML/Jinja2 listo para copiar:
+
+```yaml
+# El usuario copia esto en su configuration.yaml de EMHASS
+number_of_deferrable_loads: 2
+
+def_total_hours:
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_1_total_hours') | float(0) }}"
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_2_total_hours') | float(0) }}"
+
+P_deferrable_nom:
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_1_nominal_power') | int(0) }}"
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_2_nominal_power') | int(0) }}"
+
+def_start_timestep:
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_1_start_timestep') | int(0) }}"
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_2_start_timestep') | int(0) }}"
+
+def_end_timestep:
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_1_end_timestep') | int(0) }}"
+  - "{{ states('sensor.ev_trip_planner_coche_viaje_2_end_timestep') | int(0) }}"
+
+P_deferrable:
+  p_deferrable: "{{ state_attr('sensor.ev_trip_planner_coche_viaje_1', 'power_profile_watts') | default([]) }}"
+  p_deferrable: "{{ state_attr('sensor.ev_trip_planner_coche_viaje_2', 'power_profile_watts') | default([]) }}"
+```
+
+### Prerequisitos antes de empezar M4.0.1
+- [ ] Validar hipótesis de causas en [`doc/gaps/gaps.md`](doc/gaps/gaps.md)
+- [ ] Confirmar que los gaps #5 y #8 son reproducibles
+- [ ] Verificar que el fix de arquitectura (#8) no rompe la integración EMHASS existente
+- [ ] **Configurar mutation testing (mutmut)** en CI/CD para validar calidad de tests
+
+### Mejoras de Testing (NUEVO para M4.0.1)
+
+- **🧪 Mutation Testing (mutmut)**
+  - **Objetivo**: Añadir mutation testing al pipeline CI/CD para validar que los tests detectan cambios en el código
+  - **Beneficio**: Detectar tests que no son lo suficientemente estrictos (tests que pasan aunque el código sea incorrecto)
+  - **Configuración**: Añadir `mutmut` a `pyproject.toml`, configurar `test_command` con los tests críticos
+  - **Integración CI**: Ejecutar mutmut en PRs de alta prioridad, resultados solo informativos en PRs menores
+  - **Impacto**: Mejorar calidad de tests y confianza en el suite existente
+  - **Archivos**: `pyproject.toml`, `.github/workflows/ci.yml`
+
+### Estimación
+- **Tiempo**: 1-2 semanas
+- **Complejidad**: Media-Alta (la refactorización del sensor EMHASS requiere cuidado)
+- **Tests**: TDD — añadir tests antes de implementar fixes
+- **Mutation Testing**: Configurar mutmut, ejecutar baseline, integrar en CI
+
+---
+
+## 📋 Planificado: Milestone 4.1 — Optimización Avanzada de Carga
 
 **Estado**: 📋 PLANIFICADO — no comenzado  
 **Detalle técnico completo**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)  
@@ -86,13 +182,17 @@
 - **📊 UI de Perfil**: Gráfico de perfil de carga en el dashboard
 
 ### Prerequisitos antes de empezar M4.1
+- [ ] **Completar Milestone 4.0.1** (hotfixes críticos EMHASS)
 - [ ] Completar validación en producción de M3 (3E.1: 48h sin errores)
 - [ ] Confirmar cobertura >80% en todos los módulos post-refactor SOLID
 - [ ] Definir formato de API para optimizador externo de precios
+- [ ] Validar que los fixes de M4.0.1 no rompen la integración EMHASS existente
 
 ---
 
 ## ⚠️ Limitaciones Conocidas (Activas)
+
+**Problemas detectados en producción**: Ver [`doc/gaps/gaps.md`](doc/gaps/gaps.md) para análisis detallado con hipótesis de causas y soluciones.
 
 Estas limitaciones están documentadas y son decisiones de diseño deliberadas para v1.0:
 
@@ -188,6 +288,10 @@ docs/
 ├── TESTING_E2E.md                    # Guía de tests E2E con Playwright
 ├── IMPROVEMENTS_POST_MILESTONE3.md   # UX improvements implementados en M3.1/M3.2
 └── configuration_examples.yaml       # Ejemplos completos de configuración YAML
+
+doc/
+└── gaps/
+    └── gaps.md                       # Problemas detectados en producción con hipótesis
 ```
 
 ---

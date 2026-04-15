@@ -49,7 +49,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         entry: ConfigEntry,
         trip_manager: TripManager,
         emhass_adapter: EMHASSAdapter | None = None,
-        logger: logging.Logger = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -124,6 +124,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         if self._emhass_adapter is not None:
             emhass_data = (
                 self._emhass_adapter.get_cached_optimization_results()
+            )
+            # DEBUG: Log cache state when reading
+            _LOGGER.warning(
+                "DEBUG coordinator: read emhass_power_profile non_zero=%d",
+                sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0) if emhass_data.get("emhass_power_profile") else 0,
             )
         else:
             emhass_data = {

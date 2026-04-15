@@ -57,7 +57,8 @@ def generate_trip_id(
         - Punctual: `pun_{date}_{random}` (e.g., `pun_20251119_abc123`)
 
     Args:
-        trip_type: The type of trip - "recurrente" or "punctual".
+        trip_type: The type of trip - "recurrente" or "puntual" (Spanish).
+                   Also accepts "punctual" (English) for compatibility.
         day_or_date: For recurrent trips: day name (e.g., "lunes", "monday").
                     For punctual trips: date string (YYYYMMDD) or date object.
 
@@ -67,10 +68,12 @@ def generate_trip_id(
     Examples:
         >>> generate_trip_id("recurrente", "lunes")
         'rec_lun_abc123'
-        >>> generate_trip_id("punctual", "20251119")
+        >>> generate_trip_id("puntual", "20251119")  # Spanish (production)
         'pun_20251119_abc123'
-        >>> generate_trip_id("punctual", date(2025, 11, 19))
+        >>> generate_trip_id("punctual", "20251119")  # English (compatibility)
         'pun_20251119_xyz789'
+        >>> generate_trip_id("puntual", date(2025, 11, 19))
+        'pun_20251119_abc123'
     """
     random_suffix = generate_random_suffix()
 
@@ -87,7 +90,7 @@ def generate_trip_id(
 
         return f"rec_{day_abbr}_{random_suffix}"
 
-    elif trip_type == "punctual":
+    elif trip_type in ("puntual", "punctual"):
         # Handle date input - convert to YYYYMMDD format
         if isinstance(day_or_date, date):
             date_str = day_or_date.strftime("%Y%m%d")

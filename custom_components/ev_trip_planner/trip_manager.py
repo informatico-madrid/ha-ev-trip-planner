@@ -13,6 +13,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 
+from homeassistant.helpers import storage as ha_storage
+from homeassistant.helpers.storage import Store
+from homeassistant.config_entries import ConfigEntry
+
 import yaml
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -34,6 +38,9 @@ from .vehicle_controller import VehicleController
 _UNSET = object()
 
 _LOGGER = logging.getLogger(__name__)
+
+# Instance counter for debugging
+_trip_manager_instance_count = 0
 
 # Days of week in Spanish (lowercase)
 DAYS_OF_WEEK = (
@@ -85,13 +92,20 @@ class TripManager:
         self,
         hass: HomeAssistant,
         vehicle_id: str,
+        entry_id: Optional[str] = None,
         presence_config: Optional[Dict[str, Any]] = None,
-        storage: TripStorageProtocol = _UNSET,  # type: ignore[assignment]
-        emhass_adapter: EMHASSPublisherProtocol = _UNSET,  # type: ignore[assignment]
+        storage: Optional[TripStorageProtocol] = None,
+        emhass_adapter: Optional[EMHASSPublisherProtocol] = None,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
+        global _trip_manager_instance_count
+        _trip_manager_instance_count += 1
+        self._instance_id = _trip_manager_instance_count
+        _LOGGER.warning("=== TripManager instance created: id=%d, vehicle=%s ===", self._instance_id, vehicle_id)
+
         self.hass = hass
         self.vehicle_id = vehicle_id
+        self._entry_id: str = entry_id or ""
         self.vehicle_controller = VehicleController(
             hass, vehicle_id, presence_config, self
         )
@@ -99,9 +113,8 @@ class TripManager:
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
         self._last_update: Optional[datetime] = None
-        # Inline defaults: use provided instance or create default
-        self._storage = storage if storage is not _UNSET else None
-        self._emhass_adapter = emhass_adapter if emhass_adapter is not _UNSET else None
+        self._storage: Optional[TripStorageProtocol] = storage
+        self._emhass_adapter: Optional[EMHASSPublisherProtocol] = emhass_adapter
 
     def set_emhass_adapter(self, adapter: EMHASSPublisherProtocol) -> None:
         """Set the EMHASS adapter for this trip manager."""
@@ -152,11 +165,29 @@ class TripManager:
         return sanitized
 
     async def publish_deferrable_loads(self) -> None:
-        """Publish current trips to EMHASS as deferrable loads."""
+        """Publish current trips to EMHASS as deferrable loads and trigger coordinator refresh."""
         if not self._emhass_adapter:
             return
         all_trips = await self._get_all_active_trips()
-        await self._emhass_adapter.publish_deferrable_loads(all_trips)
+        await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
+
+        # Trigger coordinator refresh to update sensor attributes and last_updated timestamp
+        # This is critical for SOC change tests - when SOC changes, publish_deferrable_loads()
+        # is called and must trigger a refresh so sensors show new data with updated timestamps
+        try:
+            entry = self.hass.config_entries.async_get_entry(self._entry_id)
+            if entry and entry.runtime_data:
+                coordinator = entry.runtime_data.coordinator
+                if coordinator:
+                    # Use async_refresh() instead of async_request_refresh() to ensure
+                    # immediate update of sensor attributes and last_updated timestamp
+                    # async_request_refresh() is debounced and asynchronous, which causes
+                    # race conditions in tests that read sensor state immediately after changes
+                    await coordinator.async_refresh()
+        except Exception as err:
+            # Don't fail publish_deferrable_loads if coordinator refresh fails
+            # Coordinator might not be available in tests or during initialization
+            _LOGGER.debug("Coordinator refresh skipped: %s", err)
 
     async def async_setup(self) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -165,20 +196,36 @@ class TripManager:
         await self._load_trips()
 
     async def _load_trips(self) -> None:
-        """Carga los viajes desde el almacenamiento persistente."""
+        """Carga los viajes desde el almacenamiento persistente.
+
+        Only loads if memory is empty (first load). This prevents overwriting
+        in-memory data with stale storage data during service calls.
+        """
+        # Skip loading if we already have data in memory
+        if self._punctual_trips or self._recurring_trips or self._trips:
+            _LOGGER.debug(
+                "Skipping _load_trips for %s: already have %d punctual, %d recurring trips in memory",
+                self.vehicle_id,
+                len(self._punctual_trips),
+                len(self._recurring_trips)
+            )
+            return
+
+        # DEBUG: Add stack trace to see who is calling _load_trips()
+        import traceback
         _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
+        _LOGGER.warning("=== _load_trips CALLED FROM ===\n%s", traceback.format_stack()[-3])
         try:
             # DI: use injected storage if available, otherwise fallback to direct Store
+            stored_data: Optional[Dict[str, Any]] = None
             if self._storage is not None:
                 _LOGGER.warning("=== Using injected storage ===")
                 stored_data = await self._storage.async_load()
             else:
                 _LOGGER.warning("=== Using fallback HA Store ===")
-                from homeassistant.helpers import storage as ha_storage
-
                 storage_key = f"{DOMAIN}_{self.vehicle_id}"
                 _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
-                store = ha_storage.Store(
+                store: Store[Dict[str, Any]] = ha_storage.Store(
                     self.hass,
                     version=1,
                     key=storage_key,
@@ -353,11 +400,9 @@ class TripManager:
                 await self._storage.async_save(data)
             else:
                 _LOGGER.info("=== Using fallback HA Store ===")
-                from homeassistant.helpers import storage as ha_storage
-
                 storage_key = f"{DOMAIN}_{self.vehicle_id}"
                 _LOGGER.info("Creating store with key: %s", storage_key)
-                store = ha_storage.Store(
+                store: Store[Dict[str, Any]] = ha_storage.Store(
                     self.hass,
                     version=1,
                     key=storage_key,
@@ -369,9 +414,9 @@ class TripManager:
                 len(self._punctual_trips),
             )
 
-            # T019.3: Trigger EMHASS adapter update when trip state changes
-            if self._emhass_adapter:
-                await self.publish_deferrable_loads()
+            # NOTE: publish_deferrable_loads() removed from here to prevent race condition
+            # The caller (async_add_punctual_trip, etc.) is responsible for calling
+            # publish_deferrable_loads() AFTER async_save_trips() completes
         except Exception as err:
             _LOGGER.error("Error guardando viajes: %s", err, exc_info=True)
             # Fallback to YAML if HA storage fails (HA I/O bound - pragma)
@@ -477,8 +522,19 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T034: Create sensor entity for the trip
-        await self.async_create_trip_sensor(trip_id, self._recurring_trips[trip_id])
+        # T034: Create sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
+        await async_create_trip_sensor(self.hass, self._entry_id, self._recurring_trips[trip_id])
+
+        # T1.53: Create EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_create_trip_emhass_sensor
+        # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry and entry.runtime_data:
+            # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
+            coordinator = entry.runtime_data.coordinator
+            if coordinator:
+                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -520,8 +576,19 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T034: Create sensor entity for the trip
-        await self.async_create_trip_sensor(trip_id, self._punctual_trips[trip_id])
+        # T034: Create sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
+        await async_create_trip_sensor(self.hass, self._entry_id, self._punctual_trips[trip_id])
+
+        # T1.55: Create EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_create_trip_emhass_sensor
+        # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry and entry.runtime_data:
+            # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
+            coordinator = entry.runtime_data.coordinator
+            if coordinator:
+                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -570,8 +637,11 @@ class TripManager:
             self.vehicle_id,
         )
 
-        # T035: Update the sensor entity for the trip
-        await self.async_update_trip_sensor(trip_id)
+        # T035: Update the sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_update_trip_sensor  # Local import to avoid circular dependency
+        trip_data = self._recurring_trips.get(trip_id) or self._punctual_trips.get(trip_id)
+        if trip_data:
+            await async_update_trip_sensor(self.hass, self._entry_id, trip_data)
 
         # T019.3: Detect trip changes and trigger EMHASS update
         if old_trip and self._emhass_adapter:
@@ -600,8 +670,13 @@ class TripManager:
         await self.async_save_trips()
         _LOGGER.info("Deleted trip %s from vehicle %s", trip_id, self.vehicle_id)
 
-        # T034: Remove sensor entity for the trip
-        await self.async_remove_trip_sensor(trip_id)
+        # T034: Remove sensor entity for the trip (using sensor.py CRUD function)
+        from .sensor import async_remove_trip_sensor  # Local import to avoid circular dependency
+        await async_remove_trip_sensor(self.hass, self._entry_id, trip_id)
+
+        # T1.57: Remove EMHASS sensor entity for the trip (after TripSensor)
+        from .sensor import async_remove_trip_emhass_sensor
+        await async_remove_trip_emhass_sensor(self.hass, self._entry_id, self.vehicle_id, trip_id)
 
         # T019.3: Remove from EMHASS when deleted
         if self._emhass_adapter:
@@ -702,17 +777,6 @@ class TripManager:
                 )
                 return
 
-            # Update the sensor state via Home Assistant API
-            from homeassistant.helpers import device_registry
-
-            # Get the device ID for this vehicle
-            device_reg = device_registry.async_get(self.hass)
-            device_id = None
-            for dev in device_reg.devices.values():
-                if dev.identifiers and (DOMAIN, self.vehicle_id) in dev.identifiers:
-                    device_id = dev.id
-                    break
-
             # Update the entity state with new trip data
             state_attributes = {
                 "trip_id": trip_id,
@@ -735,8 +799,7 @@ class TripManager:
             self.hass.states.async_set(
                 entity_id,
                 native_value,
-                state_attributes=state_attributes,
-                device_id=device_id,
+                attributes=state_attributes,
             )
 
             _LOGGER.info(
@@ -910,13 +973,24 @@ class TripManager:
 
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
         """Get all active trips for EMHASS publishing."""
+        import traceback
+        _LOGGER.warning("DEBUG _get_all_active_trips: _recurring_trips count=%d", len(self._recurring_trips))
+        _LOGGER.warning("DEBUG _get_all_active_trips: _punctual_trips count=%d", len(self._punctual_trips))
+        _LOGGER.warning("DEBUG _get_all_active_trips: CALLED FROM\n%s", traceback.format_stack()[-3])
+
         all_trips = []
         for trip in self._recurring_trips.values():
             if trip.get("activo", True):
+                _LOGGER.warning("DEBUG _get_all_active_trips: adding recurring trip id=%s, trip=%s", trip.get("id"), trip)
                 all_trips.append(trip)
-        for trip in self._punctual_trips.values():
-            if trip.get("estado") == "pendiente":
+
+        for trip_id, trip in self._punctual_trips.items():
+            estado = trip.get("estado")
+            _LOGGER.warning("DEBUG _get_all_active_trips: punctual trip %s estado=%s, trip=%s", trip_id, estado, trip)
+            if estado == "pendiente":
                 all_trips.append(trip)
+
+        _LOGGER.warning("DEBUG _get_all_active_trips: returning %d trips: %s", len(all_trips), [t.get("id") for t in all_trips])
         return all_trips
 
     async def async_get_kwh_needed_today(self) -> float:
@@ -943,13 +1017,13 @@ class TripManager:
         """Obtiene la potencia de carga desde la configuración."""
         try:
             # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
-            entry = None
+            entry: Optional[ConfigEntry[Any]] = None
             for config_entry in self.hass.config_entries.async_entries(DOMAIN):
                 if config_entry.data.get("vehicle_name") == self.vehicle_id:
                     entry = config_entry
                     break
 
-            if entry and entry.data:
+            if entry is not None and entry.data is not None:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 # Ensure we return a valid number
                 if isinstance(power, (int, float)) and power > 0:
@@ -1688,9 +1762,32 @@ class TripManager:
             soc_current = vehicle_config.get("soc_current")
         else:
             try:
-                entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-                if entry and entry.data:
-                    battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+                # Lookup by real config entry id when available; fall back to
+                # legacy behaviour using vehicle_id for backward compatibility.
+                config_entry: Optional[ConfigEntry[Any]] = None
+                entry_id = getattr(self, "_entry_id", None)
+                if entry_id:
+                    config_entry = self.hass.config_entries.async_get_entry(entry_id)
+                else:
+                    config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
+                # If direct lookup failed, scan entries by vehicle_name (tests
+                # and older setups may rely on that behaviour).
+                if config_entry is None:
+                    try:
+                        entries = self.hass.config_entries.async_entries(DOMAIN)
+                        for e in entries:
+                            if not getattr(e, "data", None):
+                                continue
+                            name = e.data.get("vehicle_name")
+                            if name and name.lower().replace(" ", "_") == self.vehicle_id:
+                                config_entry = e
+                                break
+                    except Exception:
+                        config_entry = None
+
+                if config_entry is not None and config_entry.data is not None:
+                    battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
                 else:
                     battery_capacity = 50.0
             except Exception:
@@ -1750,9 +1847,15 @@ class TripManager:
 
         # Obtener configuración
         try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-            if entry and entry.data:
-                entry.data.get("battery_capacity_kwh", 50.0)
+            _config_entry: Optional[ConfigEntry[Any]] = None
+            entry_id = getattr(self, "_entry_id", None)
+            if entry_id:
+                _config_entry = self.hass.config_entries.async_get_entry(entry_id)
+            else:
+                _config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
+            if _config_entry is not None and _config_entry.data is not None:
+                _config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
             pass
 
@@ -1807,9 +1910,15 @@ class TripManager:
         battery_capacity = 50.0
         soc_current = 50.0
         try:
-            entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
-            if entry and entry.data:
-                battery_capacity = entry.data.get("battery_capacity_kwh", 50.0)
+            config_entry: Optional[ConfigEntry[Any]] = None
+            entry_id = getattr(self, "_entry_id", None)
+            if entry_id:
+                config_entry = self.hass.config_entries.async_get_entry(entry_id)
+            else:
+                config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
+            if config_entry is not None and config_entry.data is not None:
+                battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
             pass
         soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
@@ -1887,117 +1996,3 @@ class TripManager:
                 schedule.append(entry)
 
         return schedule
-
-    async def async_create_trip_sensor(
-        self, trip_id: str, trip_data: Dict[str, Any]
-    ) -> None:
-        """Create a Home Assistant sensor entity for a trip.
-
-        This method creates a sensor entity for each trip when it's added.
-        The sensor is registered in the entity registry so it persists
-        across Home Assistant restarts.
-
-        HA I/O: This method performs Home Assistant entity registry operations
-        that cannot be unit tested. Marked with pragma: no cover.
-
-        Args:
-            trip_id: Unique identifier for the trip
-            trip_data: Complete trip data including id, tipo, etc.
-        """
-        try:  # pragma: no cover
-            # Get the entity registry
-            from homeassistant.helpers import entity_registry as er
-
-            registry = er.async_get(self.hass)
-
-            # Build entity_id from trip_id
-            # Format: sensor.trip_{trip_id}
-            entity_id = f"sensor.trip_{trip_id}"
-
-            # Check if entity already exists
-            existing_entry = registry.async_get(entity_id)
-
-            if existing_entry is not None:
-                # Entity already exists, just update its state
-                _LOGGER.debug(
-                    "Trip sensor %s already exists, skipping creation",
-                    entity_id,
-                )
-                return
-
-            # Create the entity in the registry
-            # We use a unique_id that combines vehicle_id and trip_id
-            unique_id = f"trip_{trip_id}"
-
-            # Register the entity
-            registry.async_get_or_create(
-                domain="sensor",
-                platform=DOMAIN,
-                unique_id=unique_id,
-                suggested_object_id=f"trip_{trip_id}",
-            )
-
-            _LOGGER.info(
-                "Created trip sensor %s for trip %s (vehicle: %s)",
-                entity_id,
-                trip_id,
-                self.vehicle_id,
-            )
-
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error creating trip sensor for trip %s: %s",
-                trip_id,
-                err,
-                exc_info=True,
-            )
-
-    async def async_remove_trip_sensor(self, trip_id: str) -> None:
-        """Remove a Home Assistant sensor entity for a trip.
-
-        This method removes the sensor entity from the entity registry
-        when a trip is deleted.
-
-        HA I/O: This method performs Home Assistant entity registry operations
-        that cannot be unit tested. Marked with pragma: no cover.
-
-        Args:
-            trip_id: Unique identifier for the trip
-        """
-        try:  # pragma: no cover
-            # Get the entity registry
-            from homeassistant.helpers import entity_registry as er
-
-            registry = er.async_get(self.hass)
-
-            # Build entity_id from trip_id
-            entity_id = f"sensor.trip_{trip_id}"
-
-            # Check if entity exists
-            existing_entry = registry.async_get(entity_id)
-
-            if existing_entry is None:
-                # Entity doesn't exist, nothing to remove
-                _LOGGER.debug(
-                    "Trip sensor %s does not exist, nothing to remove",
-                    entity_id,
-                )
-                return
-
-            # Remove the entity from the registry
-            await registry.async_remove(entity_id)
-
-            _LOGGER.info(
-                "Removed trip sensor %s for trip %s (vehicle: %s)",
-                entity_id,
-                trip_id,
-                self.vehicle_id,
-            )
-
-        except Exception as err:  # pragma: no cover
-            _LOGGER.error(
-                "Error removing trip sensor for trip %s: %s",
-                trip_id,
-                err,
-                exc_info=True,
-            )

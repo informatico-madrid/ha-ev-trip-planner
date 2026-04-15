@@ -940,7 +940,7 @@ class TestAsyncCleanupStaleStorage:
                 await async_cleanup_stale_storage(hass, "test_vehicle")
 
 
-class TestAsyncRegisterStaticPaths:
+class TestAsyncRegisterStaticPathsErrorPaths:
     """Tests for async_register_static_paths error paths - PRAGMA-A coverage targets."""
 
     @pytest.mark.asyncio
@@ -978,26 +978,6 @@ class TestAsyncRegisterStaticPaths:
 
         # Should handle gracefully - "already registered" error is caught
         await async_register_static_paths(hass)
-
-
-class TestAsyncCleanupOrphanedEmhassSensors:
-    """Tests for async_cleanup_orphaned_emhass_sensors - PRAGMA-A coverage targets."""
-
-    @pytest.mark.asyncio
-    async def test_async_cleanup_orphaned_handles_registry_error(self):
-        """async_cleanup_orphaned_emhass_sensors catches exception from er.async_get.
-
-        Tests the error path at lines 1185-1186 where entity registry error is caught
-        and logged.
-        """
-        from custom_components.ev_trip_planner.services import async_cleanup_orphaned_emhass_sensors
-
-        hass = MagicMock()
-
-        # Make er.async_get raise
-        with patch("homeassistant.helpers.entity_registry.async_get", side_effect=RuntimeError("Registry error")):
-            # Should NOT raise - exception is caught
-            await async_cleanup_orphaned_emhass_sensors(hass)
 
 
 class TestAsyncRemoveEntryCleanup:
@@ -1229,7 +1209,7 @@ class TestHandleTripUpdateEnglishAliases:
         with patch(
             "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
             new_callable=AsyncMock,
-        ) as mock_update_sensor:
+        ):
             register_services(mock_hass)
 
             # Use "trip_update" service (the one with field mapping), NOT "edit_trip"
@@ -1613,7 +1593,7 @@ class TestAsyncCleanupStaleStorageYaml:
             assert not os.path.exists(yaml_path)
 
 
-class TestAsyncCleanupOrphanedEmhassSensors:
+class TestAsyncCleanupOrphanedEmhassSensorsIteration:
     """Tests for orphan cleanup loop iteration (lines 1182-1184)."""
 
     @pytest.mark.asyncio
@@ -1643,8 +1623,44 @@ class TestAsyncCleanupOrphanedEmhassSensors:
                 await svcs.async_cleanup_orphaned_emhass_sensors(mock_hass)
 
 
-class TestAsyncRegisterStaticPaths:
-    """Tests for async_register_static_paths (lines 1234-1235, 1277, 1290-1302)."""
+class TestAsyncRegisterStaticPathsAllPaths:
+    """Tests for async_register_static_paths including success, error, and edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_handles_early_register_error(self):
+        """async_register_static_paths catches exception from async_register_static_paths.
+
+        Tests the error path at lines 1281-1299 where static path registration error
+        is caught and logged.
+        """
+        from custom_components.ev_trip_planner.services import async_register_static_paths
+
+        hass = MagicMock()
+        hass.http = None  # No http server
+
+        # Should handle gracefully - hass.http is None
+        await async_register_static_paths(hass)
+
+    @pytest.mark.asyncio
+    async def test_async_register_static_paths_handles_legacy_register_error(self):
+        """async_register_static_paths handles RuntimeError from legacy register_static_path.
+
+        Tests the error path at lines 1296-1299 where "already registered" RuntimeError
+        is caught and continue is used.
+        """
+        from custom_components.ev_trip_planner.services import async_register_static_paths
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.async_register_static_paths = AsyncMock(
+            side_effect=RuntimeError("already registered: /test")
+        )
+        hass.http.register_static_path = MagicMock(
+            side_effect=RuntimeError("already registered: /test")
+        )
+
+        # Should handle gracefully - "already registered" error is caught
+        await async_register_static_paths(hass)
 
     @pytest.mark.asyncio
     async def test_async_register_static_paths_import_error_path(self, mock_hass):
@@ -2425,8 +2441,8 @@ class TestHandleTripUpdatePunctualBranch:
         mock_mgr.async_get_punctual_trips.assert_awaited()
 
 
-class TestAsyncCleanupOrphanedEmhassSensors:
-    """Tests for async_cleanup_orphaned_emhass_sensors - covers for loop iteration."""
+class TestAsyncCleanupOrphanedEmhassSensorsIterationDetail:
+    """Tests for async_cleanup_orphaned_emhass_sensors iteration details."""
 
     @pytest.mark.asyncio
     async def test_async_cleanup_orphaned_emhass_sensors_iterates_entries(self, mock_hass):
@@ -2509,21 +2525,21 @@ class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
         mock_entity_entry = MagicMock()
         mock_entity_entry.entity_id = "sensor.test"
         mock_registry = MagicMock()
-        mock_registry.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_entity_entry]
-        )
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
-        ):
+        ), patch(
+            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            return_value=[mock_entity_entry],
+        ) as mock_async_entries:
             await svcs.async_unload_entry_cleanup(
                 mock_hass, mock_entry, "chispitas", "Chispitas"
             )
 
-        # Verify async_get was called (line 1432)
-        mock_registry.async_entries_for_config_entry.assert_called()
+        # Verify async_entries_for_config_entry was called (line 1438 - module-level API)
+        mock_async_entries.assert_called_once()
 
 
 class TestAsyncUnloadEntryCleanupWithTripManager:

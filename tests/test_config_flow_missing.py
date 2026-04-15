@@ -453,7 +453,7 @@ async def test_async_step_notifications_with_notify_entities():
         mock_entity3,
     ]
 
-    with patch.object(er, "async_get", AsyncMock(return_value=mock_registry)):
+    with patch.object(er, "async_get", MagicMock(return_value=mock_registry)):
         result = await flow.async_step_notifications()
 
     assert result["type"] == FlowResultType.FORM

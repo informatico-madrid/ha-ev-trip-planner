@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.ev_trip_planner import EVTripRuntimeData
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -838,6 +839,8 @@ class TestTripManagerAsyncRemoveTripSensor:
     @pytest.mark.asyncio
     async def test_async_remove_trip_sensor_registry_error(self, mock_hass_with_storage):
         """async_remove_trip_sensor handles registry error gracefully."""
+        from custom_components.ev_trip_planner.sensor import async_remove_trip_sensor
+
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
         await trip_manager.async_setup()
 
@@ -847,7 +850,7 @@ class TestTripManagerAsyncRemoveTripSensor:
             side_effect=Exception("Registry error"),
         ):
             # Should not raise - exception is caught and logged
-            await trip_manager.async_remove_trip_sensor("trip_1")
+            await async_remove_trip_sensor(mock_hass_with_storage, "test_entry", "trip_1")
 
 
 
@@ -1175,11 +1178,11 @@ class TestTripManagerAsyncAddRecurringTrip:
     @pytest.mark.asyncio
     async def test_async_add_recurring_trip_generates_id(self, mock_hass_with_storage):
         """async_add_recurring_trip generates trip_id if not provided."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
         # Mock the sensor creation and EMHASS to avoid side effects
-        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
             with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
                 await trip_manager.async_add_recurring_trip(
                     dia_semana="monday",
@@ -1196,10 +1199,10 @@ class TestTripManagerAsyncAddRecurringTrip:
     @pytest.mark.asyncio
     async def test_async_add_recurring_trip_with_custom_id(self, mock_hass_with_storage):
         """async_add_recurring_trip uses provided trip_id."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
-        with patch.object(trip_manager, "async_create_trip_sensor", new_callable=AsyncMock):
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
             with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
                 await trip_manager.async_add_recurring_trip(
                     trip_id="custom_recurring_1",
@@ -1211,6 +1214,175 @@ class TestTripManagerAsyncAddRecurringTrip:
 
         assert "custom_recurring_1" in trip_manager._recurring_trips
 
+    @pytest.mark.asyncio
+    async def test_add_recurring_calls_sensor_py_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip calls sensor.py async_create_trip_sensor.
+
+        GREEN test for task 1.47: Verify trip_manager uses sensor.py CRUD functions
+        instead of internal methods for creating trip sensors.
+
+        Expected behavior:
+        - trip_manager.async_add_recurring_trip should call sensor.async_create_trip_sensor
+        - NOT self.async_create_trip_sensor (internal method)
+
+        Current implementation:
+        - Line 526-527: from .sensor import async_create_trip_sensor
+        - Line 527: await async_create_trip_sensor(self.hass, self._entry_id, ...)
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor") as mock_create:
+            # Mock the sensor.py function to return False (no existing entity)
+            mock_create.return_value = False
+
+            # Add a recurring trip
+            await trip_manager.async_add_recurring_trip(
+                dia_semana="lunes",
+                hora="08:00",
+                km=50.0,
+                kwh=10.0,
+                descripcion="Test trip for sensor.py call",
+            )
+
+            # Assert sensor.py async_create_trip_sensor was called (not internal method)
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+            assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+            assert call_args[0][2].get("dia_semana") == "lunes"  # trip_data contains dia_semana="lunes"
+
+    @pytest.mark.asyncio
+    async def test_add_recurring_calls_emhass_sensor_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip calls sensor.py async_create_trip_emhass_sensor.
+
+        Test for task 1.52: Verify trip_manager creates EMHASS sensor alongside TripSensor.
+
+        Expected behavior:
+        - trip_manager.async_add_recurring_trip should call sensor.async_create_trip_emhass_sensor
+        - After calling async_create_trip_sensor (TripSensor comes first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor CRUD not yet added
+        - Only TripSensor is created via async_create_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
+        mock_coordinator = MagicMock()
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry"
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
+
+        # Mock both sensor CRUD functions and config_entries.async_get_entry
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+                    mock_trip_sensor.return_value = False  # No existing entity
+                    mock_emhass_sensor.return_value = None  # EMHASS sensor void return
+
+                    # Add a recurring trip
+                    await trip_manager.async_add_recurring_trip(
+                        dia_semana="lunes",
+                        hora="08:00",
+                        km=50.0,
+                        kwh=10.0,
+                        descripcion="Test trip for EMHASS sensor creation",
+                    )
+
+                    # Assert TripSensor was created
+                    mock_trip_sensor.assert_called_once()
+
+                    # Assert EMHASS sensor was created AFTER TripSensor
+                    # This will FAIL until task 1.53 implementation
+                    mock_emhass_sensor.assert_called_once()
+                    call_args = mock_emhass_sensor.call_args
+                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                    assert call_args[0][2] is mock_coordinator  # third arg is coordinator
+                    assert call_args[0][3] == "morgan"  # fourth arg is vehicle_id
+                    # The fifth arg should be the trip_id (extracted from the trip that was created)
+                    assert isinstance(call_args[0][4], str)  # trip_id should be a string
+
+
+class TestTripManagerAsyncAddPunctualTrip:
+    """Tests for async_add_punctual_trip EMHASS sensor integration."""
+
+    @pytest.mark.asyncio
+    async def test_add_punctual_calls_emhass_sensor_create(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_punctual_trip calls sensor.py async_create_trip_emhass_sensor.
+
+        Test for task 1.54: Verify trip_manager creates EMHASS sensor alongside TripSensor
+        for punctual trips.
+
+        Expected behavior:
+        - trip_manager.async_add_punctual_trip should call sensor.async_create_trip_emhass_sensor
+        - After calling async_create_trip_sensor (TripSensor comes first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor CRUD not yet added for punctual trips
+        - Only TripSensor is created via async_create_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
+        mock_coordinator = MagicMock()
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry"
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
+
+        # Mock both sensor CRUD functions and config_entries.async_get_entry
+        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+                    mock_trip_sensor.return_value = False  # No existing entity
+                    mock_emhass_sensor.return_value = None  # EMHASS sensor void return
+
+                    # Add a punctual trip
+                    await trip_manager.async_add_punctual_trip(
+                        datetime="2024-01-15T08:00:00",
+                        km=25.0,
+                        kwh=5.0,
+                        descripcion="Test punctual trip for EMHASS sensor creation",
+                    )
+
+                    # Assert TripSensor was created
+                    mock_trip_sensor.assert_called_once()
+
+                    # Assert EMHASS sensor was created AFTER TripSensor
+                    # This will FAIL until task 1.55 implementation
+                    mock_emhass_sensor.assert_called_once()
+                    call_args = mock_emhass_sensor.call_args
+                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                    assert call_args[0][2] is mock_coordinator  # third arg is coordinator
+                    assert call_args[0][3] == "morgan"  # fourth arg is vehicle_id
+                    # The fifth arg should be the trip_id (extracted from the trip that was created)
+                    # We just need to verify it's a string that exists, we don't check if it's still in the trips dict
+                    assert isinstance(call_args[0][4], str)  # trip_id should be a string
+
 
 
 class TestTripManagerAsyncDeleteTrip:
@@ -1219,16 +1391,82 @@ class TestTripManagerAsyncDeleteTrip:
     @pytest.mark.asyncio
     async def test_async_delete_trip_not_found(self, mock_hass_with_storage):
         """async_delete_trip handles missing trip gracefully."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
         await trip_manager.async_setup()
 
         # Try to delete a trip that doesn't exist
         with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
-            with patch.object(trip_manager, "async_remove_trip_sensor", new_callable=AsyncMock):
+            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock):
                 with patch.object(trip_manager, "_async_remove_trip_from_emhass", new_callable=AsyncMock):
                     await trip_manager.async_delete_trip("nonexistent_trip")
 
         # No error should be raised - just returns early
+
+    @pytest.mark.asyncio
+    async def test_delete_calls_emhass_sensor_remove(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_delete_trip calls sensor.py async_remove_trip_emhass_sensor.
+
+        Test for task 1.56: Verify trip_manager removes EMHASS sensor alongside TripSensor
+        when deleting trips.
+
+        Expected behavior:
+        - trip_manager.async_delete_trip should call sensor.async_remove_trip_emhass_sensor
+        - After calling async_remove_trip_sensor (TripSensor removed first, then EMHASS sensor)
+
+        Current implementation:
+        - EMHASS sensor removal not yet added
+        - Only TripSensor is removed via async_remove_trip_sensor
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug if code still uses .get() instead of .coordinator attribute
+        mock_coordinator = MagicMock()
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry"
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
+
+        # Mock config_entries.async_get_entry to return our properly configured entry
+        # This ensures that both trip creation and deletion use the same mock entry
+        with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+            # Create a trip first (needs coordinator mock for EMHASS sensor creation)
+            await trip_manager.async_add_recurring_trip(
+                dia_semana="lunes",
+                hora="08:00",
+                km=50.0,
+                kwh=10.0,
+                descripcion="Test trip for EMHASS sensor removal",
+            )
+
+            # Mock both sensor CRUD functions
+            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+                with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+                    mock_trip_sensor.return_value = True  # Successfully removed
+                    mock_emhass_sensor.return_value = True  # Successfully removed
+
+                    # Delete the trip
+                    await trip_manager.async_delete_trip(list(trip_manager._recurring_trips.keys())[0])
+
+                    # Assert TripSensor was removed
+                    mock_trip_sensor.assert_called_once()
+
+                    # Assert EMHASS sensor was removed AFTER TripSensor
+                    # This will FAIL until task 1.57 implementation
+                    mock_emhass_sensor.assert_called_once()
+                    call_args = mock_emhass_sensor.call_args
+                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                    assert call_args[0][2] == "morgan"  # third arg is vehicle_id
+                    # The fourth arg should be the trip_id that was deleted
+                    assert isinstance(call_args[0][3], str)  # trip_id should be a string
 
 
 
@@ -1511,3 +1749,73 @@ class TestTripManagerLoadErrors:
         assert trip_manager._recurring_trips == {}
         assert trip_manager._punctual_trips == {}
 
+
+class TestRuntimeDataAttributeAccess:
+    """Tests for proper EVTripRuntimeData attribute access (not dict-style .get()).
+
+    Tests for tasks 2.7 and 2.8: Verify that runtime_data access uses attribute
+    access (entry.runtime_data.coordinator) instead of dict-style .get().
+
+    EVTripRuntimeData is a @dataclass with attributes, NOT a dict. Using .get()
+    causes AttributeError in production but is hidden by MagicMock in tests.
+    """
+
+    @pytest.mark.asyncio
+    async def test_add_recurring_trip_uses_runtime_data_attribute_access(
+        self, mock_hass_with_storage, caplog
+    ):
+        """Test that async_add_recurring_trip accesses runtime_data.coordinator as attribute.
+
+        Test for task 2.7: This test FAILS with the current implementation.
+
+        Expected behavior:
+        - entry.runtime_data is an EVTripRuntimeData dataclass
+        - Coordinator should be accessed via: entry.runtime_data.coordinator
+        - NOT via: entry.runtime_data.get("coordinator") (dict-style, causes crash)
+
+        Current implementation (BUG):
+        - trip_manager.py:491 uses: entry.runtime_data.get("coordinator")
+        - EVTripRuntimeData is a dataclass with .coordinator attribute (no .get() method)
+        - In production: AttributeError: 'EVTripRuntimeData' object has no attribute 'get'
+
+        Why existing tests hide this bug:
+        - Existing tests (line ~1282) use: mock_entry.runtime_data = MagicMock()
+        - MagicMock.autocreates .get() as a callable
+        - This makes the test pass even though the code is wrong
+
+        Fix (2.8):
+        - Change line 491 from: entry.runtime_data.get("coordinator")
+        - To: entry.runtime_data.coordinator
+        """
+        caplog.set_level("DEBUG")
+
+        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        await trip_manager.async_setup()
+
+        # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
+        # This exposes the bug: dataclass has .coordinator attribute, NO .get() method
+        mock_coordinator = MagicMock()
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry"
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=mock_coordinator, trip_manager=None
+        )
+
+        # Mock config_entries.async_get_entry to return our properly configured entry
+        with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+            # Mock async_create_trip_sensor to avoid needing full sensor setup
+            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+                mock_trip_sensor.return_value = False  # No existing entity
+
+                # This will FAIL with: AttributeError: 'EVTripRuntimeData' object has no attribute 'get'
+                # until task 2.8 fix is applied
+                await trip_manager.async_add_recurring_trip(
+                    dia_semana="lunes",
+                    hora="08:00",
+                    km=50.0,
+                    kwh=10.0,
+                    descripcion="Test trip for runtime_data attribute access",
+                )
+
+                # If we reach here without AttributeError, the bug is fixed
+                # The test passes when runtime_data.coordinator is accessed correctly

@@ -11,9 +11,10 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeAlias
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import async_migrate_entries
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -98,15 +99,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EV Trip Planner from a config entry."""
-    vehicle_id = entry.data.get("vehicle_name").lower().replace(" ", "_")
-    vehicle_name = entry.data.get("vehicle_name", vehicle_id)
+    vehicle_name_raw = entry.data.get("vehicle_name")
+    if vehicle_name_raw is None:
+        vehicle_name_raw = ""
+    vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
+    vehicle_name = vehicle_name_raw or vehicle_id
 
     await async_cleanup_stale_storage(hass, vehicle_id)
     await async_cleanup_orphaned_emhass_sensors(hass)
     await async_register_static_paths(hass)
 
     presence_config = build_presence_config(entry)
-    trip_manager = TripManager(hass, vehicle_id, presence_config)
+    trip_manager = TripManager(hass, vehicle_id, entry.entry_id, presence_config)
     await trip_manager.async_setup()
 
     soc_sensor = entry.data.get("soc_sensor")
@@ -117,6 +121,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get("planning_horizon_days") or entry.data.get("max_deferrable_loads"):
         emhass_adapter = EMHASSAdapter(hass, entry)
         await emhass_adapter.async_load()
+        # FR-2, AC-1.2: Set up config entry listener for charging power updates
+        emhass_adapter.setup_config_entry_listener()
         trip_manager.set_emhass_adapter(emhass_adapter)
 
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
@@ -142,8 +148,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    vehicle_id = entry.data.get("vehicle_name").lower().replace(" ", "_")
-    vehicle_name = entry.data.get("vehicle_name", vehicle_id)
+    vehicle_name_raw = entry.data.get("vehicle_name")
+    if vehicle_name_raw is None:
+        vehicle_name_raw = ""
+    vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
+    vehicle_name = vehicle_name_raw or vehicle_id
     unload_ok = await async_unload_entry_cleanup(hass, entry, vehicle_id, vehicle_name)
     return unload_ok
 

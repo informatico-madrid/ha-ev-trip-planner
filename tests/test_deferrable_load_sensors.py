@@ -283,7 +283,7 @@ class TestEmhassDeferrableLoadSensor:
     async def test_sensor_device_info(self, mock_coordinator, sensor):
         """Test sensor device info uses vehicle_id from coordinator.
 
-        Task 1.4 RED test: expects device_info to use vehicle_id, not entry_id.
+        Task 1.4 test: expects device_info to use vehicle_id, not entry_id.
         """
         device_info = sensor.device_info
 
@@ -334,7 +334,7 @@ class TestEmhassDeferrableLoadSensor:
     async def test_sensor_name_uses_vehicle_id(self, mock_coordinator, sensor):
         """Test sensor _attr_name uses vehicle_id from coordinator, not entry_id.
 
-        Task 1.7 RED test: expects sensor name to use vehicle_id, not entry_id UUID.
+        Task 1.7 test: expects sensor name to use vehicle_id, not entry_id UUID.
         """
         assert sensor._attr_name == "EMHASS Perfil Diferible test_vehicle"
         assert "test_entry_id" not in sensor._attr_name
