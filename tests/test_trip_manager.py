@@ -1220,7 +1220,7 @@ class TestTripManagerAsyncAddRecurringTrip:
     ):
         """Test that async_add_recurring_trip calls sensor.py async_create_trip_sensor.
 
-        RED test for task 1.47: Verify trip_manager uses sensor.py CRUD functions
+        GREEN test for task 1.47: Verify trip_manager uses sensor.py CRUD functions
         instead of internal methods for creating trip sensors.
 
         Expected behavior:
@@ -1228,7 +1228,8 @@ class TestTripManagerAsyncAddRecurringTrip:
         - NOT self.async_create_trip_sensor (internal method)
 
         Current implementation:
-        - Line 481: await self.async_create_trip_sensor(...)  # calls internal method
+        - Line 526-527: from .sensor import async_create_trip_sensor
+        - Line 527: await async_create_trip_sensor(self.hass, self._entry_id, ...)
         """
         caplog.set_level("DEBUG")
 
