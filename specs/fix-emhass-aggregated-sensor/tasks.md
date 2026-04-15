@@ -1,480 +1,261 @@
 # Tasks: Fix EMHASS Aggregated Sensor
 
-## Executive Summary
-
-**Total Tasks:** 18 tasks across 4 phases
-**Feasibility:** High | **Risk:** Medium | **Effort:** Small
-
-This implementation follows POC-first workflow:
-- **Phase 1 (POC):** 4 tasks - Prove datetime fix works
-- **Phase 2 (Refactor):** 8 tasks - Complete all fixes
-- **Phase 3 (Testing):** 4 tasks - Add test coverage
-- **Phase 4 (Quality):** 2 tasks - Final quality gates
-
----
-
-## Phase 1 (POC): Core Fix - Minimal Proof
-
-### Task 1.1: Fix Datetime Offset Error
-
-**Do:** Fix the datetime offset error in emhass_adapter.py that causes trip sync failures.
-
-**Files:**
-- `custom_components/ev_trip_planner/emhass_adapter.py` (lines 334, import section)
-
-**Done when:**
-- Import includes `timezone` from datetime module
-- Line 334 uses `datetime.now(timezone.utc)` instead of `datetime.now()`
-- No linting errors
-
-**Verify:**
-```bash
-# Run existing test
-pytest tests/test_emhass_adapter.py::test_async_publish_deferrable_load_uses_fallback_when_no_trip_data -v
-
-# Check syntax
-python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py
-```
-
-**Commit:** `fix(emhass_adapter): use timezone-aware datetime`
-
----
-
-### Task 1.2: Fix def_total_hours as Integer
-
-**Do:** Change def_total_hours from float to integer to satisfy EMHASS validation.
-
-**Files:**
-- `custom_components/ev_trip_planner/emhass_adapter.py` (lines 379, 545)
-
-**Done when:**
-- Line 379: `round(total_hours, 2)` → `int(total_hours)`
-- Line 545: `round(total_hours, 2)` → `int(total_hours)`
-- Both locations updated consistently
-
-**Verify:**
-```bash
-# Check syntax
-python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py
-
-# Verify logic manually - grep for int(total_hours)
-grep -n "int(total_hours)" custom_components/ev_trip_planner/emhass_adapter.py
-```
-
-**Commit:** `fix(emhass_adapter): convert def_total_hours to integer`
-
----
-
-### Task 1.3: Test Datetime Fix Locally
-
-**Do:** Verify the datetime fix works by creating a test trip.
-
-**Files:** None (manual testing)
-
-**Done when:**
-- Home Assistant dev server running at http://192.168.1.100:8123
-- Create a new trip in Home Assistant
-- Logs show no "offset-naive/offset-aware" errors
-- Trip's emhass_index is non-negative (not -1)
-
-**Verify:**
-```bash
-# Check Home Assistant logs for datetime errors
-ha logs | grep -i "offset"
-
-# Verify trip created successfully
-ha sensor show sensor.trip_planner_*_emhass_index
-```
-
-**Commit:** N/A (manual verification - document in PR notes)
-
----
-
-### Task 1.4: Test def_total_hours Integer
-
-**Do:** Verify def_total_hours is now an integer in sensor attributes.
-
-**Files:** None (manual testing)
-
-**Done when:**
-- Create trip with duration resulting in fractional hours (e.g., 1.94 hours)
-- Sensor attribute shows integer value (e.g., `1` not `1.94`)
-- EMHASS accepts the value without schema error
-
-**Verify:**
-```bash
-# Check sensor attribute
-ha sensor show sensor.emhass_perfil_diferible_* --attribute def_total_hours
-
-# Should show integer, not float
-```
-
-**Commit:** N/A (manual verification - document in PR notes)
-
----
-
-## Phase 2 (Refactor): Core Fixes - Complete Implementation
-
-### Task 2.1: Fix Entity ID Search Pattern
-
-**Do:** Update panel.js entity ID search pattern to match actual sensor naming.
-
-**Files:**
-- `custom_components/ev_trip_planner/frontend/panel.js` (lines 883-886)
-
-**Done when:**
-- Pattern changed from: `entityId.startsWith('sensor.emhass_perfil_diferible_')`
-- To: `entityId.startsWith('sensor.trip_planner_') && entityId.includes('emhass_perfil_diferible')`
-- No JavaScript linting errors
-
-**Verify:**
-```bash
-# Check syntax
-node -c custom_components/ev_trip_planner/frontend/panel.js
-
-# Verify pattern change
-grep -A2 "startsWith.*trip_planner" custom_components/ev_trip_planner/frontend/panel.js
-```
-
-**Commit:** `fix(panel): update entity ID search pattern`
-
----
-
-### Task 2.2: Fix Template Keys (Remove _array from Keys)
-
-**Do:** Correct Jinja2 template keys to match EMHASS expected format.
-
-**Files:**
-- `custom_components/ev_trip_planner/frontend/panel.js` (lines 914-945)
-
-**Done when:**
-- Keys changed from `*_array` to no suffix:
-  - `def_total_hours_array:` → `def_total_hours:`
-  - `p_deferrable_nom_array:` → `P_deferrable_nom:`
-  - `def_start_timestep_array:` → `def_start_timestep:`
-  - `def_end_timestep_array:` → `def_end_timestep:`
-  - `p_deferrable_matrix:` → `P_deferrable:`
-- Attributes (2nd param) keep `_array` suffix: `state_attr('...','def_total_hours_array')`
-
-**Verify:**
-```bash
-# Check template changes
-grep -A10 "Keys (left of :)" custom_components/ev_trip_planner/frontend/panel.js
-
-# Verify capitalization of P_deferrable
-grep "P_deferrable" custom_components/ev_trip_planner/frontend/panel.js
-```
-
-**Commit:** `fix(panel): correct Jinja2 template keys for EMHASS`
-
----
-
-### Task 2.3: Fix panel.css Route
-
-**Do:** Update CSS path in panel.js to match services.py registration.
-
-**Files:**
-- `custom_components/ev_trip_planner/frontend/panel.js` (line 723)
-
-**Done when:**
-- Path changed from `/ev_trip_planner/panel.css` to `/ev-trip-planner/panel.css`
-- Uses hyphens instead of underscores
-
-**Verify:**
-```bash
-# Verify change
-grep "ev-trip-planner.*panel.css" custom_components/ev_trip_planner/frontend/panel.js
-```
-
-**Commit:** `fix(panel): use hyphens in CSS path`
-
----
-
-### Task 2.4: Remove EMHASS Availability Warning
-
-**Do:** Remove the "sensor not available" warning message from panel.js.
-
-**Files:**
-- `custom_components/ev_trip_planner/frontend/panel.js` (lines 905-945)
-
-**Done when:**
-- `emhassAvailable` check removed
-- Warning message `⚠️ EMHASS sensor not available` removed
-- EMHASS section always renders
-
-**Verify:**
-```bash
-# Verify warning removed
-grep "EMHASS sensor not available" custom_components/ev_trip_planner/frontend/panel.js
-# Should return nothing
-
-# Verify section still renders
-grep -A5 "emhass-config-section" custom_components/ev_trip_planner/frontend/panel.js
-```
-
-**Commit:** `fix(panel): always show EMHASS section without warning`
-
----
-
-### Task 2.5: Fix Modal Trip Type Detection
-
-**Do:** Update modal trip type detection to check all possible fields.
-
-**Files:**
-- `custom_components/ev_trip_planner/frontend/panel.js` (line ~1637)
-
-**Done when:**
-- Changed from: `trip.type === 'puntual' ? 'puntual' : 'recurrente'`
-- To: Check all fields: `trip.tipo`, `trip.type`, `trip.recurring`
-- Logic: `if (trip.tipo === 'puntual' || trip.type === 'puntual' || trip.recurring === false)`
-
-**Verify:**
-```bash
-# Verify change
-grep -A3 "trip.tipo.*puntual" custom_components/ev_trip_planner/frontend/panel.js
-```
-
-**Commit:** `fix(panel): check all fields for trip type detection`
-
----
-
-### Task 2.6: Test Entity Pattern Fix
-
-**Do:** Verify entity pattern fix correctly finds EMHASS sensors.
-
-**Files:** None (manual testing)
-
-**Done when:**
-- Panel opens and scans entity registry
-- Sensor `sensor.trip_planner_*_emhass_perfil_diferible_*` is found
-- EMHASS data displays correctly
-- No "EMHASS sensor not available" message
-
-**Verify:**
-```bash
-# Open panel in browser
-# Navigate to http://192.168.1.100:8123/ev-trip-planner/
-
-# Check console for errors
-# Should see no "Refused to apply style" or entity search errors
-```
-
-**Commit:** N/A (manual verification)
-
----
-
-### Task 2.7: Test Template Keys Fix
-
-**Do:** Verify template generates correct keys for EMHASS.
-
-**Files:** None (manual testing)
-
-**Done when:**
-- Jinja2 template renders with correct keys
-- Keys do NOT have `_array` suffix
-- EMHASS receives: `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `P_deferrable`
-
-**Verify:**
-```bash
-# Open browser DevTools Network tab
-# Look for EMHASS shell command curl
-# Verify keys in JSON payload
-```
-
-**Commit:** N/A (manual verification)
-
----
-
-## Phase 3 (Testing): Quality - Test Coverage
-
-### Task 3.1: Add Datetime Test
-
-**Do:** Add unit test for datetime handling in emhass_adapter.py.
-
-**Files:**
-- `tests/test_emhass_adapter.py` (append new test)
-
-**Done when:**
-- New test: `test_datetime_offset_aware`
-- Tests `datetime.now(timezone.utc)` used in async_publish_deferrable_load
-- Tests no error when deadline_dt is offset-aware
-
-**Verify:**
-```bash
-pytest tests/test_emhass_adapter.py::test_datetime_offset_aware -v
-```
-
-**Commit:** `test(emhass_adapter): add datetime offset test`
-
----
-
-### Task 3.2: Add def_total_hours Type Test
-
-**Do:** Add unit test verifying def_total_hours is integer.
-
-**Files:**
-- `tests/test_emhass_adapter.py` (append new test)
-
-**Done when:**
-- New test: `test_def_total_hours_is_integer`
-- Tests that `int(total_hours)` produces integer type
-- Tests EMHASS payload has integer def_total_hours
-
-**Verify:**
-```bash
-pytest tests/test_emhass_adapter.py::test_def_total_hours_is_integer -v
-```
-
-**Commit:** `test(emhass_adapter): add def_total_hours integer test`
-
----
-
-### Task 3.3: Add Aggregated Sensor Test
-
-**Do:** Add integration test for second trip aggregation.
-
-**Files:**
-- `tests/test_aggregated_sensor_bug.py` (append new test)
-
-**Done when:**
-- New test: `test_second_trip_aggregated`
-- Creates two trips
-- Verifies `def_total_hours_array` has length 2
-- Verifies both trips in `punctual_trips`
-
-**Verify:**
-```bash
-pytest tests/test_aggregated_sensor_bug.py::test_second_trip_aggregated -v
-```
-
-**Commit:** `test(aggregated sensor): add second trip aggregation test`
-
----
-
-### Task 3.4: E2E Verification - Full Flow
-
-**Do:** Run complete end-to-end verification of all fixes.
-
-**Files:** None (manual testing via Cypress or manual)
-
-**Done when:**
-- Create first trip → verify emhass_index = 0
-- Create second trip → verify both trips aggregated
-- Check panel shows EMHASS data without warning
-- Check template keys correct in network tab
-- Verify CSS loads (no 404 errors)
-
-**Verify:**
-```bash
-# Start dev server
-cd custom_components/ev_trip_planner
-# ... (dev server setup)
-
-# Open browser
-# Follow verification checklist from requirements.md
-```
-
-**Commit:** N/A (E2E verification - document results in PR)
-
----
-
-## Phase 4 (Quality): CI/PR - Final Quality Gates
-
-### Task 4.1: Run All Existing Tests
-
-**Do:** Run complete test suite to ensure no regressions.
-
-**Files:** None (test execution)
-
-**Done when:**
-```bash
-pytest tests/ -v --tb=short
-```
-
-All existing tests pass:
-- `test_emhass_adapter.py`
-- `test_aggregated_sensor_bug.py`
-- All other component tests
-
-**Verify:**
-```bash
-# Check test results
-# All green, no failures
-```
-
-**Commit:** N/A (test execution - document in PR)
-
----
-
-### Task 4.2: Manual Verification Checklist
-
-**Do:** Complete manual verification checklist from requirements.md.
-
-**Files:** None
-
-**Done when:**
-All ACs verified manually:
-- AC 1: Datetime offset fixed ✓
-- AC 2: Entity pattern finds sensors ✓
-- AC 3: def_total_hours is integer ✓
-- AC 4: CSS route works (no 404) ✓
-- AC 5: Second trip aggregated ✓
-- AC 6: emhass_index assigned ✓
-- AC 7: EMHASS section always visible ✓
-- AC 9: Template keys correct ✓
-- AC 10: Modal trip type correct ✓
-
-**Verify:**
-Create checklist document in PR with all items checked off.
-
-**Commit:** N/A (manual verification - document in PR)
-
----
-
-## Implementation Summary
-
-### Files Modified
-
-| File | Tasks | Lines Changed |
-|------|-------|---------------|
-| `emhass_adapter.py` | 1.1, 1.2 | ~4 lines |
-| `panel.js` | 2.1, 2.2, 2.3, 2.4, 2.5 | ~40 lines |
-| `test_emhass_adapter.py` | 3.1, 3.2 | ~50 lines |
-| `test_aggregated_sensor_bug.py` | 3.3 | ~30 lines |
-
-### Verification Tooling
-
-- **Dev Server:** Home Assistant at http://192.168.1.100:8123
-- **Browser:** Chrome DevTools for console/network inspection
-- **Tests:** `pytest tests/ -v`
-- **Linter:** `flake8`, `pylint` for Python; `eslint` for JavaScript
-
-### Acceptance Criteria Coverage
-
-| AC | Task | Status |
-|----|------|--------|
-| AC 1 | 1.1, 1.3 | Implemented |
-| AC 2 | 2.1, 2.6 | Implemented |
-| AC 3 | 1.2, 1.4 | Implemented |
-| AC 4 | 2.3 | Implemented |
-| AC 5 | 3.3, 2.7 | Implemented |
-| AC 6 | 1.3 | Implemented |
-| AC 7 | 2.4, 2.6 | Implemented |
-| AC 9 | 2.2, 2.7 | Implemented |
-| AC 10 | 2.5 | Implemented |
-
----
-
-## POC Milestone
-
-**After Phase 1 (Tasks 1.1-1.2):**
-- Datetime fix proven working
-- trips sync without errors
-- emhass_index assigned correctly
-- def_total_hours as integer
-
-**Total POC Progress:** 4/18 tasks (22%)
-
-## Next Steps
-
-After approval, run: `/ralph-specum:implement` to start execution.
+## Overview
+
+Total tasks: 22
+
+<!-- Intent Classification: REFACTOR → TDD workflow -->
+**TDD Red-Green-Yellow workflow** (REFACTOR):
+1. Phase 1: Red-Green-Yellow Cycles — Test-first implementation
+2. Phase 2: Frontend Fixes — panel.js changes (E2E testeable)
+3. Phase 3: Quality Gates — Local quality checks and PR creation
+4. Phase 4: PR Lifecycle — Autonomous CI monitoring, review resolution
+
+## Completion Criteria (Autonomous Execution Standard)
+
+✅ **Zero Regressions**: All existing tests pass (`pytest tests/`)
+✅ **Modular & Reusable**: Follows project patterns
+✅ **Real-World Validation**: E2E con Playwright
+✅ **All Tests Pass**: Unit + E2E green
+✅ **CI Green**: All CI checks passing
+✅ **PR Ready**: Pull request created, reviewed, approved
+✅ **Review Comments Resolved**: All feedback addressed
+
+## Phase 1: Red-Green-Yellow Cycles (Python — emhass_adapter.py)
+
+### Cycle A: datetime.now(timezone.utc)
+
+- [x] 1.1 [RED] Failing test: datetime.now() raises TypeError con offset-aware deadline
+  - **Do**:
+    1. Crear test en `tests/test_emhass_datetime.py` que llame a `async_publish_deferrable_load` con un trip cuyo deadline sea ISO offset-aware (`"2026-04-20T10:00:00+02:00"`)
+    2. Assert que NO lanza `TypeError: can't subtract offset-naive and offset-aware datetimes`
+    3. Assert que el `now` interno es offset-aware
+  - **Files**: `tests/test_emhass_datetime.py`
+  - **Done when**: Test existe Y FALLA con TypeError
+  - **Verify**: `pytest tests/test_emhass_datetime.py -x 2>&1 | grep -q "FAIL" && echo RED_PASS`
+  - **Commit**: `test(emhass): red - failing test for offset-naive datetime`
+  - _Requirements: FR-1, AC-1.1_
+  - _Design: Interfaces — emhass_adapter.py — Cambios puntuales_
+
+- [ ] 1.2 [GREEN] Fix datetime.now → datetime.now(timezone.utc) en 5 puntos
+  - **Do**:
+    1. Añadir `timezone` al import: `from datetime import datetime, timezone`
+    2. Línea 126: `now = datetime.now(timezone.utc)`
+    3. Línea 333: `now = datetime.now(timezone.utc)`
+    4. Línea 534: `(inicio_ventana - datetime.now(timezone.utc))`
+    5. Línea 537: `(deadline_dt - datetime.now(timezone.utc))`
+    6. Línea 721: `now = datetime.now(timezone.utc)`
+  - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: Test 1.1 pasa
+  - **Verify**: `pytest tests/test_emhass_datetime.py -x`
+  - **Commit**: `fix(emhass): green - use datetime.now(timezone.utc) in all subtractions`
+  - _Requirements: FR-1_
+
+- [ ] 1.3 [YELLOW] Verificar que no hay más datetime.now() sin timezone
+  - **Do**:
+    1. `grep -n "datetime.now()" custom_components/ev_trip_planner/emhass_adapter.py`
+    2. Si encuentra más, fixear también
+    3. Solo refactorizar si hay 3+ usos repetidos (YAGNI)
+  - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: Grep devuelve 0 resultados sin `timezone.utc`
+  - **Verify**: `! grep -n "datetime\.now()" custom_components/ev_trip_planner/emhass_adapter.py | grep -v "timezone.utc" | grep -q . && echo YELLOW_PASS`
+  - **Commit**: `refactor(emhass): yellow - ensure all datetime.now uses timezone.utc`
+
+- [ ] 1.4 Quality Checkpoint
+  - **Do**: Verificar que el fix datetime no rompe tests existentes
+  - **Verify**:
+    - `pytest tests/ -x --timeout=30`
+    - `python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: 0 fallos en pytest
+  - **Commit**: `chore(emhass): pass quality checkpoint` (solo si hay fixes)
+
+### Cycle B: math.ceil para def_total_hours
+
+- [ ] 1.5 [RED] Failing test: def_total_hours redondea hacia arriba
+  - **Do**:
+    1. Crear test en `tests/test_emhass_ceil.py`
+    2. Trip con `kwh=14.37`, `charging_power_kw=7.4` → `total_hours = 14.37/7.4 = 1.9418...`
+    3. Assert que `def_total_hours == 2` (no 1.94 ni 1)
+    4. Assert que `type(def_total_hours) is int`
+  - **Files**: `tests/test_emhass_ceil.py`
+  - **Done when**: Test existe Y FALLA (actualmente devuelve 1.94 por `round()`)
+  - **Verify**: `pytest tests/test_emhass_ceil.py -x 2>&1 | grep -q "FAIL" && echo RED_PASS`
+  - **Commit**: `test(emhass): red - failing test for def_total_hours ceil`
+  - _Requirements: FR-2, AC-1.4_
+
+- [ ] 1.6 [GREEN] Fix round() → math.ceil() para def_total_hours
+  - **Do**:
+    1. Añadir `import math` al inicio de `emhass_adapter.py`
+    2. Línea ~379: Cambiar `round(total_hours, 2)` → `math.ceil(total_hours)`
+    3. Línea ~549: Mismo cambio en `_populate_per_trip_cache_entry`
+    4. Asegurar que `def_total_hours_array` también usa `math.ceil`
+  - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: Test 1.5 pasa, `def_total_hours` es `int` y redondeado hacia arriba
+  - **Verify**: `pytest tests/test_emhass_ceil.py -x`
+  - **Commit**: `fix(emhass): green - use math.ceil for def_total_hours`
+  - _Requirements: FR-2_
+
+- [ ] 1.7 [YELLOW] Verificar edge case ceil(0.0) = 0
+  - **Do**:
+    1. Añadir test con `kwh=0` → `total_hours=0` → `def_total_hours=0`
+    2. Solo refactorizar si la lógica se puede simplificar
+  - **Files**: `tests/test_emhass_ceil.py`
+  - **Done when**: Edge case cubierto, tests pasan
+  - **Verify**: `pytest tests/test_emhass_ceil.py -x`
+  - **Commit**: `refactor(emhass): yellow - edge case ceil(0)`
+
+- [ ] 1.8 Quality Checkpoint
+  - **Do**: Verificar suite completa después de ambos cycles
+  - **Verify**:
+    - `pytest tests/ -x --timeout=30`
+    - `python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py`
+  - **Done when**: 0 fallos
+  - **Commit**: `chore(emhass): pass quality checkpoint` (solo si hay fixes)
+
+## Phase 2: Frontend Fixes (JavaScript — panel.js)
+
+> Las tareas de panel.js son [P] (paralelas entre sí) porque cada una modifica líneas independientes del archivo.
+
+- [ ] 2.1 [P] Fix entity search: startsWith → includes
+  - **Do**:
+    1. Línea 883: Cambiar `startsWith('sensor.emhass_perfil_diferible_')` → `includes('emhass_perfil_diferible_')`
+    2. Línea 893: Mismo cambio
+    3. Línea 1210: Adaptar el filter a `includes` pattern
+    4. Línea 1218: Mismo cambio
+    5. Línea 1233: Mismo cambio
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Las 5 ocurrencias usan `includes('emhass_perfil_diferible_')`
+  - **Verify**: `grep -c "includes('emhass_perfil_diferible_')" custom_components/ev_trip_planner/frontend/panel.js | grep -q 5 && echo PASS`
+  - **Commit**: `fix(panel): use includes for entity_id search pattern`
+  - _Requirements: FR-3, AC-2.1_
+  - _Design: panel.js — Cambios puntuales_
+
+- [ ] 2.2 [P] Fix template keys: eliminar suffix _array
+  - **Do**:
+    1. Líneas ~914-918: Cambiar las keys del lado izquierdo del template Jinja2:
+       - `def_total_hours_array:` → `def_total_hours:`
+       - `p_deferrable_nom_array:` → `P_deferrable_nom:`
+       - `def_start_timestep_array:` → `def_start_timestep:`
+       - `def_end_timestep_array:` → `def_end_timestep:`
+       - `p_deferrable_matrix:` → `P_deferrable:`
+    2. Los `state_attr()` del lado derecho mantienen `_array`/`_matrix` (son attrs del sensor HA, correctos)
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Keys del template Jinja2 usan nombres EMHASS API (sin suffix)
+  - **Verify**: `grep -E "def_total_hours:|P_deferrable_nom:|def_start_timestep:|def_end_timestep:|P_deferrable:" custom_components/ev_trip_planner/frontend/panel.js | wc -l | grep -q 5 && echo PASS`
+  - **Commit**: `fix(panel): template keys use EMHASS API parameter names`
+  - _Requirements: FR-4, AC-2.2_
+
+- [ ] 2.3 [P] Fix CSS path: underscores → guiones
+  - **Do**:
+    1. Línea ~723: Cambiar `/ev_trip_planner/panel.css` → `/ev-trip-planner/panel.css`
+    2. Verificar que `services.py` línea 1269 ya tiene `/ev-trip-planner/panel.css`
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: panel.js solicita CSS con guiones, coincide con services.py
+  - **Verify**: `grep -q "ev-trip-planner/panel.css" custom_components/ev_trip_planner/frontend/panel.js && echo PASS`
+  - **Commit**: `fix(panel): CSS path uses hyphens matching services.py route`
+  - _Requirements: FR-5, AC-2.3_
+
+- [ ] 2.4 [P] Remove warning "EMHASS sensor not available"
+  - **Do**:
+    1. Localizar el bloque condicional del warning (~línea 942)
+    2. Eliminar el bloque `${!emhassAvailable ? html\`<div class="emhass-warning">...\` : ''}`
+    3. Asegurar que la sección EMHASS siempre se renderiza
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Sección EMHASS siempre visible, no existe el string "EMHASS sensor not available" en panel.js
+  - **Verify**: `! grep -q "EMHASS sensor not available" custom_components/ev_trip_planner/frontend/panel.js && echo PASS`
+  - **Commit**: `fix(panel): remove misleading EMHASS unavailable warning`
+  - _Requirements: FR-6, AC-2.4_
+
+- [ ] 2.5 [P] Fix modal trip type detection
+  - **Do**:
+    1. Línea ~1637 en `_showEditForm()`: Cambiar detección de trip type
+    2. Usar: `const isPunctual = trip.tipo === 'puntual' || trip.type === 'puntual' || trip.recurring === false;`
+    3. Asignar: `this._formType = isPunctual ? 'puntual' : 'recurrente';`
+  - **Files**: `custom_components/ev_trip_planner/frontend/panel.js`
+  - **Done when**: Modal detecta tipo correcto con 3 campos fallback
+  - **Verify**: `grep -q "trip.tipo\|trip.type\|trip.recurring" custom_components/ev_trip_planner/frontend/panel.js && echo PASS`
+  - **Commit**: `fix(panel): modal trip type detects tipo/type/recurring fields`
+  - _Requirements: FR-7, AC-3.1_
+
+- [ ] 2.6 Quality Checkpoint
+  - **Do**: Verificar que panel.js no tiene errores de sintaxis
+  - **Verify**:
+    - `node -c custom_components/ev_trip_planner/frontend/panel.js`
+    - `pytest tests/ -x --timeout=30`
+  - **Done when**: Sintaxis JS válida, tests Python sin regresiones
+  - **Commit**: `chore(panel): pass quality checkpoint` (solo si hay fixes)
+
+## Phase 3: E2E Testing
+
+- [ ] 3.1 E2E: Panel muestra sección EMHASS con datos
+  - **Do**:
+    1. Crear/extender test Playwright que:
+       - Navega al panel EV Trip Planner
+       - Verifica que la sección EMHASS está visible (no warning)
+       - Verifica que el template Jinja2 contiene `def_total_hours:` (sin `_array`)
+    2. Verificar que CSS se carga (no 404 en consola)
+  - **Files**: `playwright/emhass-panel.spec.ts` (crear o extender)
+  - **Done when**: Test E2E pasa
+  - **Verify**: `make e2e`
+  - **Commit**: `test(e2e): verify EMHASS panel section and template`
+  - _Requirements: AC-2.1, AC-2.2, AC-2.3, AC-2.4_
+
+- [ ] 3.2 E2E: Crear viaje y verificar sensor EMHASS
+  - **Do**:
+    1. Crear test Playwright que:
+       - Crea un viaje puntual
+       - Verifica que el `emhass_index ≥ 0` en el sensor del viaje
+       - Verifica que el sensor agregado tiene `number_of_deferrable_loads ≥ 1`
+    2. Verificar que no hay errores offset-naive en logs HA
+  - **Files**: `playwright/emhass-trip.spec.ts` (crear o extender)
+  - **Done when**: Test E2E pasa
+  - **Verify**: `make e2e`
+  - **Commit**: `test(e2e): verify trip creation updates EMHASS sensor`
+  - _Requirements: AC-1.1, AC-1.2, AC-1.3_
+
+- [ ] 3.3 Quality Checkpoint
+  - **Do**: Suite completa
+  - **Verify**:
+    - `pytest tests/ -x --timeout=30`
+    - `make e2e`
+  - **Done when**: Unit + E2E verdes
+  - **Commit**: `chore: pass quality checkpoint` (solo si hay fixes)
+
+## Phase 4: Quality Gates
+
+- [ ] 4.1 Local quality check
+  - **Do**: Run ALL quality checks locally antes de crear PR
+  - **Verify**:
+    - `python -m py_compile custom_components/ev_trip_planner/emhass_adapter.py`
+    - `node -c custom_components/ev_trip_planner/frontend/panel.js`
+    - `pytest tests/ --timeout=30`
+    - `make e2e`
+  - **Done when**: Todo verde
+  - **Commit**: `fix: address lint/type issues` (si hay fixes)
+
+- [ ] 4.2 Create PR and verify CI
+  - **Do**:
+    1. Verificar branch: `git branch --show-current`
+    2. Push: `git push -u origin $(git branch --show-current)`
+    3. Crear PR: `gh pr create --title "fix: EMHASS aggregated sensor datetime, entity search, template keys" --body "..."`
+  - **Verify**: `gh pr checks --watch`
+  - **Done when**: CI green, PR ready for review
+  - **Commit**: None
+
+- [ ] VF [VERIFY] Verificar issue original resuelto
+  - **Do**: Crear un viaje → verificar `emhass_index ≥ 0`, sensor agregado correcto, panel sin errores
+  - **Verify**: E2E test que cubre el flow completo
+  - **Done when**: Issue original NO se reproduce
+
+## Notes
+
+- **POC shortcuts**: Ninguno — workflow TDD completo
+- **Líneas de referencia**: Las líneas indicadas son aproximadas. Usar grep/search para localizar el código exacto antes de editar
+- **datetime.now() scope**: Hay 11 ocurrencias totales en emhass_adapter.py, pero solo 5 participan en restas con datetimes aware. Las otras 6 (líneas 277, 471, 519, 785) se usan en comparaciones o asignaciones que no mezclan naive/aware
+
+## Dependencies
+
+- Task 1.1-1.3 (datetime) es INDEPENDIENTE de 1.5-1.7 (ceil)
+- Tasks 2.1-2.5 (panel.js) son PARALELAS entre sí [P]
+- Phase 3 (E2E) DEPENDE de Phase 1 + Phase 2 completados
+- Phase 4 DEPENDE de todo lo anterior

@@ -1,0 +1,25 @@
+{
+  "source": "spec",
+  "name": "fix-emhass-aggregated-sensor",
+  "basePath": "./specs/fix-emhass-aggregated-sensor",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 18,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "awaitingApproval": false,
+  "notes": "Design complete. Key findings: 1) Template Jinja2 keys without _array, attrs with _array. 2) Always show EMHASS section. 3) Modal checks trip.tipo/trip.type/trip.recurring. 4) Datetime fix with timezone.utc. 5) def_total_hours as int() not round().",
+  "designArtifacts": ["design.md"]
+  "discoveredSkills": [
+    {
+      "name": "context-auditor",
+      "source": "/home/malka/.claude/plugins/cache/smart-ralph/ralph-speckit/4.9.6/skills/context-auditor/SKILL.md",
+      "matchedAt": "start",
+      "invoked": true
+    }
+  ]
+}
