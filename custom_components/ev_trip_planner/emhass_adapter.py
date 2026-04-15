@@ -38,6 +38,13 @@ DATA_RUNTIME = f"{DOMAIN}_runtime_data"
 _LOGGER = logging.getLogger(__name__)
 
 
+def _ensure_aware(dt: datetime) -> datetime:
+    """Convert naive datetime to aware (UTC) if needed."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class EMHASSAdapter:
     """Adapter to publish trips as EMHASS deferrable loads."""
 
@@ -128,7 +135,7 @@ class EMHASSAdapter:
                 for idx_str, released_iso in stored_released.items():
                     idx = int(idx_str)
                     try:
-                        released_time = datetime.fromisoformat(released_iso)
+                        released_time = _ensure_aware(datetime.fromisoformat(released_iso))
                         elapsed = (now - released_time).total_seconds()
                         if elapsed < self._index_cooldown_hours * 3600:
                             # Still in cooldown
@@ -275,7 +282,7 @@ class EMHASSAdapter:
         released_index = self._index_map.pop(trip_id)
         # Soft delete: store in released_indices with timestamp
         # instead of returning to available
-        self._released_indices[released_index] = datetime.now()
+        self._released_indices[released_index] = datetime.now(timezone.utc)
 
         await self.async_save()
 
@@ -367,7 +374,7 @@ class EMHASSAdapter:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
                 if inicio_ventana:
                     # Convert datetime to hours from now, clamped to 0-168 range
-                    delta_hours = (inicio_ventana - now).total_seconds() / 3600
+                    delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
                     def_start_timestep = max(0, min(int(delta_hours), 168))
 
             # Calculate EMHASS parameters
@@ -443,8 +450,9 @@ class EMHASSAdapter:
         deadline = trip.get("datetime")
         if deadline:
             if isinstance(deadline, str):
-                return datetime.fromisoformat(deadline)
-            return deadline  # Already a datetime
+                dt = datetime.fromisoformat(deadline)
+                return _ensure_aware(dt)
+            return _ensure_aware(deadline)  # Already a datetime
 
         # Recurring trip: calculate from day/time
         trip_type = trip.get("tipo", "")
@@ -469,7 +477,7 @@ class EMHASSAdapter:
 
                 try:
                     return calculate_next_recurring_datetime(
-                        day_js_format, time_str, datetime.now()
+                        day_js_format, time_str, datetime.now(timezone.utc)
                     )
                 except ValueError:
                     # Invalid time string (e.g., hour out of range) should be
@@ -517,7 +525,7 @@ class EMHASSAdapter:
         deadline_dt = self._calculate_deadline_from_trip(trip)
         if deadline_dt is None:
             # Fallback for invalid trips (should not happen in normal flow)
-            deadline_dt = datetime.now()
+            deadline_dt = datetime.now(timezone.utc)
 
         # Calculate charging windows for def_start_timestep
         charging_windows = calculate_multi_trip_charging_windows(
@@ -532,7 +540,7 @@ class EMHASSAdapter:
         if charging_windows:
             inicio_ventana = charging_windows[0].get("inicio_ventana")
             if inicio_ventana:
-                delta_hours = (inicio_ventana - datetime.now(timezone.utc)).total_seconds() / 3600
+                delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
         hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
@@ -723,7 +731,7 @@ class EMHASSAdapter:
         expired = [
             idx
             for idx, released_time in self._released_indices.items()
-            if (now - released_time).total_seconds() >= self._index_cooldown_hours * 3600
+            if (now - _ensure_aware(released_time)).total_seconds() >= self._index_cooldown_hours * 3600
         ]
         for idx in expired:
             del self._released_indices[idx]

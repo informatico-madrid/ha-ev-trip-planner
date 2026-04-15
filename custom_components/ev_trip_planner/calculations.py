@@ -11,13 +11,20 @@ instead of using datetime.now(), enabling deterministic testing.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from .const import DEFAULT_SOC_BUFFER_PERCENT
 from .utils import calcular_energia_kwh
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _ensure_aware(dt: datetime) -> datetime:
+    """Convert naive datetime to aware (UTC) if needed."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 # Days of week in Spanish (lowercase) — mirrors trip_manager.DAYS_OF_WEEK
 DAYS_OF_WEEK = (
@@ -377,7 +384,9 @@ def calculate_multi_trip_charging_windows(
         # Calculate ventana_horas
         # Ensure window_start is not None for the calculation
         assert window_start is not None
-        delta = trip_arrival - window_start
+        window_start_aware = _ensure_aware(window_start)
+        trip_arrival_aware = _ensure_aware(trip_arrival)
+        delta = trip_arrival_aware - window_start_aware
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
         # Calculate energy needed

@@ -38,17 +38,14 @@ class TestDatetimeOffsetBug:
         deadline_str = "2026-04-20T10:00:00+02:00"
         deadline_dt = datetime.fromisoformat(deadline_str)
 
-        # The buggy code uses naive datetime.now()
-        # After the fix, this becomes datetime.now(timezone.utc)
-        # This line simulates what the buggy code does:
-        now_naive = datetime.now()
+        # After the fix, emhass_adapter uses datetime.now(timezone.utc)
+        # which can correctly subtract from offset-aware datetimes
+        now_aware = datetime.now(timezone.utc)
 
-        # Before fix: This raises TypeError (the bug we're testing for)
-        # The test FAILS in RED phase because TypeError is raised
-        # After fix: This should NOT raise because now_aware is used
-        hours_available = (deadline_dt - now_naive).total_seconds() / 3600
+        # This should NOT raise TypeError after the fix
+        hours_available = (deadline_dt - now_aware).total_seconds() / 3600
 
-        # If we get here, the bug is fixed (naive datetime subtraction works)
+        # If we get here, the fix works (aware datetime subtraction works)
         assert hours_available > 0
 
     def test_aware_datetime_subtraction_works(self):
