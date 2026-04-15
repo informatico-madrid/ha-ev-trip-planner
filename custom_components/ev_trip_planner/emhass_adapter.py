@@ -363,8 +363,8 @@ class EMHASSAdapter:
 
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
-            # DEBUG: Log trip details before rejection check
-            _LOGGER.warning(
+            # DEBUG: Log trip details before rejection check (debug level)
+            _LOGGER.debug(
                 "DEBUG async_publish_deferrable_load: trip_id=%s, deadline=%s, deadline_dt=%s, now=%s, hours_available=%.2f, kwh=%s, is_recurring=%s",
                 trip_id, deadline, deadline_dt, now, hours_available, trip.get("kwh"), is_recurring
             )
@@ -498,10 +498,10 @@ class EMHASSAdapter:
             True if all trips published successfully, False otherwise
         """
         # DEBUG LOGGING - Investigate why power_profile_watts is [0,0,0,0,0]
-        _LOGGER.warning("DEBUG: trips count=%d, kwh values=%s", len(trips), [t.get("kwh") for t in trips])
+        _LOGGER.debug("DEBUG: trips count=%d, kwh values=%s", len(trips), [t.get("kwh") for t in trips])
         if charging_power_kw is None:
             charging_power_kw = self._charging_power_kw
-        _LOGGER.warning("DEBUG: charging_power_kw=%.2f", charging_power_kw)
+        _LOGGER.debug("DEBUG: charging_power_kw=%.2f", charging_power_kw)
 
         success_count = 0
 
@@ -618,13 +618,13 @@ class EMHASSAdapter:
             trips, charging_power_kw
         )
 
-        # DEBUG: Log power profile and trips
-        _LOGGER.warning(
+        # DEBUG: Log power profile and trips (debug level)
+        _LOGGER.debug(
             "DEBUG async_publish_all_deferrable_loads: calculated power_profile=%s, non_zero=%d",
             power_profile[:10] if power_profile else [],
             sum(1 for x in power_profile if x > 0) if power_profile else 0
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG async_publish_all_deferrable_loads: trips for profile calculation: count=%d, trip_ids=%s",
             len(trips),
             [t.get("id") for t in trips]
@@ -635,7 +635,7 @@ class EMHASSAdapter:
         self._cached_deferrables_schedule = deferrables_schedule
         self._cached_emhass_status = EMHASS_STATE_READY
 
-        _LOGGER.warning(
+        _LOGGER.info(
             "Populated EMHASS cache: power_profile_length=%d, non_zero=%d, schedule_length=%d, status=%s",
             len(power_profile),
             sum(1 for x in power_profile if x > 0),

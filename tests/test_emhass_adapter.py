@@ -1,23 +1,23 @@
 """Tests for EMHASS Adapter core functionality."""
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistantError
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
     CONF_INDEX_COOLDOWN_HOURS,
+    CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
-    EMHASS_STATE_READY,
+    CONF_VEHICLE_NAME,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
+    EMHASS_STATE_READY,
     TRIP_TYPE_PUNCTUAL,
 )
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -1315,10 +1315,13 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
 
     This is the test for task 1.19:
     - Tests that def_start_timestep is clamped to [0, 168] range
-    - When window starts 200 hours from now, should clamp to 168
-    - When window started 5 hours ago, should clamp to 0
-    - Current: implementation may not clamp correctly
-    - Test must FAIL to confirm the feature doesn't work yet
+    - When window starts 200 hours from now, should clamp to 168 (upper bound)
+    - When window started 5 hours ago, should clamp to 0 (lower bound)
+    - Asserts actual computed value in _cached_per_trip_params
+
+    CoderabbitAI Fix: Previously mocked async_publish_deferrable_load which skipped
+    the actual timestep calculation. Now lets the real code run and asserts the
+    computed def_start_timestep value directly from _cached_per_trip_params.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -1335,17 +1338,14 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        # Mock coordinator.async_refresh
+        # Mock coordinator
         adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
 
-        # Mock async_publish_deferrable_load
-        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+        # DO NOT mock async_publish_deferrable_load - let the real calculation run!
+        # Only mock dependencies that async_publish_deferrable_load needs
 
         # Mock _update_error_status
         adapter._update_error_status = MagicMock()
-
-        # Mock _index_map
-        adapter._index_map = {"trip_001": 0}
 
         # Mock _get_current_soc
         adapter._get_current_soc = AsyncMock(return_value=50.0)
@@ -1353,22 +1353,57 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
         # Mock _get_hora_regreso
         adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 13, 18, 0, 0))
 
-        # Mock calculate_multi_trip_charging_windows to return window 200 hours from now
+        # Test CASE 1: Upper bound clamp (200 hours -> should clamp to 168)
         future_window_time = datetime.now() + timedelta(hours=200)
         with patch(
             "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
             return_value=[{"inicio_ventana": future_window_time}],
         ):
-            trip = {
-                "id": "trip_001",
+            trip_upper = {
+                "id": "trip_upper",
                 "kwh": 7.4,
                 "hora": "09:00",
                 "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
             }
-            await adapter.publish_deferrable_loads([trip])
+            await adapter.publish_deferrable_loads([trip_upper])
 
-            # Check that _index_map still has the trip
-            assert "trip_001" in adapter._index_map
+            # Verify the timestep was calculated and stored
+            assert "trip_upper" in adapter._cached_per_trip_params, (
+                "Trip should be in _cached_per_trip_params after publishing with real calculation"
+            )
+
+            timestep_upper = adapter._cached_per_trip_params["trip_upper"]["def_start_timestep"]
+
+            # THE CRITICAL ASSERTION: timestep must be clamped to 168
+            assert timestep_upper == 168, (
+                f"def_start_timestep should be clamped to 168 for 200-hour window, got {timestep_upper}"
+            )
+
+        # Test CASE 2: Lower bound clamp (past window -> should clamp to 0)
+        past_window_time = datetime.now() - timedelta(hours=5)
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+            return_value=[{"inicio_ventana": past_window_time}],
+        ):
+            trip_lower = {
+                "id": "trip_lower",
+                "kwh": 7.4,
+                "hora": "09:00",
+                "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
+            }
+            await adapter.publish_deferrable_loads([trip_lower])
+
+            # Verify the timestep was calculated and stored
+            assert "trip_lower" in adapter._cached_per_trip_params, (
+                "Trip should be in _cached_per_trip_params after publishing with real calculation"
+            )
+
+            timestep_lower = adapter._cached_per_trip_params["trip_lower"]["def_start_timestep"]
+
+            # THE CRITICAL ASSERTION: timestep must be clamped to 0 for past windows
+            assert timestep_lower == 0, (
+                f"def_start_timestep should be clamped to 0 for past window, got {timestep_lower}"
+            )
 
 
 @pytest.mark.asyncio
@@ -1378,8 +1413,11 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
     This is the test for task 1.19:
     - When calculate_multi_trip_charging_windows returns empty list
     - def_start_timestep should default to 0
-    - Current: implementation may crash or behave incorrectly
-    - Test must FAIL to confirm the feature doesn't work yet
+    - Asserts actual computed value in _cached_per_trip_params
+
+    CoderabbitAI Fix: Previously mocked async_publish_deferrable_load which skipped
+    the actual timestep calculation. Now lets the real code run and asserts the
+    computed def_start_timestep value directly from _cached_per_trip_params.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -1396,17 +1434,45 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        # Mock coordinator.async_refresh
+        # Mock coordinator
         adapter._get_coordinator = MagicMock(return_value=MagicMock(async_refresh=AsyncMock()))
 
-        # Mock async_publish_deferrable_load
-        adapter.async_publish_deferrable_load = AsyncMock(return_value=True)
+        # DO NOT mock async_publish_deferrable_load - let the real calculation run!
+        # Only mock dependencies that async_publish_deferrable_load needs
 
         # Mock _update_error_status
         adapter._update_error_status = MagicMock()
 
-        # Mock _index_map
-        adapter._index_map = {"trip_001": 0}
+        # Mock _get_current_soc
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _get_hora_regreso
+        adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 13, 18, 0, 0))
+
+        # Test: No window (empty list) -> def_start_timestep should default to 0
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+            return_value=[],
+        ):
+            trip = {
+                "id": "trip_no_window",
+                "kwh": 7.4,
+                "hora": "09:00",
+                "datetime": (datetime.now() + timedelta(hours=100)).isoformat(),
+            }
+            await adapter.publish_deferrable_loads([trip])
+
+            # Verify the timestep was calculated and stored
+            assert "trip_no_window" in adapter._cached_per_trip_params, (
+                "Trip should be in _cached_per_trip_params after publishing"
+            )
+
+            timestep = adapter._cached_per_trip_params["trip_no_window"]["def_start_timestep"]
+
+            # THE CRITICAL ASSERTION: timestep must default to 0 when no window
+            assert timestep == 0, (
+                f"def_start_timestep should default to 0 when no charging window, got {timestep}"
+            )
 
         # Mock _get_current_soc
         adapter._get_current_soc = AsyncMock(return_value=50.0)
@@ -5299,7 +5365,6 @@ async def test_multiple_trips_same_deadline(mock_store):
     - Each trip gets next available index
     - Matrix rows allocated per trip
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -5450,7 +5515,7 @@ async def test_past_deadline_trip(mock_store):
     Edge case: User creates trip after deadline has passed
     Expected: Trip still gets index, optimization runs but trip may be ignored
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    # EMHASSAdapter already imported at module level
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -5556,8 +5621,12 @@ async def test_stale_cache_cleared_on_republish(mock_store):
     Scenario: User adds trip A and B, then deletes B. When we re-publish with only A,
     the stale entry for B remains in cache, causing sensors to show incorrect data.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from custom_components.ev_trip_planner.const import CONF_VEHICLE_NAME, CONF_MAX_DEFERRABLE_LOADS, CONF_CHARGING_POWER
+    # EMHASSAdapter already imported at module level
+    from custom_components.ev_trip_planner.const import (
+        CONF_CHARGING_POWER,
+        CONF_MAX_DEFERRABLE_LOADS,
+        CONF_VEHICLE_NAME,
+    )
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",

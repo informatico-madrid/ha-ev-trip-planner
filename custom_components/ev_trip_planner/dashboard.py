@@ -435,7 +435,24 @@ async def import_dashboard(
     _LOGGER.info("Attempting DASHBOARD IMPORT via storage API for %s", vehicle_id)
 
     try:
-        if await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id):
+        # Call the save helper and check its structured result explicitly.
+        save_result = await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id)
+
+        # If helper returns a DashboardImportResult, respect its .success flag.
+        if isinstance(save_result, DashboardImportResult):
+            if save_result.success:
+                storage_method = save_result.storage_method or "storage_api"
+                _LOGGER.info(
+                    "=== DASHBOARD IMPORT SUCCESS === via %s for %s (ID: %s)",
+                    storage_method,
+                    vehicle_name,
+                    vehicle_id,
+                )
+                return save_result
+            # Explicit failure -> fall through to YAML fallback
+
+        # Backwards-compatible: if helper returns bare True/False, handle that too
+        elif save_result is True:
             storage_method = "storage_api"
             _LOGGER.info(
                 "=== DASHBOARD IMPORT SUCCESS === via storage API for %s (ID: %s)",
@@ -451,7 +468,7 @@ async def import_dashboard(
             )
 
         _LOGGER.info(
-            "Storage API method failed, generating YAML fallback for Container"
+            "Storage API method failed or returned non-success, generating YAML fallback for Container"
         )
 
     except DashboardStorageError as e:  # pragma: no cover  # HA storage I/O exception - storage API failure triggers fallback path
@@ -466,7 +483,37 @@ async def import_dashboard(
             hass, dashboard_config, vehicle_id
         )
 
-        if yaml_result.success:
+        # `_save_dashboard_yaml_fallback` may return a DashboardImportResult
+        # or (legacy) a bare boolean. Handle both forms explicitly.
+        if isinstance(yaml_result, DashboardImportResult):
+            if yaml_result.success:
+                storage_method = yaml_result.storage_method or "yaml_fallback"
+                _LOGGER.info(
+                    "=== DASHBOARD IMPORT SUCCESS === via %s for %s",
+                    storage_method,
+                    vehicle_name,
+                )
+                return yaml_result
+            # explicit failure from YAML helper
+            _LOGGER.error(
+                "=== DASHBOARD IMPORT FAILED === No import method available for %s",
+                vehicle_name,
+            )
+            return DashboardImportResult(
+                success=False,
+                vehicle_id=vehicle_id,
+                vehicle_name=vehicle_name,
+                error="All import methods failed",
+                error_details={
+                    "storage_api_failed": True,
+                    "yaml_fallback_failed": True,
+                },
+                dashboard_type=dashboard_type,
+                storage_method="none",
+            )
+
+        # Legacy boolean return handling
+        if yaml_result is True:
             storage_method = "yaml_fallback"
             _LOGGER.info(
                 "=== DASHBOARD IMPORT SUCCESS === via YAML fallback for %s",
@@ -480,6 +527,7 @@ async def import_dashboard(
                 storage_method=storage_method,
             )
 
+        # Any other result is a failure
         _LOGGER.error(
             "=== DASHBOARD IMPORT FAILED === No import method available for %s",
             vehicle_name,

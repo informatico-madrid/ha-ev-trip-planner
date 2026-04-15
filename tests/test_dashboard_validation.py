@@ -252,6 +252,65 @@ class TestDashboardStorage:
         assert result.storage_method == "yaml_fallback"
 
     @pytest.mark.asyncio
+    async def test_save_lovelace_storage_result_object_false_triggers_yaml_fallback(self):
+        """Regression test (RED): When _save_lovelace_dashboard returns a
+        DashboardImportResult with success=False, import_dashboard must not
+        treat it as truthy and must fall back to YAML.
+
+        This test intentionally asserts the correct behavior; it should FAIL
+        with the current code (bug: object truthiness treated as success).
+        """
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+            import_dashboard,
+        )
+
+        mock_hass = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.is_lovelace_available",
+            return_value=True,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
+                return_value={"views": [{"title": "Test"}]},
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.dashboard._validate_dashboard_config",
+                ):
+                    # _save_lovelace_dashboard returns a DashboardImportResult(success=False)
+                    with patch(
+                        "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                        return_value=DashboardImportResult(
+                            success=False,
+                            vehicle_id="test_vehicle",
+                            vehicle_name="Test Vehicle",
+                            dashboard_type="simple",
+                            storage_method="storage_api",
+                        ),
+                    ):
+                        # YAML fallback succeeds
+                        with patch(
+                            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+                            return_value=DashboardImportResult(
+                                success=True,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                                dashboard_type="simple",
+                                storage_method="yaml_fallback",
+                            ),
+                        ):
+                            result = await import_dashboard(
+                                mock_hass,
+                                vehicle_id="test_vehicle",
+                                vehicle_name="Test Vehicle",
+                            )
+
+        # Expected correct behavior: fallback to YAML and success
+        assert result.success is True
+        assert result.storage_method == "yaml_fallback"
+
+    @pytest.mark.asyncio
     async def test_yaml_write_failure_returns_error(self):
         """When YAML write fails, returns error result with write_failure."""
         from custom_components.ev_trip_planner.dashboard import import_dashboard

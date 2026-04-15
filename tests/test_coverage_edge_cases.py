@@ -714,19 +714,15 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
     trip_data = {
         "id": "trip_123",
         "kwh": 10.0,
-        "datetime": "2025-11-20T08:00:00",
+        "datetime": "2027-11-20T08:00:00",
     }
 
     with patch.object(adapter, '_get_current_soc', side_effect=mock_get_soc):
         # Should use fallback value of 50.0 and complete without error
-        # The method may return False for other mock-related reasons,
-        # but the key is it doesn't crash when soc_current is None
-        try:
-            await adapter.async_publish_deferrable_load(trip_data)
-        except Exception:
-            # Method may fail for other reasons due to mocks,
-            # but the SOC fallback at line 339-340 should have executed
-            pass
+        # Call the method and assert observable effects instead of swallowing exceptions.
+        await adapter.async_publish_deferrable_load(trip_data)
+        # Ensure an index was assigned (indicates the flow progressed past SOC fetch)
+        assert adapter.get_assigned_index("trip_123") is not None
 
 
 @pytest.mark.asyncio
@@ -786,18 +782,18 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
         return None
 
     trips_data = [
-        {"id": "trip_1", "kwh": 10.0, "datetime": "2025-11-20T08:00:00"},
-        {"id": "trip_2", "kwh": 15.0, "datetime": "2025-11-20T09:00:00"},
+        {"id": "trip_1", "kwh": 10.0, "datetime": "2027-11-20T08:00:00"},
+        {"id": "trip_2", "kwh": 15.0, "datetime": "2027-11-20T09:00:00"},
     ]
 
     with patch.object(adapter, '_get_current_soc', side_effect=mock_get_soc):
-        # Call publish_deferrable_loads which contains the caching loop with SOC fallback
-        try:
-            await adapter.publish_deferrable_loads(trips_data)
-        except Exception:
-            # Method may fail for other reasons due to mocks,
-            # but the SOC fallback at line 652-653 should have executed
-            pass
+        # Call publish_deferrable_loads and assert cache/populated values instead of silencing
+        result = await adapter.publish_deferrable_loads(trips_data)
+        # The method should complete (result True/False depending on mocks),
+        # but must populate per-trip cache and aggregated cache even when SOC is None.
+        assert hasattr(adapter, "_cached_power_profile")
+        assert "trip_1" in adapter._cached_per_trip_params
+        assert "trip_2" in adapter._cached_per_trip_params
 
 
 # =============================================================================

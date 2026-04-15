@@ -99,22 +99,23 @@ class TestImportDashboard:
     async def test_import_dashboard_async_import_dashboard(self, mock_hass):
         """Test dashboard import using storage API."""
         mock_hass.config.components = ["lovelace", "core"]
+        # Mock the Store API used by homeassistant.helpers.storage.Store
+        mock_store = Mock()
+        mock_store.async_load = AsyncMock(return_value={"data": {"views": []}})
+        mock_store.async_save = AsyncMock(return_value=None)
 
-        # Mock the storage API with async methods
-        mock_hass.storage = Mock()
-        mock_hass.storage.async_read = AsyncMock(return_value={"data": {"views": []}})
-        mock_hass.storage.async_write_dict = AsyncMock(return_value=True)
-        mock_hass.services = Mock()
-        mock_hass.services.has_service = Mock(return_value=False)
+        with patch("homeassistant.helpers.storage.Store", return_value=mock_store):
+            mock_hass.services = Mock()
+            mock_hass.services.has_service = Mock(return_value=False)
 
-        result = await import_dashboard(
-            mock_hass,
-            vehicle_id="test_vehicle",
-            vehicle_name="Test Vehicle",
-            use_charts=True,
-        )
+            result = await import_dashboard(
+                mock_hass,
+                vehicle_id="test_vehicle",
+                vehicle_name="Test Vehicle",
+                use_charts=True,
+            )
 
-        assert result.success is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_import_dashboard_no_import_method(self, mock_hass):
@@ -147,6 +148,116 @@ class TestImportDashboard:
 
         # Exception triggers YAML fallback which should succeed
         assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_respects_structured_result_true(self, mock_hass):
+        """If _save_lovelace_dashboard returns a DashboardImportResult(success=True) it is returned as-is."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        result_obj = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=result_obj),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "storage_api"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_respects_structured_result_false_and_falls_back(self, mock_hass):
+        """If _save_lovelace_dashboard returns a DashboardImportResult(success=False) import_dashboard falls back to YAML helper result."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        fail_obj = DashboardImportResult(
+            success=False,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="storage_api",
+        )
+
+        yaml_obj = DashboardImportResult(
+            success=True,
+            vehicle_id="test_vehicle",
+            vehicle_name="Test Vehicle",
+            dashboard_type="simple",
+            storage_method="yaml_fallback",
+        )
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=fail_obj),
+        ), patch(
+            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+            AsyncMock(return_value=yaml_obj),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "yaml_fallback"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_handles_legacy_true(self, mock_hass):
+        """If _save_lovelace_dashboard returns bare True treat as storage_api success."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=True),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "storage_api"
+
+    @pytest.mark.asyncio
+    async def test_import_dashboard_legacy_false_and_yaml_bool(self, mock_hass):
+        """If _save_lovelace_dashboard returns bare False and YAML fallback returns bool True, wrap boolean correctly."""
+        from custom_components.ev_trip_planner.dashboard import (
+            DashboardImportResult,
+        )
+
+        mock_hass.config.components = ["lovelace", "core"]
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+            AsyncMock(return_value=False),
+        ), patch(
+            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+            AsyncMock(return_value=True),
+        ):
+            res = await import_dashboard(
+                mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
+            )
+            assert isinstance(res, DashboardImportResult)
+            assert res.success is True
+            assert res.storage_method == "yaml_fallback"
 
 
 class TestLoadDashboardTemplate:
