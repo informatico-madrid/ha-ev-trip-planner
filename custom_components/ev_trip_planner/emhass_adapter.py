@@ -318,55 +318,25 @@ class EMHASSAdapter:
             kwh = float(trip.get("kwh", 0))
             deadline = trip.get("datetime")
 
-            # Initialize deadline_dt - will be set for both punctual and recurring trips
-            deadline_dt: Optional[datetime] = None
+            # BUG FIX (recurring trips): Use _calculate_deadline_from_trip helper
+            # This handles both punctual trips (datetime field) and recurring trips
+            # (calculated from dia_semana/hora), eliminating code duplication
+            deadline_dt = self._calculate_deadline_from_trip(trip)
 
-            # Handle recurring trips (no datetime, uses dia_semana/hora)
-            trip_type = trip.get("tipo", "")
-            is_recurring = trip_type in ("recurrente", "recurring")
-
-            if not deadline and is_recurring:
-                # Recurring trip: calculate next deadline from day/time
-                day = trip.get("day") or trip.get("dia_semana")
-                time_str = trip.get("time") or trip.get("hora")
-                if day is not None and time_str is not None:
-                    # Use same logic as calculate_power_profile_from_trips
-                    from .calculations import calculate_next_recurring_datetime
-
-                    deadline_dt = calculate_next_recurring_datetime(day, time_str, datetime.now())
-                    if deadline_dt is None:
-                        _LOGGER.error("Trip %s has invalid day/time", trip_id)
-                        await self.async_release_trip_index(trip_id)
-                        return False
-                    _LOGGER.debug(
-                        "Recurring trip %s: day=%s, time=%s, calculated deadline=%s",
-                        trip_id, day, time_str, deadline_dt.isoformat()
-                    )
-                else:  # pragma: no cover - error path: trip without valid day/time
-                    _LOGGER.error("Trip missing deadline: %s", trip_id)
-                    await self.async_release_trip_index(trip_id)
-                    return False
-            elif not deadline:
-                _LOGGER.error("Trip missing deadline: %s", trip_id)
+            if deadline_dt is None:
+                # Invalid trip - no datetime and not a valid recurring trip
+                _LOGGER.error("Trip %s has no valid deadline", trip_id)
                 await self.async_release_trip_index(trip_id)
                 return False
 
             # Calculate hours available and def_start_timestep from charging windows
             now = datetime.now()
-
-            # For punctual trips, deadline_dt is still None - set it from deadline
-            if deadline_dt is None and deadline is not None:
-                if isinstance(deadline, str):
-                    deadline_dt = datetime.fromisoformat(deadline)
-                else:
-                    deadline_dt = deadline
-
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
             # DEBUG: Log trip details before rejection check (debug level)
             _LOGGER.debug(
-                "DEBUG async_publish_deferrable_load: trip_id=%s, deadline=%s, deadline_dt=%s, now=%s, hours_available=%.2f, kwh=%s, is_recurring=%s",
-                trip_id, deadline, deadline_dt, now, hours_available, trip.get("kwh"), is_recurring
+                "DEBUG async_publish_deferrable_load: trip_id=%s, deadline=%s, deadline_dt=%s, now=%s, hours_available=%.2f, kwh=%s",
+                trip_id, deadline, deadline_dt, now, hours_available, trip.get("kwh")
             )
 
             if hours_available <= 0:
@@ -450,6 +420,63 @@ class EMHASSAdapter:
             )
             return False  # pragma: no cover
 
+    def _calculate_deadline_from_trip(self, trip: Dict[str, Any]) -> Optional[datetime]:
+        """Calculate deadline datetime from trip data.
+
+        Handles both:
+        - Punctual trips: trip["datetime"] exists (ISO format string)
+        - Recurring trips: calculate from dia_semana/hora
+
+        This method encapsulates the deadline calculation logic to avoid
+        duplication between async_publish_deferrable_load and
+        _populate_per_trip_cache_entry (SOLID: Single Responsibility).
+
+        Args:
+            trip: Trip dictionary with either "datetime" (punctual) or
+                  "dia_semana"/"hora" (recurring).
+
+        Returns:
+            datetime: Calculated deadline, or None if trip is invalid.
+        """
+        # Punctual trip: use datetime field directly
+        deadline = trip.get("datetime")
+        if deadline:
+            if isinstance(deadline, str):
+                return datetime.fromisoformat(deadline)
+            return deadline  # Already a datetime
+
+        # Recurring trip: calculate from day/time
+        trip_type = trip.get("tipo", "")
+        is_recurring = trip_type in ("recurrente", "recurring")
+
+        if is_recurring:
+            day = trip.get("day") or trip.get("dia_semana")
+            time_str = trip.get("time") or trip.get("hora")
+
+            if day is not None and time_str is not None:
+                from .calculations import calculate_next_recurring_datetime, calculate_day_index
+
+                # Convert day name to index (0=Monday for ES/EN names)
+                if isinstance(day, str):
+                    # Convert Spanish/English day name to 0-6 index (Monday=0)
+                    day_index = calculate_day_index(day)
+                    # Convert to JavaScript getDay() format (Sunday=0, Monday=1)
+                    day_js_format = (day_index + 1) % 7
+                else:
+                    # Already a number - assume ES format (Monday=0), convert to JS format
+                    day_js_format = (day + 1) % 7
+
+                try:
+                    return calculate_next_recurring_datetime(
+                        day_js_format, time_str, datetime.now()
+                    )
+                except ValueError:
+                    # Invalid time string (e.g., hour out of range) should be
+                    # treated as no deadline and not raise during publish.
+                    return None
+
+        return None
+
     async def _populate_per_trip_cache_entry(
         self,
         trip: dict[str, Any],
@@ -481,13 +508,15 @@ class EMHASSAdapter:
             soc_current = 50.0
 
         # Calculate per-trip params with charging windows
+        # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
         kwh_needed = trip.get("kwh", 0.0)
         deadline_str = trip.get("datetime")
 
-        if isinstance(deadline_str, str):
-            deadline_dt = datetime.fromisoformat(deadline_str)
-        else:  # pragma: no cover - fallback for non-string deadline
-            deadline_dt = deadline_str or datetime.now()
+        # Calculate deadline_dt using the new helper method
+        deadline_dt = self._calculate_deadline_from_trip(trip)
+        if deadline_dt is None:
+            # Fallback for invalid trips (should not happen in normal flow)
+            deadline_dt = datetime.now()
 
         # Calculate charging windows for def_start_timestep
         charging_windows = calculate_multi_trip_charging_windows(

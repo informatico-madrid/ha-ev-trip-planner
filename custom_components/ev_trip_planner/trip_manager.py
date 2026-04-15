@@ -1762,7 +1762,30 @@ class TripManager:
             soc_current = vehicle_config.get("soc_current")
         else:
             try:
-                config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                # Lookup by real config entry id when available; fall back to
+                # legacy behaviour using vehicle_id for backward compatibility.
+                config_entry: Optional[ConfigEntry[Any]] = None
+                entry_id = getattr(self, "_entry_id", None)
+                if entry_id:
+                    config_entry = self.hass.config_entries.async_get_entry(entry_id)
+                else:
+                    config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
+                # If direct lookup failed, scan entries by vehicle_name (tests
+                # and older setups may rely on that behaviour).
+                if config_entry is None:
+                    try:
+                        entries = self.hass.config_entries.async_entries(DOMAIN)
+                        for e in entries:
+                            if not getattr(e, "data", None):
+                                continue
+                            name = e.data.get("vehicle_name")
+                            if name and name.lower().replace(" ", "_") == self.vehicle_id:
+                                config_entry = e
+                                break
+                    except Exception:
+                        config_entry = None
+
                 if config_entry is not None and config_entry.data is not None:
                     battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
                 else:
@@ -1824,7 +1847,13 @@ class TripManager:
 
         # Obtener configuración
         try:
-            _config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            _config_entry: Optional[ConfigEntry[Any]] = None
+            entry_id = getattr(self, "_entry_id", None)
+            if entry_id:
+                _config_entry = self.hass.config_entries.async_get_entry(entry_id)
+            else:
+                _config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
             if _config_entry is not None and _config_entry.data is not None:
                 _config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
@@ -1881,7 +1910,13 @@ class TripManager:
         battery_capacity = 50.0
         soc_current = 50.0
         try:
-            config_entry: Optional[ConfigEntry[Any]] = self.hass.config_entries.async_get_entry(self.vehicle_id)
+            config_entry: Optional[ConfigEntry[Any]] = None
+            entry_id = getattr(self, "_entry_id", None)
+            if entry_id:
+                config_entry = self.hass.config_entries.async_get_entry(entry_id)
+            else:
+                config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+
             if config_entry is not None and config_entry.data is not None:
                 battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
         except Exception:
