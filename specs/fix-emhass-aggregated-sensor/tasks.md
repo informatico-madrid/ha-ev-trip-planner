@@ -37,7 +37,7 @@ Total tasks: 22
   - _Requirements: FR-1, AC-1.1_
   - _Design: Interfaces — emhass_adapter.py — Cambios puntuales_
 
-- [ ] 1.2 [GREEN] Fix datetime.now → datetime.now(timezone.utc) en 5 puntos
+- [x] 1.2 [GREEN] Fix datetime.now → datetime.now(timezone.utc) en 5 puntos
   - **Do**:
     1. Añadir `timezone` al import: `from datetime import datetime, timezone`
     2. Línea 126: `now = datetime.now(timezone.utc)`
@@ -51,7 +51,7 @@ Total tasks: 22
   - **Commit**: `fix(emhass): green - use datetime.now(timezone.utc) in all subtractions`
   - _Requirements: FR-1_
 
-- [ ] 1.3 [YELLOW] Verificar que no hay más datetime.now() sin timezone
+- [x] 1.3 [YELLOW] Verificar que no hay más datetime.now() sin timezone
   - **Do**:
     1. `grep -n "datetime.now()" custom_components/ev_trip_planner/emhass_adapter.py`
     2. Si encuentra más, fixear también

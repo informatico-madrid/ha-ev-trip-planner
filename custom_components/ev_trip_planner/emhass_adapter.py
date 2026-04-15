@@ -1,7 +1,7 @@
 """EMHASS Adapter for EV Trip Planner."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from homeassistant.config_entries import ConfigEntry
@@ -123,7 +123,7 @@ class EMHASSAdapter:
                 # Restore released indices and recalculate which are still in cooldown
                 self._released_indices = {}
                 stored_released = data.get("released_indices", {})
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 for idx_str, released_iso in stored_released.items():
                     idx = int(idx_str)
                     try:
@@ -330,7 +330,7 @@ class EMHASSAdapter:
                 return False
 
             # Calculate hours available and def_start_timestep from charging windows
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
             # DEBUG: Log trip details before rejection check (debug level)
@@ -531,10 +531,10 @@ class EMHASSAdapter:
         if charging_windows:
             inicio_ventana = charging_windows[0].get("inicio_ventana")
             if inicio_ventana:
-                delta_hours = (inicio_ventana - datetime.now()).total_seconds() / 3600
+                delta_hours = (inicio_ventana - datetime.now(timezone.utc)).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
-        hours_available = (deadline_dt - datetime.now()).total_seconds() / 3600
+        hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
         total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
         power_watts = charging_power_kw * 1000
@@ -718,7 +718,7 @@ class EMHASSAdapter:
             List of available EMHASS indices
         """
         # Clean up expired cooldown indices first
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expired = [
             idx
             for idx, released_time in self._released_indices.items()
@@ -782,7 +782,7 @@ class EMHASSAdapter:
 
         # Enrich recurring trips: compute datetime from dia_semana + hora
         enriched_trips: List[Dict[str, Any]] = []
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for trip in trips:
             if (
                 trip.get("tipo") == TRIP_TYPE_RECURRING
