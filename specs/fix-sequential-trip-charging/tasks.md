@@ -175,6 +175,16 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - _Requirements: FR-1, FR-6_
   - _Design: Component 1, Data Flow step 3-4_
 
+- [x] 1.7.1 [FIX] Update test to pass pre_computed_inicio_ventana
+  - **Do**: Update `test_sequential_trips_def_start_timestep_offset` in `tests/test_charging_window.py`
+    - The test calls `_populate_per_trip_cache_entry()` without `pre_computed_inicio_ventana`, so it falls back to old behavior
+    - Fix: Pass `pre_computed_inicio_ventana` parameter to use the batch-computed window start
+  - **Files**: `tests/test_charging_window.py`
+  - **Done when**: Test passes with new interface
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_charging_window.py -v -k "sequential_trips_def_start"`
+  - **Commit**: `fix(sequential-trip): update test to use new pre_computed_inicio_ventana interface`
+  - _fix_type: test_quality_
+
 - [ ] 1.8 [VERIFY] Phase 0 failing test now passes
   - **Do**: Run the test from task 0.1 — it should now PASS
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_charging_window.py -v -k "sequential_trips_def_start" 2>&1 | tail -5`
