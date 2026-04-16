@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-16T15:32:49Z
+**Last updated:** 2026-04-16T15:34:15Z
 
 ## Directories (1)
 
