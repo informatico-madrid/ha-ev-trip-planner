@@ -147,7 +147,7 @@ Total tasks: 22
   - **Commit**: `fix(panel): template keys use EMHASS API parameter names`
   - _Requirements: FR-4, AC-2.2_
 
-- [ ] 2.3 [P] Fix CSS path: underscores → guiones — **UNMARKED: CSS cache-buster causa parpadeo**
+- [x] 2.3 [P] Fix CSS path: underscores → guiones — **UNMARKED: CSS cache-buster causa parpadeo**
   - **Do**:
     1. Línea ~723: Cambiar `/ev_trip_planner/panel.css` → `/ev-trip-planner/panel.css`
     2. Verificar que `services.py` línea 1269 ya tiene `/ev-trip-planner/panel.css`

@@ -11,8 +11,7 @@
 // VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40
 console.log('EV Trip Planner Panel: VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40');
 
-// Cache busting timestamp to force reload
-const CACHE_BUST = Date.now();
+// Cache busting removed - CSS version is now fixed
 
 // Import Lit: prefer local bundle (offline-safe) then fall back to CDN
 // The local bundle is served by HA at /ev-trip-planner/lit-bundle.js
@@ -720,7 +719,7 @@ class EVTripPlannerPanel extends LitElement {
     const hasValidSensors = Object.values(filteredGroupedSensors).some(s => s.length > 0);
 
     return html`
-      <link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${Date.now()}">
+      <link rel="stylesheet" href="/ev-trip-planner/panel.css">
       <div class="panel-container">
         <header class="panel-header">
           <h1>🚗 EV Trip Planner - ${this._vehicleId}</h1>

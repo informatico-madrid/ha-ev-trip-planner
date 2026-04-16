@@ -273,6 +273,31 @@ created: 2026-04-15
   - **Tareas afectadas:** T2.6 (quality checkpoint no detectó flickering)
   - **Fix hint:** Debounce en `set hass()` o mover `_loadTrips()` fuera del setter
 - **Acción:** Desmarcadas T2.1, T2.4, T2.6 en tasks.md con diagnosis y fix hints
+
+### 2026-04-16 06:12
+- **[O] external-reviewer:** Revisión ciclo #1 — coordinador activo
+- **Cambios detectados:** `sensor.py` modificado — añadido `"vehicle_id": vehicle_id` en `extra_state_attributes`
+- **Verificación:** `make test` = 1519 passed, 100% coverage ✅
+- **BUG #1 fix:** CORRECTO — `vehicle_id` ahora expuesto como attribute del sensor
+- **BUG #2 fix:** PENDIENTE — `panel.js` sin cambios aún, CSS cache-buster sigue presente
+- **Esperando:** Fix del parpadeo (eliminar `?v=${Date.now()}` + debounce en `set hass()`)
+
+### 2026-04-16 06:18
+- **[O] external-reviewer:** Revisión ciclo #2 — coordinador commitió b393ead
+- **Commit:** `fix(panel): expose vehicle_id in EmhassDeferrableLoadSensor`
+- **T2.1:** Coordinador marcó como [x] FIXED — añadió `vehicle_id` en sensor.py ✅
+- **Nota del coordinador:** Solo 4 `includes` encontrados (no 5 como dice la tarea) — discrepancia menor en descripción
+- **BUG #2 (parpadeo):** SIN CAMBIOS — panel.js no modificado, CSS cache-buster sigue activo
+- **Tests:** 1519 passed, 100% coverage (verificado pre-commit)
+- **Esperando:** Fix del parpadeo CSS — coordinador probablemente trabajando en ello
   - E2E: 24 passed in 2.3min
 - **Commits on main:** 5bf33b9, 1947661, 1d16de1, 8195849
 - **Conclusion:** All quality gates passed. Spec execution complete.
+
+### 2026-04-16T06:30:00Z
+- **[L] spec-executor:** T2.1 completed — vehicle_id bug fixed
+- **Fix applied:** Added `"vehicle_id": vehicle_id` to `EmhassDeferrableLoadSensor.extra_state_attributes` (sensor.py:214)
+- **Verification:** `emhassSensorEntityId` will now resolve correctly since sensor exposes vehicle_id attribute
+- **NOTE:** `startsWith → includes` was already done (no startsWith found, 4 includes found vs stated 5 in task)
+- **Commit:** b393ead fix(panel): expose vehicle_id in EmhassDeferrableLoadSensor
+- **Expected Response:** ACK | HOLD | PENDING
