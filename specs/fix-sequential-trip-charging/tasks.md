@@ -297,7 +297,7 @@ Add test coverage for edge cases and integration scenarios.
   - **Commit**: `fix(sequential-trip): fix mypy datetime comparison error`
   - _fix_type: code_quality_
 
-- [ ] 2.7.2 [FIX] Fix timezone comparison error in calculations.py
+- [x] 2.7.2 [FIX] Fix timezone comparison error in calculations.py
   - **Do**: Fix "can't compare offset-naive and offset-aware datetimes" error at calculations.py:385
     - The issue is comparing window_start (offset-naive?) with trip_departure_time (offset-aware)
     - Ensure both window_start and trip_departure_time are passed through _ensure_aware() before comparison
