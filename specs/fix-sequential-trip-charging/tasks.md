@@ -136,7 +136,7 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - _Requirements: FR-1_
   - _Design: Component 1, Data Flow step 2_
 
-- [ ] 1.6 Modify _populate_per_trip_cache_entry() to accept pre-computed inicio_ventana
+- [x] 1.6 Modify _populate_per_trip_cache_entry() to accept pre-computed inicio_ventana
   - **Do**:
     1. Add `pre_computed_inicio_ventana: Optional[datetime] = None` parameter to method signature
     2. If `pre_computed_inicio_ventana` is not None, use it directly for def_start_timestep calculation:

@@ -494,6 +494,7 @@ class EMHASSAdapter:
         charging_power_kw: float,
         soc_current: float,
         hora_regreso: Optional[datetime],
+        pre_computed_inicio_ventana: Optional[datetime] = None,
     ) -> None:
         """Build and cache per-trip EMHASS parameters.
 
@@ -507,6 +508,7 @@ class EMHASSAdapter:
             charging_power_kw: Charging power in kW.
             soc_current: Current SOC percentage (or fallback 50.0).
             hora_regreso: Return time from presence_monitor or None.
+            pre_computed_inicio_ventana: Pre-computed inicio_ventana from batch calculation.
         """
         # Assign index if not already assigned
         if trip_id not in self._index_map:
@@ -528,24 +530,33 @@ class EMHASSAdapter:
             # Fallback for invalid trips (should not happen in normal flow)
             deadline_dt = datetime.now(timezone.utc)
 
-        # Calculate charging windows for def_start_timestep
-        charging_windows = calculate_multi_trip_charging_windows(
-            trips=[(deadline_dt, trip)],
-            soc_actual=soc_current,
-            hora_regreso=hora_regreso,
-            charging_power_kw=charging_power_kw,
-            duration_hours=6.0,
-        )
-
         def_start_timestep = 0
-        if charging_windows:
-            inicio_ventana = charging_windows[0].get("inicio_ventana")
-            if inicio_ventana:
-                delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
-                def_start_timestep = max(0, min(int(delta_hours), 168))
+        if pre_computed_inicio_ventana is not None:
+            # Use pre-computed inicio_ventana from batch calculation
+            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+            def_start_timestep = max(0, min(int(delta_hours), 168))
+        else:
+            # Fall back to existing single-trip calculation (backward compat)
+            charging_windows = calculate_multi_trip_charging_windows(
+                trips=[(deadline_dt, trip)],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                duration_hours=6.0,
+            )
+            if charging_windows:
+                inicio_ventana = charging_windows[0].get("inicio_ventana")
+                if inicio_ventana:
+                    delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+                    def_start_timestep = max(0, min(int(delta_hours), 168))
 
         hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
+
+        # Edge case: if def_start_timestep >= def_end_timestep, cap at def_end_timestep - 1 (minimum 0)
+        if def_start_timestep >= def_end_timestep:
+            def_start_timestep = max(0, def_end_timestep - 1)
+
         total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
         power_watts = charging_power_kw * 1000
         power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
