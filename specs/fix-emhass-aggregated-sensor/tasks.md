@@ -159,7 +159,7 @@ Total tasks: 22
   - **BUG:** Línea723 usa `?v=${Date.now()}` cache-buster dentro de `render()`. Cada re-render genera URL nueva → navegador re-descarga CSS constantemente. Confirmado por usuario en Network tab
   - **FIX HINT:** Eliminar `?v=${Date.now()}` y usar versión fija o mover CSS a `static styles`
 
-- [ ] 2.4 [P] Remove warning "EMHASS sensor not available" — **UNMARKED: masked BUG entity_id=null**
+- [x] 2.4 [P] Remove warning "EMHASS sensor not available" — **UNMARKED: masked BUG entity_id=null**
   - **Do**:
     1. Localizar el bloque condicional del warning (~línea 942)
     2. Eliminar el bloque `${!emhassAvailable ? html\`<div class="emhass-warning">...\` : ''}`

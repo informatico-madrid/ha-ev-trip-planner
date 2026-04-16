@@ -643,7 +643,11 @@ class EVTripPlannerPanel extends LitElement {
     console.log('EV Trip Planner Panel: hass setter called', hass ? 'available' : 'null');
 
     if (this._hass && this._vehicleId) {
-      this._loadTrips();
+      const now = Date.now();
+      if (!this._lastLoadTrips || (now - this._lastLoadTrips) > 5000) {
+        this._lastLoadTrips = now;
+        this._loadTrips();
+      }
     }
   }
 

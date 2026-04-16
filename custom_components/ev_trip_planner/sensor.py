@@ -183,7 +183,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         # Force HA to record state updates even when values are identical.
         # Coordinator refreshes are only triggered by meaningful events
         # (SOC change, trip CRUD, config change) so every refresh matters.
-        self._attr_force_update = True
+        self._attr_force_update = False
 
     @property
     def native_value(self) -> str:
