@@ -290,6 +290,37 @@ created: 2026-04-15
 - **BUG #2 (parpadeo):** SIN CAMBIOS — panel.js no modificado, CSS cache-buster sigue activo
 - **Tests:** 1519 passed, 100% coverage (verificado pre-commit)
 - **Esperando:** Fix del parpadeo CSS — coordinador probablemente trabajando en ello
+
+### 2026-04-16 06:22
+- **[O] external-reviewer:** Revisión ciclo #3 — sin nuevos commits
+- **Último commit:** b393ead (hace ~8 min) — solo fix de vehicle_id
+- **BUG #2 (parpadeo):** SIN PROGRESO — panel.js no modificado
+- **CSS cache-buster:** `?v=${Date.now()}` sigue activo en línea 723
+- **Estado:** Coordinador parece estar trabajando (chat.md.lock existe) pero no ha producido commits para BUG #2
+
+### 2026-04-16 06:27
+- **[O] external-reviewer:** Revisión ciclo #4 — nuevo commit b7ab6c4
+- **Commit:** `fix(panel): CSS path uses hyphens matching services.py route`
+- **Cambios:**
+  - Línea 723: Eliminado `?v=${Date.now()}` → `/ev-trip-planner/panel.css` (sin cache-buster) ✅
+  - Línea 15: Eliminado `CACHE_BUST = Date.now()` constante no usada ✅
+- **Evaluación BUG #2:**
+  - ✅ CSS ya no se re-descarga constantemente (cache-buster eliminado)
+  - ⚠️ `set hass()` sigue llamando `_loadTrips()` sin debounce (línea 647)
+  - ⚠️ `<link>` CSS sigue dentro de `render()` — se re-crea DOM element en cada render
+  - El parpadeo debería MEJORAR significativamente pero no eliminarse completamente
+- **Pendiente:** Debounce en `set hass()` y mover `<link>` fuera de `render()`
+
+### 2026-04-16 06:31
+- **[O] external-reviewer:** Revisión ciclo #5 — sin nuevos commits (6 min inactivo)
+- **Último commit:** b7ab6c4 (hace ~6 min)
+- **Resumen fixes aplicados:**
+  - BUG #1 (entity_id=null): ✅ FIXED — `vehicle_id` añadido en sensor.py
+  - BUG #2 (parpadeo CSS): ✅ MAJOR FIX — cache-buster `?v=${Date.now()}` eliminado
+  - BUG #2 residual: ⚠️ `set hass()` sin debounce, `<link>` dentro de render()
+- **Evaluación:** El parpadeo debería estar significativamente mejor. El re-render excesivo persiste pero sin re-descarga CSS el impacto visual es mínimo
+- **Tests:** 1519 passed, 100% coverage (sin regresiones)
+- **Estado:** Coordinador parece haber completado los fixes principales. Pendiente confirmación del usuario
   - E2E: 24 passed in 2.3min
 - **Commits on main:** 5bf33b9, 1947661, 1d16de1, 8195849
 - **Conclusion:** All quality gates passed. Spec execution complete.
@@ -301,3 +332,24 @@ created: 2026-04-15
 - **NOTE:** `startsWith → includes` was already done (no startsWith found, 4 includes found vs stated 5 in task)
 - **Commit:** b393ead fix(panel): expose vehicle_id in EmhassDeferrableLoadSensor
 - **Expected Response:** ACK | HOLD | PENDING
+
+### 2026-04-16 07:00
+- **spec-executor [L]:** T2.6 completed — panel flickering fixed
+- **Fixes applied:**
+  1. sensor.py:186 — `_attr_force_update = False` (was True)
+  2. panel.js:647 — added 5s debounce to set hass() with `_lastLoadTrips` timestamp check
+- **Verification:**
+  - node -c panel.js → syntax OK
+  - pytest tests/ -x --timeout=30 → 1519 passed, 100% coverage
+- **Commits:** 2314b80 (fix), 2f87852 (chore)
+- **Signal:** ACK | HOLD | PENDING
+
+### 2026-04-16 07:00
+- **spec-executor [L]:** T2.6 completed — panel flickering fixed
+- **Fixes applied:**
+  1. sensor.py:186 — `_attr_force_update = False` (was True)
+  2. panel.js:647 — added 5s debounce to set hass() with `_lastLoadTrips` timestamp check
+- **Verification:**
+  - node -c panel.js → syntax OK
+  - pytest tests/ -x --timeout=30 → 1519 passed, 100% coverage
+- **Commits:** 2314b80 (fix), 2f87852 (chore)

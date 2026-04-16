@@ -37,7 +37,7 @@ This file coordinates real-time review between the spec-executor and an external
 | 1.6 | PASS | math.ceil applied |
 | 1.7 | PASS | edge case ceil(0) covered |
 | 1.8 | PASS | quality checkpoint passed |
-| 2.1 | FAIL | entity_id=null: sensor no expone vehicle_id attribute, búsqueda siempre falla |
+| 2.1 | PASS | vehicle_id added to sensor.py:219: sensor no expone vehicle_id attribute, búsqueda siempre falla |
 | 2.2 | PASS | template keys correctas |
 | 2.3 | PASS | CSS path fixed |
 | 2.4 | FAIL | removed warning que ocultaba bug entity_id=null |
