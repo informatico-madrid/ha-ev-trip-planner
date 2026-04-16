@@ -39,7 +39,7 @@ Implement the minimum changes to make the failing test pass.
   - _Requirements: FR-3_
   - _Design: Component 3_
 
-- [ ] 1.2 Add return_buffer_hours parameter to calculate_multi_trip_charging_windows()
+- [x] 1.2 Add return_buffer_hours parameter to calculate_multi_trip_charging_windows()
   - **Do**:
     1. Add `return_buffer_hours: float = 4.0` parameter AFTER `duration_hours` in function signature
     2. Keep `duration_hours: float = 6.0` UNCHANGED (it represents trip duration)
