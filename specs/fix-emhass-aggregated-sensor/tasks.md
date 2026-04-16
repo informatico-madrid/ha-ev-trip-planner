@@ -116,7 +116,7 @@ Total tasks: 22
 
 > Las tareas de panel.js son [P] (paralelas entre sí) porque cada una modifica líneas independientes del archivo.
 
-- [x] 2.1 [P] Fix entity search: startsWith → includes
+- [ ] 2.1 [P] Fix entity search: startsWith → includes — **UNMARKED: BUG entity_id=null**
   - **Do**:
     1. Línea 883: Cambiar `startsWith('sensor.emhass_perfil_diferible_')` → `includes('emhass_perfil_diferible_')`
     2. Línea 893: Mismo cambio
@@ -129,6 +129,8 @@ Total tasks: 22
   - **Commit**: `fix(panel): use includes for entity_id search pattern`
   - _Requirements: FR-3, AC-2.1_
   - _Design: panel.js — Cambios puntuales_
+  - **BUG**: panel.js busca sensor por `state.attributes?.vehicle_id` pero `EmhassDeferrableLoadSensor.extra_state_attributes` NO incluye `vehicle_id`. Resultado: `emhassSensorEntityId` siempre es `null`
+  - **FIX HINT**: Opción A: Añadir `"vehicle_id": vehicle_id` en `sensor.py:EmhassDeferrableLoadSensor.extra_state_attributes`. Opción B: En panel.js, buscar por `entry_id` embebido en entity_id en vez de por atributo `vehicle_id`
 
 - [x] 2.2 [P] Fix template keys: eliminar suffix _array
   - **Do**:
@@ -145,7 +147,7 @@ Total tasks: 22
   - **Commit**: `fix(panel): template keys use EMHASS API parameter names`
   - _Requirements: FR-4, AC-2.2_
 
-- [x] 2.3 [P] Fix CSS path: underscores → guiones
+- [ ] 2.3 [P] Fix CSS path: underscores → guiones — **UNMARKED: CSS cache-buster causa parpadeo**
   - **Do**:
     1. Línea ~723: Cambiar `/ev_trip_planner/panel.css` → `/ev-trip-planner/panel.css`
     2. Verificar que `services.py` línea 1269 ya tiene `/ev-trip-planner/panel.css`
@@ -154,8 +156,10 @@ Total tasks: 22
   - **Verify**: `grep -q "ev-trip-planner/panel.css" custom_components/ev_trip_planner/frontend/panel.js && echo PASS`
   - **Commit**: `fix(panel): CSS path uses hyphens matching services.py route`
   - _Requirements: FR-5, AC-2.3_
+  - **BUG:** Línea723 usa `?v=${Date.now()}` cache-buster dentro de `render()`. Cada re-render genera URL nueva → navegador re-descarga CSS constantemente. Confirmado por usuario en Network tab
+  - **FIX HINT:** Eliminar `?v=${Date.now()}` y usar versión fija o mover CSS a `static styles`
 
-- [x] 2.4 [P] Remove warning "EMHASS sensor not available"
+- [ ] 2.4 [P] Remove warning "EMHASS sensor not available" — **UNMARKED: masked BUG entity_id=null**
   - **Do**:
     1. Localizar el bloque condicional del warning (~línea 942)
     2. Eliminar el bloque `${!emhassAvailable ? html\`<div class="emhass-warning">...\` : ''}`
@@ -165,6 +169,7 @@ Total tasks: 22
   - **Verify**: `! grep -q "EMHASS sensor not available" custom_components/ev_trip_planner/frontend/panel.js && echo PASS`
   - **Commit**: `fix(panel): remove misleading EMHASS unavailable warning`
   - _Requirements: FR-6, AC-2.4_
+  - **BUG**: Eliminar el warning ocultó el hecho de que `emhassSensorEntityId` siempre es `null` (ver T2.1). El usuario no veía ningún error pero el template mostraba `null`
 
 - [x] 2.5 [P] Fix modal trip type detection
   - **Do**:
@@ -177,13 +182,22 @@ Total tasks: 22
   - **Commit**: `fix(panel): modal trip type detects tipo/type/recurring fields`
   - _Requirements: FR-7, AC-3.1_
 
-- [x] 2.6 Quality Checkpoint
+- [ ] 2.6 Quality Checkpoint — **UNMARKED: panel parpadea (CSS se recarga constantemente)**
   - **Do**: Verificar que panel.js no tiene errores de sintaxis
   - **Verify**:
     - `node -c custom_components/ev_trip_planner/frontend/panel.js`
     - `pytest tests/ -x --timeout=30`
-  - **Done when**: Sintaxis JS válida, tests Python sin regresiones
+  - **Done when**: Sintaxis JS válida, tests Python sin regresiones, panel NO parpadea
   - **Commit**: `chore(panel): pass quality checkpoint` (solo si hay fixes)
+  - **BUG**: Panel parpadea constantemente. CSS se descarga una y otra vez (visible en Network tab)
+  - **Root cause #1 (CRÍTICO):** `panel.js:723` — `<link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${Date.now()}">` está dentro de `render()`. Cada re-render genera URL nueva con timestamp → navegador re-descarga CSS
+  - **Root cause #2:** `set hass()` (línea642) llama `_loadTrips()` en CADA state update → `requestUpdate()` → re-render → re-descarga CSS
+  - **Root cause #3:** `_attr_force_update = True` en `sensor.py:186` causa state updates frecuentes
+  - **FIX HINT (combinado):**
+    1. Mover `<link>` CSS fuera de `render()` — usar `static styles` o `firstUpdated()` con import
+    2. Eliminar `?v=${Date.now()}` cache-buster (o usar versión fija)
+    3. Añadir debounce en `set hass()` — solo llamar `_loadTrips()` si pasaron >5s
+    4. Considerar cambiar `_attr_force_update = True` a `False` en sensor.py
 
 ## Phase 3: E2E Testing
 

@@ -23,7 +23,7 @@ This file coordinates real-time review between the spec-executor and an external
 
 ## Active Signal
 
-[RESOLVED] - 2026-04-15T18:00:00Z
+[FAIL] - 2026-04-16T05:52:00Z — 2 production bugs found
 
 ## Task Review Status
 
@@ -32,16 +32,21 @@ This file coordinates real-time review between the spec-executor and an external
 | 1.1 | PASS | Test rewritten - demonstrates datetime awareness fix works |
 | 1.2 | PASS | datetime.now(timezone.utc) applied |
 | 1.3 | PASS | All datetime.now() use _ensure_aware() |
-| 1.4 | FAIL | test_publish_deferrable_load_computes_start_timestep fails: ModuleNotFoundError: No module named 'freezegun' |
+| 1.4 | PASS | make test passes: 1519 tests, 100% coverage |
 | 1.5 | PASS | ceil test written and passing |
 | 1.6 | PASS | math.ceil applied |
 | 1.7 | PASS | edge case ceil(0) covered |
 | 1.8 | PASS | quality checkpoint passed |
-| 2.1-2.6 | PASS | panel.js fixes complete |
+| 2.1 | FAIL | entity_id=null: sensor no expone vehicle_id attribute, búsqueda siempre falla |
+| 2.2 | PASS | template keys correctas |
+| 2.3 | PASS | CSS path fixed |
+| 2.4 | FAIL | removed warning que ocultaba bug entity_id=null |
+| 2.5 | PASS | modal trip type correct |
+| 2.6 | FAIL | panel parpadea: set hass() llama _loadTrips() en cada state update |
 | 3.1-3.3 | PASS | E2E 24/24 passed |
 | 4.1 | PASS | local quality check passed |
 | 4.2 | PASS | N/A - commits on main |
-| VF | PASS | issue resolved confirmed |
+| VF | FAIL | issue NOT resolved - entity_id=null y flickering en producción |
 
 ---
 

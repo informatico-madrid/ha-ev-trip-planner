@@ -1,0 +1,19 @@
+{
+  "spec": "fix-emhass-aggregated-sensor",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 19,
+  "external_unmarks": {
+    "task-2.1": 1,
+    "task-2.3": 1,
+    "task-2.4": 1,
+    "task-2.6": 1
+  },
+  "external_unmark_reasons": {
+    "task-2.1": "BUG: entity_id=null - sensor.py EmhassDeferrableLoadSensor.extra_state_attributes no expone vehicle_id, panel.js busca por vehicle_id attribute que no existe",
+    "task-2.3": "BUG: CSS cache-buster ?v=${Date.now()} en panel.js:723 dentro de render() causa re-descarga constante del CSS (confirmado por usuario en Network tab)",
+    "task-2.4": "BUG: removed warning que ocultaba el bug de entity_id=null - el usuario no veía error pero template mostraba null",
+    "task-2.6": "BUG: panel parpadea constantemente - set hass() llama _loadTrips() en cada state update + CSS cache-buster causa re-descarga CSS"
+  },
+  "last_updated": "2026-04-16T06:05:00Z"
+}

@@ -237,6 +237,42 @@ created: 2026-04-15
   - VF [VERIFY]: Complete - issue confirmed resolved
 - **Test Results:**
   - Unit: 1519 passed, 100% coverage
+
+### 2026-04-15 18:00
+- **[CORRECTION] external-reviewer:** Retracting previous FAIL - tests DO pass with `make test`
+- **Clarification:** I was using system Python which lacks freezegun. `make test` uses `.venv` which has freezegun installed
+- **Evidence:**
+  ```
+  make test → 1519 passed, 100% coverage
+  .venv/bin/python -c "import freezegun" → available
+  python3 -c "import freezegun" → ModuleNotFoundError (system Python)
+  ```
+- **Minor issue:** freezegun not in requirements.txt (dependency mgmt issue, not test failure)
+- **Status:** [PASS] - Spec is complete, all tests pass with make test
+
+### 2026-04-16 05:52
+- **[F] external-reviewer:** FAIL - 2 BUGs en producción tras merge
+- **BUG #1: entity_id=null en template EMHASS**
+  - **Síntoma:** Panel muestra `state_attr('null', ...)` en template copiar-pegar
+  - **Root cause:** `panel.js:884` busca sensor por `state.attributes?.vehicle_id` pero `EmhassDeferrableLoadSensor.extra_state_attributes` NO incluye `vehicle_id`
+  - **Evidencia:**
+    - `sensor.py:196-270` - `extra_state_attributes` no tiene `vehicle_id`
+    - `panel.js:884` - `const vehicleId = state.attributes?.vehicle_id;` → siempre `undefined`
+    - `panel.js:885` - `if (vehicleId === this._vehicleId)` → siempre `false`
+    - Resultado: `emhassSensorEntityId` siempre `null`
+  - **Tareas afectadas:** T2.1 (entity search), T2.4 (removed warning, masked bug)
+  - **Fix hint:** Añadir `"vehicle_id": vehicle_id` en `sensor.py:EmhassDeferrableLoadSensor.extra_state_attributes`
+- **BUG #2: Panel parpadea constantemente**
+  - **Síntoma:** Panel parpadea, cuesta pulsar botones
+  - **Root cause:** `set hass()` (panel.js:642) llama `_loadTrips()` en CADA state update → `requestUpdate()` → re-render completo
+  - **Agravante:** `_attr_force_update = True` en `sensor.py:186` causa state updates frecuentes
+  - **Evidencia:**
+    - `panel.js:647` - `this._loadTrips()` en `set hass()`
+    - `panel.js:1046` - `this.requestUpdate()` en `_loadTrips()`
+    - `sensor.py:186` - `self._attr_force_update = True`
+  - **Tareas afectadas:** T2.6 (quality checkpoint no detectó flickering)
+  - **Fix hint:** Debounce en `set hass()` o mover `_loadTrips()` fuera del setter
+- **Acción:** Desmarcadas T2.1, T2.4, T2.6 en tasks.md con diagnosis y fix hints
   - E2E: 24 passed in 2.3min
 - **Commits on main:** 5bf33b9, 1947661, 1d16de1, 8195849
 - **Conclusion:** All quality gates passed. Spec execution complete.
