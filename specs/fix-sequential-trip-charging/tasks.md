@@ -4,7 +4,7 @@
 
 Write a test that demonstrates the bug BEFORE any fix is applied. This test must FAIL with current code and PASS after the fix.
 
-- [ ] 0.1 Write failing test: two sequential trips produce def_start_timestep_array with non-zero second element
+- [x] 0.1 Write failing test: two sequential trips produce def_start_timestep_array with non-zero second element
   - **Do**:
     1. In `tests/test_charging_window.py`, add test `test_sequential_trips_def_start_timestep_offset`
     2. Create 2 trips with sequential deadlines (trip0: +12h, trip1: +48h)

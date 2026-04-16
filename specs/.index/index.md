@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-14T14:50:36Z
+**Last updated:** 2026-04-16T15:32:49Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 26 | Yes |
+| ./specs | 28 | Yes |
 
-## All Specs (26)
+## All Specs (28)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -42,7 +42,9 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | regression-orphaned-sensors-ha-core-investigation | ./specs | tasks | 78/79 tasks |
 | solid-refactor-coverage | ./specs | completed | done |
 | fix-emhass-sensor-attributes | ./specs | execution | 36/39 tasks |
-| m401-emhass-hotfixes | ./specs | execution | 97/101 tasks |
+| m401-emhass-hotfixes | ./specs | completed | done |
+| fix-emhass-aggregated-sensor | ./specs | completed | done |
+| fix-sequential-trip-charging | ./specs | execution | 0/23 tasks |
 
 ---
 

@@ -11,12 +11,29 @@ This test suite covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.ev_trip_planner.const import (
+    CONF_CHARGING_POWER,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_VEHICLE_NAME,
+)
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
+
+
+class MockConfigEntry:
+    """Mock ConfigEntry for testing."""
+    def __init__(self, vehicle_id="test_vehicle", data=None):
+        self.entry_id = "test_entry_id"
+        self.data = data or {
+            CONF_VEHICLE_NAME: vehicle_id,
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
 
 
 @pytest.fixture
@@ -633,3 +650,114 @@ class TestChargingWindowMultitrip:
         # ventana_horas for trip2 = trip2_arrival - window_start = (23:00+6h=05:00) - 02:00 = 3 hours
         assert results[1]["ventana_horas"] == 3.0, \
             f"Second trip: Expected 3.0 hours, got {results[1]['ventana_horas']}"
+
+
+class TestSequentialTripDefStartBug:
+    """Tests that demonstrate the sequential trip def_start_timestep bug.
+
+    Bug: _populate_per_trip_cache_entry() calls calculate_multi_trip_charging_windows()
+    with ONE trip at a time (line 532: trips=[(deadline_dt, trip)]), causing each
+    trip's window to start at hora_regreso (def_start=0) instead of after the
+    previous trip completes plus return buffer.
+
+    Expected: Trip1 def_start_timestep > 0 (after trip0 completes + buffer)
+    Actual: Trip1 def_start_timestep = 0 (each trip computed in isolation)
+    """
+
+    @pytest.mark.asyncio
+    async def test_sequential_trips_def_start_timestep_offset(self):
+        """Test that sequential trips produce non-zero def_start_timestep for second trip.
+
+        This test MUST FAIL with current code (both def_start will be 0).
+        After the fix (batch call to calculate_multi_trip_charging_windows), it should PASS.
+        """
+        # Setup mock hass
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.time_zone = "UTC"
+        hass.data = {}
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        # Mock store
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+
+        # Setup index map (needed for cache population)
+        adapter._index_map = {"trip_0": 0, "trip_1": 1}
+
+        # Create two trips with sequential deadlines
+        # Trip 0: deadline 12 hours from now
+        # Trip 1: deadline 48 hours from now
+        # Use naive datetimes to avoid timezone issues with datetime.now(timezone.utc)
+        now = datetime.utcnow()
+        trip_0_deadline = now + timedelta(hours=12)
+        trip_1_deadline = now + timedelta(hours=48)
+
+        trip_0 = {
+            "id": "trip_0",
+            "kwh": 10.0,
+            "datetime": trip_0_deadline.isoformat(),
+            "descripcion": "First trip",
+        }
+        trip_1 = {
+            "id": "trip_1",
+            "kwh": 20.0,
+            "datetime": trip_1_deadline.isoformat(),
+            "descripcion": "Second trip",
+        }
+
+        # hora_regreso: car already returned (2 hours ago)
+        # This ensures delta_hours is exactly 0 for trip 0 (window starts NOW)
+        hora_regreso = now - timedelta(hours=2)
+        charging_power_kw = 7.4
+        soc_current = 50.0
+
+        # Simulate current per-trip behavior by calling _populate_per_trip_cache_entry
+        # for each trip separately (this is what async_publish_all_deferrable_loads does)
+        await adapter._populate_per_trip_cache_entry(
+            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso
+        )
+        await adapter._populate_per_trip_cache_entry(
+            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso
+        )
+
+        # Get the cached per-trip params
+        trip_0_params = adapter._cached_per_trip_params.get("trip_0", {})
+        trip_1_params = adapter._cached_per_trip_params.get("trip_1", {})
+
+        # Extract def_start_timestep_array from each trip's cache entry
+        trip_0_def_start_array = trip_0_params.get("def_start_timestep_array", [])
+        trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
+
+        # Assert first trip starts at hora_regreso (def_start = 0)
+        assert len(trip_0_def_start_array) == 1, \
+            f"Trip 0 should have 1 def_start value, got {len(trip_0_def_start_array)}"
+        assert trip_0_def_start_array[0] == 0, \
+            f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
+
+        # Assert second trip starts AFTER first trip (def_start > 0)
+        # BUG: With current code, both trips get def_start = 0 because each is
+        # computed in isolation via calculate_multi_trip_charging_windows(trips=[single_trip])
+        assert len(trip_1_def_start_array) == 1, \
+            f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
+        assert trip_1_def_start_array[0] > 0, \
+            f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
