@@ -827,3 +827,68 @@ class TestSingleTripBackwardCompatibility:
         # (inicio_ventana == hora_regreso means delta_hours from now() to inicio_ventana is 0 or negative)
         delta = (results[0]["inicio_ventana"] - datetime.now(timezone.utc)).total_seconds() / 3600
         assert delta <= 0, f"hora_regreso is in the past, so def_start_timestep should cap at 0"
+
+    def test_three_sequential_trips_cumulative_offset(self):
+        """Test that three sequential trips have cumulative offset from sequential chaining.
+
+        Trip 0: deadline = now + 12h
+        Trip 1: deadline = now + 36h  (24h after trip 0)
+        Trip 2: deadline = now + 60h  (24h after trip 1)
+
+        With return_buffer_hours=4.0:
+        - Trip 0 window starts at hora_regreso (def_start=0)
+        - Trip 1 window starts at trip0_arrival + 4h buffer
+        - Trip 2 window starts at trip1_arrival + 4h buffer
+
+        This verifies AC-1.2: cumulative offset chaining across 3 trips.
+        """
+        now = datetime.utcnow()
+        hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
+
+        # Create 3 trips with sequential deadlines (24h apart)
+        trip0_deadline = now + timedelta(hours=12)
+        trip1_deadline = now + timedelta(hours=36)
+        trip2_deadline = now + timedelta(hours=60)
+
+        trip0 = {"id": "trip0", "kwh": 10.0, "datetime": trip0_deadline.isoformat()}
+        trip1 = {"id": "trip1", "kwh": 10.0, "datetime": trip1_deadline.isoformat()}
+        trip2 = {"id": "trip2", "kwh": 10.0, "datetime": trip2_deadline.isoformat()}
+
+        results = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip0_deadline.replace(tzinfo=timezone.utc), trip0),
+                (trip1_deadline.replace(tzinfo=timezone.utc), trip1),
+                (trip2_deadline.replace(tzinfo=timezone.utc), trip2),
+            ],
+            soc_actual=50.0,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
+            charging_power_kw=7.4,
+            return_buffer_hours=4.0,
+        )
+
+        # Assert 3 results
+        assert len(results) == 3, f"Expected 3 results, got {len(results)}"
+
+        # Trip 0: window starts at hora_regreso
+        # Trip 0's arrival = deadline + duration_hours = (now + 12h) + 6h = now + 18h
+        trip0_inicio = results[0]["inicio_ventana"]
+        trip0_arrival = trip0_deadline.replace(tzinfo=timezone.utc) + timedelta(hours=6.0)
+
+        # Trip 1: window starts at trip0_arrival + 4h buffer
+        trip1_inicio = results[1]["inicio_ventana"]
+        expected_trip1_start = trip0_arrival + timedelta(hours=4.0)
+        assert trip1_inicio == expected_trip1_start, \
+            f"Trip 1 inicio_ventana should be trip0_arrival + 4h buffer = {expected_trip1_start}, got {trip1_inicio}"
+
+        # Trip 1's arrival = trip1_deadline + 6h = (now + 36h) + 6h = now + 42h
+        trip1_arrival = trip1_deadline.replace(tzinfo=timezone.utc) + timedelta(hours=6.0)
+
+        # Trip 2: window starts at trip1_arrival + 4h buffer
+        trip2_inicio = results[2]["inicio_ventana"]
+        expected_trip2_start = trip1_arrival + timedelta(hours=4.0)
+        assert trip2_inicio == expected_trip2_start, \
+            f"Trip 2 inicio_ventana should be trip1_arrival + 4h buffer = {expected_trip2_start}, got {trip2_inicio}"
+
+        # Verify cumulative offset: trip2 > trip1 > trip0
+        assert trip1_inicio > trip0_inicio, "Trip 1 should start after Trip 0"
+        assert trip2_inicio > trip1_inicio, "Trip 2 should start after Trip 1"

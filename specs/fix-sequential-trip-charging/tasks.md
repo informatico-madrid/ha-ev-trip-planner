@@ -213,7 +213,7 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: FR-5, AC-1.3_
   - _Design: Test Coverage Table row 2_
 
-- [ ] 2.2 Write test: three sequential trips with cumulative offsets
+- [x] 2.2 Write test: three sequential trips with cumulative offsets
   - **Do**:
     1. Test `calculate_multi_trip_charging_windows` with 3 trips
     2. Assert `inicio_ventana[i]` follows sequential chaining with buffer
