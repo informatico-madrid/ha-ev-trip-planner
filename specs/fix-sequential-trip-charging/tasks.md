@@ -19,7 +19,7 @@ Write a test that demonstrates the bug BEFORE any fix is applied. This test must
   - _Requirements: AC-1.1_
   - _Design: Test Strategy_
 
-- [ ] 0.2 [VERIFY] Confirm failing test detects the bug
+- [x] 0.2 [VERIFY] Confirm failing test detects the bug
   - **Do**: Run the new test and confirm it fails with message showing `def_start_timestep_array[1] == 0` (bug)
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_charging_window.py -v -k "sequential_trips_def_start" 2>&1 | grep -i "fail\|assert\|0.*0"`
   - **Done when**: Test fails with clear assertion error showing the bug
@@ -28,7 +28,7 @@ Write a test that demonstrates the bug BEFORE any fix is applied. This test must
 
 Implement the minimum changes to make the failing test pass.
 
-- [ ] 1.1 Add RETURN_BUFFER_HOURS constant to const.py
+- [x] 1.1 Add RETURN_BUFFER_HOURS constant to const.py
   - **Do**:
     1. Add `RETURN_BUFFER_HOURS = 4.0` constant after existing defaults section
     2. Add comment: `# Fixed buffer between sequential trip charging windows (hours)`
