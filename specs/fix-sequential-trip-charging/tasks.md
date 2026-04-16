@@ -200,7 +200,7 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
 
 Add test coverage for edge cases and integration scenarios.
 
-- [ ] 2.1 Write test: single trip backward compatibility (def_start_timestep = 0)
+- [x] 2.1 Write test: single trip backward compatibility (def_start_timestep = 0)
   - **Do**:
     1. Test `calculate_multi_trip_charging_windows` with 1 trip and `return_buffer_hours=4.0`
     2. Assert `len(results) == 1`
