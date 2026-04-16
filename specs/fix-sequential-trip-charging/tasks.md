@@ -287,6 +287,16 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: FR-1, AC-1.1_
   - _Design: Test Coverage Table row 5_
 
+- [ ] 2.7.1 [FIX] Fix mypy error in calculations.py line 385
+  - **Do**: Fix mypy error "Unsupported operand types for < ("datetime" and "None")" at calculations.py:385
+    - The issue is comparing `window_start > trip_departure_time` where window_start could be None
+    - Add a check: only compare if window_start is not None
+  - **Files**: `custom_components/ev_trip_planner/calculations.py`
+  - **Done when**: mypy passes on calculations.py
+  - **Verify**: `PYTHONPATH=. .venv/bin/mypy custom_components/ev_trip_planner/calculations.py --no-namespace-packages`
+  - **Commit**: `fix(sequential-trip): fix mypy datetime comparison error`
+  - _fix_type: code_quality_
+
 - [ ] 2.8 [VERIFY] Quality checkpoint: all tests pass + lint + type check
   - **Do**: Run full test suite, lint, and type check
   - **Verify**: `PYTHONPATH=. .venv/bin/mypy custom_components/ev_trip_planner/ --no-namespace-packages && ruff check custom_components/ev_trip_planner/ && PYTHONPATH=. .venv/bin/python -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/`
