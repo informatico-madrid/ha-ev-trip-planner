@@ -272,7 +272,7 @@ Add test coverage for edge cases and integration scenarios.
   - **Commit**: `test(sequential-trip): verify 0 buffer consecutive trips`
   - _Design: Edge Cases_
 
-- [ ] 2.7 Write EMHASSAdapter batch processing integration test
+- [x] 2.7 Write EMHASSAdapter batch processing integration test
   - **Do**:
     1. Create mock EMHASSAdapter with 2 trips
     2. Stub `_get_current_soc` to return 50.0
