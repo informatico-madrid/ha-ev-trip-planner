@@ -960,3 +960,134 @@ class TestWindowCappedAtDeadline:
         # The window may be very small (or zero) but must be valid
         ventana_horas = results[1]["ventana_horas"]
         assert ventana_horas >= 0, f"Trip 1 ventana_horas should be >= 0, got {ventana_horas}"
+
+
+class TestDefEndTimestepUnchanged:
+    """Test that def_end_timestep is unchanged by the sequential trip fix (AC-1.4).
+
+    The fix only affects def_start_timestep (via pre_computed_inicio_ventana).
+    The def_end_timestep is computed purely from hours_available = (deadline - now) / 3600
+    and should be identical whether computed in single-trip or batch mode.
+    """
+
+    @pytest.mark.asyncio
+    async def test_end_timestep_unchanged_batch_vs_single_trip(self):
+        """Test that def_end_timestep values are identical for single-trip and batch computation.
+
+        This verifies AC-1.4: The fix only affects def_start_timestep, not def_end_timestep.
+        def_end_timestep is based purely on hours_available = (deadline - now) / 3600.
+        """
+        # Setup mock hass
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.time_zone = "UTC"
+        hass.data = {}
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        # Mock store
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+
+        # Setup index map
+        adapter._index_map = {"trip_0": 0, "trip_1": 1}
+
+        now = datetime.utcnow()
+        trip_0_deadline = now + timedelta(hours=12)
+        trip_1_deadline = now + timedelta(hours=48)
+
+        trip_0 = {
+            "id": "trip_0",
+            "kwh": 10.0,
+            "datetime": trip_0_deadline.isoformat(),
+            "descripcion": "First trip",
+        }
+        trip_1 = {
+            "id": "trip_1",
+            "kwh": 20.0,
+            "datetime": trip_1_deadline.isoformat(),
+            "descripcion": "Second trip",
+        }
+
+        hora_regreso = now - timedelta(hours=2)
+        charging_power_kw = 7.4
+        soc_current = 50.0
+
+        # Compute batch charging windows for all trips at once
+        batch_windows = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip_0_deadline.replace(tzinfo=timezone.utc), trip_0),
+                (trip_1_deadline.replace(tzinfo=timezone.utc), trip_1),
+            ],
+            soc_actual=soc_current,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            charging_power_kw=charging_power_kw,
+            return_buffer_hours=RETURN_BUFFER_HOURS,
+        )
+
+        # Extract pre_computed inicio_ventana for each trip
+        trip_0_inicio_ventana = batch_windows[0]["inicio_ventana"]
+        trip_1_inicio_ventana = batch_windows[1]["inicio_ventana"]
+
+        # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
+        await adapter._populate_per_trip_cache_entry(
+            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso,
+            pre_computed_inicio_ventana=trip_0_inicio_ventana
+        )
+        await adapter._populate_per_trip_cache_entry(
+            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso,
+            pre_computed_inicio_ventana=trip_1_inicio_ventana
+        )
+
+        # Get the cached per-trip params
+        trip_0_params = adapter._cached_per_trip_params.get("trip_0", {})
+        trip_1_params = adapter._cached_per_trip_params.get("trip_1", {})
+
+        # Extract def_end_timestep_array from each trip's cache entry
+        trip_0_def_end_array = trip_0_params.get("def_end_timestep_array", [])
+        trip_1_def_end_array = trip_1_params.get("def_end_timestep_array", [])
+
+        # Expected def_end_timestep based purely on hours_available = (deadline - now) / 3600
+        # Trip 0: deadline = now + 12h, so hours_available ≈ 12
+        # Trip 1: deadline = now + 48h, so hours_available ≈ 48
+        now_aware = datetime.now(timezone.utc)
+        expected_trip_0_end = min(int(max(0, (trip_0_deadline.replace(tzinfo=timezone.utc) - now_aware).total_seconds() / 3600)), 168)
+        expected_trip_1_end = min(int(max(0, (trip_1_deadline.replace(tzinfo=timezone.utc) - now_aware).total_seconds() / 3600)), 168)
+
+        # Assert def_end_timestep values are identical (fix only affects def_start_timestep)
+        assert len(trip_0_def_end_array) == 1, \
+            f"Trip 0 should have 1 def_end value, got {len(trip_0_def_end_array)}"
+        assert trip_0_def_end_array[0] == expected_trip_0_end, \
+            f"Trip 0 def_end should be {expected_trip_0_end} (based on deadline), got {trip_0_def_end_array[0]}"
+
+        assert len(trip_1_def_end_array) == 1, \
+            f"Trip 1 should have 1 def_end value, got {len(trip_1_def_end_array)}"
+        assert trip_1_def_end_array[0] == expected_trip_1_end, \
+            f"Trip 1 def_end should be {expected_trip_1_end} (based on deadline), got {trip_1_def_end_array[0]}"
+
+        # Also verify def_start_timestep is affected by the fix (non-zero for trip 1)
+        trip_0_def_start_array = trip_0_params.get("def_start_timestep_array", [])
+        trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
+
+        assert trip_0_def_start_array[0] == 0, \
+            f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
+        assert trip_1_def_start_array[0] > 0, \
+            f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
