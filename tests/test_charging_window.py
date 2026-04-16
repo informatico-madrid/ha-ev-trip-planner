@@ -20,9 +20,11 @@ from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
+    RETURN_BUFFER_HOURS,
 )
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.calculations import calculate_multi_trip_charging_windows
 
 
 class MockConfigEntry:
@@ -731,13 +733,30 @@ class TestSequentialTripDefStartBug:
         charging_power_kw = 7.4
         soc_current = 50.0
 
-        # Simulate current per-trip behavior by calling _populate_per_trip_cache_entry
-        # for each trip separately (this is what async_publish_all_deferrable_loads does)
+        # Compute batch charging windows for all trips at once (like async_publish_all_deferrable_loads does)
+        batch_windows = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip_0_deadline.replace(tzinfo=timezone.utc), trip_0),
+                (trip_1_deadline.replace(tzinfo=timezone.utc), trip_1),
+            ],
+            soc_actual=soc_current,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            charging_power_kw=charging_power_kw,
+            return_buffer_hours=RETURN_BUFFER_HOURS,
+        )
+
+        # Extract pre_computed inicio_ventana for each trip
+        trip_0_inicio_ventana = batch_windows[0]["inicio_ventana"]
+        trip_1_inicio_ventana = batch_windows[1]["inicio_ventana"]
+
+        # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
         await adapter._populate_per_trip_cache_entry(
-            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso
+            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso,
+            pre_computed_inicio_ventana=trip_0_inicio_ventana
         )
         await adapter._populate_per_trip_cache_entry(
-            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso
+            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso,
+            pre_computed_inicio_ventana=trip_1_inicio_ventana
         )
 
         # Get the cached per-trip params
@@ -755,8 +774,8 @@ class TestSequentialTripDefStartBug:
             f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
 
         # Assert second trip starts AFTER first trip (def_start > 0)
-        # BUG: With current code, both trips get def_start = 0 because each is
-        # computed in isolation via calculate_multi_trip_charging_windows(trips=[single_trip])
+        # With batch computation via calculate_multi_trip_charging_windows(all_trips),
+        # the second trip's window is correctly offset by return_buffer_hours
         assert len(trip_1_def_start_array) == 1, \
             f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
         assert trip_1_def_start_array[0] > 0, \
