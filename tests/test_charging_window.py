@@ -1091,3 +1091,30 @@ class TestDefEndTimestepUnchanged:
             f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
         assert trip_1_def_start_array[0] > 0, \
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
+
+
+class TestEmptyTripsEdgeCase:
+    """Test that empty trips list returns empty result without crashing."""
+
+    def test_empty_trips_returns_empty_list(self):
+        """Test that calculate_multi_trip_charging_windows with trips=[] returns empty list.
+
+        When called with an empty trips list, the function should:
+        - Return an empty list
+        - Not raise any exception or crash
+        """
+        now = datetime.utcnow()
+        hora_regreso = now - timedelta(hours=2)
+
+        # Should not raise any exception
+        results = calculate_multi_trip_charging_windows(
+            trips=[],
+            soc_actual=50.0,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
+            charging_power_kw=7.4,
+            return_buffer_hours=4.0,
+        )
+
+        # Should return empty list
+        assert results == [], f"Expected empty list, got {results}"
+        assert isinstance(results, list), f"Expected list type, got {type(results)}"

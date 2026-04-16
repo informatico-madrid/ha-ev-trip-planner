@@ -238,7 +238,7 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: FR-2_
   - _Design: Error Handling table_
 
-- [ ] 2.4 Write test: def_end_timestep unchanged after fix (AC-1.4)
+- [x] 2.4 Write test: def_end_timestep unchanged after fix (AC-1.4)
   - **Do**:
     1. Compare def_end_timestep values from single-trip vs batch computation
     2. Assert def_end_timestep values are identical
