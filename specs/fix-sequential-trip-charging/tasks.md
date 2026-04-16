@@ -52,7 +52,7 @@ Implement the minimum changes to make the failing test pass.
   - _Requirements: FR-4_
   - _Design: Component 2_
 
-- [ ] 1.3 Modify previous_arrival calculation to include return_buffer_hours
+- [x] 1.3 Modify previous_arrival calculation to include return_buffer_hours
   - **Do**:
     1. In `calculate_multi_trip_charging_windows()`, change line 419:
        `previous_arrival = trip_arrival` → `previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)`

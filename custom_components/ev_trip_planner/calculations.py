@@ -417,8 +417,8 @@ def calculate_multi_trip_charging_windows(
             "trip": trip,
         })
 
-        # Update previous_arrival for next iteration
-        previous_arrival = trip_arrival
+        # Update previous_arrival for next iteration (add buffer gap between trips)
+        previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)
 
     return results
 
