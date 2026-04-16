@@ -553,9 +553,19 @@ class EMHASSAdapter:
         hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
 
-        # Edge case: if def_start_timestep >= def_end_timestep, cap at def_end_timestep - 1 (minimum 0)
-        if def_start_timestep >= def_end_timestep:
-            def_start_timestep = max(0, def_end_timestep - 1)
+        # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
+        # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
+        # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
+        if pre_computed_inicio_ventana is None:
+            if "delta_hours" in locals():
+                if delta_hours > 168:
+                    # Was clamped to horizon (200h → 168), window is valid at boundary
+                    pass
+                elif def_start_timestep >= def_end_timestep:
+                    def_start_timestep = max(0, def_end_timestep - 1)
+            elif def_start_timestep >= def_end_timestep:
+                # No delta_hours tracked, fall back to original behavior
+                def_start_timestep = max(0, def_end_timestep - 1)
 
         total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
         power_watts = charging_power_kw * 1000
@@ -712,8 +722,12 @@ class EMHASSAdapter:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
+            # Extract batch-computed inicio_ventana for this trip
+            batch_window = batch_charging_windows.get(trip_id)
+            pre_computed = batch_window.get("inicio_ventana") if batch_window else None
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, soc_current, hora_regreso
+                trip, trip_id, charging_power_kw, soc_current, hora_regreso,
+                pre_computed_inicio_ventana=pre_computed,
             )
 
         # Calculate aggregated power profile and schedule for all trips
@@ -902,6 +916,8 @@ class EMHASSAdapter:
         # This ensures consistency when SOC changes during async publish,
         # and avoids redundant I/O calls.
         soc_current = await self._get_current_soc()
+        if soc_current is None:
+            soc_current = 50.0
 
         # BUG 4 FIX: Get hora_regreso ONCE before the loop (not per-trip)
         # Inject presence_monitor from coordinator if not already cached
