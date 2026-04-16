@@ -688,6 +688,10 @@ class EMHASSAdapter:
             if deadline_dt:
                 trip_deadlines.append((trip_id, deadline_dt, trip))
 
+        # Sort by deadline to ensure correct sequential chaining
+        # (calculate_multi_trip_charging_windows expects trips ordered by departure time)
+        trip_deadlines.sort(key=lambda x: x[1])
+
         batch_charging_windows = {}
         if trip_deadlines:
             windows = calculate_multi_trip_charging_windows(
