@@ -780,3 +780,50 @@ class TestSequentialTripDefStartBug:
             f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
         assert trip_1_def_start_array[0] > 0, \
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
+
+
+class TestSingleTripBackwardCompatibility:
+    """Test that single trip backward compatibility is maintained (AC-1.3)."""
+
+    def test_single_trip_backward_inicio_ventana_equals_hora_regreso(self):
+        """Test that single trip with return_buffer_hours produces inicio_ventana == hora_regreso.
+
+        For a single trip, the charging window should start at hora_regreso (def_start=0).
+        This verifies backward compatibility: single trips should not be affected by
+        the sequential trip buffer logic.
+        """
+        # Use naive datetimes to avoid timezone issues
+        now = datetime.utcnow()
+        trip_deadline = now + timedelta(hours=12)
+        hora_regreso = now - timedelta(hours=2)  # Car already returned 2 hours ago
+
+        trip = {
+            "id": "solo_trip",
+            "kwh": 10.0,
+            "datetime": trip_deadline.isoformat(),
+            "descripcion": "Single trip",
+        }
+
+        # Compute charging windows with 1 trip and return_buffer_hours=4.0
+        results = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip_deadline.replace(tzinfo=timezone.utc), trip),
+            ],
+            soc_actual=50.0,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            charging_power_kw=7.4,
+            return_buffer_hours=4.0,
+        )
+
+        # Assert only 1 result for single trip
+        assert len(results) == 1, f"Expected 1 result, got {len(results)}"
+
+        # Assert inicio_ventana equals hora_regreso for single trip
+        # (single trip window starts at hora_regreso, not offset by buffer)
+        assert results[0]["inicio_ventana"] == hora_regreso.replace(tzinfo=timezone.utc), \
+            f"Single trip inicio_ventana should equal hora_regreso, got {results[0]['inicio_ventana']}"
+
+        # Verify that for a single trip, def_start would be 0
+        # (inicio_ventana == hora_regreso means delta_hours from now() to inicio_ventana is 0 or negative)
+        delta = (results[0]["inicio_ventana"] - datetime.now(timezone.utc)).total_seconds() / 3600
+        assert delta <= 0, f"hora_regreso is in the past, so def_start_timestep should cap at 0"
