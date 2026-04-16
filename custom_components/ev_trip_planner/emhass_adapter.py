@@ -30,6 +30,7 @@ from .const import (
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     EMHASS_STATE_READY,
+    RETURN_BUFFER_HOURS,
     TRIP_TYPE_RECURRING,
 )
 
@@ -666,6 +667,34 @@ class EMHASSAdapter:
                 hora_regreso = await self._presence_monitor.async_get_hora_regreso()
             except Exception:
                 hora_regreso = None
+
+        # Batch compute charging windows for ALL trips at once (fixes sequential trip offset bug)
+        trip_deadlines = []
+        for trip in trips:
+            trip_id = trip.get("id")
+            if not trip_id:
+                continue
+            deadline_dt = self._calculate_deadline_from_trip(trip)
+            if deadline_dt:
+                trip_deadlines.append((trip_id, deadline_dt, trip))
+
+        batch_charging_windows = {}
+        if trip_deadlines:
+            windows = calculate_multi_trip_charging_windows(
+                trips=[(dl, trip) for _, dl, trip in trip_deadlines],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                return_buffer_hours=RETURN_BUFFER_HOURS,
+            )
+            for i, (trip_id, _, _) in enumerate(trip_deadlines):
+                if i < len(windows):
+                    batch_charging_windows[trip_id] = windows[i]
+
+        _LOGGER.debug(
+            "DEBUG async_publish_all_deferrable_loads: batch computed %d charging windows",
+            len(batch_charging_windows)
+        )
 
         # Publish each trip and populate per-trip cache
         for trip in trips:

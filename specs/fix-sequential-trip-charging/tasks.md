@@ -93,7 +93,7 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - **Commit**: `fix(sequential-trip): update chained trips test for buffer behavior`
   - _fix_type: test_quality_
 
-- [ ] 1.4 [VERIFY] Quality checkpoint: type check + existing tests pass after calculations.py changes
+- [x] 1.4 [VERIFY] Quality checkpoint: type check + existing tests pass after calculations.py changes
   - **Do**: Run mypy and existing calculation tests
   - **Verify**: `PYTHONPATH=. .venv/bin/mypy custom_components/ev_trip_planner/calculations.py --no-namespace-packages && PYTHONPATH=. .venv/bin/python -m pytest tests/test_calculations.py -v --tb=short`
   - **Done when**: No type errors, all existing calculation tests pass
