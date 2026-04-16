@@ -515,10 +515,6 @@ class EMHASSAdapter:
             await self.async_assign_index_to_trip(trip_id)
         emhass_index = self._index_map.get(trip_id, -1)
 
-        # Ensure soc_current has a fallback (BUG FIX: task 2.17)
-        if soc_current is None:
-            soc_current = 50.0
-
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
         kwh_needed = trip.get("kwh", 0.0)
@@ -556,15 +552,8 @@ class EMHASSAdapter:
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
         # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
-        if pre_computed_inicio_ventana is None:
-            if "delta_hours" in locals():
-                if delta_hours > 168:
-                    # Was clamped to horizon (200h → 168), window is valid at boundary
-                    pass
-                elif def_start_timestep >= def_end_timestep:
-                    def_start_timestep = max(0, def_end_timestep - 1)
-            elif def_start_timestep >= def_end_timestep:
-                # No delta_hours tracked, fall back to original behavior
+        if pre_computed_inicio_ventana is None and "delta_hours" in locals():
+            if delta_hours <= 168 and def_start_timestep >= def_end_timestep:
                 def_start_timestep = max(0, def_end_timestep - 1)
 
         total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0

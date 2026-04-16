@@ -287,7 +287,7 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: FR-1, AC-1.1_
   - _Design: Test Coverage Table row 5_
 
-- [ ] 2.7.1 [FIX] Fix mypy error in calculations.py line 385
+- [x] 2.7.1 [FIX] Fix mypy error in calculations.py line 385
   - **Do**: Fix mypy error "Unsupported operand types for < ("datetime" and "None")" at calculations.py:385
     - The issue is comparing `window_start > trip_departure_time` where window_start could be None
     - Add a check: only compare if window_start is not None
