@@ -211,10 +211,12 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         if self.coordinator.data is None:
             return {}
 
+        vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
         attrs: Dict[str, Any] = {
             "power_profile_watts": self.coordinator.data.get("emhass_power_profile"),
             "deferrables_schedule": self.coordinator.data.get("emhass_deferrables_schedule"),
             "emhass_status": self.coordinator.data.get("emhass_status"),
+            "vehicle_id": vehicle_id,
         }
 
         # Extract aggregated params from per_trip_emhass_params
