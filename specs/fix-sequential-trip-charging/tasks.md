@@ -99,7 +99,7 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - **Done when**: No type errors, all existing calculation tests pass
   - **Commit**: `chore(sequential-trip): pass quality checkpoint after calculations changes`
 
-- [ ] 1.5 Add batch charging windows computation in async_publish_all_deferrable_loads()
+- [x] 1.5 Add batch charging windows computation in async_publish_all_deferrable_loads()
   - **Do**:
     1. Import `RETURN_BUFFER_HOURS` from const
     2. BEFORE the per-trip cache loop (before line 671), collect all trip deadlines:
