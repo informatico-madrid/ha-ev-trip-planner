@@ -182,7 +182,7 @@ Total tasks: 22
   - **Commit**: `fix(panel): modal trip type detects tipo/type/recurring fields`
   - _Requirements: FR-7, AC-3.1_
 
-- [ ] 2.6 Quality Checkpoint — **UNMARKED: panel parpadea (CSS se recarga constantemente)**
+- [x] 2.6 Quality Checkpoint — **UNMARKED: panel parpadea (CSS se recarga constantemente)**
   - **Do**: Verificar que panel.js no tiene errores de sintaxis
   - **Verify**:
     - `node -c custom_components/ev_trip_planner/frontend/panel.js`
