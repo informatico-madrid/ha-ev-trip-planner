@@ -250,7 +250,7 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: AC-1.4_
   - _Design: Test Coverage Table row 7_
 
-- [ ] 2.5 Write test: empty trips list returns empty result
+- [x] 2.5 Write test: empty trips list returns empty result
   - **Do**:
     1. Test `calculate_multi_trip_charging_windows` with `trips=[]`
     2. Assert returns empty list
@@ -261,7 +261,7 @@ Add test coverage for edge cases and integration scenarios.
   - **Commit**: `test(sequential-trip): verify empty trips edge case`
   - _Design: Error Handling table_
 
-- [ ] 2.6 Write test: two trips with 0 buffer start consecutively
+- [x] 2.6 Write test: two trips with 0 buffer start consecutively
   - **Do**:
     1. Test `return_buffer_hours=0.0`
     2. Assert trip 2 starts exactly at trip 1 arrival (no gap)

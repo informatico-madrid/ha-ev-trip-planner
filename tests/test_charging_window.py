@@ -1093,6 +1093,63 @@ class TestDefEndTimestepUnchanged:
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
 
 
+class TestZeroBufferConsecutiveTrips:
+    """Test that two trips with return_buffer_hours=0 start consecutively (no gap)."""
+
+    def test_zero_buffer_consecutive_trips(self):
+        """Test that with return_buffer_hours=0.0, trip 2 starts exactly at trip 1 arrival.
+
+        Scenario:
+        - Trip 0: deadline = now + 12h
+        - Trip 1: deadline = now + 36h (24h after trip 0)
+        - return_buffer_hours = 0.0 (no gap between trips)
+
+        Expected:
+        - Trip 0 window starts at hora_regreso (def_start=0)
+        - Trip 1 window starts exactly when Trip 0 arrives (no buffer gap)
+        - consecutive windows with no gap between them
+        """
+        now = datetime.now(timezone.utc)
+        hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
+
+        # Create 2 trips with sequential deadlines (24h apart)
+        trip0_deadline = now + timedelta(hours=12)
+        trip1_deadline = now + timedelta(hours=36)
+
+        trip0 = {"id": "trip0", "kwh": 10.0, "datetime": trip0_deadline.isoformat()}
+        trip1 = {"id": "trip1", "kwh": 10.0, "datetime": trip1_deadline.isoformat()}
+
+        results = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip0_deadline, trip0),
+                (trip1_deadline, trip1),
+            ],
+            soc_actual=50.0,
+            hora_regreso=hora_regreso,
+            charging_power_kw=7.4,
+            return_buffer_hours=0.0,
+        )
+
+        # Assert 2 results
+        assert len(results) == 2, f"Expected 2 results, got {len(results)}"
+
+        # Trip 0 should start at hora_regreso (normal behavior)
+        assert results[0]["inicio_ventana"] is not None
+        assert results[0]["fin_ventana"] is not None
+
+        # Trip 1 should start exactly at trip 0's arrival (no buffer gap)
+        # trip_arrival = trip_departure + duration_hours (6h)
+        trip0_arrival = trip0_deadline + timedelta(hours=6)
+        assert results[1]["inicio_ventana"] == trip0_arrival, \
+            f"Trip 1 should start at Trip 0 arrival (deadline + 6h, no buffer), got {results[1]['inicio_ventana']} vs expected {trip0_arrival}"
+
+        # Verify the windows are valid (inicio <= fin)
+        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], \
+            "Trip 0: inicio_ventana should not exceed fin_ventana"
+        assert results[1]["inicio_ventana"] <= results[1]["fin_ventana"], \
+            "Trip 1: inicio_ventana should not exceed fin_ventana"
+
+
 class TestEmptyTripsEdgeCase:
     """Test that empty trips list returns empty result without crashing."""
 
