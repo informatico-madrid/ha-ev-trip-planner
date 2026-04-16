@@ -82,6 +82,17 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - _Requirements: FR-2, FR-4_
   - _Design: Component 2_
 
+- [x] 1.3.1 [FIX] Update pre-existing test for new buffer behavior
+  - **Do**: Update `test_chained_trips_second_window_starts_at_previous_arrival` in `tests/test_calculations.py`
+    - The test expects `ventana_horas=14.0` but now gets `10.0` because `return_buffer_hours=4.0` adds a 4h gap
+    - Option 1: Add `return_buffer_hours=0.0` to preserve old test expectations
+    - Option 2: Update expected value to `10.0` to reflect new buffer behavior
+  - **Files**: `tests/test_calculations.py`
+  - **Done when**: Test passes with updated expectations
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_calculations.py -v -k "test_chained_trips_second_window"`
+  - **Commit**: `fix(sequential-trip): update chained trips test for buffer behavior`
+  - _fix_type: test_quality_
+
 - [ ] 1.4 [VERIFY] Quality checkpoint: type check + existing tests pass after calculations.py changes
   - **Do**: Run mypy and existing calculation tests
   - **Verify**: `PYTHONPATH=. .venv/bin/mypy custom_components/ev_trip_planner/calculations.py --no-namespace-packages && PYTHONPATH=. .venv/bin/python -m pytest tests/test_calculations.py -v --tb=short`
