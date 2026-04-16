@@ -321,6 +321,21 @@ created: 2026-04-15
 - **Evaluación:** El parpadeo debería estar significativamente mejor. El re-render excesivo persiste pero sin re-descarga CSS el impacto visual es mínimo
 - **Tests:** 1519 passed, 100% coverage (sin regresiones)
 - **Estado:** Coordinador parece haber completado los fixes principales. Pendiente confirmación del usuario
+
+### 2026-04-16 06:36
+- **[O] external-reviewer:** Revisión ciclo #6 — 2 nuevos commits, BUG #2 COMPLETAMENTE FIXED
+- **Commit 2314b80:** `fix(panel): debounce _loadTrips() and disable force_update to stop flickering`
+  - panel.js: Debounce de 5s en `set hass()` ✅
+  - sensor.py: `_attr_force_update = False` ✅
+- **Commit 2f87852:** `chore(spec): mark T2.6 complete - panel flickering fixed`
+- **Tests:** 1519 passed, 100% coverage ✅ SIN REGRESIONES
+- **Resumen de todos los fixes:**
+  - BUG #1 (entity_id=null): ✅ FIXED — `vehicle_id` añadido en sensor.py (b393ead)
+  - BUG #2 (parpadeo CSS): ✅ FIXED — 3 cambios:
+    1. Cache-buster eliminado (b7ab6c4)
+    2. Debounce 5s en set hass() (2314b80)
+    3. force_update desactivado en sensor (2314b80)
+- **Estado:** Todos los BUGs corregidos, tests pasan. Pendiente confirmación del usuario en producción
   - E2E: 24 passed in 2.3min
 - **Commits on main:** 5bf33b9, 1947661, 1d16de1, 8195849
 - **Conclusion:** All quality gates passed. Spec execution complete.
