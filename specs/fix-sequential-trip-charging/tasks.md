@@ -154,7 +154,7 @@ print(f'  Trip 1 inicio_ventana={results[1][\"inicio_ventana\"]}')
   - _Requirements: FR-5, FR-6_
   - _Design: Component 4_
 
-- [ ] 1.7 Pass batch-computed inicio_ventana from loop to _populate_per_trip_cache_entry()
+- [x] 1.7 Pass batch-computed inicio_ventana from loop to _populate_per_trip_cache_entry()
   - **Do**:
     1. In the per-trip cache loop (line 671-677), extract batch window for current trip:
        ```python
