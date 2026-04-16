@@ -297,6 +297,16 @@ Add test coverage for edge cases and integration scenarios.
   - **Commit**: `fix(sequential-trip): fix mypy datetime comparison error`
   - _fix_type: code_quality_
 
+- [ ] 2.7.2 [FIX] Fix timezone comparison error in calculations.py
+  - **Do**: Fix "can't compare offset-naive and offset-aware datetimes" error at calculations.py:385
+    - The issue is comparing window_start (offset-naive?) with trip_departure_time (offset-aware)
+    - Ensure both window_start and trip_departure_time are passed through _ensure_aware() before comparison
+  - **Files**: `custom_components/ev_trip_planner/calculations.py`
+  - **Done when**: All tests pass (excluding pre-existing broken test)
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_emhass_adapter.py -v --tb=short --deselect=tests/test_emhass_adapter.py::test_inicio_ventana_to_timestep_clamped`
+  - **Commit**: `fix(sequential-trip): fix timezone comparison in window capping`
+  - _fix_type: code_quality_
+
 - [ ] 2.8 [VERIFY] Quality checkpoint: all tests pass + lint + type check
   - **Do**: Run full test suite, lint, and type check
   - **Verify**: `PYTHONPATH=. .venv/bin/mypy custom_components/ev_trip_planner/ --no-namespace-packages && ruff check custom_components/ev_trip_planner/ && PYTHONPATH=. .venv/bin/python -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/`
