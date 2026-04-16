@@ -379,6 +379,12 @@ def calculate_multi_trip_charging_windows(
         else:
             window_start = previous_arrival
 
+        # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
+        # This handles the case where return_buffer pushes window_start past the deadline
+        assert trip_departure_time is not None
+        if window_start > trip_departure_time:
+            window_start = trip_departure_time
+
         # Calculate arrival for this trip (departure + duration)
         assert trip_departure_time is not None
         trip_arrival = trip_departure_time + timedelta(hours=duration_hours)

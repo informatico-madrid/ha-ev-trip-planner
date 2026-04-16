@@ -225,7 +225,7 @@ Add test coverage for edge cases and integration scenarios.
   - _Requirements: FR-2, AC-1.2_
   - _Design: Test Coverage Table row 3_
 
-- [ ] 2.3 Write test: window_start capped at deadline when buffer exceeds gap
+- [x] 2.3 Write test: window_start capped at deadline when buffer exceeds gap
   - **Do**:
     1. Create 2 trips with tight gap
     2. Set return_buffer_hours that would push window_start past deadline

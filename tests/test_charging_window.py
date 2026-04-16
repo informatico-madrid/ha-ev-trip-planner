@@ -892,3 +892,71 @@ class TestSingleTripBackwardCompatibility:
         # Verify cumulative offset: trip2 > trip1 > trip0
         assert trip1_inicio > trip0_inicio, "Trip 1 should start after Trip 0"
         assert trip2_inicio > trip1_inicio, "Trip 2 should start after Trip 1"
+
+
+class TestWindowCappedAtDeadline:
+    """Test that window_start is capped at deadline when buffer exceeds gap."""
+
+    def test_window_capped_at_deadline_when_buffer_exceeds_gap(self):
+        """Test that when return_buffer pushes window_start past deadline, result is valid.
+
+        Scenario:
+        - Trip 0: departure = now + 12h, arrival = now + 18h (duration_hours=6.0)
+        - Trip 1: departure = now + 20h (only 2h gap from trip 0 deadline)
+        - return_buffer_hours = 4.0
+
+        Calculation:
+        - Trip 1's "natural" window_start = trip0_arrival + buffer = now + 18h + 4h = now + 22h
+        - But trip 1's deadline is now + 20h
+        - So natural window_start (+22h) EXCEEDS deadline (+20h)
+
+        Expected behavior:
+        - Function should NOT crash
+        - inicio_ventana should be capped at or before fin_ventana (deadline)
+        - Result should be a valid window (inicio_ventana <= fin_ventana)
+        """
+        now = datetime.utcnow()
+        hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
+
+        # Trip 0: deadline = now + 12h
+        # Trip 1: deadline = now + 20h (only 2h after trip 0's deadline, tight gap)
+        # With return_buffer_hours=4.0, trip 1's window would start at now + 22h (> deadline)
+        trip0_deadline = now + timedelta(hours=12)
+        trip1_deadline = now + timedelta(hours=20)
+
+        trip0 = {"id": "trip0", "kwh": 10.0, "datetime": trip0_deadline.isoformat()}
+        trip1 = {"id": "trip1", "kwh": 10.0, "datetime": trip1_deadline.isoformat()}
+
+        # This should not crash even though buffer exceeds gap
+        results = calculate_multi_trip_charging_windows(
+            trips=[
+                (trip0_deadline.replace(tzinfo=timezone.utc), trip0),
+                (trip1_deadline.replace(tzinfo=timezone.utc), trip1),
+            ],
+            soc_actual=50.0,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
+            charging_power_kw=7.4,
+            return_buffer_hours=4.0,
+        )
+
+        # Assert 2 results
+        assert len(results) == 2, f"Expected 2 results, got {len(results)}"
+
+        # Trip 0 should be normal
+        assert results[0]["inicio_ventana"] is not None
+        assert results[0]["fin_ventana"] is not None
+        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], \
+            "Trip 0: inicio_ventana should not exceed fin_ventana"
+
+        # Trip 1: The key assertion - inicio_ventana must NOT exceed fin_ventana
+        # Even though buffer pushes window_start past deadline, function should handle it
+        trip1_inicio = results[1]["inicio_ventana"]
+        trip1_fin = results[1]["fin_ventana"]
+        assert trip1_inicio is not None, "Trip 1 inicio_ventana should not be None"
+        assert trip1_fin is not None, "Trip 1 fin_ventana should not be None"
+        assert trip1_inicio <= trip1_fin, \
+            f"Trip 1: inicio_ventana ({trip1_inicio}) should not exceed fin_ventana ({trip1_fin})"
+
+        # The window may be very small (or zero) but must be valid
+        ventana_horas = results[1]["ventana_horas"]
+        assert ventana_horas >= 0, f"Trip 1 ventana_horas should be >= 0, got {ventana_horas}"
