@@ -1552,9 +1552,6 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
         # Mock presence_monitor for _get_hora_regreso
         # FIX: publish_deferrable_loads uses presence_monitor.async_get_hora_regreso(),
         # not adapter._get_hora_regreso(). The old mock was ineffective.
-        # Mock presence_monitor for _get_hora_regreso
-        # FIX: publish_deferrable_loads uses presence_monitor.async_get_hora_regreso(),
-        # not adapter._get_hora_regreso(). The old mock was ineffective.
         # FIX 2: hora_regreso must be timezone-AWARE and AFTER the trip deadline
         # so the batch calculation returns a valid window (not triggering edge case)
         mock_presence = MagicMock()

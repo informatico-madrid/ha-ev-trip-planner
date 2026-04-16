@@ -1,4 +1,6 @@
 """Test for line 697 coverage: trip with falsy id in async_publish_all_deferrable_loads."""
+from typing import Any, Dict, Optional
+
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -8,18 +10,46 @@ from custom_components.ev_trip_planner.const import (
 
 
 class MockConfigEntry:
-    def __init__(self, vehicle_name, config):
-        self.entry_id = f"{vehicle_name}_entry"
-        self.domain = "ev_trip_planner"
-        self.title = vehicle_name
-        self.state = "loaded"
-        self.data = config
-        self.runtime_data = None
+    """Mock Home Assistant ConfigEntry for unit tests.
+
+    Attributes:
+        entry_id: Unique entry identifier.
+        domain: Integration domain name.
+        title: Display title for the entry.
+        state: Entry lifecycle state.
+        data: Configuration data dictionary.
+        runtime_data: Optional runtime data attached after setup.
+    """
+
+    def __init__(self, vehicle_name: str, config: Dict[str, Any]) -> None:
+        """Initialize mock config entry.
+
+        Args:
+            vehicle_name: Vehicle name used to derive entry_id and title.
+            config: Configuration dictionary with integration options.
+        """
+        self.entry_id: str = f"{vehicle_name}_entry"
+        self.domain: str = "ev_trip_planner"
+        self.title: str = vehicle_name
+        self.state: str = "loaded"
+        self.data: Dict[str, Any] = config
+        self.runtime_data: Optional["MockRuntimeData"] = None
 
 
 class MockRuntimeData:
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
+    """Mock runtime data container for coordinator access.
+
+    Attributes:
+        coordinator: Mocked TripPlannerCoordinator instance.
+    """
+
+    def __init__(self, coordinator: MagicMock) -> None:
+        """Initialize mock runtime data.
+
+        Args:
+            coordinator: Mocked coordinator providing trip data and refresh.
+        """
+        self.coordinator: MagicMock = coordinator
 
 
 @pytest.fixture
@@ -67,11 +97,17 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(hass,
         hass.states.async_set = AsyncMock()
         hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
-        result = await adapter.async_publish_all_deferrable_loads(trips)
+        await adapter.async_publish_all_deferrable_loads(trips)
 
-        # Should still return True (or partial success) since valid_trip was processed
-        # The function should not raise, just skip the falsy id trips
+        # Verify only the valid trip was cached — falsy-id trips were skipped
+        assert len(adapter._cached_per_trip_params) == 1, (
+            f"Expected exactly 1 cached entry, got {len(adapter._cached_per_trip_params)}: "
+            f"{list(adapter._cached_per_trip_params.keys())}"
+        )
         assert "valid_trip" in adapter._cached_per_trip_params
+        # Verify falsy IDs are NOT present as keys in the cache
+        assert None not in adapter._cached_per_trip_params, "None should not be a cache key"
+        assert "" not in adapter._cached_per_trip_params, "Empty string should not be a cache key"
 
 
 @pytest.mark.asyncio
@@ -103,7 +139,11 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field(ha
         hass.states.async_set = AsyncMock()
         hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
-        result = await adapter.async_publish_all_deferrable_loads(trips)
+        await adapter.async_publish_all_deferrable_loads(trips)
 
-        # The function should not raise, just skip the trip without id
+        # Verify only the valid trip was cached — trip without id field was skipped
+        assert len(adapter._cached_per_trip_params) == 1, (
+            f"Expected exactly 1 cached entry, got {len(adapter._cached_per_trip_params)}: "
+            f"{list(adapter._cached_per_trip_params.keys())}"
+        )
         assert "valid_trip" in adapter._cached_per_trip_params

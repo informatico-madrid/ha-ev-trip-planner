@@ -670,7 +670,6 @@ class TestSequentialTripDefStartBug:
     async def test_sequential_trips_def_start_timestep_offset(self):
         """Test that sequential trips produce non-zero def_start_timestep for second trip.
 
-        This test MUST FAIL with current code (both def_start will be 0).
         After the fix (batch call to calculate_multi_trip_charging_windows), it should PASS.
         """
         # Setup mock hass
@@ -826,7 +825,7 @@ class TestSingleTripBackwardCompatibility:
         # Verify that for a single trip, def_start would be 0
         # (inicio_ventana == hora_regreso means delta_hours from now() to inicio_ventana is 0 or negative)
         delta = (results[0]["inicio_ventana"] - datetime.now(timezone.utc)).total_seconds() / 3600
-        assert delta <= 0, f"hora_regreso is in the past, so def_start_timestep should cap at 0"
+        assert delta <= 0, "hora_regreso is in the past, so def_start_timestep should cap at 0"
 
     def test_three_sequential_trips_cumulative_offset(self):
         """Test that three sequential trips have cumulative offset from sequential chaining.
