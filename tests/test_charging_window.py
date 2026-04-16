@@ -1175,3 +1175,116 @@ class TestEmptyTripsEdgeCase:
         # Should return empty list
         assert results == [], f"Expected empty list, got {results}"
         assert isinstance(results, list), f"Expected list type, got {type(results)}"
+
+
+class TestEMHASSAdapterBatchProcessing:
+    """Integration test for EMHASSAdapter batch processing (FR-1, AC-1.1).
+
+    This test verifies that async_publish_all_deferrable_loads correctly:
+    1. Batch-computes charging windows for all trips at once
+    2. Uses the pre-computed inicio_ventana from batch computation
+    3. Results in def_start_timestep=0 for trip 0 and def_start_timestep>0 for trip 1
+    """
+
+    @pytest.mark.asyncio
+    async def test_async_publish_all_deferrable_loads_batch_processing(self):
+        """Test that async_publish_all_deferrable_loads correctly batch-processes sequential trips.
+
+        This is an integration test that exercises the full async_publish_all_deferrable_loads
+        method with mocked dependencies to verify the batch processing behavior.
+        """
+        # Setup mock hass
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.time_zone = "UTC"
+        hass.data = {}
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        # Mock store
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        config = {
+            CONF_VEHICLE_NAME: "test_vehicle",
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+            CONF_CHARGING_POWER: 7.4,
+        }
+
+        entry = MockConfigEntry("test_vehicle", config)
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+
+        # Setup index map
+        adapter._index_map = {"trip_0": 0, "trip_1": 1}
+
+        # Create two trips with sequential deadlines
+        now = datetime.utcnow()
+        trip_0_deadline = now + timedelta(hours=12)
+        trip_1_deadline = now + timedelta(hours=48)
+
+        trip_0 = {
+            "id": "trip_0",
+            "kwh": 10.0,
+            "datetime": trip_0_deadline.isoformat(),
+            "descripcion": "First trip",
+        }
+        trip_1 = {
+            "id": "trip_1",
+            "kwh": 20.0,
+            "datetime": trip_1_deadline.isoformat(),
+            "descripcion": "Second trip",
+        }
+
+        trips = [trip_0, trip_1]
+
+        # hora_regreso: car already returned (2 hours ago)
+        hora_regreso_stub = now - timedelta(hours=2)
+
+        # Mock _get_current_soc to return 50.0
+        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+            mock_soc.return_value = 50.0
+
+            # Mock _get_hora_regreso to return known datetime
+            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+                mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
+
+                # Mock presence_monitor to avoid None check
+                mock_pm = MagicMock()
+                mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso_stub.replace(tzinfo=timezone.utc))
+                adapter._presence_monitor = mock_pm
+
+                # Call async_publish_all_deferrable_loads with 2 trips
+                result = await adapter.async_publish_all_deferrable_loads(trips)
+
+        # Assert method returned True (success)
+        assert result is True, "async_publish_all_deferrable_loads should return True"
+
+        # Get the cached per-trip params
+        trip_0_params = adapter._cached_per_trip_params.get("trip_0", {})
+        trip_1_params = adapter._cached_per_trip_params.get("trip_1", {})
+
+        # Extract def_start_timestep_array from each trip's cache entry
+        trip_0_def_start_array = trip_0_params.get("def_start_timestep_array", [])
+        trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
+
+        # Assert first trip starts at hora_regreso (def_start = 0)
+        assert len(trip_0_def_start_array) == 1, \
+            f"Trip 0 should have 1 def_start value, got {len(trip_0_def_start_array)}"
+        assert trip_0_def_start_array[0] == 0, \
+            f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
+
+        # Assert second trip starts AFTER first trip completes + buffer (def_start > 0)
+        # With batch computation, the second trip's window is correctly offset by return_buffer_hours
+        assert len(trip_1_def_start_array) == 1, \
+            f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
+        assert trip_1_def_start_array[0] > 0, \
+            f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
