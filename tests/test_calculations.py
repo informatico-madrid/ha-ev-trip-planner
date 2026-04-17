@@ -290,10 +290,42 @@ class TestCalculateEnergyNeeded:
             soc_current=20.0,  # 20% SOC = 10kWh, viaje necesita 15kWh → necesita 5kWh
             charging_power_kw=7.4,
         )
-        # 100km * 0.15 = 15kWh needed (sin buffer hardcodeado)
+        # 100km * 0.15 = 15kWh needed
         # At 20% SOC: 10kWh in battery, energia_objetivo = 15kWh
-        # energia_necesaria = max(0, 15 - 10) = 5kWh needed
-        assert result["energia_necesaria_kwh"] == 5.0
+        # energia_necesaria raw = max(0, 15 - 10) = 5kWh
+        # With default safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
+        assert result["energia_necesaria_kwh"] == 5.5
+        assert result["margen_seguridad_aplicado"] == 10.0
+
+    def test_energy_needed_safety_margin_zero(self):
+        """With safety_margin=0, energia_necesaria is raw energy."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=50.0,  # 50% SOC = 25kWh, viaje = 10kWh → necesita 0 (already enough)
+            charging_power_kw=7.4,
+            safety_margin_percent=0.0,
+        )
+        # energia_objetivo = 10kWh, energia_actual = 25kWh → max(0, 10-25) = 0
+        assert result["energia_necesaria_kwh"] == 0.0
+        assert result["margen_seguridad_aplicado"] == 0.0
+
+    def test_energy_needed_safety_margin_applied(self):
+        """Safety margin is applied to energia_necesaria."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=0.0,  # 0% SOC = 0kWh, viaje = 10kWh → necesita 10kWh raw
+            charging_power_kw=7.4,
+            safety_margin_percent=20.0,
+        )
+        # energia_necesaria raw = 10kWh, with 20% margin = 12kWh
+        assert result["energia_necesaria_kwh"] == 12.0
+        assert result["margen_seguridad_aplicado"] == 20.0
+        # horas_carga = 12 / 7.4 = 1.62 → rounds to 1.62
+        assert result["horas_carga_necesarias"] == round(12.0 / 7.4, 2)
 
 
 class TestCalculateChargingWindowPure:

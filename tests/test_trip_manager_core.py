@@ -2051,10 +2051,11 @@ async def test_async_calcular_energia_necesaria_with_charging_power_zero(mock_ha
     result = await manager.async_calcular_energia_necesaria(trip, vehicle_config)
 
     # Should calculate correctly with zero charging power
-    # energia_objetivo = 15kWh (sin buffer hardcodeado)
+    # energia_objetivo = 15kWh
     # energia_actual = 10kWh (20% de 50kWh)
-    # energia_necesaria = max(0, 15 - 10) = 5kWh
-    assert result["energia_necesaria_kwh"] == 5.0
+    # energia_necesaria raw = max(0, 15 - 10) = 5kWh
+    # With safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
+    assert result["energia_necesaria_kwh"] == 5.5
     assert result["horas_carga_necesarias"] == 0
 
 

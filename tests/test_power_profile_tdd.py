@@ -86,16 +86,17 @@ class TestCalcularEnergiaNecesaria:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado (sin buffer hardcodeado)
+        # Resultado esperado (con safety_margin=10% por defecto)
         # energia_objetivo = 15kWh (solo energía del viaje)
         # energia_actual = 10kWh
-        # energia_necesaria = max(0, 15 - 10) = 5kWh
-        # horas_carga = 5 / 3.6 = 1.39h
-        
+        # energia_necesaria raw = max(0, 15 - 10) = 5kWh
+        # With safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
+        # horas_carga = 5.5 / 3.6 = 1.53h
+
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
-        
-        assert resultado["energia_necesaria_kwh"] == 5.0
-        assert resultado["horas_carga_necesarias"] == 1.39
+
+        assert resultado["energia_necesaria_kwh"] == 5.5
+        assert resultado["horas_carga_necesarias"] == round(5.5 / 3.6, 2)
         assert resultado["alerta_tiempo_insuficiente"] is False
     
     async def test_calcular_energia_necesaria_tiempo_insuficiente(self, hass):
@@ -115,18 +116,19 @@ class TestCalcularEnergiaNecesaria:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado (sin buffer hardcodeado)
+        # Resultado esperado (con safety_margin=10% por defecto)
         # energia_objetivo = 30kWh (solo energía del viaje)
         # energia_actual = 10kWh
-        # energia_necesaria = max(0, 30 - 10) = 20kWh
-        # horas_carga = 20 / 3.6 = 5.56h
+        # energia_necesaria raw = max(0, 30 - 10) = 20kWh
+        # With safety_margin=10%: energia_final = 20 * 1.10 = 22kWh
+        # horas_carga = 22 / 3.6 = 6.11h
         # horas_disponibles = 5h
-        # alerta = True (5.56 > 5)
-        
+        # alerta = True (6.11 > 5)
+
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
-        
-        assert resultado["energia_necesaria_kwh"] == 20.0
-        assert resultado["horas_carga_necesarias"] == 5.56
+
+        assert resultado["energia_necesaria_kwh"] == 22.0
+        assert resultado["horas_carga_necesarias"] == round(22.0 / 3.6, 2)
         assert resultado["alerta_tiempo_insuficiente"] is True
         assert resultado["horas_disponibles"] == 5.0
 

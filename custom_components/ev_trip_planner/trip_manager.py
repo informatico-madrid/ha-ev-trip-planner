@@ -1254,6 +1254,7 @@ class TripManager:
         charging_power_kw = vehicle_config.get("charging_power_kw", 3.6)
         soc_current = vehicle_config.get("soc_current", 100.0)
         consumption_kwh_per_km = vehicle_config.get("consumption_kwh_per_km", 0.15)
+        safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
 
         # Calcular energía del viaje
         # Prioridad: usar kwh directo si existe, sino calcular desde km * consumo
@@ -1265,16 +1266,20 @@ class TripManager:
             distance_km = trip.get("km", 0.0)
             energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-        # Energía objetivo: energía del viaje (el margen de seguridad lo gestiona safety_margin_percent)
+        # Energía objetivo: energía del viaje
         energia_objetivo = energia_viaje
 
         # Energía actual en batería
         energia_actual = (soc_current / 100.0) * battery_capacity
 
-        # Energía necesaria
+        # Energía necesaria (bruta, sin margen)
         energia_necesaria = max(0.0, energia_objetivo - energia_actual)
+
+        # Apply safety margin
+        energia_final = energia_necesaria * (1 + safety_margin_percent / 100)
+
         if charging_power_kw > 0:
-            horas_carga = energia_necesaria / charging_power_kw
+            horas_carga = energia_final / charging_power_kw
         else:
             horas_carga = 0
 
@@ -1311,10 +1316,11 @@ class TripManager:
                 pass
 
         return {
-            "energia_necesaria_kwh": round(energia_necesaria, 3),
+            "energia_necesaria_kwh": round(energia_final, 3),
             "horas_carga_necesarias": round(horas_carga, 2),
             "alerta_tiempo_insuficiente": alerta_tiempo_insuficiente,
             "horas_disponibles": round(horas_disponibles, 2),
+            "margen_seguridad_aplicado": safety_margin_percent,
         }
 
     async def calcular_ventana_carga(
@@ -1323,6 +1329,7 @@ class TripManager:
         soc_actual: float,
         hora_regreso: Optional[datetime],
         charging_power_kw: float,
+        safety_margin_percent: float = 10.0,
     ) -> Dict[str, Any]:
         """Calcula la ventana de carga disponible para un viaje.
 
@@ -1334,6 +1341,7 @@ class TripManager:
             soc_actual: SOC actual del vehículo en porcentaje (0-100)
             hora_regreso: Fecha y hora real de regreso del vehículo (None si no ha llegado)
             charging_power_kw: Potencia de carga en kW
+            safety_margin_percent: Safety margin percentage (default 10.0)
 
         Returns:
             Diccionario con:
@@ -1425,6 +1433,7 @@ class TripManager:
             "battery_capacity_kwh": 50.0,  # Default, will be overridden if available
             "charging_power_kw": charging_power_kw,
             "soc_current": soc_actual,
+            "safety_margin_percent": safety_margin_percent,
         }
         energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
         kwh_necesarios = energia_info["energia_necesaria_kwh"]
@@ -1453,6 +1462,7 @@ class TripManager:
         soc_actual: float,
         hora_regreso: Optional[datetime],
         charging_power_kw: float,
+        safety_margin_percent: float = 10.0,
     ) -> List[Dict[str, Any]]:
         """Calcula ventanas de carga para múltiples viajes en cadena.
 
@@ -1465,6 +1475,7 @@ class TripManager:
             soc_actual: SOC actual del vehículo en porcentaje (0-100)
             hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
             charging_power_kw: Potencia de carga en kW
+            safety_margin_percent: Safety margin percentage (default 10.0)
 
         Returns:
             Lista de diccionarios, uno por viaje, cada uno conteniendo:
@@ -1536,6 +1547,7 @@ class TripManager:
                 "battery_capacity_kwh": 50.0,
                 "charging_power_kw": charging_power_kw,
                 "soc_current": soc_actual,
+                "safety_margin_percent": safety_margin_percent,
             }
             energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
             kwh_necesarios = energia_info["energia_necesaria_kwh"]
@@ -1571,6 +1583,7 @@ class TripManager:
         hora_regreso: Optional[datetime],
         charging_power_kw: float,
         battery_capacity_kwh: float = 50.0,
+        safety_margin_percent: float = 10.0,
     ) -> List[Dict[str, Any]]:
         """Calcula el SOC al inicio de cada viaje en cadena.
 
@@ -1583,6 +1596,7 @@ class TripManager:
             hora_regreso: Fecha y hora real de regreso (None si no ha llegado)
             charging_power_kw: Potencia de carga en kW
             battery_capacity_kwh: Capacidad de batería en kWh
+            safety_margin_percent: Safety margin percentage (default 10.0)
 
         Returns:
             Lista de diccionarios, uno por viaje, conteniendo:
@@ -1599,6 +1613,7 @@ class TripManager:
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
+            safety_margin_percent=safety_margin_percent,
         )
 
         results = []
@@ -1671,10 +1686,12 @@ class TripManager:
         """
         from .calculations import calculate_deficit_propagation
 
-        # Extract battery_capacity_kwh from vehicle_config with fallback to 50.0 kWh
+        # Extract battery_capacity_kwh and safety_margin_percent from vehicle_config
         battery_capacity_kwh = 50.0
+        safety_margin_percent = 10.0
         if vehicle_config and isinstance(vehicle_config, dict):
             battery_capacity_kwh = vehicle_config.get("battery_capacity_kwh", 50.0)
+            safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
 
         if not trips:
             return []
@@ -1686,6 +1703,7 @@ class TripManager:
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
             battery_capacity_kwh=battery_capacity_kwh,
+            safety_margin_percent=safety_margin_percent,
         )
 
         # Calcular tasa de carga SOC (%/hora)
@@ -1699,6 +1717,7 @@ class TripManager:
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
+            safety_margin_percent=safety_margin_percent,
         )
 
         _LOGGER.debug(
@@ -1908,6 +1927,7 @@ class TripManager:
 
         # Obtener configuración del vehículo
         battery_capacity = 50.0
+        safety_margin_percent = 10.0
         soc_current = 50.0
         try:
             config_entry: Optional[ConfigEntry[Any]] = None
@@ -1919,6 +1939,7 @@ class TripManager:
 
             if config_entry is not None and config_entry.data is not None:
                 battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
+                safety_margin_percent = config_entry.data.get("safety_margin_percent", 10.0)
         except Exception:
             pass
         soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
@@ -1929,6 +1950,7 @@ class TripManager:
                 "battery_capacity_kwh": battery_capacity,
                 "charging_power_kw": charging_power_kw,
                 "soc_current": soc_current,
+                "safety_margin_percent": safety_margin_percent,
             }
             energia_info = await self.async_calcular_energia_necesaria(
                 trip, vehicle_config
