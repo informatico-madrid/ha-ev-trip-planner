@@ -375,10 +375,11 @@ class EMHASSAdapter:
                 safety_margin_percent=self._safety_margin_percent,
             )
 
-            # Extract inicio_ventana (datetime) and convert to timestep
+            # Extract inicio_ventana and fin_ventana (datetime) and convert to timesteps
             def_start_timestep = 0
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
+                fin_ventana = charging_windows[0].get("fin_ventana")
                 if inicio_ventana:
                     # Convert datetime to hours from now, clamped to 0-168 range
                     delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
@@ -388,6 +389,14 @@ class EMHASSAdapter:
             total_hours = kwh / self._charging_power_kw
             power_watts = self._charging_power_kw * 1000  # Convert to Watts
             end_timestep = min(int(hours_available), 168)  # Max 7 days
+
+            # BUG FIX: Use fin_ventana for end_timestep when available
+            # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
+            # Guard: Check charging_windows is not empty before accessing [0]
+            if charging_windows and len(charging_windows) > 0 and charging_windows[0].get("fin_ventana"):
+                fin_ventana = charging_windows[0].get("fin_ventana")
+                delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
+                end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
             # Create attributes
             attributes = {
@@ -503,6 +512,7 @@ class EMHASSAdapter:
         soc_current: float,
         hora_regreso: Optional[datetime],
         pre_computed_inicio_ventana: Optional[datetime] = None,
+        pre_computed_fin_ventana: Optional[datetime] = None,
     ) -> None:
         """Build and cache per-trip EMHASS parameters.
 
@@ -525,6 +535,10 @@ class EMHASSAdapter:
             await self.async_assign_index_to_trip(trip_id)
         emhass_index = self._index_map.get(trip_id, -1)
 
+        # Capture current time once to avoid inconsistencies from multiple datetime.now() calls
+        # near hour boundaries (off-by-one errors)
+        now = datetime.now(timezone.utc)
+
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
         kwh_needed = trip.get("kwh", 0.0)
@@ -534,12 +548,12 @@ class EMHASSAdapter:
         deadline_dt = self._calculate_deadline_from_trip(trip)
         if deadline_dt is None:
             # Fallback for invalid trips (should not happen in normal flow)
-            deadline_dt = datetime.now(timezone.utc)
+            deadline_dt = now
 
         def_start_timestep = 0
         if pre_computed_inicio_ventana is not None:
             # Use pre-computed inicio_ventana from batch calculation
-            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - now).total_seconds() / 3600
             def_start_timestep = max(0, min(int(delta_hours), 168))
         else:
             # Fall back to existing single-trip calculation (backward compat)
@@ -555,11 +569,30 @@ class EMHASSAdapter:
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
                 if inicio_ventana:
-                    delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+                    delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
                     def_start_timestep = max(0, min(int(delta_hours), 168))
 
-        hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
+        hours_available = (deadline_dt - now).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
+
+        # BUG FIX: Use fin_ventana for def_end_timestep when available
+        # This ensures the charging window [def_start, def_end] matches the actual
+        # charging window [inicio_ventana, fin_ventana] from calculations
+        # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
+        # Applies to both batch path (pre_computed_fin_ventana) and fallback path (charging_windows)
+        fin_ventana_to_use = None
+        if pre_computed_fin_ventana is not None:
+            # Batch path: use pre_computed_fin_ventana from batch charging windows
+            fin_ventana_to_use = pre_computed_fin_ventana
+        elif pre_computed_inicio_ventana is None and "charging_windows" in locals() and charging_windows and len(charging_windows) > 0:
+            # Fallback path: extract fin_ventana from locally calculated charging_windows
+            fin_ventana_to_use = charging_windows[0].get("fin_ventana")
+
+        if fin_ventana_to_use is not None:
+            delta_hours_end = (_ensure_aware(fin_ventana_to_use) - now).total_seconds() / 3600
+            # Guard: Skip if fin_ventana is in the past
+            if delta_hours_end > 0:
+                def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
@@ -729,13 +762,15 @@ class EMHASSAdapter:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
-            # Extract batch-computed inicio_ventana for this trip
+            # Extract batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
-            pre_computed = batch_window.get("inicio_ventana") if batch_window else None
+            pre_computed_inicio = batch_window.get("inicio_ventana") if batch_window else None
+            pre_computed_fin = batch_window.get("fin_ventana") if batch_window else None
             await self._populate_per_trip_cache_entry(
                 trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
                 self._safety_margin_percent, soc_current, hora_regreso,
-                pre_computed_inicio_ventana=pre_computed,
+                pre_computed_inicio_ventana=pre_computed_inicio,
+                pre_computed_fin_ventana=pre_computed_fin,
             )
 
         # Calculate aggregated power profile and schedule for all trips
