@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-14T14:50:36Z",
+  "updated": "2026-04-16T15:34:15Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 26,
+      "specsCount": 28,
       "isDefault": true
     }
   ],
@@ -189,8 +189,22 @@
       "name": "m401-emhass-hotfixes",
       "path": "./specs/m401-emhass-hotfixes",
       "phase": "completed",
-      "taskIndex": 102,
-      "totalTasks": 102
+      "taskIndex": 103,
+      "totalTasks": 103
+    },
+    {
+      "name": "fix-emhass-aggregated-sensor",
+      "path": "./specs/fix-emhass-aggregated-sensor",
+      "phase": "completed",
+      "taskIndex": 20,
+      "totalTasks": 20
+    },
+    {
+      "name": "fix-sequential-trip-charging",
+      "path": "./specs/fix-sequential-trip-charging",
+      "phase": "execution",
+      "taskIndex": 0,
+      "totalTasks": 23
     }
   ]
 }

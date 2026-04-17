@@ -342,18 +342,20 @@ def calculate_multi_trip_charging_windows(
     hora_regreso: Optional[datetime],
     charging_power_kw: float,
     duration_hours: float = 6.0,
+    return_buffer_hours: float = 4.0,
 ) -> List[Dict[str, Any]]:
     """Calculate charging windows for multiple chained trips.
 
     Each trip gets its own window. The first trip starts at hora_regreso.
-    Subsequent trips start when the previous trip ends (departure + duration).
+    Subsequent trips start after the previous trip ends plus a buffer gap.
 
     Args:
         trips: List of (departure_time, trip_dict) tuples, sorted by time.
         soc_actual: Current SOC percentage
         hora_regreso: Return time for the first trip
         charging_power_kw: Charging power in kW
-        duration_hours: Default trip duration in hours
+        duration_hours: Duration of each trip in hours (how long car is away)
+        return_buffer_hours: Gap in hours between when a trip ends and the next trip begins
 
     Returns:
         List of charging window dicts (one per trip).
@@ -376,6 +378,12 @@ def calculate_multi_trip_charging_windows(
                 window_start = trip_departure_time - timedelta(hours=duration_hours)
         else:
             window_start = previous_arrival
+
+        # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
+        # This handles the case where return_buffer pushes window_start past the deadline
+        assert trip_departure_time is not None
+        if window_start is not None and _ensure_aware(window_start) > _ensure_aware(trip_departure_time):
+            window_start = trip_departure_time
 
         # Calculate arrival for this trip (departure + duration)
         assert trip_departure_time is not None
@@ -415,8 +423,8 @@ def calculate_multi_trip_charging_windows(
             "trip": trip,
         })
 
-        # Update previous_arrival for next iteration
-        previous_arrival = trip_arrival
+        # Update previous_arrival for next iteration (add buffer gap between trips)
+        previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)
 
     return results
 

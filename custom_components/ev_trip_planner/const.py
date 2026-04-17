@@ -68,6 +68,9 @@ DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
+# Fixed buffer between sequential trip charging windows (hours)
+RETURN_BUFFER_HOURS = 4.0
+
 # Trip types
 TripType = Literal["recurrente", "puntual"]
 TRIP_TYPE_RECURRING: TripType = "recurrente"

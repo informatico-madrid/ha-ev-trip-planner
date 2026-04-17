@@ -468,6 +468,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=datetime(2026, 4, 6, 7, 0),
             charging_power_kw=7.4,
+            return_buffer_hours=0.0,
         )
         # First window: 7am to trip1_arrival (8am + 6h = 2pm = 14:00) = 7 hours
         assert result[0]["ventana_horas"] == 7.0

@@ -30,6 +30,7 @@ from .const import (
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
     EMHASS_STATE_READY,
+    RETURN_BUFFER_HOURS,
     TRIP_TYPE_RECURRING,
 )
 
@@ -493,6 +494,7 @@ class EMHASSAdapter:
         charging_power_kw: float,
         soc_current: float,
         hora_regreso: Optional[datetime],
+        pre_computed_inicio_ventana: Optional[datetime] = None,
     ) -> None:
         """Build and cache per-trip EMHASS parameters.
 
@@ -506,15 +508,12 @@ class EMHASSAdapter:
             charging_power_kw: Charging power in kW.
             soc_current: Current SOC percentage (or fallback 50.0).
             hora_regreso: Return time from presence_monitor or None.
+            pre_computed_inicio_ventana: Pre-computed inicio_ventana from batch calculation.
         """
         # Assign index if not already assigned
         if trip_id not in self._index_map:
             await self.async_assign_index_to_trip(trip_id)
         emhass_index = self._index_map.get(trip_id, -1)
-
-        # Ensure soc_current has a fallback (BUG FIX: task 2.17)
-        if soc_current is None:
-            soc_current = 50.0
 
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
@@ -527,24 +526,36 @@ class EMHASSAdapter:
             # Fallback for invalid trips (should not happen in normal flow)
             deadline_dt = datetime.now(timezone.utc)
 
-        # Calculate charging windows for def_start_timestep
-        charging_windows = calculate_multi_trip_charging_windows(
-            trips=[(deadline_dt, trip)],
-            soc_actual=soc_current,
-            hora_regreso=hora_regreso,
-            charging_power_kw=charging_power_kw,
-            duration_hours=6.0,
-        )
-
         def_start_timestep = 0
-        if charging_windows:
-            inicio_ventana = charging_windows[0].get("inicio_ventana")
-            if inicio_ventana:
-                delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
-                def_start_timestep = max(0, min(int(delta_hours), 168))
+        if pre_computed_inicio_ventana is not None:
+            # Use pre-computed inicio_ventana from batch calculation
+            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+            def_start_timestep = max(0, min(int(delta_hours), 168))
+        else:
+            # Fall back to existing single-trip calculation (backward compat)
+            charging_windows = calculate_multi_trip_charging_windows(
+                trips=[(deadline_dt, trip)],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                duration_hours=6.0,
+            )
+            if charging_windows:
+                inicio_ventana = charging_windows[0].get("inicio_ventana")
+                if inicio_ventana:
+                    delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+                    def_start_timestep = max(0, min(int(delta_hours), 168))
 
         hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
+
+        # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
+        # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
+        # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
+        if pre_computed_inicio_ventana is None and "delta_hours" in locals():
+            if delta_hours <= 168 and def_start_timestep >= def_end_timestep:
+                def_start_timestep = max(0, def_end_timestep - 1)
+
         total_hours = kwh_needed / charging_power_kw if charging_power_kw > 0 else 0.0
         power_watts = charging_power_kw * 1000
         power_profile = self._calculate_power_profile_from_trips([trip], charging_power_kw)
@@ -667,13 +678,49 @@ class EMHASSAdapter:
             except Exception:
                 hora_regreso = None
 
+        # Batch compute charging windows for ALL trips at once (fixes sequential trip offset bug)
+        trip_deadlines = []
+        for trip in trips:
+            trip_id = trip.get("id")
+            if not trip_id:
+                continue
+            deadline_dt = self._calculate_deadline_from_trip(trip)
+            if deadline_dt:
+                trip_deadlines.append((trip_id, deadline_dt, trip))
+
+        # Sort by deadline to ensure correct sequential chaining
+        # (calculate_multi_trip_charging_windows expects trips ordered by departure time)
+        trip_deadlines.sort(key=lambda x: x[1])
+
+        batch_charging_windows = {}
+        if trip_deadlines:
+            windows = calculate_multi_trip_charging_windows(
+                trips=[(dl, trip) for _, dl, trip in trip_deadlines],
+                soc_actual=soc_current,
+                hora_regreso=hora_regreso,
+                charging_power_kw=charging_power_kw,
+                return_buffer_hours=RETURN_BUFFER_HOURS,
+            )
+            for i, (trip_id, _, _) in enumerate(trip_deadlines):
+                if i < len(windows):
+                    batch_charging_windows[trip_id] = windows[i]
+
+        _LOGGER.debug(
+            "DEBUG async_publish_all_deferrable_loads: batch computed %d charging windows",
+            len(batch_charging_windows)
+        )
+
         # Publish each trip and populate per-trip cache
         for trip in trips:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
+            # Extract batch-computed inicio_ventana for this trip
+            batch_window = batch_charging_windows.get(trip_id)
+            pre_computed = batch_window.get("inicio_ventana") if batch_window else None
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, soc_current, hora_regreso
+                trip, trip_id, charging_power_kw, soc_current, hora_regreso,
+                pre_computed_inicio_ventana=pre_computed,
             )
 
         # Calculate aggregated power profile and schedule for all trips
@@ -862,6 +909,8 @@ class EMHASSAdapter:
         # This ensures consistency when SOC changes during async publish,
         # and avoids redundant I/O calls.
         soc_current = await self._get_current_soc()
+        if soc_current is None:
+            soc_current = 50.0
 
         # BUG 4 FIX: Get hora_regreso ONCE before the loop (not per-trip)
         # Inject presence_monitor from coordinator if not already cached

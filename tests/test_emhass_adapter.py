@@ -1,6 +1,6 @@
 """Tests for EMHASS Adapter core functionality."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -1549,11 +1549,21 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
         # Mock _get_current_soc
         adapter._get_current_soc = AsyncMock(return_value=50.0)
 
-        # Mock _get_hora_regreso
-        adapter._get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 13, 18, 0, 0))
+        # Mock presence_monitor for _get_hora_regreso
+        # FIX: publish_deferrable_loads uses presence_monitor.async_get_hora_regreso(),
+        # not adapter._get_hora_regreso(). The old mock was ineffective.
+        # FIX 2: hora_regreso must be timezone-AWARE and AFTER the trip deadline
+        # so the batch calculation returns a valid window (not triggering edge case)
+        mock_presence = MagicMock()
+        # April 21 is AFTER the April 20 trip deadline, ensuring valid window
+        mock_presence.async_get_hora_regreso = AsyncMock(return_value=datetime(2026, 4, 21, 18, 0, 0, tzinfo=timezone.utc))
+        adapter._presence_monitor = mock_presence
 
         # Test CASE 1: Upper bound clamp (200 hours -> should clamp to 168)
-        future_window_time = datetime.now() + timedelta(hours=200)
+        # NOTE: The mock's inicio_ventana=200h with deadline=100h creates an IMPOSSIBLE
+        # scenario (start > end). The edge case correctly rejects this.
+        # For a valid 200h window, deadline must be >= 200h.
+        future_window_time = datetime.now(timezone.utc) + timedelta(hours=200)
         with patch(
             "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
             return_value=[{"inicio_ventana": future_window_time}],
