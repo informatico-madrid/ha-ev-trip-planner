@@ -1788,6 +1788,7 @@ class TripManager:
         if vehicle_config:
             battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
             soc_current = vehicle_config.get("soc_current")
+            safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
         else:
             try:
                 # Lookup by real config entry id when available; fall back to
@@ -1816,10 +1817,13 @@ class TripManager:
 
                 if config_entry is not None and config_entry.data is not None:
                     battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
+                    safety_margin_percent = config_entry.data.get("safety_margin_percent", 10.0)
                 else:
                     battery_capacity = 50.0
+                    safety_margin_percent = 10.0
             except Exception:
                 battery_capacity = 50.0
+                safety_margin_percent = 10.0
             soc_current = None
 
         # Obtener SOC actual - only fetch if not provided in vehicle_config
@@ -1848,6 +1852,7 @@ class TripManager:
             hora_regreso=hora_regreso,
             planning_horizon_days=planning_horizon_days,
             reference_dt=datetime.now(),
+            safety_margin_percent=safety_margin_percent,
         )
 
     async def async_generate_deferrables_schedule(

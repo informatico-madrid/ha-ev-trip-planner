@@ -438,6 +438,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=None,  # No return time
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         # Window: departure - 6h (12:00) to departure + 6h (midnight) = 12h
@@ -455,6 +456,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=datetime(2026, 4, 6, 10, 0),
             charging_power_kw=0.0,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         assert result[0]["horas_carga_necesarias"] == 0.0
@@ -463,7 +465,8 @@ class TestCalculateMultiTripChargingWindows:
         """Empty trip list returns empty list."""
         from custom_components.ev_trip_planner.calculations import calculate_multi_trip_charging_windows
         result = calculate_multi_trip_charging_windows(
-            trips=[], soc_actual=50.0, hora_regreso=None, charging_power_kw=7.4
+            trips=[], soc_actual=50.0, hora_regreso=None, charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert result == []
 
@@ -478,6 +481,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=datetime(2026, 4, 6, 10, 0),
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         # Window: hora_regreso (10am) to trip_arrival (departure + 6h = midnight) = 14 hours
@@ -502,6 +506,7 @@ class TestCalculateMultiTripChargingWindows:
             hora_regreso=datetime(2026, 4, 6, 7, 0),
             charging_power_kw=7.4,
             return_buffer_hours=0.0,
+            battery_capacity_kwh=50.0,
         )
         # First window: 7am to trip1_arrival (8am + 6h = 2pm = 14:00) = 7 hours
         assert result[0]["ventana_horas"] == 7.0

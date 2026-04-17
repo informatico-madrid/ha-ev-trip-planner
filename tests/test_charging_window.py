@@ -741,6 +741,7 @@ class TestSequentialTripDefStartBug:
             soc_actual=soc_current,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
             charging_power_kw=charging_power_kw,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=RETURN_BUFFER_HOURS,
         )
 
@@ -750,11 +751,11 @@ class TestSequentialTripDefStartBug:
 
         # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
         await adapter._populate_per_trip_cache_entry(
-            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso,
+            trip_0, "trip_0", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
             pre_computed_inicio_ventana=trip_0_inicio_ventana
         )
         await adapter._populate_per_trip_cache_entry(
-            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso,
+            trip_1, "trip_1", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
             pre_computed_inicio_ventana=trip_1_inicio_ventana
         )
 
@@ -811,6 +812,7 @@ class TestSingleTripBackwardCompatibility:
             soc_actual=50.0,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=4.0,
         )
 
@@ -862,6 +864,7 @@ class TestSingleTripBackwardCompatibility:
             soc_actual=50.0,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=4.0,
         )
 
@@ -935,6 +938,7 @@ class TestWindowCappedAtDeadline:
             soc_actual=50.0,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=4.0,
         )
 
@@ -1039,6 +1043,7 @@ class TestDefEndTimestepUnchanged:
             soc_actual=soc_current,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
             charging_power_kw=charging_power_kw,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=RETURN_BUFFER_HOURS,
         )
 
@@ -1048,11 +1053,11 @@ class TestDefEndTimestepUnchanged:
 
         # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
         await adapter._populate_per_trip_cache_entry(
-            trip_0, "trip_0", charging_power_kw, soc_current, hora_regreso,
+            trip_0, "trip_0", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
             pre_computed_inicio_ventana=trip_0_inicio_ventana
         )
         await adapter._populate_per_trip_cache_entry(
-            trip_1, "trip_1", charging_power_kw, soc_current, hora_regreso,
+            trip_1, "trip_1", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
             pre_computed_inicio_ventana=trip_1_inicio_ventana
         )
 
@@ -1126,6 +1131,7 @@ class TestZeroBufferConsecutiveTrips:
             soc_actual=50.0,
             hora_regreso=hora_regreso,
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=0.0,
         )
 
@@ -1168,6 +1174,7 @@ class TestEmptyTripsEdgeCase:
             soc_actual=50.0,
             hora_regreso=hora_regreso.replace(tzinfo=timezone.utc),
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
             return_buffer_hours=4.0,
         )
 
