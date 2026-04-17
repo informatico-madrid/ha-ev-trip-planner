@@ -100,6 +100,6 @@ specs/.current-spec
 .claude/settingsbackl.jsonbacka
 .claude/
 .cursor/
-.github/
 .qwen/
 .agents/
+.github/skills/
