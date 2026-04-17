@@ -737,13 +737,13 @@ def calculate_power_profile_from_trips(
     import logging
     logger = logging.getLogger(__name__)
 
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     if reference_dt is None:
-        reference_dt = datetime.now()
+        reference_dt = datetime.now(timezone.utc)
 
     power_profile = [0.0] * horizon
-    now = reference_dt
+    now = _ensure_aware(reference_dt)
     charging_power_watts = power_kw * 1000
 
     logger.warning("DEBUG calculate_power_profile: trips=%d, power_kw=%.2f", len(trips), power_kw)
@@ -781,6 +781,9 @@ def calculate_power_profile_from_trips(
                     continue
             else:
                 deadline_dt = deadline
+
+            # Ensure deadline_dt is timezone-aware for datetime arithmetic
+            deadline_dt = _ensure_aware(deadline_dt)
 
         logger.warning("DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s", trip.get("id"), deadline, now, deadline_dt)
 

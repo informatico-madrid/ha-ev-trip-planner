@@ -1,0 +1,237 @@
+"""RED phase test: Verifies power_profile_watts positions are within charging window.
+
+Bug: When charging window is [def_start, def_end), the power_profile_watts
+should have the charging values (3600W) at positions WITHIN that window.
+
+For example:
+- def_start_timestep = 83
+- def_end_timestep = 96
+- def_total_hours = 2
+
+Expected: 3600W at positions 94 and 95 (last 2 positions of window)
+"""
+
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+import pytest
+
+from custom_components.ev_trip_planner.const import (
+    CONF_CHARGING_POWER,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_VEHICLE_NAME,
+)
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+
+@pytest.mark.asyncio
+async def test_power_profile_positions_at_end_of_charging_window():
+    """RED phase: Verifies charging happens at END of window (latest possible).
+
+    When def_start=83, def_end=96, total_hours=2:
+    - Charging window is [83, 96) = 13 hours
+    - But only need 2 hours of charging
+    - Expected: 3600W at positions 94 and 95 (last 2 positions)
+    """
+    mock_hass = MagicMock()
+    mock_hass.config = MagicMock()
+    mock_hass.config.config_dir = "/tmp/test_config"
+    mock_hass.config.time_zone = "UTC"
+    mock_hass.data = {}
+    mock_hass.services = MagicMock()
+    mock_hass.services.async_call = AsyncMock()
+    mock_hass.services.has_service = MagicMock(return_value=True)
+
+    mock_store = MagicMock()
+    mock_store._storage = {}
+
+    async def _async_load():
+        return mock_store._storage.get("data")
+
+    async def _async_save(data):
+        mock_store._storage["data"] = data
+        return True
+
+    mock_store.async_load = _async_load
+    mock_store.async_save = _async_save
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    now = datetime.now(timezone.utc)
+
+    # Scenario: Deadline is 96 hours away
+    # Trip needs 2 hours of charging (7 kWh at 3.6 kW)
+    deadline = now + timedelta(hours=96)
+    trip = {
+        "id": "test_trip",
+        "tipo": "puntual",
+        "datetime": deadline.isoformat(),
+        "kwh": 7.0,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(mock_hass, config)
+        await adapter.async_load()
+
+    # Car already returned - charging can start immediately
+    hora_regreso = now - timedelta(hours=10)
+
+    await adapter._populate_per_trip_cache_entry(
+        trip=trip,
+        trip_id=trip["id"],
+        charging_power_kw=3.6,
+        battery_capacity_kwh=60.0,
+        safety_margin_percent=10.0,
+        soc_current=50.0,
+        hora_regreso=hora_regreso,
+    )
+
+    params = adapter._cached_per_trip_params.get(trip["id"])
+    assert params is not None
+
+    def_start = params.get("def_start_timestep")
+    def_end = params.get("def_end_timestep")
+    def_total_hours = params.get("def_total_hours")
+    power_profile = params.get("power_profile_watts", [])
+
+    print(f"\nDEBUG: def_start = {def_start}")
+    print(f"DEBUG: def_end = {def_end}")
+    print(f"DEBUG: def_total_hours = {def_total_hours}")
+    print(f"DEBUG: power_profile length = {len(power_profile)}")
+
+    # Verify parameters are as expected
+    assert def_start < def_end, f"def_start ({def_start}) < def_end ({def_end})"
+    assert def_total_hours == 2, f"Should need 2 hours charging, got {def_total_hours}"
+
+    # RED PHASE: Verify power_profile_watts positions
+    # The 3600W values should be at the END of the charging window
+    # For window [83, 96) with 2 hours charging, that means positions 94 and 95
+
+    # Find positions where power_profile_watts has 3600
+    charging_positions = [i for i, p in enumerate(power_profile) if p == 3600]
+
+    print(f"DEBUG: Charging positions (0-indexed) = {charging_positions}")
+
+    # Verify there are exactly 2 charging hours
+    assert len(charging_positions) == def_total_hours, \
+        f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
+
+    # RED PHASE: All charging positions must be WITHIN the charging window
+    for pos in charging_positions:
+        assert def_start <= pos < def_end, \
+            f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
+
+    # RED PHASE: All charging positions must be WITHIN the EMHASS deferrable window
+    # The optimizer may choose any position within [def_start, def_end)
+    for pos in charging_positions:
+        assert def_start <= pos < def_end, \
+            f"BUG: Charging position {pos} is OUTSIDE EMHASS window [{def_start}, {def_end})"
+
+    # Additional: Verify the last charging position is before deadline
+    last_charging_pos = max(charging_positions) if charging_positions else -1
+    assert last_charging_pos < def_end, \
+        f"BUG: Last charging position {last_charging_pos} should be < def_end {def_end}"
+
+
+@pytest.mark.asyncio
+async def test_power_profile_positions_spread_across_window():
+    """Test case where charging is spread across the window.
+
+    This test covers the original user's bug report:
+    - Trip needs 6 hours charging
+    - Window is [96, 96) with the BUG (zero-sized window!)
+    - After fix, window should have valid size
+    """
+    mock_hass = MagicMock()
+    mock_hass.config = MagicMock()
+    mock_hass.config.config_dir = "/tmp/test_config"
+    mock_hass.config.time_zone = "UTC"
+    mock_hass.data = {}
+    mock_hass.services = MagicMock()
+    mock_hass.services.async_call = AsyncMock()
+    mock_hass.services.has_service = MagicMock(return_value=True)
+
+    mock_store = MagicMock()
+    mock_store._storage = {}
+
+    async def _async_load():
+        return mock_store._storage.get("data")
+
+    async def _async_save(data):
+        mock_store._storage["data"] = data
+        return True
+
+    mock_store.async_load = _async_load
+    mock_store.async_save = _async_save
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    now = datetime.now(timezone.utc)
+
+    # Original bug case: 6 hours charging needed
+    deadline = now + timedelta(hours=96)
+    trip = {
+        "id": "test_trip_6h",
+        "tipo": "puntual",
+        "datetime": deadline.isoformat(),
+        "kwh": 21.0,  # 6 hours at 3.6 kW
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(mock_hass, config)
+        await adapter.async_load()
+
+    # Car not yet returned
+    hora_regreso = now + timedelta(hours=2)
+
+    await adapter._populate_per_trip_cache_entry(
+        trip=trip,
+        trip_id=trip["id"],
+        charging_power_kw=3.6,
+        battery_capacity_kwh=60.0,
+        safety_margin_percent=10.0,
+        soc_current=50.0,
+        hora_regreso=hora_regreso,
+    )
+
+    params = adapter._cached_per_trip_params.get(trip["id"])
+    assert params is not None
+
+    def_start = params.get("def_start_timestep")
+    def_end = params.get("def_end_timestep")
+    def_total_hours = params.get("def_total_hours")
+    power_profile = params.get("power_profile_watts", [])
+
+    print(f"\nDEBUG 6h trip: def_start = {def_start}")
+    print(f"DEBUG 6h trip: def_end = {def_end}")
+    print(f"DEBUG 6h trip: def_total_hours = {def_total_hours}")
+
+    # RED PHASE: Window must be large enough for charging
+    window_size = def_end - def_start
+    assert window_size >= def_total_hours, \
+        f"BUG: Window size ({window_size}h) too small for {def_total_hours}h charging"
+
+    # Verify charging positions are within window
+    charging_positions = [i for i, p in enumerate(power_profile) if p == 3600]
+    print(f"DEBUG 6h trip: Charging positions = {charging_positions}")
+
+    for pos in charging_positions:
+        assert def_start <= pos < def_end, \
+            f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-xvs"])

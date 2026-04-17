@@ -375,10 +375,11 @@ class EMHASSAdapter:
                 safety_margin_percent=self._safety_margin_percent,
             )
 
-            # Extract inicio_ventana (datetime) and convert to timestep
+            # Extract inicio_ventana and fin_ventana (datetime) and convert to timesteps
             def_start_timestep = 0
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
+                fin_ventana = charging_windows[0].get("fin_ventana")
                 if inicio_ventana:
                     # Convert datetime to hours from now, clamped to 0-168 range
                     delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
@@ -388,6 +389,13 @@ class EMHASSAdapter:
             total_hours = kwh / self._charging_power_kw
             power_watts = self._charging_power_kw * 1000  # Convert to Watts
             end_timestep = min(int(hours_available), 168)  # Max 7 days
+
+            # BUG FIX: Use fin_ventana for end_timestep when available
+            # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
+            if charging_windows and charging_windows[0].get("fin_ventana"):
+                fin_ventana = charging_windows[0].get("fin_ventana")
+                delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
+                end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
             # Create attributes
             attributes = {
@@ -554,12 +562,23 @@ class EMHASSAdapter:
             )
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
+                fin_ventana = charging_windows[0].get("fin_ventana")
                 if inicio_ventana:
                     delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
                     def_start_timestep = max(0, min(int(delta_hours), 168))
 
         hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
+
+        # BUG FIX: Use fin_ventana for def_end_timestep when available
+        # This ensures the charging window [def_start, def_end] matches the actual
+        # charging window [inicio_ventana, fin_ventana] from calculations
+        # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
+        if pre_computed_inicio_ventana is None and "charging_windows" in locals() and charging_windows:
+            fin_ventana = charging_windows[0].get("fin_ventana")
+            if fin_ventana:
+                delta_hours_end = (_ensure_aware(fin_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+                def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
