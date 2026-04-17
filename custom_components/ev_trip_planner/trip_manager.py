@@ -609,17 +609,26 @@ class TripManager:
             self.vehicle_id,
             updates,
         )
+
+        # Filter updates to only keep fields relevant to the trip type
+        RECURRENT_RELEVANT_FIELDS = {"dia_semana", "hora", "km", "kwh", "descripcion", "activo", "tipo", "id"}
+        PUNCTUAL_RELEVANT_FIELDS = {"datetime", "km", "kwh", "descripcion", "activo", "tipo", "id"}
+
         # Get old trip data before update for comparison
         old_trip = None
         trip_type = None
         if trip_id in self._recurring_trips:
             old_trip = self._recurring_trips[trip_id].copy()
-            self._recurring_trips[trip_id].update(updates)
             trip_type = "recurring"
+            # Filter: only apply updates to fields relevant for recurring trips
+            filtered_updates = {k: v for k, v in updates.items() if k in RECURRENT_RELEVANT_FIELDS}
+            self._recurring_trips[trip_id].update(filtered_updates)
         elif trip_id in self._punctual_trips:
             old_trip = self._punctual_trips[trip_id].copy()
-            self._punctual_trips[trip_id].update(updates)
             trip_type = "punctual"
+            # Filter: only apply updates to fields relevant for punctual trips
+            filtered_updates = {k: v for k, v in updates.items() if k in PUNCTUAL_RELEVANT_FIELDS}
+            self._punctual_trips[trip_id].update(filtered_updates)
 
         if old_trip is None:
             _LOGGER.warning(
