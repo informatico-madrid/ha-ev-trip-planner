@@ -194,3 +194,79 @@ async def test_deferrables_schedule_loop_executes_power_assignment() -> None:
 
     schedule = await tm.async_generate_deferrables_schedule(charging_power_kw=3.6, planning_horizon_days=1)
     assert isinstance(schedule, list)
+
+
+@pytest.mark.asyncio
+async def test_async_update_trip_filters_fields_by_type() -> None:
+    """Punctual trip rejects dia_semana/hora, recurring rejects datetime."""
+    hass = MagicMock()
+    hass.config_entries = MagicMock()
+    hass.async_add_executor_job = AsyncMock(return_value=None)
+
+    tm = TripManager(hass, "veh")
+
+    # Add a punctual trip
+    await tm.async_add_punctual_trip(
+        trip_id="pun_test",
+        datetime_str="2026-04-20T14:00",
+        km=30.0,
+        kwh=10.0,
+    )
+
+    # Update punctual trip WITH dia_semana and hora - these should be FILTERED OUT
+    await tm.async_update_trip("pun_test", {
+        "km": 50.0,
+        "dia_semana": "3",  # Should be filtered - not relevant for punctual
+        "hora": "10:00",    # Should be filtered - not relevant for punctual
+    })
+
+    updated = tm._punctual_trips["pun_test"]
+    assert updated["km"] == 50.0
+    assert "dia_semana" not in updated  # Filtered out
+    assert "hora" not in updated        # Filtered out
+    assert updated["datetime"] == "2026-04-20T14:00"  # Original preserved
+
+    # Add a recurring trip
+    await tm.async_add_recurring_trip(
+        trip_id="rec_test",
+        dia_semana="2",
+        hora="09:00",
+        km=20.0,
+        kwh=8.0,
+    )
+
+    # Update recurring trip WITH datetime - should be FILTERED OUT
+    await tm.async_update_trip("rec_test", {
+        "km": 40.0,
+        "datetime": "2026-04-25T16:00",  # Should be filtered - not relevant for recurring
+    })
+
+    updated_rec = tm._recurring_trips["rec_test"]
+    assert updated_rec["km"] == 40.0
+    assert "datetime" not in updated_rec  # Filtered out
+    assert updated_rec["dia_semana"] == "2"   # Original preserved
+    assert updated_rec["hora"] == "09:00"       # Original preserved
+
+
+async def test_async_calcular_energia_necesaria_safety_margin_default() -> None:
+    """When safety_margin_percent is NOT in vehicle_config, defaults to 10%."""
+    hass = MagicMock()
+    hass.config_entries = MagicMock()
+
+    tm = TripManager(hass, "veh")
+
+    # vehicle_config WITHOUT safety_margin_percent key
+    vehicle_config = {
+        "battery_capacity_kwh": 50.0,
+        "charging_power_kw": 3.6,
+        "soc_current": 20.0,  # 10kWh in battery
+        # NO safety_margin_percent
+    }
+    trip = {"kwh": 10.0}  # Trip needs 10kWh
+
+    result = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+
+    # energia_objetivo = 10kWh, energia_actual = 10kWh -> raw = 0
+    # With default 10% margin on 0 = 0
+    assert result["margen_seguridad_aplicado"] == 10.0  # Default applied
+    assert result["energia_necesaria_kwh"] == 0.0
