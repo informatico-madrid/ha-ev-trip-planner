@@ -824,6 +824,12 @@ class EVTripPlannerPanel extends LitElement {
 
       if (DEBUG) console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
 
+      // Guard: Handle null/undefined response
+      if (!response) {
+        console.warn('EV Trip Planner Panel: Service returned null/undefined response');
+        return [];
+      }
+
       // Home Assistant services with SupportsResponse.ONLY wrap response in {response: {...}}
       // Extract actual data from the response wrapper
       let tripsData = response;
@@ -1042,7 +1048,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
     }
 
     try {
-      const trips = await this._getTripsList();
+      const trips = await this._getTripsList() || [];  // Guard: default to empty array if null
       if (DEBUG) console.log('EV Trip Planner Panel: Trips retrieved:', trips.length);
 
       // Update trips array
@@ -1057,6 +1063,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
     } catch (error) {
       console.error('EV Trip Planner Panel: Error fetching trips:', error);
       this._isLoading = false;
+      this._rendered = true;  // Stop polling even on error to prevent infinite loop
       this.requestUpdate();
     }
   }

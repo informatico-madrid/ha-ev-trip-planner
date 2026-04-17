@@ -392,7 +392,8 @@ class EMHASSAdapter:
 
             # BUG FIX: Use fin_ventana for end_timestep when available
             # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
-            if charging_windows and charging_windows[0].get("fin_ventana"):
+            # Guard: Check charging_windows is not empty before accessing [0]
+            if charging_windows and len(charging_windows) > 0 and charging_windows[0].get("fin_ventana"):
                 fin_ventana = charging_windows[0].get("fin_ventana")
                 delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
                 end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
@@ -574,11 +575,14 @@ class EMHASSAdapter:
         # This ensures the charging window [def_start, def_end] matches the actual
         # charging window [inicio_ventana, fin_ventana] from calculations
         # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
-        if pre_computed_inicio_ventana is None and "charging_windows" in locals() and charging_windows:
+        # Guard: Check charging_windows is not empty before accessing [0]
+        if pre_computed_inicio_ventana is None and "charging_windows" in locals() and charging_windows and len(charging_windows) > 0:
             fin_ventana = charging_windows[0].get("fin_ventana")
             if fin_ventana:
                 delta_hours_end = (_ensure_aware(fin_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
-                def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
+                # Guard: Skip if fin_ventana is in the past
+                if delta_hours_end > 0:
+                    def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
