@@ -195,11 +195,6 @@ class TripManager:
         await self.vehicle_controller.async_setup()
         await self._load_trips()
 
-        # Publish loaded trips to EMHASS if adapter is available
-        # This is critical after HA restart to ensure EMHASS sensors have data
-        if self._emhass_adapter is not None:
-            await self.publish_deferrable_loads()
-
     async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente.
 

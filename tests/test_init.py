@@ -1077,6 +1077,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager.vehicle_controller = mock_vehicle_controller
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         # Create mock coordinator
         mock_coordinator = MagicMock()
@@ -1141,6 +1142,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager = MagicMock()
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1210,6 +1212,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager = MagicMock()
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1326,6 +1329,7 @@ async def test_listener_activated_in_setup(mock_hass):
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.set_emhass_adapter = MagicMock()
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1406,6 +1410,7 @@ async def test_async_setup_entry_vehicle_name_none(mock_hass):
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.set_emhass_adapter = MagicMock()
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_config_entry_first_refresh = AsyncMock()

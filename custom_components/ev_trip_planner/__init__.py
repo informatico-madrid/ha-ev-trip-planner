@@ -125,6 +125,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         emhass_adapter.setup_config_entry_listener()
         trip_manager.set_emhass_adapter(emhass_adapter)
 
+        # Publish loaded trips to EMHASS after adapter is set
+        # This is critical after HA restart to ensure EMHASS sensors have data
+        await trip_manager.publish_deferrable_loads()
+
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
     try:
         await coordinator.async_config_entry_first_refresh()
