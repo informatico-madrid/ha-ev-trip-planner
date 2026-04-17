@@ -287,12 +287,45 @@ class TestCalculateEnergyNeeded:
         result = calculate_energy_needed(
             trip={"km": 100.0},
             battery_capacity_kwh=50.0,
-            soc_current=50.0,
+            soc_current=20.0,  # 20% SOC = 10kWh, viaje necesita 15kWh → necesita 5kWh
             charging_power_kw=7.4,
         )
         # 100km * 0.15 = 15kWh needed
-        # At 50% SOC: 25kWh in battery, need 15+20=35kWh target, 35-25=10kWh needed
-        assert result["energia_necesaria_kwh"] > 0
+        # At 20% SOC: 10kWh in battery, energia_objetivo = 15kWh
+        # energia_necesaria raw = max(0, 15 - 10) = 5kWh
+        # With default safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
+        assert result["energia_necesaria_kwh"] == 5.5
+        assert result["margen_seguridad_aplicado"] == 10.0
+
+    def test_energy_needed_safety_margin_zero(self):
+        """With safety_margin=0, energia_necesaria is raw energy."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=50.0,  # 50% SOC = 25kWh, viaje = 10kWh → necesita 0 (already enough)
+            charging_power_kw=7.4,
+            safety_margin_percent=0.0,
+        )
+        # energia_objetivo = 10kWh, energia_actual = 25kWh → max(0, 10-25) = 0
+        assert result["energia_necesaria_kwh"] == 0.0
+        assert result["margen_seguridad_aplicado"] == 0.0
+
+    def test_energy_needed_safety_margin_applied(self):
+        """Safety margin is applied to energia_necesaria."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=0.0,  # 0% SOC = 0kWh, viaje = 10kWh → necesita 10kWh raw
+            charging_power_kw=7.4,
+            safety_margin_percent=20.0,
+        )
+        # energia_necesaria raw = 10kWh, with 20% margin = 12kWh
+        assert result["energia_necesaria_kwh"] == 12.0
+        assert result["margen_seguridad_aplicado"] == 20.0
+        # horas_carga = 12 / 7.4 = 1.62 → rounds to 1.62
+        assert result["horas_carga_necesarias"] == round(12.0 / 7.4, 2)
 
 
 class TestCalculateChargingWindowPure:
@@ -405,6 +438,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=None,  # No return time
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         # Window: departure - 6h (12:00) to departure + 6h (midnight) = 12h
@@ -422,6 +456,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=datetime(2026, 4, 6, 10, 0),
             charging_power_kw=0.0,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         assert result[0]["horas_carga_necesarias"] == 0.0
@@ -430,7 +465,8 @@ class TestCalculateMultiTripChargingWindows:
         """Empty trip list returns empty list."""
         from custom_components.ev_trip_planner.calculations import calculate_multi_trip_charging_windows
         result = calculate_multi_trip_charging_windows(
-            trips=[], soc_actual=50.0, hora_regreso=None, charging_power_kw=7.4
+            trips=[], soc_actual=50.0, hora_regreso=None, charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert result == []
 
@@ -445,6 +481,7 @@ class TestCalculateMultiTripChargingWindows:
             soc_actual=50.0,
             hora_regreso=datetime(2026, 4, 6, 10, 0),
             charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
         # Window: hora_regreso (10am) to trip_arrival (departure + 6h = midnight) = 14 hours
@@ -469,6 +506,7 @@ class TestCalculateMultiTripChargingWindows:
             hora_regreso=datetime(2026, 4, 6, 7, 0),
             charging_power_kw=7.4,
             return_buffer_hours=0.0,
+            battery_capacity_kwh=50.0,
         )
         # First window: 7am to trip1_arrival (8am + 6h = 2pm = 14:00) = 7 hours
         assert result[0]["ventana_horas"] == 7.0
@@ -781,6 +819,30 @@ class TestCalculatePowerProfile:
         non_zero = [v for v in result if v > 0]
         if non_zero:
             assert all(v == 7400.0 for v in non_zero)
+
+    def test_insufficient_window_skips_trip(self):
+        """Trip with window too short (es_suficiente=False) is skipped. Covers line 910."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+
+        # Trip: departs 18:00, needs ~1.35h to charge, but window is only 1 hour (17:00-18:00)
+        # ventana_horas=1 < horas_carga_necesarias=1.35 -> es_suficiente=False -> skip at line 910
+        trips = [{
+            "id": "trip1",
+            "tipo": "puntual",
+            "datetime": "2026-04-06T18:00",
+            "kwh": 10.0,
+        }]
+        result = calculate_power_profile(
+            all_trips=trips,
+            battery_capacity_kwh=50.0,
+            soc_current=0.0,  # Empty battery -> needs full 10kWh
+            charging_power_kw=7.4,
+            hora_regreso=datetime(2026, 4, 6, 17, 0),  # Return 17:00, window = 1 hour
+            planning_horizon_days=1,
+            reference_dt=datetime(2026, 4, 6, 10, 0),
+        )
+        # Trip should be skipped due to insufficient window -> all zeros
+        assert all(v == 0.0 for v in result), "Trip with insufficient window should produce all zeros"
 
 
 class TestGenerateDeferrableScheduleFromTrips:

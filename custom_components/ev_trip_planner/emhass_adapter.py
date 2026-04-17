@@ -20,12 +20,14 @@ from .calculations import (
     generate_deferrable_schedule_from_trips,
 )
 from .const import (
+    CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
     CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
     CONF_VEHICLE_NAME,
     DEFAULT_INDEX_COOLDOWN_HOURS,
+    DEFAULT_SAFETY_MARGIN,
     DOMAIN,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
@@ -107,6 +109,8 @@ class EMHASSAdapter:
 
         # FR-3.1: Store charging power for reactive updates
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
+        self._battery_capacity_kwh: float = entry_data.get(CONF_BATTERY_CAPACITY, 50.0)
+        self._safety_margin_percent: float = entry_data.get("safety_margin_percent", DEFAULT_SAFETY_MARGIN)
 
         # Presence monitor helper for _get_hora_regreso
         # Note: EMHASSAdapter doesn't have its own presence_monitor
@@ -366,7 +370,9 @@ class EMHASSAdapter:
                 soc_actual=soc_current,
                 hora_regreso=hora_regreso,
                 charging_power_kw=self._charging_power_kw,
+                battery_capacity_kwh=self._battery_capacity_kwh,
                 duration_hours=6.0,
+                safety_margin_percent=self._safety_margin_percent,
             )
 
             # Extract inicio_ventana (datetime) and convert to timestep
@@ -492,6 +498,8 @@ class EMHASSAdapter:
         trip: dict[str, Any],
         trip_id: str,
         charging_power_kw: float,
+        battery_capacity_kwh: float,
+        safety_margin_percent: float,
         soc_current: float,
         hora_regreso: Optional[datetime],
         pre_computed_inicio_ventana: Optional[datetime] = None,
@@ -506,6 +514,8 @@ class EMHASSAdapter:
             trip: Trip dictionary.
             trip_id: Trip ID.
             charging_power_kw: Charging power in kW.
+            battery_capacity_kwh: Battery capacity in kWh.
+            safety_margin_percent: Safety margin percentage.
             soc_current: Current SOC percentage (or fallback 50.0).
             hora_regreso: Return time from presence_monitor or None.
             pre_computed_inicio_ventana: Pre-computed inicio_ventana from batch calculation.
@@ -538,7 +548,9 @@ class EMHASSAdapter:
                 soc_actual=soc_current,
                 hora_regreso=hora_regreso,
                 charging_power_kw=charging_power_kw,
+                battery_capacity_kwh=battery_capacity_kwh,
                 duration_hours=6.0,
+                safety_margin_percent=safety_margin_percent,
             )
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
@@ -699,7 +711,9 @@ class EMHASSAdapter:
                 soc_actual=soc_current,
                 hora_regreso=hora_regreso,
                 charging_power_kw=charging_power_kw,
+                battery_capacity_kwh=self._battery_capacity_kwh,
                 return_buffer_hours=RETURN_BUFFER_HOURS,
+                safety_margin_percent=self._safety_margin_percent,
             )
             for i, (trip_id, _, _) in enumerate(trip_deadlines):
                 if i < len(windows):
@@ -719,7 +733,8 @@ class EMHASSAdapter:
             batch_window = batch_charging_windows.get(trip_id)
             pre_computed = batch_window.get("inicio_ventana") if batch_window else None
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, soc_current, hora_regreso,
+                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
+                self._safety_margin_percent, soc_current, hora_regreso,
                 pre_computed_inicio_ventana=pre_computed,
             )
 
@@ -937,7 +952,8 @@ class EMHASSAdapter:
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, soc_current, hora_regreso
+                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
+                self._safety_margin_percent, soc_current, hora_regreso
             )
 
         # Update the template sensor

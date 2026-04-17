@@ -14,7 +14,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .const import DEFAULT_SOC_BUFFER_PERCENT
+from .const import DEFAULT_SAFETY_MARGIN, DEFAULT_SOC_BUFFER_PERCENT
 from .utils import calcular_energia_kwh
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,6 +202,7 @@ def calculate_energy_needed(
     soc_current: float,
     charging_power_kw: float,
     consumption_kwh_per_km: float = 0.15,
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> Dict[str, Any]:
     """Calculates energy needed for a trip considering current SOC.
 
@@ -214,13 +215,15 @@ def calculate_energy_needed(
         soc_current: Current SOC in percentage (0-100)
         charging_power_kw: Charging power in kW
         consumption_kwh_per_km: Energy consumption in kWh/km (default 0.15)
+        safety_margin_percent: Safety margin percentage (default from const)
 
     Returns:
         Dictionary with:
-            - energia_necesaria_kwh: Energy to charge in kWh
+            - energia_necesaria_kwh: Energy to charge in kWh (includes safety margin)
             - horas_carga_necesarias: Hours needed to charge
             - alerta_tiempo_insuficiente: Always False (no datetime check)
             - horas_disponibles: Always 0.0 (no datetime check)
+            - margen_seguridad_aplicado: The safety margin % used
     """
     # Calcular energía del viaje
     if "kwh" in trip:
@@ -229,24 +232,29 @@ def calculate_energy_needed(
         distance_km = trip.get("km", 0.0)
         energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-    # Energía objetivo: energía del viaje + 40% de la batería (margen)
-    energia_objetivo = energia_viaje + (battery_capacity_kwh * 0.4)
+    # Energía objetivo: energía del viaje
+    energia_objetivo = energia_viaje
 
     # Energía actual en batería
     energia_actual = (soc_current / 100.0) * battery_capacity_kwh
 
-    # Energía necesaria
+    # Energía necesaria (bruta, sin margen)
     energia_necesaria = max(0.0, energia_objetivo - energia_actual)
+
+    # Apply safety margin
+    energia_final = energia_necesaria * (1 + safety_margin_percent / 100)
+
     if charging_power_kw > 0:
-        horas_carga = energia_necesaria / charging_power_kw
+        horas_carga = energia_final / charging_power_kw
     else:
         horas_carga = 0
 
     return {
-        "energia_necesaria_kwh": round(energia_necesaria, 3),
+        "energia_necesaria_kwh": round(energia_final, 3),
         "horas_carga_necesarias": round(horas_carga, 2),
         "alerta_tiempo_insuficiente": False,
         "horas_disponibles": 0.0,
+        "margen_seguridad_aplicado": safety_margin_percent,
     }
 
 
@@ -341,8 +349,10 @@ def calculate_multi_trip_charging_windows(
     soc_actual: float,
     hora_regreso: Optional[datetime],
     charging_power_kw: float,
+    battery_capacity_kwh: float,
     duration_hours: float = 6.0,
     return_buffer_hours: float = 4.0,
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> List[Dict[str, Any]]:
     """Calculate charging windows for multiple chained trips.
 
@@ -354,8 +364,10 @@ def calculate_multi_trip_charging_windows(
         soc_actual: Current SOC percentage
         hora_regreso: Return time for the first trip
         charging_power_kw: Charging power in kW
+        battery_capacity_kwh: Battery capacity in kWh
         duration_hours: Duration of each trip in hours (how long car is away)
         return_buffer_hours: Gap in hours between when a trip ends and the next trip begins
+        safety_margin_percent: Safety margin percentage for energy calculations
 
     Returns:
         List of charging window dicts (one per trip).
@@ -398,9 +410,9 @@ def calculate_multi_trip_charging_windows(
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
         # Calculate energy needed
-        battery_capacity_kwh = 50.0  # Will be overridden by caller
         energia_info = calculate_energy_needed(
-            trip, battery_capacity_kwh, soc_actual, charging_power_kw
+            trip, battery_capacity_kwh, soc_actual, charging_power_kw,
+            safety_margin_percent=safety_margin_percent,
         )
         kwh_necesarios = energia_info["energia_necesaria_kwh"]
 
@@ -830,6 +842,7 @@ def calculate_power_profile(
     hora_regreso: Optional[datetime],
     planning_horizon_days: int,
     reference_dt: datetime,
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> List[float]:
     """Calculate power profile for EMHASS from trip list.
 
@@ -847,6 +860,7 @@ def calculate_power_profile(
         hora_regreso: Return time (start of first charging window)
         planning_horizon_days: Number of days in the profile
         reference_dt: Reference datetime for computing relative positions
+        safety_margin_percent: Safety margin percentage for energy calculations
 
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
@@ -889,7 +903,8 @@ def calculate_power_profile(
     for trip_departure_time, _, trip in trips_with_deadlines:
         # Calculate energy needed
         energia_info = calculate_energy_needed(
-            trip, battery_capacity_kwh, soc_current, charging_power_kw
+            trip, battery_capacity_kwh, soc_current, charging_power_kw,
+            safety_margin_percent=safety_margin_percent,
         )
         energia_kwh = energia_info["energia_necesaria_kwh"]
 

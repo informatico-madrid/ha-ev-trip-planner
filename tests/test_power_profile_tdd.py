@@ -26,7 +26,7 @@ class TestCalcularEnergiaNecesaria:
     async def test_calcular_energia_necesaria_soc_alto(self, hass):
         """Test: SOC alto (80%), no necesita carga."""
         # Datos de prueba
-        trip = {"kwh": 15.0}  # Viaje necesita 30% = 15kWh
+        trip = {"kwh": 15.0}  # Viaje necesita 15kWh
         vehicle_config = {
             "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
@@ -36,10 +36,10 @@ class TestCalcularEnergiaNecesaria:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado
-        # energia_objetivo = 15 + 20 = 35kWh
+        # Resultado esperado (sin buffer hardcodeado)
+        # energia_objetivo = 15kWh (solo energía del viaje)
         # energia_actual = 40kWh
-        # energia_necesaria = max(0, 35 - 40) = 0kWh
+        # energia_necesaria = max(0, 15 - 40) = 0kWh
         # horas_carga = 0 / 3.6 = 0h
         
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
@@ -49,9 +49,9 @@ class TestCalcularEnergiaNecesaria:
         assert resultado["alerta_tiempo_insuficiente"] is False
     
     async def test_calcular_energia_necesaria_soc_medio(self, hass):
-        """Test: SOC medio (40%), necesita carga parcial."""
+        """Test: SOC medio (40%), no necesita carga (energía suficiente)."""
         # Datos de prueba
-        trip = {"kwh": 15.0}  # Viaje necesita 30% = 15kWh
+        trip = {"kwh": 15.0}  # Viaje necesita 15kWh
         vehicle_config = {
             "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
@@ -61,22 +61,22 @@ class TestCalcularEnergiaNecesaria:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado
-        # energia_objetivo = 15 + 20 = 35kWh
+        # Resultado esperado (sin buffer hardcodeado)
+        # energia_objetivo = 15kWh (solo energía del viaje)
         # energia_actual = 20kWh
-        # energia_necesaria = 35 - 20 = 15kWh
-        # horas_carga = 15 / 3.6 = 4.17h
+        # energia_necesaria = max(0, 15 - 20) = 0kWh
+        # horas_carga = 0 / 3.6 = 0h
         
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
         
-        assert resultado["energia_necesaria_kwh"] == 15.0
-        assert resultado["horas_carga_necesarias"] == 4.17
+        assert resultado["energia_necesaria_kwh"] == 0.0
+        assert resultado["horas_carga_necesarias"] == 0.0
         assert resultado["alerta_tiempo_insuficiente"] is False
     
     async def test_calcular_energia_necesaria_soc_bajo(self, hass):
-        """Test: SOC bajo (20%), necesita carga completa."""
+        """Test: SOC bajo (20%), necesita carga parcial."""
         # Datos de prueba
-        trip = {"kwh": 15.0}  # Viaje necesita 30% = 15kWh
+        trip = {"kwh": 15.0}  # Viaje necesita 15kWh
         vehicle_config = {
             "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
@@ -86,16 +86,17 @@ class TestCalcularEnergiaNecesaria:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado
-        # energia_objetivo = 15 + 20 = 35kWh
+        # Resultado esperado (con safety_margin=10% por defecto)
+        # energia_objetivo = 15kWh (solo energía del viaje)
         # energia_actual = 10kWh
-        # energia_necesaria = 35 - 10 = 25kWh
-        # horas_carga = 25 / 3.6 = 6.94h
-        
+        # energia_necesaria raw = max(0, 15 - 10) = 5kWh
+        # With safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
+        # horas_carga = 5.5 / 3.6 = 1.53h
+
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
-        
-        assert resultado["energia_necesaria_kwh"] == 25.0
-        assert resultado["horas_carga_necesarias"] == 6.94
+
+        assert resultado["energia_necesaria_kwh"] == 5.5
+        assert resultado["horas_carga_necesarias"] == round(5.5 / 3.6, 2)
         assert resultado["alerta_tiempo_insuficiente"] is False
     
     async def test_calcular_energia_necesaria_tiempo_insuficiente(self, hass):
@@ -103,30 +104,31 @@ class TestCalcularEnergiaNecesaria:
         # Datos de prueba
         deadline = dt_util.now() + timedelta(hours=5)  # Solo 5h disponibles
         trip = {
-            "kwh": 30.0,  # Viaje grande: 60% = 30kWh
+            "kwh": 30.0,  # Viaje grande: 30kWh
             "datetime": deadline
         }
         vehicle_config = {
             "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
-            "soc_current": 20.0  # Necesita 45kWh = 12.5h
+            "soc_current": 20.0  # 20% = 10kWh
         }
         
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
         
-        # Resultado esperado
-        # energia_objetivo = 30 + 20 = 50kWh
+        # Resultado esperado (con safety_margin=10% por defecto)
+        # energia_objetivo = 30kWh (solo energía del viaje)
         # energia_actual = 10kWh
-        # energia_necesaria = 40kWh
-        # horas_carga = 40 / 3.6 = 11.11h
+        # energia_necesaria raw = max(0, 30 - 10) = 20kWh
+        # With safety_margin=10%: energia_final = 20 * 1.10 = 22kWh
+        # horas_carga = 22 / 3.6 = 6.11h
         # horas_disponibles = 5h
-        # alerta = True
-        
+        # alerta = True (6.11 > 5)
+
         resultado = await trip_manager.async_calcular_energia_necesaria(trip, vehicle_config)
-        
-        assert resultado["energia_necesaria_kwh"] == 40.0
-        assert resultado["horas_carga_necesarias"] == 11.11
+
+        assert resultado["energia_necesaria_kwh"] == 22.0
+        assert resultado["horas_carga_necesarias"] == round(22.0 / 3.6, 2)
         assert resultado["alerta_tiempo_insuficiente"] is True
         assert resultado["horas_disponibles"] == 5.0
 

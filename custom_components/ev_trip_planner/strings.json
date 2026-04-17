@@ -41,7 +41,7 @@
         "data_description": {
           "consumption": "Average energy consumption per km (e.g., 0.15 for 15 kWh/100km). Higher values = more energy needed. Example: 0.15",
           "safety_margin": "Extra battery percentage to keep as buffer (e.g., 10 = always keep 10% charge). Prevents running out of battery. Example: 10",
-          "safety_margin_percent": "Extra battery percentage to keep as buffer (e.g., 10 = always keep 10% charge). Prevents running out of battery. Example: 10",
+          "safety_margin_percent": "Percentage buffer applied to the energy deficit (not arrival reserve). Example: 10% on a 10kWh deficit adds 1kWh extra buffer.",
           "control_type": "How should charging be controlled? 'Notifications Only (no control)' means no automatic control, just alerts."
         }
       },

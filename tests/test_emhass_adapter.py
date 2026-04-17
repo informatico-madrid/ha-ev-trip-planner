@@ -1048,6 +1048,8 @@ async def test_recurring_trip_cache_builder_integration(mock_store, hass):
                 trip=recurring_trip,
                 trip_id="rec_lunes_001",
                 charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
                 soc_current=50.0,
                 hora_regreso=None,
             )

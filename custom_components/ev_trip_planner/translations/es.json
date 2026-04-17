@@ -46,7 +46,7 @@
         "data_description": {
           "consumption": "Consumo medio de energía por km (ej: 0.15 para 15 kWh/100km). Valores más altos = más energía necesaria. Ejemplo: 0.15",
           "safety_margin": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Evita quedarse sin batería. Ejemplo: 10",
-          "safety_margin_percent": "Porcentaje extra de batería a mantener como reserva (ej: 10 = mantener siempre 10% de carga). Evita quedarse sin batería. Ejemplo: 10",
+          "safety_margin_percent": "Margen aplicado al déficit de carga (no a la reserva de llegada). Ejemplo: 10% sobre un déficit de 10kWh añade 1kWh extra de buffer.",
           "control_type": "Notificaciones Only - Solo avisar cuando sea necesario"
         }
       },

@@ -47,7 +47,7 @@
 
 ### ✅ Milestone 4 - Perfil de Carga Inteligente (COMPLETADO)
 - **📊 Perfil de Carga Binario**: 0W o máxima potencia, distribuido inteligentemente
-- **🔋 Cálculo SOC-Aware**: Considera batería actual y margen de seguridad del 40%
+- **🔋 Cálculo SOC-Aware**: Considera batería actual y margen de seguridad configurable
 - **⚠️ Alertas de Tiempo**: Notifica si no hay tiempo suficiente para cargar
 - **📈 Sensor de Perfil**: Perfil de potencia con 168 horas de planificación
 - **🧠 Optimización Inteligente**: Distribuye carga justo antes de cada viaje

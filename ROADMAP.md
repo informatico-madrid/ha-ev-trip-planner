@@ -56,7 +56,7 @@
 
 ### Milestone 4: Perfil de Carga Inteligente (Mar 18, 2026 — v0.4.0-dev)
 - Perfil de carga binario: array de 168 valores (24h × 7d), 0W o máxima potencia
-- Cálculo SOC-aware con margen de seguridad del 40%
+- Cálculo SOC-aware con margen de seguridad configurable
 - Sensor `emhass_perfil_diferible_{vehicle_id}` con atributo `power_profile_watts`
 - Distribución de carga justo antes de cada viaje
 - Alertas de tiempo insuficiente
