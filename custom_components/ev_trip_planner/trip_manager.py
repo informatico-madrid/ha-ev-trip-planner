@@ -1265,8 +1265,8 @@ class TripManager:
             distance_km = trip.get("km", 0.0)
             energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-        # Energía objetivo: energía del viaje + 40% de la batería (margen)
-        energia_objetivo = energia_viaje + (battery_capacity * 0.4)
+        # Energía objetivo: energía del viaje (el margen de seguridad lo gestiona safety_margin_percent)
+        energia_objetivo = energia_viaje
 
         # Energía actual en batería
         energia_actual = (soc_current / 100.0) * battery_capacity
@@ -1944,8 +1944,6 @@ class TripManager:
 
             # Determinar las horas de carga necesarias
             horas_necesarias = int(horas_carga) + (1 if horas_carga % 1 > 0 else 0)
-            if horas_necesarias == 0:  # pragma: no cover  # HA time I/O - defensive minimum when charging hours are very small
-                horas_necesarias = 1  # pragma: no cover  # HA time I/O - minimum 1 hour charging requirement
 
             # Obtener deadline del viaje
             trip_time = self._get_trip_time(trip)
@@ -1956,16 +1954,16 @@ class TripManager:
             delta = trip_time - now
             horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
-            if horas_hasta_viaje < 0:  # pragma: no cover  # HA time I/O - past trips are filtered out by time calculation
-                continue  # pragma: no cover  # HA time I/O - skip past trips
+            if horas_hasta_viaje < 0:
+                continue
 
             # Determinar horas de carga: las últimas horas antes del deadline
             hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
 
             # Distribuir la carga en las horas disponibles
+            # hora_inicio_carga ya es >= 0 por max(0, ...), y range usa min(..., profile_length)
             for h in range(int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)):
-                if h >= 0 and h < profile_length:
-                    power_profiles[idx][h] = charging_power_watts
+                power_profiles[idx][h] = charging_power_watts
 
         # Generar calendario con múltiples índices de carga diferible
         schedule = []

@@ -2444,9 +2444,8 @@ class TestHandleTripUpdatePunctualBranch:
 class TestHandleTripUpdatePunctualDatetime:
     """TDD: Test that datetime field is passed correctly for puntual trip updates.
 
-    This test SHOULD FAIL until the bug is fixed.
-    The bug: frontend sends 'datetime' field, but it may not be properly
-    mapped or passed to async_update_trip.
+    This test verifies the fix for the bug where datetime updates were not
+    being persisted when editing puntual trips.
     """
 
     @pytest.mark.asyncio
@@ -2461,8 +2460,10 @@ class TestHandleTripUpdatePunctualDatetime:
         mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
         mock_mgr = MagicMock()
         mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh_trips = AsyncMock()
         mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=MagicMock(),
+            coordinator=mock_coordinator,
             trip_manager=mock_mgr,
             emhass_adapter=MagicMock(),
         )
@@ -2482,6 +2483,9 @@ class TestHandleTripUpdatePunctualDatetime:
         with patch(
             "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
             new_callable=AsyncMock,
+        ), patch(
+            "custom_components.ev_trip_planner.services._get_coordinator",
+            return_value=mock_coordinator,
         ):
             await handler(call)
 

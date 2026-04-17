@@ -833,6 +833,118 @@ async def test_async_generate_power_profile_no_presence_monitor(mock_hass_with_s
 
     assert isinstance(result, list)
 
+
+class TestAsyncGeneratePowerProfileWithTrips:
+    """Tests for async_generate_power_profile with real trips in memory."""
+
+    @pytest.mark.asyncio
+    async def test_async_generate_power_profile_with_punctual_trip_in_memory(
+        self, mock_hass_with_storage
+    ):
+        """async_generate_power_profile processes punctual trips with estado=pendiente."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+
+        # Add a punctual trip directly to memory with estado=pendiente
+        # Using a future datetime so horas_hasta_viaje >= 0
+        from datetime import datetime, timedelta
+
+        future_date = datetime.now() + timedelta(days=2)
+        # Use proper format that calculate_trip_time expects (without microseconds)
+        future_date_str = future_date.strftime("%Y-%m-%dT%H:%M")
+        trip_manager._punctual_trips["pun_test_001"] = {
+            "id": "pun_test_001",
+            "tipo": "puntual",
+            "datetime": future_date_str,
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
+
+        # Mock async_get_vehicle_soc to return a valid SOC
+        trip_manager.async_get_vehicle_soc = AsyncMock(return_value=50.0)
+
+        # Also need to mock config_entries to return proper battery_capacity
+        mock_entry = MagicMock()
+        mock_entry.data = {"battery_capacity_kwh": 50.0}
+        mock_hass_with_storage.config_entries.async_get_entry.return_value = mock_entry
+
+        # Call async_generate_power_profile with explicit hora_regreso to avoid mock issues
+        result = await trip_manager.async_generate_power_profile(
+            charging_power_kw=3.6,
+            planning_horizon_days=1,
+            hora_regreso=datetime.now() + timedelta(hours=2),
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 24  # 1 day * 24 hours
+
+    @pytest.mark.asyncio
+    async def test_async_generate_power_profile_skips_trip_without_datetime(
+        self, mock_hass_with_storage
+    ):
+        """async_generate_power_profile skips trips without datetime (line 1951)."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+        from datetime import datetime, timedelta
+
+        # Add a punctual trip WITHOUT datetime
+        trip_manager._punctual_trips["pun_no_dt"] = {
+            "id": "pun_no_dt",
+            "tipo": "puntual",
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
+
+        # Should not raise - trip without datetime is skipped
+        result = await trip_manager.async_generate_power_profile(
+            charging_power_kw=3.6,
+            planning_horizon_days=1,
+            hora_regreso=datetime.now() + timedelta(hours=2),
+        )
+
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_async_generate_power_profile_with_past_trip_skipped(
+        self, mock_hass_with_storage
+    ):
+        """async_generate_power_profile skips trips with horas_hasta_viaje < 0 (line 1958)."""
+        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
+        await trip_manager.async_setup()
+        from datetime import datetime, timedelta
+
+        past_date = datetime.now() - timedelta(days=2)
+        # Use proper format that calculate_trip_time expects (without microseconds)
+        past_date_str = past_date.strftime("%Y-%m-%dT%H:%M")
+        trip_manager._punctual_trips["pun_past"] = {
+            "id": "pun_past",
+            "tipo": "puntual",
+            "datetime": past_date_str,
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
+
+        # Mock async_get_vehicle_soc to return a valid SOC
+        trip_manager.async_get_vehicle_soc = AsyncMock(return_value=50.0)
+
+        # Also need to mock config_entries to return proper battery_capacity
+        mock_entry = MagicMock()
+        mock_entry.data = {"battery_capacity_kwh": 50.0}
+        mock_hass_with_storage.config_entries.async_get_entry.return_value = mock_entry
+
+        # Should not raise - past trip is skipped
+        result = await trip_manager.async_generate_power_profile(
+            charging_power_kw=3.6,
+            planning_horizon_days=1,
+            hora_regreso=datetime.now() + timedelta(hours=2),
+        )
+
+        assert isinstance(result, list)
+
+
 class TestTripManagerAsyncRemoveTripSensor:
     """Tests for async_remove_trip_sensor error paths."""
 

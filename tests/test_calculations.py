@@ -783,6 +783,30 @@ class TestCalculatePowerProfile:
         if non_zero:
             assert all(v == 7400.0 for v in non_zero)
 
+    def test_insufficient_window_skips_trip(self):
+        """Trip with window too short (es_suficiente=False) is skipped. Covers line 910."""
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+
+        # Trip: departs 18:00, needs ~1.35h to charge, but window is only 1 hour (17:00-18:00)
+        # ventana_horas=1 < horas_carga_necesarias=1.35 -> es_suficiente=False -> skip at line 910
+        trips = [{
+            "id": "trip1",
+            "tipo": "puntual",
+            "datetime": "2026-04-06T18:00",
+            "kwh": 10.0,
+        }]
+        result = calculate_power_profile(
+            all_trips=trips,
+            battery_capacity_kwh=50.0,
+            soc_current=0.0,  # Empty battery -> needs full 10kWh
+            charging_power_kw=7.4,
+            hora_regreso=datetime(2026, 4, 6, 17, 0),  # Return 17:00, window = 1 hour
+            planning_horizon_days=1,
+            reference_dt=datetime(2026, 4, 6, 10, 0),
+        )
+        # Trip should be skipped due to insufficient window -> all zeros
+        assert all(v == 0.0 for v in result), "Trip with insufficient window should produce all zeros"
+
 
 class TestGenerateDeferrableScheduleFromTrips:
     """Tests for generate_deferrable_schedule_from_trips."""
