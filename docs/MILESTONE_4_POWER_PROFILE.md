@@ -37,35 +37,30 @@ async def async_calcular_energia_necesaria(
 **Lógica de Cálculo**:
 1. **Obtiene SOC actual** del vehículo desde sensor configurado
 2. **Calcula energía actual** en batería: `energia_actual_kwh = (soc_actual / 100) * capacidad_bateria_kwh`
-3. **Calcula energía post-viaje**: `energia_despues_viaje = energia_actual_kwh - energia_necesaria_viaje_kwh`
-4. **Aplica margen de seguridad**: `energia_minima_requerida = capacidad_bateria_kwh * 0.40` (40% SOC mínimo)
-5. **Determina energía necesaria**: `energia_necesaria_kwh = max(0, energia_minima_requerida - energia_despues_viaje)`
-6. **Calcula horas de carga**: `horas_carga_necesarias = energia_necesaria_kwh / potencia_carga_kw`
+3. **Calcula energía del viaje**: `energia_viaje` (directa de `kwh` o de `km * consumo`)
+4. **Calcula energía necesaria (bruta)**: `energia_necesaria = max(0, energia_viaje - energia_actual)`
+5. **Aplica margen de seguridad**: `energia_final = energia_necesaria * (1 + safety_margin_percent / 100)`
+   - `safety_margin_percent` es configurable (0-50%, default 10%)
+   - Se aplica al déficit de carga, no a la reserva de llegada
+6. **Calcula horas de carga**: `horas_carga = energia_final / potencia_carga_kw`
 
 **Retorna**:
 ```python
 {
-    "energia_necesaria_kwh": float,        # kWh que se deben cargar
+    "energia_necesaria_kwh": float,        # kWh a cargar (incluye margen)
     "horas_carga_necesarias": float,       # Horas necesarias para cargar
     "alerta_tiempo_insuficiente": bool,    # True si no hay tiempo suficiente
     "horas_disponibles": float,            # Horas hasta el viaje
-    "detalles": {
-        "soc_actual": float,               # SOC actual (%)
-        "energia_actual_kwh": float,       # Energía actual en batería
-        "energia_despues_viaje_kwh": float,# Energía estimada post-viaje
-        "energia_minima_requerida_kwh": float, # Energía mínima (40% SOC)
-        "potencia_carga_kw": float         # Potencia de carga configurada
-    }
+    "margen_seguridad_aplicado": float,    # Porcentaje de margen usado
 }
 ```
 
-**Ejemplo con Chispitas**:
+**Ejemplo con Chispitas** (safety_margin=10%):
 - SOC actual: 49% → 19.6 kWh disponibles
 - Viaje: 50 km → 7.5 kWh necesarios
-- Post-viaje: 12.1 kWh → 30.25% SOC
-- Margen mínimo: 40% → 16.0 kWh requeridos
-- **Energía necesaria**: 3.9 kWh (para llegar a 16.0 kWh)
-- **Horas de carga**: 0.53 horas (32 minutos) a 7.4 kW
+- Energía needed raw: `max(0, 7.5 - 19.6) = 0` → 0 kWh (ya tiene suficiente)
+- **Con margen 10%**: sigue siendo 0 kWh
+- **Horas de carga**: 0 horas
 
 ---
 
