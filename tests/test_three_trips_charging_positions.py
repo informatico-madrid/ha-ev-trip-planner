@@ -21,7 +21,9 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
-async def test_three_trips_puntual_and_recurring_charging_positions():
+async def test_three_trips_puntual_and_recurring_charging_positions(
+    mock_hass, mock_store
+):
     """RED phase: Verifies charging positions for 3 trips (mixed types).
 
     Original bug case from user:
@@ -31,28 +33,6 @@ async def test_three_trips_puntual_and_recurring_charging_positions():
 
     After fix: All charging positions should be within their windows.
     """
-    mock_hass = MagicMock()
-    mock_hass.config = MagicMock()
-    mock_hass.config.config_dir = "/tmp/test_config"
-    mock_hass.config.time_zone = "UTC"
-    mock_hass.data = {}
-    mock_hass.services = MagicMock()
-    mock_hass.services.async_call = AsyncMock()
-    mock_hass.services.has_service = MagicMock(return_value=True)
-
-    mock_store = MagicMock()
-    mock_store._storage = {}
-
-    async def _async_load():
-        return mock_store._storage.get("data")
-
-    async def _async_save(data):
-        mock_store._storage["data"] = data
-        return True
-
-    mock_store.async_load = _async_load
-    mock_store.async_save = _async_save
-
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
@@ -195,38 +175,18 @@ async def test_three_trips_puntual_and_recurring_charging_positions():
     # RED PHASE: Verify windows don't overlap improperly
     # For recurring trips, the window might be different
     # But all charging positions should be valid
-    print(f"\n✓ All 3 trips have valid charging windows and positions")
+    print("\n✓ All 3 trips have valid charging windows and positions")
 
 
 @pytest.mark.asyncio
-async def test_multiple_puntual_trips_sequential_charging_windows():
+async def test_multiple_puntual_trips_sequential_charging_windows(
+    mock_hass, mock_store
+):
     """Test multiple puntual trips with sequential deadlines.
 
     Verifies that each trip has its own non-overlapping charging window
     and charging positions are within each window.
     """
-    mock_hass = MagicMock()
-    mock_hass.config = MagicMock()
-    mock_hass.config.config_dir = "/tmp/test_config"
-    mock_hass.config.time_zone = "UTC"
-    mock_hass.data = {}
-    mock_hass.services = MagicMock()
-    mock_hass.services.async_call = AsyncMock()
-    mock_hass.services.has_service = MagicMock(return_value=True)
-
-    mock_store = MagicMock()
-    mock_store._storage = {}
-
-    async def _async_load():
-        return mock_store._storage.get("data")
-
-    async def _async_save(data):
-        mock_store._storage["data"] = data
-        return True
-
-    mock_store.async_load = _async_load
-    mock_store.async_save = _async_save
-
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,

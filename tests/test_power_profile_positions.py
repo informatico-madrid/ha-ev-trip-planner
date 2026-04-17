@@ -24,7 +24,9 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
-async def test_power_profile_positions_at_end_of_charging_window():
+async def test_power_profile_positions_at_end_of_charging_window(
+    mock_hass, mock_store
+):
     """RED phase: Verifies charging happens at END of window (latest possible).
 
     When def_start=83, def_end=96, total_hours=2:
@@ -32,28 +34,6 @@ async def test_power_profile_positions_at_end_of_charging_window():
     - But only need 2 hours of charging
     - Expected: 3600W at positions 94 and 95 (last 2 positions)
     """
-    mock_hass = MagicMock()
-    mock_hass.config = MagicMock()
-    mock_hass.config.config_dir = "/tmp/test_config"
-    mock_hass.config.time_zone = "UTC"
-    mock_hass.data = {}
-    mock_hass.services = MagicMock()
-    mock_hass.services.async_call = AsyncMock()
-    mock_hass.services.has_service = MagicMock(return_value=True)
-
-    mock_store = MagicMock()
-    mock_store._storage = {}
-
-    async def _async_load():
-        return mock_store._storage.get("data")
-
-    async def _async_save(data):
-        mock_store._storage["data"] = data
-        return True
-
-    mock_store.async_load = _async_load
-    mock_store.async_save = _async_save
-
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
@@ -122,16 +102,11 @@ async def test_power_profile_positions_at_end_of_charging_window():
     assert len(charging_positions) == def_total_hours, \
         f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
 
-    # RED PHASE: All charging positions must be WITHIN the charging window
-    for pos in charging_positions:
-        assert def_start <= pos < def_end, \
-            f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
-
-    # RED PHASE: All charging positions must be WITHIN the EMHASS deferrable window
+    # RED PHASE: All charging positions must be WITHIN the charging window/EMHASS deferrable window
     # The optimizer may choose any position within [def_start, def_end)
     for pos in charging_positions:
         assert def_start <= pos < def_end, \
-            f"BUG: Charging position {pos} is OUTSIDE EMHASS window [{def_start}, {def_end})"
+            f"Charging position {pos} is OUTSIDE charging window/EMHASS window [{def_start}, {def_end})"
 
     # Additional: Verify the last charging position is before deadline
     last_charging_pos = max(charging_positions) if charging_positions else -1
@@ -140,7 +115,9 @@ async def test_power_profile_positions_at_end_of_charging_window():
 
 
 @pytest.mark.asyncio
-async def test_power_profile_positions_spread_across_window():
+async def test_power_profile_positions_spread_across_window(
+    mock_hass, mock_store
+):
     """Test case where charging is spread across the window.
 
     This test covers the original user's bug report:
@@ -148,28 +125,6 @@ async def test_power_profile_positions_spread_across_window():
     - Window is [96, 96) with the BUG (zero-sized window!)
     - After fix, window should have valid size
     """
-    mock_hass = MagicMock()
-    mock_hass.config = MagicMock()
-    mock_hass.config.config_dir = "/tmp/test_config"
-    mock_hass.config.time_zone = "UTC"
-    mock_hass.data = {}
-    mock_hass.services = MagicMock()
-    mock_hass.services.async_call = AsyncMock()
-    mock_hass.services.has_service = MagicMock(return_value=True)
-
-    mock_store = MagicMock()
-    mock_store._storage = {}
-
-    async def _async_load():
-        return mock_store._storage.get("data")
-
-    async def _async_save(data):
-        mock_store._storage["data"] = data
-        return True
-
-    mock_store.async_load = _async_load
-    mock_store.async_save = _async_save
-
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,

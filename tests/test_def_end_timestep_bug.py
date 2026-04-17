@@ -97,7 +97,7 @@ def test_def_end_timestep_calculation_bug():
     window_size_bug = def_end_timestep_BUG - def_start_timestep
     assert window_size_bug == 0, "Bug: Window size is 0 when charging is needed"
 
-    print(f"\n✗ BUG DEMONSTRATED:")
+    print("\n✗ BUG DEMONSTRATED:")
     print(f"  def_start_timestep = {def_start_timestep}")
     print(f"  def_end_timestep (BUG) = {def_end_timestep_BUG}")
     print(f"  Window size = {window_size_bug} hours (impossible for 6h charge!)")
@@ -125,7 +125,7 @@ def test_def_end_timestep_correct_calculation():
     assert def_end_timestep_CORRECT > def_start_timestep, \
         f"def_end ({def_end_timestep_CORRECT}) > def_start ({def_start_timestep})"
 
-    print(f"\n✓ CORRECT CALCULATION:")
+    print("\n✓ CORRECT CALCULATION:")
     print(f"  def_start_timestep = {def_start_timestep}")
     print(f"  def_end_timestep (CORRECT) = {def_end_timestep_CORRECT}")
     print(f"  Window size = {window_size} hours (enough for 6h charge!)")

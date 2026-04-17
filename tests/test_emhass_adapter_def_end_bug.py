@@ -18,38 +18,6 @@ from custom_components.ev_trip_planner.const import (
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock hass instance."""
-    hass = MagicMock()
-    hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
-    hass.config.time_zone = "UTC"
-    hass.data = {}
-    hass.services = MagicMock()
-    hass.services.async_call = AsyncMock()
-    hass.services.has_service = MagicMock(return_value=True)
-    return hass
-
-
-@pytest.fixture
-def mock_store():
-    """Mock Store for adapter persistence."""
-    store = MagicMock()
-    store._storage = {}
-
-    async def _async_load():
-        return store._storage.get("data")
-
-    async def _async_save(data):
-        store._storage["data"] = data
-        return True
-
-    store.async_load = _async_load
-    store.async_save = _async_save
-    return store
-
-
 @pytest.mark.asyncio
 async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(mock_hass, mock_store):
     """RED phase: Test that FAILS with current code, demonstrating the bug.

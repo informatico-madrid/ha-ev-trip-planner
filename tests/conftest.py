@@ -193,7 +193,27 @@ def hass():
             raise
     
     hass.async_run_hass_job = _mock_async_run_hass_job
-    
+
+    yield hass
+
+
+@pytest.fixture
+def mock_hass():
+    """
+    Fixture to provide a mock Home Assistant instance.
+
+    This is needed for EMHASSAdapter initialization and other tests
+    that require a hass object with basic configuration.
+    """
+    hass = MagicMock()
+    hass.config = MagicMock()
+    hass.config.config_dir = "/tmp/test_config"
+    hass.config.time_zone = "UTC"
+    hass.data = {}
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
     yield hass
 
 

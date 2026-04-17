@@ -20,7 +20,9 @@ from custom_components.ev_trip_planner.calculations import calculate_multi_trip_
 
 
 @pytest.mark.asyncio
-async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available():
+async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available(
+    mock_hass, mock_store
+):
     """RED phase: Demonstrates bug when inicio_ventana is at deadline.
 
     When the charging window starts at the same time as the deadline,
@@ -29,29 +31,6 @@ async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available()
 
     This test FAILS with current code.
     """
-    # Setup
-    mock_hass = MagicMock()
-    mock_hass.config = MagicMock()
-    mock_hass.config.config_dir = "/tmp/test_config"
-    mock_hass.config.time_zone = "UTC"
-    mock_hass.data = {}
-    mock_hass.services = MagicMock()
-    mock_hass.services.async_call = AsyncMock()
-    mock_hass.services.has_service = MagicMock(return_value=True)
-
-    mock_store = MagicMock()
-    mock_store._storage = {}
-
-    async def _async_load():
-        return mock_store._storage.get("data")
-
-    async def _async_save(data):
-        mock_store._storage["data"] = data
-        return True
-
-    mock_store.async_load = _async_load
-    mock_store.async_save = _async_save
-
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,

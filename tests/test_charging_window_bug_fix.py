@@ -86,7 +86,7 @@ def test_def_end_timestep_bug_demonstration():
     # This happens when "car not yet returned" logic estimates inicio_ventana incorrectly
     # or when charging_windows returns inicio_ventana = deadline
 
-    print(f"\nBug demonstration:")
+    print("\nBug demonstration:")
     print(f"  hours_available = {hours_available}")
     print(f"  def_start_timestep (when inicio_ventana = deadline) = {def_start_when_car_not_returned}")
     print(f"  def_end_timestep (using hours_available BUG) = {def_end_with_BUG}")
