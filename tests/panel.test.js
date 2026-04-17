@@ -13,6 +13,7 @@ import '../../../../../custom_components/ev_trip_planner/frontend/panel.js';
 
 import { html } from 'lit';
 import { expect, fixture } from '@open-wc/testing';
+import sinon from 'sinon';
 
 // Mock HomeAssistant class
 class MockHass {
@@ -131,6 +132,63 @@ describe('EV Trip Planner Panel - Vehicle ID Filtering', () => {
       // Since all returned trips have vehicle_id='otro_coche' but panel expects 'mi_coche',
       // the filtered result should be empty
       expect(differentPanel._trips).to.have.length(0);
+    });
+  });
+
+  describe('polling loop fix', () => {
+    it('should set _rendered=true after successful trip loading', async () => {
+      // Bug fix: _rendered was never set to true, causing infinite polling loop
+      // that filled browser console and crashed the tab
+
+      // Initially not rendered
+      expect(panel._rendered).to.be.false;
+
+      // Load trips
+      await panel._loadTrips();
+
+      // After successful load, _rendered should be true
+      expect(panel._rendered).to.be.true;
+
+      // _pollStarted should be false (polling stopped)
+      expect(panel._pollStarted).to.be.false;
+    });
+
+    it('should stop polling when _rendered is true', async () => {
+      // Bug fix: _startHassPolling checks _rendered to stop polling
+      await panel._loadTrips(); // This sets _rendered=true
+
+      // Start polling - should immediately stop since _rendered=true
+      panel._startHassPolling();
+
+      // Polling should not be started
+      expect(panel._pollStarted).to.be.false;
+
+      // No timeout should be set
+      expect(panel._pollTimeout).to.be.null;
+    });
+
+    it('should not log to console in production mode', async () => {
+      // Bug fix: Added DEBUG flag to reduce console spam
+      // All console.log should be wrapped with DEBUG check
+
+      // Spy on console.log
+      const consoleSpy = sinon.spy(console, 'log');
+
+      try {
+        // Load trips (this would log many messages without DEBUG=false)
+        await panel._loadTrips();
+
+        // With DEBUG=false, console.log should not be called for panel messages
+        const panelLogs = consoleSpy.getCalls().filter(call =>
+          call.args[0] && call.args[0].includes && call.args[0].includes('EV Trip Planner Panel')
+        );
+
+        // In production (DEBUG=false), there should be minimal logs
+        // Only errors/warnings should appear
+        expect(panelLogs.length).to.be.lessThan(5);
+      } finally {
+        consoleSpy.restore();
+      }
     });
   });
 });

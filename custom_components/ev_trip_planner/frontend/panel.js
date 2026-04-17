@@ -4,12 +4,15 @@
  * A Lit-based web component that renders the EV Trip Planner dashboard
  * as a native Home Assistant panel (not Lovelace).
  *
- * @version 3.0.1 - Added unique log ID for cache busting verification
+ * @version 3.0.13 - Fixed infinite polling loop, added debug flag
  * @author EV Trip Planner Team
  */
 
-// VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40
-console.log('EV Trip Planner Panel: VERSION=3.0.12 UNIQUE_LOG_ID=TRIP_UPDATE_SCHEMA_FIX_2026-03-28-15-40');
+// Debug mode - set to true to enable verbose logging
+const DEBUG = false;
+
+// VERSION=3.0.13 UNIQUE_LOG_ID=POLLING_FIX_2026-04-17
+if (DEBUG) console.log('EV Trip Planner Panel: VERSION=3.0.13 - Polling fix applied');
 
 // Cache busting removed - CSS version is now fixed
 
@@ -584,7 +587,7 @@ class EVTripPlannerPanel extends LitElement {
     }
 
     if (this._pollStarted) {
-      console.log('EV Trip Planner Panel: Polling already started, skipping');
+      if (DEBUG) console.log('EV Trip Planner Panel: Polling already started, skipping');
       return;
     }
 
@@ -593,7 +596,7 @@ class EVTripPlannerPanel extends LitElement {
 
     const poll = () => {
       if (this._rendered) {
-        console.log('EV Trip Planner Panel: Panel already rendered, stopping polling');
+        if (DEBUG) console.log('EV Trip Planner Panel: Panel already rendered, stopping polling');
         if (this._pollTimeout) {
           clearTimeout(this._pollTimeout);
           this._pollTimeout = null;
@@ -607,7 +610,7 @@ class EVTripPlannerPanel extends LitElement {
       }
 
       if (this._hass && this._vehicleId) {
-        console.log('EV Trip Planner Panel: hass and vehicle_id available, rendering');
+        if (DEBUG) console.log('EV Trip Planner Panel: hass and vehicle_id available, rendering');
         this._pollStarted = false;
         if (this._pollTimeout) {
           clearTimeout(this._pollTimeout);
@@ -620,7 +623,7 @@ class EVTripPlannerPanel extends LitElement {
       this._initAttempts++;
 
       if (this._initAttempts < this._maxInitAttempts) {
-        console.log(`EV Trip Planner Panel: waiting for hass... attempt ${this._initAttempts}/${this._maxInitAttempts}`);
+        if (DEBUG) console.log(`EV Trip Planner Panel: waiting for hass... attempt ${this._initAttempts}/${this._maxInitAttempts}`);
         this._pollTimeout = setTimeout(poll, 500);
       } else {
         console.error('EV Trip Planner Panel: Max init attempts reached, hass not available');
@@ -640,7 +643,7 @@ class EVTripPlannerPanel extends LitElement {
    */
   set hass(hass) {
     this._hass = hass;
-    console.log('EV Trip Planner Panel: hass setter called', hass ? 'available' : 'null');
+    if (DEBUG) console.log('EV Trip Planner Panel: hass setter called', hass ? 'available' : 'null');
 
     if (this._hass && this._vehicleId) {
       const now = Date.now();
@@ -793,15 +796,14 @@ class EVTripPlannerPanel extends LitElement {
     }
 
     // VERSION=3.0.5 UNIQUE_LOG_ID=VTP-2026-03-28-RESPONSE-EXTRACTION-FIX
-    console.log('EV Trip Planner Panel: === _getTripsList START ===');
-    console.log('EV Trip Planner Panel: _hass:', this._hass ? 'available' : 'null');
-    console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
-    console.log('EV Trip Planner Panel: VERSION=3.0.5 UNIQUE_LOG_ID=VTP-2026-03-28-RESPONSE-EXTRACTION-FIX');
+    if (DEBUG) {
+      console.log('EV Trip Planner Panel: === _getTripsList START ===');
+      console.log('EV Trip Planner Panel: _hass:', this._hass ? 'available' : 'null');
+      console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+    }
 
     try {
-      console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
-      // VERSION=3.0.3 UNIQUE_LOG_ID=VTP-2026-03-28-CORRECT-SIGNATURE-FIX
-      console.log('EV Trip Planner Panel: Using correct callService signature from HA frontend source');
+      if (DEBUG) console.log('EV Trip Planner Panel: Fetching trips for vehicle:', this._vehicleId);
       // Source: /mnt/bunker_data/ha-ev-trip-planner/ha-frontend-source/src/types.ts
       // callService<T = any>(
       //   domain: string,
@@ -820,7 +822,7 @@ class EVTripPlannerPanel extends LitElement {
         true  // returnResponse (6th param, boolean)
       );
 
-      console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
+      if (DEBUG) console.log('EV Trip Planner Panel: Trip list response:', JSON.stringify(response, null, 2));
 
       // Home Assistant services with SupportsResponse.ONLY wrap response in {response: {...}}
       // Extract actual data from the response wrapper
@@ -829,12 +831,12 @@ class EVTripPlannerPanel extends LitElement {
       // Try response.response first (SupportsResponse.ONLY)
       if (response && response.response) {
         tripsData = response.response;
-        console.log('EV Trip Planner Panel: Extracted from response.response:', JSON.stringify(tripsData, null, 2));
+        if (DEBUG) console.log('EV Trip Planner Panel: Extracted from response.response:', JSON.stringify(tripsData, null, 2));
       }
       // Fallback to response.result for other service types
       else if (response && response.result) {
         tripsData = response.result;
-        console.log('EV Trip Planner Panel: Extracted from result:', JSON.stringify(tripsData, null, 2));
+        if (DEBUG) console.log('EV Trip Planner Panel: Extracted from result:', JSON.stringify(tripsData, null, 2));
       }
 
       // Now check if the extracted data is valid
@@ -846,21 +848,23 @@ class EVTripPlannerPanel extends LitElement {
       }
 
       // Debug: Check what we have
-      console.log('EV Trip Planner Panel: tripsData keys:', tripsData ? Object.keys(tripsData) : 'null');
-      console.log('EV Trip Planner Panel: tripsData.recurring_trips:', tripsData?.recurring_trips);
-      console.log('EV Trip Planner Panel: tripsData.punctual_trips:', tripsData?.punctual_trips);
+      if (DEBUG) {
+        console.log('EV Trip Planner Panel: tripsData keys:', tripsData ? Object.keys(tripsData) : 'null');
+        console.log('EV Trip Planner Panel: tripsData.recurring_trips:', tripsData?.recurring_trips);
+        console.log('EV Trip Planner Panel: tripsData.punctual_trips:', tripsData?.punctual_trips);
+      }
 
       if (tripsData && tripsData.recurring_trips !== undefined) {
         const recurringTrips = tripsData.recurring_trips || [];
         const punctualTrips = tripsData.punctual_trips || [];
-        console.log('EV Trip Planner Panel: retrieved', recurringTrips.length, 'recurring and', punctualTrips.length, 'punctual trips');
+        if (DEBUG) console.log('EV Trip Planner Panel: retrieved', recurringTrips.length, 'recurring and', punctualTrips.length, 'punctual trips');
 
         const trips = [
           ...recurringTrips.map(t => ({...t, trip_type: 'recurrente'})),
           ...punctualTrips.map(t => ({...t, trip_type: 'puntual'})),
         ];
 
-        console.log('EV Trip Planner Panel: === _getTripsList END - trips:', trips);
+        if (DEBUG) console.log('EV Trip Planner Panel: === _getTripsList END - trips:', trips);
         return trips;
       }
 
@@ -1030,7 +1034,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
    * Load trips from API
    */
   async _loadTrips() {
-    console.log('EV Trip Planner Panel: === _loadTrips START ===');
+    if (DEBUG) console.log('EV Trip Planner Panel: === _loadTrips START ===');
 
     if (!this._hass || !this._vehicleId) {
       console.warn('EV Trip Planner Panel: Cannot load trips - no hass or vehicle_id');
@@ -1039,16 +1043,17 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
 
     try {
       const trips = await this._getTripsList();
-      console.log('EV Trip Planner Panel: Trips retrieved:', trips.length);
+      if (DEBUG) console.log('EV Trip Planner Panel: Trips retrieved:', trips.length);
 
       // Update trips array
       this._trips = trips;
       this._isLoading = false;
+      this._rendered = true;  // Stop polling once successfully loaded
 
       // Force re-render
       this.requestUpdate();
 
-      console.log('EV Trip Planner Panel: === _loadTrips END - trips:', this._trips.length);
+      if (DEBUG) console.log('EV Trip Planner Panel: === _loadTrips END - trips:', this._trips.length);
     } catch (error) {
       console.error('EV Trip Planner Panel: Error fetching trips:', error);
       this._isLoading = false;
@@ -1497,7 +1502,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
    */
   async _handleTripCreate(e) {
     e.preventDefault();
-    console.log('EV Trip Planner Panel: Creating trip...');
+    if (DEBUG) console.log('EV Trip Planner Panel: Creating trip...');
 
     if (!this._hass || !this._vehicleId) {
       alert('Error: No hay conexión con Home Assistant');
@@ -1533,7 +1538,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
     if (kwh) serviceData.kwh = parseFloat(kwh);
     if (description) serviceData.description = description;
 
-    console.log('EV Trip Planner Panel: Service data:', serviceData);
+    if (DEBUG) console.log('EV Trip Planner Panel: Service data:', serviceData);
 
     const submitBtn = form.querySelector('.btn-primary');
     const originalText = submitBtn.textContent;
@@ -1572,9 +1577,11 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
 
     try {
       // Use correct callService signature: (domain, service, serviceData, target, notifyOnError, returnResponse)
-      console.log('EV Trip Planner Panel: _getTripById called with tripId:', tripId);
-      console.log('EV Trip Planner Panel: _hass:', this._hass ? 'available' : 'null');
-      console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+      if (DEBUG) {
+        console.log('EV Trip Planner Panel: _getTripById called with tripId:', tripId);
+        console.log('EV Trip Planner Panel: _hass:', this._hass ? 'available' : 'null');
+        console.log('EV Trip Planner Panel: _vehicleId:', this._vehicleId);
+      }
 
       const response = await this._hass.callService(
         'ev_trip_planner',
@@ -1588,19 +1595,21 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
         true  // returnResponse (6th param, boolean)
       );
 
-      console.log('EV Trip Planner Panel: trip_get response:', JSON.stringify(response, null, 2));
-      console.log('EV Trip Planner Panel: response keys:', Object.keys(response || {}));
+      if (DEBUG) {
+        console.log('EV Trip Planner Panel: trip_get response:', JSON.stringify(response, null, 2));
+        console.log('EV Trip Planner Panel: response keys:', Object.keys(response || {}));
+      }
 
       // Handle response structure: {context: {...}, response: {vehicle_id, trip, found}}
       const responseData = response?.response || response;
-      console.log('EV Trip Planner Panel: responseData:', JSON.stringify(responseData, null, 2));
+      if (DEBUG) console.log('EV Trip Planner Panel: responseData:', JSON.stringify(responseData, null, 2));
 
       // Response structure: { vehicle_id, trip, found }
       if (responseData && responseData.found && responseData.trip) {
         const trip = responseData.trip;
         // Add trip_type based on trip structure
         trip.trip_type = trip.tipo === 'recurrente' ? 'recurrente' : 'puntual';
-        console.log('EV Trip Planner Panel: Returning trip:', trip);
+        if (DEBUG) console.log('EV Trip Planner Panel: Returning trip:', trip);
         return trip;
       }
 
