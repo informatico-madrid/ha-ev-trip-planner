@@ -535,6 +535,10 @@ class EMHASSAdapter:
             await self.async_assign_index_to_trip(trip_id)
         emhass_index = self._index_map.get(trip_id, -1)
 
+        # Capture current time once to avoid inconsistencies from multiple datetime.now() calls
+        # near hour boundaries (off-by-one errors)
+        now = datetime.now(timezone.utc)
+
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
         kwh_needed = trip.get("kwh", 0.0)
@@ -544,12 +548,12 @@ class EMHASSAdapter:
         deadline_dt = self._calculate_deadline_from_trip(trip)
         if deadline_dt is None:
             # Fallback for invalid trips (should not happen in normal flow)
-            deadline_dt = datetime.now(timezone.utc)
+            deadline_dt = now
 
         def_start_timestep = 0
         if pre_computed_inicio_ventana is not None:
             # Use pre-computed inicio_ventana from batch calculation
-            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - now).total_seconds() / 3600
             def_start_timestep = max(0, min(int(delta_hours), 168))
         else:
             # Fall back to existing single-trip calculation (backward compat)
@@ -564,12 +568,11 @@ class EMHASSAdapter:
             )
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
-                fin_ventana = charging_windows[0].get("fin_ventana")
                 if inicio_ventana:
-                    delta_hours = (_ensure_aware(inicio_ventana) - datetime.now(timezone.utc)).total_seconds() / 3600
+                    delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
                     def_start_timestep = max(0, min(int(delta_hours), 168))
 
-        hours_available = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
+        hours_available = (deadline_dt - now).total_seconds() / 3600
         def_end_timestep = min(int(max(0, hours_available)), 168)
 
         # BUG FIX: Use fin_ventana for def_end_timestep when available
@@ -586,7 +589,7 @@ class EMHASSAdapter:
             fin_ventana_to_use = charging_windows[0].get("fin_ventana")
 
         if fin_ventana_to_use is not None:
-            delta_hours_end = (_ensure_aware(fin_ventana_to_use) - datetime.now(timezone.utc)).total_seconds() / 3600
+            delta_hours_end = (_ensure_aware(fin_ventana_to_use) - now).total_seconds() / 3600
             # Guard: Skip if fin_ventana is in the past
             if delta_hours_end > 0:
                 def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
