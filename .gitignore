@@ -98,3 +98,8 @@ doc/## Test Failure Review Protocol (MANDATO.md
 specs/.current-spec
 **/.progress.md
 .claude/settingsbackl.jsonbacka
+.claude/
+.cursor/
+.github/
+.qwen/
+.agents/

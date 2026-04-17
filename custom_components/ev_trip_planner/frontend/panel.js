@@ -1745,16 +1745,10 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
       type: type,
     };
 
-    // Handle different trip types
-    if (type === 'puntual') {
-      if (datetime) {
-        serviceData.datetime = datetime;
-      }
-    } else {
-      if (day) serviceData.dia_semana = day;
-      if (time) serviceData.hora = time;
-    }
-
+    // Always include these fields if provided (regardless of trip type)
+    if (datetime) serviceData.datetime = datetime;
+    if (day) serviceData.dia_semana = day;
+    if (time) serviceData.hora = time;
     if (km) serviceData.km = parseFloat(km);
     if (kwh) serviceData.kwh = parseFloat(kwh);
     if (description) serviceData.description = description;

@@ -287,12 +287,13 @@ class TestCalculateEnergyNeeded:
         result = calculate_energy_needed(
             trip={"km": 100.0},
             battery_capacity_kwh=50.0,
-            soc_current=50.0,
+            soc_current=20.0,  # 20% SOC = 10kWh, viaje necesita 15kWh → necesita 5kWh
             charging_power_kw=7.4,
         )
-        # 100km * 0.15 = 15kWh needed
-        # At 50% SOC: 25kWh in battery, need 15+20=35kWh target, 35-25=10kWh needed
-        assert result["energia_necesaria_kwh"] > 0
+        # 100km * 0.15 = 15kWh needed (sin buffer hardcodeado)
+        # At 20% SOC: 10kWh in battery, energia_objetivo = 15kWh
+        # energia_necesaria = max(0, 15 - 10) = 5kWh needed
+        assert result["energia_necesaria_kwh"] == 5.0
 
 
 class TestCalculateChargingWindowPure:

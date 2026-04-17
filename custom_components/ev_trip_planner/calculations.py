@@ -229,8 +229,8 @@ def calculate_energy_needed(
         distance_km = trip.get("km", 0.0)
         energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-    # Energía objetivo: energía del viaje + 40% de la batería (margen)
-    energia_objetivo = energia_viaje + (battery_capacity_kwh * 0.4)
+    # Energía objetivo: energía del viaje (el margen de seguridad lo gestiona safety_margin_percent)
+    energia_objetivo = energia_viaje
 
     # Energía actual en batería
     energia_actual = (soc_current / 100.0) * battery_capacity_kwh

@@ -63,8 +63,8 @@ test.describe('Edit Trip', () => {
     await deleteTestTrip(page, '2026-04-07T09:00-Updated Recurrente Route');
   });
 
-  test('should edit an existing puntual trip', async ({ page }: { page: Page }) => {
-    // Step 1: Create a puntual trip with initial values
+  test('should edit an existing puntual trip and update datetime', async ({ page }: { page: Page }) => {
+    // Step 1: Create a puntual trip with initial datetime
     const tripId = await createTestTrip(
       page,
       'puntual',
@@ -82,11 +82,12 @@ test.describe('Edit Trip', () => {
     await tripCard.getByText('Editar').click();
 
     // Step 4: Wait for edit form
-    await page.locator('#edit-trip-km').waitFor({ state: 'visible' });
+    await page.locator('#edit-trip-datetime').waitFor({ state: 'visible' });
 
-    // Step 5: Update distance and energy
+    // Step 5: Update distance, energy AND datetime
     await page.locator('#edit-trip-km').fill('45');
     await page.locator('#edit-trip-kwh').fill('14');
+    await page.locator('#edit-trip-datetime').fill('2026-04-25T16:00');
 
     // Step 6: Handle alert and submit
     const alertPromise = setupAlertHandler(page);
@@ -96,11 +97,60 @@ test.describe('Edit Trip', () => {
     // Step 7: Verify success
     expect(alertMsg).toContain('Viaje actualizado exitosamente');
 
-    // Step 8: Verify updated values
+    // Step 8: Verify ALL updated values including datetime
     await expect(page.getByText('45 km')).toBeVisible();
     await expect(page.getByText('14 kWh')).toBeVisible();
+    // Verify the datetime was actually updated (display shows full ISO string '2026-04-25T16:00')
+    await expect(page.getByText('2026-04-25T16:00')).toBeVisible();
 
     // Step 9: Clean up
-    await deleteTestTrip(page, '2026-04-20T14:00-Puntual Edit Test');
+    await deleteTestTrip(page, '2026-04-25T16:00-Puntual Edit Test');
+  });
+
+  test('should edit an existing recurrente trip and update day/time', async ({ page }: { page: Page }) => {
+    // Step 1: Create a recurrente trip with initial values
+    const tripId = await createTestTrip(
+      page,
+      'recurrente',
+      '2026-04-07T09:00',
+      30,
+      10,
+      'Recurrente Edit Test',
+      { day: '2', time: '09:00' },  // Martes at 09:00
+    );
+
+    // Step 2: Find the trip card by description
+    const tripCard = page.locator('.trip-card', { hasText: 'Recurrente Edit Test' }).last();
+    await tripCard.waitFor({ state: 'visible' });
+
+    // Step 3: Click the edit button (✏️ Editar)
+    await tripCard.getByText('Editar').click();
+
+    // Step 4: Wait for the edit form to appear
+    await page.locator('#edit-trip-day').waitFor({ state: 'visible' });
+
+    // Step 5: Modify km, description AND day/time
+    await page.locator('#edit-trip-km').fill('35');
+    await page.locator('#edit-trip-description').fill('Updated Recurrente Route');
+    await page.locator('#edit-trip-day').selectOption('4');  // Change to Jueves
+    await page.locator('#edit-trip-time').fill('10:30');
+
+    // Step 6: Handle the success alert and submit
+    const alertPromise = setupAlertHandler(page);
+    await page.getByRole('button', { name: 'Guardar Cambios' }).click();
+    const alertMsg = await alertPromise;
+
+    // Step 7: Verify success alert
+    expect(alertMsg).toContain('Viaje actualizado exitosamente');
+
+    // Step 8: Verify the trip card shows ALL updated values including day and time
+    await expect(page.getByText('Updated Recurrente Route')).toBeVisible();
+    await expect(page.getByText('35 km')).toBeVisible();
+    // Verify day/time were actually updated (time shows as '10:30', day shows as '4')
+    // Note: The UI displays numeric day value, not day name
+    await expect(page.getByText('4 10:30')).toBeVisible();
+
+    // Step 9: Clean up
+    await deleteTestTrip(page, '2026-04-07T10:30-Updated Recurrente Route');
   });
 });

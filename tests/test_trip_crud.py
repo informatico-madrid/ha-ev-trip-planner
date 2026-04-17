@@ -490,6 +490,40 @@ class TestTripUpdate:
         assert trips[0]["descripcion"] == "Updated weekend trip"
 
     @pytest.mark.asyncio
+    async def test_update_punctual_trip_datetime_field(self, trip_manager, caplog):
+        """TDD: Test that updating datetime works - this test SHOULD FAIL until bug is fixed.
+
+        The frontend sends 'datetime' field (not 'datetime_str'), so we must verify
+        that updating with 'datetime' key actually persists.
+        """
+        # Create trip first
+        await trip_manager.async_add_punctual_trip(
+            trip_id="datetime_update_test",
+            datetime_str="2026-03-25T10:00",
+            km=50.0,
+            kwh=10.0,
+            descripcion="Datetime update test",
+        )
+
+        # Update ONLY the datetime (simulating frontend edit flow)
+        # Frontend sends 'datetime', not 'datetime_str'
+        await trip_manager.async_update_trip(
+            "datetime_update_test",
+            {
+                "datetime": "2026-03-28T15:30",
+            },
+        )
+
+        # Verify datetime was actually updated
+        trips = await trip_manager.async_get_punctual_trips()
+        assert len(trips) == 1
+        assert trips[0]["datetime"] == "2026-03-28T15:30", \
+            f"Expected datetime '2026-03-28T15:30', got '{trips[0].get('datetime')}'"
+        # Verify other fields were NOT changed
+        assert trips[0]["km"] == 50.0
+        assert trips[0]["kwh"] == 10.0
+
+    @pytest.mark.asyncio
     async def test_update_nonexistent_trip(self, trip_manager, caplog):
         """Test updating a trip that doesn't exist."""
         caplog.set_level("WARNING")

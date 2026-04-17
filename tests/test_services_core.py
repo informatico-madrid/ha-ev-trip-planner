@@ -2441,6 +2441,63 @@ class TestHandleTripUpdatePunctualBranch:
         mock_mgr.async_get_punctual_trips.assert_awaited()
 
 
+class TestHandleTripUpdatePunctualDatetime:
+    """TDD: Test that datetime field is passed correctly for puntual trip updates.
+
+    This test SHOULD FAIL until the bug is fixed.
+    The bug: frontend sends 'datetime' field, but it may not be properly
+    mapped or passed to async_update_trip.
+    """
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_update_punctual_datetime_in_updates(self, mock_hass):
+        """handle_trip_update passes datetime field correctly to async_update_trip.
+
+        Covers lines 161-162 and 187 where datetime is extracted and passed.
+        """
+        from custom_components.ev_trip_planner import EVTripRuntimeData
+        from custom_components.ev_trip_planner.__init__ import register_services
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_mgr = MagicMock()
+        mock_mgr.async_update_trip = AsyncMock(return_value=True)
+        mock_entry.runtime_data = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mock_mgr,
+            emhass_adapter=MagicMock(),
+        )
+
+        register_services(mock_hass)
+
+        handler = mock_hass.services.registry["trip_update"]
+        call = MagicMock()
+        call.data = {
+            "vehicle_id": "chispitas",
+            "trip_id": "pun_test_001",
+            "type": "puntual",
+            "datetime": "2026-04-25T16:00:00",
+            "km": 50.0,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            new_callable=AsyncMock,
+        ):
+            await handler(call)
+
+        # Verify async_update_trip was called with correct updates including datetime
+        mock_mgr.async_update_trip.assert_awaited_once()
+        call_args = mock_mgr.async_update_trip.call_args
+        trip_id = call_args[0][0]
+        updates = call_args[0][1]
+
+        assert trip_id == "pun_test_001"
+        assert "datetime" in updates, f"datetime not in updates: {updates.keys()}"
+        assert updates["datetime"] == "2026-04-25T16:00:00", \
+            f"Expected datetime '2026-04-25T16:00:00', got '{updates.get('datetime')}'"
+        assert updates["km"] == 50.0
+
+
 class TestAsyncCleanupOrphanedEmhassSensorsIterationDetail:
     """Tests for async_cleanup_orphaned_emhass_sensors iteration details."""
 
