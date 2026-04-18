@@ -592,3 +592,39 @@ def sample_notification_config():
         "notification_service": "notify.mobile_app",
         "notification_devices": ["device_123"],
     }
+
+
+@pytest.fixture
+def trip_manager_with_entry_id(mock_hass, mock_store):
+    """Return a TripManager instance with entry_id for EMHASS-dependent tests.
+
+    This fixture provides a consistent TripManager instance that has entry_id
+    set, which is required for publish_deferrable_loads() to trigger coordinator
+    refresh correctly.
+
+    Usage:
+        async def test_something(trip_manager_with_entry_id):
+            tm = trip_manager_with_entry_id
+            await tm.publish_deferrable_loads()
+            # coordinator refresh will work because entry_id is set
+    """
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+
+    return TripManager(mock_hass, "test_vehicle", entry_id="test_entry_123", storage=mock_store)
+
+
+@pytest.fixture
+def trip_manager_no_entry_id(mock_hass):
+    """Return a TripManager instance WITHOUT entry_id for pure function tests.
+
+    This fixture provides a TripManager without entry_id for tests that don't
+    depend on coordinator refresh or config entry lookup.
+
+    Usage:
+        async def test_calculation(trip_manager_no_entry_id):
+            tm = trip_manager_no_entry_id
+            result = await tm.async_get_kwh_needed_today()
+    """
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+
+    return TripManager(mock_hass, "test_vehicle")

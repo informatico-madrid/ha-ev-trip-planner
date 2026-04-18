@@ -18,6 +18,7 @@ from .const import DOMAIN
 from .coordinator import TripPlannerCoordinator
 from .dashboard import DashboardImportResult
 from .trip_manager import TripManager
+from .utils import normalize_vehicle_id
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -699,8 +700,8 @@ def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
             )
             continue
         entry_vehicle_name = e.data.get("vehicle_name", "")
-        # Normalize entry_vehicle_name the same way as in async_setup_entry
-        normalized_entry_name = entry_vehicle_name.lower().replace(" ", "_")
+        # Normalize entry_vehicle_name using centralized utility
+        normalized_entry_name = normalize_vehicle_id(entry_vehicle_name)
         if normalized_entry_name == normalized_vehicle_id:
             return e
     return None

@@ -299,6 +299,34 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     return False
 
 
+def normalize_vehicle_id(vehicle_name: str) -> str:
+    """Normalize vehicle name to vehicle_id format.
+
+    Converts a vehicle name (possibly with spaces and mixed case) into a
+    normalized vehicle_id suitable for use in storage keys and identifiers.
+
+    Args:
+        vehicle_name: The raw vehicle name from config entry (e.g., "Test Vehicle").
+
+    Returns:
+        Normalized vehicle_id (lowercase, spaces replaced with underscores,
+        e.g., "test_vehicle"). Returns empty string if vehicle_name is None or empty.
+
+    Examples:
+        >>> normalize_vehicle_id("Test Vehicle")
+        'test_vehicle'
+        >>> normalize_vehicle_id("My Tesla Model 3")
+        'my_tesla_model_3'
+        >>> normalize_vehicle_id(None)
+        ''
+        >>> normalize_vehicle_id("")
+        ''
+    """
+    if not vehicle_name:
+        return ""
+    return vehicle_name.lower().replace(" ", "_")
+
+
 def calcular_energia_kwh(
     distance_km: float,
     consumption_kwh_per_km: float,
