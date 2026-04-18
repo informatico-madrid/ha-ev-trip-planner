@@ -886,6 +886,16 @@ class EMHASSAdapter:
         if charging_power_kw is None:
             charging_power_kw = self._charging_power_kw
 
+        # CRITICAL FIX: Clear ALL cached per-trip params when trips is empty
+        # This handles cascade deletion (no trips) vs incremental update (has trips).
+        # Without this, _cached_per_trip_params retains stale data from deleted trips,
+        # causing EmhassDeferrableLoadSensor's extra_state_attributes to still show
+        # old trips in def_total_hours_array after integration deletion.
+        if len(trips) == 0:
+            self._cached_per_trip_params.clear()
+            self._cached_power_profile = []
+            self._cached_deferrables_schedule = []
+
         # Enrich recurring trips: compute datetime from dia_semana + hora
         enriched_trips: List[Dict[str, Any]] = []
         now = datetime.now(timezone.utc)
@@ -954,80 +964,6 @@ class EMHASSAdapter:
         for stale_id in stale_ids:  # pragma: no cover - edge case: stale cache entries
             del self._cached_per_trip_params[stale_id]
             _LOGGER.debug("Cleared stale cache entry for trip %s", stale_id)
-
-        # FIX for task 2.17: Get SOC ONCE before the loop (not per-trip)
-        # This ensures consistency when SOC changes during async publish,
-        # and avoids redundant I/O calls.
-        soc_current = await self._get_current_soc()
-        if soc_current is None:
-            soc_current = 50.0
-
-        # BUG 4 FIX: Get hora_regreso ONCE before the loop (not per-trip)
-        # Inject presence_monitor from coordinator if not already cached
-        if self._presence_monitor is None and coordinator is not None:
-            trip_manager = getattr(coordinator, "_trip_manager", None)
-            if trip_manager and hasattr(trip_manager, "vehicle_controller"):
-                vc = trip_manager.vehicle_controller
-                if vc and hasattr(vc, "_presence_monitor"):
-                    self._presence_monitor = vc._presence_monitor
-
-        hora_regreso = None
-        if self._presence_monitor:
-            try:
-                hora_regreso = await self._presence_monitor.async_get_hora_regreso()
-            except Exception:  # pragma: no cover - defensive: presence monitor unavailable
-                hora_regreso = None
-
-        # FR-4: Cache per-trip EMHASS params with proper charging window computation
-        # BUG 2 FIX: Use charging windows like single-trip path for def_start_timestep
-        # BUG 4 FIX: Use injected presence_monitor with async_get_hora_regreso()
-        # Note: soc_current and hora_regreso already fetched once before loop
-        for trip in trips:
-            trip_id = trip.get("id")
-            if not trip_id:  # pragma: no cover - defensive: skip invalid trips
-                continue
-            await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
-                self._safety_margin_percent, soc_current, hora_regreso
-            )
-
-        # Update the template sensor
-        sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
-        # PHASE 3 REMOVED (3.1): Remove dual-writing path - data flows via coordinator
-        # The coordinator will handle EMHASS data via async_request_refresh()
-
-        # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
-        # Use async_refresh() for immediate update (not debounced async_request_refresh)
-        # so sensors reflect changes instantly when SOC, trips, etc. change.
-        if coordinator is not None:
-            await coordinator.async_refresh()
-            _LOGGER.debug(
-                "Triggered coordinator refresh for EMHASS data update for %s",
-                self.vehicle_id,
-            )
-        else:
-            _LOGGER.warning(
-                "No coordinator found for %s, EMHASS data update delayed",
-                self.vehicle_id,
-            )
-
-        # Track published entity (FR-1, AC-1.4)
-        self._published_entity_ids.add(sensor_id)
-
-        _LOGGER.info(
-            "Published deferrable loads for %s: %d trips, profile length: %d",
-            self.vehicle_id,
-            len(trips),
-            len(power_profile),
-        )
-
-        # Also publish individual trip configs
-        success = True
-        for trip in trips:
-            if not await self.async_publish_deferrable_load(trip):
-                success = False
-
-        return success
 
     async def async_verify_shell_command_integration(self) -> Dict[str, Any]:
         """
@@ -1662,10 +1598,40 @@ class EMHASSAdapter:
         self._released_indices.clear()
         self._available_indices = list(range(self.max_deferrable_loads))
 
+        # CRITICAL FIX: Clear cached EMHASS data so sensor shows empty state after deletion
+        # _cached_per_trip_params drives per_trip_emhass_params in coordinator.data,
+        # which EmhassDeferrableLoadSensor reads to build def_total_hours_array.
+        # Without this, stale cache entries cause the sensor to still show deleted trips.
+        self._cached_per_trip_params.clear()
+        self._cached_power_profile = []
+        self._cached_deferrables_schedule = []
+        self._cached_emhass_status = None
+        self._published_trips = []
+
+        # CRITICAL FIX: After clearing cached EMHASS data, trigger coordinator refresh
+        # so that coordinator.data["per_trip_emhass_params"] reflects the cleared cache.
+        # Without this, the coordinator's _async_update_data would still return stale
+        # data from the previous coordinator.data until the next scheduled refresh.
+        coordinator = self._get_coordinator()
+        if coordinator is not None:
+            try:
+                await coordinator.async_refresh()
+                _LOGGER.debug(
+                    "Triggered coordinator refresh after clearing EMHASS cache for %s",
+                    self.vehicle_id,
+                )
+            except Exception as err:
+                _LOGGER.debug(
+                    "Coordinator refresh failed during cleanup: %s",
+                    err,
+                )
+
         # Clear the main vehicle sensor from state
         try:
             sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
+            _LOGGER.warning("DEBUG async_cleanup_vehicle_indices: Removing sensor %s from hass.states", sensor_id)
             self.hass.states.async_remove(sensor_id)
+            _LOGGER.warning("DEBUG async_cleanup_vehicle_indices: Sensor %s removal called", sensor_id)
         except HomeAssistantError as err:
             _LOGGER.warning(
                 "Failed to remove vehicle sensor %s during cleanup: %s",

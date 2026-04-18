@@ -1416,6 +1416,7 @@ async def async_unload_entry_cleanup(
 
     # Cleanup EMHASS vehicle indices before unload
     if emhass_adapter:
+        _LOGGER.warning("DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s", vehicle_name)
         if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
             emhass_adapter._config_entry_listener()
             emhass_adapter._config_entry_listener = None
@@ -1486,18 +1487,26 @@ async def async_remove_entry_cleanup(
     emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
 
     if trip_manager:
-        _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
-        await trip_manager.async_delete_all_trips()
+        try:
+            _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+            await trip_manager.async_delete_all_trips()
+        except Exception as err:
+            _LOGGER.error("Error deleting trips for vehicle %s: %s", vehicle_name, err)
 
-    # Cleanup EMHASS vehicle indices - THIS IS THE KEY FIX
-    # Even if trip_manager didn't have EMHASS adapter attached, we need to clean
-    # up the EMHASS sensor data directly via the adapter
+    # Cleanup EMHASS vehicle indices
     if emhass_adapter:
-        if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
-            emhass_adapter._config_entry_listener()
+        try:
+            if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+                emhass_adapter._config_entry_listener()
+        except Exception as err:
+            _LOGGER.error("Error invoking config entry listener: %s", err)
+        finally:
             emhass_adapter._config_entry_listener = None
-        await emhass_adapter.async_cleanup_vehicle_indices()
-        _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)
+        try:
+            await emhass_adapter.async_cleanup_vehicle_indices()
+            _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)
+        except Exception as err:
+            _LOGGER.error("Error cleaning up EMHASS indices for vehicle %s: %s", vehicle_name, err)
 
     # Delete persistent storage for this vehicle
     from homeassistant.helpers import storage as ha_storage
@@ -1551,7 +1560,7 @@ async def async_remove_entry_cleanup(
                         {"entity_id": full_entity_id},
                         blocking=True,
                     )
-            except Exception:
-                pass  # Entity might not exist
+            except Exception as err:
+                _LOGGER.exception("Failed removing input helper %s: %s", full_entity_id, err)
 
     _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)

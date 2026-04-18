@@ -14,8 +14,11 @@ This test verifies the bug at the integration level using real storage
 with mock EMHASS adapter.
 """
 
+from datetime import datetime, timedelta
+from typing import Any
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -23,7 +26,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.fixture
-def enable_custom_integrations():
+def enable_custom_integrations() -> bool:
     """Enable custom integrations for testing."""
     return True
 
@@ -36,7 +39,9 @@ class TestPostRestartPersistenceBug:
     """
 
     @pytest.mark.asyncio
-    async def test_emhass_not_updated_after_setup_loads_from_storage(self, hass, mock_store):
+    async def test_emhass_not_updated_after_setup_loads_from_storage(
+        self, hass: HomeAssistant, mock_store: Any
+    ) -> None:
         """Test that EMHASS adapter is NOT updated after async_setup loads trips from storage.
 
         This is the ROOT CAUSE of the post-restart bug:
@@ -49,13 +54,20 @@ class TestPostRestartPersistenceBug:
         this test should PASS.
         """
         # Setup: Pre-populate storage with trips (simulating prior to restart)
+        # Use relative dates to avoid time-dependent test failures
+        now = datetime.now()
+        trip1_dt = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+        trip2_dt = (now + timedelta(days=2)).replace(hour=14, minute=0, second=0, microsecond=0)
+        trip1_iso = trip1_dt.isoformat()
+        trip2_iso = trip2_dt.isoformat()
+
         stored_trips = {
             "data": {
                 "trips": {
                     "trip_1": {
                         "id": "pun_20260418_z9ryxq",
                         "trip_type": "puntual",
-                        "datetime": "2026-04-18T10:00",
+                        "datetime": trip1_iso,
                         "km": 20.0,
                         "kwh": 5.0,
                         "descripcion": "Restart Test Trip 1",
@@ -64,7 +76,7 @@ class TestPostRestartPersistenceBug:
                     "trip_2": {
                         "id": "pun_20260419_62qe8m",
                         "trip_type": "puntual",
-                        "datetime": "2026-04-19T14:00",
+                        "datetime": trip2_iso,
                         "km": 30.0,
                         "kwh": 7.0,
                         "descripcion": "Restart Test Trip 2",
@@ -76,7 +88,7 @@ class TestPostRestartPersistenceBug:
                     "trip_1": {
                         "id": "pun_20260418_z9ryxq",
                         "trip_type": "puntual",
-                        "datetime": "2026-04-18T10:00",
+                        "datetime": trip1_iso,
                         "km": 20.0,
                         "kwh": 5.0,
                         "descripcion": "Restart Test Trip 1",
@@ -85,7 +97,7 @@ class TestPostRestartPersistenceBug:
                     "trip_2": {
                         "id": "pun_20260419_62qe8m",
                         "trip_type": "puntual",
-                        "datetime": "2026-04-19T14:00",
+                        "datetime": trip2_iso,
                         "km": 30.0,
                         "kwh": 7.0,
                         "descripcion": "Restart Test Trip 2",
@@ -183,7 +195,15 @@ class TestIntegrationDeletionBug:
         # Act: Delete all trips
         await trip_manager.async_delete_all_trips()
 
-        # Assert: Trips are removed
+        # Assert: Trips are removed from in-memory dicts
         assert len(trip_manager._trips) == 0, "Trips should be deleted"
         assert len(trip_manager._punctual_trips) == 0, "Punctual trips should be deleted"
         assert len(trip_manager._recurring_trips) == 0, "Recurring trips should be deleted"
+
+        # Assert: Persisted storage is also cleared (reload from same store to verify)
+        new_manager = TripManager(hass, "test_vehicle", "test_entry_id", None)
+        new_manager._storage = mock_store
+        await new_manager.async_setup()
+        assert len(new_manager._trips) == 0, "Persisted trips should be cleared"
+        assert len(new_manager._punctual_trips) == 0, "Persisted punctual trips should be cleared"
+        assert len(new_manager._recurring_trips) == 0, "Persisted recurring trips should be cleared"

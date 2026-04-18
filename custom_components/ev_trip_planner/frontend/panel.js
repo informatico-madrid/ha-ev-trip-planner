@@ -519,7 +519,8 @@ class EVTripPlannerPanel extends LitElement {
     super.connectedCallback();
 
     // Detect if this is a reconnection (component already had vehicle_id)
-    const isReconnection = this._vehicleId !== null;
+    // Use != null (loose equality) to catch both null AND undefined
+    const isReconnection = this._vehicleId != null;
 
     if (DEBUG) {
       console.log('EV Trip Planner Panel: connectedCallback called',

@@ -173,10 +173,10 @@ El archivo .coveragerc de home-assistant/core define exclusiones globales de pat
 ### Forbidden Patterns
 - `page.goto('/ev_trip_planner')` — NOT allowed in HA Container; use authenticated navigation via `window.location` or click-through HA UI
 - XPath selectors inside shadow trees — will NOT find elements
-- `>>` syntax — NOT a pierce syntax; it's just CSS child combinator
+- `>>` syntax — NOT a pierce syntax; not valid CSS (use `>` for child combinator)
 
 ### Shadow DOM Architecture
-```
+```text
 <home-assistant> (open shadow root)
   └── <home-assistant-panel> (open shadow root)
        └── ev-trip-planner-panel (open shadow root)

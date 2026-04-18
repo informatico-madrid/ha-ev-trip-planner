@@ -287,10 +287,10 @@ pytest tests/test_calculations.py -v
 - `>>` syntax — this is NOT a pierce syntax in Playwright; it's just a CSS child combinator with no special behavior
 
 **Shadow DOM Architecture in HA:**
-```
+```html
 <home-assistant> (open shadow root)
   └── #shadow-root (open)
-       └── <home-assistant-panel> 
+       └── <home-assistant-panel>
             └── #shadow-root (open)
                  └── ev-trip-planner-panel
                       └── #shadow-root (open)

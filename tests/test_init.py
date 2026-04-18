@@ -1195,6 +1195,9 @@ class TestAsyncSetupEntryMissingLines:
         call_args = mock_trip_manager.set_emhass_adapter.call_args
         assert call_args[0][0] is mock_emhass_adapter
 
+        # Verify publish_deferrable_loads was called after adapter was set
+        mock_trip_manager.publish_deferrable_loads.assert_awaited_once()
+
     @pytest.mark.asyncio
     async def test_setup_entry_calls_panel_and_service_registration(self, mock_hass):
         """Test lines 127-140: async_register_panel_for_entry, register_services, etc.

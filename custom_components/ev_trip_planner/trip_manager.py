@@ -164,12 +164,19 @@ class TripManager:
             )
         return sanitized
 
-    async def publish_deferrable_loads(self) -> None:
-        """Publish current trips to EMHASS as deferrable loads and trigger coordinator refresh."""
+    async def publish_deferrable_loads(self, trips: Optional[List[Dict[str, Any]]] = None) -> None:
+        """Publish current trips to EMHASS as deferrable loads and trigger coordinator refresh.
+
+        Args:
+            trips: Optional list of trips to publish. If None, gets all active trips
+                   from storage (normal operational mode). If provided (e.g., []
+                   from async_delete_all_trips), uses the given trips directly.
+        """
         if not self._emhass_adapter:
             return
-        all_trips = await self._get_all_active_trips()
-        await self._emhass_adapter.async_publish_all_deferrable_loads(all_trips)
+        if trips is None:
+            trips = await self._get_all_active_trips()
+        await self._emhass_adapter.async_publish_all_deferrable_loads(trips)
 
         # Trigger coordinator refresh to update sensor attributes and last_updated timestamp
         # This is critical for SOC change tests - when SOC changes, publish_deferrable_loads()
@@ -712,6 +719,14 @@ class TripManager:
         self._recurring_trips = {}
         self._punctual_trips = {}
         await self.async_save_trips()
+
+        # CRITICAL: Call publish_deferrable_loads with empty list to ensure
+        # EMHASS sensor is updated with empty data after all trips are deleted.
+        # Without this, _cached_per_trip_params retains stale data and the
+        # EMHASS sensor's def_total_hours_array shows old values.
+        if self._emhass_adapter:
+            await self.publish_deferrable_loads([])
+
         _LOGGER.info("Deleted all trips for vehicle %s", self.vehicle_id)
 
     async def async_pause_recurring_trip(self, trip_id: str) -> None:
