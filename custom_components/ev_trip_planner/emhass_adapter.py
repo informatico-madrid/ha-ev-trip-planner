@@ -965,6 +965,60 @@ class EMHASSAdapter:
             del self._cached_per_trip_params[stale_id]
             _LOGGER.debug("Cleared stale cache entry for trip %s", stale_id)
 
+        # FR-4: Cache per-trip EMHASS params with proper charging window computation
+        # Get SOC ONCE before the loop (not per-trip) for consistency
+        soc_current = await self._get_current_soc()
+        if soc_current is None:
+            soc_current = 50.0
+
+        # Get hora_regreso ONCE before the loop for consistency
+        hora_regreso = None
+        if self._presence_monitor is None and coordinator is not None:
+            trip_manager = getattr(coordinator, "_trip_manager", None)
+            if trip_manager and hasattr(trip_manager, "vehicle_controller"):
+                vc = trip_manager.vehicle_controller
+                if vc and hasattr(vc, "_presence_monitor"):
+                    self._presence_monitor = vc._presence_monitor
+
+        if self._presence_monitor:
+            try:
+                hora_regreso = await self._presence_monitor.async_get_hora_regreso()
+            except Exception:  # pragma: no cover - defensive: presence monitor unavailable
+                hora_regreso = None
+
+        # Populate per-trip cache for each trip
+        for trip in trips:
+            trip_id = trip.get("id")
+            if not trip_id:  # pragma: no cover - defensive: skip invalid trips
+                continue
+            await self._populate_per_trip_cache_entry(
+                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
+                self._safety_margin_percent, soc_current, hora_regreso
+            )
+
+        # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
+        # Use async_refresh() for immediate update (not debounced async_request_refresh)
+        if coordinator is not None:
+            await coordinator.async_refresh()
+            _LOGGER.debug(
+                "Triggered coordinator refresh for EMHASS data update for %s",
+                self.vehicle_id,
+            )
+        else:
+            _LOGGER.warning(
+                "No coordinator found for %s, EMHASS data update delayed",
+                self.vehicle_id,
+            )
+
+        _LOGGER.info(
+            "Published deferrable loads for %s: %d trips, profile length: %d",
+            self.vehicle_id,
+            len(trips),
+            len(power_profile),
+        )
+
+        return True
+
     async def async_verify_shell_command_integration(self) -> Dict[str, Any]:
         """
         Verify that the EMHASS shell command integration is working.
