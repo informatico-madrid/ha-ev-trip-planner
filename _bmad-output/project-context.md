@@ -268,6 +268,51 @@ pytest tests/test_calculations.py -v
 - Tests: create-trip, delete-trip, edit-trip, form-validation, trip-list-view, emhass-sensor-updates, panel-emhass-sensor-entity-id
 - Helpers: `tests/e2e/trips-helpers.ts`
 
+### E2E SELECTOR RULES — HOME ASSISTANT + LIT WEB COMPONENTS
+
+> **CRITICAL**: Home Assistant uses Lit Web Components with `mode: "open"` Shadow DOM.
+> Playwright auto-pierces open shadow DOM with ALL locators EXCEPT XPath.
+
+**Locator Priority (use in this order):**
+1. `getByRole()` — most robust, accessibility-native, auto-pierces shadow DOM
+2. `getByLabel()` / `getByPlaceholder()` — semantic, auto-pierces shadow DOM
+3. `getByText()` — text-based, auto-pierces shadow DOM
+4. `getByTestId()` — data attributes, auto-pierces shadow DOM
+5. CSS selector — auto-pierces open shadow DOM (no special syntax needed)
+6. **XPath PROHIBITED** — does NOT pierce shadow roots; never use for elements inside shadow trees
+
+**FORBIDDEN Patterns:**
+- `page.goto('/ev_trip_planner')` — NOT allowed in HA Container; use authenticated navigation via `window.location` or click-through
+- XPath selectors for elements inside shadow trees — will NOT find elements
+- `>>` syntax — this is NOT a pierce syntax in Playwright; it's just a CSS child combinator with no special behavior
+
+**Shadow DOM Architecture in HA:**
+```
+<home-assistant> (open shadow root)
+  └── #shadow-root (open)
+       └── <home-assistant-panel> 
+            └── #shadow-root (open)
+                 └── ev-trip-planner-panel
+                      └── #shadow-root (open)
+                           └── Trip UI elements (buttons, forms, cards)
+```
+
+Playwright automatically traverses all open shadow roots with web-first locators (getByRole, getByLabel, etc.) and CSS selectors.
+
+**Dialog Handling:**
+- Native browser dialogs (alert/confirm) require `page.on('dialog', ...)` handler BEFORE triggering action
+- Use `setupDialogHandler()` from `tests/e2e/trips-helpers.ts` for confirmation dialogs
+- Use `setupAlertHandler()` from `trips-helpers.ts` for alert dialogs
+
+**Debug Commands:**
+- `npx playwright test --debug` — opens Playwright inspector with paused execution
+- `await page.pause()` — programmatically pauses test, opens browser inspector to inspect shadow DOM structure
+- `npx playwright show-trace` — analyze test traces for selector failures
+- `page.screenshot({ path: 'debug.png' })` — capture screenshot at failure point
+
+**Skill to Invoke:**
+When writing E2E tests, invoke the `playwright-best-practices` skill from `.agents/skills/playwright-best-practices/` for comprehensive guidance. Key reference: `core/locators.md` lines 177-203 contain Shadow DOM traversal patterns.
+
 ---
 
 ## Development Workflow

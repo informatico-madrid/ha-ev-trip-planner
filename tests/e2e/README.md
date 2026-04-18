@@ -306,13 +306,16 @@ await page.getByRole('link', { name: 'EV Trip Planner' }).click();
 
 ### Shadow DOM selectors not working
 
-Use web-first locators (getByRole, getByLabel). Playwright auto-pierces shadow DOM with these:
+Use web-first locators (getByRole, getByLabel) for robustness. Playwright auto-pierces open shadow DOM with these:
 ```typescript
-// WRONG - CSS pierce syntax
-await page.locator('ev-trip-planner-panel').locator('button').click();
-
-// CORRECT - web-first locator
+// RECOMMENDED - web-first locator (robust, accessibility-friendly)
 await page.getByRole('button', { name: /Agregar Viaje/i }).click();
+
+// ALSO WORKS - CSS selectors auto-pierce open shadow DOM in Playwright
+await page.locator('.add-trip-btn').click();
+
+// NOTE: "ev-trip-planner-panel" chaining is unnecessary complexity - just use the selector directly
+// XPath does NOT pierce shadow roots (avoid XPath for shadow DOM elements)
 ```
 
 ### Dialog handler not catching confirmation

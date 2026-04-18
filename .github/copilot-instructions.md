@@ -156,3 +156,49 @@ Tests muy exhaustivos que cubren casi todo
 Un coveragerc o pyproject.toml que excluye patrones globalmente (por ejemplo, todos los if TYPE_CHECKING: bloques del repositorio entero)
 
 El archivo .coveragerc de home-assistant/core define exclusiones globales de patrones como if TYPE_CHECKING:, @overload, y raise NotImplementedError, por lo que los contributors individuales ni siquiera tienen que poner el pragma en esos casos.
+
+## E2E Testing Rules — Home Assistant + Lit Web Components
+
+> **CRITICAL**: Home Assistant uses Lit Web Components with `mode: "open"` Shadow DOM.
+> Playwright auto-pierces open shadow DOM with ALL locators EXCEPT XPath.
+
+### Selector Priority (use in this order)
+1. `getByRole()` — most robust, accessibility-native, auto-pierces shadow DOM
+2. `getByLabel()` / `getByPlaceholder()` — semantic form elements
+3. `getByText()` — text-based matching
+4. `getByTestId()` — data attributes (if available)
+5. CSS selector — auto-pierces open shadow DOM (no special syntax)
+6. **XPath PROHIBITED** — does NOT pierce shadow roots
+
+### Forbidden Patterns
+- `page.goto('/ev_trip_planner')` — NOT allowed in HA Container; use authenticated navigation via `window.location` or click-through HA UI
+- XPath selectors inside shadow trees — will NOT find elements
+- `>>` syntax — NOT a pierce syntax; it's just CSS child combinator
+
+### Shadow DOM Architecture
+```
+<home-assistant> (open shadow root)
+  └── <home-assistant-panel> (open shadow root)
+       └── ev-trip-planner-panel (open shadow root)
+            └── Trip UI: buttons, forms, cards
+```
+Playwright auto-traverses all open shadow roots with web-first locators.
+
+### Dialog Handling
+- Native browser dialogs (alert/confirm): set up `page.on('dialog', ...)` BEFORE triggering action
+- Use `setupDialogHandler()` from `tests/e2e/trips-helpers.ts`
+- Use `setupAlertHandler()` from `trips-helpers.ts` for alerts
+
+### Debug
+- `npx playwright test --debug` — opens Playwright inspector
+- `await page.pause()` — pauses execution, opens browser inspector for shadow DOM inspection
+- `npx playwright show-trace` — analyze test traces
+
+### Skills
+When writing E2E tests, invoke `playwright-best-practices` from `.agents/skills/playwright-best-practices/`. Key file: `core/locators.md` lines 177-203 for Shadow DOM patterns.
+
+### Run E2E Tests
+```bash
+make e2e          # Full E2E test suite
+npx playwright test --debug  # Debug mode
+```

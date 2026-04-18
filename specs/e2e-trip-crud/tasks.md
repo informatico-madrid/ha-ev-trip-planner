@@ -572,15 +572,16 @@ Constitution: POC-first workflow (GREENFIELD)
 - [x] T041 [P] [US-1] Verify selector patterns follow homeassistant-selector-map rules
   - **Do**:
     1. Review all selectors in trips-helpers.ts and test files
-    2. Ensure NO use of >> pierce syntax
-    3. Ensure NO XPath or CSS class selectors
-    4. Ensure all selectors use getByRole, getByLabel, or getByTestId
+    2. Use web-first locators (getByRole, getByLabel, getByText) - these auto-pierce shadow DOM
+    3. CSS selectors also pierce open shadow DOM in Playwright
+    4. XPath does NOT pierce shadow roots - avoid XPath
   - **Files**: `tests/e2e/trips-helpers.ts`, `tests/e2e/*.spec.ts`, `auth.setup.ts`
   - **Done when**: All selectors follow web-first locator pattern
-  - **Verify**: `grep -r ">>\|xpath\|getByCss" tests/e2e/ auth.setup.ts && echo "FOUND_FORBIDDEN" || echo "OK"`
+  - **Verify**: `grep -rE "xpath" tests/e2e/ auth.setup.ts && echo "FOUND_FORBIDDEN" || echo "OK"` (CSS selectors and web-first are allowed)
   - **Commit**: `refactor(e2e): verify selectors follow homeassistant-selector-map rules`
   - **Skills**:
     - **homeassistant-selector-map** - Read `/home/malka/.claude/plugins/marketplaces/smart-ralph/plugins/ralph-specum/skills/e2e/examples/homeassistant-selector-map/SKILL.md` for selector hierarchy
+  - **CORRECTION NOTE 2026-04-18**: Previous version incorrectly forbade CSS selectors and ">>" pierce syntax. Playwright CSS selectors auto-pierce open shadow DOM. The ">>" syntax does not exist as a pierce mechanism in Playwright.
 
 - [x] T042 [P] [US-1] Verify navigation patterns follow SPA rules
   - **Do**:

@@ -78,7 +78,7 @@ Create smoke tests for EV Trip Planner CRUD operations (Create, Edit, Delete) in
 |----|-------------|--------|--------|
 | NFR-1 | CI execution | Timeout | 60 min max (GitHub Actions job timeout) |
 | NFR-2 | Test isolation | Environment | Docker HA container per test run |
-| NFR-3 | Selector stability | Shadow DOM | Use web-first locators (getByRole, getByLabel, getByTestId) — `>>` pierce syntax is FORBIDDEN anti-pattern |
+| NFR-3 | Selector stability | Shadow DOM | Use web-first locators (getByRole, getByLabel, getByTestId) — XPath is FORBIDDEN because it does NOT pierce shadow roots; CSS selectors and web-first locators both work with open shadow DOM |
 | NFR-4 | Browser | Engine | Chromium (Playwright default in CI) |
 | NFR-5 | Parallel execution | Workers | 1 worker in CI (--workers=1) to avoid HA conflicts |
 
@@ -86,14 +86,14 @@ Create smoke tests for EV Trip Planner CRUD operations (Create, Edit, Delete) in
 
 | Term | Definition |
 |------|------------|
-| **Shadow DOM** | Encapsulated DOM tree inside Lit web component; requires pierce selector (`>>`) for Playwright |
+| **Shadow DOM** | Encapsulated DOM tree inside Lit web component; Playwright automatically pierces open shadow roots with ALL locators except XPath |
 | **EV Trip Planner panel** | Lit web component at `/ev-trip-planner-{vehicle_id}` URL |
 | **Recurrente trip** | Weekly recurring trip with day of week + time |
 | **Puntual trip** | One-time trip with specific datetime |
 | **globalSetup** | Playwright hook that runs once before all tests; used to start ephemeral HA |
 | **globalTeardown** | Playwright hook that runs once after all tests; used to stop ephemeral HA |
 | **Ephemeral HA** | Temporary Home Assistant instance started by globalSetup for isolated testing |
-| **Pierce selector** | Playwright `>>` syntax — **FORBIDDEN** anti-pattern per homeassistant-selector-map skill; use web-first locators instead |
+| **Pierce selector** | CSS selectors automatically pierce open shadow DOM in Playwright; XPath is the only selector that cannot pierce shadow roots; there is no special ">>" pierce syntax in Playwright |
 | **HA service** | Backend API called via `hass.callService('ev_trip_planner', service_name, data)` |
 
 ## Out of Scope
