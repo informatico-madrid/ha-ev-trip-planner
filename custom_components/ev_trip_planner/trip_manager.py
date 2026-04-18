@@ -194,6 +194,11 @@ class TripManager:
         _LOGGER.info("Configurando gestor de viajes para vehículo: %s", self.vehicle_id)
         await self.vehicle_controller.async_setup()
         await self._load_trips()
+        # CRITICAL FIX: Publish trips to EMHASS after loading from storage
+        # This ensures EMHASS sensor is updated after HA restart when trips are loaded
+        # Previously, _load_trips() was called but publish_deferrable_loads() was NOT,
+        # causing the EMHASS template to show empty arrays after restart
+        await self.publish_deferrable_loads()
 
     async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente.
@@ -694,6 +699,14 @@ class TripManager:
     async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
         _LOGGER.debug("Deleting all trips for vehicle %s", self.vehicle_id)
+
+        # CRITICAL FIX: Remove each trip from EMHASS BEFORE clearing dictionaries
+        # This ensures EMHASS adapter cleans up its sensors and index_map
+        all_trip_ids = list(self._trips.keys())
+        for trip_id in all_trip_ids:
+            if self._emhass_adapter:
+                await self._async_remove_trip_from_emhass(trip_id)
+
         # Clear ALL trip storage including legacy _trips dict
         self._trips = {}
         self._recurring_trips = {}

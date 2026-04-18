@@ -2082,6 +2082,33 @@ async def test_async_delete_all_trips_clears_and_saves(mock_hass, vehicle_id):
 
 
 @pytest.mark.asyncio
+async def test_async_delete_all_trips_with_emhass_adapter(mock_hass, vehicle_id):
+    """Test async_delete_all_trips calls _async_remove_trip_from_emhass when adapter present (line 708)."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._trips = {"trip1": {}, "trip2": {}}
+    manager._recurring_trips = {"rec1": {}}
+    manager._punctual_trips = {"pun1": {}}
+    manager.async_save_trips = AsyncMock()
+    manager.publish_deferrable_loads = AsyncMock()
+
+    # Mock EMHASS adapter
+    mock_adapter = MagicMock()
+    mock_adapter.async_remove_deferrable_load = AsyncMock()
+    manager._emhass_adapter = mock_adapter
+
+    await manager.async_delete_all_trips()
+
+    # Should have called async_remove_deferrable_load for each trip
+    assert mock_adapter.async_remove_deferrable_load.call_count == 2
+    mock_adapter.async_remove_deferrable_load.assert_any_await("trip1")
+    mock_adapter.async_remove_deferrable_load.assert_any_await("trip2")
+
+    # Should still clear and save
+    assert manager._trips == {}
+    manager.async_save_trips.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_async_save_trips_exception_handler(mock_hass, vehicle_id):
     """Test async_save_trips handles exception in storage save (lines 377-378)."""
     manager = TripManager(mock_hass, vehicle_id)

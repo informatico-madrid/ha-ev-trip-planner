@@ -1476,62 +1476,82 @@ async def async_remove_entry_cleanup(
         vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
         vehicle_name = vehicle_name_raw
 
+    # CRITICAL FIX: Delete all trips via TripManager FIRST
+    # This ensures EMHASS adapter cleanup happens (removes trip sensors, clears index_map)
+    # before we delete the storage. Without this, trip data remains in EMHASS template.
+    #
+    # Get runtime data from entry.runtime_data (HA-recommended pattern)
+    runtime_data = getattr(entry, "runtime_data", None)
+    trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
+    emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+
+    if trip_manager:
+        _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+        await trip_manager.async_delete_all_trips()
+
+    # Cleanup EMHASS vehicle indices - THIS IS THE KEY FIX
+    # Even if trip_manager didn't have EMHASS adapter attached, we need to clean
+    # up the EMHASS sensor data directly via the adapter
+    if emhass_adapter:
+        if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+            emhass_adapter._config_entry_listener()
+            emhass_adapter._config_entry_listener = None
+        await emhass_adapter.async_cleanup_vehicle_indices()
+        _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)
+
+    # Delete persistent storage for this vehicle
+    from homeassistant.helpers import storage as ha_storage
+
+    storage_key = f"{DOMAIN}_{vehicle_id}"
+    store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
     try:
-        # Delete persistent storage for this vehicle
-        from homeassistant.helpers import storage as ha_storage
+        await store.async_remove()
+    except Exception as store_err:
+        _LOGGER.warning("Could not remove storage for %s: %s", storage_key, store_err)
 
-        storage_key = f"{DOMAIN}_{vehicle_id}"
-        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
-        try:
-            await store.async_remove()
-        except Exception as store_err:
-            _LOGGER.warning("Could not remove storage for %s: %s", storage_key, store_err)
+    # Clean up YAML fallback storage
+    try:
+        import os
+        from pathlib import Path
 
-        # Clean up YAML fallback storage
-        try:
-            import os
-            from pathlib import Path
+        config_dir = hass.config.config_dir or "/config"
+        yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+        if yaml_path.exists():
+            os.unlink(yaml_path)
+    except Exception as yaml_err:
+        _LOGGER.warning("Could not remove YAML storage: %s", yaml_err)
 
-            config_dir = hass.config.config_dir or "/config"
-            yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
-            if yaml_path.exists():
-                os.unlink(yaml_path)
-        except Exception as yaml_err:
-            _LOGGER.warning("Could not remove YAML storage: %s", yaml_err)
+    # Clean up input helpers created for this vehicle
+    input_helper_entities = [
+        f"{vehicle_id}_trip_day",
+        f"{vehicle_id}_trip_time",
+        f"{vehicle_id}_trip_km",
+        f"{vehicle_id}_trip_kwh",
+        f"{vehicle_id}_trip_desc",
+        f"{vehicle_id}_punctual_datetime",
+        f"{vehicle_id}_punctual_km",
+        f"{vehicle_id}_punctual_kwh",
+        f"{vehicle_id}_punctual_desc",
+        f"{vehicle_id}_edit_trip_selector",
+        f"{vehicle_id}_edit_trip_time",
+        f"{vehicle_id}_edit_trip_km",
+        f"{vehicle_id}_edit_trip_kwh",
+        f"{vehicle_id}_edit_trip_desc",
+        f"{vehicle_id}_edit_punctual_datetime",
+    ]
 
-        # Clean up input helpers created for this vehicle
-        input_helper_entities = [
-            f"{vehicle_id}_trip_day",
-            f"{vehicle_id}_trip_time",
-            f"{vehicle_id}_trip_km",
-            f"{vehicle_id}_trip_kwh",
-            f"{vehicle_id}_trip_desc",
-            f"{vehicle_id}_punctual_datetime",
-            f"{vehicle_id}_punctual_km",
-            f"{vehicle_id}_punctual_kwh",
-            f"{vehicle_id}_punctual_desc",
-            f"{vehicle_id}_edit_trip_selector",
-            f"{vehicle_id}_edit_trip_time",
-            f"{vehicle_id}_edit_trip_km",
-            f"{vehicle_id}_edit_trip_kwh",
-            f"{vehicle_id}_edit_trip_desc",
-            f"{vehicle_id}_edit_punctual_datetime",
-        ]
+    for entity_id in input_helper_entities:
+        for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
+            full_entity_id = f"{prefix}{entity_id}"
+            try:
+                if hass.states.get(full_entity_id):
+                    await hass.services.async_call(
+                        full_entity_id.split(".", maxsplit=1)[0],
+                        "remove",
+                        {"entity_id": full_entity_id},
+                        blocking=True,
+                    )
+            except Exception:
+                pass  # Entity might not exist
 
-        for entity_id in input_helper_entities:
-            for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
-                full_entity_id = f"{prefix}{entity_id}"
-                try:
-                    if hass.states.get(full_entity_id):
-                        await hass.services.async_call(
-                            full_entity_id.split(".", maxsplit=1)[0],
-                            "remove",
-                            {"entity_id": full_entity_id},
-                            blocking=True,
-                        )
-                except Exception:
-                    pass  # Entity might not exist
-
-        _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)
-    except Exception as err:  # pragma: no cover — structurally unreachable: outer except redundant with inner ones
-        _LOGGER.error("Error removing entry for vehicle %s: %s", vehicle_name, err)
+    _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)
