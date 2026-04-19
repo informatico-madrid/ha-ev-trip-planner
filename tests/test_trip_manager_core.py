@@ -2083,7 +2083,13 @@ async def test_async_delete_all_trips_clears_and_saves(mock_hass, vehicle_id):
 
 @pytest.mark.asyncio
 async def test_async_delete_all_trips_with_emhass_adapter(mock_hass, vehicle_id):
-    """Test async_delete_all_trips calls _async_remove_trip_from_emhass when adapter present (line 708)."""
+    """Test async_delete_all_trips clears cache and publishes empty list (line 708).
+
+    The fix changed behavior: instead of looping through trips calling
+    _async_remove_trip_from_emhass for each (which republishes remaining trips),
+    we now clear dictionaries FIRST, then call publish_deferrable_loads([])
+    once to clear the EMHASS cache.
+    """
     manager = TripManager(mock_hass, vehicle_id)
     manager._trips = {"trip1": {}, "trip2": {}}
     manager._recurring_trips = {"rec1": {}}
@@ -2098,10 +2104,12 @@ async def test_async_delete_all_trips_with_emhass_adapter(mock_hass, vehicle_id)
 
     await manager.async_delete_all_trips()
 
-    # Should have called async_remove_deferrable_load for each trip
-    assert mock_adapter.async_remove_deferrable_load.call_count == 2
-    mock_adapter.async_remove_deferrable_load.assert_any_await("trip1")
-    mock_adapter.async_remove_deferrable_load.assert_any_await("trip2")
+    # NEW BEHAVIOR: Does NOT call async_remove_deferrable_load in a loop.
+    # Instead, publish_deferrable_loads([]) is called once to clear cache.
+    assert mock_adapter.async_remove_deferrable_load.call_count == 0
+
+    # publish_deferrable_loads IS called with empty list once
+    manager.publish_deferrable_loads.assert_awaited_once_with([])
 
     # Should still clear and save
     assert manager._trips == {}
@@ -2960,3 +2968,74 @@ async def test_async_generate_deferrables_schedule_calculates_charging_window(mo
 
     # Should calculate charging window
     assert isinstance(schedule, list)
+
+
+# =============================================================================
+# COVERAGE: async_delete_all_trips coordinator branches (lines 769-773)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_delete_all_trips_with_coordinator(mock_hass, vehicle_id):
+    """Line 769: coordinator is not None, data gets cleared and refreshed."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._trips = {"trip1": {}}
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+    manager.async_save_trips = AsyncMock()
+    manager.publish_deferrable_loads = AsyncMock()
+    manager._emhass_adapter = None
+
+    coordinator = MagicMock()
+    coordinator.data = {"per_trip_emhass_params": {"trip1": {}}}
+    coordinator.async_refresh = AsyncMock()
+
+    runtime_data = MagicMock()
+    runtime_data.coordinator = coordinator
+
+    entry = mock_hass.config_entries.async_get_entry.return_value
+    entry.runtime_data = runtime_data
+
+    await manager.async_delete_all_trips()
+
+    coordinator.async_refresh.assert_awaited()
+    assert manager._trips == {}
+
+
+@pytest.mark.asyncio
+async def test_async_delete_all_trips_coordinator_none(mock_hass, vehicle_id):
+    """Line 771: coordinator is None in runtime_data."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._trips = {"trip1": {}}
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+    manager.async_save_trips = AsyncMock()
+    manager.publish_deferrable_loads = AsyncMock()
+    manager._emhass_adapter = None
+
+    runtime_data = MagicMock()
+    runtime_data.coordinator = None
+
+    entry = mock_hass.config_entries.async_get_entry.return_value
+    entry.runtime_data = runtime_data
+
+    await manager.async_delete_all_trips()
+    assert manager._trips == {}
+
+
+@pytest.mark.asyncio
+async def test_async_delete_all_trips_no_runtime_data(mock_hass, vehicle_id):
+    """Line 773: entry has no runtime_data."""
+    manager = TripManager(mock_hass, vehicle_id)
+    manager._trips = {"trip1": {}}
+    manager._recurring_trips = {}
+    manager._punctual_trips = {}
+    manager.async_save_trips = AsyncMock()
+    manager.publish_deferrable_loads = AsyncMock()
+    manager._emhass_adapter = None
+
+    entry = mock_hass.config_entries.async_get_entry.return_value
+    entry.runtime_data = None
+
+    await manager.async_delete_all_trips()
+    assert manager._trips == {}

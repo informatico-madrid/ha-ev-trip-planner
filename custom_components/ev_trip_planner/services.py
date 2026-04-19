@@ -1411,17 +1411,45 @@ async def async_unload_entry_cleanup(
     trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
     emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
 
+    # E2E-DEBUG-CRITICAL: Log cleanup of listener before deleting trips
+    _LOGGER.warning(
+        "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
+        emhass_adapter,
+        getattr(emhass_adapter, "_config_entry_listener", None) if emhass_adapter else None,
+    )
+
+    # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
+    # _handle_config_entry_update could be triggered during HA's deletion flow
+    # and would reload trips from trip_manager (which still has trips at this point).
+    # By removing the listener first, we prevent any republish during deletion.
+    if emhass_adapter:
+        if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+            emhass_adapter._config_entry_listener()
+            emhass_adapter._config_entry_listener = None
+            _LOGGER.warning(
+                "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s",
+                vehicle_name,
+            )
+
     if trip_manager:
-        _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s",
+            vehicle_name,
+            trip_manager,
+        )
         await trip_manager.async_delete_all_trips()
 
     # Cleanup EMHASS vehicle indices before unload
     if emhass_adapter:
-        _LOGGER.warning("DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s", vehicle_name)
-        if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
-            emhass_adapter._config_entry_listener()
-            emhass_adapter._config_entry_listener = None
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s",
+            vehicle_name,
+        )
         await emhass_adapter.async_cleanup_vehicle_indices()
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s",
+            vehicle_name,
+        )
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
@@ -1487,6 +1515,18 @@ async def async_remove_entry_cleanup(
     trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
     emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
 
+    # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
+    # _handle_config_entry_update could be triggered during HA's deletion flow
+    # and would reload trips from trip_manager (which still has trips at this point).
+    if emhass_adapter:
+        try:
+            if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+                emhass_adapter._config_entry_listener()
+        except Exception as err:
+            _LOGGER.error("Error invoking config entry listener: %s", err)
+        finally:
+            emhass_adapter._config_entry_listener = None
+
     if trip_manager:
         try:
             _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
@@ -1496,13 +1536,6 @@ async def async_remove_entry_cleanup(
 
     # Cleanup EMHASS vehicle indices
     if emhass_adapter:
-        try:
-            if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
-                emhass_adapter._config_entry_listener()
-        except Exception as err:
-            _LOGGER.error("Error invoking config entry listener: %s", err)
-        finally:
-            emhass_adapter._config_entry_listener = None
         try:
             await emhass_adapter.async_cleanup_vehicle_indices()
             _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)

@@ -95,6 +95,15 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         Returns:
             Full data dict with EMHASS keys as None (Phase 1).
         """
+        # E2E-DEBUG-CRITICAL: Log when _async_update_data is called
+        _LOGGER.warning(
+            "E2E-DEBUG coordinator _async_update_data called for vehicle %s",
+            self._vehicle_id,
+        )
+        # E2E-DEBUG-CRITICAL: Log current trips from trip_manager
+        _LOGGER.warning(
+            "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
+        )
         # Get recurring trips as list, convert to dict keyed by trip_id
         recurring_list = await self._trip_manager.async_get_recurring_trips()
         recurring_trips = {
@@ -125,10 +134,14 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             emhass_data = (
                 self._emhass_adapter.get_cached_optimization_results()
             )
+            per_trip_params = emhass_data.get("per_trip_emhass_params", {})
             # DEBUG: Log cache state when reading
             _LOGGER.warning(
-                "DEBUG coordinator: read emhass_power_profile non_zero=%d",
+                "DEBUG coordinator _async_update_data: per_trip_emhass_params has %d entries, "
+                "emhass_power_profile non_zero=%d for vehicle %s",
+                len(per_trip_params),
                 sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0) if emhass_data.get("emhass_power_profile") else 0,
+                self._vehicle_id,
             )
         else:
             emhass_data = {
@@ -136,6 +149,16 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 "emhass_deferrables_schedule": None,
                 "emhass_status": None,
             }
+
+        # E2E-DEBUG-CRITICAL: Log complete returned coordinator.data structure
+        _LOGGER.warning(
+            "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s",
+            list({"recurring_trips": recurring_trips, "punctual_trips": punctual_trips, "kwh_today": kwh_today, "hours_today": hours_today, "next_trip": next_trip, **emhass_data}.keys()),
+        )
+        _LOGGER.warning(
+            "E2E-DEBUG coordinator _async_update_data: returning per_trip_emhass_params=%s",
+            emhass_data.get("per_trip_emhass_params", "NOT_IN_DICT"),
+        )
 
         return {
             "recurring_trips": recurring_trips,

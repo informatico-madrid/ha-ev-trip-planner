@@ -705,27 +705,74 @@ class TripManager:
 
     async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
-        _LOGGER.debug("Deleting all trips for vehicle %s", self.vehicle_id)
+        _LOGGER.warning("DEBUG async_delete_all_trips: START for vehicle %s", self.vehicle_id)
 
-        # CRITICAL FIX: Remove each trip from EMHASS BEFORE clearing dictionaries
-        # This ensures EMHASS adapter cleans up its sensors and index_map
-        all_trip_ids = list(self._trips.keys())
-        for trip_id in all_trip_ids:
-            if self._emhass_adapter:
-                await self._async_remove_trip_from_emhass(trip_id)
-
-        # Clear ALL trip storage including legacy _trips dict
+        # CRITICAL FIX: Clear dictionaries FIRST, then publish empty list once.
+        # Previously, this looped through trips calling _async_remove_trip_from_emhass,
+        # which called publish_deferrable_loads() (no args = None), which internally
+        # called _get_all_active_trips() and REPUBLISHED all remaining trips.
+        # By clearing first and then publishing [], we ensure EMHASS cache is cleared.
         self._trips = {}
         self._recurring_trips = {}
         self._punctual_trips = {}
         await self.async_save_trips()
 
-        # CRITICAL: Call publish_deferrable_loads with empty list to ensure
-        # EMHASS sensor is updated with empty data after all trips are deleted.
-        # Without this, _cached_per_trip_params retains stale data and the
-        # EMHASS sensor's def_total_hours_array shows old values.
+        # CRITICAL FIX: Clear EMHASS adapter's _published_trips BEFORE publish_deferrable_loads.
+        # This prevents _handle_config_entry_update (triggered during integration deletion)
+        # from seeing non-empty _published_trips and republishing old trips via
+        # update_charging_power(). _handle_config_entry_update runs BEFORE async_delete_all_trips
+        # in some deletion flows, and it calls update_charging_power() which publishes _published_trips.
+        # By clearing _published_trips first, we ensure _handle_config_entry_update sees empty
+        # and reloads from trip_manager (which is already cleared), preventing republish.
         if self._emhass_adapter:
+            self._emhass_adapter._published_trips = []
+            self._emhass_adapter._cached_per_trip_params.clear()
+            self._emhass_adapter._cached_power_profile = []
+            self._emhass_adapter._cached_deferrables_schedule = []
+
+        # CRITICAL: Call publish_deferrable_loads with explicit [] (not None).
+        # publish_deferrable_loads(None) would call _get_all_active_trips() which
+        # returns all trips still in storage (before clear). With [], the early return
+        # in async_publish_all_deferrable_loads clears _cached_per_trip_params and
+        # _cached_power_profile and returns without republishing.
+        if self._emhass_adapter:
+            _LOGGER.warning("DEBUG async_delete_all_trips: Calling publish_deferrable_loads([])")
             await self.publish_deferrable_loads([])
+            # EXTRA SAFEGUARD: Also directly clear the adapter's cache as a backup.
+            # This ensures _cached_per_trip_params is cleared even if the coordinator
+            # refresh/reRead flow has issues.
+            self._emhass_adapter._cached_per_trip_params.clear()
+            self._emhass_adapter._published_trips = []
+            self._emhass_adapter._cached_power_profile = []
+            self._emhass_adapter._cached_deferrables_schedule = []
+            _LOGGER.warning("DEBUG async_delete_all_trips: Directly cleared adapter cache as safeguard")
+
+        # EXTRA SAFEGUARD: Directly clear coordinator data to ensure sensor sees empty state.
+        # This addresses the case where _get_coordinator() returns None during deletion flow,
+        # causing the direct coordinator.data update in async_publish_all_deferrable_loads to be skipped.
+        # Without this, def_total_hours_array might still show old trips after integration deletion.
+        try:
+            entry = self.hass.config_entries.async_get_entry(self._entry_id)
+            if entry and hasattr(entry, "runtime_data") and entry.runtime_data:
+                coordinator = getattr(entry.runtime_data, "coordinator", None)
+                if coordinator is not None:
+                    _LOGGER.warning("DEBUG async_delete_all_trips: Directly clearing coordinator.data")
+                    # Handle case where coordinator.data might be None before first refresh
+                    existing_data = coordinator.data or {}
+                    coordinator.data = {
+                        **existing_data,
+                        "per_trip_emhass_params": {},
+                        "emhass_power_profile": [],
+                        "emhass_deferrables_schedule": [],
+                    }
+                    await coordinator.async_refresh()
+                    _LOGGER.warning("DEBUG async_delete_all_trips: Coordinator data cleared and refreshed")
+                else:
+                    _LOGGER.warning("DEBUG async_delete_all_trips: coordinator is None in runtime_data")
+            else:
+                _LOGGER.warning("DEBUG async_delete_all_trips: entry or runtime_data is None/empty")
+        except Exception as err:
+            _LOGGER.warning("DEBUG async_delete_all_trips: Exception during coordinator cleanup: %s", err)
 
         _LOGGER.info("Deleted all trips for vehicle %s", self.vehicle_id)
 
