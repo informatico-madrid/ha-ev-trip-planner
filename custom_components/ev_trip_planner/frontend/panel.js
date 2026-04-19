@@ -11,8 +11,11 @@
 // Debug mode - set to true to enable verbose logging
 const DEBUG = false;
 
+// Single source of truth for version - keeps runtime logs consistent
+const VERSION = '3.0.14';
+
 // VERSION=3.0.14 UNIQUE_LOG_ID=DISCONNECTED_CALLBACK_FIX_2026-04-18
-if (DEBUG) console.log('EV Trip Planner Panel: VERSION=3.0.14 - CRITICAL: Added disconnectedCallback() lifecycle method');
+if (DEBUG) console.log(`EV Trip Planner Panel: VERSION=${VERSION} - CRITICAL: Added disconnectedCallback() lifecycle method`);
 
 // Cache busting removed - CSS version is now fixed
 
@@ -508,8 +511,8 @@ class EVTripPlannerPanel extends LitElement {
 
   constructor() {
     super();
-    console.log('EV Trip Planner Panel: Lit constructor called');
-    console.log('EV Trip Planner Panel: VERSION=3.0.12 TIMESTAMP=' + new Date().toISOString());
+    if (DEBUG) console.log('EV Trip Planner Panel: Lit constructor called');
+    if (DEBUG) console.log(`EV Trip Planner Panel: VERSION=${VERSION} TIMESTAMP=${new Date().toISOString()}`);
   }
 
   /**
