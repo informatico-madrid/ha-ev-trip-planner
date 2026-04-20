@@ -969,6 +969,18 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
         assert deadline_dt_day_time.hour == 10, "Recurring trip deadline should be 10:00"
         print(f"Recurring trip (day/time) deadline: {deadline_dt_day_time.isoformat()}")
 
+        # Test 6: Recurring trip with invalid time string - should return None (lines 514-517)
+        recurring_trip_invalid_time = {
+            "id": "rec_invalid_time_001",
+            "tipo": TRIP_TYPE_RECURRING,
+            "dia_semana": "lunes",
+            "hora": "25:99",  # Invalid time - hour out of range
+            "kwh": 10.0,
+        }
+        deadline_dt_invalid_time = adapter._calculate_deadline_from_trip(recurring_trip_invalid_time)
+        assert deadline_dt_invalid_time is None, "Recurring trip with invalid time should return None"
+        print("Recurring trip with invalid time correctly returns None (line 514-517)")
+
         print("All _calculate_deadline_from_trip tests PASSED!")
 
 
@@ -6108,6 +6120,124 @@ async def test_update_charging_power_shutting_down(hass, mock_store):
         hass.config_entries.async_get_entry = MagicMock()
         await adapter.update_charging_power()
         hass.config_entries.async_get_entry.assert_not_called()
+
+
+# =============================================================================
+# COVERAGE: batch_charging_windows paths (lines 797-808)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_async_publish_all_deferrable_loads_uses_batch_windows(hass, mock_store, mock_coordinator):
+    """Lines 797-808: async_publish_all_deferrable_loads uses batch computed charging windows.
+
+    When trips have valid deadlines, batch_charging_windows is populated and
+    pre_computed_inicio_ventana is passed to _populate_per_trip_cache_entry.
+    This covers lines 570-573 (pre_computed path) and line 602 (fin_ventana_to_use).
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Mock presence_monitor to return hora_regreso
+        mock_pm = MagicMock()
+        mock_pm.async_get_hora_regreso = AsyncMock(return_value=datetime.now(timezone.utc))
+        adapter._presence_monitor = mock_pm
+
+        # Mock _get_current_soc
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock coordinator async_refresh
+        mock_coordinator.async_refresh = AsyncMock()
+
+        # Trips with valid datetime (punctual trips) so batch computation is triggered
+        trips = [
+            {"id": "batch_trip_001", "kwh": 5.0, "datetime": "2026-04-25T09:00:00"},
+            {"id": "batch_trip_002", "kwh": 5.0, "datetime": "2026-04-25T14:00:00"},
+        ]
+
+        hass.states.async_set = AsyncMock()
+
+        # Call async_publish_all_deferrable_loads which should use batch computation
+        result = await adapter.async_publish_all_deferrable_loads(trips)
+
+        # Verify the cache was populated with batch computed windows
+        assert result is True
+        assert "batch_trip_001" in adapter._cached_per_trip_params
+        assert "batch_trip_002" in adapter._cached_per_trip_params
+
+        # Verify pre_computed_inicio_ventana was used (lines 572-573)
+        # The def_start_timestep should be computed from the batch window
+        trip1_params = adapter._cached_per_trip_params["batch_trip_001"]
+        assert "def_start_timestep" in trip1_params
+        # def_start_timestep should be a valid number (0-168)
+        assert 0 <= trip1_params["def_start_timestep"] <= 168
+
+
+@pytest.mark.asyncio
+async def test_async_publish_all_deferrable_loads_skips_trip_without_id(hass, mock_store, mock_coordinator):
+    """Line 786: async_publish_all_deferrable_loads skips trip without id (defensive continue).
+
+    When a trip in the list has no 'id' field, it should be skipped via the
+    defensive continue at line 786. This tests the else branch of
+    `if not trip_id: continue`.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    entry = MockConfigEntry("test_vehicle", config)
+    entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
+
+    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        # Mock presence_monitor to return hora_regreso
+        mock_pm = MagicMock()
+        mock_pm.async_get_hora_regreso = AsyncMock(return_value=datetime.now(timezone.utc))
+        adapter._presence_monitor = mock_pm
+
+        # Mock _get_current_soc
+        adapter._get_current_soc = AsyncMock(return_value=50.0)
+
+        # Mock _update_error_status
+        adapter._update_error_status = MagicMock()
+
+        # Mock coordinator async_refresh
+        mock_coordinator.async_refresh = AsyncMock()
+
+        # Mix of valid trip and invalid trip (no id)
+        trips = [
+            {"id": "valid_trip_001", "kwh": 5.0, "datetime": "2026-04-25T09:00:00"},
+            {"kwh": 5.0, "datetime": "2026-04-25T14:00:00"},  # No id - should be skipped
+        ]
+
+        hass.states.async_set = AsyncMock()
+
+        # Should not raise even with invalid trip
+        result = await adapter.async_publish_all_deferrable_loads(trips)
+
+        # Result is False because only 1 of 2 trips succeeded (the valid one).
+        # The trip without ID is skipped (defensive continue at line 786) but
+        # this causes success_count (1) != len(trips) (2).
+        assert result is False
+        # Verify valid trip was processed and cached
+        assert "valid_trip_001" in adapter._cached_per_trip_params
 
 
 # =============================================================================

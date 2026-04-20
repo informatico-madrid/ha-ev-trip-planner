@@ -957,6 +957,8 @@ class EMHASSAdapter:
         # causing EmhassDeferrableLoadSensor's extra_state_attributes to still show
         # old trips in def_total_hours_array after integration deletion.
         # Handle both [] and None (called as publish_deferrable_loads() without args)
+        # NOTE: This cache clear happens BEFORE _shutting_down check to ensure
+        # stale data is cleaned even during shutdown.
         if not trips:
             self._cached_per_trip_params.clear()
             self._cached_power_profile = []

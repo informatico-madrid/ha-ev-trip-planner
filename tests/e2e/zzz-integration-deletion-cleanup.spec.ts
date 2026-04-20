@@ -74,7 +74,12 @@ test.describe('Integration Deletion Cleanup', () => {
     await expect(page.getByText('Cleanup Trip 2')).toBeVisible();
     await expect(page.getByText('Cleanup Trip 3')).toBeVisible();
 
-    const beforeAttrs = await getSensorAttributes(page, sensorEntityId);
+    // Re-discover EMHASS sensor after creating trips to ensure we use the actual sensor
+    // This handles the case where initial discovery might fallback to vehicle-id based id
+    const discoveredAgain = await discoverEmhassSensorEntityId(page);
+    const activeSensorEntityId = discoveredAgain || sensorEntityId;
+
+    const beforeAttrs = await getSensorAttributes(page, activeSensorEntityId);
     const beforeCount = (beforeAttrs.def_total_hours_array || []).length;
     expect(beforeCount).toBeGreaterThan(baselineCount);
 
@@ -135,7 +140,7 @@ test.describe('Integration Deletion Cleanup', () => {
     // Verify sensor no longer has trips from deleted integration
     let afterAttrs: Record<string, any> | null = null;
     try {
-      afterAttrs = await getSensorAttributes(page, sensorEntityId);
+      afterAttrs = await getSensorAttributes(page, activeSensorEntityId);
     } catch (err: any) {
       if (err?.message?.includes('not found')) {
         // Sensor not found = integration properly deleted
