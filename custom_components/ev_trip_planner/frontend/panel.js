@@ -4,15 +4,18 @@
  * A Lit-based web component that renders the EV Trip Planner dashboard
  * as a native Home Assistant panel (not Lovelace).
  *
- * @version 3.0.13 - Fixed infinite polling loop, added debug flag
+ * @version 3.0.14 - CRITICAL FIX: Added missing disconnectedCallback() to prevent blank screen on tab switching
  * @author EV Trip Planner Team
  */
 
 // Debug mode - set to true to enable verbose logging
 const DEBUG = false;
 
-// VERSION=3.0.13 UNIQUE_LOG_ID=POLLING_FIX_2026-04-17
-if (DEBUG) console.log('EV Trip Planner Panel: VERSION=3.0.13 - Polling fix applied');
+// Single source of truth for version - keeps runtime logs consistent
+const VERSION = '3.0.14';
+
+// VERSION=3.0.14 UNIQUE_LOG_ID=DISCONNECTED_CALLBACK_FIX_2026-04-18
+if (DEBUG) console.log(`EV Trip Planner Panel: VERSION=${VERSION} - CRITICAL: Added disconnectedCallback() lifecycle method`);
 
 // Cache busting removed - CSS version is now fixed
 
@@ -508,8 +511,8 @@ class EVTripPlannerPanel extends LitElement {
 
   constructor() {
     super();
-    console.log('EV Trip Planner Panel: Lit constructor called');
-    console.log('EV Trip Planner Panel: VERSION=3.0.12 TIMESTAMP=' + new Date().toISOString());
+    if (DEBUG) console.log('EV Trip Planner Panel: Lit constructor called');
+    if (DEBUG) console.log(`EV Trip Planner Panel: VERSION=${VERSION} TIMESTAMP=${new Date().toISOString()}`);
   }
 
   /**
@@ -517,10 +520,26 @@ class EVTripPlannerPanel extends LitElement {
    */
   connectedCallback() {
     super.connectedCallback();
-    console.log('EV Trip Planner Panel: connectedCallback called');
-    console.log('EV Trip Planner Panel: full URL:', window.location.href);
-    console.log('EV Trip Planner Panel: pathname:', window.location.pathname);
-    console.log('EV Trip Planner Panel: hash:', window.location.hash);
+
+    // Detect if this is a reconnection (component already had vehicle_id)
+    // Use != null (loose equality) to catch both null AND undefined
+    const isReconnection = this._vehicleId != null;
+
+    if (DEBUG) {
+      console.log('EV Trip Planner Panel: connectedCallback called',
+        isReconnection ? '(reconexión)' : '(primera vez)');
+      console.log('EV Trip Planner Panel: full URL:', window.location.href);
+      console.log('EV Trip Planner Panel: pathname:', window.location.pathname);
+      console.log('EV Trip Planner Panel: hash:', window.location.hash);
+    }
+
+    // If reconnection, reset state to ensure clean reload
+    if (isReconnection) {
+      if (DEBUG) console.log('EV Trip Planner Panel: Resetting state for reconnection');
+      this._rendered = false;
+      this._pollStarted = false;
+      this._isLoading = true;
+    }
 
     // Get vehicle_id from URL
     this._extractVehicleId();
@@ -531,6 +550,31 @@ class EVTripPlannerPanel extends LitElement {
     } else {
       this._startHassPolling();
     }
+  }
+
+  /**
+   * Disconnected callback - called when element is removed from DOM
+   * CRITICAL: This prevents memory leaks and ensures clean reconnection
+   * Following Lit lifecycle best practices - this method was MISSING
+   */
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    if (DEBUG) console.log('EV Trip Planner Panel: disconnectedCallback called - cleaning up');
+
+    // Clear polling timeout to prevent memory leaks
+    if (this._pollTimeout) {
+      if (DEBUG) console.log('EV Trip Planner Panel: Clearing poll timeout');
+      clearTimeout(this._pollTimeout);
+      this._pollTimeout = null;
+    }
+
+    // Reset state flags to ensure clean reconnection
+    this._rendered = false;
+    this._pollStarted = false;
+
+    // Note: We DON'T reset _trips or _vehicleId as they may be useful on reconnection
+    // The render() method will handle showing appropriate loading state
   }
 
   /**

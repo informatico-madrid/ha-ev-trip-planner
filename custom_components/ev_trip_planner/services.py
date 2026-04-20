@@ -18,6 +18,7 @@ from .const import DOMAIN
 from .coordinator import TripPlannerCoordinator
 from .dashboard import DashboardImportResult
 from .trip_manager import TripManager
+from .utils import normalize_vehicle_id
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -699,8 +700,8 @@ def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str):
             )
             continue
         entry_vehicle_name = e.data.get("vehicle_name", "")
-        # Normalize entry_vehicle_name the same way as in async_setup_entry
-        normalized_entry_name = entry_vehicle_name.lower().replace(" ", "_")
+        # Normalize entry_vehicle_name using centralized utility
+        normalized_entry_name = normalize_vehicle_id(entry_vehicle_name)
         if normalized_entry_name == normalized_vehicle_id:
             return e
     return None
@@ -1410,16 +1411,45 @@ async def async_unload_entry_cleanup(
     trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
     emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
 
-    if trip_manager:
-        _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
-        await trip_manager.async_delete_all_trips()
+    # E2E-DEBUG-CRITICAL: Log cleanup of listener before deleting trips
+    _LOGGER.warning(
+        "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
+        emhass_adapter,
+        getattr(emhass_adapter, "_config_entry_listener", None) if emhass_adapter else None,
+    )
 
-    # Cleanup EMHASS vehicle indices before unload
+    # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
+    # _handle_config_entry_update could be triggered during HA's deletion flow
+    # and would reload trips from trip_manager (which still has trips at this point).
+    # By removing the listener first, we prevent any republish during deletion.
     if emhass_adapter:
         if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
             emhass_adapter._config_entry_listener()
             emhass_adapter._config_entry_listener = None
+            _LOGGER.warning(
+                "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s",
+                vehicle_name,
+            )
+
+    if trip_manager:
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s",
+            vehicle_name,
+            trip_manager,
+        )
+        await trip_manager.async_delete_all_trips()
+
+    # Cleanup EMHASS vehicle indices before unload
+    if emhass_adapter:
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s",
+            vehicle_name,
+        )
         await emhass_adapter.async_cleanup_vehicle_indices()
+        _LOGGER.warning(
+            "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s",
+            vehicle_name,
+        )
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
@@ -1476,62 +1506,95 @@ async def async_remove_entry_cleanup(
         vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
         vehicle_name = vehicle_name_raw
 
+    # CRITICAL FIX: Delete all trips via TripManager FIRST
+    # This ensures EMHASS adapter cleanup happens (removes trip sensors, clears index_map)
+    # before we delete the storage. Without this, trip data remains in EMHASS template.
+    #
+    # Get runtime data from entry.runtime_data (HA-recommended pattern)
+    runtime_data = getattr(entry, "runtime_data", None)
+    trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
+    emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+
+    # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
+    # _handle_config_entry_update could be triggered during HA's deletion flow
+    # and would reload trips from trip_manager (which still has trips at this point).
+    if emhass_adapter:
+        try:
+            if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+                emhass_adapter._config_entry_listener()
+        except Exception as err:
+            _LOGGER.error("Error invoking config entry listener: %s", err)
+        finally:
+            emhass_adapter._config_entry_listener = None
+
+    if trip_manager:
+        try:
+            _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+            await trip_manager.async_delete_all_trips()
+        except Exception as err:
+            _LOGGER.error("Error deleting trips for vehicle %s: %s", vehicle_name, err)
+
+    # Cleanup EMHASS vehicle indices
+    if emhass_adapter:
+        try:
+            await emhass_adapter.async_cleanup_vehicle_indices()
+            _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)
+        except Exception as err:
+            _LOGGER.error("Error cleaning up EMHASS indices for vehicle %s: %s", vehicle_name, err)
+
+    # Delete persistent storage for this vehicle
+    from homeassistant.helpers import storage as ha_storage
+
+    storage_key = f"{DOMAIN}_{vehicle_id}"
+    store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
     try:
-        # Delete persistent storage for this vehicle
-        from homeassistant.helpers import storage as ha_storage
+        await store.async_remove()
+    except Exception as store_err:
+        _LOGGER.warning("Could not remove storage for %s: %s", storage_key, store_err)
 
-        storage_key = f"{DOMAIN}_{vehicle_id}"
-        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
-        try:
-            await store.async_remove()
-        except Exception as store_err:
-            _LOGGER.warning("Could not remove storage for %s: %s", storage_key, store_err)
+    # Clean up YAML fallback storage
+    try:
+        import os
+        from pathlib import Path
 
-        # Clean up YAML fallback storage
-        try:
-            import os
-            from pathlib import Path
+        config_dir = hass.config.config_dir or "/config"
+        yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+        if yaml_path.exists():
+            os.unlink(yaml_path)
+    except Exception as yaml_err:
+        _LOGGER.warning("Could not remove YAML storage: %s", yaml_err)
 
-            config_dir = hass.config.config_dir or "/config"
-            yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
-            if yaml_path.exists():
-                os.unlink(yaml_path)
-        except Exception as yaml_err:
-            _LOGGER.warning("Could not remove YAML storage: %s", yaml_err)
+    # Clean up input helpers created for this vehicle
+    input_helper_entities = [
+        f"{vehicle_id}_trip_day",
+        f"{vehicle_id}_trip_time",
+        f"{vehicle_id}_trip_km",
+        f"{vehicle_id}_trip_kwh",
+        f"{vehicle_id}_trip_desc",
+        f"{vehicle_id}_punctual_datetime",
+        f"{vehicle_id}_punctual_km",
+        f"{vehicle_id}_punctual_kwh",
+        f"{vehicle_id}_punctual_desc",
+        f"{vehicle_id}_edit_trip_selector",
+        f"{vehicle_id}_edit_trip_time",
+        f"{vehicle_id}_edit_trip_km",
+        f"{vehicle_id}_edit_trip_kwh",
+        f"{vehicle_id}_edit_trip_desc",
+        f"{vehicle_id}_edit_punctual_datetime",
+    ]
 
-        # Clean up input helpers created for this vehicle
-        input_helper_entities = [
-            f"{vehicle_id}_trip_day",
-            f"{vehicle_id}_trip_time",
-            f"{vehicle_id}_trip_km",
-            f"{vehicle_id}_trip_kwh",
-            f"{vehicle_id}_trip_desc",
-            f"{vehicle_id}_punctual_datetime",
-            f"{vehicle_id}_punctual_km",
-            f"{vehicle_id}_punctual_kwh",
-            f"{vehicle_id}_punctual_desc",
-            f"{vehicle_id}_edit_trip_selector",
-            f"{vehicle_id}_edit_trip_time",
-            f"{vehicle_id}_edit_trip_km",
-            f"{vehicle_id}_edit_trip_kwh",
-            f"{vehicle_id}_edit_trip_desc",
-            f"{vehicle_id}_edit_punctual_datetime",
-        ]
+    for entity_id in input_helper_entities:
+        for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
+            full_entity_id = f"{prefix}{entity_id}"
+            try:
+                if hass.states.get(full_entity_id):
+                    await hass.services.async_call(
+                        full_entity_id.split(".", maxsplit=1)[0],
+                        "remove",
+                        {"entity_id": full_entity_id},
+                        blocking=True,
+                    )
+            except Exception as err:
+                _LOGGER.exception("Failed removing input helper %s: %s", full_entity_id, err)
 
-        for entity_id in input_helper_entities:
-            for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
-                full_entity_id = f"{prefix}{entity_id}"
-                try:
-                    if hass.states.get(full_entity_id):
-                        await hass.services.async_call(
-                            full_entity_id.split(".", maxsplit=1)[0],
-                            "remove",
-                            {"entity_id": full_entity_id},
-                            blocking=True,
-                        )
-                except Exception:
-                    pass  # Entity might not exist
-
-        _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)
-    except Exception as err:  # pragma: no cover — structurally unreachable: outer except redundant with inner ones
-        _LOGGER.error("Error removing entry for vehicle %s: %s", vehicle_name, err)
+    _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)

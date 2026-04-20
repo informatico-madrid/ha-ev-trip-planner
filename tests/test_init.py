@@ -1077,6 +1077,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager.vehicle_controller = mock_vehicle_controller
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         # Create mock coordinator
         mock_coordinator = MagicMock()
@@ -1141,6 +1142,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager = MagicMock()
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1193,6 +1195,9 @@ class TestAsyncSetupEntryMissingLines:
         call_args = mock_trip_manager.set_emhass_adapter.call_args
         assert call_args[0][0] is mock_emhass_adapter
 
+        # Verify publish_deferrable_loads was called after adapter was set
+        mock_trip_manager.publish_deferrable_loads.assert_awaited_once()
+
     @pytest.mark.asyncio
     async def test_setup_entry_calls_panel_and_service_registration(self, mock_hass):
         """Test lines 127-140: async_register_panel_for_entry, register_services, etc.
@@ -1210,6 +1215,7 @@ class TestAsyncSetupEntryMissingLines:
         mock_trip_manager = MagicMock()
         mock_trip_manager.async_setup = AsyncMock()
         mock_trip_manager.set_emhass_adapter = MagicMock()
+        mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1326,6 +1332,7 @@ async def test_listener_activated_in_setup(mock_hass):
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.set_emhass_adapter = MagicMock()
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -1406,6 +1413,7 @@ async def test_async_setup_entry_vehicle_name_none(mock_hass):
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.set_emhass_adapter = MagicMock()
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_config_entry_first_refresh = AsyncMock()

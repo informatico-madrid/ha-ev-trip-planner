@@ -209,9 +209,33 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         - def_end_timestep_array: list of end timesteps per load
         """
         if self.coordinator.data is None:
+            _LOGGER.warning(
+                "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes called - coordinator.data is None! vehicle_id=%s",
+                getattr(self.coordinator, 'vehicle_id', 'unknown'),
+            )
             return {}
 
         vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
+
+        # E2E-DEBUG-CRITICAL: Log entire coordinator.data structure
+        _LOGGER.warning(
+            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes START - vehicle_id=%s",
+            vehicle_id,
+        )
+        _LOGGER.warning(
+            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: coordinator.data keys=%s",
+            list(self.coordinator.data.keys()),
+        )
+        _LOGGER.warning(
+            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_emhass_params raw=%s",
+            self.coordinator.data.get("per_trip_emhass_params"),
+        )
+        _LOGGER.warning(
+            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: emhass_power_profile length=%d, non_zero=%d",
+            len(self.coordinator.data.get("emhass_power_profile") or []),
+            sum(1 for x in (self.coordinator.data.get("emhass_power_profile") or []) if x > 0),
+        )
+
         attrs: Dict[str, Any] = {
             "power_profile_watts": self.coordinator.data.get("emhass_power_profile"),
             "deferrables_schedule": self.coordinator.data.get("emhass_deferrables_schedule"),
@@ -221,6 +245,23 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
 
         # Extract aggregated params from per_trip_emhass_params
         per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
+        # DEBUG: Log per_trip_params for debugging
+        _LOGGER.warning(
+            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_params count=%d, entries=%s",
+            len(per_trip_params),
+            list(per_trip_params.keys())[:10] if per_trip_params else [],
+        )
+
+        # CRITICAL: Log individual trip params structure
+        for trip_id, params in per_trip_params.items():
+            _LOGGER.warning(
+                "E2E-DEBUG EMHASS-TRIP-PARAMS: trip_id=%s, activo=%s, keys=%s, def_total_hours_array=%s",
+                trip_id,
+                params.get("activo"),
+                list(params.keys()),
+                params.get("def_total_hours_array", "NOT_FOUND_KEY"),
+            )
+
         if per_trip_params:
             # Helper: filter active trips and sort by emhass_index ascending
             active_trips_sorted: List[Dict[str, Any]] = []

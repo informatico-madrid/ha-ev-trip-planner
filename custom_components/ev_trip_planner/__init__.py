@@ -36,6 +36,8 @@ from .services import (
     register_services,
 )
 from .trip_manager import TripManager
+from .utils import normalize_vehicle_id
+from .yaml_trip_storage import YamlTripStorage
 
 # Type aliases for cleaner signatures
 CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
@@ -99,10 +101,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EV Trip Planner from a config entry."""
-    vehicle_name_raw = entry.data.get("vehicle_name")
-    if vehicle_name_raw is None:
-        vehicle_name_raw = ""
-    vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
+    vehicle_name_raw = entry.data.get("vehicle_name") or ""
+    vehicle_id = normalize_vehicle_id(vehicle_name_raw)
     vehicle_name = vehicle_name_raw or vehicle_id
 
     await async_cleanup_stale_storage(hass, vehicle_id)
@@ -110,7 +110,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await async_register_static_paths(hass)
 
     presence_config = build_presence_config(entry)
-    trip_manager = TripManager(hass, vehicle_id, entry.entry_id, presence_config)
+    # Use YamlTripStorage for consistent storage mechanism
+    storage = YamlTripStorage(hass, vehicle_id)
+    trip_manager = TripManager(hass, vehicle_id, entry.entry_id, presence_config, storage)
     await trip_manager.async_setup()
 
     soc_sensor = entry.data.get("soc_sensor")
@@ -124,6 +126,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # FR-2, AC-1.2: Set up config entry listener for charging power updates
         emhass_adapter.setup_config_entry_listener()
         trip_manager.set_emhass_adapter(emhass_adapter)
+
+        # Publish loaded trips to EMHASS after adapter is set
+        # This is critical after HA restart to ensure EMHASS sensors have data
+        await trip_manager.publish_deferrable_loads()
 
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
     try:
@@ -148,10 +154,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    vehicle_name_raw = entry.data.get("vehicle_name")
-    if vehicle_name_raw is None:
-        vehicle_name_raw = ""
-    vehicle_id = vehicle_name_raw.lower().replace(" ", "_")
+    vehicle_name_raw = entry.data.get("vehicle_name") or ""
+    vehicle_id = normalize_vehicle_id(vehicle_name_raw)
     vehicle_name = vehicle_name_raw or vehicle_id
     unload_ok = await async_unload_entry_cleanup(hass, entry, vehicle_id, vehicle_name)
     return unload_ok

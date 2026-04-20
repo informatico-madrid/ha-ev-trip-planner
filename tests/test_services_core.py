@@ -981,7 +981,7 @@ class TestAsyncRegisterStaticPathsErrorPaths:
 
 
 class TestAsyncRemoveEntryCleanup:
-    """Tests for async_remove_entry_cleanup error paths - PRAGMA-A coverage targets."""
+    """Tests for async_remove_entry_cleanup error paths."""
 
     @pytest.fixture
     def mock_hass_removal(self):
@@ -990,9 +990,21 @@ class TestAsyncRemoveEntryCleanup:
         hass.data = {"storage": {}}
         hass.config.config_dir = "/tmp/test_config"
 
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.async_delete_all_trips = AsyncMock()
+
+        mock_emhass_adapter = MagicMock()
+        mock_emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+        mock_emhass_adapter._config_entry_listener = MagicMock()
+
+        mock_runtime_data = MagicMock()
+        mock_runtime_data.trip_manager = mock_trip_manager
+        mock_runtime_data.emhass_adapter = mock_emhass_adapter
+
         mock_entry = MagicMock()
         mock_entry.entry_id = "entry_test"
         mock_entry.data = {"vehicle_name": "Test Vehicle"}
+        mock_entry.runtime_data = mock_runtime_data
 
         return hass, mock_entry
 
@@ -1000,11 +1012,7 @@ class TestAsyncRemoveEntryCleanup:
     async def test_async_remove_entry_cleanup_handles_storage_error(
         self, mock_hass_removal
     ):
-        """async_remove_entry_cleanup catches storage removal errors.
-
-        Tests the error path at lines 1479-1482 where store.async_remove error is caught
-        and logged.
-        """
+        """async_remove_entry_cleanup catches storage removal errors."""
         from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
         from homeassistant.helpers import storage as ha_storage
 
@@ -1020,11 +1028,7 @@ class TestAsyncRemoveEntryCleanup:
     async def test_async_remove_entry_cleanup_handles_yaml_error(
         self, mock_hass_removal
     ):
-        """async_remove_entry_cleanup catches YAML removal errors.
-
-        Tests the error path at lines 1493-1494 where YAML cleanup error is caught
-        and logged.
-        """
+        """async_remove_entry_cleanup catches YAML removal errors."""
         from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
         from homeassistant.helpers import storage as ha_storage
 
@@ -1042,6 +1046,64 @@ class TestAsyncRemoveEntryCleanup:
             with patch("os.unlink", side_effect=OSError("Cannot remove file")):
                 # Should NOT raise - exception is caught
                 await async_remove_entry_cleanup(hass, mock_entry)
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_handles_delete_trips_error(
+        self, mock_hass_removal
+    ):
+        """async_remove_entry_cleanup catches errors from trip_manager.async_delete_all_trips."""
+        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from homeassistant.helpers import storage as ha_storage
+
+        hass, mock_entry = mock_hass_removal
+        mock_entry.runtime_data.trip_manager.async_delete_all_trips = AsyncMock(
+            side_effect=RuntimeError("Cannot delete trips")
+        )
+
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock()
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            # Should NOT raise - exception is caught
+            await async_remove_entry_cleanup(hass, mock_entry)
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_handles_listener_error(
+        self, mock_hass_removal
+    ):
+        """async_remove_entry_cleanup handles errors from _config_entry_listener invocation."""
+        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from homeassistant.helpers import storage as ha_storage
+
+        hass, mock_entry = mock_hass_removal
+        mock_entry.runtime_data.emhass_adapter._config_entry_listener = MagicMock(
+            side_effect=RuntimeError("Listener error")
+        )
+
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock()
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            # Should NOT raise - exception is caught and _config_entry_listener still set to None
+            await async_remove_entry_cleanup(hass, mock_entry)
+            assert mock_entry.runtime_data.emhass_adapter._config_entry_listener is None
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry_cleanup_handles_cleanup_indices_error(
+        self, mock_hass_removal
+    ):
+        """async_remove_entry_cleanup catches errors from async_cleanup_vehicle_indices."""
+        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from homeassistant.helpers import storage as ha_storage
+
+        hass, mock_entry = mock_hass_removal
+        mock_entry.runtime_data.emhass_adapter.async_cleanup_vehicle_indices = AsyncMock(
+            side_effect=RuntimeError("Cannot cleanup indices")
+        )
+
+        mock_store = MagicMock()
+        mock_store.async_remove = AsyncMock()
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            # Should NOT raise - exception is caught
+            await async_remove_entry_cleanup(hass, mock_entry)
 
 
 class TestHandleTripDelete:
@@ -1903,7 +1965,7 @@ class TestAsyncUnloadEntryCleanupPanelUnregister:
 
 
 class TestAsyncRemoveEntryCleanupMissingVehicleName:
-    """Tests for missing vehicle_name in async_remove_entry_cleanup (lines 1467-1468)."""
+    """Tests for missing vehicle_name in async_remove_entry_cleanup."""
 
     @pytest.mark.asyncio
     async def test_async_remove_entry_cleanup_missing_vehicle_name(self, mock_hass):
@@ -1913,8 +1975,19 @@ class TestAsyncRemoveEntryCleanupMissingVehicleName:
         mock_entry = MagicMock()
         mock_entry.entry_id = "entry_abc12345"
         mock_entry.data = {}  # No vehicle_name
-        mock_entry.runtime_data = MagicMock()
-        mock_entry.runtime_data.trip_manager = None
+
+        mock_trip_manager = MagicMock()
+        mock_trip_manager.async_delete_all_trips = AsyncMock()
+
+        mock_emhass_adapter = MagicMock()
+        mock_emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+        mock_emhass_adapter._config_entry_listener = MagicMock()
+
+        mock_runtime_data = MagicMock()
+        mock_runtime_data.trip_manager = mock_trip_manager
+        mock_runtime_data.emhass_adapter = mock_emhass_adapter
+        mock_entry.runtime_data = mock_runtime_data
+
         mock_hass.data = {svcs.DOMAIN: {}}
         mock_hass.states.get = MagicMock(return_value=None)
         mock_hass.services.async_call = AsyncMock()
@@ -1927,36 +2000,6 @@ class TestAsyncRemoveEntryCleanupMissingVehicleName:
             return_value=mock_store,
         ):
             # Should not raise - uses fallback for missing vehicle_name
-            await svcs.async_remove_entry_cleanup(mock_hass, mock_entry)
-
-
-class TestAsyncRemoveEntryCleanupOuterException:
-    """Tests for outer exception handler in async_remove_entry_cleanup (lines 1530-1531)."""
-
-    @pytest.mark.asyncio
-    async def test_async_remove_entry_cleanup_outer_exception(self, mock_hass):
-        """async_remove_entry_cleanup catches exceptions from inner operations."""
-        from custom_components.ev_trip_planner import services as svcs
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_abc12345"
-        mock_entry.data = {"vehicle_name": "chispitas"}
-        mock_entry.runtime_data = MagicMock()
-        mock_entry.runtime_data.trip_manager = None
-        mock_hass.data = {svcs.DOMAIN: {}}
-
-        # Make hass.states.get raise an exception (caught by outer try/except)
-        mock_hass.states.get = MagicMock(side_effect=RuntimeError("States error"))
-        mock_hass.services.async_call = AsyncMock()
-
-        # Mock store for storage removal
-        mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock()
-        with patch(
-            "homeassistant.helpers.storage.Store",
-            return_value=mock_store,
-        ):
-            # Should catch the exception and not raise
             await svcs.async_remove_entry_cleanup(mock_hass, mock_entry)
 
 

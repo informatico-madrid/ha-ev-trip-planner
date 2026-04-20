@@ -231,7 +231,7 @@ await page.getByRole('button', { name: /delete/i }).click();
 | Decision | Options Considered | Choice | Rationale |
 |----------|-------------------|--------|-----------|
 | Ephemeral HA strategy | DinD vs service container vs Python venv | GitHub Actions services | ubuntu-latest has no Docker daemon; services directive runs HA as sidecar with volume-mounted custom component |
-| Shadow DOM selector | Web-first (getByRole/getByText) vs CSS pierce (>>) | Web-first locators | Per homeassistant-selector-map skill; Playwright auto-pierces shadow DOM with getByRole, getByText; >> is forbidden anti-pattern |
+| Shadow DOM selector | Web-first (getByRole/getByText) vs CSS selectors | Web-first locators recommended | Playwright auto-pierces open shadow DOM with getByRole, getByText AND CSS selectors; web-first locators recommended for robustness; XPath is the only selector that does NOT pierce shadow roots |
 | Dialog handling | Playwright dialog handler vs `page.evaluate` | Playwright dialog handler | Native Playwright support; `page.on('dialog')` handles `window.confirm()` automatically |
 | Test data isolation | Each test creates+deletes own data | Each test creates+deletes | Implicit in all US; prevents cross-test contamination |
 | Auth flow | trusted_networks bypass + Config Flow vs login form | trusted_networks bypass | Per homeassistant-selector-map skill; `allow_bypass_login: true` skips login form entirely; only `page.goto('/')` is allowed as entry point |
@@ -359,8 +359,10 @@ Based on homeassistant-selector-map skill patterns:
 - Auth state: `playwright/.auth/user.json` (gitignored)
 - Test isolation: 1 worker, each test creates and cleans its own data
 - **Selector priority**: getByRole > getByLabel > getByTestId > getByText > locator('css')
-- Playwright auto-pierces shadow DOM with web-first locators (getByRole, getByTestId)
-- **FORBIDDEN**: `>>` pierce syntax, XPath, CSS classes from Lit/Polymer, hardcoded shadow DOM depth, `page.goto('/login')`, `page.goto('/ev_trip_planner')`
+- Playwright auto-pierces open shadow DOM with ALL locators EXCEPT XPath
+- CSS selectors pierce open shadow DOM automatically (no special syntax needed)
+- **FORBIDDEN**: XPath (does NOT pierce shadow roots), `page.goto('/login')`, `page.goto('/ev_trip_planner')`
+- **NOTE**: ">>" is NOT a Playwright pierce syntax - it is a CSS child combinator with no special shadow piercing behavior
 - **Navigation pattern**: `page.goto('/')` → `page.waitForURL('/home')` → sidebar click → `page.waitForURL(/\/ev_trip_planner\/)`
 
 ### Skip Policy
