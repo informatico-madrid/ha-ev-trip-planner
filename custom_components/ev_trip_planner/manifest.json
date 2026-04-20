@@ -11,7 +11,7 @@
   "issue_tracker": "https://github.com/informatico-madrid/ha-ev-trip-planner/issues",
   "requirements": [],
   "translations": ["es", "en"],
-  "version": "0.5.1",
+  "version": "0.5.16",
   "panel_custom": {
     "name": "EV Trip Planner",
     "js_url": "frontend/panel.js?v={{timestamp}}"

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.16] - 2026-04-20 - Panel Fixes & EMHASS Cleanup
+
+### Fixed
+- **Panel en blanco**: Añadido `disconnectedCallback()` faltante para prevenir pantalla en blanco al cambiar entre pestañas del panel Lovelace.
+- **Publicación EMHASS tras restart**: Asegurado que `publish_deferrable_loads` se llama tras el setup del adaptador EMHASS.
+- **Perfil de potencia trip 2**: Corregido el cálculo de watts del segundo viaje.
+- **Safety margin percent**: Aplicado correctamente el margen de seguridad desde la configuración del vehículo.
+- **Ventanas de carga secuenciales**: Corregida la lógica para múltiples viajes sequential.
+- **Limpieza de caché EMHASS**: Limpiados datos EMHASS en caché al eliminar viajes.
+- **Coincidencia vehicle_id/entry_id**: Corregido el manejo en la limpieza de sensores.
+
+### Added
+- **Normalización centralizada de vehicle_id**: TripManager ahora usa YamlTripStorage.
+- **Tests de integración para cleanup**: Verificación de comportamiento durante eliminación de integraciones.
+- **Tests de persistencia post-reinicio**: Garantizan que los datos persisten tras reinicios de HA.
+- **Reglas E2E para Shadow DOM**: Documentación de selectores E2E en panel con Shadow DOM.
+
+### Technical Details
+- **Files Modified**: `__init__.py`, `coordinator.py`, `emhass_adapter.py`, `frontend/panel.js`, `sensor.py`, `services.py`, `trip_manager.py`, `utils.py`
+- **Tests Added**: `test_integration_uninstall.py`, `test_post_restart_persistence.py`, `test_emhass_adapter.py`, `test_trip_manager_core.py`, `zzz-integration-deletion-cleanup.spec.ts`
+
+---
+
 ## [0.4.0-dev] - 2026-03-18 - Milestone 3.2 COMPLETED
 
 ### Added
