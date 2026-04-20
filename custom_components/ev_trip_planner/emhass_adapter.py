@@ -1775,7 +1775,6 @@ class EMHASSAdapter:
                 _LOGGER.warning(
                     "DEBUG async_cleanup_vehicle_indices: Directly set coordinator.data "
                     "per_trip_emhass_params={} for %s",
-                    {},
                     self.vehicle_id,
                 )
             except Exception as err:
@@ -1801,9 +1800,13 @@ class EMHASSAdapter:
             # Check multiple conditions for matching
             if "emhass_perfil_diferible" in entity_id:
                 # This is an EMHASS sensor - check if it belongs to us
+                # Primary check: vehicle_id in entity_id (maintained for backwards compatibility)
                 if self.vehicle_id and self.vehicle_id in entity_id:
                     should_remove = True
-                elif "test_vehicle" in entity_id:  # Fallback check
+                # Secondary check: entry_id in entity_id (correct matching for EMHASS sensors)
+                # EMHASS sensors are created with entity_id based on entry_id, not vehicle_id
+                # Fixes bug where cleanup failed when vehicle_id != entry_id
+                elif self.entry_id and self.entry_id in entity_id:
                     should_remove = True
             if should_remove:
                 try:

@@ -41,6 +41,17 @@ test.describe('Integration Deletion Cleanup', () => {
     });
   };
 
+  const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const d = new Date();
+    d.setDate(d.getDate() + daysOffset);
+    const [hh, mm] = (timeStr || '08:00').split(':').map((s) => Number(s));
+    d.setHours(hh, mm, 0, 0);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours(),
+    )}:${pad(d.getMinutes())}`;
+  };
+
   test('should delete all trips when integration is deleted', async ({ page }: { page: Page }) => {
     const discoveredEntityId = await discoverEmhassSensorEntityId(page);
     const sensorEntityId = discoveredEntityId || 'sensor.emhass_perfil_diferible_test_vehicle';
@@ -54,10 +65,10 @@ test.describe('Integration Deletion Cleanup', () => {
       if (!err?.message?.includes('not found')) throw err;
     }
 
-    // Create 3 test trips
-    await createTestTrip(page, 'puntual', '2026-04-18T10:00', 20, 5, 'Cleanup Trip 1');
-    await createTestTrip(page, 'puntual', '2026-04-19T14:00', 30, 7, 'Cleanup Trip 2');
-    await createTestTrip(page, 'recurrente', '2026-04-20T16:00', 15, 4, 'Cleanup Trip 3', { day: '1', time: '09:00' });
+    // Create 3 test trips with computed future datetimes to avoid flakiness
+    await createTestTrip(page, 'puntual', getFutureIso(1, '10:00'), 20, 5, 'Cleanup Trip 1');
+    await createTestTrip(page, 'puntual', getFutureIso(2, '14:00'), 30, 7, 'Cleanup Trip 2');
+    await createTestTrip(page, 'recurrente', getFutureIso(3, '16:00'), 15, 4, 'Cleanup Trip 3', { day: '1', time: '09:00' });
 
     await expect(page.getByText('Cleanup Trip 1')).toBeVisible();
     await expect(page.getByText('Cleanup Trip 2')).toBeVisible();

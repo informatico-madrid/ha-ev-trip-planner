@@ -4233,6 +4233,8 @@ class TestPublishAllDeferrableLoadsSuccessCount:
             assert adapter._cached_per_trip_params == {}
             assert adapter._cached_power_profile == []
             assert adapter._cached_deferrables_schedule == []
+            # Coordinator.refresh should have been triggered to notify HA of state change
+            mock_coordinator.async_refresh.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_async_publish_all_deferrable_loads_empty_list_coordinator_refresh_raises(
@@ -4281,6 +4283,8 @@ class TestPublishAllDeferrableLoadsSuccessCount:
             assert adapter._cached_per_trip_params == {}
             assert adapter._cached_power_profile == []
             assert adapter._cached_deferrables_schedule == []
+            # Even if refresh raised, the code must have awaited it (and swallowed the error)
+            mock_coordinator.async_refresh.assert_awaited_once()
 
 
 class TestCheckEmhassResponseSensorsMissingTrip:
@@ -6053,10 +6057,12 @@ async def test_publish_all_deferrable_loads_shutting_down_with_trips(hass, mock_
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
         adapter._shutting_down = True
+        adapter.async_publish_deferrable_load = AsyncMock()
         result = await adapter.async_publish_all_deferrable_loads(
             trips=[{"id": "t1", "kwh_needed": 5.0}]
         )
         assert result is True
+        adapter.async_publish_deferrable_load.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -6067,10 +6073,12 @@ async def test_publish_deferrable_loads_shutting_down(hass, mock_store):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
         adapter._shutting_down = True
+        adapter.async_publish_deferrable_load = AsyncMock()
         result = await adapter.publish_deferrable_loads(
             trips=[{"id": "t1", "kwh_needed": 5.0}]
         )
         assert result is True
+        adapter.async_publish_deferrable_load.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -6082,8 +6090,10 @@ async def test_handle_config_entry_update_shutting_down(hass, mock_store):
         await adapter.async_load()
         adapter._shutting_down = True
         adapter._published_trips = [{"id": "t1"}]
+        adapter.update_charging_power = AsyncMock()
         mock_entry = MagicMock()
         await adapter._handle_config_entry_update(hass, mock_entry)
+        adapter.update_charging_power.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -6094,7 +6104,10 @@ async def test_update_charging_power_shutting_down(hass, mock_store):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
         adapter._shutting_down = True
+        hass.config_entries = MagicMock()
+        hass.config_entries.async_get_entry = MagicMock()
         await adapter.update_charging_power()
+        hass.config_entries.async_get_entry.assert_not_called()
 
 
 # =============================================================================
@@ -6140,7 +6153,7 @@ async def test_cleanup_coordinator_data_none(hass, mock_store):
 @pytest.mark.asyncio
 async def test_cleanup_removes_matching_sensor(hass, mock_store):
     """Lines 1800-1814: removes sensor from hass.states, handles HomeAssistantError."""
-    adapter, coordinator = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
+    adapter, _ = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
     # 3 calls: log (1797), first loop (1799), force-set loop (1828)
     hass.states.async_entity_ids = MagicMock(
         side_effect=[
@@ -6161,7 +6174,7 @@ async def test_cleanup_removes_matching_sensor(hass, mock_store):
 @pytest.mark.asyncio
 async def test_cleanup_sensor_removal_homeassistant_error(hass, mock_store):
     """Lines 1813-1814: HomeAssistantError during sensor removal is caught."""
-    adapter, coordinator = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
+    adapter, _ = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
     hass.states.async_entity_ids = MagicMock(
         side_effect=[
             ["sensor.emhass_perfil_diferible_test_vehicle"],  # log
@@ -6179,7 +6192,7 @@ async def test_cleanup_sensor_removal_homeassistant_error(hass, mock_store):
 @pytest.mark.asyncio
 async def test_cleanup_force_sets_remaining_sensor(hass, mock_store):
     """Lines 1829-1850: force-sets state on sensors that survive removal."""
-    adapter, coordinator = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
+    adapter, _ = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
     # 3 calls: log, first loop, force-set loop
     entity = "sensor.emhass_perfil_diferible_test_vehicle"
     hass.states.async_entity_ids = MagicMock(
@@ -6202,7 +6215,7 @@ async def test_cleanup_force_sets_remaining_sensor(hass, mock_store):
 @pytest.mark.asyncio
 async def test_cleanup_force_set_exception(hass, mock_store):
     """Lines 1849-1850: exception during force-set is caught."""
-    adapter, coordinator = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
+    adapter, _ = _make_cleanup_adapter(hass, mock_store, coordinator_data={"per_trip_emhass_params": {}})
     entity = "sensor.emhass_perfil_diferible_test_vehicle"
     hass.states.async_entity_ids = MagicMock(
         side_effect=[
@@ -6250,9 +6263,9 @@ async def test_cleanup_request_refresh_exception(hass, mock_store):
 
 
 @pytest.mark.asyncio
-async def test_cleanup_fallback_vehicle_id_match(hass, mock_store):
-    """Lines 1806-1807: fallback 'test_vehicle' check when vehicle_id not in entity_id."""
-    config = {CONF_VEHICLE_NAME: "other_vehicle", CONF_MAX_DEFERRABLE_LOADS: 50, CONF_CHARGING_POWER: 7.4}
+async def test_cleanup_matches_sensor_by_entry_id(hass, mock_store):
+    """Lines 1806-1810: EMHASS sensors matched by entry_id in entity_id (not vehicle_id)."""
+    config = {CONF_VEHICLE_NAME: "my_vehicle", CONF_MAX_DEFERRABLE_LOADS: 50, CONF_CHARGING_POWER: 7.4}
     adapter = EMHASSAdapter(hass, config)
     adapter._loaded = True
 
@@ -6264,16 +6277,20 @@ async def test_cleanup_fallback_vehicle_id_match(hass, mock_store):
     runtime_data.coordinator = coordinator
 
     entry = MagicMock()
-    entry.entry_id = "test_entry_id"
+    entry.entry_id = "abc123"
     entry.runtime_data = runtime_data
     adapter._entry = entry
 
-    # Entity has "emhass_perfil_diferible" and "test_vehicle" but NOT "other_vehicle"
-    entity = "sensor.emhass_perfil_diferible_test_vehicle"
+    # Override entry_id to match the sensor entity_id pattern
+    adapter.entry_id = "abc123"
+
+    # EMHASS sensor entity_id contains entry_id (not vehicle_id)
+    # Entity: sensor.emhass_perfil_diferible_abc123
+    entity = "sensor.emhass_perfil_diferible_abc123"
     hass.states.async_entity_ids = MagicMock(
         side_effect=[
             [entity],  # log
-            [entity],  # first loop - should match fallback
+            [entity],  # first loop - should match via entry_id check
             [],  # force-set loop
         ]
     )
