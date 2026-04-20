@@ -39,19 +39,18 @@ class TestPostRestartPersistenceBug:
     """
 
     @pytest.mark.asyncio
-    async def test_emhass_not_updated_after_setup_loads_from_storage(
+    async def test_emhass_updated_after_setup_loads_from_storage(
         self, hass: HomeAssistant, mock_store: Any
     ) -> None:
-        """Test that EMHASS adapter is NOT updated after async_setup loads trips from storage.
+        """Test that EMHASS adapter IS updated after async_setup loads trips from storage.
 
-        This is the ROOT CAUSE of the post-restart bug:
+        VERIFIED FIX BEHAVIOR (GREEN phase):
         - async_setup() calls _load_trips() which loads from storage
-        - But async_setup() NEVER calls publish_deferrable_loads()
-        - So EMHASS sensor keeps showing empty arrays
+        - async_setup() ALSO calls publish_deferrable_loads()
+        - Therefore the EMHASS sensor shows the loaded trips (not empty arrays)
 
-        RED PHASE: This test should FAIL, proving the bug exists.
-        GREEN PHASE: After fix (adding publish_deferrable_loads to async_setup),
-        this test should PASS.
+        This test verifies the fix was correctly applied by checking that after
+        async_setup(), the EMHASS _cached_per_trip_params contains the expected trips.
         """
         # Setup: Pre-populate storage with trips (simulating prior to restart)
         # Use relative dates to avoid time-dependent test failures
@@ -66,7 +65,7 @@ class TestPostRestartPersistenceBug:
                 "trips": {
                     "trip_1": {
                         "id": "pun_20260418_z9ryxq",
-                        "trip_type": "puntual",
+                        "tipo": "puntual",
                         "datetime": trip1_iso,
                         "km": 20.0,
                         "kwh": 5.0,
@@ -75,7 +74,7 @@ class TestPostRestartPersistenceBug:
                     },
                     "trip_2": {
                         "id": "pun_20260419_62qe8m",
-                        "trip_type": "puntual",
+                        "tipo": "puntual",
                         "datetime": trip2_iso,
                         "km": 30.0,
                         "kwh": 7.0,
@@ -87,7 +86,7 @@ class TestPostRestartPersistenceBug:
                 "punctual_trips": {
                     "trip_1": {
                         "id": "pun_20260418_z9ryxq",
-                        "trip_type": "puntual",
+                        "tipo": "puntual",
                         "datetime": trip1_iso,
                         "km": 20.0,
                         "kwh": 5.0,
@@ -96,7 +95,7 @@ class TestPostRestartPersistenceBug:
                     },
                     "trip_2": {
                         "id": "pun_20260419_62qe8m",
-                        "trip_type": "puntual",
+                        "tipo": "puntual",
                         "datetime": trip2_iso,
                         "km": 30.0,
                         "kwh": 7.0,
@@ -139,20 +138,18 @@ class TestPostRestartPersistenceBug:
 
         # VERIFY FIX: EMHASS adapter SHOULD have cached params after async_setup
         # This is what the EMHASS template reads to show data
-        #
-        # RED PHASE: This assertion FAILS (before fix), PASSES (after fix)
         assert len(emhass_adapter._cached_per_trip_params) == 2, \
-            "BUG: EMHASS _cached_per_trip_params should have 2 trips after async_setup"
+            "EMHASS _cached_per_trip_params should have 2 trips after async_setup"
 
         # Verify the cached params have the expected structure (what EMHASS template uses)
         for trip_id in ["pun_20260418_z9ryxq", "pun_20260419_62qe8m"]:
             assert trip_id in emhass_adapter._cached_per_trip_params, \
-                f"BUG: trip {trip_id} should be in _cached_per_trip_params"
+                f"trip {trip_id} should be in _cached_per_trip_params"
             params = emhass_adapter._cached_per_trip_params[trip_id]
             assert "def_total_hours" in params, \
-                f"BUG: trip {trip_id} should have def_total_hours in cached params"
+                f"trip {trip_id} should have def_total_hours in cached params"
             assert "P_deferrable_nom" in params, \
-                f"BUG: trip {trip_id} should have P_deferrable_nom in cached params"
+                f"trip {trip_id} should have P_deferrable_nom in cached params"
 
 
 class TestIntegrationDeletionBug:
@@ -169,11 +166,11 @@ class TestIntegrationDeletionBug:
         stored_trips = {
             "data": {
                 "trips": {
-                    "trip_1": {"id": "pun_20260418_z9ryxq", "trip_type": "puntual"},
+                    "trip_1": {"id": "pun_20260418_z9ryxq", "tipo": "puntual"},
                 },
                 "recurring_trips": {},
                 "punctual_trips": {
-                    "trip_1": {"id": "pun_20260418_z9ryxq", "trip_type": "puntual"},
+                    "trip_1": {"id": "pun_20260418_z9ryxq", "tipo": "puntual"},
                 },
             }
         }
