@@ -93,8 +93,8 @@ class TestChargingWindowCalculation:
         Given the car is at home from 18:00 and the next trip is at 22:00,
         then the charging window is 4 hours.
         """
-        # Setup: Add a punctual trip at 22:00 today
-        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
+        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -108,8 +108,8 @@ class TestChargingWindowCalculation:
             return_value={"energia_necesaria_kwh": 10.0}
         )
 
-        # Set hora_regreso at 18:00 today
-        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+        # Set hora_regreso at 18:00 today (aware UTC for proper datetime comparison)
+        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
 
         # Get the trip we just added
         trips = await trip_manager.async_get_punctual_trips()
@@ -152,8 +152,8 @@ class TestChargingWindowCalculation:
         When hora_regreso is None (car has not yet returned, not detected),
         the window start should be estimated as departure_time - 6h.
         """
-        # Setup: Add a punctual trip at 22:00 today
-        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
+        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -205,8 +205,8 @@ class TestChargingWindowCalculation:
             return_value={"energia_necesaria_kwh": 0.0}
         )
 
-        # Set hora_regreso at 18:00 today
-        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+        # Set hora_regreso at 18:00 today (aware UTC for proper datetime comparison)
+        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
 
         # Create a dummy trip to pass to the function
         # The function will check if there's a next trip after hora_regreso
@@ -266,8 +266,8 @@ class TestChargingWindowCalculation:
             return_value={"energia_necesaria_kwh": 10.0}
         )
 
-        # Set hora_regreso at 18:00 on the same future date
-        hora_regreso = datetime(2099, 4, 1, 18, 0, 0)
+        # Set hora_regreso at 18:00 on the same future date (aware UTC for proper datetime comparison)
+        hora_regreso = datetime(2099, 4, 1, 18, 0, 0, tzinfo=timezone.utc)
 
         # Get the trips sorted by departure time
         trips = await trip_manager.async_get_punctual_trips()
@@ -286,9 +286,9 @@ class TestChargingWindowCalculation:
 
         # First trip: window from 18:00 to 02:00 next day = 8 hours
         # Note: Implementation uses trip_arrival (departure + 6h) for ventana_horas
-        trip1_departure = datetime(2099, 4, 1, 20, 0, 0)
-        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0)  # departure + 6h
-        trip2_departure = datetime(2099, 4, 1, 22, 0, 0)
+        trip1_departure = datetime(2099, 4, 1, 20, 0, 0, tzinfo=timezone.utc)
+        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # departure + 6h
+        trip2_departure = datetime(2099, 4, 1, 22, 0, 0, tzinfo=timezone.utc)
         assert results[0]["ventana_horas"] == 8.0, \
             f"First trip: Expected 8.0 hours (18:00 to 02:00), got {results[0]['ventana_horas']}"
         assert results[0]["inicio_ventana"] == hora_regreso, \
@@ -395,8 +395,8 @@ class TestChargingWindowCalculation:
         When hora_regreso is an invalid string that cannot be parsed,
         the function should handle it gracefully and fall back to estimation.
         """
-        # Setup: Add a punctual trip at 22:00 today
-        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
+        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -473,8 +473,8 @@ class TestChargingWindowMultitrip:
             return_value={"energia_necesaria_kwh": 10.0}
         )
 
-        # Set hora_regreso at 18:00 on the same future date
-        hora_regreso = datetime(2099, 4, 1, 18, 0, 0)
+        # Set hora_regreso at 18:00 on the same future date (aware UTC for proper datetime comparison)
+        hora_regreso = datetime(2099, 4, 1, 18, 0, 0, tzinfo=timezone.utc)
 
         # Get trips sorted by departure time
         trips = await trip_manager.async_get_punctual_trips()
@@ -495,9 +495,9 @@ class TestChargingWindowMultitrip:
         # First trip: window from 18:00 to 02:00 next day = 8 hours
         # Note: Implementation uses trip_arrival (departure + 6h) for ventana_horas calculation
         # This differs from AC-4 which says window should end at departure
-        trip1_departure = datetime(2099, 4, 1, 20, 0, 0)
-        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0)  # departure + 6h
-        trip2_departure = datetime(2099, 4, 1, 22, 0, 0)
+        trip1_departure = datetime(2099, 4, 1, 20, 0, 0, tzinfo=timezone.utc)
+        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # departure + 6h
+        trip2_departure = datetime(2099, 4, 1, 22, 0, 0, tzinfo=timezone.utc)
         assert results[0]["ventana_horas"] == 8.0, \
             f"First trip: Expected 8.0 hours (18:00 to 02:00), got {results[0]['ventana_horas']}"
         assert results[0]["inicio_ventana"] == hora_regreso, \
@@ -551,8 +551,8 @@ class TestChargingWindowMultitrip:
             return_value={"energia_necesaria_kwh": 10.0}
         )
 
-        # Set hora_regreso at 17:00 on the same future date
-        hora_regreso = datetime(2099, 4, 1, 17, 0, 0)
+        # Set hora_regreso at 17:00 on the same future date (aware UTC for proper datetime comparison)
+        hora_regreso = datetime(2099, 4, 1, 17, 0, 0, tzinfo=timezone.utc)
 
         # Get trips sorted by departure time
         trips = await trip_manager.async_get_punctual_trips()
@@ -574,8 +574,8 @@ class TestChargingWindowMultitrip:
         # Trip 1: departs 19:00, arrives 01:00 next day
         # Trip 2: departs 21:00, arrives 03:00 next day
         # Trip 3: departs 23:00, arrives 05:00 next day
-        trip1_arrival = datetime(2099, 4, 2, 1, 0, 0)  # 19:00 + 6h
-        trip2_arrival = datetime(2099, 4, 2, 3, 0, 0)  # 21:00 + 6h
+        trip1_arrival = datetime(2099, 4, 2, 1, 0, 0, tzinfo=timezone.utc)  # 19:00 + 6h
+        trip2_arrival = datetime(2099, 4, 2, 3, 0, 0, tzinfo=timezone.utc)  # 21:00 + 6h
 
         # First trip: window from 17:00 to 01:00 next day = 8 hours
         assert results[0]["ventana_horas"] == 8.0, \
@@ -622,8 +622,8 @@ class TestChargingWindowMultitrip:
             return_value={"energia_necesaria_kwh": 10.0}
         )
 
-        # Set hora_regreso at 18:00 on the same future date
-        hora_regreso = datetime(2099, 4, 1, 18, 0, 0)
+        # Set hora_regreso at 18:00 on the same future date (aware UTC for proper datetime comparison)
+        hora_regreso = datetime(2099, 4, 1, 18, 0, 0, tzinfo=timezone.utc)
 
         # Get trips sorted
         trips = await trip_manager.async_get_punctual_trips()
@@ -638,7 +638,7 @@ class TestChargingWindowMultitrip:
         )
 
         # First trip's window should start at hora_regreso (18:00)
-        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0)  # 20:00 + 6h
+        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # 20:00 + 6h
         assert results[0]["inicio_ventana"] == hora_regreso, \
             f"First trip should start at hora_regreso {hora_regreso}, got {results[0]['inicio_ventana']}"
         # ventana_horas = trip1_arrival - window_start = 02:00 - 18:00 = 8 hours

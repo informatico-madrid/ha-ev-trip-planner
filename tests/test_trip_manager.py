@@ -8,7 +8,7 @@ This test suite covers:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -623,7 +623,7 @@ class TestChargingWindowCalculation:
         """
         # Setup: Add a punctual trip at 22:00 today
         # Use the format expected by trip_manager: %Y-%m-%dT%H:%M
-        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -638,7 +638,7 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today
-        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
 
         # Get the trip we just added
         trips = await trip_manager.async_get_punctual_trips()

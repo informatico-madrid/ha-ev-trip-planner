@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import unittest.mock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -630,7 +630,11 @@ async def test_async_get_next_trip_returns_next_recurring(mock_hass, vehicle_id)
     # Freeze time to Monday 2025-01-06 at 8:00 AM
     frozen_time = datetime(2025, 1, 6, 8, 0)
     with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+        # Use side_effect to properly handle timezone-aware datetime.now(timezone.utc)
         mock_dt.now.return_value = frozen_time
+        mock_dt.now.side_effect = lambda tz=None: (
+            frozen_time.replace(tzinfo=timezone.utc) if tz is not None else frozen_time
+        )
         mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
         mock_dt.strptime = datetime.strptime
         mock_dt.combine = datetime.combine
@@ -665,8 +669,13 @@ async def test_async_get_next_trip_returns_next_punctual(mock_hass, vehicle_id):
     """Test async_get_next_trip returns the next upcoming punctual trip."""
     from datetime import datetime
 
+    frozen_time = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
+
     mock_datetime = unittest.mock.MagicMock()
-    mock_datetime.now.return_value = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
+    mock_datetime.now.return_value = frozen_time
+    mock_datetime.now.side_effect = lambda tz=None: (
+        frozen_time.replace(tzinfo=timezone.utc) if tz is not None else frozen_time
+    )
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch("custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime):
@@ -713,6 +722,9 @@ async def test_async_get_next_trip_excludes_paused_recurring(mock_hass, vehicle_
     frozen_time = datetime(2025, 1, 6, 8, 0)
     with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
+        mock_dt.now.side_effect = lambda tz=None: (
+            frozen_time.replace(tzinfo=timezone.utc) if tz is not None else frozen_time
+        )
         mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
         mock_dt.strptime = datetime.strptime
         mock_dt.combine = datetime.combine
@@ -747,8 +759,12 @@ async def test_async_get_next_trip_excludes_completed_punctual(mock_hass, vehicl
     """Test that completed punctual trips are excluded from next trip."""
     from datetime import datetime
 
+    frozen_time = datetime(2025, 1, 6, 8, 0)
     mock_datetime = unittest.mock.MagicMock()
-    mock_datetime.now.return_value = datetime(2025, 1, 6, 8, 0)
+    mock_datetime.now.return_value = frozen_time
+    mock_datetime.now.side_effect = lambda tz=None: (
+        frozen_time.replace(tzinfo=timezone.utc) if tz is not None else frozen_time
+    )
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch("custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime):

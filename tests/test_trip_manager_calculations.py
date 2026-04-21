@@ -8,7 +8,7 @@ Tests verify:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -36,7 +36,7 @@ class TestCalcularVentanaCarga:
         mock_trip_manager.async_get_next_trip_after = AsyncMock(return_value=None)
 
         # Patch _get_trip_time to return a valid departure time
-        departure = datetime.now() + timedelta(hours=10)
+        departure = datetime.now(timezone.utc) + timedelta(hours=10)
         mock_trip_manager._get_trip_time = MagicMock(return_value=departure)
 
         # Create partial TripManager for testing
@@ -67,7 +67,7 @@ class TestCalcularVentanaCarga:
             return_value={"id": "next_trip", "datetime": (datetime.now() + timedelta(hours=12)).isoformat()}
         )
 
-        departure = datetime.now() + timedelta(hours=10)
+        departure = datetime.now(timezone.utc) + timedelta(hours=10)
         mock_trip_manager._get_trip_time = MagicMock(return_value=departure)
 
         tm = TripManager.__new__(TripManager)

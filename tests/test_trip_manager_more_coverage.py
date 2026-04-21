@@ -7,7 +7,7 @@ heavy calculation functions.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -68,8 +68,8 @@ async def test_async_generate_deferrables_schedule_basic_flow() -> None:
 
     tm = TripManager(hass, "veh", entry_id="e1")
 
-    # Add trips: two recurring and one punctual pending
-    now = datetime.now()
+    # Add trips: two recurring and one punctual pending (aware UTC for proper datetime comparison)
+    now = datetime.now(timezone.utc)
     tm._recurring_trips = {
         "r1": {"id": "r1", "activo": True, "hora": "08:00"},
         "r2": {"id": "r2", "activo": True, "hora": "09:00"},
@@ -138,7 +138,7 @@ async def test_deferrables_schedule_handles_past_trip() -> None:
     tm = TripManager(hass, "veh", entry_id="e1")
 
     # Add punctual trip with PAST datetime - should be skipped at line 1957-1958
-    past_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
+    past_date = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
     tm._punctual_trips = {
         "p1": {"id": "p1", "tipo": "puntual", "datetime": past_date, "km": 50.0, "kwh": 15.0, "estado": "pendiente"}
     }
@@ -177,7 +177,7 @@ async def test_deferrables_schedule_loop_executes_power_assignment() -> None:
     tm = TripManager(hass, "veh", entry_id="e1")
 
     # Trip 10 hours in future, needs 3 hours charging -> loop runs at h=7,8,9
-    future_time = datetime.now() + timedelta(hours=10)
+    future_time = datetime.now(timezone.utc) + timedelta(hours=10)
     tm._punctual_trips = {
         "p1": {"id": "p1", "tipo": "puntual", "datetime": future_time.strftime("%Y-%m-%dT%H:%M"),
                "km": 50.0, "kwh": 15.0, "estado": "pendiente"}

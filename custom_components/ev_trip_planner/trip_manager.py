@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 
@@ -203,7 +203,7 @@ class TripManager:
                         
                         # Calculate next occurrence
                         next_occurrence = calculate_next_recurring_datetime(
-                            day_js_format, time_str, datetime.now()
+                            day_js_format, time_str, datetime.now(timezone.utc)
                         )
                         
                         _LOGGER.debug(
@@ -478,7 +478,7 @@ class TripManager:
             "trips": self._trips,
             "recurring_trips": self._recurring_trips,
             "punctual_trips": self._punctual_trips,
-            "last_update": datetime.now().isoformat(),
+            "last_update": datetime.now(timezone.utc).isoformat(),
         }
 
         try:
@@ -538,7 +538,7 @@ class TripManager:
                     "trips": self._trips,
                     "recurring_trips": self._recurring_trips,
                     "punctual_trips": self._punctual_trips,
-                    "last_update": datetime.now().isoformat(),
+                    "last_update": datetime.now(timezone.utc).isoformat(),
                 },
             }
 
@@ -1155,7 +1155,7 @@ class TripManager:
 
     async def async_get_kwh_needed_today(self) -> float:
         """Calcula la energía necesaria para hoy basado en los viajes."""
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
         total_kwh = 0.0
         for trip in self._recurring_trips.values():
             if trip["activo"] and self._is_trip_today(trip, today):
@@ -1251,7 +1251,7 @@ class TripManager:
 
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Obtiene el próximo viaje programado."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         next_trip = None
         for trip in self._recurring_trips.values():
             if trip["activo"]:
@@ -1342,18 +1342,22 @@ class TripManager:
         """Obtiene la fecha y hora del viaje.
 
         Delegates to pure calculate_trip_time for the core algorithm.
+        Returns timezone-aware datetime for proper comparison with datetime.now(timezone.utc).
         """
         from .calculations import calculate_trip_time
 
         tipo = trip.get("tipo")
         assert tipo is not None, "trip tipo is required"
-        return calculate_trip_time(
+        result = calculate_trip_time(
             tipo,
             trip.get("hora"),
             trip.get("dia_semana"),
             trip.get("datetime"),
-            datetime.now(),
+            datetime.now(timezone.utc),
         )
+        if result is not None:
+            return result.replace(tzinfo=timezone.utc)
+        return result
 
     def _get_day_index(self, day_name: str) -> int:
         """Obtiene el índice del día de la semana.
@@ -1455,7 +1459,7 @@ class TripManager:
             # Trip has tipo and datetime - use _get_trip_time
             trip_time = self._get_trip_time(trip)
             if trip_time:
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 delta = trip_time - now
                 horas_disponibles = delta.total_seconds() / 3600
                 if horas_carga > horas_disponibles:
@@ -1528,6 +1532,9 @@ class TripManager:
                     parsed_hora_regreso = None
             else:
                 parsed_hora_regreso = hora_regreso
+            # Ensure aware datetime for comparison with _get_trip_time results
+            if parsed_hora_regreso is not None and parsed_hora_regreso.tzinfo is None:
+                parsed_hora_regreso = parsed_hora_regreso.replace(tzinfo=timezone.utc)
 
         # Check if next trip exists after hora_regreso (AC-5 edge case)
         if parsed_hora_regreso is not None:
@@ -1554,6 +1561,9 @@ class TripManager:
                         trip_departure_time = trip_datetime  # pragma: no cover  # HA storage I/O - datetime assignment
                     else:
                         trip_departure_time = datetime.fromisoformat(trip_datetime)
+                    # Ensure aware datetime for consistent comparison
+                    if trip_departure_time and trip_departure_time.tzinfo is None:
+                        trip_departure_time = trip_departure_time.replace(tzinfo=timezone.utc)
                 except (ValueError, TypeError) as err:
                     _LOGGER.warning(
                         "Error parsing trip datetime '%s': %s", trip_datetime, err
@@ -1666,6 +1676,9 @@ class TripManager:
                     parsed_hora_regreso = None
             else:
                 parsed_hora_regreso = hora_regreso
+            # Ensure aware datetime for comparison with _get_trip_time results
+            if parsed_hora_regreso is not None and parsed_hora_regreso.tzinfo is None:
+                parsed_hora_regreso = parsed_hora_regreso.replace(tzinfo=timezone.utc)
 
         # Sort trips by departure time (earliest first)
         sorted_trips = []
@@ -1901,7 +1914,7 @@ class TripManager:
             windows=ventanas,
             tasa_carga_soc=tasa_carga_soc,
             battery_capacity_kwh=battery_capacity_kwh,
-            reference_dt=datetime.now(),
+            reference_dt=datetime.now(timezone.utc),
             trip_times=precomputed_trip_times,
             soc_targets=precomputed_soc_targets,
         )
@@ -2002,7 +2015,7 @@ class TripManager:
             charging_power_kw=charging_power_kw,
             hora_regreso=hora_regreso,
             planning_horizon_days=planning_horizon_days,
-            reference_dt=datetime.now(),
+            reference_dt=datetime.now(timezone.utc),
             safety_margin_percent=safety_margin_percent,
         )
 
@@ -2058,7 +2071,7 @@ class TripManager:
         # Ordenar trips por deadline (urgentes primero)
         # Conflict detection: múltiples viajes a la misma hora
         # Priority logic: deadline más cercano = más urgente = índice menor
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for trip in all_trips:
             trip_time = self._get_trip_time(trip)
             if trip_time:
