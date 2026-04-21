@@ -121,20 +121,23 @@ async def test_async_publish_all_deferrable_loads_populates_non_empty_power_prof
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
-        # Create a trip that SHOULD trigger power profile calculation
-        trips = [
-            {
-                "id": "trip_001",
-                "descripcion": "Test Trip",
-                "kwh": 10.0,
-                "hora": "09:00",
-                "dias_semana": ["monday", "wednesday", "friday"],
-                "datetime": (datetime.now() + timedelta(days=1)).isoformat(),
-            },
-        ]
+        # Mock _get_current_soc to return low SOC (20%) so charging IS needed
+        # This is necessary because SOC-aware charging determines kwh_needed based on SOC
+        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+            # Create a trip that SHOULD trigger power profile calculation
+            trips = [
+                {
+                    "id": "trip_001",
+                    "descripcion": "Test Trip",
+                    "kwh": 10.0,
+                    "hora": "09:00",
+                    "dias_semana": ["monday", "wednesday", "friday"],
+                    "datetime": (datetime.now() + timedelta(days=1)).isoformat(),
+                },
+            ]
 
-        # Publish trips - this is what TripManager.publish_deferrable_loads() does
-        await adapter.async_publish_all_deferrable_loads(trips)
+            # Publish trips - this is what TripManager.publish_deferrable_loads() does
+            await adapter.async_publish_all_deferrable_loads(trips)
 
         # CRITICAL: _cached_power_profile must have actual values, not just be non-None
         assert adapter._cached_power_profile is not None, (
@@ -190,17 +193,19 @@ async def test_aggregated_sensor_can_access_power_profile_via_coordinator(
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
-        trips = [
-            {
-                "id": "trip_001",
-                "kwh": 10.0,
-                "hora": "09:00",
-                "datetime": (datetime.now() + timedelta(days=1)).isoformat(),
-            },
-        ]
+        # Mock _get_current_soc to return low SOC (20%) so charging IS needed
+        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+            trips = [
+                {
+                    "id": "trip_001",
+                    "kwh": 10.0,
+                    "hora": "09:00",
+                    "datetime": (datetime.now() + timedelta(days=1)).isoformat(),
+                },
+            ]
 
-        # Publish trips (simulating TripManager.publish_deferrable_loads())
-        await adapter.async_publish_all_deferrable_loads(trips)
+            # Publish trips (simulating TripManager.publish_deferrable_loads())
+            await adapter.async_publish_all_deferrable_loads(trips)
 
         # Simulate what coordinator._async_update_data() does (line 126 in coordinator.py)
         cached_results = adapter.get_cached_optimization_results()
@@ -253,23 +258,25 @@ async def test_get_cached_results_provides_real_data_to_sensor(
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
-        trips = [
-            {
-                "id": "trip_001",
-                "kwh": 15.0,
-                "hora": "10:00",
-                "datetime": (datetime.now() + timedelta(hours=2)).isoformat(),
-            },
-            {
-                "id": "trip_002",
-                "kwh": 20.0,
-                "hora": "14:00",
-                "datetime": (datetime.now() + timedelta(hours=5)).isoformat(),
-            },
-        ]
+        # Mock _get_current_soc to return low SOC (20%) so charging IS needed
+        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+            trips = [
+                {
+                    "id": "trip_001",
+                    "kwh": 15.0,
+                    "hora": "10:00",
+                    "datetime": (datetime.now() + timedelta(hours=2)).isoformat(),
+                },
+                {
+                    "id": "trip_002",
+                    "kwh": 20.0,
+                    "hora": "14:00",
+                    "datetime": (datetime.now() + timedelta(hours=5)).isoformat(),
+                },
+            ]
 
-        # Publish multiple trips
-        await adapter.async_publish_all_deferrable_loads(trips)
+            # Publish multiple trips
+            await adapter.async_publish_all_deferrable_loads(trips)
 
         # Get what the sensor reads
         sensor_data = adapter.get_cached_optimization_results()

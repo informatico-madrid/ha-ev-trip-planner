@@ -35,6 +35,7 @@ def mock_hass():
         return func(*args)
     hass.async_add_executor_job = mock_executor_job
     hass.loop = Mock()
+    hass.loop.time.return_value = 0.0  # Required for async_track_time_interval in T3.1
 
     return hass
 
@@ -1085,9 +1086,6 @@ class TestAsyncSetupEntryMissingLines:
 
         # Mock all the service functions
         with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new_callable=AsyncMock
-        ), patch(
             "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
             new_callable=AsyncMock
         ), patch(
@@ -1151,9 +1149,6 @@ class TestAsyncSetupEntryMissingLines:
         mock_emhass_adapter.async_load = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new_callable=AsyncMock
-        ), patch(
             "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
             new_callable=AsyncMock
         ), patch(
@@ -1221,9 +1216,6 @@ class TestAsyncSetupEntryMissingLines:
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new_callable=AsyncMock
-        ), patch(
             "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
             new_callable=AsyncMock
         ), patch(
@@ -1345,9 +1337,6 @@ async def test_listener_activated_in_setup(mock_hass):
     mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
 
     with patch(
-        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-        new_callable=AsyncMock
-    ), patch(
         "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
         new_callable=AsyncMock
     ), patch(
@@ -1425,9 +1414,6 @@ async def test_async_setup_entry_vehicle_name_none(mock_hass):
     mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
 
     with patch(
-        "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-        new_callable=AsyncMock
-    ), patch(
         "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
         new_callable=AsyncMock
     ), patch(

@@ -11,11 +11,30 @@ instead of using datetime.now(), enabling deterministic testing.
 from __future__ import annotations
 
 import logging
+import math
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from .const import DEFAULT_SAFETY_MARGIN, DEFAULT_SOC_BUFFER_PERCENT
 from .utils import calcular_energia_kwh
+
+# Public API: list of exported functions
+__all__ = [
+    "calculate_day_index",
+    "calculate_trip_time",
+    "calculate_charging_rate",
+    "calculate_soc_target",
+    "determine_charging_need",
+    "calculate_energy_needed",
+    "calculate_charging_window_pure",
+    "calculate_multi_trip_charging_windows",
+    "calculate_soc_at_trip_starts",
+    "calculate_deficit_propagation",
+    "calculate_power_profile_from_trips",
+    "calculate_deferrable_parameters",
+    "generate_deferrable_schedule_from_trips",
+]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,11 +85,6 @@ def calculate_day_index(day_name: str) -> int:
         return DAYS_OF_WEEK.index(day_lower)
     except ValueError:
         pass
-
-    # Try with proper capitalization
-    for i, day in enumerate(DAYS_OF_WEEK):  # pragma: no cover  # DAYS_OF_WEEK.index() already handles all valid days; ValueError means invalid day that loop also cannot match
-        if day.lower() == day_lower:
-            return i
 
     # If still not found, default to Monday (index 0)
     return 0
@@ -196,6 +210,67 @@ def calculate_soc_target(
     return soc_objetivo_base
 
 
+@dataclass(frozen=True)
+class ChargingDecision:
+    """Immutable charging decision for a single trip.
+    
+    Encapsulates the decision logic for whether and how much to charge,
+    extracted from EMHASSAdapter._populate_per_trip_cache_entry for SOLID SRP.
+    """
+    trip_id: str
+    kwh_needed: float          # Energy to charge (0 = no charge needed)
+    def_total_hours: int        # Hours of charging needed
+    power_watts: float          # Charging power (0 = no charge)
+    needs_charging: bool        # Whether charging is needed
+
+
+def determine_charging_need(
+    trip: Dict[str, Any],
+    soc_current: float,
+    battery_capacity_kwh: float,
+    charging_power_kw: float,
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
+) -> ChargingDecision:
+    """Pure function: determine if and how much to charge for a trip.
+    
+    Uses calculate_energy_needed() internally (which guarantees post-trip safety margin).
+    
+    Args:
+        trip: Dictionary with trip data (kwh or km, datetime, tipo, etc.)
+        soc_current: Current SOC in percentage (0-100)
+        battery_capacity_kwh: Battery capacity in kWh
+        charging_power_kw: Charging power in kW
+        safety_margin_percent: Safety margin percentage (default from const)
+    
+    Returns:
+        ChargingDecision with kwh_needed=0 if SOC is sufficient.
+    """
+    trip_id = trip.get("id", "unknown")
+    
+    energia_info = calculate_energy_needed(
+        trip, battery_capacity_kwh, soc_current, charging_power_kw,
+        safety_margin_percent=safety_margin_percent,
+    )
+    kwh_needed = energia_info["energia_necesaria_kwh"]
+    
+    needs_charging = kwh_needed > 0
+    
+    if needs_charging:
+        total_hours = int(math.ceil(kwh_needed / charging_power_kw)) if charging_power_kw > 0 else 0
+        power_watts = charging_power_kw * 1000
+    else:
+        total_hours = 0
+        power_watts = 0.0
+    
+    return ChargingDecision(
+        trip_id=trip_id,
+        kwh_needed=kwh_needed,
+        def_total_hours=total_hours,
+        power_watts=power_watts,
+        needs_charging=needs_charging,
+    )
+
+
 def calculate_energy_needed(
     trip: Dict[str, Any],
     battery_capacity_kwh: float,
@@ -225,6 +300,10 @@ def calculate_energy_needed(
             - horas_disponibles: Always 0.0 (no datetime check)
             - margen_seguridad_aplicado: The safety margin % used
     """
+    # Guard: SOC must be a valid float - fallback to 0.0 if sensor unavailable
+    if soc_current is None or not isinstance(soc_current, (int, float)):
+        soc_current = 0.0
+
     # Calcular energía del viaje
     if "kwh" in trip:
         energia_viaje = trip.get("kwh", 0.0)
@@ -232,17 +311,24 @@ def calculate_energy_needed(
         distance_km = trip.get("km", 0.0)
         energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
 
-    # Energía objetivo: energía del viaje
-    energia_objetivo = energia_viaje
+    # Energía mínima de seguridad que debe quedar DESPUÉS del viaje
+    # (FIX: H1 - garantiza post-trip safety margin)
+    energia_seguridad = (safety_margin_percent / 100.0) * battery_capacity_kwh
+
+    # Energía total necesaria = viaje + margen seguridad post-viaje
+    energia_objetivo = energia_viaje + energia_seguridad
 
     # Energía actual en batería
     energia_actual = (soc_current / 100.0) * battery_capacity_kwh
 
-    # Energía necesaria (bruta, sin margen)
+    # Energía a cargar = lo que falta para llegar al objetivo
     energia_necesaria = max(0.0, energia_objetivo - energia_actual)
 
-    # Apply safety margin
-    energia_final = energia_necesaria * (1 + safety_margin_percent / 100)
+    # Clamp: no cargar más de la capacidad de la batería (FIX: H8)
+    energia_necesaria = min(energia_necesaria, battery_capacity_kwh)
+
+    # Safety margin already included in energia_objetivo - no multiplier needed
+    energia_final = energia_necesaria
 
     if charging_power_kw > 0:
         horas_carga = energia_final / charging_power_kw
@@ -563,7 +649,7 @@ def calculate_deficit_propagation(
         if trip_time:
             sorted_trips_with_times.append((trip_time, idx, trip))
 
-    if not sorted_trips_with_times:  # pragma: no cover  # structurally unreachable: empty list means all trips filtered out, caller ensures valid trips exist
+    if not sorted_trips_with_times:
         return []
 
     sorted_trips_with_times.sort(key=lambda x: x[0])  # Sort by time ascending
@@ -582,7 +668,7 @@ def calculate_deficit_propagation(
     # ITERATE IN REVERSE ORDER (last trip to first)
     for ordered_idx in range(len(trips) - 1, -1, -1):
         _orig_idx = ordered_to_idx.get(ordered_idx)
-        if _orig_idx is None:  # pragma: no cover  # structurally unreachable: ordered_to_idx built from sorted_trips_with_times covering all len(trips) indices
+        if _orig_idx is None:
             continue
         original_idx = _orig_idx
 
@@ -624,7 +710,7 @@ def calculate_deficit_propagation(
     results: List[Dict[str, Any]] = []
     for ordered_idx in range(len(trips)):
         _orig_idx = ordered_to_idx.get(ordered_idx)
-        if _orig_idx is None:  # pragma: no cover  # structurally unreachable: ordered_to_idx covers all len(trips) indices from sorted_trips_with_times
+        if _orig_idx is None:
             continue
         original_idx = _orig_idx
 
@@ -717,6 +803,9 @@ def calculate_power_profile_from_trips(
     power_kw: float,
     horizon: int = 168,
     reference_dt: Optional[datetime] = None,
+    soc_current: Optional[float] = None,
+    battery_capacity_kwh: Optional[float] = None,
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> List[float]:
     """Calculate power profile from trips (pure version).
 
@@ -787,15 +876,26 @@ def calculate_power_profile_from_trips(
 
         logger.warning("DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s", trip.get("id"), deadline, now, deadline_dt)
 
-        # Calculate energy needed directly from trip kwh/km
-        # Use trip's declared energy need — consistent with schedule generation
-        if "kwh" in trip:
-            kwh = float(trip.get("kwh", 0))
+        # T1.2: Determine charging need considering SOC (backward compat)
+        if soc_current is not None and battery_capacity_kwh is not None:
+            decision = determine_charging_need(
+                trip, soc_current, battery_capacity_kwh,
+                power_kw, safety_margin_percent,
+            )
+            kwh = decision.kwh_needed
+            logger.warning(
+                "DEBUG calculate_power_profile: trip %s kwh=%.2f (SOC-aware)",
+                trip.get("id"), kwh,
+            )
         else:
-            distance_km = float(trip.get("km", 0))
-            kwh = calcular_energia_kwh(distance_km, 0.15)
+            # Backward compat: use trip kwh directly (no SOC available)
+            if "kwh" in trip:
+                kwh = float(trip.get("kwh", 0))
+            else:
+                distance_km = float(trip.get("km", 0))
+                kwh = calcular_energia_kwh(distance_km, 0.15)
 
-        logger.warning("DEBUG calculate_power_profile: trip %s kwh=%.2f", trip.get("id"), kwh)
+            logger.warning("DEBUG calculate_power_profile: trip %s kwh=%.2f (no SOC)", trip.get("id"), kwh)
 
         if kwh <= 0:
             logger.warning("DEBUG calculate_power_profile: trip %s kwh <= 0, skipping", trip.get("id"))
@@ -930,27 +1030,24 @@ def calculate_power_profile(
         inicio_ventana = ventana_info.get("inicio_ventana")
         fin_ventana = ventana_info.get("fin_ventana")
 
-        if not inicio_ventana or not fin_ventana:  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure guarantees inicio_ventana and fin_ventana exist when es_suficiente=True
-            continue
-
         # Calculate position in profile
         delta_inicio = inicio_ventana - reference_dt
         horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
 
-        if horas_desde_ahora < 0:  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure guarantees window start >= reference_dt when es_suficiente=True
-            hora_inicio_carga = 0  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure guarantees window start >= reference_dt when es_suficiente=True
+        if horas_desde_ahora < 0:
+            hora_inicio_carga = 0
         else:
-            hora_inicio_carga = horas_desde_ahora  # pragma: no cover  # structurally unreachable: paired with pragma on line 816 if-branch
+            hora_inicio_carga = horas_desde_ahora
 
         horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
-        if horas_necesarias == 0:  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure guarantees horas_carga_necesarias > 0 when es_suficiente=True
+        if horas_necesarias == 0:
             horas_necesarias = 1
 
         # End of window relative to reference
         delta_fin = fin_ventana - reference_dt
         horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
 
-        if horas_hasta_fin < 0:  # pragma: no cover  # structurally unreachable: calculate_charging_window_pure guarantees window end >= reference_dt when es_suficiente=True
+        if horas_hasta_fin < 0:
             continue  # Window already ended
 
         # Distribute charging across available hours

@@ -6,8 +6,10 @@ Supports recurring weekly routines and one-time punctual trips.
 
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Awaitable, Callable, TypeAlias
 
 from homeassistant.components.sensor import SensorEntity
@@ -18,6 +20,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import async_migrate_entries
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN  # noqa: F401
 from .coordinator import TripPlannerCoordinator
@@ -56,9 +59,24 @@ class EVTripRuntimeData:
         Callable[[list[SensorEntity], bool], Awaitable[None]] | None
     ) = None
     emhass_adapter: Any = None
+    # T3.1: Timer handle for hourly refresh — must be cancelled on unload to prevent EC-001 leak
+    hourly_refresh_cancel: Callable[[], None] | None = None
 
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+
+async def _hourly_refresh_callback(now: datetime, runtime_data: EVTripRuntimeData) -> None:
+    """Hourly callback to refresh deferrable loads profile.
+    
+    This callback is called every hour to trigger rotation of recurring trips.
+    The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
+    """
+    try:
+        if runtime_data.trip_manager:
+            await runtime_data.trip_manager.publish_deferrable_loads()
+    except Exception as err:
+        _LOGGER.warning("Hourly profile refresh failed: %s", err)
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -130,7 +148,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Publish loaded trips to EMHASS after adapter is set
         # This is critical after HA restart to ensure EMHASS sensors have data
         await trip_manager.publish_deferrable_loads()
-
+    
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
     try:
         await coordinator.async_config_entry_first_refresh()
@@ -144,6 +162,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         trip_manager=trip_manager,
         emhass_adapter=emhass_adapter,
     )
+    
+    # T3.1: Setup hourly refresh timer OUTSIDE coordinator
+    # This timer triggers every hour to rotate recurring trips
+    # Timer is registered here to avoid infinite loop in coordinator
+    # Use module-level _hourly_refresh_callback for testability
+    # EC-001 FIX: Save cancel handle to prevent timer leak on unload
+    runtime_data = entry.runtime_data
+    runtime_data.hourly_refresh_cancel = async_track_time_interval(
+        hass,
+        functools.partial(_hourly_refresh_callback, runtime_data=runtime_data),
+        timedelta(hours=1),
+    )
 
     register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -154,6 +184,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    # EC-001 FIX: Cancel hourly refresh timer BEFORE cleanup to prevent leak
+    runtime_data = getattr(entry, "runtime_data", None)
+    if runtime_data and hasattr(runtime_data, "hourly_refresh_cancel") and runtime_data.hourly_refresh_cancel:
+        runtime_data.hourly_refresh_cancel()
+        runtime_data.hourly_refresh_cancel = None
+        _LOGGER.debug("Cancelled hourly refresh timer for vehicle %s", entry.entry_id)
+    
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
     vehicle_name = vehicle_name_raw or vehicle_id

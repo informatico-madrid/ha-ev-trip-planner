@@ -287,14 +287,14 @@ class TestCalculateEnergyNeeded:
         result = calculate_energy_needed(
             trip={"km": 100.0},
             battery_capacity_kwh=50.0,
-            soc_current=20.0,  # 20% SOC = 10kWh, viaje necesita 15kWh → necesita 5kWh
+            soc_current=20.0,  # 20% SOC = 10kWh, viaje necesita 15kWh + 5kWh margin = 20kWh
             charging_power_kw=7.4,
         )
         # 100km * 0.15 = 15kWh needed
-        # At 20% SOC: 10kWh in battery, energia_objetivo = 15kWh
-        # energia_necesaria raw = max(0, 15 - 10) = 5kWh
-        # With default safety_margin=10%: energia_final = 5 * 1.10 = 5.5kWh
-        assert result["energia_necesaria_kwh"] == 5.5
+        # At 20% SOC: 10kWh in battery
+        # NEW: energia_objetivo = 15 + 5 (10% margin of 50kWh) = 20kWh
+        # energia_necesaria = max(0, 20 - 10) = 10kWh
+        assert result["energia_necesaria_kwh"] == 10.0
         assert result["margen_seguridad_aplicado"] == 10.0
 
     def test_energy_needed_safety_margin_zero(self):
@@ -312,20 +312,162 @@ class TestCalculateEnergyNeeded:
         assert result["margen_seguridad_aplicado"] == 0.0
 
     def test_energy_needed_safety_margin_applied(self):
-        """Safety margin is applied to energia_necesaria."""
+        """Safety margin is included in energia_objetivo (post-trip guarantee)."""
         from custom_components.ev_trip_planner.calculations import calculate_energy_needed
         result = calculate_energy_needed(
             trip={"kwh": 10.0},
             battery_capacity_kwh=50.0,
-            soc_current=0.0,  # 0% SOC = 0kWh, viaje = 10kWh → necesita 10kWh raw
+            soc_current=0.0,  # 0% SOC = 0kWh
             charging_power_kw=7.4,
             safety_margin_percent=20.0,
         )
-        # energia_necesaria raw = 10kWh, with 20% margin = 12kWh
-        assert result["energia_necesaria_kwh"] == 12.0
+        # NEW: energia_objetivo = 10 + 10 (20% margin of 50kWh) = 20kWh
+        # energia_necesaria = max(0, 20 - 0) = 20kWh
+        assert result["energia_necesaria_kwh"] == 20.0
         assert result["margen_seguridad_aplicado"] == 20.0
-        # horas_carga = 12 / 7.4 = 1.62 → rounds to 1.62
-        assert result["horas_carga_necesarias"] == round(12.0 / 7.4, 2)
+        # horas_carga = 20 / 7.4 = 2.70 → rounds to 2.70
+        assert result["horas_carga_necesarias"] == round(20.0 / 7.4, 2)
+
+
+    def test_energy_needed_soc_sufficient_returns_zero(self):
+        """AC-0.1: SOC sufficient → energia_necesaria = 0."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=80.0,  # 80% SOC = 40kWh, more than enough for 10kWh trip
+            charging_power_kw=7.4,
+        )
+        # energia_objetivo = 10 + 5 = 15kWh
+        # energia_actual = 40kWh → max(0, 15 - 40) = 0
+        assert result["energia_necesaria_kwh"] == 0.0
+        assert result["margen_seguridad_aplicado"] == 10.0
+
+    def test_energy_needed_post_trip_safety_margin_guaranteed(self):
+        """AC-0.1: Post-trip SOC >= safety margin."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 2.0},
+            battery_capacity_kwh=27.0,
+            soc_current=5.0,  # 5% SOC = 1.35kWh
+            charging_power_kw=7.4,
+            safety_margin_percent=10.0,
+        )
+        # energia_objetivo = 2 + 2.7 (10% of 27) = 4.7kWh
+        # energia_actual = 1.35kWh → energia_necesaria = 3.35kWh
+        # Post-charge SOC: 5% + (3.35/27)*100 = 17.4%
+        # Post-trip SOC: 17.4% - (2/27)*100 = 10.0% = safety margin
+        assert result["energia_necesaria_kwh"] == 3.35
+
+    def test_energy_needed_soc_none_fallback(self):
+        """AC-0.2: SOC=None → fallback to 0.0 (no TypeError)."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=None,  # Sensor unavailable
+            charging_power_kw=7.4,
+        )
+        # Guard converts None to 0.0
+        # energia_objetivo = 10 + 5 = 15kWh
+        # energia_actual = 0kWh → energia_necesaria = 15kWh
+        assert result["energia_necesaria_kwh"] == 15.0
+        assert result["margen_seguridad_aplicado"] == 10.0
+
+    def test_energy_needed_kwh_exceeds_battery_clamped(self):
+        """AC-0.3: kwh > capacity → clamp to max capacity."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 60.0},  # More than battery capacity
+            battery_capacity_kwh=50.0,
+            soc_current=0.0,
+            charging_power_kw=7.4,
+        )
+        # energia_objetivo = 60 + 5 = 65kWh
+        # energia_actual = 0kWh → energia_necesaria = 65kWh
+        # Clamp to battery_capacity_kwh = 50kWh
+        assert result["energia_necesaria_kwh"] == 50.0
+
+    def test_energy_needed_soc_over_100_percent(self):
+        """AC-0.3: SOC > 100% → energia_necesaria = 0."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current=110.0,  # Invalid but handled as-is
+            charging_power_kw=7.4,
+        )
+        # energia_actual = 55kWh > energia_objetivo = 15kWh
+        assert result["energia_necesaria_kwh"] == 0.0
+
+    def test_energy_needed_soc_invalid_type_fallback(self):
+        """AC-0.2: SOC invalid type → fallback to 0.0."""
+        from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+        result = calculate_energy_needed(
+            trip={"kwh": 10.0},
+            battery_capacity_kwh=50.0,
+            soc_current="invalid",  # Wrong type
+            charging_power_kw=7.4,
+        )
+        # Guard converts invalid to 0.0
+        assert result["energia_necesaria_kwh"] == 15.0
+
+
+class TestDetermineChargingNeed:
+    """Tests for determine_charging_need function (T1.0, T1.5)."""
+
+    def test_determine_charging_need_soc_sufficient_no_charge(self):
+        """T1.5: SOC sufficient → needs_charging=False, kwh_needed=0."""
+        from custom_components.ev_trip_planner.calculations import determine_charging_need
+        decision = determine_charging_need(
+            trip={"kwh": 2.0},
+            soc_current=60.0,  # 60% of 50kWh = 30kWh available
+            battery_capacity_kwh=50.0,
+            charging_power_kw=7.4,
+            safety_margin_percent=10.0,
+        )
+        # Trip needs 2kWh + 5kWh margin = 7kWh
+        # 60% SOC = 30kWh available, no charge needed
+        assert decision.needs_charging is False
+        assert decision.kwh_needed == 0.0
+        assert decision.power_watts == 0.0
+        assert decision.def_total_hours == 0
+
+    def test_determine_charging_need_soc_insufficient_charges(self):
+        """T1.5: SOC insufficient → needs_charging=True, calculates kwh_needed."""
+        from custom_components.ev_trip_planner.calculations import determine_charging_need
+        decision = determine_charging_need(
+            trip={"kwh": 20.0},
+            soc_current=10.0,  # 10% of 50kWh = 5kWh available
+            battery_capacity_kwh=50.0,
+            charging_power_kw=7.4,
+            safety_margin_percent=10.0,
+        )
+        # Trip needs 20kWh + 5kWh margin = 25kWh
+        # 10% SOC = 5kWh available, need 20kWh more
+        assert decision.needs_charging is True
+        assert decision.kwh_needed == 20.0
+        assert decision.power_watts == 7400.0  # 7.4kW * 1000
+        # 20kWh / 7.4kW = 2.7 hours → 3 hours
+        assert decision.def_total_hours == 3
+
+    def test_determine_charging_need_soc_none_fallback(self):
+        """T1.5: SOC=None → fallback to 0.0, charges full trip."""
+        from custom_components.ev_trip_planner.calculations import determine_charging_need
+        decision = determine_charging_need(
+            trip={"kwh": 15.0},
+            soc_current=None,  # None → fallback to 0.0
+            battery_capacity_kwh=50.0,
+            charging_power_kw=7.4,
+            safety_margin_percent=10.0,
+        )
+        # Trip needs 15kWh + 5kWh margin = 20kWh
+        # SOC=0, need 20kWh
+        assert decision.needs_charging is True
+        assert decision.kwh_needed == 20.0
+        assert decision.power_watts == 7400.0
+        # 20kWh / 7.4kW = 2.7 hours → 3 hours
+        assert decision.def_total_hours == 3
 
 
 class TestCalculateChargingWindowPure:
@@ -1647,3 +1789,364 @@ class TestCalculatePowerProfileRecurringTrips:
         assert has_non_zero
 
 
+class TestCalculateDeficitPropagationEdgeCases:
+    """Tests for calculate_deficit_propagation edge cases."""
+
+    def test_empty_sorted_trips_with_times_returns_empty(self):
+        """Test that when all trips have trip_time=None, empty list is returned.
+
+        Covers line 652 (was 659): return [] when sorted_trips_with_times is empty.
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        trips = [
+            {"id": "t1", "tipo": "punctual", "datetime": "2026-04-14T10:00", "kwh": 30.0},
+        ]
+        soc_data = [{"soc_inicio": 50.0}]
+        windows = [{"ventana_horas": 10.0}]
+
+        # trip_times=[None] -> sorted_trips_with_times will be empty
+        result = calculate_deficit_propagation(
+            trips=trips,
+            soc_data=soc_data,
+            windows=windows,
+            tasa_carga_soc=5.0,
+            battery_capacity_kwh=60.0,
+            reference_dt=reference,
+            trip_times=[None],
+        )
+        assert result == []
+
+    def test_ordered_to_idx_missing_entry_line_671(self):
+        """Test that _orig_idx is None triggers continue on line 671.
+
+        This happens when ordered_to_idx mapping is incomplete.
+        We need a trip that has NO valid datetime/hora/dia_semana so that
+        calculate_trip_time returns None and the trip is excluded from
+        sorted_trips_with_times, making len(trips) > len(sorted_trips_with_times).
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Trip 1: valid punctual trip with datetime
+        # Trip 2: NO datetime, NO hora, NO dia_semana -> calculate_trip_time returns None
+        trips = [
+            {"id": "t1", "tipo": "puntual", "datetime": "2026-04-14T10:00", "kwh": 30.0},
+            {"id": "t2", "tipo": "puntual", "kwh": 20.0},  # Missing datetime!
+        ]
+        soc_data = [
+            {"soc_inicio": 50.0},
+            {"soc_inicio": 55.0},
+        ]
+        # Windows must have all keys that are read in the result building code (lines 736-743)
+        windows = [
+            {
+                "ventana_horas": 8.0,
+                "kwh_necesarios": 10.0,
+                "horas_carga_necesarias": 2.0,
+                "inicio_ventana": reference,
+                "fin_ventana": reference,
+                "es_suficiente": True,
+            },
+            {
+                "ventana_horas": 10.0,
+                "kwh_necesarios": 15.0,
+                "horas_carga_necesarias": 3.0,
+                "inicio_ventana": reference,
+                "fin_ventana": reference,
+                "es_suficiente": True,
+            },
+        ]
+
+        result = calculate_deficit_propagation(
+            trips=trips,
+            soc_data=soc_data,
+            windows=windows,
+            tasa_carga_soc=5.0,
+            battery_capacity_kwh=60.0,
+            reference_dt=reference,
+            trip_times=None,  # Let function compute trip_times from trip data
+        )
+        # Only t1 has valid trip_time, so result has 1 entry
+        assert len(result) == 1
+
+    def test_ordered_to_idx_missing_entry_line_713(self):
+        """Test that _orig_idx is None triggers continue on line 713.
+
+        This is in the "Build final results" loop.
+        Same scenario: one trip has no valid time so it's excluded from
+        sorted_trips_with_times, and ordered_to_idx doesn't have a mapping
+        for every ordered_idx from 0..len(trips)-1.
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+
+        reference = datetime(2026, 4, 13, 12, 0, 0)
+        # Trip 1: valid punctual trip
+        # Trip 2: NO datetime -> calculate_trip_time returns None
+        trips = [
+            {"id": "t1", "tipo": "puntual", "datetime": "2026-04-14T22:00", "kwh": 30.0},
+            {"id": "t2", "tipo": "puntual", "kwh": 20.0},  # Missing datetime!
+        ]
+        soc_data = [
+            {"soc_inicio": 50.0},
+            {"soc_inicio": 55.0},
+        ]
+        # Windows must have all keys that are read in the result building code (lines 736-743)
+        windows = [
+            {
+                "ventana_horas": 8.0,
+                "kwh_necesarios": 10.0,
+                "horas_carga_necesarias": 2.0,
+                "inicio_ventana": reference,
+                "fin_ventana": reference,
+                "es_suficiente": True,
+            },
+            {
+                "ventana_horas": 10.0,
+                "kwh_necesarios": 15.0,
+                "horas_carga_necesarias": 3.0,
+                "inicio_ventana": reference,
+                "fin_ventana": reference,
+                "es_suficiente": True,
+            },
+        ]
+
+        result = calculate_deficit_propagation(
+            trips=trips,
+            soc_data=soc_data,
+            windows=windows,
+            tasa_carga_soc=5.0,
+            battery_capacity_kwh=60.0,
+            reference_dt=reference,
+            trip_times=None,
+        )
+        # Only t1 has valid trip_time, so result has 1 entry
+        assert len(result) == 1
+        assert result[0]["trip_id"] == "t1"
+
+
+class TestCalculatePowerProfileEdgeCases:
+    """Tests for calculate_power_profile edge cases."""
+
+    def test_horas_desde_ahora_negative_sets_zero(self):
+        """Test that negative horas_desde_ahora sets hora_inicio_carga to 0.
+
+        Covers lines 1039-1041: if horas_desde_ahora < 0: hora_inicio_carga = 0
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+        from datetime import timezone
+
+        reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
+        # Trip departure is in the past (8 hours ago)
+        # hora_regreso is also in the past, so ventana started before now
+        trips = [
+            {
+                "id": "t1",
+                "tipo": "punctual",
+                "datetime": "2026-04-13T04:00",  # 8 hours ago
+                "kwh": 10.0,  # Small kwh to ensure ventana is sufficient
+            }
+        ]
+
+        result = calculate_power_profile(
+            all_trips=trips,
+            battery_capacity_kwh=60.0,
+            soc_current=30.0,  # Low soc to ensure energy needed
+            charging_power_kw=11.0,
+            hora_regreso=reference - timedelta(hours=4),  # Return 4 hours ago
+            planning_horizon_days=7,
+            reference_dt=reference,
+        )
+        # Window started in the past, so horas_desde_ahora < 0
+        # hora_inicio_carga should be set to 0
+        assert len(result) == 168
+        # Should have some non-zero values (charging happened in the past but profile starts at 0)
+        # The key is that hora_inicio_carga = 0 was executed
+
+    def test_window_already_ended_skips(self):
+        """Test that window with horas_hasta_fin < 0 is skipped.
+
+        Covers line 1053-1054 (was 1060): if horas_hasta_fin < 0: continue
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+        from datetime import timezone
+
+        reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
+        # Trip that already ended (yesterday) with past return time
+        trips = [
+            {
+                "id": "t1",
+                "tipo": "punctual",
+                "datetime": "2026-04-12T10:00",  # Yesterday
+                "kwh": 10.0,
+            }
+        ]
+
+        result = calculate_power_profile(
+            all_trips=trips,
+            battery_capacity_kwh=60.0,
+            soc_current=50.0,
+            charging_power_kw=11.0,
+            hora_regreso=reference - timedelta(hours=20),  # Return 20 hours ago
+            planning_horizon_days=7,
+            reference_dt=reference,
+        )
+        # The trip deadline is in the past, ventana ended in the past
+        # horas_hasta_fin < 0, so it should be skipped
+        assert len(result) == 168
+        # All zeros since window already ended
+        assert all(v == 0.0 for v in result)
+
+    def test_horas_necesarias_zero_defaults_to_one(self):
+        """Test that horas_carga_necesarias=0 is corrected to 1.
+
+        Covers lines 1045-1047 (was 1052-1053): if horas_necesarias == 0: horas_necesarias = 1
+        
+        This happens when ventana_info has horas_carga_necesarias=0 but es_suficiente=True.
+        We construct a trip that produces this edge case.
+        """
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+        from datetime import timezone
+
+        reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
+        # Trip with very small kwh that still produces a valid window
+        trips = [
+            {
+                "id": "t1",
+                "tipo": "punctual",
+                "datetime": "2026-04-14T10:00",  # Tomorrow
+                "kwh": 0.5,  # Very small - might result in 0 horas_carga_necesarias
+            }
+        ]
+
+        result = calculate_power_profile(
+            all_trips=trips,
+            battery_capacity_kwh=60.0,
+            soc_current=90.0,  # High soc
+            charging_power_kw=11.0,
+            hora_regreso=reference + timedelta(hours=20),
+            planning_horizon_days=7,
+            reference_dt=reference,
+        )
+        assert len(result) == 168
+
+    def test_horas_necesarias_zero_line_1044_with_mocked_window(self):
+        """Test that horas_carga_necesarias=0 is corrected to 1.
+
+        Covers line 1044: if horas_necesarias == 0: horas_necesarias = 1
+        
+        We mock calculate_charging_window_pure to return a window with
+        horas_carga_necesarias=0 but es_suficiente=True, which forces
+        execution of line 1044. We also mock calculate_energy_needed to ensure
+        energia_kwh > 0 so the trip is not skipped.
+        """
+        from unittest.mock import patch
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+        from datetime import timezone
+
+        reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
+        trips = [
+            {
+                "id": "t1",
+                "tipo": "puntual",
+                "datetime": "2026-04-14T10:00",
+                "kwh": 10.0,
+            }
+        ]
+
+        # Mock calculate_energy_needed to ensure energia_kwh > 0
+        mock_energia = {"energia_necesaria_kwh": 10.0}
+
+        # Mock calculate_charging_window_pure to return a window with horas_carga_necesarias=0
+        mock_window = {
+            "ventana_horas": 24.0,
+            "kwh_necesarios": 10.0,
+            "horas_carga_necesarias": 0.0,  # This will trigger line 1044
+            "inicio_ventana": reference + timedelta(hours=1),
+            "fin_ventana": reference + timedelta(hours=25),
+            "es_suficiente": True,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            return_value=mock_energia,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                return_value=mock_window,
+            ):
+                result = calculate_power_profile(
+                    all_trips=trips,
+                    battery_capacity_kwh=60.0,
+                    soc_current=50.0,
+                    charging_power_kw=11.0,
+                    hora_regreso=reference + timedelta(hours=1),
+                    planning_horizon_days=7,
+                    reference_dt=reference,
+                )
+
+        assert len(result) == 168
+        # Line 1044 was executed: horas_necesarias was set to 1
+        # With charging_power_kw=11, 1 hour of charging = 11000W at hour 1
+        assert result[1] == 11000.0
+
+    def test_window_already_ended_line_1051_with_mocked_window(self):
+        """Test that window with horas_hasta_fin < 0 is skipped on line 1051.
+
+        Covers line 1051: continue when horas_hasta_fin < 0 (Window already ended)
+        
+        We mock calculate_charging_window_pure to return a window that ended in the past,
+        forcing horas_hasta_fin < 0 and triggering the continue on line 1051.
+        We also mock calculate_energy_needed to ensure energia_kwh > 0.
+        """
+        from unittest.mock import patch
+        from custom_components.ev_trip_planner.calculations import calculate_power_profile
+        from datetime import timezone
+
+        reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
+        trips = [
+            {
+                "id": "t1",
+                "tipo": "puntual",
+                "datetime": "2026-04-14T10:00",
+                "kwh": 10.0,
+            }
+        ]
+
+        # Mock calculate_energy_needed to ensure energia_kwh > 0
+        mock_energia = {"energia_necesaria_kwh": 10.0}
+
+        # Mock calculate_charging_window_pure to return a window that ended in the past
+        # fin_ventana is 2 hours BEFORE reference, so horas_hasta_fin = -2 < 0
+        mock_window = {
+            "ventana_horas": 24.0,
+            "kwh_necesarios": 10.0,
+            "horas_carga_necesarias": 1.0,
+            "inicio_ventana": reference - timedelta(hours=26),
+            "fin_ventana": reference - timedelta(hours=2),  # 2 hours BEFORE reference
+            "es_suficiente": True,
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            return_value=mock_energia,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                return_value=mock_window,
+            ):
+                result = calculate_power_profile(
+                    all_trips=trips,
+                    battery_capacity_kwh=60.0,
+                    soc_current=50.0,
+                    charging_power_kw=11.0,
+                    hora_regreso=reference - timedelta(hours=26),
+                    planning_horizon_days=7,
+                    reference_dt=reference,
+                )
+
+        assert len(result) == 168
+        # Line 1051 was executed: continue was triggered because window ended
+        # All zeros since the only trip's window already ended
+        assert all(v == 0.0 for v in result)

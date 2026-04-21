@@ -245,6 +245,11 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
 
         # Extract aggregated params from per_trip_emhass_params
         per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
+        
+        # P1.1: Initialize number_of_deferrable_loads BEFORE per_trip_params block
+        # This ensures the attribute is always set, even when there are no trips
+        number_of_deferrable_loads = 0
+        
         # DEBUG: Log per_trip_params for debugging
         _LOGGER.warning(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_params count=%d, entries=%s",
@@ -285,6 +290,10 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
                 if p_matrix:
                     matrix.extend(p_matrix)
                     number_of_deferrable_loads += len(p_matrix)
+                else:
+                    # P1.1: Count trip as 1 deferrable load if it has no p_deferrable_matrix
+                    # This handles the case where trips have other EMHASS params but no power profile
+                    number_of_deferrable_loads += 1
 
                 # Array attrs: extend with trip's values
                 # Note: keys use _array suffix as per task specification
@@ -308,7 +317,10 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
                 attrs["def_start_timestep_array"] = def_start_timestep_array
             if def_end_timestep_array:
                 attrs["def_end_timestep_array"] = def_end_timestep_array
-            attrs["number_of_deferrable_loads"] = number_of_deferrable_loads
+        
+        # P1.1: Set number_of_deferrable_loads AFTER per_trip_params block
+        # This ensures the attribute is always set, even when there are no trips
+        attrs["number_of_deferrable_loads"] = number_of_deferrable_loads
 
         return attrs
 

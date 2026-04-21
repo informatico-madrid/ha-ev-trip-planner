@@ -1210,3 +1210,72 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
             assert isinstance(result, bool)
         except Exception:
             pass
+
+
+# =============================================================================
+# Coverage: emhass_adapter.py - presence monitor exception in publish_deferrable_loads
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads_presence_monitor_raises(
+    hass: HomeAssistant, mock_store
+) -> None:
+    """Test publish_deferrable_loads handles exception from presence_monitor.async_get_hora_regreso.
+
+    Covers the except Exception branch when async_get_hora_regreso raises,
+    ensuring hora_regreso falls back to None and processing continues normally.
+    """
+    from custom_components.ev_trip_planner.const import DOMAIN
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test",
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+            "charging_power_kw": 3.6,
+        },
+        entry_id="test_pm_raises_on_hora_regreso",
+        version=1,
+    )
+
+    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=mock_store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+        mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
+        mock_coordinator.async_refresh = AsyncMock(return_value=None)
+        adapter._coordinator = mock_coordinator
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+        adapter.hass.states.async_set = AsyncMock()
+        adapter._available_indices = {0, 1, 2, 3, 4}
+        adapter._index_map = {"trip_pm_err": 0}
+
+        # Presence monitor raises when asked for hora_regreso → except branch must execute
+        mock_pm = MagicMock()
+        mock_pm.async_get_hora_regreso = AsyncMock(
+            side_effect=Exception("presence monitor connection lost")
+        )
+        adapter._presence_monitor = mock_pm
+
+        trips_data = [
+            {
+                "id": "trip_pm_err",
+                "kwh": 10.0,
+                "datetime": "2027-06-01T08:00:00",
+            }
+        ]
+
+        result = await adapter.publish_deferrable_loads(trips_data)
+
+        # Exception was caught: method must not propagate and result is valid
+        assert result is True
+        # hora_regreso fallback: per-trip cache was still populated
+        assert "trip_pm_err" in adapter._cached_per_trip_params
+        # Presence monitor was actually called (not a false positive)
+        mock_pm.async_get_hora_regreso.assert_called_once()

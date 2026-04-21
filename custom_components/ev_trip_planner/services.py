@@ -494,15 +494,15 @@ def register_services(hass: HomeAssistant) -> None:
         )
 
         try:
-            _LOGGER.warning("Getting recurring trips for %s", vehicle_id)
+            _LOGGER.debug("Getting recurring trips for %s", vehicle_id)
             recurring_trips = await mgr.async_get_recurring_trips()
-            _LOGGER.warning("Got %d recurring trips", len(recurring_trips))
+            _LOGGER.debug("Got %d recurring trips", len(recurring_trips))
 
-            _LOGGER.warning("Getting punctual trips for %s", vehicle_id)
+            _LOGGER.debug("Getting punctual trips for %s", vehicle_id)
             punctual_trips = await mgr.async_get_punctual_trips()
-            _LOGGER.warning("Got %d punctual trips", len(punctual_trips))
+            _LOGGER.debug("Got %d punctual trips", len(punctual_trips))
 
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Retrieved %d recurring trips and %d punctual trips for vehicle %s",
                 len(recurring_trips),
                 len(punctual_trips),
@@ -511,7 +511,7 @@ def register_services(hass: HomeAssistant) -> None:
 
             # Debug: Log each recurring trip
             for i, trip in enumerate(recurring_trips):
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Recurring trip %d: id=%s, tipo=%s, activo=%s",
                     i,
                     trip.get("id"),
@@ -521,7 +521,7 @@ def register_services(hass: HomeAssistant) -> None:
 
             # Debug: Log each punctual trip
             for i, trip in enumerate(punctual_trips):
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Punctual trip %d: id=%s, tipo=%s, estado=%s",
                     i,
                     trip.get("id"),
@@ -725,11 +725,11 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
 
     # Use entry.runtime_data set by __init__.py::async_setup_entry
     runtime_data = entry.runtime_data
-    _LOGGER.warning("=== _get_manager - runtime_data: %s ===", runtime_data)
+    _LOGGER.debug("=== _get_manager - runtime_data: %s ===", runtime_data)
 
     # Retrieve trip_manager from entry.runtime_data
     trip_manager = runtime_data.trip_manager if runtime_data else None
-    _LOGGER.warning(
+    _LOGGER.debug(
         "=== _get_manager - trip_manager from runtime_data: %s ===", trip_manager
     )
 
@@ -1182,11 +1182,11 @@ async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
-        for entry in hass.config_entries.async_entries(DOMAIN):  # pragma: no cover — placeholder loop, no-op body
+        for entry in hass.config_entries.async_entries(DOMAIN):  # placeholder loop, no-op body
             entries = er.async_entries_for_config_entry(registry, entry.entry_id)
             for _entry in entries:
                 pass  # Placeholder - actual cleanup logic would go here
-    except Exception as e:  # pragma: no cover — structurally unreachable: er.async_get never raises
+    except Exception as e:
         _LOGGER.debug("Error cleaning up orphaned EMHASS sensors: %s", e)
 
 
@@ -1412,7 +1412,7 @@ async def async_unload_entry_cleanup(
     emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
 
     # E2E-DEBUG-CRITICAL: Log cleanup of listener before deleting trips
-    _LOGGER.warning(
+    _LOGGER.debug(
         "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
         emhass_adapter,
         getattr(emhass_adapter, "_config_entry_listener", None) if emhass_adapter else None,
@@ -1426,13 +1426,13 @@ async def async_unload_entry_cleanup(
         if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
             emhass_adapter._config_entry_listener()
             emhass_adapter._config_entry_listener = None
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s",
                 vehicle_name,
             )
 
     if trip_manager:
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s",
             vehicle_name,
             trip_manager,
@@ -1441,12 +1441,12 @@ async def async_unload_entry_cleanup(
 
     # Cleanup EMHASS vehicle indices before unload
     if emhass_adapter:
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s",
             vehicle_name,
         )
         await emhass_adapter.async_cleanup_vehicle_indices()
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s",
             vehicle_name,
         )

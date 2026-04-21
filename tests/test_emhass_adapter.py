@@ -5513,8 +5513,11 @@ async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
         )
         adapter._presence_monitor = mock_presence_monitor
 
-        # Mock _get_current_soc to return 50.0
-        adapter._get_current_soc = AsyncMock(return_value=50.0)
+        # Mock _get_current_soc to return 5.0 (low SOC so trips need charging)
+        # Battery capacity defaults to 50kWh, so 5% = 2.5kWh available
+        # Trip 1: 10kWh + 5kWh margin = 15kWh needed, need 12.5kWh more
+        # Trip 2: 15kWh + 5kWh margin = 20kWh needed, need 17.5kWh more
+        adapter._get_current_soc = AsyncMock(return_value=5.0)
 
         # Mock async_assign_index_to_trip to return valid indices
         adapter._index_map = {"trip_001": 0, "trip_002": 1}
@@ -5582,9 +5585,12 @@ async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
             )
 
         # Verify key values
+        # SOC=5% (2.5kWh), trip=10kWh, margin=10% (5kWh)
+        # energia_objetivo = 10 + 5 = 15kWh
+        # energia_necesaria = max(0, 15 - 2.5) = 12.5kWh
         assert params["trip_id"] == "trip_001"
         assert params["emhass_index"] == 0
-        assert params["kwh_needed"] == 10.0
+        assert params["kwh_needed"] == 12.5
         assert params["activo"] is True
 
 
@@ -5669,6 +5675,93 @@ async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
         assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
             "per_trip_emhass_params should match _cached_per_trip_params"
         )
+
+
+# =============================================================================
+# SOC PROPAGATION TESTS (Phase 2)
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_soc_propagation_between_trips(mock_store):
+    """T2.3: SOC propagates sequentially between trips.
+    
+    Test that SOC is projected correctly:
+    - Trip 1: SOC=5%, charges 12.5kWh → SOC=10%, consumes 10kWh → SOC=5%
+    - Trip 2: SOC=5%, charges 17.5kWh → SOC=13.5%, consumes 15kWh → SOC=5%
+    """
+    from datetime import datetime
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 7.4,
+    }
+
+    hass = MagicMock()
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, config)
+        await adapter.async_load()
+
+        # Setup presence_monitor mock
+        mock_presence_monitor = MagicMock()
+        mock_presence_monitor.async_get_hora_regreso = AsyncMock(
+            return_value=datetime(2026, 4, 12, 18, 30, 0)
+        )
+        adapter._presence_monitor = mock_presence_monitor
+
+        # Mock _get_current_soc to return 5.0 (low SOC)
+        adapter._get_current_soc = AsyncMock(return_value=5.0)
+
+        # Mock async_assign_index_to_trip to return valid indices
+        adapter._index_map = {"trip_001": 0, "trip_002": 1}
+        adapter._assign_index_to_trip = AsyncMock(side_effect=[0, 1])
+
+        # Mock async_notify_error to prevent errors
+        adapter.async_notify_error = AsyncMock()
+
+        # Mock _get_coordinator to return AsyncMock for async_refresh
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_refresh = AsyncMock()
+        adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
+
+        # Two trips: trip_001 at 10:00, trip_002 at 15:00
+        trips = [
+            {
+                "id": "trip_001",
+                "kwh": 10.0,
+                "datetime": "2026-04-12T10:00:00",
+                "descripcion": "Trip 1",
+            },
+            {
+                "id": "trip_002",
+                "kwh": 15.0,
+                "datetime": "2026-04-12T15:00:00",
+                "descripcion": "Trip 2",
+            },
+        ]
+
+        # Call publish_deferrable_loads
+        await adapter.publish_deferrable_loads(trips, 7.4)
+
+        # Verify SOC propagation:
+        # Trip 1: SOC=5%, needs 12.5kWh (10+5 margin - 2.5kWh current)
+        # Trip 2: SOC=5% (after trip 1), needs 17.5kWh (15+5 margin - 2.5kWh projected)
+        
+        params_001 = adapter._cached_per_trip_params["trip_001"]
+        params_002 = adapter._cached_per_trip_params["trip_002"]
+        
+        # Trip 1 should need 12.5kWh (10kWh trip + 5kWh margin - 2.5kWh current)
+        assert params_001["kwh_needed"] == 12.5, f"Trip 1 kwh_needed should be 12.5, got {params_001['kwh_needed']}"
+        
+        # Trip 2 should need 17.5kWh (15kWh trip + 5kWh margin - 2.5kWh projected after trip 1)
+        assert params_002["kwh_needed"] == 17.5, f"Trip 2 kwh_needed should be 17.5, got {params_002['kwh_needed']}"
 
 
 # =============================================================================

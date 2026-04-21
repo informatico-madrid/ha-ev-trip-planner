@@ -33,6 +33,8 @@ from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
+# T3.2: Import function for recurring trip rotation
+from .calculations import calculate_next_recurring_datetime, calculate_day_index
 from .vehicle_controller import VehicleController
 
 _UNSET = object()
@@ -172,10 +174,84 @@ class TripManager:
                    from storage (normal operational mode). If provided (e.g., []
                    from async_delete_all_trips), uses the given trips directly.
         """
-        if not self._emhass_adapter:
-            return
         if trips is None:
             trips = await self._get_all_active_trips()
+        
+        # T3.2: Calculate next occurrences for recurring trips
+        # This must execute BEFORE the early return check because rotation is
+        # independent of EMHASS publishing and should always happen
+        for trip in trips:
+            trip_type = trip.get("tipo", "")
+            _LOGGER.debug(
+                "T3.2: Checking trip %s - tipo=%s, trip keys=%s",
+                trip.get("id"),
+                trip.get("tipo"),
+                list(trip.keys()),
+            )
+            if trip_type in ("recurrente", "recurring"):
+                # Extract day and time from trip
+                day_name = trip.get("dia_semana") or trip.get("day")
+                time_str = trip.get("hora")
+                
+                # Handle weekly frequency trips (all recurring trips use dia_semana)
+                if day_name and time_str:
+                    try:
+                        # Convert Spanish/English day name to 0-6 index (Monday=0)
+                        day_index = calculate_day_index(day_name)
+                        # Convert to JavaScript getDay() format (Sunday=0, Monday=1)
+                        day_js_format = (day_index + 1) % 7
+                        
+                        # Calculate next occurrence
+                        next_occurrence = calculate_next_recurring_datetime(
+                            day_js_format, time_str, datetime.now()
+                        )
+                        
+                        _LOGGER.debug(
+                            "T3.2: Recurring trip %s - day_name=%s, day_index=%s, day_js_format=%s, time_str=%s, next_occurrence=%s",
+                            trip.get("id"),
+                            day_name,
+                            day_index,
+                            day_js_format,
+                            time_str,
+                            next_occurrence,
+                        )
+                        
+                        if next_occurrence:
+                            trip_id = trip.get("id")
+                            # EC-003 FIX: Try to update the storage-backed dict first.
+                            # If the trip_id is NOT in _recurring_trips (e.g., test-created
+                            # trips, or trips passed from outside), fall back to mutating
+                            # the trip dict directly (original behavior).
+                            if trip_id in self._recurring_trips:
+                                self._recurring_trips[trip_id]["datetime"] = next_occurrence.isoformat()
+                            else:
+                                trip["datetime"] = next_occurrence.isoformat()
+                            _LOGGER.debug(
+                                "Rotated recurring trip %s to next occurrence: %s",
+                                trip_id,
+                                next_occurrence.isoformat(),
+                            )
+                        else:
+                            _LOGGER.warning(
+                                "T3.2: calculate_next_recurring_datetime returned None for trip %s - day_name=%s, day_js_format=%s, time_str=%s",
+                                trip.get("id"),
+                                day_name,
+                                day_js_format,
+                                time_str,
+                            )
+                    except Exception as err:
+                        import traceback
+                        _LOGGER.warning(
+                            "Failed to rotate recurring trip %s: %s\n%s",
+                            trip.get("id"),
+                            err,
+                            traceback.format_exc(),
+                        )
+        
+        # Early return if no EMHASS adapter - rotation already happened above
+        if not self._emhass_adapter:
+            return
+        
         await self._emhass_adapter.async_publish_all_deferrable_loads(trips)
 
         # Trigger coordinator refresh to update sensor attributes and last_updated timestamp

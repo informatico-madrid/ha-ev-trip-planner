@@ -10,7 +10,7 @@ timezone), Python raises: TypeError: can't subtract offset-naive and offset-awar
 The fix changes datetime.now() to datetime.now(timezone.utc).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import math
 
 import pytest
@@ -34,9 +34,9 @@ class TestDatetimeOffsetBug:
 
         This is the CORE test - it directly tests the buggy code path.
         """
-        # This is what emhass_adapter.py does at line ~333 (before fix: datetime.now())
-        deadline_str = "2026-04-20T10:00:00+02:00"
-        deadline_dt = datetime.fromisoformat(deadline_str)
+        # Use a deadline in the future (1 day from now)
+        deadline = datetime.now(timezone.utc) + timedelta(days=1)
+        deadline_dt = deadline.replace(tzinfo=timezone.utc)
 
         # After the fix, emhass_adapter uses datetime.now(timezone.utc)
         # which can correctly subtract from offset-aware datetimes
@@ -46,15 +46,16 @@ class TestDatetimeOffsetBug:
         hours_available = (deadline_dt - now_aware).total_seconds() / 3600
 
         # If we get here, the fix works (aware datetime subtraction works)
-        assert hours_available > 0
+        assert hours_available > 0, f"Deadline should be in the future, got {hours_available} hours"
 
     def test_aware_datetime_subtraction_works(self):
         """Test that offset-aware datetime subtraction works.
 
         This test verifies the fix works.
         """
-        deadline_str = "2026-04-20T10:00:00+02:00"
-        deadline_dt = datetime.fromisoformat(deadline_str)
+        # Use a deadline in the future (1 day from now)
+        deadline = datetime.now(timezone.utc) + timedelta(days=1)
+        deadline_dt = deadline.replace(tzinfo=timezone.utc)
 
         # The fix: datetime.now(timezone.utc)
         now_aware = datetime.now(timezone.utc)
@@ -63,7 +64,7 @@ class TestDatetimeOffsetBug:
         hours_available = (deadline_dt - now_aware).total_seconds() / 3600
 
         assert isinstance(hours_available, float)
-        assert hours_available > 0
+        assert hours_available > 0, f"Deadline should be in the future, got {hours_available} hours"
 
     def test_iso_string_with_tz_produces_aware_datetime(self):
         """Verify ISO strings with timezone produce offset-aware datetimes.
