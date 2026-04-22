@@ -104,3 +104,8 @@ specs/.current-spec
 .qwen/
 .agents/
 .github/skills/
+.ralph/logs/
+_bmad-output/
+.ralph/
+.bmad/
+.bmad

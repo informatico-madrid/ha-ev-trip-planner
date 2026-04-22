@@ -1,0 +1,9 @@
+{
+  "name": "ha-ev-trip-planner",
+  "description": "Planificador de viajes EV para Home Assistant con optimización MPC y control de carga inteligente",
+  "createdAt": "2026-04-22T00:58:50.413Z",
+  "platform": "claude-code",
+  "upstreamVersions": {
+    "bmadCommit": "d1163f85"
+  }
+}
