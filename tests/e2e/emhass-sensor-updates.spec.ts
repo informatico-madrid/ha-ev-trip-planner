@@ -305,7 +305,7 @@ test.describe('EMHASS Sensor Updates', () => {
       }, entityId);
     };
 
-    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
 
     // Step 1: Create a trip WITHIN the 7-day planning horizon to get non-zero power_profile
     // Use 24 hours from now to ensure the deadline is safely in the future (fixes hours_available <= 0 bug)
@@ -424,7 +424,7 @@ test.describe('EMHASS Sensor Updates', () => {
       }, entityId);
     };
 
-    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
 
     // Step 1: Use a trip already created by previous tests (recurring trip)
     // This avoids issues with new trip EMHASS calculation timing
@@ -569,7 +569,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await page.waitForTimeout(3000);
 
     // Discover sensor
-    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
     expect(sensorEntityId).toBeTruthy();
 
     // V2, V3, V4: Verify sensor attributes with polling
@@ -646,7 +646,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await expect(page.getByText('UX02 Trip 3')).toBeVisible();
 
     // V5: Verify sensor still has NON-ZERO values after partial deletion
-    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
     await expect(async () => {
       const attrs = await getSensorAttributes(page, sensorEntityId!);
       expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
