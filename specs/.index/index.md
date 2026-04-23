@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-23T01:45:35Z
+**Last updated:** 2026-04-23T07:35:37Z
 
 ## Directories (1)
 
@@ -45,7 +45,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | m401-emhass-hotfixes | ./specs | completed | done |
 | fix-emhass-aggregated-sensor | ./specs | completed | done |
 | fix-sequential-trip-charging | ./specs | completed | done |
-| e2e-ux-tests-fix | ./specs | execution | 6/98 tasks |
+| e2e-ux-tests-fix | ./specs | execution | 91/98 tasks |
 
 ---
 
