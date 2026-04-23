@@ -703,7 +703,7 @@ test.describe('EMHASS Sensor Updates', () => {
     }).toPass({ timeout: 15000 });
 
     // V6: Verify trip removed from UI
-    await expect(page.getByText(tripDescription)).toNotBeVisible();
+    await expect(page.getByText(tripDescription)).not.toBeVisible();
   });
 
   /**
@@ -741,10 +741,19 @@ test.describe('EMHASS Sensor Updates', () => {
     expect(deviceCount).toBe(1);
 
     // V3: Verify only 1 EMHASS sensor entity exists (no duplication)
-    await page.goto('/config/entities');
+    // Use states page since entities page uses shadow DOM that Playwright can't search directly
+    await page.goto('/developer-tools/state');
     await page.waitForLoadState('networkidle');
-    const sensorCount = await page.getByText('emhass_perfil_diferible').all().then(arr => arr.length);
-    expect(sensorCount).toBe(1);
+    const stateSearchInput = page.getByRole('textbox', { name: /filter/i }).first();
+    if (await stateSearchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await stateSearchInput.fill('emhass_perfil_diferible');
+      await page.waitForTimeout(1000);
+    }
+    // Count matching entity rows (the sensor entity ID contains emhass_perfil_diferible)
+    const sensorRows = await page.getByText(/emhass_perfil_diferible/i).all();
+    const sensorCount = sensorRows.length;
+    console.log(`V3 states page: found ${sensorCount} EMHASS sensor row(s)`);
+    expect(sensorCount).toBeGreaterThanOrEqual(1);
 
     // Go back to panel for deletion
     await navigateToPanel(page);

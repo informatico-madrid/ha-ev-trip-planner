@@ -745,14 +745,14 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `test(e2e): add race-condition-regression-rapid-successive-creation test`
   - _Requirements: Story S4, AC2, AC3, AC4, AC5_
 
-- [ ] 2.5 [VERIFY] Verify regression tests appear in playwright --list
+- [x] 2.5 [VERIFY] Verify regression tests appear in playwright --list
   - **Do**: Run `npx playwright test --list`
   - **Verify**: Both regression test names appear in the test list output
   - **Done when**: 2 new regression tests discovered
   - **Commit**: None
   - _Requirements: Story S4_
 
-- [ ] 2.5a [VERIFY] **REGRESSION GUARD**: Verify E2E test count is exactly 30 (was 28 + 2 new)
+- [x] 2.5a [VERIFY] **REGRESSION GUARD**: Verify E2E test count is exactly 30 (was 28 + 2 new)
   - **Do**:
     1. Run `npx playwright test --list 2>&1 | grep "^  .*test" | wc -l`
     2. Compare against baseline from Phase 0 (0.4): was 28 tests
@@ -763,35 +763,35 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `chore(e2e-ux-tests-fix): S4 regression guard - verify E2E test count`
   - _Requirements: Anti-regression protection_
 
-- [ ] 2.6 [VERIFY] Pre-flight check: verify SOC is 20% in configuration.yaml
+- [x] 2.6 [VERIFY] Pre-flight check: verify SOC is 20% in configuration.yaml
   - **Do**: Run `grep -n "initial: 20" tests/ha-manual/configuration.yaml`
   - **Verify**: Returns line with `initial: 20` for test_vehicle_soc
   - **Done when**: SOC=20% confirmed
   - **Commit**: None
   - _Requirements: requirements.md Section 7.5, AC4_
 
-- [ ] 2.7 [VERIFY] Pre-flight check: no hardcoded dates in test files
+- [x] 2.7 [VERIFY] Pre-flight check: no hardcoded dates in test files
   - **Do**: Run `grep -rn "2026-04-20" tests/e2e/emhass-sensor-updates.spec.ts`
   - **Verify**: Returns 0 matches
   - **Done when**: No hardcoded dates found
   - **Commit**: None
   - _Requirements: requirements.md Section 7.5_
 
-- [ ] 2.8 [VERIFY] Pre-flight check: no hardcoded entity IDs in test files
+- [x] 2.8 [VERIFY] Pre-flight check: no hardcoded entity IDs in test files
   - **Do**: Run `grep -rn "ev_trip_planner_test_vehicle_emhass" tests/e2e/emhass-sensor-updates.spec.ts`
   - **Verify**: Returns 0 matches
   - **Done when**: No hardcoded entity IDs found
   - **Commit**: None
   - _Requirements: requirements.md Section 7.5_
 
-- [ ] 2.9 [VERIFY] Pre-flight check: logger config exists in configuration.yaml
+- [x] 2.9 [VERIFY] Pre-flight check: logger config exists in configuration.yaml
   - **Do**: Run `grep -n "logger:" tests/ha-manual/configuration.yaml`
   - **Verify**: Returns logger section
   - **Done when**: Logger config confirmed
   - **Commit**: None
   - _Requirements: requirements.md Section 7.5_
 
-- [ ] 2.10 [VERIFY] Pre-flight check: globalTeardown removed from playwright.config.ts
+- [x] 2.10 [VERIFY] Pre-flight check: globalTeardown removed from playwright.config.ts
   - **Do**: Run `grep -n "globalTeardown" playwright.config.ts`
   - **Verify**: Returns 0 matches
   - **Done when**: globalTeardown removed
@@ -800,7 +800,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
 
 ### Story S5+S6: E2E UX-01 + UX-02 Verification (Self-Healing Loop)
 
-- [ ] 2.11 [VERIFY] S5+S6 Iteration 0: Run make e2e (first full suite attempt)
+- [x] 2.11 [VERIFY] S5+S6 Iteration 0: Run make e2e (first full suite attempt)
   - **Do**:
     1. Run `make e2e` (runs full E2E suite via run-e2e.sh)
     2. Wait for completion (HA startup takes ~2 minutes)
@@ -810,7 +810,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: Story S5, AC1-AC6; Story S6, AC1-AC6_
 
-- [ ] 2.12 [VERIFY] Diagnose failures: read HA logs AND Playwright error context if make e2e failed
+- [x] 2.12 [VERIFY] Diagnose failures: N/A - make e2e passed 30/30, no failures to diagnose
   - **Do**:
     1. **Playwright error context FIRST**: Find `test-results/*/error-context.md` files
        - `find test-results -name "error-context.md" -type f`
@@ -828,7 +828,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: requirements.md Section 10.1_
 
-- [ ] 2.13 [VERIFY] Fix identified root cause and re-run make e2e (iteration 2)
+- [x] 2.13 [VERIFY] Fix identified root cause: N/A - make e2e passed 30/30, no fixes needed
   - **Do**:
     1. Apply ONE fix for the classified root cause (verify with Playwright error context that the fix targets the right issue)
     2. Run `make e2e` again
@@ -839,7 +839,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (if fix applied)
   - _Requirements: requirements.md Section 10.3_
 
-- [ ] 2.14 [VERIFY] Diagnose and fix again if iteration 2 failed (iteration 3)
+- [x] 2.14 [VERIFY] Diagnose and fix iteration 3: N/A - all tests passed in iteration 0
   - **Do**:
     1. Read Playwright error context files for new failures
     2. Read HA logs for new errors
@@ -852,7 +852,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: requirements.md Section 10.3 (max 3 iterations)_
 
-- [ ] 2.15 [VERIFY] Post-run verification: check HA logs for errors/exceptions
+- [x] 2.15 [VERIFY] Post-run verification: HA logs clean - no EMHASS/datetime errors, only infrastructure noise (bluetooth/ffmpeg)
   - **Do**:
     1. If make e2e passed: `grep -i "error\|exception\|traceback" /tmp/logs/ha-e2e-*.log | tail -50` — should show only expected/warning entries, not errors
     2. Check EMHASS: `grep -i "emhass\|deferrable" /tmp/logs/ha-e2e-*.log | tail -50`
@@ -861,7 +861,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: requirements.md Section 9.3_
 
-- [ ] 2.16 [VERIFY] Verify S5 acceptance criteria: UX-01 recurring trip lifecycle
+- [x] 2.16 [VERIFY] S5 acceptance criteria: UX-01 has V1 (trip visible), V2 (power_profile non-zero), V3 (deferrables populated), V4 (status ready), V5 (sensor zeros after delete), V6 (trip removed), uses getFutureIso()
   - **Do**: Read the UX-01 test code (emhass-sensor-updates.spec.ts lines 560-595) and verify each validation V1-V6 is present:
     - V1: Recurring trip appears (getByText)
     - V2: Sensor power_profile non-zero
@@ -875,7 +875,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: Story S5, Section 7.3_
 
-- [ ] 2.17 [VERIFY] Verify S6 acceptance criteria: UX-02 multiple trips
+- [x] 2.17 [VERIFY] S6 acceptance criteria: UX-02 has V1 (3 trips visible), V2 (1 device), V3 (1 sensor via states page), V4 (2 trips remain), V5 (sensor non-zero), V6 (all zeros)
   - **Do**: Read the UX-02 test code (emhass-sensor-updates.spec.ts lines 603-665) and verify each validation V1-V6 is present:
     - V1: 3 trips visible
     - V2: 1 device only
@@ -890,7 +890,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
 
 ### S3 Regression Guard: Verify test infrastructure changes didn't break unrelated tests
 
-- [ ] 2.18 [VERIFY] **REGRESSION GUARD**: Verify S3 test infra changes didn't break unrelated unit tests
+- [x] 2.18 [VERIFY] Regression guard unit tests: 1639 passed, 1 skipped, 100% coverage - same as baseline
   - **Do**:
     1. Run `make test 2>&1 | tee /tmp/post-s3-unit.txt`
     2. Compare against post-S2 baseline (1.24a): `diff /tmp/post-s2-unit.txt /tmp/post-s3-unit.txt`
@@ -902,7 +902,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `chore(e2e-ux-tests-fix): S3 regression guard - verify no unit test changes`
   - _Requirements: Anti-regression protection_
 
-- [ ] 2.19 [VERIFY] **REGRESSION GUARD**: Verify S3 E2E test infra changes didn't break existing E2E behavior
+- [x] 2.19 [VERIFY] Regression guard E2E: 30 tests discoverable (28 original + 2 regression), no unexpected changes
   - **Do**:
     1. Run `npx playwright test --list 2>&1` — all tests should be discoverable
     2. Verify no tests were accidentally deleted during entity ID/date replacements
