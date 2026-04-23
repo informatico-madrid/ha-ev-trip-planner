@@ -115,7 +115,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
 
 ### Story S1: Fix Datetime Naive/Aware Bug
 
-- [ ] 1.1 [P] [RED] Read trip_manager.py:1467-1502 to understand BOTH datetime naive/aware bug paths
+- [x] 1.1 [P] [RED] Read trip_manager.py:1467-1502 to understand BOTH datetime naive/aware bug paths
   - **Do**: Read lines 1467-1502 of trip_manager.py, identify TWO bug locations:
     1. Line 1470-1471: `isinstance(trip_datetime, datetime)` assigns without ensuring timezone awareness
     2. Lines 1474-1480: strptime fallback produces naive datetime (secondary path when parse_datetime fails)
