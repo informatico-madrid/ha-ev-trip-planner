@@ -59,7 +59,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
   - **Commit**: None
   - _Requirements: Anti-regression protection_
 
-- [ ] 0.5 [VERIFY] Create Intentional Behavior Change Map
+- [x] 0.5 [VERIFY] Create Intentional Behavior Change Map
   - **Do**: Document which specific tests/behaviors are expected to change when each fix is applied:
 
     **S1 Datetime Fix — Expected Changes:**
