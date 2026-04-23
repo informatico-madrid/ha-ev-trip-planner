@@ -34,13 +34,14 @@ const discoverEmhassSensorEntityId = async (pg: import('@playwright/test').Page)
   return await pg.evaluate(() => {
     const haMain = document.querySelector('home-assistant') as any;
     if (!haMain?.hass?.states) return null;
-    // Only match entities with the correct vehicle_id — no fallback loop.
+    // Match entities with the correct vehicle_id in the entity_id itself.
+    // The sensor entity_id format is: sensor.emhass_trip_{vehicle_id}_{trip_id}
     // The old fallback (second loop) could return ANY emhass_perfil_diferible
     // entity regardless of vehicle_id, causing cross-vehicle contamination.
-    for (const [entityId, state] of Object.entries(haMain.hass.states)) {
-      if (!entityId.startsWith('sensor.emhass_perfil_diferible_')) continue;
-      const attrs = (state as any).attributes;
-      if (attrs?.vehicle_id === 'test_vehicle') return entityId;
+    // NOTE: vehicle_id is NOT in attributes — it's only in the entity_id.
+    for (const entityId of Object.keys(haMain.hass.states)) {
+      if (!entityId.startsWith('sensor.emhass_trip_')) continue;
+      if (entityId.includes('_test_vehicle_')) return entityId;
     }
     return null;
   });
