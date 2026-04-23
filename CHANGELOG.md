@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.17] - 2026-04-23 - Datetime Fix & Race Condition Resolution
+
+### Fixed
+- **Bug datetime naive/aware**: Corregido `datetime.now()` a `datetime.now(timezone.utc)` en `trip_manager.py` para evitar errores `TypeError` en comparaciones de timezone.
+- **Race condition coordinator**: Resuelta condición de carrera en el coordinator durante actualizaciones concurrentes.
+- **Cálculo SOC en eliminación de sensores**: Corregido el cálculo de SOC al eliminar sensores huérfanos.
+- **Mutación in-place**: Reemplazada mutación in-place con dict expansion en `async_publish_all_deferrable_loads` y `async_cleanup_vehicle_indices`.
+
+### Added
+- **Tests regression datetime**: Nuevo archivo `tests/test_trip_manager_datetime_tz.py` con tests de regresión para datetime naive/aware.
+- **Refactor `_parse_trip_datetime`**: Método centralizado para parsing de datetime en TripManager con type hints para compliance SOLID.
+- **Tests E2E EMHASS dinámicos**: Tests E2E con descubrimiento dinámico de entity IDs.
+- **100% coverage**: Cobertura del 100% en las líneas críticas del datetime handling.
+
+### Changed
+- **Test infrastructure**: Mejoras en tests E2E con fechas dinámicas usando `getFutureIs`.
+- **Chore files cleanup**: Eliminación de archivos obsoletos de agentes y skills no utilizados.
+
+### Technical Details
+- **Files Modified**: `trip_manager.py`, `coordinator.py`, `emhass_adapter.py`, `__init__.py`
+- **Files Added**: `tests/test_trip_manager_datetime_tz.py`
+- **Files Removed**: `_bmad/cis/agents/artifact-analyzer.md`, `_bmad/cis/agents/opportunity-reviewer.md`, `_bmad/cis/agents/skeptic-reviewer.md`, `_bmad/core/agents/distillate-compressor.md`, `_bmad/core/agents/round-trip-reconstructor.md`
+
+---
+
 ## [0.5.16] - 2026-04-20 - Panel Fixes & EMHASS Cleanup
 
 ### Fixed
