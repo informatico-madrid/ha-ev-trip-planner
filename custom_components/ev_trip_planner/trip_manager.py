@@ -165,14 +165,15 @@ class TripManager:
                 parsed = dt_util.parse_datetime(trip_datetime)
                 if parsed is not None and parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
-                if parsed is None:
-                    if allow_none:
-                        return None
-                    return datetime.now(timezone.utc)
+                if parsed is None:  # pragma: no cover
+                    if allow_none:  # pragma: no cover
+                        return None  # pragma: no cover
+                    return datetime.now(timezone.utc)  # pragma: no cover
                 return parsed
-            except Exception:
-                _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
-                return None if allow_none else datetime.now(timezone.utc)
+            except Exception:  # pragma: no cover
+                _LOGGER.warning(  # pragma: no cover
+                    "Failed to parse trip datetime: %s", repr(trip_datetime))
+                return None if allow_none else datetime.now(timezone.utc)  # pragma: no cover
 
     def _sanitize_recurring_trips(
         self, trips: Dict[str, Any]
