@@ -9,7 +9,7 @@ from __future__ import annotations
 import functools
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, TypeAlias
 
 from homeassistant.components.sensor import SensorEntity

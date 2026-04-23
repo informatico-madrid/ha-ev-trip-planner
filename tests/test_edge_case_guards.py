@@ -174,7 +174,7 @@ async def test_rendered_set_true_on_error_to_prevent_infinite_loop():
     # Should handle gracefully without crash
     try:
         await adapter.async_publish_deferrable_loads([invalid_trip])
-    except:
+    except Exception:
         pass  # Expected to fail validation
 
     # Adapter should still be functional after error

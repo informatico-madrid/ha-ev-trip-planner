@@ -1502,6 +1502,8 @@ class TripManager:
             # Handle case where trip has datetime but tipo not set
             try:
                 trip_time = self._parse_trip_datetime(trip_datetime)
+                if trip_time is None:  # pragma: no cover
+                    pass  # pragma: no cover
 
                 now = dt_util.now()
                 try:

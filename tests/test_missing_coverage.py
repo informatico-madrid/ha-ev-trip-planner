@@ -4,8 +4,8 @@ Cubre:
 - EC-001: Timer cancel en async_unload_entry (__init__.py:190-192)
 - EC-020: Rollback de trips fallidos (emhass_adapter.py:796-802)
 """
-from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, AsyncMock, patch, PropertyMock
+from typing import Any, Dict
+from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter

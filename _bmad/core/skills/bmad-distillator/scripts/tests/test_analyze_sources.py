@@ -4,7 +4,6 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -17,8 +16,6 @@ from analyze_sources import (
     detect_doc_type,
     suggest_groups,
     analyze,
-    INCLUDE_EXTENSIONS,
-    SKIP_DIRS,
 )
 
 

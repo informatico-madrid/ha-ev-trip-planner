@@ -78,7 +78,7 @@ async def test_async_get_next_trip_after_ignores_invalid_hora(hass) -> None:
     tm = TripManager(hass, "veh")
     now = datetime.now()
     # Build a recurring trip for today with invalid hora
-    today_name = now.strftime("%A").lower()  # produce a day name; TripManager compares lower()
+    _today_name = now.strftime("%A").lower()  # produce a day name; TripManager compares lower()
     # Map English weekday to Spanish days_of_week used by utils; simplest: set dia_semana to empty to force skip
     tm._recurring_trips = {
         "r_bad": {"id": "r_bad", "dia_semana": "", "hora": "25:99", "activo": True}

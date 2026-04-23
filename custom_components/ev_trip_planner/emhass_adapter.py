@@ -122,6 +122,12 @@ class EMHASSAdapter:
         # It should get this from trip_manager or vehicle_controller
         self._presence_monitor = None
 
+        # FR-3.1: Cached values initialized here to prevent W0201 (attribute-defined-outside-init)
+        self._cached_power_profile: Optional[List[float]] = None
+        self._cached_deferrables_schedule: Optional[List[Any]] = None
+        self._cached_emhass_status: Optional[str] = None
+        self.config_entry: Optional[Any] = None
+
         _LOGGER.debug(
             "Created EMHASSAdapter for %s, %d indices, "
             "notification_service=%s, charging_power_kw=%.2f",

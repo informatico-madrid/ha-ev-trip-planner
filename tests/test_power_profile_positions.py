@@ -12,7 +12,7 @@ Expected: 3600W at positions 94 and 95 (last 2 positions of window)
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 import pytest
 
 from custom_components.ev_trip_planner.const import (

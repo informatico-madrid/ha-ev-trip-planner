@@ -8,15 +8,8 @@ trip dictionaries, following the pattern from test_t32_and_p11_tdd.py that PASS.
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-from tests.conftest import (
-    trip_manager_with_entry_id,
-    trip_manager_no_entry_id,
-    mock_hass,
-    mock_store,
-)
 
 
 class TestT34_Integration:

@@ -467,11 +467,6 @@ def calculate_multi_trip_charging_windows(
     if not trips:
         return []
 
-    # Normalize all datetime inputs to UTC-aware
-    normalized_hora_regreso: datetime | None = None
-    if hora_regreso is not None:
-        normalized_hora_regreso = _ensure_aware(hora_regreso)
-
     results = []
     previous_arrival: datetime | None = None
 
@@ -837,10 +832,7 @@ def calculate_power_profile_from_trips(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
-    import logging
     logger = logging.getLogger(__name__)
-
-    from datetime import datetime, timezone
 
     if reference_dt is None:
         reference_dt = datetime.now(timezone.utc)

@@ -9,7 +9,6 @@ After fix: math.ceil(1.94) = 2 (int, correct for EMHASS)
 
 import math
 
-import pytest
 
 
 class TestDefTotalHoursMathCeil:
