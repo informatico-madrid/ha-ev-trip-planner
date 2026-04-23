@@ -502,7 +502,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC4_
 
-- [ ] 1.28 [P] [S3.1] Add logger debug config to configuration.yaml
+- [x] 1.28 [P] [S3.1] Add logger debug config to configuration.yaml
   - **Do**: Append to end of configuration.yaml:
     ```yaml
 
@@ -518,7 +518,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): add logger debug config to tests/ha-manual/configuration.yaml`
   - _Requirements: Story S3, AC4_
 
-- [ ] 1.29 [P] [S3.2] Read emhass-sensor-updates.spec.ts:300-320 to locate hardcoded entity IDs
+- [x] 1.29 [P] [S3.2] Read emhass-sensor-updates.spec.ts:300-320 to locate hardcoded entity IDs
   - **Do**: Read lines 295-330 to identify hardcoded entity ID at line 308
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Hardcoded entity ID location confirmed at line 308
@@ -526,7 +526,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC1_
 
-- [ ] 1.30 [P] [S3.2] Read getSensorAttributes helper to understand its parameter signature
+- [x] 1.30 [P] [S3.2] Read getSensorAttributes helper to understand its parameter signature
   - **Do**: Read tests/e2e/emhass-sensor-updates.spec.ts lines 23-47 to understand getSensorAttributes and discoverEmhassSensorEntityId signatures
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Helper signatures understood (getSensorAttributes(pg, entityId), discoverEmhassSensorEntityId(pg))
@@ -534,7 +534,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3_
 
-- [ ] 1.30a [P] [S3.2] Read the test context around line 308 to understand how getSensorAttributes is called at that location
+- [x] 1.30a [P] [S3.2] Read the test context around line 308 to understand how getSensorAttributes is called at that location
   - **Do**: Read lines 295-330 to understand how `sensorEntityId` is used and how it feeds into `getSensorAttributes` calls
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Usage context understood
@@ -542,7 +542,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3_
 
-- [ ] 1.30b [P] [S3.2] Replace hardcoded entity ID at line 308
+- [x] 1.30b [P] [S3.2] Replace hardcoded entity ID at line 308
   - **Do**: Replace `'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle'` with `await discoverEmhassSensorEntityId(page)` — update all references from `getSensorAttributes(sensorEntityId)` to `getSensorAttributes(page, sensorEntityId)` since getSensorAttributes takes (page, entityId) per line 23.
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Line 308 no longer contains hardcoded entity ID
@@ -550,7 +550,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace hardcoded entity ID with discoverEmhassSensorEntityId at line 308`
   - _Requirements: Story S3, AC1_
 
-- [ ] 1.31 [P] [S3.2] Read emhass-sensor-updates.spec.ts:420-440 to locate second hardcoded entity ID
+- [x] 1.31 [P] [S3.2] Read emhass-sensor-updates.spec.ts:420-440 to locate second hardcoded entity ID
   - **Do**: Read lines 420-440 to identify second hardcoded entity ID at line 427
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Second hardcoded entity ID location confirmed
@@ -558,7 +558,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC1_
 
-- [ ] 1.32 [P] [S3.2] Replace hardcoded entity ID at line 427
+- [x] 1.32 [P] [S3.2] Replace hardcoded entity ID at line 427
   - **Do**: Same replacement as 1.30 — replace hardcoded entity ID with `discoverEmhassSensorEntityId(page)`
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Line 427 no longer contains hardcoded entity ID
@@ -566,7 +566,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace hardcoded entity ID with discoverEmhassSensorEntityId at line 427`
   - _Requirements: Story S3, AC1_
 
-- [ ] 1.32a [P] [S3.3] Read getFutureIso helper to understand its signature
+- [x] 1.32a [P] [S3.3] Read getFutureIso helper to understand its signature
   - **Do**: Read tests/e2e/emhass-sensor-updates.spec.ts lines 53-60 to understand getFutureIso signature
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: getFutureIso(dayOffset, timeStr) signature understood
@@ -574,7 +574,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3_
 
-- [ ] 1.33 [P] [S3.3] Read emhass-sensor-updates.spec.ts:70-80 to locate hardcoded date
+- [x] 1.33 [P] [S3.3] Read emhass-sensor-updates.spec.ts:70-80 to locate hardcoded date
   - **Do**: Read lines 70-80 to identify hardcoded date `'2026-04-20T10:00'` at line 75
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Hardcoded date location confirmed
@@ -582,7 +582,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC2_
 
-- [ ] 1.34 [P] [S3.3] Replace hardcoded date at line 75
+- [x] 1.34 [P] [S3.3] Replace hardcoded date at line 75
   - **Do**: Replace `'2026-04-20T10:00'` with `getFutureIso(1, '10:00')`
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Line 75 uses getFutureIso
@@ -590,7 +590,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace hardcoded date with getFutureIso at line 75`
   - _Requirements: Story S3, AC2_
 
-- [ ] 1.35 [P] [S3.3] Replace hardcoded date at line 138
+- [x] 1.35 [P] [S3.3] Replace hardcoded date at line 138
   - **Do**: Same replacement: `'2026-04-20T10:00'` -> `getFutureIso(1, '10:00')`
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Line 138 uses getFutureIso
@@ -598,7 +598,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace hardcoded date with getFutureIso at line 138`
   - _Requirements: Story S3, AC2_
 
-- [ ] 1.36 [P] [S3.3] Replace hardcoded dates at lines 489-491
+- [x] 1.36 [P] [S3.3] Replace hardcoded dates at lines 489-491
   - **Do**: Replace `'2026-04-20T10:00'` at lines 489 and 491 with `getFutureIso(1, '10:00')`
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Lines 489 and 491 use getFutureIso
@@ -606,7 +606,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace hardcoded dates with getFutureIso at lines 489-491`
   - _Requirements: Story S3, AC2_
 
-- [ ] 1.37 [P] [S3.4] Count and classify all waitForTimeout calls
+- [x] 1.37 [P] [S3.4] Count and classify all waitForTimeout calls
   - **Do**: Run `grep -n "waitForTimeout" tests/e2e/emhass-sensor-updates.spec.ts` to list all 26 occurrences, classify each as REPLACE or KEEP
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: All 26 waitForTimeout calls classified
@@ -614,7 +614,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (analysis only)
   - _Requirements: Story S3, AC3_
 
-- [ ] 1.38 [P] [S3.4] Replace sensor-check waitForTimeout calls with toPass() polling
+- [x] 1.38 [P] [S3.4] Replace sensor-check waitForTimeout calls with toPass() polling
   - **Do**: Replace `page.waitForTimeout(3000)` and `page.waitForTimeout(1000)` calls that precede sensor attribute checks with `await expect(async () => { ... sensor attribute assertions ... }).toPass({ timeout: 15000 })`
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: All sensor-check waits replaced with toPass()
@@ -622,7 +622,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace sensor-check waitForTimeout with toPass() polling`
   - _Requirements: Story S3, AC3_
 
-- [ ] 1.39 [P] [S3.4] Replace UI-navigation waitForTimeout calls
+- [x] 1.39 [P] [S3.4] Replace UI-navigation waitForTimeout calls
   - **Do**: Replace `page.waitForTimeout(1000)` and `page.waitForTimeout(2000)` calls used for UI navigation delays with `page.waitForLoadState('networkidle')` or `page.waitForTimeout(500)` (shorter, more intentional)
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: UI navigation waits optimized
@@ -630,7 +630,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): replace UI navigation waitForTimeout with networkidle`
   - _Requirements: Story S3, AC3_
 
-- [ ] 1.40 [P] [S3.4] Preserve acceptable waitForTimeout calls
+- [x] 1.40 [P] [S3.4] Preserve acceptable waitForTimeout calls
   - **Do**: Verify remaining waitForTimeout calls are acceptable:
     - Line 618 (UX-02 multi-trip 5000ms) — KEEP
     - Line 642 (UX-02 partial deletion 3000ms) — KEEP
@@ -641,7 +641,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (preserving acceptable calls)
   - _Requirements: Story S3, AC3_
 
-- [ ] 1.41 [P] [S3.5] Read run-e2e.sh:20-30 to verify existing timestamped log config
+- [x] 1.41 [P] [S3.5] Read run-e2e.sh:20-30 to verify existing timestamped log config
   - **Do**: Read lines 20-30 of scripts/run-e2e.sh to confirm timestamped log paths exist
   - **Files**: scripts/run-e2e.sh
   - **Done when**: Existing log config confirmed (line 23-24: TS and HA_LOG_FILE)
@@ -649,7 +649,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC5_
 
-- [ ] 1.42 [P] [S3.5] Read run-e2e.sh:151-162 to verify existing failure dump
+- [x] 1.42 [P] [S3.5] Read run-e2e.sh:151-162 to verify existing failure dump
   - **Do**: Read lines 151-162 to confirm failure dump with grep patterns exists
   - **Files**: scripts/run-e2e.sh
   - **Done when**: Failure dump confirmed present
@@ -657,7 +657,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC5_
 
-- [ ] 1.43 [P] [S3.6] Read playwright.config.ts:15-20 to locate globalTeardown
+- [x] 1.43 [P] [S3.6] Read playwright.config.ts:15-20 to locate globalTeardown
   - **Do**: Read lines 15-20 to confirm globalTeardown reference at line 18
   - **Files**: playwright.config.ts
   - **Done when**: globalTeardown line confirmed at line 18
@@ -665,7 +665,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S3, AC6_
 
-- [ ] 1.44 [P] [S3.6] Remove globalTeardown from playwright.config.ts
+- [x] 1.44 [P] [S3.6] Remove globalTeardown from playwright.config.ts
   - **Do**: Remove line `globalTeardown: './globalTeardown.ts',` from playwright.config.ts
   - **Files**: playwright.config.ts
   - **Done when**: globalTeardown reference removed
@@ -673,21 +673,21 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `fix(e2e): remove non-existent globalTeardown from playwright.config.ts`
   - _Requirements: Story S3, AC6_
 
-- [ ] 1.45 [P] [S3.7] Run playwright test --list to verify all tests discovered
+- [x] 1.45 [P] [S3.7] Run playwright test --list to verify all tests discovered
   - **Do**: Run `npx playwright test --list`
   - **Verify**: Exit 0, all test files listed, no warnings about missing globalTeardown
   - **Done when**: All tests discovered without errors
   - **Commit**: None
   - _Requirements: Story S3, requirements.md Section 5.4_
 
-- [ ] 1.46 [P] [VERIFY] Run make lint (no violations after S3 changes)
+- [x] 1.46 [P] [VERIFY] Run make lint (no violations after S3 changes)
   - **Do**: Run `make lint`
   - **Verify**: `make lint` exits 0
   - **Done when**: No lint violations
   - **Commit**: None
   - _Requirements: Story S3_
 
-- [ ] 1.47 [P] [VERIFY] Run make mypy (type checking passes after S3 changes)
+- [x] 1.47 [P] [VERIFY] Run make mypy (type checking passes after S3 changes)
   - **Do**: Run `make mypy`
   - **Verify**: `make mypy` exits 0
   - **Done when**: No type errors
@@ -698,7 +698,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
 
 ### Story S4: Race Condition Regression Tests
 
-- [ ] 2.1 [RED] Read existing helpers in emhass-sensor-updates.spec.ts
+- [x] 2.1 [RED] Read existing helpers in emhass-sensor-updates.spec.ts
   - **Do**: Read tests/e2e/emhass-sensor-updates.spec.ts lines 22-60 to understand getSensorAttributes, discoverEmhassSensorEntityId, getFutureIso helper signatures
   - **Files**: tests/e2e/emhass-sensor-updates.spec.ts
   - **Done when**: Helper signatures understood
@@ -706,7 +706,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S4, AC4_
 
-- [ ] 2.2 [RED] Read trips-helpers.ts createTestTrip signature
+- [x] 2.2 [RED] Read trips-helpers.ts createTestTrip signature
   - **Do**: Read tests/e2e/trips-helpers.ts lines 129-178 to understand createTestTrip parameters
   - **Files**: tests/e2e/trips-helpers.ts
   - **Done when**: createTestTrip signature understood
@@ -714,7 +714,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S4, AC4_
 
-- [ ] 2.3 [RED] Write regression test: race-condition-regression-immediate-sensor-check
+- [x] 2.3 [RED] Write regression test: race-condition-regression-immediate-sensor-check
   - **Do**: Add test function in emhass-sensor-updates.spec.ts (between existing tests and UX-01):
     1. cleanupTestTrips → navigateToPanel
     2. createTestTrip with getFutureIso datetime, 50km, 10kwh

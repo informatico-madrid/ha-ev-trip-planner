@@ -552,6 +552,118 @@ test.describe('EMHASS Sensor Updates', () => {
   });
 
   /**
+   * Story 4: Race condition regression test — sensor is immediately available after trip creation.
+   * Verifies that sensor attributes are populated without any artificial waitForTimeout delay.
+   */
+  test('race-condition-regression-immediate-sensor-check', async ({ page }) => {
+    // Step 1: cleanup → navigate
+    await cleanupTestTrips(page);
+    await navigateToPanel(page);
+
+    // Step 2: Create a trip
+    const tripDatetime = getFutureIso(1, '09:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      tripDatetime,
+      50,
+      10,
+      'E2E Race Condition Immediate Check',
+    );
+
+    // Step 3: IMMEDIATELY discover sensor entity (no waitForTimeout)
+    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    expect(sensorEntityId).toBeTruthy();
+
+    // Step 4: Assert sensor entity exists in hass.states
+    const attrs = await getSensorAttributes(page, sensorEntityId!);
+    expect(attrs).toBeDefined();
+
+    // Step 5: toPass() check — def_total_hours_array has positive values
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.def_total_hours_array)).toBe(true);
+      expect(a.def_total_hours_array.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 6: toPass() check — p_deferrable_matrix has non-zero entries
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
+      expect(a.p_deferrable_matrix.some((row: number[]) => row.some((v: number) => v > 0))).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 7: toPass() check — emhass_status === 'ready'
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(a.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Step 8: cleanup
+    await cleanupTestTrips(page);
+  });
+
+  /**
+   * Story 4: Race condition regression test — rapid successive trip creation.
+   * Verifies that creating a second trip immediately after the first works correctly.
+   */
+  test('race-condition-regression-rapid-successive-creation', async ({ page }) => {
+    // Step 1: cleanup → navigate
+    await cleanupTestTrips(page);
+    await navigateToPanel(page);
+
+    // Step 2: Create first trip
+    const trip1Datetime = getFutureIso(1, '09:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      trip1Datetime,
+      30,
+      5,
+      'E2E Race Condition Rapid Trip 1',
+    );
+
+    // Step 3: toPass() check — sensor shows trip 1 data
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      expect(sensorEntityId).toBeTruthy();
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.power_profile_watts)).toBe(true);
+      expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 4: IMMEDIATELY create second trip (no delay)
+    const trip2Datetime = getFutureIso(1, '14:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      trip2Datetime,
+      80,
+      15,
+      'E2E Race Condition Rapid Trip 2',
+    );
+
+    // Step 5: toPass() check — sensor shows both trips' data
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      expect(sensorEntityId).toBeTruthy();
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.power_profile_watts)).toBe(true);
+      expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 6: toPass() check — emhass_status === 'ready'
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(a.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Step 7: cleanup
+    await cleanupTestTrips(page);
+  });
+
+  /**
    * Story 2.1: E2E UX-01 — Flujo Completo Recurrente + Sensor Sync
    *
    * Verifies that a complete recurring trip lifecycle (create → propagate → delete)
