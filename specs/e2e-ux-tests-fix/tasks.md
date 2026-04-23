@@ -6,7 +6,12 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
 
 ### Reproduction
 
-- [x] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
+- [ ] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
+  <!-- reviewer-diagnosis
+    what: Task marked [x] but test PASSED instead of FAILING
+    why: Test uses STRING input which goes through dt_util.parse_datetime (always aware). Bug at line 1470-1471 requires NAIVE datetime OBJECT.
+    fix: Change test to use naive datetime OBJECT: trip={datetime: datetime(2026,4,23,10,0)} — should FAIL with TypeError
+  -->
   - **Do**:
     1. Read trip_manager.py lines 1467-1502 to understand BOTH datetime paths:
        - Path A (line 1470-1471): `isinstance(trip_datetime, datetime)` → assigns without tz check
@@ -19,7 +24,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
   - **Commit**: None (Phase 0 = no changes)
   - _Requirements: Story S1, AC1_
 
-- [ ] 0.2 [VERIFY] Confirm repro consistency: bug fails reliably across 3 runs
+- [x] 0.2 [VERIFY] Confirm repro consistency: bug fails reliably across 3 runs
   - **Do**:
     1. Run the reproduction command from 0.1 three times
     2. Confirm consistent failure each time
