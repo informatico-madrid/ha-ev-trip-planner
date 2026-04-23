@@ -1469,15 +1469,16 @@ class TripManager:
             try:
                 if isinstance(trip_datetime, datetime):
                     trip_time = trip_datetime
+                    if trip_time.tzinfo is None:
+                        trip_time = trip_time.replace(tzinfo=timezone.utc)
                 else:
-                    # Prefer Home Assistant dt util which returns aware datetimes when possible
                     try:
                         trip_time = dt_util.parse_datetime(trip_datetime)
-                    except Exception:
-                        # Fallback to strptime and force UTC to avoid naive/aware mix
-                        trip_time = datetime.strptime(trip_datetime, "%Y-%m-%dT%H:%M")
-                        if trip_time.tzinfo is None:
+                        if getattr(trip_time, "tzinfo", None) is None:
                             trip_time = trip_time.replace(tzinfo=timezone.utc)
+                    except Exception:
+                        _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
+                        trip_time = datetime.now(timezone.utc)
 
                 now = dt_util.now()
                 try:

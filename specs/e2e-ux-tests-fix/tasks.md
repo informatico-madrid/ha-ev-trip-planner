@@ -144,14 +144,14 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `test(ev-trip-planner): red - test exercises real strptime fallback path`
   - _Requirements: Story S1, AC1, AC3_
 
-- [ ] 1.4 [P] [RED] Verify the new test FAILS (RED confirmed)
+- [x] 1.4 [P] [RED] Verify the new test FAILS (RED confirmed)
   - **Do**: Run the new test and confirm it fails with TypeError or returns horas_disponibles=0
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager_datetime_tz.py -v 2>&1 | grep -q "FAILED\|fail" && echo RED_CONFIRMED`
   - **Done when**: Test fails with expected error
   - **Commit**: None
   - _Requirements: Story S1, AC1_
 
-- [ ] 1.5 [VERIFY] SOLID Quality Gate: code-reviewer validates trip_manager.py initial diff
+- [x] 1.5 [VERIFY] SOLID Quality Gate: code-reviewer validates trip_manager.py initial diff
   - **Skills**: pr-review-toolkit:code-reviewer
   - **Do**:
     1. Capture diff: `git diff custom_components/ev_trip_planner/trip_manager.py`
@@ -166,7 +166,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: requirements.md Section 9.1.2_
 
-- [ ] 1.5a [P] Read trip_manager.py imports section to verify dt_util import exists
+- [x] 1.5a [P] Read trip_manager.py imports section to verify dt_util import exists
   - **Do**: Read first 30 lines of trip_manager.py to verify `from homeassistant.util import dt as dt_util` exists
   - **Files**: custom_components/ev_trip_planner/trip_manager.py
   - **Done when**: Import confirmed
@@ -174,7 +174,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S1_
 
-- [ ] 1.5b [P] Read trip_manager.py _LOGGER definition to verify logger exists
+- [x] 1.5b [P] Read trip_manager.py _LOGGER definition to verify logger exists
   - **Do**: Read first 30 lines to verify `_LOGGER = logging.getLogger(__name__)` exists
   - **Files**: custom_components/ev_trip_planner/trip_manager.py
   - **Done when**: Logger confirmed
@@ -182,7 +182,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S1_
 
-- [ ] 1.6 [P] [GREEN] Apply minimal fix: BOTH datetime paths need timezone awareness
+- [x] 1.6 [P] [GREEN] Apply minimal fix: BOTH datetime paths need timezone awareness
   - **Do**: Fix TWO locations in trip_manager.py:
     1. Line 1470-1471: Change `trip_time = trip_datetime` to:
        ```python

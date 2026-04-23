@@ -52,12 +52,11 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_raises_typeerror_on_naive_datetime_object(monkeypatch) -> None:
-    """Test that naive datetime OBJECT triggers TypeError at line 1470-1471.
+async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(monkeypatch) -> None:
+    """Test that naive datetime OBJECT is handled successfully after the fix.
 
     When trip['datetime'] is a bare datetime object (naive, no tzinfo), the
-    code path at line 1470-1471 assigns it directly to trip_time and then
-    attempts subtraction with dt_util.now() (aware), raising TypeError.
+    code path at line 1470-1471 now checks tzinfo and replaces it with UTC.
     """
     hass = MagicMock()
     hass.config_entries = MagicMock()
@@ -82,19 +81,19 @@ async def test_async_calcular_energia_necesaria_raises_typeerror_on_naive_dateti
         trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
     )
 
-    # This should fail without the datetime fix
-    with pytest.raises(TypeError):
-        await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+    # Should succeed after the fix
+    res = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+    assert isinstance(res, dict)
+    assert "energia_necesaria_kwh" in res
+    assert "horas_disponibles" in res
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_strptime_naive_datetime(monkeypatch) -> None:
-    """Test that string without parse_datetime mock triggers strptime fallback at line 1478.
+async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds(monkeypatch) -> None:
+    """Test that string datetime is handled successfully after the fix.
 
-    When trip['datetime'] is a string and dt_util.parse_datetime is not mocked,
-    the code falls through to datetime.strptime at line 1478, which returns a
-    naive datetime. Without the tzinfo fix, subtraction with dt_util.now()
-    (aware) raises TypeError.
+    When trip['datetime'] is a string, dt_util.parse_datetime may return naive
+    datetime. The fix now checks tzinfo and replaces it with UTC.
     """
     hass = MagicMock()
     hass.config_entries = MagicMock()
@@ -102,7 +101,7 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime(monkeypa
 
     tm = TripManager(hass, "veh_test")
 
-    # String datetime - goes through parse_datetime -> strptime fallback -> naive
+    # String datetime - goes through parse_datetime path
     trip = {"tipo": None, "datetime": "2026-04-23T10:00"}
 
     vehicle_config = {
@@ -118,6 +117,8 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime(monkeypa
         trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
     )
 
-    # This should fail without the datetime fix
-    with pytest.raises(TypeError):
-        await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+    # Should succeed after the fix
+    res = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+    assert isinstance(res, dict)
+    assert "energia_necesaria_kwh" in res
+    assert "horas_disponibles" in res
