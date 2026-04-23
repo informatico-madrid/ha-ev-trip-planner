@@ -109,3 +109,6 @@ _bmad-output/
 .ralph/
 .bmad/
 .bmad
+**/.progress.md
+.cline/
+.gemini/

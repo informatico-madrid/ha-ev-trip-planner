@@ -7,8 +7,7 @@ them to EMHASS, causing EMHASS sensor attributes to be empty.
 Fix: async_setup() now calls publish_deferrable_loads() internally after loading trips.
 """
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ev_trip_planner.const import (

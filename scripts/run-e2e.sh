@@ -18,7 +18,10 @@ set -euo pipefail
 # --- Config ---
 HA_CONFIG_DIR="/tmp/ha-e2e-config"
 HA_PID_FILE="/tmp/ha-pid.txt"
-HA_LOG_FILE="/tmp/ha-e2e.log"
+LOG_DIR="/tmp/logs"
+mkdir -p "$LOG_DIR"
+TS=$(date +%Y%m%d_%H%M%S)
+HA_LOG_FILE="$LOG_DIR/ha-e2e-${TS}.log"
 HA_URL="${HA_URL:-http://localhost:8123}"
 HEADLESS="--workers=1"
 
@@ -91,7 +94,10 @@ echo "✅ Config setup complete"
 echo ""
 echo "[3/5] Starting Home Assistant..."
 
-echo "  Starting hass -c ${HA_CONFIG_DIR} ..."
+echo "  Starting hass -c ${HA_CONFIG_DIR} ... (logs -> $HA_LOG_FILE)"
+
+# Activate venv before starting hass (venv has all HA dependencies)
+source .venv/bin/activate
 nohup hass -c "$HA_CONFIG_DIR" > "$HA_LOG_FILE" 2>&1 &
 HA_PID=$!
 echo "$HA_PID" > "$HA_PID_FILE"
@@ -131,7 +137,34 @@ echo "[6/5] Running Playwright E2E tests..."
 echo "Command: npx playwright test tests/e2e/ ${HEADLESS}"
 echo "-------------------------------------------"
 
+set +e
 npx playwright test tests/e2e/ ${HEADLESS}
+EXIT_CODE=$?
+set -e
+
+# Collect Playwright and test artifacts into LOG_DIR for host inspection
+echo "Collecting Playwright artifacts into $LOG_DIR"
+if [ -d "playwright-report" ]; then
+  cp -r playwright-report "$LOG_DIR/playwright-report-${TS}" || true
+fi
+if [ -d "test-results" ]; then
+  cp -r test-results "$LOG_DIR/test-results-${TS}" || true
+fi
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "E2E tests failed (exit $EXIT_CODE). Saving HA log and printing recent errors."
+  echo "HA log: $HA_LOG_FILE"
+  echo "Recent HA errors:"
+  grep -iE "error|exception|traceback|emhass|power_profile|deferrable|async_refresh_trips|publish_deferrable_loads" "$HA_LOG_FILE" | tail -200 || true
+  echo "EMHASS-related log entries (tail):"
+  grep -iE "emhass|deferrable|power_profile|coordinator|async_refresh" "$HA_LOG_FILE" | tail -200 || true
+  # Also copy HA log to failed filename for easy discovery
+  cp "$HA_LOG_FILE" "$LOG_DIR/ha-e2e-failed-${TS}.log" || true
+else
+  echo "E2E tests passed. HA log: $HA_LOG_FILE"
+fi
+
+exit $EXIT_CODE
 
 echo ""
 echo "=========================================="

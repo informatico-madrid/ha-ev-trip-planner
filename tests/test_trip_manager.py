@@ -1683,22 +1683,20 @@ class TestTripManagerConstructorInjection:
     """
 
     def test_constructor_accepts_storage_parameter(self, mock_hass_with_storage):
-        """TripManager constructor should accept storage: TripStorageProtocol parameter.
+        """TripManager constructor should accept storage: YamlTripStorage parameter.
 
         This test FAILS with TypeError because current constructor does not
         accept a storage parameter.
         """
-        from custom_components.ev_trip_planner.protocols import (
-            TripStorageProtocol,
-            EMHASSPublisherProtocol,
-        )
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
+        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
-        # Create mock protocol implementations
-        mock_storage = MagicMock(spec=TripStorageProtocol)
+        # Create mock implementations
+        mock_storage = MagicMock(spec=YamlTripStorage)
         mock_storage.async_load = AsyncMock(return_value={})
         mock_storage.async_save = AsyncMock(return_value=None)
 
-        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass = MagicMock(spec=EMHASSAdapter)
         mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
         mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
 
@@ -1717,14 +1715,14 @@ class TestTripManagerConstructorInjection:
         assert trip_manager._storage is mock_storage
 
     def test_constructor_accepts_emhass_adapter_parameter(self, mock_hass_with_storage):
-        """TripManager constructor should accept emhass_adapter: EMHASSPublisherProtocol parameter.
+        """TripManager constructor should accept emhass_adapter: EMHASSAdapter parameter.
 
         This test FAILS with TypeError because current constructor does not
         accept an emhass_adapter parameter.
         """
-        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
+        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
-        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass = MagicMock(spec=EMHASSAdapter)
         mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
         mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
 
@@ -1744,16 +1742,14 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept these parameters.
         """
-        from custom_components.ev_trip_planner.protocols import (
-            TripStorageProtocol,
-            EMHASSPublisherProtocol,
-        )
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
+        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
-        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage = MagicMock(spec=YamlTripStorage)
         mock_storage.async_load = AsyncMock(return_value={})
         mock_storage.async_save = AsyncMock(return_value=None)
 
-        mock_emhass = MagicMock(spec=EMHASSPublisherProtocol)
+        mock_emhass = MagicMock(spec=EMHASSAdapter)
         mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
         mock_emhass.async_remove_deferrable_load = AsyncMock(return_value=True)
 
@@ -1804,10 +1800,10 @@ class TestTripManagerLoadErrors:
         """
         caplog.set_level("ERROR")
 
-        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         # Create a mock storage that raises a generic exception
-        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage = MagicMock(spec=YamlTripStorage)
         mock_storage.async_load = AsyncMock(
             side_effect=RuntimeError("Storage read error - disk full")
         )
@@ -1838,10 +1834,10 @@ class TestTripManagerLoadErrors:
         """
         caplog.set_level("ERROR")
 
-        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         # Create a mock storage that raises ValueError
-        mock_storage = MagicMock(spec=TripStorageProtocol)
+        mock_storage = MagicMock(spec=YamlTripStorage)
         mock_storage.async_load = AsyncMock(
             side_effect=ValueError("Invalid data format in storage")
         )

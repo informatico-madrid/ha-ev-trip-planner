@@ -136,16 +136,16 @@ def calculate_trip_time(
         return datetime.combine(
             today + timedelta(days=days_ahead),
             datetime.strptime(hora, "%H:%M").time(),
-        )
+        ).replace(tzinfo=timezone.utc)
     elif trip_tipo == TRIP_TYPE_PUNCTUAL:
         if not datetime_str:
             return None
         # Handle both with and without seconds (isoformat produces HH:MM:SS)
         try:
             # Try without seconds first (original format)
-            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M")
+            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)
         except ValueError:
-            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S")
+            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
     return None
 
 
@@ -378,6 +378,12 @@ def calculate_charging_window_pure(
             - fin_ventana: Window end datetime (trip departure)
             - es_suficiente: True if window is sufficient
     """
+    # Ensure all datetime inputs are timezone-aware (treat naive as UTC)
+    if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
+        hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
+    if trip_departure_time is not None and getattr(trip_departure_time, "tzinfo", None) is None:
+        trip_departure_time = trip_departure_time.replace(tzinfo=timezone.utc)
+
     # Determine window start
     if hora_regreso is not None:
         inicio_ventana = hora_regreso
@@ -465,6 +471,9 @@ def calculate_multi_trip_charging_windows(
     previous_arrival: datetime | None = None
 
     for idx, (trip_departure_time, trip) in enumerate(trips):
+        # Ensure trip_departure_time is aware
+        if isinstance(trip_departure_time, datetime) and getattr(trip_departure_time, "tzinfo", None) is None:
+            trip_departure_time = _ensure_aware(trip_departure_time)
         # Determine window start
         window_start: datetime | None
         if idx == 0:
@@ -521,8 +530,8 @@ def calculate_multi_trip_charging_windows(
             "trip": trip,
         })
 
-        # Update previous_arrival for next iteration (add buffer gap between trips)
-        previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)
+        # Update previous_arrival for next iteration (trip arrival + buffer gap)
+        previous_arrival = _ensure_aware(trip_arrival) + timedelta(hours=return_buffer_hours)
 
     return results
 
@@ -823,10 +832,7 @@ def calculate_power_profile_from_trips(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
-    import logging
     logger = logging.getLogger(__name__)
-
-    from datetime import datetime, timezone
 
     if reference_dt is None:
         reference_dt = datetime.now(timezone.utc)
@@ -971,6 +977,12 @@ def calculate_power_profile(
     profile_length = planning_horizon_days * 24
     power_profile = [0.0] * profile_length
 
+    # Normalize all datetime inputs to UTC-aware
+    if getattr(reference_dt, "tzinfo", None) is None:
+        reference_dt = reference_dt.replace(tzinfo=timezone.utc)
+    if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
+        hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
+
     if not all_trips:
         return power_profile
 
@@ -1027,8 +1039,8 @@ def calculate_power_profile(
         if not ventana_info.get("es_suficiente", False):
             continue
 
-        inicio_ventana = ventana_info.get("inicio_ventana")
-        fin_ventana = ventana_info.get("fin_ventana")
+        inicio_ventana = ventana_info["inicio_ventana"]
+        fin_ventana = ventana_info["fin_ventana"]
 
         # Calculate position in profile
         delta_inicio = inicio_ventana - reference_dt
@@ -1093,7 +1105,10 @@ def generate_deferrable_schedule_from_trips(
     if not trips:
         return []
 
-    now = reference_dt if reference_dt is not None else datetime.now()
+    # Normalize reference_dt to UTC-aware
+    if reference_dt is not None and getattr(reference_dt, "tzinfo", None) is None:
+        reference_dt = reference_dt.replace(tzinfo=timezone.utc)
+    now = reference_dt if reference_dt is not None else datetime.now(timezone.utc)
     schedule: List[Dict[str, Any]] = []
 
     # Generate schedule for next 24 hours
@@ -1131,11 +1146,15 @@ def generate_deferrable_schedule_from_trips(
             if isinstance(deadline, str):
                 try:
                     deadline_dt = datetime.fromisoformat(deadline)
+                    if getattr(deadline_dt, "tzinfo", None) is None:
+                        deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
                 except ValueError:
                     schedule_entry[power_key] = "0.0"
                     continue
             else:
                 deadline_dt = deadline
+                if getattr(deadline_dt, "tzinfo", None) is None:
+                    deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
 
             # Calculate hours until trip
             delta = deadline_dt - now

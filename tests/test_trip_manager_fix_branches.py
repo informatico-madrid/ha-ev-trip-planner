@@ -138,6 +138,6 @@ async def test_async_entries_exception_uses_default_battery() -> None:
 
         with patch("homeassistant.helpers.storage.Store.async_load", new_callable=lambda: AsyncMock(return_value=None)):
             with patch("homeassistant.helpers.storage.Store.async_save", new_callable=lambda: AsyncMock(return_value=None)):
-                schedule = await tm.async_generate_deferrables_schedule()
+                await tm.async_generate_deferrables_schedule()
 
         assert captured_vehicle_config.get("battery_capacity_kwh") == 42.0

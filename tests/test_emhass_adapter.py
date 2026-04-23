@@ -1048,7 +1048,6 @@ async def test_recurring_trip_cache_builder_integration(mock_store, hass):
         # (The actual calculation would fail without proper day conversion)
         valid_power_profile = [0.0] * 168
         # Set some hours to charging power (e.g., 7400W for 10 hours starting 2 hours from now)
-        from datetime import timedelta
         start_hour = 2
         for i in range(start_hour, start_hour + 10):
             if i < 168:

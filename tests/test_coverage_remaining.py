@@ -6,8 +6,8 @@ Targets:
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -22,7 +22,6 @@ class TestCalculateNextRecurringDatetimeExceptionPath:
         This covers trip_manager.py lines 258-260 where the except block catches
         exceptions raised during the weekly trip rotation.
         """
-        from custom_components.ev_trip_planner.trip_manager import _LOGGER
         
         # Create mock trip manager
         mock_hass = MagicMock()

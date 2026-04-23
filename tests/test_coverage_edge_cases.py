@@ -788,7 +788,7 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
 
     with patch.object(adapter, '_get_current_soc', side_effect=mock_get_soc):
         # Call publish_deferrable_loads and assert cache/populated values instead of silencing
-        result = await adapter.publish_deferrable_loads(trips_data)
+        await adapter.publish_deferrable_loads(trips_data)
         # The method should complete (result True/False depending on mocks),
         # but must populate per-trip cache and aggregated cache even when SOC is None.
         assert hasattr(adapter, "_cached_power_profile")
@@ -1154,7 +1154,6 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
     """
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from unittest.mock import patch, AsyncMock, MagicMock
 
     entry = MockConfigEntry(

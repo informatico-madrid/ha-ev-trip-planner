@@ -6,7 +6,7 @@ All functions are synchronous and deterministic given the same inputs.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -486,8 +486,8 @@ class TestCalculateChargingWindowPure:
         )
         # Window = hora_regreso (10:00) + duration (6h) - hora_regreso (10:00) = 6h
         assert result["ventana_horas"] == 6.0
-        assert result["inicio_ventana"] == datetime(2026, 4, 6, 10, 0)
-        assert result["fin_ventana"] == datetime(2026, 4, 6, 16, 0)
+        assert result["inicio_ventana"] == datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc)
+        assert result["fin_ventana"] == datetime(2026, 4, 6, 16, 0, tzinfo=timezone.utc)
 
     def test_zero_charging_power_sets_horas_carga_to_zero(self):
         """When charging_power_kw is 0, horas_carga_necesarias is 0.0. Covers line 313."""
@@ -585,7 +585,7 @@ class TestCalculateMultiTripChargingWindows:
         assert len(result) == 1
         # Window: departure - 6h (12:00) to departure + 6h (midnight) = 12h
         assert result[0]["ventana_horas"] == 12.0
-        assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 12, 0)
+        assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 12, 0, tzinfo=timezone.utc)
 
     def test_zero_charging_power_sets_horas_carga_to_zero(self):
         """When charging_power_kw is 0, horas_carga_necesarias is 0.0. Covers line 395."""

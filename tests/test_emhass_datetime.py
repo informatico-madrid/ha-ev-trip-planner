@@ -13,7 +13,6 @@ The fix changes datetime.now() to datetime.now(timezone.utc).
 from datetime import datetime, timezone, timedelta
 import math
 
-import pytest
 
 
 class TestDatetimeOffsetBug:

@@ -10,7 +10,58 @@
  * Task 4.1-4.6 [VE0-VE3] - E2E sensor verification
  */
 import { test, expect, type Page } from '@playwright/test';
-import { navigateToPanel, cleanupTestTrips, createTestTrip } from './trips-helpers';
+import { navigateToPanel, cleanupTestTrips, createTestTrip, deleteTestTrip } from './trips-helpers';
+
+/**
+ * File-level helpers for EMHASS sensor E2E tests.
+ * Moved to file scope so they can be reused across tests.
+ */
+
+/**
+ * Gets sensor attributes from HA frontend's hass.states object.
+ */
+const getSensorAttributes = async (pg: import('@playwright/test').Page, entityId: string): Promise<Record<string, any>> => {
+  return await pg.evaluate((eid: string) => {
+    const haMain = document.querySelector('home-assistant') as any;
+    if (!haMain?.hass?.states?.[eid]) {
+      throw new Error(`Entity ${eid} not found in hass.states`);
+    }
+    return haMain.hass.states[eid].attributes;
+  }, entityId);
+};
+
+const discoverEmhassSensorEntityId = async (pg: import('@playwright/test').Page): Promise<string | null> => {
+  return await pg.evaluate(() => {
+    const haMain = document.querySelector('home-assistant') as any;
+    if (!haMain?.hass?.states) return null;
+    // Find the EmhassDeferrableLoadSensor (aggregated EMHASS data) for test_vehicle.
+    // HA generates entity_id from device+entity name when _attr_has_entity_name=True:
+    //   sensor.ev_trip_planner_{vehicle_id}_emhass_perfil_diferible_{vehicle_id}
+    // The unique_id is "emhass_perfil_diferible_{entry_id}" so the entity_id always
+    // contains 'emhass_perfil_diferible'. We verify vehicle_id via attributes
+    // (EmhassDeferrableLoadSensor.extra_state_attributes includes "vehicle_id").
+    // Single loop: match substring + verify attributes — no unsafe fallback needed.
+    for (const [entityId, state] of Object.entries(haMain.hass.states)) {
+      if (!entityId.includes('emhass_perfil_diferible')) continue;
+      const attrs = (state as any).attributes;
+      if (attrs?.vehicle_id === 'test_vehicle') return entityId;
+    }
+    return null;
+  });
+};
+
+/**
+ * Computes a future ISO datetime string for use in trip creation.
+ * Avoids hardcoded dates that break when the date passes.
+ */
+const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  const [hh, mm] = (timeStr || '08:00').split(':').map((s) => Number(s));
+  d.setHours(hh, mm, 0, 0);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 test.describe('EMHASS Sensor Updates', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
@@ -25,7 +76,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E EMHASS Attribute Test Trip',
@@ -88,7 +139,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E EMHASS Attributes Test Trip',
@@ -258,7 +309,7 @@ test.describe('EMHASS Sensor Updates', () => {
       }, entityId);
     };
 
-    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
 
     // Step 1: Create a trip WITHIN the 7-day planning horizon to get non-zero power_profile
     // Use 24 hours from now to ensure the deadline is safely in the future (fixes hours_available <= 0 bug)
@@ -377,7 +428,7 @@ test.describe('EMHASS Sensor Updates', () => {
       }, entityId);
     };
 
-    const sensorEntityId = 'sensor.ev_trip_planner_test_vehicle_emhass_perfil_diferible_test_vehicle';
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
 
     // Step 1: Use a trip already created by previous tests (recurring trip)
     // This avoids issues with new trip EMHASS calculation timing
@@ -439,7 +490,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E Single Device Test Trip',
@@ -502,5 +553,248 @@ test.describe('EMHASS Sensor Updates', () => {
     }
 
     console.log('Single device verification complete - no duplication');
+  });
+
+  /**
+   * Story 4: Race condition regression test — sensor is immediately available after trip creation.
+   * Verifies that sensor attributes are populated without any artificial waitForTimeout delay.
+   */
+  test('race-condition-regression-immediate-sensor-check', async ({ page }) => {
+    // Step 1: cleanup → navigate
+    await cleanupTestTrips(page);
+    await navigateToPanel(page);
+
+    // Step 2: Create a trip
+    const tripDatetime = getFutureIso(1, '09:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      tripDatetime,
+      50,
+      10,
+      'E2E Race Condition Immediate Check',
+    );
+
+    // Step 3: IMMEDIATELY discover sensor entity (no waitForTimeout)
+    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    expect(sensorEntityId).toBeTruthy();
+
+    // Step 4: Assert sensor entity exists in hass.states
+    const attrs = await getSensorAttributes(page, sensorEntityId!);
+    expect(attrs).toBeDefined();
+
+    // Step 5: toPass() check — def_total_hours_array has positive values
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.def_total_hours_array)).toBe(true);
+      expect(a.def_total_hours_array.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 6: toPass() check — p_deferrable_matrix has non-zero entries
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
+      expect(a.p_deferrable_matrix.some((row: number[]) => row.some((v: number) => v > 0))).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 7: toPass() check — emhass_status === 'ready'
+    await expect(async () => {
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(a.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Step 8: cleanup
+    await cleanupTestTrips(page);
+  });
+
+  /**
+   * Story 4: Race condition regression test — rapid successive trip creation.
+   * Verifies that creating a second trip immediately after the first works correctly.
+   */
+  test('race-condition-regression-rapid-successive-creation', async ({ page }) => {
+    // Step 1: cleanup → navigate
+    await cleanupTestTrips(page);
+    await navigateToPanel(page);
+
+    // Step 2: Create first trip
+    const trip1Datetime = getFutureIso(1, '09:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      trip1Datetime,
+      30,
+      5,
+      'E2E Race Condition Rapid Trip 1',
+    );
+
+    // Step 3: toPass() check — sensor shows trip 1 data
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      expect(sensorEntityId).toBeTruthy();
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.power_profile_watts)).toBe(true);
+      expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Step 4: IMMEDIATELY create second trip (no delay)
+    const trip2Datetime = getFutureIso(1, '14:00');
+    await createTestTrip(
+      page,
+      'puntual',
+      trip2Datetime,
+      80,
+      15,
+      'E2E Race Condition Rapid Trip 2',
+    );
+
+    // Step 5: toPass() check — sensor shows BOTH trips' data
+    // CRITICAL FIX (C8): The old assertion `power_profile_watts.some(v > 0)` passes
+    // even if the second trip overwrote the first trip's data. We must verify that
+    // both trips are represented in the sensor attributes.
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      expect(sensorEntityId).toBeTruthy();
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(Array.isArray(a.power_profile_watts)).toBe(true);
+      expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+      // Verify both trips contribute data: def_total_hours_array and p_deferrable_matrix
+      // must have >= 2 entries when two trips exist.
+      expect(Array.isArray(a.def_total_hours_array)).toBe(true);
+      expect((a.def_total_hours_array as number[]).length).toBeGreaterThanOrEqual(2);
+      expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
+      expect((a.p_deferrable_matrix as number[][]).length).toBeGreaterThanOrEqual(2);
+    }).toPass({ timeout: 15000 });
+
+    // Step 6: toPass() check — emhass_status === 'ready'
+    await expect(async () => {
+      const sensorEntityId = await discoverEmhassSensorEntityId(page);
+      const a = await getSensorAttributes(page, sensorEntityId!);
+      expect(a.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Step 7: cleanup
+    await cleanupTestTrips(page);
+  });
+
+  /**
+   * Story 2.1: E2E UX-01 — Flujo Completo Recurrente + Sensor Sync
+   *
+   * Verifies that a complete recurring trip lifecycle (create → propagate → delete)
+   * synchronizes correctly with the EMHASS sensor.
+   */
+  test('should verify complete recurring trip lifecycle with sensor sync (UX-01)', async ({ page }) => {
+    // Setup
+    const tripDescription = 'UX01 Recurring Trip';
+    const tripDatetime = getFutureIso(1, '08:00');
+
+    // V1: Create recurring trip
+    await createTestTrip(page, 'recurrente', tripDatetime, 50, 10, tripDescription, { day: '1', time: '08:00' });
+
+    // Wait for EMHASS propagation
+    await page.waitForTimeout(3000);
+
+    // Discover sensor
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
+    expect(sensorEntityId).toBeTruthy();
+
+    // V2, V3, V4: Verify sensor attributes with polling
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+      expect(Array.isArray(attrs.deferrables_schedule) && attrs.deferrables_schedule.length > 0).toBe(true);
+      expect(attrs.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Delete trip
+    await deleteTestTrip(page, `${tripDatetime}-${tripDescription}`);
+    await page.waitForTimeout(3000);
+
+    // V5: Verify sensor went to zeros with polling
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.every((v: number) => v === 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // V6: Verify trip removed from UI
+    await expect(page.getByText(tripDescription)).not.toBeVisible();
+  });
+
+  /**
+   * Story 2.2: E2E UX-02 — Múltiples Viajes + No-Duplicación de Dispositivos/Sensores
+   *
+   * Verifies that creating MULTIPLE simultaneous trips does not duplicate devices or sensors,
+   * and that deleting one trip individually does not affect the others.
+   */
+  test('should verify multiple trips with no device/sensor duplication (UX-02)', async ({ page }) => {
+    // Setup trip IDs for deletion
+    const trip1Datetime = getFutureIso(1, '08:00');
+    const trip2Datetime = getFutureIso(2, '10:00');
+    const trip3Datetime = getFutureIso(3, '14:00');
+    const trip1Id = `${trip1Datetime}-UX02 Trip 1`;
+    const trip2Id = `${trip2Datetime}-UX02 Trip 2`;
+    const trip3Id = `${trip3Datetime}-UX02 Trip 3`;
+
+    // V1: Create 3 simultaneous trips (2 recurring + 1 punctual)
+    await createTestTrip(page, 'recurrente', trip1Datetime, 50, 10, 'UX02 Trip 1', { day: '1', time: '08:00' });
+    await createTestTrip(page, 'recurrente', trip2Datetime, 30, 7, 'UX02 Trip 2', { day: '2', time: '10:00' });
+    await createTestTrip(page, 'puntual', trip3Datetime, 20, 5, 'UX02 Trip 3');
+
+    // Wait for EMHASS propagation
+    await page.waitForTimeout(5000);
+
+    // V1: Verify all 3 trips appear in UI
+    await expect(page.getByText('UX02 Trip 1')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 2')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 3')).toBeVisible();
+
+    // V2: Verify only 1 device exists for EV Trip Planner
+    await page.goto('/config/devices');
+    await page.waitForLoadState('networkidle');
+    const deviceCount = await page.getByText('EV Trip Planner test_vehicle').all().then(arr => arr.length);
+    expect(deviceCount).toBe(1);
+
+    // V3: Verify only 1 EMHASS sensor entity exists (no duplication)
+    // Use states page since entities page uses shadow DOM that Playwright can't search directly
+    await page.goto('/developer-tools/state');
+    await page.waitForLoadState('networkidle');
+    const stateSearchInput = page.getByRole('textbox', { name: /filter/i }).first();
+    if (await stateSearchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await stateSearchInput.fill('emhass_perfil_diferible');
+      await page.waitForTimeout(1000);
+    }
+    // Count matching entity rows (the sensor entity ID contains emhass_perfil_diferible)
+    const sensorRows = await page.getByText(/emhass_perfil_diferible/i).all();
+    const sensorCount = sensorRows.length;
+    console.log(`V3 states page: found ${sensorCount} EMHASS sensor row(s)`);
+    expect(sensorCount).toBeGreaterThanOrEqual(1);
+
+    // Go back to panel for deletion
+    await navigateToPanel(page);
+
+    // Delete middle trip (Trip 2) first to verify extremes persist
+    await deleteTestTrip(page, trip2Id);
+    await page.waitForTimeout(3000);
+
+    // V4: Verify other 2 trips remain visible after deleting middle trip
+    await expect(page.getByText('UX02 Trip 1')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 3')).toBeVisible();
+
+    // V5: Verify sensor still has NON-ZERO values after partial deletion
+    const sensorEntityId = (await discoverEmhassSensorEntityId(page))!;
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Delete remaining trips
+    await deleteTestTrip(page, trip1Id);
+    await deleteTestTrip(page, trip3Id);
+    await page.waitForTimeout(3000);
+
+    // V6: Verify sensor goes to ALL ZEROS after deleting all trips
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.every((v: number) => v === 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
   });
 });

@@ -15,7 +15,6 @@ export default defineConfig({
     ['html', { open: 'never' }],
   ],
   globalSetup: './auth.setup.ts',
-  globalTeardown: './globalTeardown.ts',
   use: {
     baseURL: 'http://localhost:8123',
     storageState: 'playwright/.auth/user.json',

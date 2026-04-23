@@ -7,7 +7,7 @@ This test will FAIL with current code and PASS after the fix.
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 import pytest
 
 from custom_components.ev_trip_planner.const import (

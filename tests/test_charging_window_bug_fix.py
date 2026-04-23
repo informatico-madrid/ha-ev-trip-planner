@@ -22,7 +22,6 @@ TDD Flow:
 """
 
 from datetime import datetime, timedelta, timezone
-import pytest
 
 
 def test_def_end_timestep_bug_demonstration():
@@ -41,10 +40,10 @@ def test_def_end_timestep_bug_demonstration():
     inicio_ventana = deadline - timedelta(hours=6)  # 6 hours before deadline
     delta_hours = (inicio_ventana - now).total_seconds() / 3600  # = 90
 
-    def_start_timestep = max(0, min(int(delta_hours), 168))  # = 90
+    _def_start_timestep = max(0, min(int(delta_hours), 168))  # = 90
 
     # BUG: This is how def_end_timestep is currently calculated
-    def_end_timestep_BUG = min(int(hours_available), 168)  # = 96
+    _def_end_timestep_BUG = min(int(hours_available), 168)  # = 96
 
     # With the bug: def_start=90, def_end=96, only 6 hours available
     # But if inicio_ventana was at hour 96 (delta_hours=96):
@@ -70,7 +69,7 @@ def test_def_end_timestep_bug_demonstration():
     # fin_ventana should be the deadline (or close to it)
     fin_ventana = deadline
     delta_hours_fin = (fin_ventana - now).total_seconds() / 3600  # = 96
-    def_end_CORRECT = max(0, min(int(delta_hours_fin), 168))  # = 96
+    _def_end_CORRECT = max(0, min(int(delta_hours_fin), 168))  # = 96
 
     # Now with correct def_end based on fin_ventana:
     # If charging window [inicio_ventana, fin_ventana] = [hour 90, hour 96]

@@ -20,7 +20,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
 
 
 # =============================================================================
@@ -95,8 +94,8 @@ class TestPanelEntityIdMatch:
         has_vehicle_filter = re.search(vehicle_id_filter, content) is not None
 
         assert has_vehicle_filter, (
-            f"Panel.js must filter EMHASS sensors by vehicle_id attribute for multi-vehicle safety.\n"
-            f"Expected: state.attributes?.vehicle_id check in _renderEmhassConfig()"
+            "Panel.js must filter EMHASS sensors by vehicle_id attribute for multi-vehicle safety.\n"
+            "Expected: state.attributes?.vehicle_id check in _renderEmhassConfig()"
         )
 
         # Verify the filter comparison matches current vehicle
@@ -104,8 +103,8 @@ class TestPanelEntityIdMatch:
         has_vehicle_comparison = re.search(vehicle_comparison, content) is not None
 
         assert has_vehicle_comparison, (
-            f"Panel.js must compare sensor vehicle_id with this._vehicleId for filtering.\n"
-            f"Expected: vehicleId === this._vehicleId check in _renderEmhassConfig()"
+            "Panel.js must compare sensor vehicle_id with this._vehicleId for filtering.\n"
+            "Expected: vehicleId === this._vehicleId check in _renderEmhassConfig()"
         )
 
     def test_panel_js_emhass_filter_consistent_with_sensor_pattern(self):

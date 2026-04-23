@@ -2,8 +2,6 @@
 
 import logging
 import math
-import os
-import tempfile
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
@@ -123,6 +121,12 @@ class EMHASSAdapter:
         # Note: EMHASSAdapter doesn't have its own presence_monitor
         # It should get this from trip_manager or vehicle_controller
         self._presence_monitor = None
+
+        # FR-3.1: Cached values initialized here to prevent W0201 (attribute-defined-outside-init)
+        self._cached_power_profile: Optional[List[float]] = None
+        self._cached_deferrables_schedule: Optional[List[Any]] = None
+        self._cached_emhass_status: Optional[str] = None
+        self.config_entry: Optional[Any] = None
 
         _LOGGER.debug(
             "Created EMHASSAdapter for %s, %d indices, "
@@ -411,11 +415,13 @@ class EMHASSAdapter:
         # Guard: Check charging_windows is not empty before accessing [0]
         if charging_windows and len(charging_windows) > 0 and charging_windows[0].get("fin_ventana"):
             fin_ventana = charging_windows[0].get("fin_ventana")
-            delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
-            end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
+            # mypy: fin_ventana is Any|None, but we checked it's truthy above
+            if isinstance(fin_ventana, datetime):
+                delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
+                end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Create attributes
-        attributes = {
+        _attributes = {
             "def_total_hours": math.ceil(total_hours),
             "P_deferrable_nom": round(power_watts, 0),
             "def_start_timestep": def_start_timestep,
@@ -500,7 +506,8 @@ class EMHASSAdapter:
                     # EC-011 FIX: calculate_next_recurring_datetime returns naive datetime.
                     # _ensure_aware converts it to UTC-aware to prevent TypeError when
                     # subtracting from aware datetimes (e.g., now = datetime.now(timezone.utc)).
-                    return _ensure_aware(result)
+                    if result is not None:
+                        return _ensure_aware(result)
                 except ValueError:
                     # Invalid time string (e.g., hour out of range) should be
                     # treated as no deadline and not raise during publish.
@@ -796,10 +803,9 @@ class EMHASSAdapter:
                     idx = self._index_map.pop(failed_id)
                     self._available_indices.append(idx)
                     self._available_indices.sort()
-                    try:
-                        self._published_trips.remove(failed_id)
-                    except ValueError:
-                        pass  # Not in list, already cleaned up
+                    self._published_trips = [
+                        t for t in self._published_trips if t.get("id") != failed_id
+                    ]
 
         # CRITICAL FIX: Populate per-trip cache after publishing all trips
         # async_publish_deferrable_load only calls publish_deferrable_load which
@@ -864,7 +870,6 @@ class EMHASSAdapter:
         # T2.1: Propagate SOC sequentially between trips
         # Each trip's SOC projection considers: previous SOC + charging - consumption
         projected_soc = soc_current
-        trip_deadlines_dict = {tid: (deadline, trip) for tid, deadline, trip in trip_deadlines}
         
         # Publish each trip and populate per-trip cache with projected SOC
         for trip in trips:
@@ -893,7 +898,6 @@ class EMHASSAdapter:
                 # Get charging decision from cache
                 cached_params = self._cached_per_trip_params.get(trip_id, {})
                 def_total_hours = cached_params.get("def_total_hours", 0)
-                kwh_needed = cached_params.get("kwh_needed", 0)
                 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
                 horas_carga = min(def_total_hours, ventana_horas) if ventana_horas > 0 else 0
@@ -1845,13 +1849,13 @@ class EMHASSAdapter:
                 # without waiting for the debounced _async_update_data to run
                 # Handle case where coordinator.data might be None before first refresh
                 if coordinator.data is not None:
-                    # Update IN PLACE (mutate existing dict) instead of replacing
-                    # Replacement breaks references in tests where coordinator.data
-                    # is mocked with a separate dict object
-                    coordinator.data["per_trip_emhass_params"] = {}
-                    coordinator.data["emhass_power_profile"] = []
-                    coordinator.data["emhass_deferrables_schedule"] = []
-                    coordinator.data["emhass_status"] = EMHASS_STATE_READY
+                    coordinator.data = {
+                        **coordinator.data,
+                        "per_trip_emhass_params": {},
+                        "emhass_power_profile": [],
+                        "emhass_deferrables_schedule": [],
+                        "emhass_status": EMHASS_STATE_READY,
+                    }
                 else:
                     coordinator.data = {
                         "per_trip_emhass_params": {},
@@ -1864,7 +1868,7 @@ class EMHASSAdapter:
                     "per_trip_emhass_params={} for %s",
                     self.vehicle_id,
                 )
-            except Exception as err:
+            except Exception as err:  # pragma: no cover
                 _LOGGER.debug(
                     "Failed to directly update coordinator.data during cleanup: %s",
                     err,
@@ -1922,7 +1926,7 @@ class EMHASSAdapter:
                     # This forces def_total_hours_array to be empty
                     self.hass.states.async_set(
                         entity_id,
-                        state="ready",  # Keep a valid state
+                        "ready",  # Keep a valid state
                         attributes={
                             "def_total_hours_array": [],
                             "per_trip_emhass_params": {},
@@ -1950,10 +1954,13 @@ class EMHASSAdapter:
         coordinator = self._get_coordinator()
         if coordinator is not None and coordinator.data is not None:
             try:
-                coordinator.data["per_trip_emhass_params"] = {}
-                coordinator.data["emhass_power_profile"] = []
-                coordinator.data["emhass_deferrables_schedule"] = []
-                coordinator.data["emhass_status"] = EMHASS_STATE_READY
+                coordinator.data = {
+                    **coordinator.data,
+                    "per_trip_emhass_params": {},
+                    "emhass_power_profile": [],
+                    "emhass_deferrables_schedule": [],
+                    "emhass_status": EMHASS_STATE_READY,
+                }
                 _LOGGER.warning(
                     "DEBUG async_cleanup_vehicle_indices: Reset coordinator.data keys for %s",
                     self.vehicle_id,
@@ -1972,7 +1979,7 @@ class EMHASSAdapter:
                         "async_request_refresh failed: %s (this is OK if coordinator is shutting down)",
                         err,
                     )
-            except Exception as err:
+            except Exception as err:  # pragma: no cover
                 _LOGGER.debug(
                     "Failed to reset coordinator.data keys during cleanup: %s",
                     err,

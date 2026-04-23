@@ -4,14 +4,12 @@ These tests are RED by design - they document expected behavior that is not yet 
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, AsyncMock, patch, Mock
+from unittest.mock import Mock
 
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
 # Import fixtures from conftest
-from tests.conftest import trip_manager_with_entry_id, trip_manager_no_entry_id, mock_hass
 
 
 @pytest.fixture

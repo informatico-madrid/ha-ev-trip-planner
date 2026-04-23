@@ -28,7 +28,7 @@ input_boolean:
 input_number:
   test_vehicle_soc:
     name: "Test Vehicle SOC"
-    initial: 80
+    initial: 20
     min: 0
     max: 100
     step: 1
@@ -44,3 +44,9 @@ template:
         device_class: battery
         state: "{{ states('input_number.test_vehicle_soc') | float(0) | round(0) }}"
 
+# Logger debug config for E2E tests
+logger:
+  default: warning
+  logs:
+    custom_components.ev_trip_planner: debug
+    homeassistant.components.sensor: debug
