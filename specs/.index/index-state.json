@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-16T15:34:15Z",
+  "updated": "2026-04-23T01:45:35Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 28,
+      "specsCount": 29,
       "isDefault": true
     }
   ],
@@ -202,9 +202,16 @@
     {
       "name": "fix-sequential-trip-charging",
       "path": "./specs/fix-sequential-trip-charging",
+      "phase": "completed",
+      "taskIndex": 27,
+      "totalTasks": 27
+    },
+    {
+      "name": "e2e-ux-tests-fix",
+      "path": "./specs/e2e-ux-tests-fix",
       "phase": "execution",
-      "taskIndex": 0,
-      "totalTasks": 23
+      "taskIndex": 6,
+      "totalTasks": 98
     }
   ]
 }
