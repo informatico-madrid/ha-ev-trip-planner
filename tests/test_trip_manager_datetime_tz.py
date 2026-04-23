@@ -49,3 +49,75 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
     assert isinstance(res, dict)
     assert "energia_necesaria_kwh" in res
     assert "horas_disponibles" in res
+
+
+@pytest.mark.asyncio
+async def test_async_calcular_energia_necesaria_raises_typeerror_on_naive_datetime_object(monkeypatch) -> None:
+    """Test that naive datetime OBJECT triggers TypeError at line 1470-1471.
+
+    When trip['datetime'] is a bare datetime object (naive, no tzinfo), the
+    code path at line 1470-1471 assigns it directly to trip_time and then
+    attempts subtraction with dt_util.now() (aware), raising TypeError.
+    """
+    hass = MagicMock()
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_entries = MagicMock(return_value=[])
+
+    tm = TripManager(hass, "veh_test")
+
+    # Naive datetime object - NOT a string
+    naive_dt = datetime(2026, 4, 23, 10, 0)
+    trip = {"tipo": None, "datetime": naive_dt}
+
+    vehicle_config = {
+        "battery_capacity_kwh": 50.0,
+        "charging_power_kw": 3.6,
+        "soc_current": 50.0,
+    }
+
+    # Only mock dt_util.now — do NOT mock parse_datetime
+    from custom_components.ev_trip_planner import trip_manager
+
+    monkeypatch.setattr(
+        trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
+    )
+
+    # This should fail without the datetime fix
+    with pytest.raises(TypeError):
+        await tm.async_calcular_energia_necesaria(trip, vehicle_config)
+
+
+@pytest.mark.asyncio
+async def test_async_calcular_energia_necesaria_strptime_naive_datetime(monkeypatch) -> None:
+    """Test that string without parse_datetime mock triggers strptime fallback at line 1478.
+
+    When trip['datetime'] is a string and dt_util.parse_datetime is not mocked,
+    the code falls through to datetime.strptime at line 1478, which returns a
+    naive datetime. Without the tzinfo fix, subtraction with dt_util.now()
+    (aware) raises TypeError.
+    """
+    hass = MagicMock()
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_entries = MagicMock(return_value=[])
+
+    tm = TripManager(hass, "veh_test")
+
+    # String datetime - goes through parse_datetime -> strptime fallback -> naive
+    trip = {"tipo": None, "datetime": "2026-04-23T10:00"}
+
+    vehicle_config = {
+        "battery_capacity_kwh": 50.0,
+        "charging_power_kw": 3.6,
+        "soc_current": 50.0,
+    }
+
+    # Only mock dt_util.now — NOT parse_datetime
+    from custom_components.ev_trip_planner import trip_manager
+
+    monkeypatch.setattr(
+        trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
+    )
+
+    # This should fail without the datetime fix
+    with pytest.raises(TypeError):
+        await tm.async_calcular_energia_necesaria(trip, vehicle_config)

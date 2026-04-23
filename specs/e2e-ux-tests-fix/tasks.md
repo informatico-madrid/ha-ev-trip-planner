@@ -133,7 +133,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S1, AC1_
 
-- [ ] 1.3 [P] [RED] Modify test to exercise BOTH datetime bug paths (not mocked)
+- [x] 1.3 [P] [RED] Modify test to exercise BOTH datetime bug paths (not mocked)
   - **Do**: In tests/test_trip_manager_datetime_tz.py, add TWO test functions:
     1. Test with `trip["datetime"]` as a naive `datetime` object — forces the bug at line 1470-1471
     2. Test with `trip["datetime"]` as a string `"2026-04-23T10:00"` WITHOUT mocking `dt_util.parse_datetime` — forces the strptime fallback at line 1478
