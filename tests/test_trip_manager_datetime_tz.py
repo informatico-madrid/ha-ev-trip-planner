@@ -1,10 +1,9 @@
-"""Regression test: ensure TripManager handles trip datetime strings without raising
+"""Regression test: ensure TripManager handles aware datetime objects without raising
 
 This test reproduces the reported TypeError when code subtracts an
 offset-naive datetime from an offset-aware datetime. The failing path is
 in `async_calcular_energia_necesaria` where `trip['datetime']` may be
-parsed with `datetime.strptime` (naive) and then compared to `dt_util.now()`
-(aware).
+a tz-aware datetime that bypasses strptime and then is compared to `dt_util.now()`.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 @pytest.mark.asyncio
 async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypatch) -> None:
-    """Calling async_calcular_energia_necesaria with a datetime string
+    """Calling async_calcular_energia_necesaria with a tz-aware datetime object
     must not raise a TypeError due to naive/aware subtraction.
     """
     hass = MagicMock()
@@ -29,7 +28,7 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
 
     tm = TripManager(hass, "veh_test")
 
-    # Trip with datetime as ISO string (no timezone)
+    # Trip with tz-aware datetime object (not a string)
     # Use a fixed future datetime to ensure hours_available > 0 deterministically
     trip_future_datetime = datetime(2027, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
     trip = {"tipo": None, "datetime": trip_future_datetime}
