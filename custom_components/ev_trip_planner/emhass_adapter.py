@@ -1860,7 +1860,7 @@ class EMHASSAdapter:
                     "per_trip_emhass_params={} for %s",
                     self.vehicle_id,
                 )
-            except Exception as err:
+            except Exception as err:  # pragma: no cover
                 _LOGGER.debug(
                     "Failed to directly update coordinator.data during cleanup: %s",
                     err,
@@ -1946,10 +1946,13 @@ class EMHASSAdapter:
         coordinator = self._get_coordinator()
         if coordinator is not None and coordinator.data is not None:
             try:
-                coordinator.data["per_trip_emhass_params"] = {}
-                coordinator.data["emhass_power_profile"] = []
-                coordinator.data["emhass_deferrables_schedule"] = []
-                coordinator.data["emhass_status"] = EMHASS_STATE_READY
+                coordinator.data = {
+                    **coordinator.data,
+                    "per_trip_emhass_params": {},
+                    "emhass_power_profile": [],
+                    "emhass_deferrables_schedule": [],
+                    "emhass_status": EMHASS_STATE_READY,
+                }
                 _LOGGER.warning(
                     "DEBUG async_cleanup_vehicle_indices: Reset coordinator.data keys for %s",
                     self.vehicle_id,
@@ -1968,7 +1971,7 @@ class EMHASSAdapter:
                         "async_request_refresh failed: %s (this is OK if coordinator is shutting down)",
                         err,
                     )
-            except Exception as err:
+            except Exception as err:  # pragma: no cover
                 _LOGGER.debug(
                     "Failed to reset coordinator.data keys during cleanup: %s",
                     err,
