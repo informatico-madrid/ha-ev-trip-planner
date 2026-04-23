@@ -36,7 +36,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
 
 ### Baseline Audit
 
-- [ ] 0.3 [VERIFY] Baseline: capture ALL unit test states with `make test`
+- [x] 0.3 [VERIFY] Baseline: capture ALL unit test states with `make test`
   - **Do**:
     1. Run `make test 2>&1 | tee /tmp/baseline-unit.txt`
     2. Extract pass/fail summary: grep the last lines for "passed", "failed", coverage percentage
@@ -48,7 +48,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
   - _Requirements: Anti-regression protection_
   - **Notes**: `make test` currently FAILS with exit 1 due to 100% coverage requirement (99.71%). After S1 datetime fix, trip_manager.py coverage should reach 100% and make test should PASS. This is EXPECTED behavior change — NOT a regression.
 
-- [ ] 0.4 [VERIFY] Baseline: capture ALL E2E test list with `npx playwright test --list`
+- [x] 0.4 [VERIFY] Baseline: capture ALL E2E test list with `npx playwright test --list`
   - **Do**:
     1. Run `npx playwright test --list 2>&1 | tee /tmp/baseline-e2e.txt`
     2. Count tests: currently 28 tests in 8 files
