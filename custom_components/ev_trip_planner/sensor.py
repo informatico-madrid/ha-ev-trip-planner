@@ -278,7 +278,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
 
             # Aggregate all 6 array/matrix attrs from sorted active trips
             matrix: List[List[float]] = []
-            number_of_deferrable_loads: int = 0
+            number_of_deferrable_loads = 0
             def_total_hours_array: List[float] = []
             p_deferrable_nom_array: List[float] = []
             def_start_timestep_array: List[int] = []

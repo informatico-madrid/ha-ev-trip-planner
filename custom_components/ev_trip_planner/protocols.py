@@ -37,3 +37,9 @@ class EMHASSPublisherProtocol(Protocol):
     async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         """Update an existing deferrable load."""
         ...
+
+    # Internal state access (for trip_manager -> emhass_adapter coupling)
+    _published_trips: List[Dict[str, Any]]
+    _cached_per_trip_params: Dict[str, Dict[str, Any]]
+    _cached_power_profile: Optional[List[float]]
+    _cached_deferrables_schedule: Optional[List[Any]]

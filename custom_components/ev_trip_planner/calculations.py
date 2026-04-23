@@ -1042,6 +1042,9 @@ def calculate_power_profile(
         inicio_ventana = ventana_info.get("inicio_ventana")
         fin_ventana = ventana_info.get("fin_ventana")
 
+        if inicio_ventana is None or fin_ventana is None:
+            continue
+
         # Calculate position in profile
         delta_inicio = inicio_ventana - reference_dt
         horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)

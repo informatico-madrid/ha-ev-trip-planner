@@ -415,8 +415,10 @@ class EMHASSAdapter:
         # Guard: Check charging_windows is not empty before accessing [0]
         if charging_windows and len(charging_windows) > 0 and charging_windows[0].get("fin_ventana"):
             fin_ventana = charging_windows[0].get("fin_ventana")
-            delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
-            end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
+            # mypy: fin_ventana is Any|None, but we checked it's truthy above
+            if isinstance(fin_ventana, datetime):
+                delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
+                end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Create attributes
         _attributes = {
@@ -504,7 +506,8 @@ class EMHASSAdapter:
                     # EC-011 FIX: calculate_next_recurring_datetime returns naive datetime.
                     # _ensure_aware converts it to UTC-aware to prevent TypeError when
                     # subtracting from aware datetimes (e.g., now = datetime.now(timezone.utc)).
-                    return _ensure_aware(result)
+                    if result is not None:
+                        return _ensure_aware(result)
                 except ValueError:
                     # Invalid time string (e.g., hour out of range) should be
                     # treated as no deadline and not raise during publish.
@@ -800,10 +803,9 @@ class EMHASSAdapter:
                     idx = self._index_map.pop(failed_id)
                     self._available_indices.append(idx)
                     self._available_indices.sort()
-                    try:
-                        self._published_trips.remove(failed_id)
-                    except ValueError:
-                        pass  # Not in list, already cleaned up
+                    self._published_trips = [
+                        t for t in self._published_trips if t.get("id") != failed_id
+                    ]
 
         # CRITICAL FIX: Populate per-trip cache after publishing all trips
         # async_publish_deferrable_load only calls publish_deferrable_load which
@@ -1924,7 +1926,7 @@ class EMHASSAdapter:
                     # This forces def_total_hours_array to be empty
                     self.hass.states.async_set(
                         entity_id,
-                        state="ready",  # Keep a valid state
+                        "ready",  # Keep a valid state
                         attributes={
                             "def_total_hours_array": [],
                             "per_trip_emhass_params": {},

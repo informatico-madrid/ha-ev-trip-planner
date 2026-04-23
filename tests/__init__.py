@@ -1,6 +1,6 @@
 """Layer 1 test doubles - shared constants, factories, and fakes."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 # =============================================================================
@@ -78,6 +78,11 @@ class FakeEMHASSPublisher:
         self.published_trips: List[Dict[str, Any]] = []
         self.removed_trip_ids: List[str] = []
         self.all_published_trips: List[List[Dict[str, Any]]] = []
+        # Protocol attributes
+        self._published_trips: List[Dict[str, Any]] = []
+        self._cached_per_trip_params: Dict[str, Dict[str, Any]] = {}
+        self._cached_power_profile: Optional[List[float]] = None
+        self._cached_deferrables_schedule: Optional[List[Any]] = None
 
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         self.published_trips.append(trip)

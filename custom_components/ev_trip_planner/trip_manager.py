@@ -1504,38 +1504,33 @@ class TripManager:
                 trip_time = self._parse_trip_datetime(trip_datetime)
                 if trip_time is None:  # pragma: no cover
                     pass  # pragma: no cover
-
-                now = dt_util.now()
-                try:
-                    delta = trip_time - now
-                except TypeError as err:  # pragma: no cover
-                    # Diagnostic logging: record types and values to help reproduce E2E failures
-                    _LOGGER.error(  # pragma: no cover
-                        "Datetime subtraction TypeError: trip_datetime=%s (%s), now=%s (%s): %s",
-                        repr(trip_datetime),
-                        type(trip_datetime),
-                        repr(now),
-                        type(now),
-                        err,
-                    )
-                    # Attempt to coerce trip_time to aware UTC and retry
-                    try:  # pragma: no cover
-                        if getattr(trip_time, "tzinfo", None) is None:
-                            trip_time = trip_time.replace(tzinfo=timezone.utc)
+                else:
+                    now = dt_util.now()
+                    try:
                         delta = trip_time - now
-                    except Exception:
-                        # Give up computing delta — leave horas_disponibles at 0
-                        delta = None  # pragma: no cover
+                    except TypeError as err:  # pragma: no cover
+                        # Diagnostic logging: record types and values to help reproduce E2E failures
+                        _LOGGER.error(  # pragma: no cover
+                            "Datetime subtraction TypeError: trip_datetime=%s (%s), now=%s (%s): %s",
+                            repr(trip_datetime),
+                            type(trip_datetime),
+                            repr(now),
+                            type(now),
+                            err,
+                        )
+                        # Attempt to coerce trip_time to aware UTC and retry
+                        try:  # pragma: no cover
+                            if getattr(trip_time, "tzinfo", None) is None:
+                                trip_time = trip_time.replace(tzinfo=timezone.utc)
+                            delta = trip_time - now
+                        except Exception:
+                            # Give up computing delta — leave horas_disponibles at 0
+                            delta = None  # pragma: no cover
 
-                if delta is not None:
-                    horas_disponibles = delta.total_seconds() / 3600
-                    if horas_carga > horas_disponibles:
-                        alerta_tiempo_insuficiente = True
-            except (KeyError, ValueError, TypeError):  # pragma: no cover
-                pass  # pragma: no cover
-                horas_disponibles = delta.total_seconds() / 3600  # pragma: no cover
-                if horas_carga > horas_disponibles:  # pragma: no cover
-                    alerta_tiempo_insuficiente = True  # pragma: no cover
+                    if delta is not None:
+                        horas_disponibles = delta.total_seconds() / 3600
+                        if horas_carga > horas_disponibles:
+                            alerta_tiempo_insuficiente = True
             except (KeyError, ValueError, TypeError):  # pragma: no cover
                 pass  # pragma: no cover
 
