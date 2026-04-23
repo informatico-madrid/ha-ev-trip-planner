@@ -1,0 +1,14 @@
+{
+  "source": "spec",
+  "name": "e2e-ux-tests-fix",
+  "basePath": "specs/e2e-ux-tests-fix",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 98,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": true,
+  "granularity": "ultra-fine"
+}

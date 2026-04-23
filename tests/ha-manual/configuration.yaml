@@ -28,7 +28,7 @@ input_boolean:
 input_number:
   test_vehicle_soc:
     name: "Test Vehicle SOC"
-    initial: 80
+    initial: 20
     min: 0
     max: 100
     step: 1

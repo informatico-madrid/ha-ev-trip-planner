@@ -10,7 +10,54 @@
  * Task 4.1-4.6 [VE0-VE3] - E2E sensor verification
  */
 import { test, expect, type Page } from '@playwright/test';
-import { navigateToPanel, cleanupTestTrips, createTestTrip } from './trips-helpers';
+import { navigateToPanel, cleanupTestTrips, createTestTrip, deleteTestTrip } from './trips-helpers';
+
+/**
+ * File-level helpers for EMHASS sensor E2E tests.
+ * Moved to file scope so they can be reused across tests.
+ */
+
+/**
+ * Gets sensor attributes from HA frontend's hass.states object.
+ */
+const getSensorAttributes = async (pg: import('@playwright/test').Page, entityId: string): Promise<Record<string, any>> => {
+  return await pg.evaluate((eid: string) => {
+    const haMain = document.querySelector('home-assistant') as any;
+    if (!haMain?.hass?.states?.[eid]) {
+      throw new Error(`Entity ${eid} not found in hass.states`);
+    }
+    return haMain.hass.states[eid].attributes;
+  }, entityId);
+};
+
+const discoverEmhassSensorEntityId = async (pg: import('@playwright/test').Page): Promise<string | null> => {
+  return await pg.evaluate(() => {
+    const haMain = document.querySelector('home-assistant') as any;
+    if (!haMain?.hass?.states) return null;
+    for (const [entityId, state] of Object.entries(haMain.hass.states)) {
+      if (!entityId.startsWith('sensor.emhass_perfil_diferible_')) continue;
+      const attrs = (state as any).attributes;
+      if (attrs?.vehicle_id === 'test_vehicle') return entityId;
+    }
+    for (const entityId of Object.keys(haMain.hass.states)) {
+      if (entityId.includes('emhass_perfil_diferible')) return entityId;
+    }
+    return null;
+  });
+};
+
+/**
+ * Computes a future ISO datetime string for use in trip creation.
+ * Avoids hardcoded dates that break when the date passes.
+ */
+const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  const [hh, mm] = (timeStr || '08:00').split(':').map((s) => Number(s));
+  d.setHours(hh, mm, 0, 0);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 test.describe('EMHASS Sensor Updates', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
@@ -502,5 +549,118 @@ test.describe('EMHASS Sensor Updates', () => {
     }
 
     console.log('Single device verification complete - no duplication');
+  });
+
+  /**
+   * Story 2.1: E2E UX-01 — Flujo Completo Recurrente + Sensor Sync
+   *
+   * Verifies that a complete recurring trip lifecycle (create → propagate → delete)
+   * synchronizes correctly with the EMHASS sensor.
+   */
+  test('should verify complete recurring trip lifecycle with sensor sync (UX-01)', async ({ page }) => {
+    // Setup
+    const tripDescription = 'UX01 Recurring Trip';
+    const tripDatetime = getFutureIso(1, '08:00');
+
+    // V1: Create recurring trip
+    await createTestTrip(page, 'recurrente', tripDatetime, 50, 10, tripDescription, { day: '1', time: '08:00' });
+
+    // Wait for EMHASS propagation
+    await page.waitForTimeout(3000);
+
+    // Discover sensor
+    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    expect(sensorEntityId).toBeTruthy();
+
+    // V2, V3, V4: Verify sensor attributes with polling
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+      expect(Array.isArray(attrs.deferrables_schedule) && attrs.deferrables_schedule.length > 0).toBe(true);
+      expect(attrs.emhass_status).toBe('ready');
+    }).toPass({ timeout: 15000 });
+
+    // Delete trip
+    await deleteTestTrip(page, `${tripDatetime}-${tripDescription}`);
+    await page.waitForTimeout(3000);
+
+    // V5: Verify sensor went to zeros with polling
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.every((v: number) => v === 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // V6: Verify trip removed from UI
+    await expect(page.getByText(tripDescription)).toNotBeVisible();
+  });
+
+  /**
+   * Story 2.2: E2E UX-02 — Múltiples Viajes + No-Duplicación de Dispositivos/Sensores
+   *
+   * Verifies that creating MULTIPLE simultaneous trips does not duplicate devices or sensors,
+   * and that deleting one trip individually does not affect the others.
+   */
+  test('should verify multiple trips with no device/sensor duplication (UX-02)', async ({ page }) => {
+    // Setup trip IDs for deletion
+    const trip1Datetime = getFutureIso(1, '08:00');
+    const trip2Datetime = getFutureIso(2, '10:00');
+    const trip3Datetime = getFutureIso(3, '14:00');
+    const trip1Id = `${trip1Datetime}-UX02 Trip 1`;
+    const trip2Id = `${trip2Datetime}-UX02 Trip 2`;
+    const trip3Id = `${trip3Datetime}-UX02 Trip 3`;
+
+    // V1: Create 3 simultaneous trips (2 recurring + 1 punctual)
+    await createTestTrip(page, 'recurrente', trip1Datetime, 50, 10, 'UX02 Trip 1', { day: '1', time: '08:00' });
+    await createTestTrip(page, 'recurrente', trip2Datetime, 30, 7, 'UX02 Trip 2', { day: '2', time: '10:00' });
+    await createTestTrip(page, 'puntual', trip3Datetime, 20, 5, 'UX02 Trip 3');
+
+    // Wait for EMHASS propagation
+    await page.waitForTimeout(5000);
+
+    // V1: Verify all 3 trips appear in UI
+    await expect(page.getByText('UX02 Trip 1')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 2')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 3')).toBeVisible();
+
+    // V2: Verify only 1 device exists for EV Trip Planner
+    await page.goto('/config/devices');
+    await page.waitForLoadState('networkidle');
+    const deviceCount = await page.getByText('EV Trip Planner test_vehicle').all().then(arr => arr.length);
+    expect(deviceCount).toBe(1);
+
+    // V3: Verify only 1 EMHASS sensor entity exists (no duplication)
+    await page.goto('/config/entities');
+    await page.waitForLoadState('networkidle');
+    const sensorCount = await page.getByText('emhass_perfil_diferible').all().then(arr => arr.length);
+    expect(sensorCount).toBe(1);
+
+    // Go back to panel for deletion
+    await navigateToPanel(page);
+
+    // Delete middle trip (Trip 2) first to verify extremes persist
+    await deleteTestTrip(page, trip2Id);
+    await page.waitForTimeout(3000);
+
+    // V4: Verify other 2 trips remain visible after deleting middle trip
+    await expect(page.getByText('UX02 Trip 1')).toBeVisible();
+    await expect(page.getByText('UX02 Trip 3')).toBeVisible();
+
+    // V5: Verify sensor still has NON-ZERO values after partial deletion
+    const sensorEntityId = await discoverEmhassSensorEntityId(page);
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
+
+    // Delete remaining trips
+    await deleteTestTrip(page, trip1Id);
+    await deleteTestTrip(page, trip3Id);
+    await page.waitForTimeout(3000);
+
+    // V6: Verify sensor goes to ALL ZEROS after deleting all trips
+    await expect(async () => {
+      const attrs = await getSensorAttributes(page, sensorEntityId!);
+      expect(attrs.power_profile_watts.every((v: number) => v === 0)).toBe(true);
+    }).toPass({ timeout: 15000 });
   });
 });

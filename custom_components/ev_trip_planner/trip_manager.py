@@ -1470,9 +1470,43 @@ class TripManager:
                 if isinstance(trip_datetime, datetime):
                     trip_time = trip_datetime
                 else:
-                    trip_time = datetime.strptime(trip_datetime, "%Y-%m-%dT%H:%M")
+                    # Prefer Home Assistant dt util which returns aware datetimes when possible
+                    try:
+                        trip_time = dt_util.parse_datetime(trip_datetime)
+                    except Exception:
+                        # Fallback to strptime and force UTC to avoid naive/aware mix
+                        trip_time = datetime.strptime(trip_datetime, "%Y-%m-%dT%H:%M")
+                        if trip_time.tzinfo is None:
+                            trip_time = trip_time.replace(tzinfo=timezone.utc)
+
                 now = dt_util.now()
-                delta = trip_time - now
+                try:
+                    delta = trip_time - now
+                except TypeError as err:
+                    # Diagnostic logging: record types and values to help reproduce E2E failures
+                    _LOGGER.error(
+                        "Datetime subtraction TypeError: trip_datetime=%s (%s), now=%s (%s): %s",
+                        repr(trip_datetime),
+                        type(trip_datetime),
+                        repr(now),
+                        type(now),
+                        err,
+                    )
+                    # Attempt to coerce trip_time to aware UTC and retry
+                    try:
+                        if getattr(trip_time, "tzinfo", None) is None:
+                            trip_time = trip_time.replace(tzinfo=timezone.utc)
+                        delta = trip_time - now
+                    except Exception:
+                        # Give up computing delta — leave horas_disponibles at 0
+                        delta = None
+
+                if delta is not None:
+                    horas_disponibles = delta.total_seconds() / 3600
+                    if horas_carga > horas_disponibles:
+                        alerta_tiempo_insuficiente = True
+            except (KeyError, ValueError, TypeError):
+                pass
                 horas_disponibles = delta.total_seconds() / 3600
                 if horas_carga > horas_disponibles:
                     alerta_tiempo_insuficiente = True
