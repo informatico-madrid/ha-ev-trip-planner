@@ -6,7 +6,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
 
 ### Reproduction
 
-- [ ] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
+- [x] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
   - **Do**:
     1. Read trip_manager.py lines 1467-1502 to understand BOTH datetime paths:
        - Path A (line 1470-1471): `isinstance(trip_datetime, datetime)` → assigns without tz check
