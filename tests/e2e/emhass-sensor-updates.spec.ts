@@ -72,7 +72,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E EMHASS Attribute Test Trip',
@@ -135,7 +135,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E EMHASS Attributes Test Trip',
@@ -486,7 +486,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await createTestTrip(
       page,
       'puntual',
-      '2026-04-20T10:00',
+      getFutureIso(1, '10:00'),
       30,
       12,
       'E2E Single Device Test Trip',
