@@ -95,6 +95,9 @@ echo ""
 echo "[3/5] Starting Home Assistant..."
 
 echo "  Starting hass -c ${HA_CONFIG_DIR} ... (logs -> $HA_LOG_FILE)"
+
+# Activate venv before starting hass (venv has all HA dependencies)
+source .venv/bin/activate
 nohup hass -c "$HA_CONFIG_DIR" > "$HA_LOG_FILE" 2>&1 &
 HA_PID=$!
 echo "$HA_PID" > "$HA_PID_FILE"

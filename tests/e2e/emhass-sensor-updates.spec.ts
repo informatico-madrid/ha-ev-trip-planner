@@ -34,14 +34,17 @@ const discoverEmhassSensorEntityId = async (pg: import('@playwright/test').Page)
   return await pg.evaluate(() => {
     const haMain = document.querySelector('home-assistant') as any;
     if (!haMain?.hass?.states) return null;
-    // Match entities with the correct vehicle_id in the entity_id itself.
-    // The sensor entity_id format is: sensor.emhass_trip_{vehicle_id}_{trip_id}
-    // The old fallback (second loop) could return ANY emhass_perfil_diferible
-    // entity regardless of vehicle_id, causing cross-vehicle contamination.
-    // NOTE: vehicle_id is NOT in attributes — it's only in the entity_id.
-    for (const entityId of Object.keys(haMain.hass.states)) {
-      if (!entityId.startsWith('sensor.emhass_trip_')) continue;
-      if (entityId.includes('_test_vehicle_')) return entityId;
+    // Find the EmhassDeferrableLoadSensor (aggregated EMHASS data) for test_vehicle.
+    // HA generates entity_id from device+entity name when _attr_has_entity_name=True:
+    //   sensor.ev_trip_planner_{vehicle_id}_emhass_perfil_diferible_{vehicle_id}
+    // The unique_id is "emhass_perfil_diferible_{entry_id}" so the entity_id always
+    // contains 'emhass_perfil_diferible'. We verify vehicle_id via attributes
+    // (EmhassDeferrableLoadSensor.extra_state_attributes includes "vehicle_id").
+    // Single loop: match substring + verify attributes — no unsafe fallback needed.
+    for (const [entityId, state] of Object.entries(haMain.hass.states)) {
+      if (!entityId.includes('emhass_perfil_diferible')) continue;
+      const attrs = (state as any).attributes;
+      if (attrs?.vehicle_id === 'test_vehicle') return entityId;
     }
     return null;
   });
