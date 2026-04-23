@@ -730,7 +730,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `test(e2e): add race-condition-regression-immediate-sensor-check test`
   - _Requirements: Story S4, AC1, AC3, AC4, AC5_
 
-- [ ] 2.4 [RED] Write regression test: race-condition-regression-rapid-successive-creation
+- [x] 2.4 [RED] Write regression test: race-condition-regression-rapid-successive-creation
   - **Do**: Add second regression test after the first one:
     1. cleanupTestTrips → navigateToPanel
     2. createTestTrip with getFutureIso(1, '09:00'), 30km, 5kwh
