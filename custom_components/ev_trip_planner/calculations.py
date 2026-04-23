@@ -1039,11 +1039,8 @@ def calculate_power_profile(
         if not ventana_info.get("es_suficiente", False):
             continue
 
-        inicio_ventana = ventana_info.get("inicio_ventana")
-        fin_ventana = ventana_info.get("fin_ventana")
-
-        if inicio_ventana is None or fin_ventana is None:
-            continue
+        inicio_ventana = ventana_info["inicio_ventana"]
+        fin_ventana = ventana_info["fin_ventana"]
 
         # Calculate position in profile
         delta_inicio = inicio_ventana - reference_dt

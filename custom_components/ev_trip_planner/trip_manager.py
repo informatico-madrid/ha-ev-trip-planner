@@ -28,7 +28,8 @@ from .const import (
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
-from .protocols import EMHASSPublisherProtocol, TripStorageProtocol
+from .emhass_adapter import EMHASSAdapter
+from .yaml_trip_storage import YamlTripStorage
 from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
@@ -96,8 +97,8 @@ class TripManager:
         vehicle_id: str,
         entry_id: Optional[str] = None,
         presence_config: Optional[Dict[str, Any]] = None,
-        storage: Optional[TripStorageProtocol] = None,
-        emhass_adapter: Optional[EMHASSPublisherProtocol] = None,
+        storage: Optional[YamlTripStorage] = None,
+        emhass_adapter: Optional[EMHASSAdapter] = None,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         global _trip_manager_instance_count
@@ -115,15 +116,15 @@ class TripManager:
         self._recurring_trips: Dict[str, Any] = {}
         self._punctual_trips: Dict[str, Any] = {}
         self._last_update: Optional[datetime] = None
-        self._storage: Optional[TripStorageProtocol] = storage
-        self._emhass_adapter: Optional[EMHASSPublisherProtocol] = emhass_adapter
+        self._storage: Optional[YamlTripStorage] = storage
+        self._emhass_adapter: Optional[EMHASSAdapter] = emhass_adapter
 
-    def set_emhass_adapter(self, adapter: EMHASSPublisherProtocol) -> None:
+    def set_emhass_adapter(self, adapter: EMHASSAdapter) -> None:
         """Set the EMHASS adapter for this trip manager."""
         self._emhass_adapter = adapter
         _LOGGER.debug("EMHASS adapter set for vehicle %s", self.vehicle_id)
 
-    def get_emhass_adapter(self) -> Optional[EMHASSPublisherProtocol]:
+    def get_emhass_adapter(self) -> Optional[EMHASSAdapter]:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
 

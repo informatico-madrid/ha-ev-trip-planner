@@ -857,36 +857,6 @@ class TestStartupOrphanCleanup:
         )
 
 
-class TestFakeTripStorageImplementsProtocol:
-    """Tests verifying FakeTripStorage implements TripStorageProtocol structurally."""
-
-    def test_fake_trip_storage_implements_protocol(self):
-        """Verify FakeTripStorage implements TripStorageProtocol via isinstance check."""
-        from tests import FakeTripStorage
-        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
-
-        storage = FakeTripStorage()
-        assert isinstance(storage, TripStorageProtocol), (
-            "FakeTripStorage does not implement TripStorageProtocol. "
-            "Required methods: async_load() -> Dict, async_save(data: Dict) -> None"
-        )
-
-
-class TestFakeEMHASSPublisherImplementsProtocol:
-    """Tests verifying FakeEMHASSPublisher implements EMHASSPublisherProtocol structurally."""
-
-    def test_fake_emhass_publisher_implements_protocol(self):
-        """Verify FakeEMHASSPublisher implements EMHASSPublisherProtocol via isinstance check."""
-        from tests import FakeEMHASSPublisher
-        from custom_components.ev_trip_planner.protocols import EMHASSPublisherProtocol
-
-        publisher = FakeEMHASSPublisher()
-        assert isinstance(publisher, EMHASSPublisherProtocol), (
-            "FakeEMHASSPublisher does not implement EMHASSPublisherProtocol. "
-            "Required methods: async_publish_deferrable_load(trip: Dict) -> bool, "
-            "async_remove_deferrable_load(trip_id: str) -> bool"
-        )
-
 
 # =============================================================================
 # __init__.py coverage tests - missing lines 84, 94, 114, 118-120, 127-140, 153

@@ -58,7 +58,7 @@ TEST_COORDINATOR_DATA = {
 # =============================================================================
 
 class FakeTripStorage:
-    """In-memory fake for TripStorageProtocol."""
+    """In-memory fake storage for tests."""
 
     def __init__(self, initial_data: Dict[str, Any] = None) -> None:
         # Preserve explicit empty dicts (T048: use `if initial_data is None` not `or {}`)
@@ -72,13 +72,12 @@ class FakeTripStorage:
 
 
 class FakeEMHASSPublisher:
-    """In-memory fake for EMHASSPublisherProtocol."""
+    """In-memory fake EMHASS publisher for tests."""
 
     def __init__(self) -> None:
         self.published_trips: List[Dict[str, Any]] = []
         self.removed_trip_ids: List[str] = []
         self.all_published_trips: List[List[Dict[str, Any]]] = []
-        # Protocol attributes
         self._published_trips: List[Dict[str, Any]] = []
         self._cached_per_trip_params: Dict[str, Dict[str, Any]] = {}
         self._cached_power_profile: Optional[List[float]] = None

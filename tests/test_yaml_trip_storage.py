@@ -191,23 +191,3 @@ class TestYamlTripStorageAsyncSave:
         assert "T" in call_args["last_update"]
 
 
-class TestYamlTripStorageImplementsProtocol:
-    """Tests verifying YamlTripStorage implements TripStorageProtocol."""
-
-    def test_yaml_trip_storage_isinstance_trip_storage_protocol(self):
-        """Verify YamlTripStorage instance is recognized as TripStorageProtocol."""
-        from unittest.mock import MagicMock
-
-        from custom_components.ev_trip_planner.protocols import TripStorageProtocol
-        from custom_components.ev_trip_planner.yaml_trip_storage import (
-            YamlTripStorage,
-        )
-
-        mock_hass = MagicMock()
-        mock_hass.config = MagicMock()
-        mock_hass.config.config_dir = Path("/tmp/test")
-
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-        assert isinstance(storage, TripStorageProtocol), (
-            "YamlTripStorage does not implement TripStorageProtocol"
-        )
