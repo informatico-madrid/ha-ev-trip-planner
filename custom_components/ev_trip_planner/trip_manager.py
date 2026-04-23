@@ -141,7 +141,7 @@ class TripManager:
         """
         pure_validate_hora(hora)
 
-    def _parse_trip_datetime(self, trip_datetime, allow_none=False) -> datetime | None:
+    def _parse_trip_datetime(self, trip_datetime: datetime | str, allow_none: bool = False) -> datetime | None:
         """Parse trip datetime, ensuring timezone awareness for both object and string inputs.
 
         Handles two input types:

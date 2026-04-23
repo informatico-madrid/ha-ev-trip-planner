@@ -285,7 +285,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `refactor(ev-trip-planner): yellow - replace inline parsing with _parse_trip_datetime call`
   - _Requirements: Story S1_
 
-- [ ] 1.8c [P] [YELLOW] Verify no stray inline parsing code remains at lines 1474-1483
+- [x] 1.8c [P] [YELLOW] Verify no stray inline parsing code remains at lines 1474-1483
   - **Do**: Read lines 1470-1490 to confirm no remaining inline strptime or parse_datetime code
   - **Files**: custom_components/ev_trip_planner/trip_manager.py
   - **Done when**: Only the method call exists at lines 1474-1483 area
@@ -293,14 +293,14 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (verification only)
   - _Requirements: Story S1_
 
-- [ ] 1.9 [P] [YELLOW] Verify SOLID-ization didn't break tests
+- [x] 1.9 [P] [YELLOW] Verify SOLID-ization didn't break tests
   - **Do**: Run the datetime test again after extraction
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager_datetime_tz.py -v 2>&1 | grep -q "PASSED\|passed" && echo SOLID_GREEN`
   - **Done when**: Test still passes after extraction
   - **Commit**: None
   - _Requirements: Story S1_
 
-- [ ] 1.10 [P] [VERIFY] SOLID Quality Gate: code-reviewer validates SOLID-ized diff
+- [x] 1.10 [P] [VERIFY] SOLID Quality Gate: code-reviewer validates SOLID-ized diff
   - **Skills**: pr-review-toolkit:code-reviewer
   - **Do**:
     1. Capture diff: `git diff custom_components/ev_trip_planner/trip_manager.py`
