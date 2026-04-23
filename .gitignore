@@ -110,3 +110,5 @@ _bmad-output/
 .bmad/
 .bmad
 **/.progress.md
+.cline/
+.gemini/
