@@ -7,7 +7,6 @@ They verify the actual deletion flow that runs in production.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage as ha_storage
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -435,7 +434,9 @@ class TestAsyncRemoveEntryCleanupCascade:
             f"BUG: _cached_power_profile should be [], got {emhass_adapter._cached_power_profile}"
         assert emhass_adapter._index_map == {}, \
             f"BUG: _index_map should be empty, got {emhass_adapter._index_map}"
-        assert coordinator_data["per_trip_emhass_params"] == {}, \
-            f"BUG: coordinator.data should be empty, got {coordinator_data['per_trip_emhass_params']}"
-        assert coordinator_data["emhass_power_profile"] == [], \
-            f"BUG: coordinator.data emhass_power_profile should be [], got {coordinator_data['emhass_power_profile']}"
+        # Read from mock to get the current state (dict expansion creates a new object)
+        mock_coordinator_data = mock_coordinator.data
+        assert mock_coordinator_data["per_trip_emhass_params"] == {}, \
+            f"BUG: coordinator.data should be empty, got {mock_coordinator_data['per_trip_emhass_params']}"
+        assert mock_coordinator_data["emhass_power_profile"] == [], \
+            f"BUG: coordinator.data emhass_power_profile should be [], got {mock_coordinator_data['emhass_power_profile']}"

@@ -2,8 +2,6 @@
 
 import logging
 import math
-import os
-import tempfile
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
@@ -415,7 +413,7 @@ class EMHASSAdapter:
             end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Create attributes
-        attributes = {
+        _attributes = {
             "def_total_hours": math.ceil(total_hours),
             "P_deferrable_nom": round(power_watts, 0),
             "def_start_timestep": def_start_timestep,
@@ -864,7 +862,6 @@ class EMHASSAdapter:
         # T2.1: Propagate SOC sequentially between trips
         # Each trip's SOC projection considers: previous SOC + charging - consumption
         projected_soc = soc_current
-        trip_deadlines_dict = {tid: (deadline, trip) for tid, deadline, trip in trip_deadlines}
         
         # Publish each trip and populate per-trip cache with projected SOC
         for trip in trips:
@@ -893,7 +890,6 @@ class EMHASSAdapter:
                 # Get charging decision from cache
                 cached_params = self._cached_per_trip_params.get(trip_id, {})
                 def_total_hours = cached_params.get("def_total_hours", 0)
-                kwh_needed = cached_params.get("kwh_needed", 0)
                 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
                 horas_carga = min(def_total_hours, ventana_horas) if ventana_horas > 0 else 0
@@ -1845,13 +1841,13 @@ class EMHASSAdapter:
                 # without waiting for the debounced _async_update_data to run
                 # Handle case where coordinator.data might be None before first refresh
                 if coordinator.data is not None:
-                    # Update IN PLACE (mutate existing dict) instead of replacing
-                    # Replacement breaks references in tests where coordinator.data
-                    # is mocked with a separate dict object
-                    coordinator.data["per_trip_emhass_params"] = {}
-                    coordinator.data["emhass_power_profile"] = []
-                    coordinator.data["emhass_deferrables_schedule"] = []
-                    coordinator.data["emhass_status"] = EMHASS_STATE_READY
+                    coordinator.data = {
+                        **coordinator.data,
+                        "per_trip_emhass_params": {},
+                        "emhass_power_profile": [],
+                        "emhass_deferrables_schedule": [],
+                        "emhass_status": EMHASS_STATE_READY,
+                    }
                 else:
                     coordinator.data = {
                         "per_trip_emhass_params": {},
