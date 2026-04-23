@@ -167,6 +167,10 @@ class TripManager:
                 if parsed is not None and parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
                 if parsed is None:  # pragma: no cover
+                    _LOGGER.warning(  # pragma: no cover
+                        "Failed to parse trip datetime: %s, falling back to now",
+                        repr(trip_datetime),
+                    )
                     if allow_none:  # pragma: no cover
                         return None  # pragma: no cover
                     return datetime.now(timezone.utc)  # pragma: no cover

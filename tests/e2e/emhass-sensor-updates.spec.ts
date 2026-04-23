@@ -34,13 +34,13 @@ const discoverEmhassSensorEntityId = async (pg: import('@playwright/test').Page)
   return await pg.evaluate(() => {
     const haMain = document.querySelector('home-assistant') as any;
     if (!haMain?.hass?.states) return null;
+    // Only match entities with the correct vehicle_id — no fallback loop.
+    // The old fallback (second loop) could return ANY emhass_perfil_diferible
+    // entity regardless of vehicle_id, causing cross-vehicle contamination.
     for (const [entityId, state] of Object.entries(haMain.hass.states)) {
       if (!entityId.startsWith('sensor.emhass_perfil_diferible_')) continue;
       const attrs = (state as any).attributes;
       if (attrs?.vehicle_id === 'test_vehicle') return entityId;
-    }
-    for (const entityId of Object.keys(haMain.hass.states)) {
-      if (entityId.includes('emhass_perfil_diferible')) return entityId;
     }
     return null;
   });
@@ -643,13 +643,22 @@ test.describe('EMHASS Sensor Updates', () => {
       'E2E Race Condition Rapid Trip 2',
     );
 
-    // Step 5: toPass() check — sensor shows both trips' data
+    // Step 5: toPass() check — sensor shows BOTH trips' data
+    // CRITICAL FIX (C8): The old assertion `power_profile_watts.some(v > 0)` passes
+    // even if the second trip overwrote the first trip's data. We must verify that
+    // both trips are represented in the sensor attributes.
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       expect(sensorEntityId).toBeTruthy();
       const a = await getSensorAttributes(page, sensorEntityId!);
       expect(Array.isArray(a.power_profile_watts)).toBe(true);
       expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
+      // Verify both trips contribute data: def_total_hours_array and p_deferrable_matrix
+      // must have >= 2 entries when two trips exist.
+      expect(Array.isArray(a.def_total_hours_array)).toBe(true);
+      expect((a.def_total_hours_array as number[]).length).toBeGreaterThanOrEqual(2);
+      expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
+      expect((a.p_deferrable_matrix as number[][]).length).toBeGreaterThanOrEqual(2);
     }).toPass({ timeout: 15000 });
 
     // Step 6: toPass() check — emhass_status === 'ready'

@@ -30,7 +30,9 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
     tm = TripManager(hass, "veh_test")
 
     # Trip with datetime as ISO string (no timezone)
-    trip = {"tipo": None, "datetime": "2026-04-23T10:00"}
+    # Use a fixed future datetime to ensure hours_available > 0 deterministically
+    trip_future_datetime = datetime(2027, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
+    trip = {"tipo": None, "datetime": trip_future_datetime}
 
     vehicle_config = {
         "battery_capacity_kwh": 50.0,
@@ -38,17 +40,21 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
         "soc_current": 50.0,
     }
 
-    # Force dt_util.now() to return an aware datetime (UTC) to reproduce
-    # the runtime environment where naive/aware subtraction would fail.
+    # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results.
+    # This prevents flakiness when the test runs after the trip's original time.
     from custom_components.ev_trip_planner import trip_manager
 
-    monkeypatch.setattr(trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc))
+    fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)
 
     # Should complete without raising and return the expected keys
     res = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
     assert isinstance(res, dict)
     assert "energia_necesaria_kwh" in res
     assert "horas_disponibles" in res
+    # CRITICAL: assert the trip is viable (hours available > 0)
+    # Without this, a past-datetime trip could pass the test while having 0 hours available
+    assert res["horas_disponibles"] > 0
 
 
 @pytest.mark.asyncio
@@ -65,7 +71,8 @@ async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(m
     tm = TripManager(hass, "veh_test")
 
     # Naive datetime object - NOT a string
-    naive_dt = datetime(2026, 4, 23, 10, 0)
+    # Use a fixed future naive datetime to ensure deterministic viability
+    naive_dt = datetime(2027, 6, 15, 10, 0)
     trip = {"tipo": None, "datetime": naive_dt}
 
     vehicle_config = {
@@ -74,11 +81,12 @@ async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(m
         "soc_current": 50.0,
     }
 
-    # Only mock dt_util.now — do NOT mock parse_datetime
+    # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results
     from custom_components.ev_trip_planner import trip_manager
 
+    fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(
-        trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
+        trip_manager.dt_util, "now", lambda: fixed_now
     )
 
     # Should succeed after the fix
@@ -86,6 +94,8 @@ async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(m
     assert isinstance(res, dict)
     assert "energia_necesaria_kwh" in res
     assert "horas_disponibles" in res
+    # CRITICAL: assert the trip is viable (hours available > 0)
+    assert res["horas_disponibles"] > 0
 
 
 @pytest.mark.asyncio
@@ -102,7 +112,8 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds
     tm = TripManager(hass, "veh_test")
 
     # String datetime - goes through parse_datetime path
-    trip = {"tipo": None, "datetime": "2026-04-23T10:00"}
+    # Use a fixed future string datetime to ensure deterministic viability
+    trip = {"tipo": None, "datetime": "2027-06-15T10:00"}
 
     vehicle_config = {
         "battery_capacity_kwh": 50.0,
@@ -110,11 +121,12 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds
         "soc_current": 50.0,
     }
 
-    # Only mock dt_util.now — NOT parse_datetime
+    # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results
     from custom_components.ev_trip_planner import trip_manager
 
+    fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(
-        trip_manager.dt_util, "now", lambda: datetime.now(timezone.utc)
+        trip_manager.dt_util, "now", lambda: fixed_now
     )
 
     # Should succeed after the fix
@@ -122,3 +134,5 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds
     assert isinstance(res, dict)
     assert "energia_necesaria_kwh" in res
     assert "horas_disponibles" in res
+    # CRITICAL: assert the trip is viable (hours available > 0)
+    assert res["horas_disponibles"] > 0
