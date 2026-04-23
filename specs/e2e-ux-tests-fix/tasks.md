@@ -6,7 +6,7 @@ Goal: Confirm both bugs exist before touching code. Capture baseline state.
 
 ### Reproduction
 
-- [ ] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
+- [x] 0.1 [VERIFY] Reproduce: verify datetime naive/aware bug exists in trip_manager.py:1470-1502
   <!-- reviewer-diagnosis
     what: Task marked [x] but test PASSED instead of FAILING
     why: Test uses STRING input which goes through dt_util.parse_datetime (always aware). Bug at line 1470-1471 requires NAIVE datetime OBJECT.
