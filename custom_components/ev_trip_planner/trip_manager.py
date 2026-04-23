@@ -141,6 +141,34 @@ class TripManager:
         """
         pure_validate_hora(hora)
 
+    def _parse_trip_datetime(self, trip_datetime) -> datetime:
+        """Parse trip datetime, ensuring timezone awareness for both object and string inputs.
+
+        Handles two input types:
+        - datetime objects: ensures tzinfo is set to UTC if naive
+        - strings: parses via dt_util.parse_datetime, then ensures tz awareness
+
+        Args:
+            trip_datetime: A datetime object or ISO-format string representing trip time.
+
+        Returns:
+            A timezone-aware datetime object. If parsing fails, returns current UTC time.
+        """
+        if isinstance(trip_datetime, datetime):
+            dt = trip_datetime
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        else:
+            try:
+                parsed = dt_util.parse_datetime(trip_datetime)
+                if parsed is not None and parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                return parsed or datetime.now(timezone.utc)
+            except Exception:
+                _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
+                return datetime.now(timezone.utc)
+
     def _sanitize_recurring_trips(
         self, trips: Dict[str, Any]
     ) -> Dict[str, Any]:

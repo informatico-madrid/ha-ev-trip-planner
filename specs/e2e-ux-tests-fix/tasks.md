@@ -239,7 +239,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - _Requirements: Anti-regression protection_
   - **Expected diff**: `FAIL Required test coverage` line removed, coverage now 100%, trip_manager.py Miss drops from 13 to 0
 
-- [ ] 1.8 [P] [YELLOW] SOLID-ize: Insert `_parse_trip_datetime` method at start of TripManager class body
+- [x] 1.8 [P] [YELLOW] SOLID-ize: Insert `_parse_trip_datetime` method at start of TripManager class body
   - **Do**:
     1. Read TripManager class definition to find the correct insertion point (after __init__ or first public method)
     2. Insert the `_parse_trip_datetime` private method that handles BOTH cases:
