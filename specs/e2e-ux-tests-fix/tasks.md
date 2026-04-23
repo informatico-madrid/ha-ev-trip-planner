@@ -125,7 +125,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (reading only)
   - _Requirements: Story S1, AC1_
 
-- [ ] 1.2 [P] [RED] Read existing datetime test to understand test structure
+- [x] 1.2 [P] [GREEN] Write failing test: datetime naive/aware TypeError on line 1470-1471
   - **Do**: Read tests/test_trip_manager_datetime_tz.py to understand existing test, verify it uses monkeypatch for dt_util.now
   - **Files**: tests/test_trip_manager_datetime_tz.py
   - **Done when**: Test structure understood
