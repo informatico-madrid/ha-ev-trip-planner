@@ -312,7 +312,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: requirements.md Section 9.1.2_
 
-- [ ] 1.11 [P] [VERIFY] Grep for ALL datetime comparison paths — verify no naive/aware mixing remains
+- [x] 1.11 [P] [VERIFY] Grep for ALL datetime comparison paths — verify no naive/aware mixing remains
   - **Do**:
     1. Run `grep -rn "datetime.strptime" custom_components/ev_trip_planner/`
     2. Review each match: utils.py:182 (safe), trip_manager.py:1318 (safe, local date comparison), calculations.py:138,146,148 (safe, local comparisons)
@@ -325,14 +325,14 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None
   - _Requirements: Story S1, AC4_
 
-- [ ] 1.12 [P] [VERIFY] Verify import of dt_util exists in trip_manager.py
+- [x] 1.12 [P] [VERIFY] Verify import of dt_util exists in trip_manager.py
   - **Do**: Check that `from homeassistant.util import dt as dt_util` exists in trip_manager.py imports
   - **Verify**: `grep -n "dt_util" custom_components/ev_trip_planner/trip_manager.py | head -3` confirms import
   - **Done when**: Import verified
   - **Commit**: None
   - _Requirements: Story S1_
 
-- [ ] 1.13 [P] [VERIFY] Run make test (all unit tests pass after S1 changes)
+- [x] 1.13 [P] [VERIFY] Run make test (all unit tests pass after S1 changes)
   - **Do**: Run `make test`
   - **Verify**: `make test` exits 0
   - **Done when**: All unit tests pass
