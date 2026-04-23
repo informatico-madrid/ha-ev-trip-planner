@@ -979,7 +979,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Done when**: On correct feature branch
   - **Commit**: None
 
-- [ ] PR2 [VERIFY] Stage and commit all changes
+- [x] PR2 [VERIFY] Stage and commit all changes — All changes committed (3 commits: source file fixes, V4-V6 verification marks). Branch `fix-sensor-deletion-calculating-soc` ready for push.
   - **Do**:
     1. `git add custom_components/ev_trip_planner/trip_manager.py`
     2. `git add custom_components/ev_trip_planner/emhass_adapter.py`
@@ -1005,7 +1005,7 @@ EOF
   - **Done when**: All changes committed
   - **Commit**: `feat(e2e-ux-tests-fix): fix datetime bug, coordinator race condition, and test infrastructure`
 
-- [ ] PR3 [VERIFY] Push branch to remote
+- [x] PR3 [VERIFY] Push branch to remote — Pushed to origin/fix-sensor-deletion-calculating-soc successfully.
   - **Do**:
     1. `git push -u origin $(git branch --show-current)`
     2. Verify push succeeded
@@ -1013,7 +1013,7 @@ EOF
   - **Done when**: Branch pushed to remote
   - **Commit**: None
 
-- [ ] PR4 [VERIFY] Create PR using gh CLI
+- [x] PR4 [VERIFY] Create PR using gh CLI — PR #33 created: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/33
   - **Do**:
     1. `gh pr create --title "fix: datetime bug, coordinator race condition, test infrastructure" --body "$(cat <<'EOF'
 ## Summary
@@ -1047,7 +1047,7 @@ EOF
   - **Done when**: PR created and visible
   - **Commit**: None
 
-- [ ] PR5 [VERIFY] Monitor CI checks
+- [x] PR5 [VERIFY] Monitor CI checks — CI: CodeRabbit PASS (review completed), test PASS (1m25s). All green.
   - **Do**:
     1. `gh pr checks --watch` (wait for CI completion)
     2. If any check fails: read failure details, fix issues, push fixes
@@ -1056,7 +1056,7 @@ EOF
   - **Done when**: All CI checks green
   - **Commit**: None (if CI passes on first try)
 
-- [ ] PR6 [VERIFY] Address any review comments
+- [x] PR6 [VERIFY] Address any review comments — CodeRabbit COMMENTED (informational only, no changes requested), CI green. PR ready for merge.
   - **Do**:
     1. Check for review comments: `gh pr view --json comments`
     2. If comments exist: address each one
@@ -1068,7 +1068,7 @@ EOF
 
 ## Final Verification
 
-- [ ] VF [VERIFY] Goal verification: original failure now passes
+- [x] VF [VERIFY] Goal verification: original failure now passes — 8/8 checks PASS: 1) test_trip_manager_datetime_tz.py 3/3 PASSED (TypeError resolved), 2) tzinfo check present, 3) 0 coordinator.data[" mutations, 4) 0 hardcoded entity IDs, 5) 0 hardcoded dates, 6) logger config found, 7) globalTeardown removed, 8) E2E 30/30 pass, 0 offset-naive/aware errors in HA logs.
   - **Do**:
     1. Run `PYTHONPATH=. .venv/bin/python -m pytest tests/test_trip_manager_datetime_tz.py -v` — should pass (was failing in Phase 0)
     2. Verify datetime-object path also fixed: `grep -B1 -A2 "isinstance.*datetime" custom_components/ev_trip_planner/trip_manager.py | grep -A1 "1470"` — should show tz check
