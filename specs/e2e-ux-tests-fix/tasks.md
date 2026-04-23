@@ -129,9 +129,9 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Do**: Read tests/test_trip_manager_datetime_tz.py to understand existing test, verify it uses monkeypatch for dt_util.now
   - **Files**: tests/test_trip_manager_datetime_tz.py
   - **Done when**: Test structure understood
-  - **Verify**: `grep -n "monkeypatch" tests/test_trip_manager_datetime_tz.py` confirms line 45
+  - **Verify**: `grep -n "monkeypatch" tests/test_trip_manager_datetime_tz.py` confirms monkeypatch usage
   - **Commit**: None (reading only)
-  - _Requirements: Story S1, AC3_
+  - _Requirements: Story S1, AC1_
 
 - [ ] 1.3 [P] [RED] Modify test to exercise BOTH datetime bug paths (not mocked)
   - **Do**: In tests/test_trip_manager_datetime_tz.py, add TWO test functions:
