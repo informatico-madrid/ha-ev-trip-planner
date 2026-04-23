@@ -268,7 +268,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: `refactor(ev-trip-planner): yellow - insert _parse_trip_datetime method into TripManager class`
   - _Requirements: Story S1, requirements.md Section 9.1.1_
 
-- [ ] 1.8a [P] [YELLOW] Verify _parse_trip_datetime docstring follows Google style
+- [x] 1.8a [P] [YELLOW] Verify _parse_trip_datetime docstring follows Google style
   - **Do**: Read the _parse_trip_datetime method body to verify Args/Returns sections
   - **Files**: custom_components/ev_trip_planner/trip_manager.py
   - **Done when**: Docstring has Args and Returns sections
@@ -276,7 +276,7 @@ S1, S2, S3 are independent. Each runs its own TDD cycle with SOLID gate.
   - **Commit**: None (verification only)
   - _Requirements: Story S1_
 
-- [ ] 1.8b [P] [YELLOW] Replace inline parsing with _parse_trip_datetime method call (BOTH paths)
+- [x] 1.8b [P] [YELLOW] Replace inline parsing with _parse_trip_datetime method call (BOTH paths)
   - **Do**: Replace the datetime-object block at line 1470-1473 AND the string block at lines 1474-1483 with a single call: `trip_time = self._parse_trip_datetime(trip_datetime)`
     - The _parse_trip_datetime method should handle both: datetime objects (ensure tz-aware) and strings (parse_datetime with strptime fallback)
   - **Files**: custom_components/ev_trip_planner/trip_manager.py

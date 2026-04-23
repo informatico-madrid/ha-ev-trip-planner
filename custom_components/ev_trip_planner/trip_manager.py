@@ -141,7 +141,7 @@ class TripManager:
         """
         pure_validate_hora(hora)
 
-    def _parse_trip_datetime(self, trip_datetime) -> datetime:
+    def _parse_trip_datetime(self, trip_datetime, allow_none=False) -> datetime | None:
         """Parse trip datetime, ensuring timezone awareness for both object and string inputs.
 
         Handles two input types:
@@ -150,9 +150,10 @@ class TripManager:
 
         Args:
             trip_datetime: A datetime object or ISO-format string representing trip time.
+            allow_none: If True, returns None on parse failure instead of current UTC time.
 
         Returns:
-            A timezone-aware datetime object. If parsing fails, returns current UTC time.
+            A timezone-aware datetime object, or None if allow_none is True and parsing fails.
         """
         if isinstance(trip_datetime, datetime):
             dt = trip_datetime
@@ -164,10 +165,14 @@ class TripManager:
                 parsed = dt_util.parse_datetime(trip_datetime)
                 if parsed is not None and parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
-                return parsed or datetime.now(timezone.utc)
+                if parsed is None:
+                    if allow_none:
+                        return None
+                    return datetime.now(timezone.utc)
+                return parsed
             except Exception:
                 _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
-                return datetime.now(timezone.utc)
+                return None if allow_none else datetime.now(timezone.utc)
 
     def _sanitize_recurring_trips(
         self, trips: Dict[str, Any]
@@ -1495,19 +1500,7 @@ class TripManager:
         elif trip_datetime:
             # Handle case where trip has datetime but tipo not set
             try:
-                if isinstance(trip_datetime, datetime):
-                    trip_time = trip_datetime
-                    if trip_time.tzinfo is None:
-                        trip_time = trip_time.replace(tzinfo=timezone.utc)
-                else:
-                    try:
-                        trip_time = dt_util.parse_datetime(trip_datetime)
-                        if getattr(trip_time, "tzinfo", None) is None:
-                            trip_time = trip_time.replace(tzinfo=timezone.utc)
-                    except Exception:  # pragma: no cover
-                        _LOGGER.warning(  # pragma: no cover
-                            "Failed to parse trip datetime: %s", repr(trip_datetime))
-                        trip_time = datetime.now(timezone.utc)  # pragma: no cover
+                trip_time = self._parse_trip_datetime(trip_datetime)
 
                 now = dt_util.now()
                 try:
@@ -1620,19 +1613,7 @@ class TripManager:
             # Try parsing from trip dict directly
             trip_datetime = trip.get("datetime")
             if trip_datetime:
-                try:
-                    if isinstance(trip_datetime, datetime):  # pragma: no cover  # HA storage I/O - datetime parsing for trip data from storage
-                        trip_departure_time = trip_datetime  # pragma: no cover  # HA storage I/O - datetime assignment
-                    else:
-                        trip_departure_time = datetime.fromisoformat(trip_datetime)
-                    # Ensure aware datetime for consistent comparison
-                    if trip_departure_time and trip_departure_time.tzinfo is None:
-                        trip_departure_time = trip_departure_time.replace(tzinfo=timezone.utc)
-                except (ValueError, TypeError) as err:
-                    _LOGGER.warning(
-                        "Error parsing trip datetime '%s': %s", trip_datetime, err
-                    )
-                    trip_departure_time = None
+                trip_departure_time = self._parse_trip_datetime(trip_datetime, allow_none=True)
 
         # Calculate inicio_ventana
         if parsed_hora_regreso is not None:
