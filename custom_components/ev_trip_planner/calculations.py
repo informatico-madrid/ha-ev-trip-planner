@@ -67,6 +67,9 @@ def calculate_day_index(day_name: str) -> int:
 
     Args:
         day_name: Nombre del día en español (case-insensitive) o dígito 0-6.
+                  Los dígitos se interpretan en formato JavaScript getDay()
+                  (0=domingo, 1=lunes, ..., 6=sábado) y se convierten al
+                  formato interno Monday=0.
 
     Returns:
         Índice del día de la semana (0=lunes).
@@ -74,10 +77,17 @@ def calculate_day_index(day_name: str) -> int:
     day_lower = day_name.lower().strip()
 
     # Handle numeric day values (0-6)
+    # BUG FIX: Frontend stores dia_semana as JS getDay() format (Sunday=0).
+    # Convert to Monday=0 format: Monday=0, ..., Saturday=5, Sunday=6.
+    # Formula: (js_day - 1) % 7
+    #   JS 0 (Sunday)    → (0-1)%7 = 6 → domingo ✓
+    #   JS 1 (Monday)    → (1-1)%7 = 0 → lunes ✓
+    #   JS 5 (Friday)    → (5-1)%7 = 4 → viernes ✓
+    #   JS 6 (Saturday)  → (6-1)%7 = 5 → sabado ✓
     if day_lower.isdigit():
-        day_index = int(day_lower)
-        if 0 <= day_index < len(DAYS_OF_WEEK):
-            return day_index
+        js_day = int(day_lower)
+        if 0 <= js_day <= 6:
+            return (js_day - 1) % 7
         return 0  # Monday on invalid index
 
     # Try direct match first
@@ -101,6 +111,7 @@ def calculate_trip_time(
     dia_semana: Optional[str],
     datetime_str: Optional[str],
     reference_dt: datetime,
+    tz: Optional[Any] = None,
 ) -> Optional[datetime]:
     """Calculates the datetime of a trip given a reference time.
 
@@ -113,6 +124,9 @@ def calculate_trip_time(
         dia_semana: Day of week name (for recurring trips)
         datetime_str: ISO datetime string (for punctual trips)
         reference_dt: Reference datetime for computing the next occurrence
+        tz: Optional timezone for interpreting hora as local time.
+            If provided, hora is treated as local time and converted to UTC.
+            If None (default), hora is treated as UTC (backward compat).
 
     Returns:
         Calculated trip datetime, or None if insufficient data.
@@ -123,20 +137,39 @@ def calculate_trip_time(
         if not hora:
             return None
         now = reference_dt
-        today = now.date()
-        day_of_week = now.weekday()
         target_day = calculate_day_index(dia_semana or "lunes")
-        days_ahead = (target_day - day_of_week) % 7
+        local_time = datetime.strptime(hora, "%H:%M").time()
         try:
             hour = int(hora.split(":")[0])
         except (ValueError, IndexError):
             hour = 0
-        if days_ahead == 0 and now.hour > hour:
-            days_ahead = 7
-        return datetime.combine(
-            today + timedelta(days=days_ahead),
-            datetime.strptime(hora, "%H:%M").time(),
-        ).replace(tzinfo=timezone.utc)
+
+        if tz is not None:
+            # BUG FIX: hora is local time, convert to UTC
+            local_now = now.astimezone(tz)
+            today = local_now.date()
+            day_of_week = local_now.weekday()
+            days_ahead = (target_day - day_of_week) % 7
+            if days_ahead == 0 and local_now.hour > hour:
+                days_ahead = 7
+            # Create deadline in local timezone, then convert to UTC
+            local_dt = datetime.combine(
+                today + timedelta(days=days_ahead),
+                local_time,
+                tzinfo=tz,
+            )
+            return local_dt.astimezone(timezone.utc)
+        else:
+            # Backward compat: treat hora as UTC
+            today = now.date()
+            day_of_week = now.weekday()
+            days_ahead = (target_day - day_of_week) % 7
+            if days_ahead == 0 and now.hour > hour:
+                days_ahead = 7
+            return datetime.combine(
+                today + timedelta(days=days_ahead),
+                local_time,
+            ).replace(tzinfo=timezone.utc)
     elif trip_tipo == TRIP_TYPE_PUNCTUAL:
         if not datetime_str:
             return None
@@ -819,14 +852,17 @@ def calculate_deficit_propagation(
 # =============================================================================
 
 
-def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_dt: Optional[datetime] = None) -> Optional[datetime]:
+def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_dt: Optional[datetime] = None, tz: Optional[Any] = None) -> Optional[datetime]:
     """Calculate the next occurrence of a recurring trip.
 
     Args:
         day: Day of week (0=Sunday, 6=Saturday) - JavaScript getDay() format.
              Can be int or string (will be converted to int).
-        time_str: Time in HH:MM format.
+        time_str: Time in HH:MM format (local time if tz is provided).
         reference_dt: Reference datetime for calculation (default datetime.now()).
+        tz: Optional timezone for interpreting time_str as local time.
+            If provided, time_str is treated as local time and result is UTC.
+            If None (default), time_str is treated as UTC (backward compat).
 
     Returns:
         datetime of next occurrence, or None if inputs are invalid.
@@ -848,22 +884,38 @@ def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_d
     except (ValueError, AttributeError):
         return None
 
-    # Create candidate datetime for today
-    candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-    # Get current day of week (0=Sunday to match JavaScript getDay())
-    # isoweekday() returns 1=Monday, 7=Sunday, so we convert
-    current_day = reference_dt.isoweekday() % 7
-
-    # Calculate days ahead
-    days_ahead = (day - current_day) % 7
-
-    # If the time for today has passed, move to next week
-    if days_ahead == 0 and candidate < reference_dt:
-        days_ahead = 7
-
-    # Add days to reach the target day
-    return candidate + timedelta(days=days_ahead)
+    if tz is not None:
+        # BUG FIX: time_str is local time, create in local tz and convert to UTC
+        local_ref = reference_dt.astimezone(tz)
+        local_date = local_ref.date()
+        # Create candidate in local timezone
+        candidate_local = datetime(
+            local_date.year, local_date.month, local_date.day,
+            hour, minute, 0, 0, tzinfo=tz,
+        )
+        # Get current day of week in local time (0=Sunday to match JS getDay())
+        current_day = local_ref.isoweekday() % 7
+        # Calculate days ahead
+        days_ahead = (day - current_day) % 7
+        # If the time for today has passed (in local time), move to next week
+        if days_ahead == 0 and candidate_local < local_ref:
+            days_ahead = 7
+        # Add days and convert to UTC
+        result_local = candidate_local + timedelta(days=days_ahead)
+        return result_local.astimezone(timezone.utc)
+    else:
+        # Backward compat: treat time_str as UTC
+        candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        # Get current day of week (0=Sunday to match JavaScript getDay())
+        # isoweekday() returns 1=Monday, 7=Sunday, so we convert
+        current_day = reference_dt.isoweekday() % 7
+        # Calculate days ahead
+        days_ahead = (day - current_day) % 7
+        # If the time for today has passed, move to next week
+        if days_ahead == 0 and candidate < reference_dt:
+            days_ahead = 7
+        # Add days to reach the target day
+        return candidate + timedelta(days=days_ahead)
 
 
 def calculate_power_profile_from_trips(
@@ -874,6 +926,7 @@ def calculate_power_profile_from_trips(
     soc_current: Optional[float] = None,
     battery_capacity_kwh: Optional[float] = None,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
+    tz: Optional[Any] = None,
 ) -> List[float]:
     """Calculate power profile from trips (pure version).
 
@@ -887,6 +940,8 @@ def calculate_power_profile_from_trips(
         power_kw: Charging power in kilowatts.
         horizon: Number of hours in the profile (default 168 = 1 week).
         reference_dt: Reference datetime for computing positions (default datetime.now()).
+        tz: Optional timezone for interpreting recurring trip times as local.
+            Passed to calculate_next_recurring_datetime.
 
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
@@ -916,7 +971,7 @@ def calculate_power_profile_from_trips(
             day = trip.get("day") or trip.get("dia_semana")
             time_str = trip.get("time") or trip.get("hora")
             if day is not None and time_str is not None:
-                deadline_dt = calculate_next_recurring_datetime(day, time_str, now)
+                deadline_dt = calculate_next_recurring_datetime(day, time_str, now, tz=tz)
                 if deadline_dt is None:
                     logger.warning("DEBUG calculate_power_profile: trip %s has invalid day/time, skipping", trip.get("id"))
                     continue

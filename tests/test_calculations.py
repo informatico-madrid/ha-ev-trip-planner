@@ -27,10 +27,11 @@ class TestCalculateDayIndex:
         ("Lunes", 0),
         ("MARTES", 1),
         ("Miercoles", 2),
-        # Numeric strings
-        ("0", 0),
-        ("1", 1),
-        ("6", 6),
+        # Numeric strings (JS getDay format: Sunday=0, Monday=1, ..., Saturday=6)
+        # Converted to Monday=0 format via (js_day - 1) % 7
+        ("0", 6),   # JS Sunday=0    → Monday=0 index 6
+        ("1", 0),   # JS Monday=1    → Monday=0 index 0
+        ("6", 5),   # JS Saturday=6  → Monday=0 index 5
         # Unknown day defaults to Monday
         ("invalid", 0),
         ("", 0),
@@ -43,9 +44,10 @@ class TestCalculateDayIndex:
         assert calculate_day_index(day_name) == expected
 
     @pytest.mark.parametrize("day_index,expected", [
-        (0, 0),
-        (3, 3),
-        (6, 6),
+        # JS getDay format converted to Monday=0 via (js_day - 1) % 7
+        (0, 6),   # JS Sunday=0    → Monday=0 index 6
+        (3, 2),   # JS Wednesday=3 → Monday=0 index 2
+        (6, 5),   # JS Saturday=6  → Monday=0 index 5
         # Out of range defaults to Monday
         (7, 0),
         (-1, 0),
