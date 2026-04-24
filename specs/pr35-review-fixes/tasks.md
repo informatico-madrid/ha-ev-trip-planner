@@ -27,7 +27,7 @@ Fixes Jinja2 template sending boolean `true` instead of numeric `0.0` to EMHASS,
 
 Adds warning log when total_hours is capped to window_size — helps debug trips that get truncated.
 
-- [ ] 2.1 [FIX] Add _LOGGER.warning before total_hours cap in emhass_adapter.py
+- [x] 2.1 [FIX] Add _LOGGER.warning before total_hours cap in emhass_adapter.py
   - **Do**:
     1. Read `/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/emhass_adapter.py` around line 639
     2. Insert a `_LOGGER.warning()` call immediately before `total_hours = window_size` (line 640)

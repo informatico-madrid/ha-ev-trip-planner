@@ -637,6 +637,8 @@ class EMHASSAdapter:
         # calculations require more charging time than the window allows.
         window_size = def_end_timestep - def_start_timestep
         if total_hours > window_size:
+            old_total_hours = total_hours
+            _LOGGER.warning("Capping total_hours from %.1f to window size %.1f for trip %s", old_total_hours, window_size, trip_id)
             total_hours = window_size
         
         # T1.3: Optimización - no calcular perfil si no se necesita carga
