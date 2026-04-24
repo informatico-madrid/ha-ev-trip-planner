@@ -538,7 +538,6 @@ def calculate_multi_trip_charging_windows(
 
 def calculate_hours_deficit_propagation(
     windows: List[Dict[str, Any]],
-    battery_capacity_kwh: float,
     def_total_hours: List[float] | None = None,
 ) -> List[Dict[str, Any]]:
     """Walk backward from last trip to first, propagating unmet charging hours to earlier trips with spare capacity.
@@ -552,7 +551,6 @@ def calculate_hours_deficit_propagation(
     Args:
         windows: List of window dicts from calculate_multi_trip_charging_windows().
             Must contain: ventana_horas, horas_carga_necesarias.
-        battery_capacity_kwh: Battery capacity (for reference, not used in calculation).
         def_total_hours: Optional list of total charging hours per trip.
             If None, defaults to horas_carga_necesarias from each window.
 
