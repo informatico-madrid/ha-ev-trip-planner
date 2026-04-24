@@ -630,6 +630,16 @@ class EMHASSAdapter:
         kwh_needed = decision.kwh_needed
         total_hours = decision.def_total_hours
         power_watts = decision.power_watts
+
+        # BUG FIX: Cap total_hours to available window size to prevent EMHASS error:
+        # "Available timeframe is shorter than the specified number of hours to operate"
+        # This ensures def_total_hours <= window_size for all trips, even when SOC-aware
+        # calculations require more charging time than the window allows.
+        window_size = def_end_timestep - def_start_timestep
+        if total_hours > window_size:
+            old_total_hours = total_hours
+            _LOGGER.warning("Capping total_hours from %.1f to window size %.1f for trip %s", old_total_hours, window_size, trip_id)
+            total_hours = window_size
         
         # T1.3: Optimización - no calcular perfil si no se necesita carga
         if not decision.needs_charging:

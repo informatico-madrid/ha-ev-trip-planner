@@ -1,52 +1,52 @@
 # Release Notes v0.5.16 — Panel Fixes & EMHASS Cleanup
 
-## Resumen
+## Summary
 
-Esta versión corrige problemas críticos del panel que causaban pantalla en blanco al cambiar pestañas, improve la publicación de datos EMHASS tras reinicios de Home Assistant, y añade limpieza automática de sensores huérfanos durante la eliminación de integraciones.
+This version fixes critical panel issues causing blank screens when switching tabs, improves EMHASS data publishing after Home Assistant restarts, and adds automatic cleanup of orphaned sensors during integration removal.
 
-## Cambios Destacados
+## Highlighted Changes
 
 ### Fixed
-- **Panel en blanco**: Añadido `disconnectedCallback()` faltante para prevenir pantalla en blanco al cambiar entre pestañas del panel Lovelace.
-- **Publicación EMHASS tras restart**: Asegurado que `publish_deferrable_loads` se llama tras el setup del adaptador EMHASS para mantener datos actualizados tras reinicios.
-- **Perfil de potencia trip 2**: Corregido el cálculo de watts del segundo viaje que devolvía valores incorrectos.
-- **Safety margin percent**: Aplicado correctamente el margen de seguridad desde la configuración del vehículo a los cálculos de energía.
-- **Ventanas de carga secuenciales**: Corregida la lógica de ventanas de carga para múltiples viajes sequential.
-- **Limpieza de caché EMHASS**: Limpiados datos EMHASS en caché al eliminar viajes para prevenir estado stale.
-- **Coincidencia vehicle_id/entry_id**: Corregido el manejo de la relación entre vehicle_id y entry_id en la limpieza de sensores.
+- **Blank panel**: Added missing `disconnectedCallback()` to prevent blank screens when switching Lovelace panel tabs.
+- **EMHASS publishing after restart**: Ensured `publish_deferrable_loads` is called after EMHASS adapter setup to keep data updated after restarts.
+- **Trip 2 power profile**: Fixed the second trip's watt calculation which was returning incorrect values.
+- **Safety margin percent**: Correctly applying safety margin from vehicle configuration to energy calculations.
+- **Sequential charging windows**: Fixed charging window logic for multiple sequential trips.
+- **EMHASS cache cleanup**: Cleared cached EMHASS data when deleting trips to prevent stale state.
+- **vehicle_id/entry_id matching**: Fixed the relationship handling between vehicle_id and entry_id in sensor cleanup.
 
 ### Added
-- **Normalización centralizada de vehicle_id**: Mejorada la centralización del normalizado de vehicle_id y actualizado TripManager para usar YamlTripStorage.
-- **Tests de integración para cleanup**: Nuevos tests para verificar el comportamiento correcto durante la eliminación de integraciones y trips.
-- **Tests de persistencia post-reinicio**: Tests para garantizar que los datos persisten correctamente tras reinicios de HA.
-- **Reglas E2E para Shadow DOM**: Documentación de reglas para selectores E2E en el panel con Shadow DOM.
+- **Centralized vehicle_id normalization**: Improved centralization of vehicle_id normalization and updated TripManager to use YamlTripStorage.
+- **Integration tests for cleanup**: New tests to verify correct behavior during integration and trip removal.
+- **Post-restart persistence tests**: Tests to ensure data persists correctly after HA restarts.
+- **E2E rules for Shadow DOM**: Documentation for E2E selectors in the Shadow DOM panel.
 
-## Detalles Técnicos
+## Technical Details
 
-### Archivos Modificados
-- `custom_components/ev_trip_planner/__init__.py` - Setup y cleanup del adaptador EMHASS
-- `custom_components/ev_trip_planner/coordinator.py` - Refresh del coordinator
-- `custom_components/ev_trip_planner/emhass_adapter.py` - Caché por viaje y cleanup
-- `custom_components/ev_trip_planner/frontend/panel.js` - Lifecycle del panel
-- `custom_components/ev_trip_planner/sensor.py` - Sensores adicionales
-- `custom_components/ev_trip_planner/services.py` - APIs de servicios
-- `custom_components/ev_trip_planner/trip_manager.py` - Gestión de trips
-- `custom_components/ev_trip_planner/utils.py` - Utilidades de normalización
+### Modified Files
+- `custom_components/ev_trip_planner/__init__.py` - EMHASS adapter setup and cleanup
+- `custom_components/ev_trip_planner/coordinator.py` - Coordinator refresh
+- `custom_components/ev_trip_planner/emhass_adapter.py` - Per-trip cache and cleanup
+- `custom_components/ev_trip_planner/frontend/panel.js` - Panel lifecycle
+- `custom_components/ev_trip_planner/sensor.py` - Additional sensors
+- `custom_components/ev_trip_planner/services.py` - Service APIs
+- `custom_components/ev_trip_planner/trip_manager.py` - Trip management
+- `custom_components/ev_trip_planner/utils.py` - Normalization utilities
 
-### Tests Añadidos
-- `tests/test_integration_uninstall.py` - Tests de desinstalación
-- `tests/test_post_restart_persistence.py` - Persistencia post-reinicio
-- `tests/test_emhass_adapter.py` - Tests del adaptador EMHASS
-- `tests/test_trip_manager_core.py` - Tests core del TripManager
-- `tests/e2e/zzz-integration-deletion-cleanup.spec.ts` - Tests E2E de cleanup
+### Tests Added
+- `tests/test_integration_uninstall.py` - Uninstallation tests
+- `tests/test_post_restart_persistence.py` - Post-restart persistence
+- `tests/test_emhass_adapter.py` - EMHASS adapter tests
+- `tests/test_trip_manager_core.py` - TripManager core tests
+- `tests/e2e/zzz-integration-deletion-cleanup.spec.ts` - E2E cleanup tests
 
-## Notas de Migración
+## Migration Notes
 
-- No hay cambios breaking conocidos
-- Los usuarios existentes pueden actualizar sin acciones adicionales
-- Se recomienda limpar sensores EMHASS huérfanos tras actualizar si existen
+- No known breaking changes
+- Existing users can update without additional actions
+- Recommended to clean up orphaned EMHASS sensors after updating if any exist
 
-## Referencias
+## References
 
 - Commit: `7532e42 Fix panel in blank (#32)`
-- Especificaciones relacionadas: `specs/e2e-trip-crud/`, `plans/bmad-migration-plan-phase3.md`
+- Related specifications: `specs/e2e-trip-crud/`, `plans/bmad-migration-plan-phase3.md`

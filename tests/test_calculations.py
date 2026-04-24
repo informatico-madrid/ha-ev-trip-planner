@@ -1081,9 +1081,6 @@ class TestGenerateDeferrableScheduleFromTrips:
 
 class TestCalculateDeferrableParameters:
     """Tests for calculate_deferrable_parameters.
-
-    TDD RED phase: This function must NOT exist in calculations.py yet.
-    These tests will fail with ImportError until T019 is implemented.
     """
 
     def test_deadline_as_datetime_object_not_string(self):
@@ -1229,11 +1226,7 @@ class TestCalculateDeferrableParameters:
 
 
 class TestCalculatePowerProfileFromTrips:
-    """Tests for calculate_power_profile_from_trips.
-
-    TDD RED phase: This function must NOT exist in calculations.py yet.
-    These tests will fail with ImportError until T020 is implemented.
-    """
+    """Tests for calculate_power_profile_from_trips."""
 
     def test_deadline_as_datetime_object_not_string(self):
         """When deadline is a datetime object (not string), uses it directly. Covers line 686."""

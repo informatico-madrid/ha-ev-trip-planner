@@ -961,7 +961,7 @@ class EVTripPlannerPanel extends LitElement {
     const emhassState = emhassSensorEntityId ? this._hass.states[emhassSensorEntityId] : null;
     const emhassAvailable = emhassState && emhassState.state !== 'unavailable' && emhassState.state !== 'unknown';
 
-    // Jinja2 template for all 6 EMHASS parameters
+    // Jinja2 template for all 8 EMHASS parameters
     // Note: Use state_attr() instead of states().attributes - Home Assistant
     const jinja2Template = `
 {# EMHASS Configuration for ${this._vehicleId} #}
@@ -972,6 +972,9 @@ def_total_hours: {{ state_attr('${emhassSensorEntityId}', 'def_total_hours_array
 P_deferrable_nom: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_nom_array') | default([], true) }}
 def_start_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep_array') | default([], true) }}
 def_end_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
+treat_deferrable_load_as_semi_cont: {{ ([true] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0))) | default([], true) }}
+set_deferrable_load_single_constant: {{ ([true] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0))) | default([], true) }}
+set_deferrable_startup_penalty: {{ ([0.0] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | int(0))) | default([], true) }}
 P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}`;
 
     return html`
@@ -992,7 +995,7 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
           <p class="emhass-description">
             Use this Jinja2 template in your EMHASS optimization configuration.
             The template references the <strong>EMHASS Aggregated Sensor</strong> which contains
-            all 6 EMHASS parameters from your active trips.
+            all 8 EMHASS parameters from your active trips.
           </p>
         </div>
 
@@ -1055,6 +1058,16 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
                 <td><code>def_end_timestep_array</code></td>
                 <td>End timestep for each deferrable load</td>
                 <td><code>emhass.attributes.def_end_timestep_array</code></td>
+              </tr>
+              <tr>
+                <td><code>treat_deferrable_load_as_semi_cont</code></td>
+                <td>Can each load be paused/resumed (hardcoded to true)</td>
+                <td><code>[true] * number_of_deferrable_loads</code></td>
+              </tr>
+              <tr>
+                <td><code>set_deferrable_load_single_constant</code></td>
+                <td>Each load uses constant power (hardcoded to true)</td>
+                <td><code>[true] * number_of_deferrable_loads</code></td>
               </tr>
               <tr>
                 <td><code>p_deferrable_matrix</code></td>

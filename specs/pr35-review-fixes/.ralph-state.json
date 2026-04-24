@@ -1,0 +1,16 @@
+{
+  "source": "plan",
+  "name": "pr35-review-fixes",
+  "basePath": "./specs/pr35-review-fixes",
+  "phase": "execution",
+  "taskIndex": 6,
+  "totalTasks": 6,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false,
+  "quickMode": true,
+  "discoveredSkills": [],
+  "awaitingApproval": false
+}

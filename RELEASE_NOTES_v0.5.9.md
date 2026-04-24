@@ -1,26 +1,31 @@
-v0.5.9 — EMHASS hotfixes & per-trip cache
+# Release Notes v0.5.9 — EMHASS Hotfixes & Per-Trip Cache
 
-Resumen
-- Correcciones críticas (hotfixes) para la integración EMHASS que arreglan problemas por los que cambios de potencia de carga quedaban ignorados.
-- Añadida caché de parámetros por viaje (per-trip EMHASS params) y nuevas APIs/sensores para exponer esos datos por viaje.
-- Varios helpers y defensas añadidas (lectura de `entry.options` antes que `entry.data`, guardias cuando `_published_trips` está vacío, manejo robusto de SOC/hora regreso).
+## Summary
 
-Cambios destacados
-- Fix: Leer `charging_power_kw` desde `entry.options` primero; usar `is None` para no tratar `0` como falsy.
-- Fix: Registrar listener de config entry durante `async_setup_entry` para asegurar updates de potencia.
-- Fix: Recarga de viajes cuando `_published_trips` está vacío antes de publicar a EMHASS.
-- Feature: Cache por viaje (`per_trip_emhass_params`) con parámetros precalculados (horas, potencias, perfiles de potencia, timestep inicio/fin, kWh necesarios, deadline, emhass_index).
-- Feature: Nuevo sensor `TripEmhassSensor` para exponer los 9 atributos por viaje y funciones CRUD (`async_create_trip_emhass_sensor` / `async_remove_trip_emhass_sensor`).
-- Fix: `async_publish_deferrable_load` ahora calcula `def_start_timestep` desde las ventanas de carga en vez de usar 0 fijo.
+- Critical hotfixes for EMHASS integration that fixed issues where charging power changes were being ignored.
+- Added per-trip EMHASS params cache and new APIs/sensors to expose trip-specific data.
+- Various helpers and safeguards added (`entry.options` read before `entry.data`, guards when `_published_trips` is empty, robust SOC/return time handling).
 
-Tests & Calidad
-- Se añadieron tests TDD para cada hotfix y feature (tests en `tests/` relacionados con `emhass_adapter` y `TripEmhassSensor`).
-- Verificaciones locales: tests relevantes ejecutados; ruff/mypy aplicados en los módulos modificados según la spec.
+## Highlighted Changes
 
-Notas para integradores
-- No hay cambios breaking conocidos para usuarios finales; configure `charging_power_kw` como antes, pero la opción en la entrada (`options`) ahora tiene prioridad.
-- Los sensores por viaje (`TripEmhassSensor`) sólo se crean cuando se invoca la API de creación o cuando el manager crea sensores en el ciclo de vida de los viajes.
+- **Fix**: Read `charging_power_kw` from `entry.options` first; use `is None` to not treat `0` as falsy.
+- **Fix**: Register config entry listener during `async_setup_entry` to ensure power updates.
+- **Fix**: Reload trips when `_published_trips` is empty before publishing to EMHASS.
+- **Feature**: Per-trip cache (`per_trip_emhass_params`) with precalculated parameters (hours, powers, power profiles, start/end timestep, kWh needed, deadline, emhass_index).
+- **Feature**: New `TripEmhassSensor` sensor to expose 9 attributes per trip and CRUD functions (`async_create_trip_emhass_sensor` / `async_remove_trip_emhass_sensor`).
+- **Fix**: `async_publish_deferrable_load` now calculates `def_start_timestep` from charging windows instead of using fixed `0`.
 
-Referencias
-- Especificación: `specs/m401-emhass-hotfixes`
-- Commit principal asociado: rama `feat/m401-emhass-per-trip-sensors`
+## Tests & Quality
+
+- TDD tests added for each hotfix and feature (tests in `tests/` related to `emhass_adapter` and `TripEmhassSensor`).
+- Local verifications: relevant tests executed; ruff/mypy applied to modified modules per spec.
+
+## Notes for Integrators
+
+- No known breaking changes for end users; configure `charging_power_kw` as before, but the option in the entry (`options`) now takes priority.
+- Per-trip sensors (`TripEmhassSensor`) are only created when the creation API is invoked or when the manager creates sensors in the trip lifecycle.
+
+## References
+
+- Specification: `specs/m401-emhass-hotfixes`
+- Associated main commit: `feat/m401-emhass-per-trip-sensors` branch

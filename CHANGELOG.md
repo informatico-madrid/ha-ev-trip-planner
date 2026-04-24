@@ -8,20 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.17] - 2026-04-23 - Datetime Fix & Race Condition Resolution
 
 ### Fixed
-- **Bug datetime naive/aware**: Corregido `datetime.now()` a `datetime.now(timezone.utc)` en `trip_manager.py` para evitar errores `TypeError` en comparaciones de timezone.
-- **Race condition coordinator**: Resuelta condición de carrera en el coordinator durante actualizaciones concurrentes.
-- **Cálculo SOC en eliminación de sensores**: Corregido el cálculo de SOC al eliminar sensores huérfanos.
-- **Mutación in-place**: Reemplazada mutación in-place con dict expansion en `async_publish_all_deferrable_loads` y `async_cleanup_vehicle_indices`.
+- **Datetime naive/aware bug**: Fixed `datetime.now()` to `datetime.now(timezone.utc)` in `trip_manager.py` to prevent `TypeError` errors in timezone comparisons.
+- **Coordinator race condition**: Resolved race condition in the coordinator during concurrent updates.
+- **SOC calculation in sensor deletion**: Fixed SOC calculation when deleting orphaned sensors.
+- **In-place mutation**: Replaced in-place mutation with dict expansion in `async_publish_all_deferrable_loads` and `async_cleanup_vehicle_indices`.
 
 ### Added
-- **Tests regression datetime**: Nuevo archivo `tests/test_trip_manager_datetime_tz.py` con tests de regresión para datetime naive/aware.
-- **Refactor `_parse_trip_datetime`**: Método centralizado para parsing de datetime en TripManager con type hints para compliance SOLID.
-- **Tests E2E EMHASS dinámicos**: Tests E2E con descubrimiento dinámico de entity IDs.
-- **100% coverage**: Cobertura del 100% en las líneas críticas del datetime handling.
+- **Datetime regression tests**: New file `tests/test_trip_manager_datetime_tz.py` with regression tests for datetime naive/aware.
+- **Refactored `_parse_trip_datetime`**: Centralized method for datetime parsing in TripManager with type hints for SOLID compliance.
+- **Dynamic E2E EMHASS tests**: E2E tests with dynamic entity ID discovery.
+- **100% coverage**: 100% coverage on critical datetime handling lines.
 
 ### Changed
-- **Test infrastructure**: Mejoras en tests E2E con fechas dinámicas usando `getFutureIs`.
-- **Chore files cleanup**: Eliminación de archivos obsoletos de agentes y skills no utilizados.
+- **Test infrastructure**: Improved E2E tests with dynamic dates using `getFutureIs`.
+- **Chore files cleanup**: Removed obsolete agent files and unused skills.
 
 ### Technical Details
 - **Files Modified**: `trip_manager.py`, `coordinator.py`, `emhass_adapter.py`, `__init__.py`
@@ -33,19 +33,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.16] - 2026-04-20 - Panel Fixes & EMHASS Cleanup
 
 ### Fixed
-- **Panel en blanco**: Añadido `disconnectedCallback()` faltante para prevenir pantalla en blanco al cambiar entre pestañas del panel Lovelace.
-- **Publicación EMHASS tras restart**: Asegurado que `publish_deferrable_loads` se llama tras el setup del adaptador EMHASS.
-- **Perfil de potencia trip 2**: Corregido el cálculo de watts del segundo viaje.
-- **Safety margin percent**: Aplicado correctamente el margen de seguridad desde la configuración del vehículo.
-- **Ventanas de carga secuenciales**: Corregida la lógica para múltiples viajes sequential.
-- **Limpieza de caché EMHASS**: Limpiados datos EMHASS en caché al eliminar viajes.
-- **Coincidencia vehicle_id/entry_id**: Corregido el manejo en la limpieza de sensores.
+- **Blank panel**: Added missing `disconnectedCallback()` to prevent blank screen when switching between Lovelace panel tabs.
+- **EMHASS publishing after restart**: Ensured `publish_deferrable_loads` is called after EMHASS adapter setup.
+- **Trip 2 power profile**: Fixed watt calculation for the second trip.
+- **Safety margin percent**: Correctly applied safety margin from vehicle configuration.
+- **Sequential charging windows**: Fixed logic for multiple sequential trips.
+- **EMHASS cache cleanup**: Cleared EMHASS cached data when deleting trips.
+- **vehicle_id/entry_id matching**: Fixed handling in sensor cleanup.
 
 ### Added
-- **Normalización centralizada de vehicle_id**: TripManager ahora usa YamlTripStorage.
-- **Tests de integración para cleanup**: Verificación de comportamiento durante eliminación de integraciones.
-- **Tests de persistencia post-reinicio**: Garantizan que los datos persisten tras reinicios de HA.
-- **Reglas E2E para Shadow DOM**: Documentación de selectores E2E en panel con Shadow DOM.
+- **Centralized vehicle_id normalization**: TripManager now uses YamlTripStorage.
+- **Integration tests for cleanup**: Verified behavior during integration deletion.
+- **Post-restart persistence tests**: Ensure data persists across HA restarts.
+- **E2E rules for Shadow DOM**: E2E selector documentation for panel with Shadow DOM.
 
 ### Technical Details
 - **Files Modified**: `__init__.py`, `coordinator.py`, `emhass_adapter.py`, `frontend/panel.js`, `sensor.py`, `services.py`, `trip_manager.py`, `utils.py`
@@ -71,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Deferrable Load Template Sensors**: EMHASS integration sensors
   - Entity: `sensor.emhass_perfil_diferible_{vehicle_id}`
-  - Attribute `power_profile_watts`: 168-value array (24h × 7d) - 0W = no charging, positive = charging power
+  - Attribute `power_profile_watts`: 168-value array (24h x 7d) - 0W = no charging, positive = charging power
   - Attribute `deferrables_schedule`: Array with ISO 8601 timestamps and power values
   - Automatic calculation based on trip deadlines and charging duration
 
@@ -173,28 +173,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consolidated cleanup loops for state and registry cleanup
   - Added cleanup verification helper method
   - 4 new test files: entity cleanup, config updates, panel filtering, integration tests
-- **Validación de formato de hora**: Se añadió validación estricta en `async_add_recurring_trip()` para rechazar formatos de hora inválidos (ej: "16:400") antes de almacenarlos. Implementado con TDD: 3 tests añadidos y pasando, previniendo datos corruptos en el storage.
+- **Time validation**: Added strict validation in `async_add_recurring_trip()` to reject invalid time formats (e.g., "16:400") before storing. Implemented with TDD: 3 new passing tests preventing data corruption in storage.
 
 ---
 
 ## [0.4.1-dev] - 2026-03-19 - Fix Config Flow, Dashboard & Sensors
 
 ### Fixed
-- **Selector de tipo de vehículo eliminado**: Removido el selector irrelevante de "híbrido/eléctrico" del flujo de configuración. El sistema ahora se configura en 4 pasos simplificados (nombre, sensores, batería, EMHASS) en lugar de 5.
-- **charging_status_sensor traducido**: Traducido completamente al español con hint de ayuda claro para el usuario.
-- **Dashboard auto-import**: Implementada importación automática del dashboard Lovelace tras completar el flujo de configuración. Incluye verificación de permisos de storage y manejo de conflictos con dashboards manuales existentes.
-- **Sensores no actualizados**: Corregido el problema donde los sensores mostraban 0 viajes a pesar de tener datos guardados. Los sensores ahora leen correctamente del coordinator y se actualizan automáticamente cuando se añaden nuevos viajes.
-- **Persistencia de viajes**: Implementada correcta persistencia de viajes entre reinicios usando HA Storage API. Los viajes sobreviven a reinicios del sistema.
+- **Vehicle type selector removed**: Removed the irrelevant "hybrid/electric" selector from config flow. System now configures in 4 simplified steps (name, sensors, battery, EMHASS) instead of 5.
+- **charging_status_sensor translated**: Fully translated to Spanish with clear help hint for the user.
+- **Dashboard auto-import**: Implemented automatic Lovelace dashboard import after completing config flow. Includes storage permission verification and conflict handling with existing manual dashboards.
+- **Sensors not updating**: Fixed issue where sensors showed 0 trips despite having saved data. Sensors now correctly read from coordinator and update automatically when new trips are added.
+- **Trip persistence**: Implemented correct trip persistence between restarts using HA Storage API. Trips survive system restarts.
 
 ### Technical Details
 - **Files Modified**:
-  - `custom_components/ev_trip_planner/config_flow.py` - Eliminado vehicle_type, mejorado logging
-  - `custom_components/ev_trip_planner/sensor.py` - Corregida lectura de datos del coordinator
-  - `custom_components/ev_trip_planner/__init__.py` - Mejorado logging de diagnóstico
-  - `custom_components/ev_trip_planner/strings.json` - Traducciones completas
-  - `tests/test_config_flow_issues.py` - Tests para验证ar fixes
+  - `custom_components/ev_trip_planner/config_flow.py` - Removed vehicle_type, improved logging
+  - `custom_components/ev_trip_planner/sensor.py` - Fixed coordinator data reading
+  - `custom_components/ev_trip_planner/__init__.py` - Enhanced diagnostic logging
+  - `custom_components/ev_trip_planner/strings.json` - Complete translations
+  - `tests/test_config_flow_issues.py` - Tests to verify fixes
 - **Test Coverage**: 87% (416 tests passing)
-- **Debug Logging**: Añadido logging de diagnóstico para facilitar troubleshooting en producción
+- **Debug Logging**: Added diagnostic logging to facilitate troubleshooting in production
 
 ## [0.3.1-dev] - 2025-12-08 - Milestone 3.2 UX Improvements COMPLETED
 
@@ -235,11 +235,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Localization**: Full Spanish support for Spanish-speaking users
 
 ### Validation
-- ✅ All 9 UX tests passing
-- ✅ Entity filters working correctly
-- ✅ Help texts include concrete examples
-- ✅ Spanish translations complete and accurate
-- ✅ Backward compatible with existing configurations
+- All 9 UX tests passing
+- Entity filters working correctly
+- Help texts include concrete examples
+- Spanish translations complete and accurate
+- Backward compatible with existing configurations
 
 ---
 
@@ -377,33 +377,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0-dev] - 2025-11-22 - Milestone 2 COMPLETED
 
 ### Added
-- 4 sensores de cálculo: next_trip, next_deadline, kwh_today, hours_today
-- Lógica de expansión de viajes recurrentes para 7 días
-- Combinación de viajes recurrentes y puntuales
-- Manejo completo de timezone con zoneinfo
-- Cobertura de tests: 84% (60/60 tests pasando)
+- 4 calculation sensors: next_trip, next_deadline, kwh_today, hours_today
+- Recurrent trip expansion logic for 7 days
+- Combination of recurrent and punctual trips
+- Complete timezone handling with zoneinfo
+- Test coverage: 84% (60/60 tests passing)
 
 ### Changed
-- Actualizado ROADMAP.md para reflejar Milestone 2 completado
-- Versión en manifest.json: 0.1.0-dev → 0.2.0-dev
+- Updated ROADMAP.md to reflect completed Milestone 2
+- Version in manifest.json: 0.1.0-dev to 0.2.0-dev
 
 ### Fixed
-- Timezone mismatch en cálculos de viajes
-- Issues con async/threadsafe en sensores
+- Timezone mismatch in trip calculations
+- Issues with async/threadsafe in sensors
 
 ---
 
 ## [0.1.0-dev] - 2025-11-18 - Initial Release
 
 ### Added
-- Estructura inicial del proyecto
-- Config flow para configuración de vehículos
-- Sistema de gestión de viajes (recurrentes y puntuales)
-- 3 sensores básicos (trips_list, recurring_count, punctual_count)
-- Dashboard Lovelace de ejemplo
+- Initial project structure
+- Config flow for vehicle configuration
+- Trip management system (recurrent and punctual)
+- 3 basic sensors (trips_list, recurring_count, punctual_count)
+- Example Lovelace dashboard
 
 ### Changed
-- Migración de input_text a Storage API
+- Migration from input_text to Storage API
 
 ### Fixed
-- Issues iniciales de setup y configuración
+- Initial setup and configuration issues

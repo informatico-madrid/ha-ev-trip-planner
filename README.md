@@ -29,6 +29,12 @@
 
 ---
 
+> 🧪 **Este proyecto es también un laboratorio de desarrollo asistido por IA.**
+> Cómo un arquitecto senior dirigió la generación de 12,000+ líneas de código funcional
+> mediante agentes IA especializados — [Ver Portfolio](docs/PORTFOLIO.md)
+
+---
+
 ## 🎯 Características
 
 ### ✅ Milestone 2 - Gestión de Viajes (COMPLETADO)

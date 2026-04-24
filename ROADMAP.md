@@ -1,127 +1,127 @@
 # 🗺️ Roadmap & Milestones - EV Trip Planner
 
-## 📊 Estado del Proyecto
+## 📊 Project Status
 
-**Versión actual**: 0.4.2-dev  
-**Fase de desarrollo**: Milestone 4.0.1 planificado — pendiente de inicio  
+**Current version**: 0.4.2-dev  
+**Development phase**: Milestone 4.0.1 planned — not started  
 **Target Release**: v1.0.0 (Q2 2026)  
-**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) pasando
-**Quality Assurance**: Mutation testing (mutmut) configurado para Milestone 4.0.1  
-**Gaps detectados**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
+**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) passing
+**Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1  
+**Detected gaps**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
 
 ---
 
-## ✅ Historial de Milestones Completados
+## ✅ Completed Milestones History
 
-### Milestone 0: Fundación del Proyecto (Nov 18, 2025)
-- Estructura de repositorio y skeleton del custom component
-- Config flow inicial, licencia MIT, metadata HACS
-- Constantes y dominio configurados
+### Milestone 0: Project Foundation (Nov 18, 2025)
+- Repository structure and custom component skeleton
+- Initial config flow, MIT license, HACS metadata
+- Constants and domain configured
 
-### Milestone 1: Infraestructura Core (Nov 18, 2025)
-- Sistema de gestión de viajes recurrentes y puntuales
-- Servicios CRUD: `add_recurring_trip`, `add_punctual_trip`, `edit_trip`, `delete_trip`
-- 3 sensores básicos: `trips_list`, `recurring_count`, `punctual_count`
-- Dashboard Lovelace base
-- 83% de cobertura de tests (29 tests)
+### Milestone 1: Core Infrastructure (Nov 18, 2025)
+- Recurrent and punctual trip management system
+- CRUD services: `add_recurring_trip`, `add_punctual_trip`, `edit_trip`, `delete_trip`
+- 3 basic sensors: `trips_list`, `recurring_count`, `punctual_count`
+- Base Lovelace dashboard
+- 83% test coverage (29 tests)
 
-### Milestone 2: Cálculos de Viaje (Nov 22, 2025)
-- Sensores de cálculo: `next_trip`, `next_deadline`, `kwh_today`, `hours_today`
-- Expansión de viajes recurrentes a 7 días
-- Combinación de viajes recurrentes + puntuales
-- Manejo completo de timezone
-- 84% de cobertura (60 tests)
+### Milestone 2: Trip Calculations (Nov 22, 2025)
+- Calculation sensors: `next_trip`, `next_deadline`, `kwh_today`, `hours_today`
+- Recurrent trip expansion for 7 days
+- Combination of recurrent + punctual trips
+- Complete timezone handling
+- 84% coverage (60 tests)
 
-### Milestone 3: Integración EMHASS y Control Inteligente (Dic 8, 2025)
-- `emhass_adapter.py`: publicación dinámica de cargas diferibles, pool de índices 0-49, persistencia entre reinicios
-- `vehicle_controller.py`: 4 estrategias de control (Switch, Service, Script, External)
-- `schedule_monitor.py`: monitorización de schedules EMHASS en tiempo real
-- `presence_monitor.py`: detección de presencia por sensor y coordenadas, lógica de seguridad
-- Config flow extendido con pasos EMHASS y detección de presencia
-- 3 nuevos sensores: `active_trips`, `presence_status`, `charging_readiness`
-- Servicio de migración desde sliders: `ev_trip_planner.import_from_sliders`
-- 156 tests con 93.6% de paso
+### Milestone 3: EMHASS Integration & Smart Control (Dec 8, 2025)
+- `emhass_adapter.py`: Dynamic deferrable load publishing, index pool 0-49, persistence across restarts
+- `vehicle_controller.py`: 4 control strategies (Switch, Service, Script, External)
+- `schedule_monitor.py`: Real-time EMHASS schedule monitoring
+- `presence_monitor.py`: Sensor and coordinate-based presence detection, safety logic
+- Extended config flow with EMHASS and presence detection steps
+- 3 new sensors: `active_trips`, `presence_status`, `charging_readiness`
+- Migration service from sliders: `ev_trip_planner.import_from_sliders`
+- 156 tests with 93.6% pass rate
 
-### Milestone 3.1: Mejoras UX — Claridad de Configuración (Dic 8, 2025)
-- Filtros de entidad en config flow (SOC→%, Plugged→binary_sensor)
-- Textos de ayuda y descripciones en todos los campos
-- Traducciones completas al español
-- "External EMHASS" renombrado a "Notifications Only"
+### Milestone 3.1: UX Improvements — Configuration Clarity (Dec 8, 2025)
+- Entity filters in config flow (SOC→%, Plugged→binary_sensor)
+- Help texts and descriptions on all fields
+- Complete Spanish translations
+- "External EMHASS" renamed to "Notifications Only"
 
-### Milestone 3.2: Opciones de Configuración Avanzada (Dic 8, 2025)
-- Capacidad de batería dinámica via sensor (con soporte SOH para degradación)
-- Perfiles de consumo por tipo de viaje (urbano / carretera / mixto)
-- Auto-limpieza de viajes puntuales pasados (configurable)
-- Nuevo sensor: `last_cleanup`
+### Milestone 3.2: Advanced Configuration Options (Dec 8, 2025)
+- Dynamic battery capacity via sensor (with SOH support for degradation)
+- Consumption profiles by trip type (urban / highway / mixed)
+- Auto-cleanup of past punctual trips (configurable)
+- New sensor: `last_cleanup`
 
-### Milestone 4: Perfil de Carga Inteligente (Mar 18, 2026 — v0.4.0-dev)
-- Perfil de carga binario: array de 168 valores (24h × 7d), 0W o máxima potencia
-- Cálculo SOC-aware con margen de seguridad configurable
-- Sensor `emhass_perfil_diferible_{vehicle_id}` con atributo `power_profile_watts`
-- Distribución de carga justo antes de cada viaje
-- Alertas de tiempo insuficiente
-- Config flow simplificado a 4 pasos
-- Dashboard Lovelace con auto-import al completar configuración
-- Lógica de reintentos: 3 intentos en ventana de 5 minutos
-- 398 tests pasando, 85%+ cobertura
+### Milestone 4: Smart Charging Profile (Mar 18, 2026 — v0.4.0-dev)
+- Binary charging profile: 168-value array (24h x 7d), 0W or max power
+- SOC-aware calculation with configurable safety margin
+- `emhass_perfil_diferible_{vehicle_id}` sensor with `power_profile_watts` attribute
+- Load distribution just before each trip
+- Insufficient time alerts
+- Simplified 4-step config flow
+- Lovelace dashboard with auto-import on config completion
+- Retry logic: 3 attempts in 5-minute window
+- 398 tests passing, 85%+ coverage
 
-### Refactorización SOLID (Abr 2026 — rama feat/solid-refactor-coverage)
-- `protocols.py`: interfaces explícitas (Protocol) para desacoplamiento
-- `definitions.py`: entidades centralizadas, eliminación de duplicados
-- `coordinator.py`: refactorizado para cumplir SOLID, sin acoplamiento directo
-- `diagnostics.py`: soporte de diagnósticos para calidad HACS
-- Cobertura de tests elevada a >80% para todos los módulos
-- 793 tests Python + 10 E2E Playwright pasando
+### SOLID Refactoring (Apr 2026 — feat/solid-refactor-coverage branch)
+- `protocols.py`: Explicit interfaces (Protocol) for decoupling
+- `definitions.py`: Centralized entities, eliminating duplicates
+- `coordinator.py`: Refactored to comply with SOLID, no direct coupling
+- `diagnostics.py`: HACS quality diagnostic support
+- High test coverage >80% for all modules
+- 793 Python tests + 10 E2E Playwright passing
 
 ---
 
-## 🚧 Próximo: Milestone 4.0.1 — Hotfixes Críticos M4
+## 🚧 Next: Milestone 4.0.1 — Critical M4 Hotfixes
 
-**Estado**: 📋 PLANIFICADO — no comenzado  
-**Detalle de problemas**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
+**Status**: 📋 PLANNED — not started  
+**Problem details**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
 **Target**: v0.4.3-dev  
-**Prioridad**: Bloquea el inicio de M4.1 — estos problemas hacen que la integración EMHASS no funcione correctamente en producción
+**Priority**: Blocks M4.1 start — these issues prevent EMHASS integration from working correctly in production
 
-### Problemas detectados en producción
+### Production-detected problems
 
-Tras validación en producción de Milestone 4, se han detectado problemas críticos documentados en [`doc/gaps/gaps.md`](doc/gaps/gaps.md).
+After Milestone 4 production validation, critical issues were documented in [`doc/gaps/gaps.md`](doc/gaps/gaps.md).
 
-### Funcionalidades / Fixes previstos
+### Planned features / Fixes
 
-#### P0 — Críticos (bloquean EMHASS)
+#### P0 — Critical (blocks EMHASS)
 
-- **🔧 Arquitectura EMHASS incorrecta** (Gap #8)
-  - **Problema**: El sensor `EmhassDeferrableLoadSensor` agrega todos los viajes en un único `power_profile_watts`. EMHASS necesita perfiles diferibles separados por viaje para optimizar cada carga independientemente.
-  - **Hipótesis de solución**: Crear `TripEmhassDeferrableSensor` — un sensor por viaje con atributos `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`
-  - **Impacto**: Sin este fix, EMHASS optimiza todos los viajes como una sola carga
-  - **Archivos**: `sensor.py`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
+- **🔧 Incorrect EMHASS architecture** (Gap #8)
+  - **Problem**: The `EmhassDeferrableLoadSensor` aggregates all trips into a single `power_profile_watts`. EMHASS needs separate deferrable profiles per trip to optimize each charge independently.
+  - **Solution hypothesis**: Create `TripEmhassDeferrableSensor` — one sensor per trip with attributes `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`
+  - **Impact**: Without this fix, EMHASS optimizes all trips as a single load
+  - **Files**: `sensor.py`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
 
-- **🔧 Potencia de carga no actualiza el perfil** (Gap #5)
-  - **Problema**: Al cambiar `charging_power_kw` en options (ej: 11kW → 3.6kW), el sensor de planificación no se actualiza
-  - **Hipótesis de solución**: Fix en `update_charging_power()` — leer de `entry.options` además de `entry.data`, republish con trips frescos
-  - **Impacto**: El usuario ve perfil incorrecto tras cambiar configuración
-  - **Archivos**: `emhass_adapter.py:1346-1380`
+- **🔧 Charging power not updating profile** (Gap #5)
+  - **Problem**: When changing `charging_power_kw` in options (e.g., 11kW → 3.6kW), the planning sensor does not update
+  - **Solution hypothesis**: Fix in `update_charging_power()` — read from `entry.options` in addition to `entry.data`, republish with fresh trips
+  - **Impact**: User sees incorrect profile after changing configuration
+  - **Files**: `emhass_adapter.py:1346-1380`
 
-#### P0 — Críticos (bloquean UX)
+#### P0 — Critical (blocks UX)
 
-- **🔧 Options flow incompleto** (Gap #4)
-  - **Problema**: Solo 4 campos editables de 20+. El usuario no puede corregir sensores sin borrar toda la integración
-  - **Hipótesis de solución**: Añadir entity selectors para sensores críticos al options flow
-  - **Archivos**: `config_flow.py:887-951`
+- **🔧 Incomplete options flow** (Gap #4)
+  - **Problem**: Only 4 fields editable out of 20+. User cannot correct sensors without deleting the entire integration
+  - **Solution hypothesis**: Add entity selectors for critical sensors to options flow
+  - **Files**: `config_flow.py:887-951`
 
-#### P2 — Menor
+#### P2 — Minor
 
-- **🔧 Sidebar no se elimina al borrar vehículo** (Gap #1)
-  - **Problema**: Falta llamada a `async_unregister_panel` en `async_remove_entry_cleanup`
-  - **Hipótesis de solución**: 1 línea en `services.py:1495`
-  - **Archivos**: `services.py`
+- **🔧 Sidebar not removed when deleting vehicle** (Gap #1)
+  - **Problem**: Missing `async_unregister_panel` call in `async_remove_entry_cleanup`
+  - **Solution hypothesis**: 1 line in `services.py:1495`
+  - **Files**: `services.py`
 
-### Panel de control: configuración EMHASS para copiar
+### Control panel: EMHASS configuration to copy
 
-Como parte del fix de arquitectura (#8), el panel mostrará código YAML/Jinja2 listo para copiar:
+As part of the architecture fix (#8), the panel will show ready-to-copy YAML/Jinja2 code:
 
 ```yaml
-# El usuario copia esto en su configuration.yaml de EMHASS
+# User copies this to their EMHASS configuration.yaml
 number_of_deferrable_loads: 2
 
 def_total_hours:
@@ -145,180 +145,180 @@ P_deferrable:
   p_deferrable: "{{ state_attr('sensor.ev_trip_planner_coche_viaje_2', 'power_profile_watts') | default([]) }}"
 ```
 
-### Prerequisitos antes de empezar M4.0.1
-- [ ] Validar hipótesis de causas en [`doc/gaps/gaps.md`](doc/gaps/gaps.md)
-- [ ] Confirmar que los gaps #5 y #8 son reproducibles
-- [ ] Verificar que el fix de arquitectura (#8) no rompe la integración EMHASS existente
-- [ ] **Configurar mutation testing (mutmut)** en CI/CD para validar calidad de tests
+### Prerequisites before starting M4.0.1
+- [ ] Validate cause hypotheses in [`doc/gaps/gaps.md`](doc/gaps/gaps.md)
+- [ ] Confirm gaps #5 and #8 are reproducible
+- [ ] Verify that architecture fix (#8) does not break existing EMHASS integration
+- [ ] **Configure mutation testing (mutmut)** in CI/CD to validate test quality
 
-### Mejoras de Testing (NUEVO para M4.0.1)
+### Testing Improvements (NEW for M4.0.1)
 
 - **🧪 Mutation Testing (mutmut)**
-  - **Objetivo**: Añadir mutation testing al pipeline CI/CD para validar que los tests detectan cambios en el código
-  - **Beneficio**: Detectar tests que no son lo suficientemente estrictos (tests que pasan aunque el código sea incorrecto)
-  - **Configuración**: Añadir `mutmut` a `pyproject.toml`, configurar `test_command` con los tests críticos
-  - **Integración CI**: Ejecutar mutmut en PRs de alta prioridad, resultados solo informativos en PRs menores
-  - **Impacto**: Mejorar calidad de tests y confianza en el suite existente
-  - **Archivos**: `pyproject.toml`, `.github/workflows/ci.yml`
+  - **Objective**: Add mutation testing to CI/CD pipeline to validate that tests detect code changes
+  - **Benefit**: Detect tests that are not strict enough (tests that pass even when code is incorrect)
+  - **Configuration**: Add `mutmut` to `pyproject.toml`, configure `test_command` with critical tests
+  - **CI Integration**: Run mutmut on high-priority PRs, results only informative on minor PRs
+  - **Impact**: Improve test quality and confidence in existing test suite
+  - **Files**: `pyproject.toml`, `.github/workflows/ci.yml`
 
-### Estimación
-- **Tiempo**: 1-2 semanas
-- **Complejidad**: Media-Alta (la refactorización del sensor EMHASS requiere cuidado)
-- **Tests**: TDD — añadir tests antes de implementar fixes
-- **Mutation Testing**: Configurar mutmut, ejecutar baseline, integrar en CI
-
----
-
-## 📋 Planificado: Milestone 4.1 — Optimización Avanzada de Carga
-
-**Estado**: 📋 PLANIFICADO — no comenzado  
-**Detalle técnico completo**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)  
-
-### Funcionalidades previstas
-
-- **⚡ Carga Distribuida**: Distribuir energía en múltiples horas según precio de la red (en lugar de perfil binario)
-- **🚗 Soporte Multi-Vehículo**: 2+ vehículos con balanceo de potencia en línea compartida
-- **🌡️ Ajuste por Temperatura**: Corrección de consumo según previsión meteorológica
-- **📊 UI de Perfil**: Gráfico de perfil de carga en el dashboard
-
-### Prerequisitos antes de empezar M4.1
-- [ ] **Completar Milestone 4.0.1** (hotfixes críticos EMHASS)
-- [ ] Completar validación en producción de M3 (3E.1: 48h sin errores)
-- [ ] Confirmar cobertura >80% en todos los módulos post-refactor SOLID
-- [ ] Definir formato de API para optimizador externo de precios
-- [ ] Validar que los fixes de M4.0.1 no rompen la integración EMHASS existente
+### Estimate
+- **Time**: 1-2 weeks
+- **Complexity**: Medium-High (EMHASS sensor refactoring requires care)
+- **Tests**: TDD — add tests before implementing fixes
+- **Mutation Testing**: Configure mutmut, run baseline, integrate in CI
 
 ---
 
-## ⚠️ Limitaciones Conocidas (Activas)
+## 📋 Planned: Milestone 4.1 — Advanced Charging Optimization
 
-**Problemas detectados en producción**: Ver [`doc/gaps/gaps.md`](doc/gaps/gaps.md) para análisis detallado con hipótesis de causas y soluciones.
+**Status**: 📋 PLANNED — not started  
+**Complete technical details**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)  
 
-Estas limitaciones están documentadas y son decisiones de diseño deliberadas para v1.0:
+### Planned features
 
-1. **Un índice EMHASS por viaje**: El usuario debe configurar manualmente el snippet EMHASS para cada índice potencial hasta `max_deferrable_loads`. No hay auto-discovery porque EMHASS no lo soporta.
-2. **Configuración EMHASS manual**: No es plug-and-play; requiere añadir configuración a `configuration.yaml`.
-3. **Un solo optimizador**: Solo EMHASS soportado. La arquitectura usa `emhass_adapter.py` como adaptador, preparado para añadir otros (Tibber, etc.) en v1.2.
-4. **Horizonte de planificación fijo**: 7 días por defecto, configurable pero estático. No se adapta dinámicamente al horizonte de EMHASS.
+- **⚡ Distributed Charging**: Distribute energy across multiple hours based on grid price (instead of binary profile)
+- **🚗 Multi-Vehicle Support**: 2+ vehicles with power balancing on shared line
+- **🌡️ Temperature Adjustment**: Consumption correction based on weather forecast
+- **📊 Profile UI**: Charging profile chart in dashboard
 
----
-
-## 🔮 Versiones Futuras (Post v1.0)
-
-### v1.0: Consolidación
-- Validación en producción completa (3E.1)
-- HACS quality scale: bronce → plata
-- Documentación de usuario completa
-
-### v1.1: Multi-Vehículo
-- Soporte para 2+ vehículos
-- Gestión de línea de carga compartida
-- Priorización y resolución de conflictos
-
-### v1.2: Optimizadores Adicionales
-- Integración nativa con Tibber y otros optimizadores de precio
-- Reglas de optimización personalizadas
-- Tarifas dinámicas sin EMHASS
-
-### v1.3: Aprendizaje Inteligente
-- Aprendizaje de consumo real desde histórico
-- Predicción basada en meteorología y tráfico
-- Tracking de degradación de batería
-
-### v1.4: Planificación de Rutas
-- Integración con Google Maps / OpenStreetMap Nominatim
-- Cálculo automático de distancia desde dirección
-- Planificación multi-parada
-
-### v1.5: Gestión de Flota
-- Soporte multi-usuario
-- Permisos y roles
-- Dashboard centralizado
+### Prerequisites before starting M4.1
+- [ ] **Complete Milestone 4.0.1** (critical EMHASS hotfixes)
+- [ ] Complete M3 production validation (3E.1: 48h without errors)
+- [ ] Confirm >80% coverage in all modules post-SOLID refactor
+- [ ] Define API format for external price optimizer
+- [ ] Validate that M4.0.1 fixes do not break existing EMHASS integration
 
 ---
 
-## 🎯 Casos de Uso — Priorización
+## ⚠️ Known Limitations (Active)
+
+**Problems detected in production**: See [`doc/gaps/gaps.md`](doc/gaps/gaps.md) for detailed analysis with cause hypotheses and solutions.
+
+These limitations are documented and are deliberate design decisions for v1.0:
+
+1. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
+2. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
+3. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
+4. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
+
+---
+
+## 🔮 Future Versions (Post v1.0)
+
+### v1.0: Consolidation
+- Complete production validation (3E.1)
+- HACS quality scale: bronze → silver
+- Complete user documentation
+
+### v1.1: Multi-Vehicle
+- Support for 2+ vehicles
+- Shared charging line management
+- Prioritization and conflict resolution
+
+### v1.2: Additional Optimizers
+- Native integration with Tibber and other price optimizers
+- Custom optimization rules
+- Dynamic tariffs without EMHASS
+
+### v1.3: Smart Learning
+- Real consumption learning from history
+- Weather and traffic-based prediction
+- Battery degradation tracking
+
+### v1.4: Route Planning
+- Integration with Google Maps / OpenStreetMap Nominatim
+- Automatic distance calculation from address
+- Multi-stop planning
+
+### v1.5: Fleet Management
+- Multi-user support
+- Permissions and roles
+- Centralized dashboard
+
+---
+
+## 🎯 Use Cases — Prioritization
 
 ### P0 — Must Have (v1.0)
-- ✅ Vehículo único con control de carga automático
-- ✅ Vehículo único con solo notificaciones (sin control)
-- ✅ Viajes recurrentes semanales
-- ✅ Viajes puntuales
-- ✅ Cálculos de energía y deadline
+- ✅ Single vehicle with automatic charging control
+- ✅ Single vehicle with notifications only (no control)
+- ✅ Weekly recurrent trips
+- ✅ Punctual trips
+- ✅ Energy and deadline calculations
 
 ### P1 — Should Have (v1.1)
-- ⏳ Multi-vehículo con línea compartida
-- ⏳ Dashboard con gráficos de perfil
+- ⏳ Multi-vehicle with shared line
+- ⏳ Dashboard with profile charts
 
 ### P2 — Nice to Have (v1.2+)
-- ⏳ PHEV con lógica híbrida
-- ⏳ Optimización de precio dinámica (sin EMHASS)
-- ⏳ Comandos de voz / HA Assist
+- ⏳ PHEV with hybrid logic
+- ⏳ Dynamic price optimization (without EMHASS)
+- ⏳ Voice commands / HA Assist
 
-### P3 — Futuro (v2.0+)
-- ⏳ Gestión de flota
-- ⏳ Planificación de rutas con mapas
-- ⏳ Soporte multi-usuario
+### P3 — Future (v2.0+)
+- ⏳ Fleet management
+- ⏳ Route planning with maps
+- ⏳ Multi-user support
 
 ---
 
-## 🚗 Integraciones de Vehículo
+## 🚗 Vehicle Integrations
 
-### Probadas por el equipo
-- [x] OVMS (Nissan Leaf) — implementación de referencia
-- [x] V2C EVSE (Dacia Spring) — implementación de referencia
+### Tested by the team
+- [x] OVMS (Nissan Leaf) — reference implementation
+- [x] V2C EVSE (Dacia Spring) — reference implementation
 
-### Pendientes de prueba (ayuda comunidad)
+### Pending testing (community help)
 - [ ] Tesla
 - [ ] Renault ZOE
 - [ ] Hyundai/Kia
 - [ ] BMW i3
 - [ ] VW ID series
-- [ ] EVSE genérico (enchufes inteligentes)
+- [ ] Generic EVSE (smart plugs)
 
 ---
 
-## 📚 Estructura de Documentación
+## 📚 Documentation Structure
 
 ```
 docs/
-├── MILESTONE_4_1_PLANNING.md         # Plan detallado Milestone 4.1 (no comenzado)
-├── MILESTONE_4_POWER_PROFILE.md      # Especificación perfil de carga M4 (completado)
-├── TDD_METHODOLOGY.md                # Metodología TDD aplicada al proyecto
-├── TESTING_E2E.md                    # Guía de tests E2E con Playwright
-├── IMPROVEMENTS_POST_MILESTONE3.md   # UX improvements implementados en M3.1/M3.2
-└── configuration_examples.yaml       # Ejemplos completos de configuración YAML
+├── MILESTONE_4_1_PLANNING.md         # Detailed Milestone 4.1 plan (not started)
+├── MILESTONE_4_POWER_PROFILE.md      # M4 charging profile spec (completed)
+├── TDD_METHODOLOGY.md                # TDD methodology applied to project
+├── TESTING_E2E.md                    # E2E testing guide with Playwright
+├── IMPROVEMENTS_POST_MILESTONE3.md   # UX improvements implemented in M3.1/M3.2
+└── configuration_examples.yaml       # Complete YAML configuration examples
 
 doc/
 └── gaps/
-    └── gaps.md                       # Problemas detectados en producción con hipótesis
+    └── gaps.md                       # Production-detected problems with hypotheses
 ```
 
 ---
 
-## 🤝 Cómo Contribuir
+## 🤝 How to Contribute
 
-**Alta prioridad**:
-- Testing con diferentes integraciones de VE (ver lista pendiente arriba)
-- Feedback UX sobre el dashboard
-- Traducciones a otros idiomas
-- Reportes de bugs
+**High priority**:
+- Testing with different VE integrations (see pending list above)
+- UX feedback on dashboard
+- Translations to other languages
+- Bug reports
 
-**Media prioridad**:
-- Ejemplos de automaciones adicionales
-- Optimizaciones de rendimiento
+**Medium priority**:
+- Additional automation examples
+- Performance optimizations
 
-**Baja prioridad** (esperar a v1.0):
-- Features avanzadas
-- Integraciones nuevas de optimizador
-
----
-
-**Última actualización**: Abril 2026  
-**Revisión del estado**: Tras merge de feat/solid-refactor-coverage  
+**Low priority** (wait for v1.0):
+- Advanced features
+- New optimizer integrations
 
 ---
 
-📬 **Issues y discusiones**:
+**Last updated**: April 2026  
+**Status review**: After merge of feat/solid-refactor-coverage  
+
+---
+
+📬 **Issues and discussions**:
 - [GitHub Issues](https://github.com/informatico-madrid/ha-ev-trip-planner/issues)
 - [GitHub Discussions](https://github.com/informatico-madrid/ha-ev-trip-planner/discussions)

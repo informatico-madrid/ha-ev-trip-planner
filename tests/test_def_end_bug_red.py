@@ -23,8 +23,7 @@ from custom_components.ev_trip_planner.calculations import calculate_multi_trip_
 async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available(
     mock_hass, mock_store
 ):
-    """RED phase: Demonstrates bug when inicio_ventana is at deadline.
-
+    """
     When the charging window starts at the same time as the deadline,
     def_start_timestep equals def_end_timestep (both = hours_available).
     This is impossible for charging.
@@ -113,7 +112,6 @@ async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available(
     print(f"DEBUG: Actual def_end = {actual_def_end}")
     print(f"DEBUG: Actual window size = {actual_def_end - actual_def_start} hours")
 
-    # RED PHASE: This assertion FAILS with current buggy code
     # The bug: def_end is calculated from hours_available, not fin_ventana
     assert actual_def_end == expected_def_end, \
         f"BUG: def_end ({actual_def_end}) should equal {expected_def_end} (calculated from fin_ventana), not hours_available"

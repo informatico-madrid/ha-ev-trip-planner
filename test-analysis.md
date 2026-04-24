@@ -1,141 +1,152 @@
-# Análisis de Tests E2E para Detectar Bugs de Persistencia y Limpieza
+# E2E Test Analysis to Detect Persistence and Cleanup Bugs
 
-## Resumen Ejecutivo
+## Executive Summary
 
-He creado dos tests E2E que detectarán los problemas reportados:
+I created two E2E tests that will detect the reported issues:
 
-1. **[ha-restart-persistence.spec.ts](tests/e2e/ha-restart-persistence.spec.ts)** - Verifica que los viajes persistan tras reiniciar HA
-2. **[integration-deletion-cleanup.spec.ts](tests/e2e/integration-deletion-cleanup.spec.ts)** - Verifica que los viajes se borren al eliminar la integración
+1. **[ha-restart-persistence.spec.ts](tests/e2e/ha-restart-persistence.spec.ts)** - Verifies that trips persist after restarting HA
+2. **[integration-deletion-cleanup.spec.ts](tests/e2e/integration-deletion-cleanup.spec.ts)** - Verifies that trips are deleted when removing the integration
 
-## Test 1: Persistencia tras Reinicio de HA
+## Test 1: Persistence After HA Restart
 
-### Problema Detectado
-- **Síntoma**: Los viajes desaparecen del panel frontend y de la plantilla EMHASS tras reiniciar HA
-- **Causa Raíz**: La relación vehículo-viajes se pierde aunque los sensores de viajes siguen existiendo en `developer-tools/state`
-- **Commit Relacionado**: `98d60e0` supuestamente arregló esto pero no funciona
+### Detected Problem
 
-### Casos de Prueba
+- **Symptom**: Trips disappear from the frontend panel and from the EMHASS template after restarting HA
+- **Root Cause**: The vehicle-trips relationship is lost even though trip sensors still exist in `developer-tools/state`
+- **Related Commit**: `98d60e0` supposedly fixed this but it doesn't work
 
-#### Test Principal: `should persist all trips after HA restart`
-**Flujo:**
-1. Crea 3 viajes (2 puntuales, 1 recurrente)
-2. Verifica que existen en el panel
-3. Verifica que el sensor EMHASS contiene los datos de los viajes
-4. Reinicia HA vía Configuration → Server Management → Restart
-5. Espera a que HA reinicie y reconecte
-6. Navega de vuelta al panel
-7. **VERIFICA**: Los viajes siguen existiendo en el panel ❌ (FALLARÁ)
-8. **VERIFICA**: El sensor EMHASS todavía contiene los datos ❌ (FALLARÁ)
+### Test Cases
 
-#### Test Secundario: `should maintain vehicle-trip relationship after HA restart`
-**Flujo:**
-1. Crea un viaje
-2. Verifica que se puede editar (relación vehículo-viaje intacta)
-3. Reinicia HA
-4. **VERIFICA**: El viaje sigue siendo editable ❌ (FALLARÁ)
+#### Main Test: `should persist all trips after HA restart`
 
-### Por Qué Fallarán los Tests
+**Flow:**
+1. Creates 3 trips (2 one-time, 1 recurring)
+2. Verifies they exist in the panel
+3. Verifies the EMHASS sensor contains trip data
+4. Restarts HA via Configuration → Server Management → Restart
+5. Waits for HA to restart and reconnect
+6. Navigates back to the panel
+7. **VERIFY**: Trips still exist in the panel ❌ (WILL FAIL)
+8. **VERIFY**: EMHASS sensor still contains data ❌ (WILL FAIL)
 
-Según tu reporte:
-> "desaparecen en su panel frontend y desaparecen del fragmento... pero siguen existiendo en developers-tools-state"
+#### Secondary Test: `should maintain vehicle-trip relationship after HA restart`
 
-Los tests fallarán en:
-- **Línea 120**: `await expect(page.getByText('Persistence Test Trip 1')).toBeVisible()` - Los viajes no estarán visibles
-- **Línea 120**: `await expect(page.getByText('Persistence Test Trip 2')).toBeVisible()` - Los viajes no estarán visibles
-- **Línea 120**: `await expect(page.getByText('Persistence Test Trip 3')).toBeVisible()` - Los viajes no estarán visibles
-- **Línea 158**: `expect(stateAfter).not.toContain('[]')` - Los arrays estarán vacíos aunque los sensores existan
+**Flow:**
+1. Creates a trip
+2. Verifies it can be edited (vehicle-trip relationship intact)
+3. Restarts HA
+4. **VERIFY**: Trip is still editable ❌ (WILL FAIL)
 
----
+### Why Tests Will Fail
 
-## Test 2: Limpieza al Borrar Integración
+According to your report:
+> "disappear in their frontend panel and disappear from the fragment... but still exist in developers-tools-state"
 
-### Problema Detectado
-- **Síntoma**: Al borrar la integración, los viajes no se eliminan
-- **Causa Raíz**: Los viajes permanecen en almacenamiento y siguen siendo visibles en `developer-tools/state` y en la plantilla EMHASS
-- **Impacto**: Crea datos huérfanos que contaminan el sistema
-
-### Casos de Prueba
-
-#### Test Principal: `should delete all trips when integration is deleted`
-**Flujo:**
-1. Crea 3 viajes
-2. Verifica que existen en el panel
-3. Verifica que el sensor EMHASS contiene los datos
-4. Navega a Settings → Devices & Services → Integrations
-5. Encuentra la integración EV Trip Planner
-6. Borra la integración
-7. **VERIFICA**: El sensor EMHASS ya no existe o tiene arrays vacíos ❌ (FALLARÁ)
-8. **VERIFICA**: No hay sensores de viajes huérfanos en developer-tools ❌ (FALLARÁ)
-
-#### Test Secundario: `should not leave orphaned trip sensors in developer tools after deletion`
-**Flujo:**
-1. Crea un viaje
-2. Cuenta los sensores de viajes antes del borrado
-3. Borra la integración
-4. **VERIFICA**: No quedan sensores de viajes ❌ (FALLARÁ)
-
-### Por Qué Fallarán los Tests
-
-Según tu reporte:
-> "si voy a config integraciones... y borro el vechiculo... los viajes realmente no se estan borrando"
-
-Los tests fallarán en:
-- **Línea 128**: `expect(stateAfter).toMatch(/def_total_hours.*\[\]/)` - Los arrays NO estarán vacíos
-- **Línea 150-157**: Los sensores individuales de viajes seguirán existiendo en `developer-tools/state`
+Tests will fail at:
+- **Line 120**: `await expect(page.getByText('Persistence Test Trip 1')).toBeVisible()` - Trips won't be visible
+- **Line 120**: `await expect(page.getByText('Persistence Test Trip 2')).toBeVisible()` - Trips won't be visible
+- **Line 120**: `await expect(page.getByText('Persistence Test Trip 3')).toBeVisible()` - Trips won't be visible
+- **Line 158**: `expect(stateAfter).not.toContain('[]')` - Arrays will be empty even though sensors exist
 
 ---
 
-## Importancia de estos Tests
+## Test 2: Cleanup When Deleting Integration
 
-### 1. **Prevención de Regresiones**
-Una vez arreglados, estos tests impedirán que los problemas regresen en el futuro.
+### Detected Problem
 
-### 2. **Documentación del Bug**
-Los tests sirven como documentación viva del comportamiento esperado vs. real.
+- **Symptom**: When deleting the integration, trips are not removed
+- **Root Cause**: Trips remain in storage and continue to be visible in `developer-tools/state` and in the EMHASS template
+- **Impact**: Creates orphaned data that contaminates the system
 
-### 3. **Validación del Fix**
-Antes de declarar que el fix funciona, los tests deben pasar exitosamente.
+### Test Cases
+
+#### Main Test: `should delete all trips when integration is deleted`
+
+**Flow:**
+1. Creates 3 trips
+2. Verifies they exist in the panel
+3. Verifies the EMHASS sensor contains data
+4. Navigates to Settings → Devices & Services → Integrations
+5. Finds the EV Trip Planner integration
+6. Deletes the integration
+7. **VERIFY**: EMHASS sensor no longer exists or has empty arrays ❌ (WILL FAIL)
+8. **VERIFY**: No orphaned trip sensors in developer-tools ❌ (WILL FAIL)
+
+#### Secondary Test: `should not leave orphaned trip sensors in developer tools after deletion`
+
+**Flow:**
+1. Creates a trip
+2. Counts trip sensors before deletion
+3. Deletes the integration
+4. **VERIFY**: No trip sensors remain ❌ (WILL FAIL)
+
+### Why Tests Will Fail
+
+According to your report:
+> "if I go to config integrations... and delete the vehicle... the trips really aren't being deleted"
+
+Tests will fail at:
+- **Line 128**: `expect(stateAfter).toMatch(/def_total_hours.*\[\]/)` - Arrays will NOT be empty
+- **Line 150-157**: Individual trip sensors will still exist in `developer-tools/state`
 
 ---
 
-## Siguientes Pasos (TDD Estricto)
+## Importance of These Tests
 
-### ✅ Fase Roja: Completada
-- [x] Escribir tests que fallen por el motivo correcto
-- [x] Documentar por qué fallarán
-- [x] Crear casos de prueba comprehensivos
+### 1. **Regression Prevention**
 
-### 🔲 Fase Verde: Próxima
-Los tests deben pasar. Necesito investigar:
+Once fixed, these tests will prevent issues from regressing in the future.
 
-1. **Para el Bug de Persistencia:**
-   - ¿Cómo se carga la relación vehículo-viajes al iniciar?
-   - ¿Dónde se almacena esta relación?
-   - ¿Por qué se pierde tras el reinicio?
+### 2. **Bug Documentation**
 
-2. **Para el Bug de Limpieza:**
-   - ¿Qué código se ejecuta al borrar la integración?
-   - ¿Por qué no se están borrando los viajes?
-   - ¿Qué falta en el flujo de limpieza?
+Tests serve as living documentation of expected vs. actual behavior.
 
-### 🔲 Fase Refactor: Final
-Una vez los tests pasen, refactorizar para mejorar el código sin romper los tests.
+### 3. **Fix Validation**
+
+Before declaring the fix works, tests must pass successfully.
 
 ---
 
-## Notas de Ejecución
+## Next Steps (Strict TDD)
 
-### Test de Reinicio
-- **Duración**: ~2-3 minutos (HA tarda en reiniciar)
-- **Marcado como `test.slow()`**: Playwright extenderá el timeout
-- **Aislamiento**: Debe ejecutarse solo o al final
+### ✅ Red Phase: Completed
+- [x] Write tests that fail for the correct reason
+- [x] Document why they will fail
+- [x] Create comprehensive test cases
 
-### Test de Borrado
-- **Impacto**: Borra la integración, otros tests fallarán después
-- **Ejecución**: Debe ejecutarse último o en aislamiento
-- **Reconfiguración**: Necesitará recrear la integración para ejecutar again
+### 🟻 Green Phase: Next
 
-### Configuración Recomendada
+Tests must pass. Need to investigate:
+
+1. **For the Persistence Bug:**
+   - How is the vehicle-trip relationship loaded on startup?
+   - Where is this relationship stored?
+   - Why is it lost after restart?
+
+2. **For the Cleanup Bug:**
+   - What code runs when deleting the integration?
+   - Why aren't trips being deleted?
+   - What's missing from the cleanup flow?
+
+### 🟻 Refactor Phase: Final
+
+Once tests pass, refactor to improve code without breaking tests.
+
+---
+
+## Execution Notes
+
+### Restart Test
+- **Duration**: ~2-3 minutes (HA takes time to restart)
+- **Marked as `test.slow()`**: Playwright will extend timeout
+- **Isolation**: Should run alone or at the end
+
+### Deletion Test
+- **Impact**: Deletes the integration, other tests will fail after
+- **Execution**: Must run last or in isolation
+- **Reconfiguration**: Will need to recreate integration to run again
+
+### Recommended Configuration
 ```json
 {
   "projects": [
@@ -154,32 +165,35 @@ Una vez los tests pasen, refactorizar para mejorar el código sin romper los tes
 
 ---
 
-## Análisis de Commits Relacionados
+## Analysis of Related Commits
 
 ### Commit `98d60e0`: "fix: ensure publish_deferrable_loads is called after EMHASS adapter setup"
-**Intento**: Arreglar persistencia de viajes tras reinicio
-**Resultado**: No funcionó según tu reporte
-**Análisis**: El fix aborda `publish_deferrable_loads` pero el problema parece ser la relación vehículo-viajes, no la publicación de sensores
+
+**Intent**: Fix trip persistence after restart
+**Result**: Didn't work per your report
+**Analysis**: The fix addresses `publish_deferrable_loads` but the problem seems to be the vehicle-trip relationship, not sensor publishing
 
 ### Commit `dd24a76`: "fix: add missing disconnectedCallback() to prevent blank screen on tab switching"
-**Intento**: Arreglar blank screen en panel
-**Resultado**: Probablemente funcionó
-**Análisis**: No relacionado con persistencia de viajes
+
+**Intent**: Fix blank screen in panel
+**Result**: Probably worked
+**Analysis**: Not related to trip persistence
 
 ### Commit `ae267af`: "fix: publish loaded trips to EMHASS after HA restart (#31)"
-**Intento**: Publicar viajes tras reinicio de HA
-**Resultado**: No funcionó completamente
-**Análisis**: El fix publica viajes pero algo en la relación vehículo-viajes se pierde
+
+**Intent**: Publish trips after HA restart
+**Result**: Didn't work completely
+**Analysis**: The fix publishes trips but something in the vehicle-trip relationship is lost
 
 ---
 
-## Conclusión
+## Conclusion
 
-Los tests están listos para fallar por los motivos correctos. Según TDD estricto, ahora debo:
-1. Ejecutar los tests y confirmar que fallan como esperado
-2. Investigar el código para entender la causa raíz
-3. Implementar los fixes
-4. Verificar que los tests pasen
-5. Refactorizar si es necesario
+Tests are ready to fail for the correct reasons. According to strict TDD, I must now:
+1. Run tests and confirm they fail as expected
+2. Investigate code to understand root cause
+3. Implement fixes
+4. Verify tests pass
+5. Refactor if necessary
 
-¿Quieres que ejecute los tests ahora para confirmar que fallan como esperado, o prefieres que proceda directamente a investigar y arreglar los problemas?
+Do you want me to run the tests now to confirm they fail as expected, or do you prefer to proceed directly to investigating and fixing the issues?

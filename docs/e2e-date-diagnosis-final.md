@@ -1,75 +1,75 @@
-# Diagnóstico Final: Fechas Hardcodeadas en Tests E2E
+# Final Diagnosis: Hardcoded Dates in E2E Tests
 
-**Fecha:** 2026-04-22
-**Estado:** ✅ COMPLETADO
-
----
-
-## Resumen Ejecutivo
-
-Los tests E2E en [`tests/e2e/emhass-sensor-updates.spec.ts`](tests/e2e/emhass-sensor-updates.spec.ts:1) presentan un **mix de enfoques de fechas**: algunos usan fechas hardcodeadas en el pasado, otros usan fechas dinámicas relativas a `Date.now()`. Esto produce comportamientos inconsistentes donde los tests pueden pasar o fallar dependiendo de CUÁNDO se ejecuten.
+**Date:** 2026-04-22
+**Status:** ✅ COMPLETED
 
 ---
 
-## Análisis de Resultados E2E (2026-04-22)
+## Executive Summary
+
+The E2E tests in [`tests/e2e/emhass-sensor-updates.spec.ts`](tests/e2e/emhass-sensor-updates.spec.ts:1) present a **mix of date approaches**: some use hardcoded dates in the past, others use dynamic dates relative to `Date.now()`. This produces inconsistent behavior where tests may pass or fail depending on WHEN they are executed.
+
+---
+
+## E2E Results Analysis (2026-04-22)
 
 ```
 Total: 8 tests
-Pasaron: 6 ✅
-Fallaron: 2 ✘
+Passed: 6 ✅
+Failed: 2 ✘
 ```
 
-### Tests PASADOS ✅
+### PASSED Tests ✅
 
-| # | Test | Resultado | Tipo Fecha |
-|---|------|-----------|------------|
-| 1 | Bug #2 fix (línea 21) | ✅ 9.6s | Hardcodeada `2026-04-20T10:00` |
-| 2 | Bug #2 fix via UI (línea 84) | ✅ 12.7s | Hardcodeada `2026-04-20T10:00` |
-| 3 | Sensor entity via states (línea 158) | ✅ 9.1s | No crea viajes |
-| 4 | SOC change (línea 193) | ✅ 13.9s | Dinámica `Date.now() + 24h` |
-| 5 | Trip deletion zeros (línea 366) | ✅ 5.7s | Usa viaje existente |
-| 6 | Single device (línea 437) | ✅ 12.8s | Hardcodeada `2026-04-20T10:00` |
+| # | Test | Result | Date Type |
+|---|------|--------|-----------|
+| 1 | Bug #2 fix (line 21) | ✅ 9.6s | Hardcoded `2026-04-20T10:00` |
+| 2 | Bug #2 fix via UI (line 84) | ✅ 12.7s | Hardcoded `2026-04-20T10:00` |
+| 3 | Sensor entity via states (line 158) | ✅ 9.1s | Does not create trips |
+| 4 | SOC change (line 193) | ✅ 13.9s | Dynamic `Date.now() + 24h` |
+| 5 | Trip deletion zeros (line 366) | ✅ 5.7s | Uses existing trip |
+| 6 | Single device (line 437) | ✅ 12.8s | Hardcoded `2026-04-20T10:00` |
 
-### Tests FALLADOS ✘
+### FAILED Tests ✘
 
-| # | Test | Resultado | Causa |
-|---|------|-----------|-------|
-| 7 | UX-01 Recurring lifecycle (línea 512) | ✘ 20.6s | `power_profile_watts = [0,0,0,0,0]` — recurring trip con `dia="1"` produce todos ceros |
-| 8 | UX-02 Multiple trips (línea 666) | ✘ 1.0m | `navigateToPanel` falla con 404 `ev-trip-planner-test_vehicle` |
+| # | Test | Result | Cause |
+|---|------|--------|-------|
+| 7 | UX-01 Recurring lifecycle (line 512) | ✘ 20.6s | `power_profile_watts = [0,0,0,0,0]` — recurring trip with `day="1"` produces all zeros |
+| 8 | UX-02 Multiple trips (line 666) | ✘ 1.0m | `navigateToPanel` fails with 404 `ev-trip-planner-test_vehicle` |
 
 ---
 
-## Diagnóstico de Fechas
+## Date Diagnosis
 
-### Tests con fechas HARDCODEADAS (PROBLEMA POTENCIAL)
+### Tests with HARDCODED dates (POTENTIAL PROBLEM)
 
-**Línea 28, 91, 442:** `'2026-04-20T10:00'`
+**Lines 28, 91, 442:** `'2026-04-20T10:00'`
 
 ```typescript
-// Línea 28: Bug #2 fix test
-await createTestTrip(page, 'puntual', '2026-04-20T10:00', 30, 12, 'E2E EMHASS Attribute Test Trip');
+// Line 28: Bug #2 fix test
+await createTestTrip(page, 'punctual', '2026-04-20T10:00', 30, 12, 'E2E EMHASS Attribute Test Trip');
 
-// Línea 91: Bug #2 fix via UI test
-await createTestTrip(page, 'puntual', '2026-04-20T10:00', 30, 12, 'E2E EMHASS Attributes Test Trip');
+// Line 91: Bug #2 fix via UI test
+await createTestTrip(page, 'punctual', '2026-04-20T10:00', 30, 12, 'E2E EMHASS Attributes Test Trip');
 
-// Línea 442: Single device test
-await createTestTrip(page, 'puntual', '2026-04-20T10:00', 30, 12, 'E2E Single Device Test Trip');
+// Line 442: Single device test
+await createTestTrip(page, 'punctual', '2026-04-20T10:00', 30, 12, 'E2E Single Device Test Trip');
 ```
 
-**Análisis:**
-- Hoy es `2026-04-22` (según environment_details)
-- `2026-04-20T10:00` está **2 días en el pasado**
-- Cuando el sistema calcula `kwh_needed` para un viaje en el pasado, debería ser 0
-- **PERO los tests 1, 2, 6 PASARON** ✅
+**Analysis:**
+- Today is `2026-04-22` (per environment_details)
+- `2026-04-20T10:00` is **2 days in the past**
+- When the system calculates `kwh_needed` for a past trip, it should be 0
+- **BUT tests 1, 2, 6 PASSED** ✅
 
-**¿Por qué pasan si la fecha está en el pasado?**
+**Why do they pass if the date is in the past?**
 
-Revisando la lógica de `createTestTrip` en [`tests/e2e/trips-helpers.ts`](tests/e2e/trips-helpers.ts:129):
+Reviewing the `createTestTrip` logic in [`tests/e2e/trips-helpers.ts`](tests/e2e/trips-helpers.ts:129):
 
 ```typescript
 export async function createTestTrip(
   page: Page,
-  type: 'puntual' | 'recurrente',
+  type: 'punctual' | 'recurrente',
   datetime: string,  // '2026-04-20T10:00'
   km: number,
   kwh: number,
@@ -77,20 +77,20 @@ export async function createTestTrip(
 ): Promise<void>
 ```
 
-El viaje se crea con el datetime hardcodeado, pero el **sensor EMHASS se calcula en tiempo real**. Cuando el sistema ejecuta `calculate_power_profile_from_trips()`, usa la hora actual como referencia. Si el deadline del viaje está en el pasado, el perfil de potencia debería ser todos ceros.
+The trip is created with the hardcoded datetime, but the **EMHASS sensor is calculated in real-time**. When the system executes `calculate_power_profile_from_trips()`, it uses the current time as reference. If the trip deadline is in the past, the power profile should be all zeros.
 
-**PERO** — los tests 1, 2, 6 pasaron. Esto significa que el sensor tiene `power_profile_watts` con valores válidos (aunque puedan ser ceros, el test solo verifica que los atributos existen, no que sean no-cero).
+**BUT** — tests 1, 2, 6 passed. This means the sensor has `power_profile_watts` with valid values (although they may be zero, the test only verifies that attributes exist, not that they are non-zero).
 
-### Tests con fechas DINÁMICAS (CORRECTOS)
+### Tests with DYNAMIC dates (CORRECT)
 
-**Línea 265-266: SOC change test**
+**Lines 265-266: SOC change test**
 
 ```typescript
-const oneDayFromNow = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas ahead
+const oneDayFromNow = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours ahead
 const tripDatetime = oneDayFromNow.toISOString().slice(0, 16);
 ```
 
-**Línea 550-559: UX-01 test helper**
+**Lines 550-559: UX-01 test helper**
 
 ```typescript
 const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => {
@@ -103,123 +103,123 @@ const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => 
 };
 ```
 
-**Línea 700-709: UX-02 test helper**
+**Lines 700-709: UX-02 test helper**
 
 ```typescript
-// Mismo patrón que UX-01
+// Same pattern as UX-01
 const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => { ... }
 ```
 
-**Análisis:**
-- Estos tests SIEMPRE producen fechas futuras
-- Deberían funcionar independientemente de CUÁNDO se ejecuten
-- **PERO UX-01 falló** con `power_profile_watts = [0,0,0,0,0]`
+**Analysis:**
+- These tests ALWAYS produce future dates
+- They should work regardless of WHEN they are executed
+- **BUT UX-01 FAILED** with `power_profile_watts = [0,0,0,0,0]`
 
 ---
 
-## Análisis de Fallos UX-01 y UX-02
+## UX-01 and UX-02 Failure Analysis
 
 ### UX-01: Recurring trip lifecycle ✘
 
-**Error:** `power_profile_watts.some((v: number) => v > 0)` retornó `false`
+**Error:** `power_profile_watts.some((v: number) => v > 0)` returned `false`
 
-**Datos del fallo:**
+**Failure data:**
 ```
 UX-01 - power_profile_watts (first 5): [0,0,0,0,0]
 UX-01 - deferrables_schedule: [{"date":"2026-04-22T07:00:00","p_deferrable0":"0.0",...}]
 UX-01 - emhass_status: ready
 ```
 
-**Causa raíz:** El viaje recurrente se crea con:
+**Root cause:** The recurring trip is created with:
 ```typescript
-await page.locator('#trip-day').selectOption('1');  // lunes
+await page.locator('#trip-day').selectOption('1');  // monday
 await page.locator('#trip-time').fill('09:00');
 ```
 
-El frontend almacena el viaje con el campo `dia: "1"` (string). Nuestra corrección en [`calculations.py`](custom_components/ev_trip_planner/calculations.py:861) ahora reconoce `dia`:
+The frontend stores the trip with the `day: "1"` field (string). Our fix in [`calculations.py`](custom_components/ev_trip_planner/calculations.py:861) now recognizes `day`:
 
 ```python
-day = trip.get("day") or trip.get("dia_semana") or trip.get("dia")
+day = trip.get("day") or trip.get("day_of_week") or trip.get("day")
 ```
 
-**PERO** — el día `"1"` se interpreta como `getDay()` formato (0=domingo). `1` en `getDay()` es **lunes**, que es correcto. Sin embargo, el problema es que el viaje recurrente se calcula相对于当前时间, y si el próximo "lunes 09:00" está muy lejos o ya pasó esta semana, el sistema podría no encontrar una ventana de carga válida.
+**BUT** — the day `"1"` is interpreted as `getDay()` format (0=Sunday). `1` in `getDay()` is **Monday**, which is correct. However, the problem is that the recurring trip is calculated relative to the current time, and if the next "Monday 09:00" is far away or has already passed this week, the system may not find a valid charging window.
 
-**Investigación adicional necesaria:** ¿Por qué un viaje recurrente con `dia="1"` y `hora="09:00"` produce `power_profile_watts = [0,0,0,0,0]`?
+**Further investigation needed:** Why does a recurring trip with `day="1"` and `time="09:00"` produce `power_profile_watts = [0,0,0,0,0]`?
 
-Posibles causas:
-1. `calculate_next_recurring_datetime()` retorna `None` para el día `"1"`
-2. El viaje se calcula como ya pasado y se salta
-3. La ventana de carga está vacía
+Possible causes:
+1. `calculate_next_recurring_datetime()` returns `None` for day `"1"`
+2. The trip is calculated as already passed and skipped
+3. The charging window is empty
 
 ### UX-02: Multiple trips ✘
 
-**Error:** `navigateToPanel` falla con 404 `ev-trip-planner-test_vehicle`
+**Error:** `navigateToPanel` fails with 404 `ev-trip-planner-test_vehicle`
 
 ```
 [navigateToPanel] Custom element not defined (attempt 3/3). Failed requests: 404 http://localhost:8123/ev-trip-planner-test_vehicle
 ```
 
-**Causa:** Este es un problema de panel de Home Assistant, no de fechas. El panel personalizado `ev-trip-planner-test_vehicle` no se registró correctamente en el E2E environment. Esto es independiente del bug de fechas.
+**Cause:** This is a Home Assistant panel problem, not a date problem. The custom panel `ev-trip-planner-test_vehicle` did not register correctly in the E2E environment. This is independent of the date bug.
 
 ---
 
-## Conclusión: ¿Las fechas de los tests están bien o mal?
+## Conclusion: Are test dates correct or incorrect?
 
-### RESPUESTA DIRECTA
+### DIRECT ANSWER
 
-**Las fechas de los tests están PARCIALMENTE MAL.**
+**Test dates are PARTIALLY INCORRECT.**
 
-### Clasificación
+### Classification
 
-| Tipo | Tests | Estado | Problema |
+| Type | Tests | Status | Problem |
 |------|-------|--------|----------|
-| Hardcodeadas pasadas | #1, #2, #6 | ✅ Pasaron | No producen `power_profile_watts` no-cero, pero los tests solo verifican existencia de atributos |
-| Dinámicas futuras | #4 (SOC change) | ✅ Pasó | Correcto |
-| Dinámicas futuras | #7 (UX-01) | ✘ Falló | **NO es problema de fechas** — es que el viaje recurrente produce todos ceros |
-| Dinámicas futuras | #8 (UX-02) | ✘ Falló | **No es problema de fechas** — es problema de panel 404 |
+| Past hardcoded | #1, #2, #6 | ✅ Passed | Does not produce non-zero `power_profile_watts`, but tests only verify attribute existence |
+| Future dynamic | #4 (SOC change) | ✅ Passed | Correct |
+| Future dynamic | #7 (UX-01) | ✘ Failed | **NOT a date problem** — recurring trip produces all zeros |
+| Future dynamic | #8 (UX-02) | ✘ Failed | **NOT a date problem** — panel 404 problem |
 
-### Hallazgo Crítico
+### Critical Finding
 
-**El problema de `power_profile_watts = [0,0,0,0,0]` en UX-01 NO se debe a fechas hardcodeadas.** Se debe a que el viaje recurrente con `dia="1"` y `hora="09:00"` no está produciendo valores no-ceros en el power profile, incluso después de nuestra corrección en `calculations.py`.
+**The `power_profile_watts = [0,0,0,0,0]` problem in UX-01 is NOT caused by hardcoded dates.** It is caused by the recurring trip with `day="1"` and `time="09:00"` not producing non-zero values in the power profile, even after our fix in `calculations.py`.
 
-Esto sugiere que:
-1. La corrección de `dia` field (línea 861) es necesaria pero **no suficiente**
-2. Puede haber otro bug en `calculate_next_recurring_datetime()` o en el cálculo de la ventana de carga para viajes recurrentes
+This suggests:
+1. The `day` field fix (line 861) is necessary but **not sufficient**
+2. There may be another bug in `calculate_next_recurring_datetime()` or in the charging window calculation for recurring trips
 
-### Recomendación
+### Recommendation
 
-1. **Inmediato:** Corregir las fechas hardcodeadas en líneas 28, 91, 442 para usar fechas relativas futuras
-2. **Investigación:** Depurar por qué `dia="1"` produce `power_profile_watts = [0,0,0,0,0]` en UX-01
-3. **Infraestructura:** Arreglar el problema de panel 404 que causa el fallo de UX-02
+1. **Immediate:** Fix hardcoded dates on lines 28, 91, 442 to use relative future dates
+2. **Investigation:** Debug why `day="1"` produces `power_profile_watts = [0,0,0,0,0]` in UX-01
+3. **Infrastructure:** Fix the panel 404 problem causing UX-02 failure
 
 ---
 
-## Archivos Modificados Recientemente
+## Recently Modified Files
 
-- [`custom_components/ev_trip_planner/calculations.py`](custom_components/ev_trip_planner/calculations.py:861) — Agregado `dia` field lookup
-- [`custom_components/ev_trip_planner/calculations.py`](custom_components/ev_trip_planner/calculations.py:788-796) — Agregado Spanish day name conversion
+- [`custom_components/ev_trip_planner/calculations.py`](custom_components/ev_trip_planner/calculations.py:861) — Added `day` field lookup
+- [`custom_components/ev_trip_planner/calculations.py`](custom_components/ev_trip_planner/calculations.py:788-796) — Added Spanish day name conversion
 
-## Tests Creados
+## Tests Created
 
-- [`tests/test_recurring_trip_dia_field_bug.py`](tests/test_recurring_trip_dia_field_bug.py:1) — RED test para el bug del campo `dia`
+- [`tests/test_recurring_trip_dia_field_bug.py`](tests/test_recurring_trip_dia_field_bug.py:1) — RED test for the `day` field bug
 
-## Resultados Unit Tests
+## Unit Test Results
 
 ```
 Total: 157 tests
-Pasaron: 157 ✅
-Fallaron: 0 ✘
+Passed: 157 ✅
+Failed: 0 ✘
 ```
 
 ---
 
-## Nota sobre Ejecución E2E
+## Note about E2E Execution
 
-**IMPORTANTE:** Los tests E2E SE EJECUTAN con `make e2e`. El entorno se crea automáticamente:
+**IMPORTANT:** E2E tests ARE EXECUTED with `make e2e`. The environment is created automatically:
 
-1. Se inicia un Home Assistant fresco en `/tmp/ha-e2e-config`
-2. Se completa el onboarding
-3. Se ejecutan los tests de Playwright
-4. Se limpia el entorno
+1. A fresh Home Assistant is started in `/tmp/ha-e2e-config`
+2. Onboarding is completed
+3. Playwright tests are executed
+4. Environment is cleaned up
 
-**NUNCA decir que "los tests E2E no tienen entorno de ejecución"** — esto es incorrecto. `make e2e` crea todo el entorno necesario.
+**NEVER say that "E2E tests have no execution environment"** — this is incorrect. `make e2e` creates all the necessary environment.

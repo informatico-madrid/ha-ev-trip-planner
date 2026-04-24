@@ -13,8 +13,6 @@ import math
 
 class TestDefTotalHoursMathCeil:
     """Test that def_total_hours uses math.ceil for proper rounding.
-
-    RED Phase: Test FAILS because emhass_adapter uses round() (wrong)
     GREEN Phase: Test PASSES after fix uses math.ceil() (correct)
     """
 

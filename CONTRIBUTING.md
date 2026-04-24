@@ -1,26 +1,26 @@
-# 🐍 HOME ASSISTANT - DESARROLLO DE INTEGRACIONES
+# 🐍 HOME ASSISTANT - INTEGRATION DEVELOPMENT
 
-## 📚 Convenciones y Mejores Prácticas
+## 📚 Conventions and Best Practices
 
-### Fuentes Oficiales
-- **Documentación oficial**: https://developers.home-assistant.io/
+### Official Sources
+- **Official documentation**: https://developers.home-assistant.io/
 - **Architecture Decision Records (ADRs)**: https://github.com/home-assistant/architecture
 - **Integration Quality Scale**: https://www.home-assistant.io/docs/quality_scale/
 - **Core repository**: https://github.com/home-assistant/core
 
 ---
 
-## 🏗️ ESTRUCTURA DE PROYECTO
+## 🏗️ PROJECT STRUCTURE
 
-### Estructura estándar de una integración:
+### Standard integration structure:
 
 ```
 custom_components/
 └── ev_trip_planner/
-    ├── __init__.py              # Entry point de la integración
-    ├── manifest.json            # Metadata (REQUERIDO)
-    ├── const.py                 # Constantes globales
-    ├── config_flow.py           # Configuración UI (opcional pero recomendado)
+    ├── __init__.py              # Integration entry point
+    ├── manifest.json            # Metadata (REQUIRED)
+    ├── const.py                 # Global constants
+    ├── config_flow.py           # UI configuration (optional but recommended)
     ├── __init__.py              # Entry point + Coordinator logic
     │
     ├── sensor.py                # Platform: Sensors
@@ -29,14 +29,14 @@ custom_components/
     ├── button.py                # Platform: Buttons
     ├── calendar.py              # Platform: Calendar
     │
-    ├── services.yaml            # Definición de servicios
-    ├── strings.json             # UI strings (inglés)
+    ├── services.yaml            # Service definitions
+    ├── strings.json             # UI strings (English)
     │
-    ├── translations/            # Traducciones
+    ├── translations/            # Translations
     │   ├── en.json
     │   └── es.json
     │
-    └── tests/                   # Tests unitarios
+    └── tests/                   # Unit tests
         ├── __init__.py
         ├── conftest.py
         └── test_*.py
@@ -44,13 +44,13 @@ custom_components/
 
 ---
 
-## 🎨 ESTILO DE CÓDIGO
+## 🎨 CODE STYLE
 
 ### 1. Python Style Guide
 
-Home Assistant sigue **PEP 8** con algunas particularidades:
+Home Assistant follows **PEP 8** with some specifics:
 
-#### Herramientas obligatorias:
+#### Required tools:
 ```bash
 # Formatter
 black custom_components/ev_trip_planner/
@@ -65,7 +65,7 @@ mypy custom_components/ev_trip_planner/
 isort custom_components/ev_trip_planner/
 ```
 
-#### Configuración en `pyproject.toml`:
+#### Configuration in `pyproject.toml`:
 ```toml
 [tool.black]
 line-length = 88
@@ -92,12 +92,12 @@ warn_unused_ignores = true
 
 ---
 
-### 2. Convenciones específicas HA
+### 2. HA-specific Conventions
 
-#### Imports ordenados:
+#### Ordered imports:
 ```python
 """Module docstring."""
-from __future__ import annotations  # SIEMPRE primero
+from __future__ import annotations  # ALWAYS first
 
 import asyncio  # Standard library
 import logging
@@ -118,16 +118,16 @@ from .const import DOMAIN  # Local imports
 ```python
 import logging
 
-_LOGGER = logging.getLogger(__name__)  # SIEMPRE al inicio del módulo
+_LOGGER = logging.getLogger(__name__)  # ALWAYS at module start
 
-# Uso:
+# Usage:
 _LOGGER.debug("Debug info: %s", data)
 _LOGGER.info("Setup complete")
 _LOGGER.warning("Warning: %s", issue)
 _LOGGER.error("Error occurred: %s", error)
 ```
 
-#### Type Hints (OBLIGATORIO desde HA 2023.x):
+#### Type Hints (MANDATORY since HA 2023.x):
 ```python
 from typing import Any
 from homeassistant.core import HomeAssistant
@@ -142,9 +142,9 @@ async def async_setup_entry(
 
 ---
 
-## 🏛️ ARQUITECTURA
+## 🏛️ ARCHITECTURE
 
-### 1. Patrón Data Update Coordinator (RECOMENDADO)
+### 1. Data Update Coordinator Pattern (RECOMMENDED)
 
 ```python
 # coordinator.py
@@ -170,7 +170,7 @@ class EVTripPlannerCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API/sensors."""
         try:
-            # Tu lógica aquí
+            # Your logic here
             return {"next_trip": ..., "kwh_needed": ...}
         except Exception as err:
             raise UpdateFailed(f"Error updating data: {err}") from err
@@ -209,10 +209,10 @@ class EVTripPlannerSensor(CoordinatorEntity, SensorEntity):
         }
 ```
 
-### 3. Async First (OBLIGATORIO)
+### 3. Async First (MANDATORY)
 
 ```python
-# ✅ CORRECTO
+# ✅ CORRECT
 async def async_setup_entry(hass, entry):
     """Set up from config entry."""
     coordinator = EVTripPlannerCoordinator(hass, entry.data)
@@ -222,7 +222,7 @@ async def async_setup_entry(hass, entry):
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-# ❌ INCORRECTO
+# ❌ INCORRECT
 def setup_entry(hass, entry):
     """Don't use sync functions."""
     pass
@@ -232,9 +232,9 @@ def setup_entry(hass, entry):
 
 ## 🧪 TESTING
 
-### 1. Estructura de Tests
+### 1. Test Structure
 
-Home Assistant usa **pytest** y **pytest-homeassistant-custom-component**
+Home Assistant uses **pytest** and **pytest-homeassistant-custom-component**
 
 ```python
 # tests/conftest.py
@@ -274,12 +274,12 @@ async def test_sensor_setup(hass: HomeAssistant, mock_config_entry):
 
 ---
 
-### 2. Estrategia de Test Doubles (OBLIGATORIO)
+### 2. Test Doubles Strategy (MANDATORY)
 
-Seguimos la **Layered Test Doubles Strategy** usada por las integraciones HACS Platinum/Gold de referencia (ej. [Frigate](https://github.com/blakeblackshear/frigate-hass-integration)). La estrategia tiene **3 capas obligatorias**:
+We follow the **Layered Test Doubles Strategy** used by reference HACS Platinum/Gold integrations (e.g., [Frigate](https://github.com/blakeblackshear/frigate-hass-integration)). The strategy has **3 mandatory layers**:
 
-#### Capa 1 — Fake del sistema externo (en `tests/__init__.py`)
-Datos y helpers compartidos que simulan el comportamiento del sistema externo con **implementación real en memoria**. No son mocks — tienen comportamiento.
+#### Layer 1 — Fake of external system (in `tests/__init__.py`)
+Shared data and helpers that simulate external system behavior with **real in-memory implementation**. Not mocks — they have behavior.
 
 ```python
 # tests/__init__.py
@@ -292,7 +292,7 @@ TEST_CONFIG = {
 }
 
 TEST_TRIPS = {
-    "recurring": [{"id": "trip_001", "km": 50, "dia_semana": "lunes"}],
+    "recurring": [{"id": "trip_001", "km": 50, "day_of_week": "monday"}],
     "punctual": [],
 }
 
@@ -315,17 +315,17 @@ def create_mock_coordinator(hass, entry, trip_manager=None):
     return coordinator
 ```
 
-#### Capa 2 — Stub de respuestas por método
-Para tests de manejo de errores o respuestas específicas, stubbear solo el método concreto:
+#### Layer 2 — Stub for method responses
+For error handling tests or specific responses, stub only the concrete method:
 
 ```python
-# En el test individual
+# In the individual test
 trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
 trip_manager.async_add_recurring_trip = AsyncMock(side_effect=ValueError("Trip exists"))
 ```
 
-#### Capa 3 — Patch en el boundary de HA
-Usar `patch()` solo en los **límites externos** — nunca dentro del código de producción propio:
+#### Layer 3 — Patch at HA boundary
+Use `patch()` only at **external boundaries** — never inside your own production code:
 
 ```python
 async def setup_mock_config_entry(hass, config_entry=None, trip_manager=None):
@@ -344,53 +344,53 @@ async def setup_mock_config_entry(hass, config_entry=None, trip_manager=None):
 
 ---
 
-### 3. Tabla de Test Doubles — Cuándo usar cada uno
+### 3. Test Doubles Table — When to use each
 
-| Tipo | Cuándo usarlo | Ejemplo en ev-trip-planner |
-|------|--------------|----------------------------|
-| **Fake** | Dependencia compleja con comportamiento real simplificado | `coordinator.data = {"kwh_today": 5.0}` — datos reales en memoria |
-| **Stub** | Respuesta fija para un método concreto | `mgr.async_get_recurring_trips = AsyncMock(return_value=[])` |
-| **Mock** | Verificar que una interacción ocurrió (call count, args) | `mgr.async_add_recurring_trip = AsyncMock()` + `assert_called_once_with(...)` |
-| **Spy** | Envolver objeto real y verificar sin cambiar comportamiento | `MagicMock(spec=TripManager, wraps=real_manager)` |
-| **Fixture** | Datos de test reutilizables y objetos helper | `TEST_CONFIG`, `TEST_TRIPS` en `tests/__init__.py` |
-| **Patch** | Reemplazar en el boundary externo (factory de HA) | `patch('custom_components.ev_trip_planner.TripManager', ...)` |
+| Type | When to use | Example in ev-trip-planner |
+|------|-------------|----------------------------|
+| **Fake** | Complex dependency with simplified real behavior | `coordinator.data = {"kwh_today": 5.0}` — real data in memory |
+| **Stub** | Fixed response for a concrete method | `mgr.async_get_recurring_trips = AsyncMock(return_value=[])` |
+| **Mock** | Verify an interaction occurred (call count, args) | `mgr.async_add_recurring_trip = AsyncMock()` + `assert_called_once_with(...)` |
+| **Spy** | Wrap real object and verify without changing behavior | `MagicMock(spec=TripManager, wraps=real_manager)` |
+| **Fixture** | Reusable test data and helper objects | `TEST_CONFIG`, `TEST_TRIPS` in `tests/__init__.py` |
+| **Patch** | Replace at external boundary (HA factory) | `patch('custom_components.ev_trip_planner.TripManager', ...)` |
 
 ---
 
-### 4. HA Rule of Gold (ESTRICTO)
+### 4. HA Rule of Gold (STRICT)
 
-> **"Nunca mockear los internals de Home Assistant — solo mockear dependencias externas y boundaries."**
+> **"Never mock Home Assistant internals — only mock external dependencies and boundaries."**
 
-- ✅ **SIEMPRE mockear**: APIs externas (EMHASS API, HTTP), filesystem calls, `hass.loop`
-- ✅ **NUNCA mockear**: `hass.states`, `hass.services`, `entity_registry` — usar objetos reales o Fakes
-- ✅ **USAR `MagicMock(spec=ClaseReal)`**: Nunca `MagicMock()` sin `spec` para sustituir clases propias — el `spec` captura errores de API
-- ⚠️ **CON MODERACIÓN**: Internals de `DataUpdateCoordinator`, config entry APIs — preferir tests de integración
+- ✅ **ALWAYS mock**: External APIs (EMHASS API, HTTP), filesystem calls, `hass.loop`
+- ✅ **NEVER mock**: `hass.states`, `hass.services`, `entity_registry` — use real objects or Fakes
+- ✅ **USE `MagicMock(spec=RealClass)`**: Never `MagicMock()` without `spec` to substitute own classes — the `spec` catches API errors
+- ⚠️ **WITH MODERATION**: `DataUpdateCoordinator` internals, config entry APIs — prefer integration tests
 
 ```python
-# ❌ INCORRECTO — MagicMock sin spec no detecta errores de API
+# ❌ INCORRECT — MagicMock without spec doesn't catch API errors
 coordinator = MagicMock()
-coordinator.non_existent_method()  # No falla — falso positivo
+coordinator.non_existent_method()  # No failure — false positive
 
-# ✅ CORRECTO — MagicMock con spec detecta métodos inexistentes
+# ✅ CORRECT — MagicMock with spec catches nonexistent methods
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 coordinator = MagicMock(spec=TripPlannerCoordinator)
-coordinator.non_existent_method()  # AttributeError — detecta el error
+coordinator.non_existent_method()  # AttributeError — catches the error
 ```
 
 ---
 
-### 5. Coverage mínimo
+### 5. Minimum Coverage
 
-Home Assistant espera:
-- **> 90% coverage** para integraciones de calidad
-- Tests para todos los métodos públicos
-- Tests de integración y unitarios
+Home Assistant expects:
+- **> 90% coverage** for quality integrations
+- Tests for all public methods
+- Integration and unit tests
 
 ```bash
-# Ejecutar tests
+# Run tests
 pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=html
 
-# Ver coverage
+# View coverage
 open htmlcov/index.html
 ```
 
@@ -414,31 +414,31 @@ open htmlcov/index.html
 }
 ```
 
-**Importante**: 
-- NO añadas requirements innecesarios
-- HA prefiere usar bibliotecas built-in
-- Si necesitas algo externo, debe estar en PyPI
+**Important**: 
+- DO NOT add unnecessary requirements
+- HA prefers using built-in libraries
+- If you need something external, it must be on PyPI
 
 ---
 
 ## 🔄 DEVELOPMENT WORKFLOW
 
-### Flujo recomendado:
+### Recommended workflow:
 
 ```bash
-# 1. Crear rama feature
+# 1. Create feature branch
 git checkout -b feature/trip-storage
 
-# 2. Desarrollar con auto-formateo
-# (configurar VSCode para format on save)
+# 2. Develop with auto-formatting
+# (configure VSCode for format on save)
 
-# 3. Antes de commit: verificar
+# 3. Before commit: verify
 black custom_components/ev_trip_planner/
 isort custom_components/ev_trip_planner/
 pylint custom_components/ev_trip_planner/
 mypy custom_components/ev_trip_planner/
 
-# 4. Ejecutar tests
+# 4. Run tests
 pytest tests/ -v
 
 # 5. Commit
@@ -449,100 +449,100 @@ git commit -m "feat: add trip storage functionality
 - Add CRUD services
 - Tests for trip manager"
 
-# 6. Push y merge
+# 6. Push and merge
 git push origin feature/trip-storage
 ```
 
-### Conventional Commits (Recomendado):
+### Conventional Commits (Recommended):
 
 ```
-feat: nueva funcionalidad
-fix: corrección de bug
-docs: cambios en documentación
-style: formateo, sin cambios de código
-refactor: refactorización sin cambios funcionales
-test: añadir o modificar tests
-chore: cambios en build, CI, etc.
+feat: new functionality
+fix: bug fix
+docs: documentation changes
+style: formatting, no code changes
+refactor: refactoring without functional changes
+test: adding or modifying tests
+chore: build, CI changes, etc.
 ```
 
 ---
 
 ## 🚀 TDD (Test-Driven Development)
 
-### ¿Lo usa la comunidad HA?
+### Does the HA community use it?
 
-**Respuesta**: **Sí, parcialmente**
+**Answer**: **Yes, partially**
 
-- **Core de HA**: Sí, TDD estricto (tests primero)
-- **Integraciones comunitarias**: Flexible, pero tests obligatorios
-- **HACS**: Requiere tests para Quality Scale Platinum/Gold
+- **HA Core**: Yes, strict TDD (tests first)
+- **Community integrations**: Flexible, but tests are mandatory
+- **HACS**: Requires tests for Quality Scale Platinum/Gold
 
-### Enfoque recomendado para nuestro proyecto:
+### Recommended approach for our project:
 
-**Híbrido - Test During Development**:
+**Hybrid - Test During Development**:
 
 ```python
-# 1. Escribir test básico
+# 1. Write basic test
 async def test_add_trip(hass, coordinator):
     """Test adding a trip."""
     result = await coordinator.add_trip({
-        "type": "puntual",
+        "type": "punctual",
         "datetime": "2025-11-19T10:00:00",
         "km": 50,
     })
     assert result is True
 
-# 2. Implementar funcionalidad
+# 2. Implement functionality
 async def add_trip(self, trip_data):
     """Add a new trip."""
     # Implementation here
     pass
 
-# 3. Ejecutar test, iterar hasta pasar
-# 4. Refactorizar
+# 3. Run test, iterate until passing
+# 4. Refactor
 ```
 
-**Ventajas**:
-- Aseguras calidad desde inicio
-- Documentación viva (tests como ejemplos)
-- Refactor seguro
-- Comunidad aprecia buen coverage
+**Advantages**:
+- Ensures quality from the start
+- Living documentation (tests as examples)
+- Safe refactoring
+- Community appreciates good coverage
 
 ---
 
-## 📋 CHECKLIST ANTES DE PUBLICAR
+## 📋 PRE-RELEASE CHECKLIST
 
-### Quality Scale de Home Assistant:
+### Home Assistant Quality Scale:
 
-#### 🥉 Bronze (Mínimo para HACS):
-- [x] Manifest.json válido
-- [x] Código funcional
-- [ ] README básico
-- [ ] No errores críticos
+#### 🥉 Bronze (Minimum for HACS):
+- [x] Valid manifest.json
+- [x] Working code
+- [ ] Basic README
+- [ ] No critical errors
 
 #### 🥈 Silver:
 - [ ] Config flow (UI configuration)
-- [ ] Tests básicos (>50% coverage)
-- [ ] Documentación completa
-- [ ] Type hints en funciones públicas
+- [ ] Basic tests (>50% coverage)
+- [ ] Complete documentation
+- [ ] Type hints in public functions
 
 #### 🥇 Gold:
-- [ ] Tests comprehensivos (>80% coverage)
+- [ ] Comprehensive tests (>80% coverage)
 - [ ] Code quality tools (black, pylint, mypy)
-- [ ] Async/await correctamente
-- [ ] Traducciones (al menos EN)
-- [ ] Test doubles correctos (sin `MagicMock()` sin `spec`)
+- [ ] Async/await correctly implemented
+- [ ] Translations (at least EN)
+- [ ] Correct test doubles (no `MagicMock()` without `spec`)
 
 #### 💎 Platinum:
 - [ ] Tests >90% coverage
-- [ ] Performance optimizada
-- [ ] Documentación extensa
-- [ ] Ejemplos y tutoriales
-- [ ] Layered Test Doubles Strategy implementada (ver sección Testing)
+- [ ] Performance optimized
+- [ ] Extensive documentation
+- [ ] Examples and tutorials
+- [ ] Layered Test Doubles Strategy implemented (see Testing section)
 
 ---
 
-## 🛠️ CONFIGURACIÓN DEL PROYECTO
+## 🛠️ PROJECT SETUP
 
 ### requirements_dev.txt:
 ```
@@ -579,9 +579,9 @@ jobs:
 
 ---
 
-## 📝 DOCUMENTACIÓN DE CÓDIGO
+## 📝 CODE DOCUMENTATION
 
-### Docstrings estilo Google (preferido por HA):
+### Google-style docstrings (preferred by HA):
 
 ```python
 def calculate_charging_hours(self, kwh_needed: float, power_kw: float) -> int:
@@ -612,36 +612,36 @@ def calculate_charging_hours(self, kwh_needed: float, power_kw: float) -> int:
 
 ---
 
-## 🎯 RESUMEN EJECUTIVO
+## 🎯 EXECUTIVE SUMMARY
 
-### Para nuestro proyecto EV Trip Planner:
+### For our EV Trip Planner project:
 
 1. **Style**: Black + isort + pylint + mypy
-2. **Tests**: pytest con >80% coverage objetivo
+2. **Tests**: pytest with >80% coverage target
 3. **Architecture**: Data Update Coordinator pattern
-4. **Async**: Todo async/await
-5. **Type hints**: Obligatorio en funciones públicas
+4. **Async**: Everything async/await
+5. **Type hints**: Mandatory in public functions
 6. **Workflow**: Feature branches + Conventional Commits
-7. **TDD**: Híbrido (test during development)
-8. **Quality Target**: Gold (mínimo Silver para v1.0)
-9. **Test Doubles**: Layered strategy — ver sección Testing
+7. **TDD**: Hybrid (test during development)
+8. **Quality Target**: Gold (minimum Silver for v1.0)
+9. **Test Doubles**: Layered strategy — see Testing section
 
 ---
 
-## 📚 RECURSOS ADICIONALES
+## 📚 ADDITIONAL RESOURCES
 
-### Integraciones de referencia (código bien escrito):
+### Reference integrations (well-written code):
 - **Frigate** (Layered Test Doubles): https://github.com/blakeblackshear/frigate-hass-integration
 - **HACS**: https://github.com/hacs/integration
 - **Adaptive Lighting**: https://github.com/basnijholt/adaptive-lighting
 - **Spook**: https://github.com/frenck/spook
 - **LocalTuya**: https://github.com/rospogrigio/localtuya
 
-### Herramientas útiles:
+### Useful tools:
 - **HA Dev Container**: https://github.com/home-assistant/core/tree/dev/.devcontainer
 - **Scaffold**: `python -m script.scaffold integration`
 - **Validator**: `hass-config-validator`
 
 ---
 
-**Última actualización**: 08 Abril 2026
+**Last updated**: April 08, 2026

@@ -1,117 +1,117 @@
 # TODO / BACKLOG — EV Trip Planner
 
-> **Última actualización**: 2026-04-09  
-> **Versión actual**: 0.4.1-dev (rama `feat/solid-refactor-coverage`)  
-> Este fichero refleja el estado real del proyecto. Para el plan detallado de cada milestone, ver los docs en `docs/`.
+> **Last updated**: 2026-04-09  
+> **Current version**: 0.4.1-dev (branch `feat/solid-refactor-coverage`)  
+> This file reflects the actual project state. For detailed milestone plans, see docs in `docs/`.
 
 ---
 
-## ✅ Completado
+## ✅ Completed
 
-### Milestone 0 — Fundación del Proyecto
-- Estructura de repositorio, config flow inicial, HACS metadata, licencia MIT
+### Milestone 0 — Project Foundation
+- Repository structure, initial config flow, HACS metadata, MIT license
 
-### Milestone 1 — Infraestructura Core
-- Trip manager (recurrentes + puntuales), servicios CRUD, sensores básicos, dashboard base
-- TDD aplicado: 83% cobertura, 29 tests
+### Milestone 1 — Core Infrastructure
+- Trip manager (recurrent + punctual), CRUD services, basic sensors, base dashboard
+- TDD applied: 83% coverage, 29 tests
 
-### Milestone 2 — Cálculos de Viaje
-- Sensores: `next_trip`, `next_deadline`, `kwh_today`, `hours_today`
-- Expansión de viajes recurrentes (7 días), manejo de timezone, combinación recurrentes + puntuales
+### Milestone 2 — Trip Calculations
+- Sensors: `next_trip`, `next_deadline`, `kwh_today`, `hours_today`
+- Recurrent trip expansion (7 days), timezone handling, recurrent + punctual combination
 
-### Milestone 3 — Integración EMHASS & Control Inteligente (v0.3.0-dev, dic 2025)
-- `emhass_adapter.py`: asignación dinámica de índices por viaje (pool 0-49), persistencia en HA Storage
-- `vehicle_controller.py`: patrón estrategia (Switch / Service / Script / External)
-- `schedule_monitor.py`: monitorización de schedules EMHASS en tiempo real
-- `presence_monitor.py`: detección por sensor o coordenadas (Haversine), lógica de seguridad pre-acción
+### Milestone 3 — EMHASS Integration & Smart Control (v0.3.0-dev, Dec 2025)
+- `emhass_adapter.py`: Dynamic index assignment per trip (pool 0-49), persistence in HA Storage
+- `vehicle_controller.py`: Strategy pattern (Switch / Service / Script / External)
+- `schedule_monitor.py`: Real-time EMHASS schedule monitoring
+- `presence_monitor.py`: Sensor or coordinate-based detection (Haversine), pre-action safety logic
 - 156 tests, 93.6% passing
 
-### Milestone 3.1 — Mejoras UX de Configuración (v0.3.1-dev, dic 2025)
-- Filtros de entidades en config flow (SOC→battery class, Plugged→binary_sensor...)
-- Textos de ayuda con ejemplos concretos en todos los campos
-- Traducciones completas al español
+### Milestone 3.1 — Configuration UX Improvements (v0.3.1-dev, Dec 2025)
+- Entity filters in config flow (SOC→battery class, Plugged→binary_sensor...)
+- Help texts with concrete examples on all fields
+- Complete Spanish translations
 
-### Milestone 3.2 — Configuración Avanzada (v0.4.0-dev, mar 2026)
-- Capacidad de batería dinámica (sensor directo / SOH% + nominal / manual)
-- Perfiles de consumo por tipo de viaje (urbano / autopista / mixto)
-- Auto-limpieza de viajes puntuales pasados (configurable)
-- Config flow completo de 5 pasos
-- 398 tests, 85%+ cobertura
+### Milestone 3.2 — Advanced Configuration (v0.4.0-dev, Mar 2026)
+- Dynamic battery capacity (direct sensor / SOH% + nominal / manual)
+- Consumption profiles by trip type (urban / highway / mixed)
+- Auto-cleanup of past punctual trips (configurable)
+- Complete 5-step config flow
+- 398 tests, 85%+ coverage
 
-### Milestone 4 — Perfil de Carga Inteligente (completado, mar 2026)
-- Sensor `sensor.{vehicle}_power_profile`: array 168 valores (24h × 7d) en Watts
-- Atributo `deferrables_schedule` con timestamps ISO 8601
-- Estrategia binaria SOC-aware: 0W = sin carga, valor positivo = potencia de carga
-- Dashboard auto-import (full + simple) al completar config flow
-- Retry logic: 3 intentos en ventana de 5 minutos
+### Milestone 4 — Smart Charging Profile (completed, Mar 2026)
+- `sensor.{vehicle}_power_profile` sensor: 168-value array (24h x 7d) in Watts
+- `deferrables_schedule` attribute with ISO 8601 timestamps
+- Binary SOC-aware strategy: 0W = no charge, positive value = charging power
+- Dashboard auto-import (full + simple) on config flow completion
+- Retry logic: 3 attempts in 5-minute window
 
-### Refactorización SOLID (rama actual, abr 2026)
-- `protocols.py`: interfaces formales para desacoplar dependencias
-- `definitions.py`: entidades y tipos centralizados
-- `coordinator.py`: desacoplado mediante inyección de dependencias
-- `diagnostics.py`: soporte de diagnóstico para HACS quality scale
-- Objetivo: cobertura >80% en todos los módulos post-refactor
-
----
-
-## 🔄 En Curso
-
-- [ ] Alcanzar cobertura >80% en todos los módulos tras la refactorización SOLID
-- [ ] Corregir tests que fallaban por cambio de interfaces tras refactor
-- [ ] Revisar y consolidar documentación (ROADMAP, README, docs/)
+### SOLID Refactoring (current branch, Apr 2026)
+- `protocols.py`: Formal interfaces to decouple dependencies
+- `definitions.py`: Centralized entities, eliminating duplicates
+- `coordinator.py`: Decoupled via dependency injection
+- `diagnostics.py`: HACS quality diagnostic support
+- Target: >80% coverage in all modules post-refactor
 
 ---
 
-## 📌 Backlog — Milestone 4.1 (no iniciado)
+## 🔄 In Progress
 
-> Plan detallado en [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)
-
-- [ ] **Carga distribuida inteligente** (HIGH): distribuir carga en horas baratas (integración precios EMHASS)
-- [ ] **Soporte multi-vehículo** (HIGH): balanceo con límite de potencia del hogar configurable
-- [ ] **Ajuste climático** (MEDIUM): ajustar kWh por temperatura exterior (+20% frío, +10% calor)
-- [ ] **UI de perfil de carga** (MEDIUM): gráfico Lovelace con horas activas y precio por hora
-- [ ] **Notificaciones proactivas** (MEDIUM): recordatorio pre-carga, alerta carga incompleta, resumen semanal
-- [ ] **Modo salud de batería** (LOW): límite SOC diario configurable, preferencia carga lenta
+- [ ] Achieve >80% coverage in all modules after SOLID refactoring
+- [ ] Fix tests that failed due to interface changes after refactor
+- [ ] Review and consolidate documentation (ROADMAP, README, docs/)
 
 ---
 
-## 🔮 Futuro (post v1.0)
+## 📌 Backlog — Milestone 4.1 (not started)
 
-- [ ] Normalización de input (días con/sin tilde, slugs de vehículo)
-- [ ] Origen-destino por dirección / coordenadas (geocoding API)
-- [ ] Interfaz conversacional / voz (HA Assist)
-- [ ] Integración con calendario HA (mostrar viajes como eventos)
-- [ ] Estadísticas e historial de consumo
-- [ ] Soporte para otros optimizadores (no solo EMHASS)
-- [ ] Gestión de flota multi-usuario
+> Detailed plan in [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md)
+
+- [ ] **Smart distributed charging** (HIGH): Distribute charge in cheap hours (price integration with EMHASS)
+- [ ] **Multi-vehicle support** (HIGH): Balancing with configurable home power limit
+- [ ] **Climate adjustment** (MEDIUM): Adjust kWh by outside temperature (+20% cold, +10% hot)
+- [ ] **Charging profile UI** (MEDIUM): Lovelace chart with active hours and price per hour
+- [ ] **Proactive notifications** (MEDIUM): Pre-charge reminder, incomplete charge alert, weekly summary
+- [ ] **Battery health mode** (LOW): Configurable daily SOC limit, slow charge preference
 
 ---
 
-## ⚠️ Limitaciones Conocidas (activas)
+## 🔮 Future (post v1.0)
 
-| Limitación | Impacto | Workaround |
+- [ ] Input normalization (days with/without accent, vehicle slugs)
+- [ ] Origin-destination by address / coordinates (geocoding API)
+- [ ] Conversational interface / voice (HA Assist)
+- [ ] HA calendar integration (show trips as events)
+- [ ] Consumption statistics and history
+- [ ] Support for other optimizers (not just EMHASS)
+- [ ] Multi-user fleet management
+
+---
+
+## ⚠️ Known Limitations (Active)
+
+| Limitation | Impact | Workaround |
 |---|---|---|
-| Configuración EMHASS manual requerida | Menos plug-and-play | El README incluye snippet de configuración |
-| Horizonte de planificación fijo (7 días por defecto) | No se adapta dinámicamente | El usuario puede ajustarlo en config |
-| Máximo 50 índices simultáneos (pool EMHASS) | Límite práctico de viajes activos | Suficiente para uso doméstico |
-| Control multi-vehículo sin balanceo de potencia | Puede sobrecargar instalación | Pendiente en M4.1 |
+| Manual EMHASS configuration required | Less plug-and-play | README includes configuration snippet |
+| Fixed planning horizon (7 days by default) | Does not adapt dynamically | User can adjust in config |
+| Maximum 50 simultaneous indices (EMHASS pool) | Practical limit of active trips | Sufficient for home use |
+| Multi-vehicle control without power balancing | May overload installation | Pending in M4.1 |
 
 ---
 
-## ☠️ Obsoleto / Ya no aplica
+## ☠️ Obsolete / No Longer Applies
 
-- **Migración desde sliders** (`import_from_sliders`): La migración es opcional y solo relevante para usuarios con configuración pre-M3. Usuarios nuevos usan directamente el config flow.
-- **Validación manual 48h**: Superada por la suite de 793 tests automáticos + CI/CD.
-- **Selección de tipo de vehículo (híbrido/eléctrico)**: Eliminado del config flow en v0.4.1-dev por irrelevante.
+- **Slider migration** (`import_from_sliders`): Migration is optional and only relevant for pre-M3 configuration users. New users use config flow directly.
+- **Manual 48h validation**: Superseded by 793 automatic tests + CI/CD suite.
+- **Vehicle type selection (hybrid/electric)**: Removed from config flow in v0.4.1-dev as irrelevant.
 
 ---
 
-## 🔧 Notas de Proceso (uso interno)
+## 🔧 Process Notes (Internal Use)
 
-### Agente Goose — Truncación de Output
+### Goose Agent — Output Truncation
 
-**Síntoma**: Al usar `RALPH_AGENT=claude`, el log solo muestra la respuesta final (`TASK_COMPLETE`), no el razonamiento completo.
+**Symptom**: When using `RALPH_AGENT=claude`, the log only shows the final response (`TASK_COMPLETE`), not the full reasoning.
 
-**Causa**: El modelo vLLM (qwen3-5-35b-a3b-nvfp4) trunca la respuesta. El prompt completo se envía correctamente pero el output queda limitado por el tokenizador.
+**Cause**: vLLM model (qwen3-5-35b-a3b-nvfp4) truncates the response. The full prompt is sent correctly but output is limited by the tokenizer.
 
-**Workaround**: Usar Claude para tareas complejas donde el razonamiento importa. Goose es adecuado para tareas simples donde solo importa el resultado final.
+**Workaround**: Use Claude for complex tasks where reasoning matters. Goose is adequate for simple tasks where only the final result matters.

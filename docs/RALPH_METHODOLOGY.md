@@ -1,116 +1,116 @@
-# Metodología de Desarrollo — Smart Ralph Fork
+# Development Methodology — Smart Ralph Fork
 
-> **TL;DR**: Este plugin se desarrolló usando [**`informatico-madrid/smart-ralph`**](https://github.com/informatico-madrid/smart-ralph),
-> un fork de [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) que extiende el loop de
-> desarrollo spec-driven con verificación agéntica en tiempo real. El proyecto es deliberadamente
-> un **laboratorio de pruebas del propio plugin** — y a la vez un plugin funcional y en producción.
-
----
-
-## Índice
-
-- [El proyecto como laboratorio](#el-proyecto-como-laboratorio)
-- [Qué es Smart Ralph](#qué-es-smart-ralph)
-- [El fork: informatico-madrid/smart-ralph](#el-fork-informatico-madridsmartralph)
-- [Cómo se desarrolló este proyecto](#cómo-se-desarrolló-este-proyecto)
-- [Historial de specs](#historial-de-specs)
-- [Configuración de agentes](#configuración-de-agentes)
-- [El revisor en tiempo real](#el-revisor-en-tiempo-real)
-- [Verificación E2E](#verificación-e2e)
-- [Nota histórica: ralph-speckit](#nota-histórica-ralph-speckit)
-- [Agradecimientos](#agradecimientos)
+> **TL;DR**: This plugin was developed using [**`informatico-madrid/smart-ralph`**](https://github.com/informatico-madrid/smart-ralph),
+> a fork of [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) that extends the
+> spec-driven development loop with real-time agentic verification. The project is deliberately
+> a **testing lab for the plugin itself** — and also a functional, production-ready plugin.
 
 ---
 
-## El proyecto como laboratorio
+## Table of Contents
 
-Este plugin nació con un doble propósito, explícito y sin disculpas:
-
-1. **Laboratorio deliberado** para probar el loop spec-driven con agentes IA en condiciones reales,
-   sobre un dominio con complejidad genuina (Home Assistant, EMHASS, vehículos eléctricos).
-2. **Plugin funcional y útil** — que resuelve un problema real y está en uso en producción.
-
-Ambos objetivos son compatibles. El hecho de que el entorno de desarrollo sea un experimento
-no hace el resultado menos válido. Al contrario: las specs que guiaron cada feature fueron
-revisadas y ejecutadas por agentes especializados, lo que eleva la calidad de la implementación
-por encima de lo que una sesión de pair-programming ad hoc produciría.
-
-Si encuentras que algo está sobrediseñado, bien documentado o tiene más cobertura de tests
-de la esperada para un proyecto de este tamaño — ahora sabes por qué.
+- [The Project as a Laboratory](#the-project-as-a-laboratory)
+- [What is Smart Ralph](#what-is-smart-ralph)
+- [The Fork: informatico-madrid/smart-ralph](#the-fork-informatico-madridsmartralph)
+- [How This Project Was Developed](#how-this-project-was-developed)
+- [Spec History](#spec-history)
+- [Agent Configuration](#agent-configuration)
+- [The Real-Time Reviewer](#the-real-time-reviewer)
+- [E2E Verification](#e2e-verification)
+- [Historical Note: ralph-speckit](#historical-note-ralph-speckit)
+- [Acknowledgments](#acknowledgments)
 
 ---
 
-## Qué es Smart Ralph
+## The Project as a Laboratory
 
-[Smart Ralph](https://github.com/tzachbon/smart-ralph) es un plugin para Claude Code y Codex
-que convierte una idea de feature en un conjunto de specs estructuradas y las ejecuta tarea a tarea,
-con contexto fresco por tarea y agentes especializados por fase.
+This plugin was born with a dual purpose, explicit and unapologetic:
 
-El flujo estándar tiene 4 fases de ejecución tras la planificación:
+1. **Deliberate laboratory** to test the spec-driven loop with IA agents under real conditions,
+   on a domain with genuine complexity (Home Assistant, EMHASS, electric vehicles).
+2. **Functional and useful plugin** — that solves a real problem and is in active production use.
+
+Both objectives are compatible. The fact that the development environment is an experiment
+does not make the outcome any less valid. On the contrary: the specs that guided each feature were
+reviewed and executed by specialized agents, which elevates the implementation quality
+above what an ad hoc pair-programming session would produce.
+
+If you find that something is over-designed, well-documented, or has more test coverage
+than expected for a project of this size — now you know why.
+
+---
+
+## What is Smart Ralph
+
+[Smart Ralph](https://github.com/tzachbon/smart-ralph) is a plugin for Claude Code and Codex
+that converts a feature idea into a set of structured specs and executes them task by task,
+with fresh context per task and specialized agents per phase.
+
+The standard flow has 4 execution phases after planning:
 
 ```
 Research → Requirements → Design → Tasks → Implement
   │           │             │        │         │
   ↓           ↓             ↓        ↓         ↓
-research.md  requirements  design  tasks.md  ejecución
-              .md           .md              tarea a tarea
+research.md  requirements  design  tasks.md  execution
+               .md           .md              task by task
 ```
 
-Cada fase usa un sub-agente especializado: `research-analyst`, `product-manager`,
+Each phase uses a specialized sub-agent: `research-analyst`, `product-manager`,
 `architect-reviewer`, `task-planner`, `spec-executor`, `qa-engineer`.
 
-El patrón está basado en el [Ralph agentic loop](https://ghuntley.com/ralph/) de Geoffrey Huntley.
+The pattern is based on the [Ralph agentic loop](https://ghuntley.com/ralph/) by Geoffrey Huntley.
 
 ---
 
-## El fork: informatico-madrid/smart-ralph
+## The Fork: informatico-madrid/smart-ralph
 
-**Repositorio:** [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
+**Repository:** [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
 **Upstream:** [`tzachbon/smart-ralph`](https://github.com/tzachbon/smart-ralph) (v3.x)
 
-El upstream para en **Phase 4: Quality Gates** (lint, tipos, CI). Este fork añade una
-**Phase 5: Agentic Verification Loop** que no existe en el upstream:
+The upstream stops at **Phase 4: Quality Gates** (lint, types, CI). This fork adds a
+**Phase 5: Agentic Verification Loop** that does not exist in the upstream:
 
-| Fase | Upstream | Fork |
-|------|----------|------|
+| Phase | Upstream | Fork |
+|-------|----------|------|
 | Phase 1: Make It Work | ✅ | ✅ |
 | Phase 2: Refactoring | ✅ | ✅ |
 | Phase 3: Testing | ✅ | ✅ |
 | Phase 4: Quality Gates | ✅ | ✅ |
 | Phase 5: Verification | ❌ | ✅ |
 
-La Fase 5 introduce:
-- **VE Tasks** (`[VE]`) — tareas de verificación generadas automáticamente por `task-planner`
-- **Verification Contract** — bloque estructurado en `requirements.md` con entry points,
-  señales observables, invariantes y seed data
-- **Señales estructuradas** — `VERIFICATION_PASS`, `VERIFICATION_FAIL`, `VERIFICATION_DEGRADED`, `ESCALATE`
-- **Loop de reparación** — cuando `VERIFICATION_FAIL`: clasifica el fallo, corrige, reintenta;
-  si falla 2 veces, escala al humano
-- **Barrido de regresión** — basado en el `Dependency map` del Verification Contract,
-  no en la suite completa
+Phase 5 introduces:
+- **VE Tasks** (`[VE]`) — verification tasks automatically generated by `task-planner`
+- **Verification Contract** — structured block in `requirements.md` with entry points,
+  observable signals, invariants and seed data
+- **Structured signals** — `VERIFICATION_PASS`, `VERIFICATION_FAIL`, `VERIFICATION_DEGRADED`, `ESCALATE`
+- **Repair loop** — when `VERIFICATION_FAIL`: classify the failure, fix, retry;
+  if it fails 2 times, escalate to human
+- **Regression sweep** — based on the Verification Contract's `Dependency map`,
+  not the full test suite
 
-El fork también soporta `@playwright/mcp` como capa de señal de browser, aunque en este
-proyecto la verificación browser se ejecuta en modo degradado (ver sección [Verificación E2E](#verificación-e2e)).
+The fork also supports `@playwright/mcp` as a browser signal layer, although in this
+project browser verification runs in degraded mode (see [E2E Verification](#e2e-verification) section).
 
-> **Estado del PR upstream:** El fork tiene divergencias sustanciales respecto al upstream.
-> Existe un PR en draft con las contribuciones para Phase 5, pero la magnitud de los cambios
-> requiere un proceso de contribución más cuidadoso antes de abrirlo formalmente.
+> **Upstream PR status:** The fork has substantial divergences from the upstream.
+> There is a draft PR with contributions for Phase 5, but the magnitude of changes
+> requires a more careful contribution process before opening it formally.
 
 ---
 
-## Cómo se desarrolló este proyecto
+## How This Project Was Developed
 
-Cada feature, fix o refactor de este plugin siguió este proceso:
+Every feature, fix or refactor in this plugin followed this process:
 
-1. **Idea o bug** → se lanza `/ralph-specum:start` (o `/ralph-specum:triage` para epics grandes)
-2. **Research** → el agente `research-analyst` analiza el codebase existente y el dominio HA
-3. **Requirements** → `product-manager` genera user stories + Verification Contract
-4. **Design** → `architect-reviewer` decide patrones, estructura, estrategia de tests
-5. **Tasks** → `task-planner` descompone en tareas atómicas, inyecta `[VE]` tasks, marca `[P]` para tareas paralelas
-6. **Implement** → `spec-executor` ejecuta tarea a tarea con contexto fresco
-7. **Verificación continua** → `qa-engineer` revisa la implementación en tiempo real y corrige al agente si se desvía
+1. **Idea or bug** → launch `/ralph-specum:start` (or `/ralph-specum:triage` for large epics)
+2. **Research** → `research-analyst` agent analyzes existing codebase and HA domain
+3. **Requirements** → `product-manager` generates user stories + Verification Contract
+4. **Design** → `architect-reviewer` decides patterns, structure, test strategy
+5. **Tasks** → `task-planner` breaks down into atomic tasks, injects `[VE]` tasks, marks `[P]` for parallel tasks
+6. **Implement** → `spec-executor` executes task by task with fresh context
+7. **Continuous verification** → `qa-engineer` reviews implementation in real-time and corrects the agent if it deviates
 
-Las 12 skills de dominio en `.agents/skills/` se cargan según la fase:
+The 12 domain skills in `.agents/skills/` are loaded according to phase:
 `homeassistant-skill`, `homeassistant-best-practices`, `homeassistant-ops`,
 `homeassistant-config`, `homeassistant-dashboard-designer`,
 `e2e-testing-patterns`, `playwright-best-practices`,
@@ -118,146 +118,146 @@ Las 12 skills de dominio en `.agents/skills/` se cargan según la fase:
 `python-security-scanner`, `python-cybersecurity-tool-development`,
 `github-actions-docs`.
 
-Esto garantiza que los agentes tienen contexto específico del ecosistema HA y no solo
-conocimiento genérico de Python.
+This ensures agents have context specific to the HA ecosystem and not just
+generic Python knowledge.
 
 ---
 
-## Historial de specs
+## Spec History
 
-Todo el historial de specs está en `specs/`. A lo largo del proyecto se generaron
-**más de 20 specs**, cubriendo desde la creación de viajes hasta el refactor SOLID actual.
+The full spec history is in `specs/`. Throughout the project, **over 20 specs** were generated,
+covering everything from trip creation to the current SOLID refactor.
 
-### Specs principales (época smart-ralph)
+### Main Specs (smart-ralph era)
 
-| Spec | Qué resolvió |
-|------|--------------|
-| `trip-creation` | Sistema base de creación y gestión de viajes |
-| `charging-window-calculation` | Algoritmo de ventanas de carga y perfil binario |
-| `soc-integration-baseline` | Integración baseline del estado de carga (SOC) |
-| `soc-milestone-algorithm` | Algoritmo SOC-aware con margen de seguridad |
-| `emhass-integration-with-fixes` | Integración EMHASS con correcciones de compatibilidad |
-| `emhass-sensor-enhancement` | Mejora de sensores EMHASS con atributos extendidos |
-| `emhass-sensor-entity-lifecycle` | Ciclo de vida correcto de entidades sensor |
-| `duplicate-emhass-sensor-fix` | Fix de sensores duplicados tras recarga |
-| `e2e-trip-crud` | Verificación E2E de operaciones CRUD de viajes |
-| `trip-card-enhancement` | Mejoras en la card de viaje del dashboard |
-| `regression-orphaned-sensors-ha-core-investigation` | Investigación de sensores huérfanos en HA core |
-| `automation-template` | Templates de automatización para carga |
-| `solid-refactor-coverage` | Refactor SOLID + cobertura de tests (spec activa) |
-| `_epics/` | Epics de triage para features cross-cutting |
+| Spec | What it solved |
+|------|----------------|
+| `trip-creation` | Base trip creation and management system |
+| `charging-window-calculation` | Charging window algorithm and binary profile |
+| `soc-integration-baseline` | Baseline state of charge (SOC) integration |
+| `soc-milestone-algorithm` | SOC-aware algorithm with safety margin |
+| `emhass-integration-with-fixes` | EMHASS integration with compatibility fixes |
+| `emhass-sensor-enhancement` | EMHASS sensor enhancement with extended attributes |
+| `emhass-sensor-entity-lifecycle` | Correct entity lifecycle |
+| `duplicate-emhass-sensor-fix` | Duplicate sensor fix after reload |
+| `e2e-trip-crud` | E2E verification of trip CRUD operations |
+| `trip-card-enhancement` | Dashboard trip card improvements |
+| `regression-orphaned-sensors-ha-core-investigation` | HA core orphaned sensors investigation |
+| `automation-template` | Charging automation templates |
+| `solid-refactor-coverage` | SOLID refactor + test coverage (active spec) |
+| `_epics/` | Triage epics for cross-cutting features |
 
-### Evolución del naming
+### Naming Evolution
 
-El naming de las specs refleja la madurez del proceso. Las specs de la época speckit
-(ver [Nota histórica](#nota-histórica-ralph-speckit)) usaban prefijos numéricos (`001-`, `007-`...).
-Con el cambio a smart-ralph el naming pasó a ser descriptivo y libre, más fácil de navegar
-y buscar.
+The naming of specs reflects the maturity of the process. Specs from the speckit era
+(see [Historical Note](#historical-note-ralph-speckit)) used numeric prefixes (`001-`, `007-`...).
+With the change to smart-ralph, naming became descriptive and free, making it easier to navigate
+and search.
 
 ---
 
-## Configuración de agentes
+## Agent Configuration
 
 ```
 .agents/
-└── skills/                          # Skills de dominio cargadas por los agentes
+└── skills/                          # Domain skills loaded by agents
     ├── homeassistant-skill/         # Core HA — entities, states, services
-    ├── homeassistant-best-practices/ # Patrones recomendados HA
-    ├── homeassistant-config/        # Configuración yaml / config entries
-    ├── homeassistant-ops/           # Operaciones: restart, logs, debugging
+    ├── homeassistant-best-practices/ # Recommended HA patterns
+    ├── homeassistant-config/        # YAML configuration / config entries
+    ├── homeassistant-ops/           # Operations: restart, logs, debugging
     ├── homeassistant-dashboard-designer/ # Lovelace / dashboards
-    ├── e2e-testing-patterns/        # Patrones E2E genéricos
+    ├── e2e-testing-patterns/        # Generic E2E patterns
     ├── playwright-best-practices/   # Playwright selectors, waits, assertions
     ├── python-testing-patterns/     # pytest, mocks, fixtures
-    ├── python-performance-optimization/ # Optimización Python
-    ├── python-security-scanner/     # Análisis de seguridad estático
-    ├── python-cybersecurity-tool-development/ # Herramientas de seguridad
+    ├── python-performance-optimization/ # Python optimization
+    ├── python-security-scanner/     # Static security analysis
+    ├── python-cybersecurity-tool-development/ # Security tools
     └── github-actions-docs/         # CI/CD workflows
 
 CLAUDE.md                            # → .github/copilot-instructions.md
-                                     #   + docs/CODEGUIDELINESia.md
+                                      #   + docs/CODEGUIDELINESia.md
 ```
 
-Las guías de código están centralizadas en `docs/CODEGUIDELINESia.md` y
-`.github/copilot-instructions.md`. Todos los agentes las reciben como contexto obligatorio
-al arrancar, lo que asegura consistencia de estilo y patrones entre specs.
+Code guidelines are centralized in `docs/CODEGUIDELINESia.md` and
+`.github/copilot-instructions.md`. All agents receive them as mandatory context
+on startup, ensuring style consistency and patterns across specs.
 
 ---
 
-## El revisor en tiempo real
+## The Real-Time Reviewer
 
-Una de las capacidades más valiosas probadas en este proyecto es el **revisor en tiempo real**:
-el agente `qa-engineer` opera en paralelo al `spec-executor` y revisa la implementación
-mientras se produce, no después.
+One of the most valuable capabilities tested in this project is the **real-time reviewer**:
+the `qa-engineer` agent operates in parallel to `spec-executor` and reviews the implementation
+while it is being produced, not after.
 
-Esto significa que si el agente se desvía del diseño, introduce un anti-pattern o rompe
-un invariante definido en el Verification Contract, el `qa-engineer` interviene en la misma
-sesión de implementación — antes de que el error se propague a tareas posteriores.
+This means that if the agent deviates from the design, introduces an anti-pattern or breaks
+an invariant defined in the Verification Contract, the `qa-engineer` intervenes in the same
+implementation session — before the error propagates to subsequent tasks.
 
-En la práctica, esto se tradujo en:
-- Correcciones de arquitectura detectadas durante la implementación de `emhass-sensor-entity-lifecycle`
-- Detección temprana de violaciones SOLID en el refactor actual (`solid-refactor-coverage`)
-- Prevención de regresiones en sensores cuando se añadió el soporte de múltiples vehículos
-
----
-
-## Verificación E2E
-
-La verificación E2E en este proyecto opera en **modo multi-señal**, adaptado al entorno
-de Home Assistant donde un browser controlado por el agente no es el canal principal:
-
-| Capa de señal | Qué verifica |
-|---------------|--------------|
-| **pytest + HA test framework** | Lógica de negocio, ciclo de vida de entidades, servicios |
-| **CLI / logs** | Errores de integración, registros en `.storage/`, arranque limpio |
-| **HTTP / API** | Contratos de servicios HA, respuestas de endpoints |
-| **Browser (MCP Playwright)** | Flujos reales de usuario en el dashboard Lovelace |
-
-La capa browser se gestiona via `@playwright/mcp` y las skills en `.agents/skills/playwright-best-practices/`
-y `.agents/skills/e2e-testing-patterns/`. La integración completa del loop de verificación
-browser con chat en tiempo real está en proceso de evaluación en el entorno HA específico de este proyecto.
-
-Cuando la capa browser no está disponible, los agentes emiten `VERIFICATION_DEGRADED`
-y continúan con las capas CLI, HTTP y pytest — el loop no se detiene.
+In practice, this translated into:
+- Architecture corrections detected during `emhass-sensor-entity-lifecycle` implementation
+- Early detection of SOLID violations in the current refactor (`solid-refactor-coverage`)
+- Regression prevention in sensors when multi-vehicle support was added
 
 ---
 
-## Nota histórica: ralph-speckit
+## E2E Verification
 
-Antes de migrar a smart-ralph, las primeras specs de este proyecto se generaron con
-**`ralph-speckit`** — el plugin alternativo de Smart Ralph que implementa la
-[metodología spec-kit de GitHub](https://github.com/github/spec-kit) con gobernanza
-basada en constitución.
+E2E verification in this project operates in **multi-signal mode**, adapted to the Home Assistant
+environment where a browser controlled by the agent is not the primary channel:
 
-Esas specs se reconocen por su prefijo numérico (`001-`, `007-`... `020-`) y están
-documentadas en `docs/SPECKIT_SDD_FLOW_INTEGRATION_MAP.md`.
+| Signal Layer | What it verifies |
+|--------------|------------------|
+| **pytest + HA test framework** | Business logic, entity lifecycle, services |
+| **CLI / logs** | Integration errors, `.storage/` records, clean startup |
+| **HTTP / API** | HA service contracts, endpoint responses |
+| **Browser (MCP Playwright)** | Real user flows in the Lovelace dashboard |
 
-El cambio a smart-ralph (fork) permitió naming más libre, epics via triage, y la
-Fase 5 de verificación agéntica. Los aprendizajes de la época speckit informaron
-directamente el diseño de las specs posteriores.
+The browser layer is managed via `@playwright/mcp` and the skills in `.agents/skills/playwright-best-practices/`
+and `.agents/skills/e2e-testing-patterns/`. The full verification loop integration
+with real-time chat is under evaluation in the HA environment specific to this project.
 
----
-
-## Agradecimientos
-
-Este proyecto no existiría en su forma actual sin el trabajo de:
-
-- **[Tzach Bonfil](https://github.com/tzachbon)** — autor y mantenedor de
-  [`tzachbon/smart-ralph`](https://github.com/tzachbon/smart-ralph), el upstream
-  del fork. Un plugin extraordinariamente bien diseñado que convierte el desarrollo
-  agentico en algo practicable y reproducible. Muchas gracias por compartirlo.
-
-- **[Geoffrey Huntley](https://ghuntley.com/ralph/)** — creador del patrón
-  [Ralph agentic loop](https://ghuntley.com/ralph/) en el que se basa todo el sistema.
-  La idea de "Ralph no piensa demasiado, Ralph hace la siguiente tarea" es
-  deceptivamente poderosa.
-
-> El fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
-> tiene un PR en draft hacia upstream con las contribuciones de Phase 5. Cuando las
-> divergencias se estabilicen, la intención es contribuir de vuelta lo que sea
-> generalizable — especialmente las VE tasks y el Verification Contract.
+When the browser layer is not available, agents emit `VERIFICATION_DEGRADED`
+and continue with CLI, HTTP and pytest layers — the loop does not stop.
 
 ---
 
-*Documento mantenido por [@informatico-madrid](https://github.com/informatico-madrid).*
-*Última revisión: abril 2026.*
+## Historical Note: ralph-speckit
+
+Before migrating to smart-ralph, the first specs for this project were generated with
+**`ralph-speckit`** — the alternative Smart Ralph plugin that implements the
+[spec-kit methodology from GitHub](https://github.com/github/spec-kit) with
+constitution-based governance.
+
+Those specs are recognized by their numeric prefix (`001-`, `007-`... `020-`) and are
+documented in `docs/SPECKIT_SDD_FLOW_INTEGRATION_MAP.md`.
+
+The change to smart-ralph (fork) allowed freer naming, epics via triage, and
+Phase 5 agentic verification. The learnings from the speckit era directly informed
+the design of subsequent specs.
+
+---
+
+## Acknowledgments
+
+This project would not exist in its current form without the work of:
+
+- **[Tzach Bonfil](https://github.com/tzachbon)** — author and maintainer of
+  [`tzachbon/smart-ralph`](https://github.com/tzachbon/smart-ralph), the upstream
+  of the fork. An extraordinarily well-designed plugin that makes agentic development
+  practicable and reproducible. Thank you for sharing it.
+
+- **[Geoffrey Huntley](https://ghuntley.com/ralph/)** — creator of the
+  [Ralph agentic loop](https://ghuntley.com/ralph/) pattern on which the entire system is based.
+  The idea of "Ralph doesn't think too much, Ralph does the next task" is
+  deceptively powerful.
+
+> The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
+> has a draft PR upstream with Phase 5 contributions. When the
+> divergences stabilize, the intention is to contribute back what is
+> generalizable — especially VE tasks and the Verification Contract.
+
+---
+
+*Document maintained by [@informatico-madrid](https://github.com/informatico-madrid).*
+*Last review: April 2026.*

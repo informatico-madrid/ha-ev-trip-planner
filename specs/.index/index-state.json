@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-23T07:35:37Z",
+  "updated": "2026-04-24T06:55:08Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 29,
+      "specsCount": 30,
       "isDefault": true
     }
   ],
@@ -209,9 +209,14 @@
     {
       "name": "e2e-ux-tests-fix",
       "path": "./specs/e2e-ux-tests-fix",
+      "phase": "tasks"
+    },
+    {
+      "name": "pr35-review-fixes",
+      "path": "./specs/pr35-review-fixes",
       "phase": "execution",
-      "taskIndex": 91,
-      "totalTasks": 98
+      "taskIndex": 6,
+      "totalTasks": 6
     }
   ]
 }
