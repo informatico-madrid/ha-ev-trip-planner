@@ -2174,10 +2174,9 @@ class TestCalculateHoursDeficitPropagation:
         assert all(r["deficit_hours_propagated"] == 0 for r in results)
         assert all(r["deficit_hours_to_propagate"] == 0 for r in results)
         # adjusted_def_total_hours = original def_total_hours (no absorption)
-        # Results are returned in reverse order: [trip#2, trip#1, trip#0]
-        assert results[0]["adjusted_def_total_hours"] == 1.0  # trip#2
+        assert results[0]["adjusted_def_total_hours"] == 3.0  # trip#0
         assert results[1]["adjusted_def_total_hours"] == 2.0  # trip#1
-        assert results[2]["adjusted_def_total_hours"] == 3.0  # trip#0
+        assert results[2]["adjusted_def_total_hours"] == 1.0  # trip#2
 
     def test_last_trip_deficit_absorbed(self):
         """Trip #3 needs 3h, has 2h window. Trip #2 has 4h spare → fully absorbed."""
@@ -2191,19 +2190,18 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 3.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 2.0, 3.0])
-        # Results returned in reverse order: results[0]=trip#2, results[1]=trip#1, results[2]=trip#0
-        # trip#3 (index 2) deficit=1h, nothing after → to_propagate=1.0
-        assert results[0]["deficit_hours_propagated"] == 0      # trip#2 absorbs nothing
-        assert results[0]["deficit_hours_to_propagate"] == 1.0  # trip#2 has 1h deficit
-        assert results[0]["adjusted_def_total_hours"] == 3.0
-        # trip#2 (index 1) absorbs 1h from trip#3
+        # trip#0 (index 0) has no deficit propagation
+        assert results[0]["deficit_hours_propagated"] == 0
+        assert results[0]["deficit_hours_to_propagate"] == 0
+        assert results[0]["adjusted_def_total_hours"] == 2.0
+        # trip#1 (index 1) absorbs 1h from trip#2
         assert results[1]["deficit_hours_propagated"] == 1.0
         assert results[1]["deficit_hours_to_propagate"] == 0.0
         assert results[1]["adjusted_def_total_hours"] == 3.0
-        # trip#1 (index 0) has no deficit propagation
-        assert results[2]["deficit_hours_propagated"] == 0
-        assert results[2]["deficit_hours_to_propagate"] == 0
-        assert results[2]["adjusted_def_total_hours"] == 2.0
+        # trip#2 (index 2) deficit=1h, nothing after → to_propagate=1.0
+        assert results[2]["deficit_hours_propagated"] == 0      # trip#2 absorbs nothing
+        assert results[2]["deficit_hours_to_propagate"] == 1.0  # trip#2 has 1h deficit
+        assert results[2]["adjusted_def_total_hours"] == 3.0
 
     def test_chain_propagation(self):
         """Trip #3 deficit 3h, trip #2 spare 2h, trip #1 spare 4h → partial absorption."""
@@ -2217,21 +2215,20 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 5.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows, [3.0, 2.0, 5.0])
-        # Results returned in reverse order: results[0]=trip#2, results[1]=trip#1, results[2]=trip#0
-        # trip#3 (index 2): deficit=3h, nothing after → to_propagate=3.0
-        assert results[0]["deficit_hours_propagated"] == 0
-        assert results[0]["deficit_hours_to_propagate"] == 3.0
-        assert results[0]["adjusted_def_total_hours"] == 5.0
+        # trip#0 (index 0): spare=4h, absorbs 1h from carrier
+        assert results[0]["deficit_hours_propagated"] == 1.0
+        assert results[0]["deficit_hours_to_propagate"] == 0.0
+        assert results[0]["adjusted_def_total_hours"] == 4.0
 
-        # trip#2 (index 1): spare=2h, absorbs 2h from carrier
+        # trip#1 (index 1): spare=2h, absorbs 2h from carrier
         assert results[1]["deficit_hours_propagated"] == 2.0
         assert results[1]["deficit_hours_to_propagate"] == 1.0
         assert results[1]["adjusted_def_total_hours"] == 4.0
 
-        # trip#1 (index 0): spare=4h, absorbs 1h from carrier
-        assert results[2]["deficit_hours_propagated"] == 1.0
-        assert results[2]["deficit_hours_to_propagate"] == 0.0
-        assert results[2]["adjusted_def_total_hours"] == 4.0
+        # trip#2 (index 2): deficit=3h, nothing after → to_propagate=3.0
+        assert results[2]["deficit_hours_propagated"] == 0
+        assert results[2]["deficit_hours_to_propagate"] == 3.0
+        assert results[2]["adjusted_def_total_hours"] == 5.0
 
     def test_single_trip_deficit(self):
         """1 trip, needs 5h, has 2h window → deficit stays on to_propagate."""
@@ -2257,14 +2254,14 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 4.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows, [1.0, 3.0, 4.0])
-        assert results[2]["deficit_hours_propagated"] == 0
-        assert results[1]["deficit_hours_propagated"] == 2.0
         assert results[0]["deficit_hours_propagated"] == 0
+        assert results[1]["deficit_hours_propagated"] == 2.0
+        assert results[2]["deficit_hours_propagated"] == 0
 
     def test_ventana_horas_unchanged(self):
         """ventana_horas must equal input value for every returned dict.
 
-        Results are returned in reverse order: results[0]=trip#1, results[1]=trip#0.
+        Results are returned in the same order as input: results[0]=trip#0, results[1]=trip#1.
         """
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
@@ -2275,11 +2272,11 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 6.0, "horas_carga_necesarias": 3.0, "inicio_ventana": "start2", "fin_ventana": "end2"},
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 3.0])
-        # results[0] = trip#1 (ventana=6.0), results[1] = trip#0 (ventana=4.0)
-        assert results[0]["ventana_horas"] == 6.0
-        assert results[1]["ventana_horas"] == 4.0
-        assert results[1]["inicio_ventana"] == "start1"
-        assert results[0]["fin_ventana"] == "end2"
+        # results[0] = trip#0 (ventana=4.0), results[1] = trip#1 (ventana=6.0)
+        assert results[0]["ventana_horas"] == 4.0
+        assert results[1]["ventana_horas"] == 6.0
+        assert results[0]["inicio_ventana"] == "start1"
+        assert results[1]["fin_ventana"] == "end2"
 
     def test_adjusted_def_total_hours_correct(self):
         """adjusted = original def_total_hours + absorbed."""
@@ -2292,6 +2289,8 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 5.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 5.0])
+        # trip#0 absorbs 3h from trip#1: adjusted = 2+3 = 5
+        # trip#1 has no absorption: adjusted = 5+0 = 5
         assert results[0]["adjusted_def_total_hours"] == 5.0
         assert results[1]["adjusted_def_total_hours"] == 5.0
 
@@ -2306,10 +2305,10 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 5.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 5.0])
-        assert results[1]["deficit_hours_propagated"] == 0
-        assert results[1]["deficit_hours_to_propagate"] == 3.0
         assert results[0]["deficit_hours_propagated"] == 0
         assert results[0]["deficit_hours_to_propagate"] == 3.0
+        assert results[1]["deficit_hours_propagated"] == 0
+        assert results[1]["deficit_hours_to_propagate"] == 3.0
 
     def test_default_def_total_hours(self):
         """When def_total_hours not provided, defaults to horas_carga_necesarias."""
@@ -2322,13 +2321,12 @@ class TestCalculateHoursDeficitPropagation:
             {"ventana_horas": 2.0, "horas_carga_necesarias": 5.0, "inicio_ventana": None, "fin_ventana": None},
         ]
         results = calculate_hours_deficit_propagation(windows)
-        # Results in reverse order: results[0]=trip#1, results[1]=trip#0
-        # trip#1 (index 1): needs 5h, has 2h → deficit=3h, nothing to absorb
-        assert results[0]["deficit_hours_propagated"] == 0
-        assert results[0]["deficit_hours_to_propagate"] == 3.0
-        assert results[0]["adjusted_def_total_hours"] == 5.0
         # trip#0 (index 0): spare=5-2=3h, absorbs all 3h from trip#1
-        assert results[1]["deficit_hours_propagated"] == 3.0
+        assert results[0]["deficit_hours_propagated"] == 3.0
+        assert results[0]["adjusted_def_total_hours"] == 5.0
+        # trip#1 (index 1): needs 5h, has 2h → deficit=3h, nothing to absorb
+        assert results[1]["deficit_hours_propagated"] == 0
+        assert results[1]["deficit_hours_to_propagate"] == 3.0
         assert results[1]["adjusted_def_total_hours"] == 5.0
 
     def test_values_rounded_to_2dp(self):

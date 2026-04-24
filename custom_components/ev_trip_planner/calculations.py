@@ -29,6 +29,7 @@ __all__ = [
     "calculate_energy_needed",
     "calculate_charging_window_pure",
     "calculate_multi_trip_charging_windows",
+    "calculate_hours_deficit_propagation",
     "calculate_soc_at_trip_starts",
     "calculate_deficit_propagation",
     "calculate_power_profile_from_trips",
@@ -143,7 +144,9 @@ def calculate_trip_time(
 
         if tz is not None:
             # BUG FIX: hora is local time, convert to UTC
-            local_now = now.astimezone(tz)
+            # Normalize reference_dt to aware (UTC) if naive to avoid TypeError
+            aware_now = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
+            local_now = aware_now.astimezone(tz)
             today = local_now.date()
             day_of_week = local_now.weekday()
             days_ahead = (target_day - day_of_week) % 7
@@ -598,7 +601,7 @@ def calculate_hours_deficit_propagation(
     if def_total_hours is None:
         def_total_hours = defaults
 
-    results: List[Dict[str, Any]] = []
+    results: List[Dict[str, Any]] = [{} for _ in range(N)]
     deficit_carrier: float = 0.0
 
     for i in range(N - 1, -1, -1):
@@ -615,12 +618,12 @@ def calculate_hours_deficit_propagation(
         own_deficit = max(0.0, horas_carga - ventana)
         deficit_carrier += own_deficit
 
-        # Build result
+        # Build result in original order
         result = dict(windows[i])
         result["deficit_hours_propagated"] = round(absorbed, 2)
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
         result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
-        results.append(result)
+        results[i] = result
 
     return results
 
@@ -883,7 +886,9 @@ def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_d
 
     if tz is not None:
         # BUG FIX: time_str is local time, create in local tz and convert to UTC
-        local_ref = reference_dt.astimezone(tz)
+        # Normalize reference_dt to aware (UTC) if naive to avoid TypeError
+        aware_ref = reference_dt if reference_dt.tzinfo is not None else reference_dt.replace(tzinfo=timezone.utc)
+        local_ref = aware_ref.astimezone(tz)
         local_date = local_ref.date()
         # Create candidate in local timezone
         candidate_local = datetime(

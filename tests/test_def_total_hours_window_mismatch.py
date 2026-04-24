@@ -10,14 +10,13 @@ should be addressed at the window calculation level (calculate_multi_trip_chargi
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import pytest
 
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
-    RETURN_BUFFER_HOURS,
 )
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
@@ -79,8 +78,11 @@ async def test_single_trip_short_window_no_capping(mock_hass, mock_store):
 
     # No capping: single trip def_total_hours can exceed window_size
     # since there's no previous trip for backward propagation to work with.
-    # This is a known limitation — the window calculation should account for this.
-    assert def_total_hours > 0
+    window_size = params["def_end_timestep"] - params["def_start_timestep"]
+    assert def_total_hours > window_size, (
+        f"def_total_hours ({def_total_hours}) should exceed window_size ({window_size}) "
+        f"since there's no earlier trip for backward propagation."
+    )
 
 
 @pytest.mark.asyncio

@@ -1,19 +1,18 @@
-"""TDD tests for recurring trip day offset bugs (Bug 1: 24h, Bug 2: timezone).
+"""Tests for recurring trip day offset handling and timezone interpretation.
 
 Bug 1: Frontend stores dia_semana as JS getDay() format (Sunday=0, Friday=5),
-       but calculate_day_index() interprets numeric strings as Monday=0 format.
-       This causes every recurring trip to be scheduled 1 day late (~24h offset).
+       but calculate_day_index() must interpret those numeric strings correctly
+       so recurring trips are scheduled on the intended day.
 
-Bug 2: calculate_trip_time() treats hora as UTC instead of local time.
-       For UTC+2 users, this adds ~2 hours to the deadline.
+Bug 2: calculate_trip_time() must treat hora as local time rather than UTC.
+       For UTC+2 users, this avoids adding an incorrect ~2 hour offset to the
+       calculated deadline.
 
-These tests are designed to FAIL (RED phase) until the bugs are fixed.
-Fix顺序: Bug 1 first, then Bug 2 (Bug 2 is masked by Bug 1).
+These tests verify the corrected behavior for both issues. Bug 1 is validated
+first because an incorrect day index can mask the timezone handling outcome.
 """
 
-import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
 
 import pytest
 
@@ -474,7 +473,7 @@ class TestIntegrationBothBugs:
         P_deferrable_nom: [3300.0]
         def_start_timestep: [0]
         def_end_timestep: [2]
-        P_deferrable: [[0.0, 3300.0, 3300.0, 0.0, 0.0, ...]]
+        P_deferrable: [[3300.0, 3300.0, 0.0, 0.0, 0.0, ...]]
     """
 
     def test_full_sensor_output_correct(self):

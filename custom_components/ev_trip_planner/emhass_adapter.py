@@ -637,11 +637,17 @@ class EMHASSAdapter:
         # When a trip's charging needs exceed its window, excess hours are propagated
         # backward to earlier trips with spare capacity. The propagated trip receives
         # adjusted_def_total_hours that includes absorbed deficit from later trips.
+        needs_charging = decision.needs_charging
         if adjusted_def_total_hours is not None:
             total_hours = adjusted_def_total_hours
-        
+            # Override needs_charging based on adjusted hours.
+            # A trip that originally needed no charging may now absorb propagated deficit.
+            if adjusted_def_total_hours > 0:
+                needs_charging = True
+                power_watts = charging_power_kw * 1000
+
         # T1.3: Optimización - no calcular perfil si no se necesita carga
-        if not decision.needs_charging:
+        if not needs_charging:
             power_profile = [0.0] * 168
         else:
             power_profile = self._calculate_power_profile_from_trips(
@@ -876,33 +882,39 @@ class EMHASSAdapter:
         # Collect def_total_hours from charging decisions and propagate excess to
         # earlier trips with spare capacity. This replaces the capping approach.
         if batch_charging_windows:
-            # First pass: collect def_total_hours for each trip
+            # First pass: collect def_total_hours using the same sequential SOC
+            # projection used later for cache population, so propagation hours
+            # are consistent with per-trip scheduling decisions.
             trip_def_total_hours: Dict[str, float] = {}
-            trip_order: List[str] = []
-            for trip in trips:
-                trip_id = trip.get("id")
-                if not trip_id:
+            ordered_trip_ids: List[str] = []
+            projected_soc = soc_current
+            for trip_id, _, trip in trip_deadlines:
+                if trip_id not in batch_charging_windows:
                     continue
                 decision = determine_charging_need(
-                    trip, soc_current, self._battery_capacity_kwh,
+                    trip, projected_soc, self._battery_capacity_kwh,
                     charging_power_kw, self._safety_margin_percent,
                 )
                 trip_def_total_hours[trip_id] = decision.def_total_hours
-                trip_order.append(trip_id)
+                ordered_trip_ids.append(trip_id)
+                projected_soc = getattr(
+                    decision, "projected_soc", projected_soc,
+                )
 
-            # Run propagation on batch windows
-            window_list = list(batch_charging_windows.values())
+            # Run propagation on batch windows in the same order they were computed.
+            window_list = [batch_charging_windows[tid] for tid in ordered_trip_ids]
             def_total_hours_list = [
-                trip_def_total_hours.get(tid, window.get("horas_carga_necesarias", 0.0))
-                for tid, window in zip(trip_order, window_list)
+                trip_def_total_hours.get(
+                    tid, batch_charging_windows[tid].get("horas_carga_necesarias", 0.0)
+                )
+                for tid in ordered_trip_ids
             ]
             enriched_windows = calculate_hours_deficit_propagation(
                 window_list, def_total_hours_list,
             )
 
-            # Build enriched windows map keyed by trip_id
-            # enriched_windows is in reverse order (backward propagation), so reverse it
-            for trip_id, enriched in zip(trip_order, reversed(enriched_windows)):
+            # enriched_windows is now in the same order as ordered_trip_ids.
+            for trip_id, enriched in zip(ordered_trip_ids, enriched_windows):
                 enriched_windows_map[trip_id] = enriched
 
         _LOGGER.debug(

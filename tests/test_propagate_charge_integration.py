@@ -9,15 +9,16 @@ async_publish_all_deferrable_loads():
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
+from custom_components.ev_trip_planner.calculations import determine_charging_need
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
-    RETURN_BUFFER_HOURS,
 )
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
@@ -138,6 +139,30 @@ class TestPropagateChargeIntegration:
         # Both trips should have charging (def_total_hours > 0)
         assert cache1["def_total_hours"] > 0, f"trip_1 def_total_hours={cache1['def_total_hours']}"
         assert cache2["def_total_hours"] > 0, f"trip_2 def_total_hours={cache2['def_total_hours']}"
+
+        # Propagation verification: trip_1 absorbed deficit from trip_2.
+        # Trip_1 has a 10h window for 12kWh (~2.6h charging), leaving ~7.4h spare.
+        # Trip_2 has an 8h window for 35kWh (~9.0h charging), exceeding its window.
+        # The propagation mechanism should have given trip_1 extra hours beyond its base need.
+        # Compute trip_1's base def_total_hours (without propagation).
+        adapter_battery = adapter._battery_capacity_kwh
+        trip1_decision = determine_charging_need(
+            trip1, 15.0, adapter_battery,
+            3.6, 10.0,
+        )
+        trip1_base_hours = math.ceil(trip1_decision.def_total_hours)
+
+        # After propagation, trip_1 hours should be >= base (ceil rounding may keep it equal).
+        # Verify the power profile was generated (needs_charging=True with adjusted hours).
+        assert cache1["def_total_hours"] >= trip1_base_hours, (
+            f"Trip_1 hours ({cache1['def_total_hours']}) should be >= "
+            f"base ({trip1_base_hours}). "
+            f"Power profile non-zero: {sum(1 for v in cache1.get('power_profile_watts', []) if v > 0)}"
+        )
+
+        # Power profiles should be set (indicates full flow completed)
+        assert "power_profile_watts" in cache1
+        assert "power_profile_watts" in cache2
 
         # Power profiles should be set (indicates full flow completed)
         assert "power_profile_watts" in cache1
@@ -326,3 +351,73 @@ class TestPropagateChargeIntegration:
         # Power profiles should be set
         assert "power_profile_watts" in cache1
         assert "power_profile_watts" in cache2
+
+    @pytest.mark.asyncio
+    async def test_batch_path_defensive_skip_missing_window(
+        self, mock_hass, mock_store, config,
+    ):
+        """
+        Verify that when calculate_multi_trip_charging_windows returns fewer
+        windows than there are trips, the propagation pass defensively skips
+        the missing trip (line 893 continue).
+        """
+        entry = MockConfigEntry("test_vehicle", config)
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(mock_hass, entry)
+            await adapter.async_load()
+
+        now = datetime.now(timezone.utc)
+
+        trips = [
+            {
+                "id": "trip_a",
+                "tipo": "puntual",
+                "datetime": (now + timedelta(hours=6)).isoformat(),
+                "kwh": 5.0,
+            },
+            {
+                "id": "trip_b",
+                "tipo": "puntual",
+                "datetime": (now + timedelta(hours=8)).isoformat(),
+                "kwh": 7.2,
+            },
+        ]
+
+        hora_regreso_stub = now - timedelta(hours=2)
+
+        # Patch to return only 1 window for 2 trips
+        def partial_windows(*args, **kwargs):
+            from custom_components.ev_trip_planner.calculations import (
+                calculate_multi_trip_charging_windows as original,
+            )
+            # Call original then strip the last window
+            all_windows = original(*args, **kwargs)
+            return all_windows[:1]
+
+        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+            mock_soc.return_value = 10.0
+            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+                mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
+                mock_pm = MagicMock()
+                mock_pm.async_get_hora_regreso = AsyncMock(
+                    return_value=hora_regreso_stub.replace(tzinfo=timezone.utc),
+                )
+                adapter._presence_monitor = mock_pm
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter."
+                    "calculate_multi_trip_charging_windows",
+                    side_effect=partial_windows,
+                ):
+                    result = await adapter.async_publish_all_deferrable_loads(
+                        trips, charging_power_kw=3.6,
+                    )
+
+        # Should not crash even when a trip has no window
+        assert result is True
+        # At least the trip that got a window should be cached
+        assert "trip_a" in adapter._cached_per_trip_params

@@ -43,7 +43,7 @@ Adds warning log when total_hours is capped to window_size — helps debug trips
 
 Fixes potential None reference — `runtime_data` is used on line 175 but assigned on line 164, while `publish_deferrable_loads()` on line 160 may need it.
 
-- [ ] 3.1 [FIX] Reorder runtime_data assignment in __init__.py
+- [x] 3.1 [FIX] Reorder runtime_data assignment in __init__.py
   - **Do**:
     1. Read `/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/__init__.py` lines 155-180
     2. Move the `entry.runtime_data = EVTripRuntimeData(...)` block (lines 163-168) to before `await trip_manager.publish_deferrable_loads()` (line 160)
@@ -62,21 +62,21 @@ Fixes potential None reference — `runtime_data` is used on line 175 but assign
 
 Run the full test suite to confirm no regressions from the three fixes.
 
-- [ ] 4.1 [VERIFY] Run full test suite
+- [x] 4.1 [VERIFY] Run full test suite
   - **Do**: Run pytest across the entire test directory. This takes ~3-5 minutes for 1631 tests.
   - **Files**: N/A (read-only verification)
   - **Done when**: All tests pass with exit code 0
   - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && python -m pytest tests/ --tb=short 2>&1 | tail -20 && echo ALL_TESTS_PASS`
   - **Commit**: None
 
-- [ ] 4.2 [VERIFY] Run targeted tests for changed files
+- [x] 4.2 [VERIFY] Run targeted tests for changed files
   - **Do**: Run tests specific to each changed module for faster feedback and explicit coverage.
   - **Files**: N/A (read-only verification)
   - **Done when**: All targeted tests pass
   - **Verify**: `cd /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner && python -m pytest tests/test_init.py tests/test_emhass_adapter.py tests/test_emhass_adapter_def_end_bug.py tests/test_trip_manager_core.py --tb=short 2>&1 | tail -10 && echo TARGETED_TESTS_PASS`
   - **Commit**: None
 
-- [ ] 4.3 [VERIFY] Verify Python syntax of modified files
+- [x] 4.3 [VERIFY] Verify Python syntax of modified files
   - **Do**: Syntax-check the two Python files that were modified.
   - **Files**: N/A (read-only verification)
   - **Done when**: No syntax errors
