@@ -655,12 +655,17 @@ class EMHASSAdapter:
                 power_watts = charging_power_kw * 1000
 
         # BUG FIX (continued): If def_start was already 0 and couldn't be
-        # expanded backward, and the window is still too small for total_hours,
-        # cap total_hours to the available window size to prevent EMHASS failure.
+        # expanded backward, cap total_hours to the available window size.
+        # If there is no available timestep (window_size <= 0), skip charging
+        # entirely to prevent creating an impossible one-hour load.
         if _def_start_before_expansion == 0:
             window_size = def_end_timestep - def_start_timestep
-            if window_size < math.ceil(total_hours):
-                total_hours = max(1, window_size)
+            if window_size <= 0:
+                total_hours = 0
+                needs_charging = False
+                power_watts = 0
+            elif window_size < math.ceil(total_hours):
+                total_hours = window_size
 
         # T1.3: Optimización - no calcular perfil si no se necesita carga
         if not needs_charging:
@@ -863,6 +868,11 @@ class EMHASSAdapter:
                 hora_regreso = await self._presence_monitor.async_get_hora_regreso()
             except Exception:
                 hora_regreso = None
+
+        _LOGGER.warning(
+            "DEBUG async_publish_all: hora_regreso=%s, vehicle_id=%s, trips_count=%d",
+            hora_regreso, self.vehicle_id, len(trips),
+        )
 
         # Batch compute charging windows for ALL trips at once (fixes sequential trip offset bug)
         trip_deadlines = []
