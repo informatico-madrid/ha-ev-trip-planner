@@ -8,7 +8,7 @@ Add `calculate_hours_deficit_propagation()` to `calculations.py` — backward pr
 
 Implement the pure function that walks backward through charging windows and propagates deficit to earlier trips with spare capacity.
 
-- [ ] 1.1 [CODE] Add function to `custom_components/ev_trip_planner/calculations.py`
+- [x] 1.1 [CODE] Add function to `custom_components/ev_trip_planner/calculations.py`
   - **Do**:
     1. Read `custom_components/ev_trip_planner/calculations.py` lines 530-540 (end of `calculate_multi_trip_charging_windows`)
     2. Add new function `calculate_hours_deficit_propagation()` after `calculate_multi_trip_charging_windows()`, following existing code patterns
@@ -31,7 +31,7 @@ Implement the pure function that walks backward through charging windows and pro
 
 Create `TestCalculateHoursDeficitPropagation` test class covering all scenarios.
 
-- [ ] 2.1 [TEST] Write test class with comprehensive scenarios
+- [x] 2.1 [TEST] Write test class with comprehensive scenarios
   - **Do**:
     1. Read `tests/test_calculations.py` to find where other test classes are defined
     2. Add `TestCalculateHoursDeficitPropagation` class with these test methods:

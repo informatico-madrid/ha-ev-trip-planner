@@ -12,6 +12,7 @@ from homeassistant.helpers.storage import Store
 
 from .calculations import (
     calculate_deferrable_parameters as calc_deferrable_parameters,
+    calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
     determine_charging_need,
 )
@@ -526,6 +527,7 @@ class EMHASSAdapter:
         hora_regreso: Optional[datetime],
         pre_computed_inicio_ventana: Optional[datetime] = None,
         pre_computed_fin_ventana: Optional[datetime] = None,
+        adjusted_def_total_hours: Optional[float] = None,
     ) -> None:
         """Build and cache per-trip EMHASS parameters.
 
@@ -631,18 +633,21 @@ class EMHASSAdapter:
         total_hours = decision.def_total_hours
         power_watts = decision.power_watts
 
-        # BUG FIX: Cap total_hours to available window size to prevent EMHASS error:
-        # "Available timeframe is shorter than the specified number of hours to operate"
-        # This ensures def_total_hours <= window_size for all trips, even when SOC-aware
-        # calculations require more charging time than the window allows.
-        window_size = def_end_timestep - def_start_timestep
-        if total_hours > window_size:
-            old_total_hours = total_hours
-            _LOGGER.warning("Capping total_hours from %.1f to window size %.1f for trip %s", old_total_hours, window_size, trip_id)
-            total_hours = window_size
-        
+        # Use adjusted hours from backward deficit propagation.
+        # When a trip's charging needs exceed its window, excess hours are propagated
+        # backward to earlier trips with spare capacity. The propagated trip receives
+        # adjusted_def_total_hours that includes absorbed deficit from later trips.
+        needs_charging = decision.needs_charging
+        if adjusted_def_total_hours is not None:
+            total_hours = adjusted_def_total_hours
+            # Override needs_charging based on adjusted hours.
+            # A trip that originally needed no charging may now absorb propagated deficit.
+            if adjusted_def_total_hours > 0:
+                needs_charging = True
+                power_watts = charging_power_kw * 1000
+
         # T1.3: Optimización - no calcular perfil si no se necesita carga
-        if not decision.needs_charging:
+        if not needs_charging:
             power_profile = [0.0] * 168
         else:
             power_profile = self._calculate_power_profile_from_trips(
@@ -858,6 +863,7 @@ class EMHASSAdapter:
         trip_deadlines.sort(key=lambda x: x[1])
 
         batch_charging_windows = {}
+        enriched_windows_map: Dict[str, Dict[str, Any]] = {}
         if trip_deadlines:
             windows = calculate_multi_trip_charging_windows(
                 trips=[(dl, trip) for _, dl, trip in trip_deadlines],
@@ -872,32 +878,77 @@ class EMHASSAdapter:
                 if i < len(windows):
                     batch_charging_windows[trip_id] = windows[i]
 
+        # T2.0: Propagate charging deficit backward across trips
+        # Collect def_total_hours from charging decisions and propagate excess to
+        # earlier trips with spare capacity. This replaces the capping approach.
+        if batch_charging_windows:
+            # First pass: collect def_total_hours using the same sequential SOC
+            # projection used later for cache population, so propagation hours
+            # are consistent with per-trip scheduling decisions.
+            trip_def_total_hours: Dict[str, float] = {}
+            ordered_trip_ids: List[str] = []
+            projected_soc = soc_current
+            for trip_id, _, trip in trip_deadlines:
+                if trip_id not in batch_charging_windows:
+                    continue
+                decision = determine_charging_need(
+                    trip, projected_soc, self._battery_capacity_kwh,
+                    charging_power_kw, self._safety_margin_percent,
+                )
+                trip_def_total_hours[trip_id] = decision.def_total_hours
+                ordered_trip_ids.append(trip_id)
+                projected_soc = getattr(
+                    decision, "projected_soc", projected_soc,
+                )
+
+            # Run propagation on batch windows in the same order they were computed.
+            window_list = [batch_charging_windows[tid] for tid in ordered_trip_ids]
+            def_total_hours_list = [
+                trip_def_total_hours.get(
+                    tid, batch_charging_windows[tid].get("horas_carga_necesarias", 0.0)
+                )
+                for tid in ordered_trip_ids
+            ]
+            enriched_windows = calculate_hours_deficit_propagation(
+                window_list, def_total_hours_list,
+            )
+
+            # enriched_windows is now in the same order as ordered_trip_ids.
+            for trip_id, enriched in zip(ordered_trip_ids, enriched_windows):
+                enriched_windows_map[trip_id] = enriched
+
         _LOGGER.debug(
-            "DEBUG async_publish_all_deferrable_loads: batch computed %d charging windows",
-            len(batch_charging_windows)
+            "DEBUG async_publish_all_deferrable_loads: batch computed %d charging windows, propagation applied %d",
+            len(batch_charging_windows), len(enriched_windows_map),
         )
 
         # T2.1: Propagate SOC sequentially between trips
         # Each trip's SOC projection considers: previous SOC + charging - consumption
         projected_soc = soc_current
-        
+
         # Publish each trip and populate per-trip cache with projected SOC
         for trip in trips:
             trip_id = trip.get("id")
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
-            
+
             # Get batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
             pre_computed_inicio = batch_window.get("inicio_ventana") if batch_window else None
             pre_computed_fin = batch_window.get("fin_ventana") if batch_window else None
-            
+
+            # Get adjusted hours from propagation (if available)
+            adjusted_hours = None
+            if trip_id in enriched_windows_map:
+                adjusted_hours = enriched_windows_map[trip_id].get("adjusted_def_total_hours")
+
             # Use projected SOC for this trip (considers previous trips' charging/consumption)
             await self._populate_per_trip_cache_entry(
                 trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
                 self._safety_margin_percent, projected_soc, hora_regreso,
                 pre_computed_inicio_ventana=pre_computed_inicio,
                 pre_computed_fin_ventana=pre_computed_fin,
+                adjusted_def_total_hours=adjusted_hours,
             )
             
             # Update projected SOC for next trip

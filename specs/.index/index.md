@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-04-24T06:55:08Z
+**Last updated:** 2026-04-24T14:09:18Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 30 | Yes |
+| ./specs | 33 | Yes |
 
-## All Specs (30)
+## All Specs (33)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -47,6 +47,9 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | fix-sequential-trip-charging | ./specs | completed | done |
 | e2e-ux-tests-fix | ./specs | tasks |  |
 | pr35-review-fixes | ./specs | execution | 6/6 tasks |
+| propagate-charge-deficit-algo | ./specs | execution | 0/0 tasks |
+| propagate-charge-wiring | ./specs | requirements |  |
+| propagate-charge-test | ./specs | requirements |  |
 
 ---
 

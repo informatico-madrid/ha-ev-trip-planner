@@ -153,19 +153,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except ConfigEntryNotReady:
         raise  # Re-raise to allow HA's built-in retry mechanism
 
-    # Now that coordinator is ready, publish loaded trips to EMHASS.
-    # This populates the EMHASS cache and triggers a coordinator refresh
-    # so sensors see the correct data immediately (not waiting for periodic refresh).
-    if emhass_adapter is not None:
-        await trip_manager.publish_deferrable_loads()
-    await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)
-
     # Store runtime data using entry.runtime_data (HA-recommended pattern)
+    # Must be assigned BEFORE publish_deferrable_loads so that the publish path
+    # can safely access entry.runtime_data without a None race condition.
     entry.runtime_data = EVTripRuntimeData(
         coordinator=coordinator,
         trip_manager=trip_manager,
         emhass_adapter=emhass_adapter,
     )
+
+    # Now that coordinator and runtime_data are ready, publish loaded trips to EMHASS.
+    # This populates the EMHASS cache and triggers a coordinator refresh
+    # so sensors see the correct data immediately (not waiting for periodic refresh).
+    if emhass_adapter is not None:
+        await trip_manager.publish_deferrable_loads()
+    await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)
     
     # T3.1: Setup hourly refresh timer OUTSIDE coordinator
     # This timer triggers every hour to rotate recurring trips
