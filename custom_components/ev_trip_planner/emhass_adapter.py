@@ -658,6 +658,8 @@ class EMHASSAdapter:
         # expanded backward, cap total_hours to the available window size.
         # If there is no available timestep (window_size <= 0), skip charging
         # entirely to prevent creating an impossible one-hour load.
+        # Note: We use a narrow guard here to not interfere with backward
+        # deficit propagation - that system handles most window-too-small cases.
         if _def_start_before_expansion == 0:
             window_size = def_end_timestep - def_start_timestep
             if window_size <= 0:

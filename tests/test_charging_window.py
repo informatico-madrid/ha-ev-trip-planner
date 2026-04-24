@@ -821,11 +821,14 @@ class TestSingleTripBackwardCompatibility:
 
         # Car is already home: window starts from now, not from past hora_regreso
         assert results[0]["inicio_ventana"] >= now, \
-            f"inicio_ventana should be >= now when car is home"
+            "inicio_ventana should be >= now when car is home"
 
-        # Verify def_start_timestep would be 0
+        # Verify def_start_timestep would be 0 after integer conversion.
         delta = (results[0]["inicio_ventana"] - now).total_seconds() / 3600
-        assert delta >= 0, "inicio_ventana should be >= now, so delta >= 0"
+        assert 0 <= delta < 1, (
+            "inicio_ventana should remain within the current timestep "
+            "so def_start_timestep would be 0"
+        )
 
     def test_three_sequential_trips_cumulative_offset(self):
         """Test that three sequential trips have cumulative offset from sequential chaining.

@@ -571,23 +571,31 @@ class TestCalculateChargingWindowPure:
 class TestCalculateMultiTripChargingWindows:
     """Tests for calculate_multi_trip_charging_windows."""
 
-    def test_single_trip_with_no_return_uses_departure_minus_duration(self):
-        """First trip with no hora_regreso uses departure - 6h as window start. Covers lines 369-370."""
+    def test_single_trip_with_no_return_starts_from_now(self):
+        """First trip with no hora_regreso starts charging from now.
+
+        When the car was always home and no return event was detected,
+        hora_regreso is None. The window should start from now (car is home),
+        not from departure - 6h.
+        """
         from custom_components.ev_trip_planner.calculations import calculate_multi_trip_charging_windows
 
-        departure = datetime(2026, 4, 6, 18, 0)  # 6 PM
+        now = datetime.now(timezone.utc)
+        departure = now + timedelta(hours=96)  # 4 days in the future
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
             soc_actual=50.0,
-            hora_regreso=None,  # No return time
+            hora_regreso=None,  # No return event detected
             charging_power_kw=7.4,
             battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
-        # Window: departure - 6h (12:00) to departure + 6h (midnight) = 12h
-        assert result[0]["ventana_horas"] == 12.0
-        assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 12, 0, tzinfo=timezone.utc)
+        # Window should start from now, not from departure - 6h
+        assert result[0]["inicio_ventana"] >= now, \
+            f"inicio_ventana={result['inicio_ventana']} should be >= now={now}"
+        # ventana_horas = (departure + 6h) - now = 96 + 6 = 102h
+        assert result[0]["ventana_horas"] == pytest.approx(102.0, abs=0.02)
 
     def test_zero_charging_power_sets_horas_carga_to_zero(self):
         """When charging_power_kw is 0, horas_carga_necesarias is 0.0. Covers line 395."""

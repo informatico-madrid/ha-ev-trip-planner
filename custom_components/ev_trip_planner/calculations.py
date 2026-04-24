@@ -522,7 +522,9 @@ def calculate_multi_trip_charging_windows(
             else:
                 # trip_departure_time must not be None here
                 assert trip_departure_time is not None
-                window_start = trip_departure_time - timedelta(hours=duration_hours)
+                # Car is assumed to be home (no return event detected).
+                # Charging starts from now, not from departure - duration.
+                window_start = now
         else:
             window_start = previous_arrival
 
