@@ -1,15 +1,17 @@
 # Project Documentation Index
 
-> Generated: 2026-04-16 | Scan Level: Deep | Mode: Initial Scan
+> **Last Updated:** 2026-04-23 | **Scan Level:** Deep | **Mode:** Full Rescan with AI Lab Context
+> **Project Type:** HYBRID — Real Home Assistant Utility + AI Development Laboratory
 
 ## Project Overview
 
 - **Name:** HA EV Trip Planner
-- **Type:** Monolith — Home Assistant Custom Component (Backend Python + Frontend Lit)
+- **Type:** HYBRID — Home Assistant Custom Component (Backend Python + Frontend Lit) + AI Development Laboratory
 - **Primary Language:** Python 3.11+ (backend), TypeScript/JavaScript (frontend)
 - **Architecture:** Plugin/Extension with DataUpdateCoordinator pattern
 - **Domain:** `ev_trip_planner`
 - **Version:** 0.5.1
+- **Author Context:** Senior Architect (PHP/Clean Architectures specialty) — ZERO lines of human-written code
 
 ## Quick Reference
 
@@ -28,6 +30,8 @@
 - [API Contracts](./api-contracts.md) — 9+ HA services, sensor data contract, trip data structures
 - [Data Models](./data-models.md) — Storage schema, trip models, config entry data, entity registry
 - [Development Guide](./development-guide.md) — Setup, commands, code style, testing, common tasks
+- [AI Development Lab](./ai-development-lab.md) — Full experiment narrative, 6-phase methodology evolution, author context, hybrid project documentation
+- [Portfolio](./PORTFOLIO.md) — **START HERE:** Multi-layer narrative for recruiters, contributors, and evaluators
 
 ## Existing Documentation
 
@@ -49,6 +53,31 @@
 - [Ralph Methodology](./RALPH_METHODOLOGY.md) — Smart Ralph development methodology
 - [Code Guidelines (AI)](./CODEGUIDELINESia.md) — AI-assisted coding guidelines
 - [SpecKit Flow Map](./SPECKIT_SDD_FLOW_INTEGRATION_MAP.md) — SpecKit workflow integration
+## AI Development Lab
+
+> **Nuevo en 2026-04-23:** Documentación completa del experimento de desarrollo asistido por IA.
+
+- [**AI Development Lab**](./ai-development-lab.md) — Resumen del experimento, trayectoria evolutiva, arquitectura del laboratorio
+- [**Gaps y Problemas**](../doc/gaps/gaps.md) — 5 problemas heredados de Vive Coding con hipótesis verificables
+- [**Ralph Methodology**](./RALPH_METHODOLOGY.md) — Smart Ralph fork con Phase 5: Agentic Verification Loop
+
+### Para Recruiters y Evaluadores
+
+1. [**Portfolio**](./PORTFOLIO.md) — Vista rápida en 2 minutos
+2. [**AI Development Lab**](./ai-development-lab.md) — Laboratorio completo
+3. [**Executive Summary**](../doc/gaps/EXECUTIVE_SUMMARY.md) — Gestión de deuda técnica
+4. [**Ralph Methodology**](./RALPH_METHODOLOGY.md) — Metodología técnica
+
+### Trayectoria Metodológica
+
+| Fase | Período | Metodología | Artifacts Clave |
+|------|---------|-------------|----------------|
+| 1 | 2024-Q1 | Vive Coding Puro | Specs con prefijos numéricos, deuda técnica |
+| 2 | 2024-Q2 | Ingeniería de Prompts | Prompts estructurados, primeras plantillas |
+| 3 | 2024-Q3 | Fine-Tuning | Skills de dominio especializadas |
+| 4 | 2024-Q4 | Speckit | Specs formales con checklists |
+| 5 | 2025-Q1 - 2026-Q1 | Smart Ralph Fork | Phase 5 Verification, specs descriptivas |
+| 6 | 2026-Q1 - Actual | BMad + Ralph | Orquestación multi-agente, sprint planning |
 
 ## Getting Started
 
@@ -103,7 +132,7 @@
 
 | Category | Files | Framework |
 |----------|-------|-----------|
-| Python Unit Tests | 70 files in `tests/` | pytest |
-| E2E Tests | 7 specs in `tests/e2e/` | Playwright |
+| Python Unit Tests | **85** files in `tests/` | pytest |
+| E2E Tests | **8** specs in `tests/e2e/` | Playwright |
 | JS Tests | `tests/panel.test.js` | Jest |
 | Test Fixtures | `tests/fixtures/` | JSON data |

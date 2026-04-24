@@ -1,39 +1,39 @@
 # Release Notes v0.5.17 — Datetime Fix & Race Condition Resolution
 
-## Resumen
+## Summary
 
-Esta versión corrige un bug crítico de timezone en los cálculos de datetime del TripManager, resuelve condiciones de carrera en el coordinator, y mejora la infraestructura de tests E2E para sensores EMHASS.
+This version fixes a critical timezone bug in TripManager datetime calculations, resolves race conditions in the coordinator, and improves E2E test infrastructure for EMHASS sensors.
 
-## Cambios Destacados
+## Highlighted Changes
 
 ### Fixed
-- **Bug datetime naive/aware**: Corregido `datetime.now()` a `datetime.now(timezone.utc)` en [`trip_manager.py`](custom_components/ev_trip_planner/trip_manager.py:1470-1471) para evitar errores `TypeError` en comparaciones de timezone.
-- **Race condition coordinator**: Resuelta condición de carrera en el coordinator que podía causar estados inconsistentes durante actualizaciones concurrentes.
-- **Cálculo SOC en eliminación de sensores**: Corregido el cálculo de SOC al eliminar sensores huérfanos.
-- **Mutación in-place**: Reemplazada mutación in-place con dict expansion en `async_publish_all_deferrable_loads` y `async_cleanup_vehicle_indices`.
+- **Naive/Aware datetime bug**: Fixed `datetime.now()` to `datetime.now(timezone.utc)` in [`trip_manager.py`](custom_components/ev_trip_planner/trip_manager.py:1470-1471) to prevent `TypeError` errors in timezone comparisons.
+- **Coordinator race condition**: Resolved race condition in the coordinator that could cause inconsistent states during concurrent updates.
+- **SOC calculation in sensor deletion**: Fixed SOC calculation when deleting orphaned sensors.
+- **In-place mutation**: Replaced in-place mutation with dict expansion in `async_publish_all_deferrable_loads` and `async_cleanup_vehicle_indices`.
 
 ### Added
-- **Tests regression datetime**: Nuevo archivo [`tests/test_trip_manager_datetime_tz.py`](tests/test_trip_manager_datetime_tz.py) con tests de regresión para datetime naive/aware.
-- **Refactor `_parse_trip_datetime`**: Método centralizado para parsing de datetime en TripManager con type hints para compliance SOLID.
-- **Tests E2E EMHASS dinámicos**: Tests E2E con descubrimiento dinámico de entity IDs en lugar de hardcoded values.
-- **100% coverage**: Cobertura del 100% en las líneas críticas del datetime handling.
+- **Datetime regression tests**: New [`tests/test_trip_manager_datetime_tz.py`](tests/test_trip_manager_datetime_tz.py) file with naive/aware datetime regression tests.
+- **Refactored `_parse_trip_datetime`**: Centralized method for datetime parsing in TripManager with type hints for SOLID compliance.
+- **Dynamic E2E EMHASS tests**: E2E tests with dynamic entity ID discovery instead of hardcoded values.
+- **100% coverage**: 100% coverage on critical datetime handling lines.
 
 ### Changed
-- **Test infrastructure**: Mejoras en tests E2E con fechas dinámicas usando `getFutureIs` en lugar de fechas hardcoded.
-- **Chore files cleanup**: Eliminación de archivos obsoletos de presentaciones (Saga, Freya) y skills no utilizados.
+- **Test infrastructure**: Improved E2E tests with dynamic dates using `getFutureIs` instead of hardcoded dates.
+- **Chore files cleanup**: Removed obsolete presentation files (Saga, Freya) and unused skills.
 
-## Detalles Técnicos
+## Technical Details
 
-### Archivos Modificados
-- `custom_components/ev_trip_planner/trip_manager.py` - Datetime handling y refactoring
+### Modified Files
+- `custom_components/ev_trip_planner/trip_manager.py` - Datetime handling and refactoring
 - `custom_components/ev_trip_planner/coordinator.py` - Race condition fixes
-- `custom_components/ev_trip_planner/emhass_adapter.py` - Mutación in-place fix
+- `custom_components/ev_trip_planner/emhass_adapter.py` - In-place mutation fix
 - `custom_components/ev_trip_planner/__init__.py` - Cleanup imports
-- `tests/test_trip_manager_datetime_tz.py` - Nuevo archivo con tests de regresión
-- `tests/e2e/emhass-sensor-updates.spec.ts` - Tests E2E dinámicos
-- `_bmad/` - Eliminación de archivos obsoletos de agentes
+- `tests/test_trip_manager_datetime_tz.py` - New regression test file
+- `tests/e2e/emhass-sensor-updates.spec.ts` - Dynamic E2E tests
+- `_bmad/` - Removed obsolete agent files
 
-### Archivos Eliminados
+### Files Removed
 - `_bmad/cis/agents/artifact-analyzer.md`
 - `_bmad/cis/agents/opportunity-reviewer.md`
 - `_bmad/cis/agents/skeptic-reviewer.md`
@@ -43,13 +43,13 @@ Esta versión corrige un bug crítico de timezone en los cálculos de datetime d
 - `_bmad/bmb/agents/tech-writer-sidecar/documentation-standards.md`
 - `docs/e2e-date-diagnosis-final.md`
 
-## Notas de Migración
+## Migration Notes
 
-- No hay cambios breaking conocidos
-- Los usuarios existentes pueden actualizar sin acciones adicionales
-- Se recomienda reiniciar Home Assistant tras actualizar para asegurar estado consistente del coordinator
+- No known breaking changes
+- Existing users can update without additional actions
+- Recommended to restart Home Assistant after updating to ensure consistent coordinator state
 
-## Referencias
+## References
 
 - Commit: `df4f68d Fix sensor deletion calculating soc & fix: datetime bug, coordinator race condition, test infrastructure (#34)`
 - Specifications: `specs/e2e-ux-tests-fix/`

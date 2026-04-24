@@ -1,30 +1,30 @@
-# 🚀 Milestone 4: Perfil de Carga Inteligente - Documentación Técnica
+# 🚀 Milestone 4: Smart Charging Profile — Technical Documentation
 
-**Documento de Implementación**  
-**Versión**: 1.0  
-**Fecha**: 2025-12-14  
-**Estado**: ✅ IMPLEMENTADO Y VALIDADO  
+**Implementation Document**  
+**Version**: 1.0  
+**Date**: 2025-12-14  
+**Status**: ✅ IMPLEMENTED & VALIDATED  
 **Target**: v0.4.0-dev
 
 ---
 
-## 📋 Resumen Ejecutivo
+## 📋 Executive Summary
 
-Milestone 4 implementa **Perfil de Carga Inteligente**, una funcionalidad que calcula automáticamente cuándo y cuánto cargar el vehículo eléctrico basándose en:
-- **SOC actual** (State of Charge) del vehículo
-- **Energía necesaria** para los viajes programados
-- **Margen de seguridad** del 40% SOC mínimo post-viaje
-- **Horas disponibles** antes de cada viaje
+Milestone 4 implements **Smart Charging Profile**, a functionality that automatically calculates when and how much to charge the electric vehicle based on:
+- **Current SOC** (State of Charge) of the vehicle
+- **Energy needed** for scheduled trips
+- **Safety margin** of 40% minimum post-trip SOC
+- **Hours available** before each trip
 
-**Resultado**: El sistema genera un perfil de potencia binario (0W o máxima potencia) que distribuye la carga inteligentemente, evitando baterías críticas y optimizando el uso del cargador.
+**Result**: The system generates a binary power profile (0W or maximum power) that intelligently distributes charging, avoiding critical batteries and optimizing charger usage.
 
 ---
 
-## 🎯 Funcionalidades Implementadas
+## 🎯 Implemented Features
 
-### 1. Cálculo de Energía Necesaria (`async_calcular_energia_necesaria`)
+### 1. Necessary Energy Calculation (`async_calcular_energia_necesaria`)
 
-**Archivo**: `custom_components/ev_trip_planner/trip_manager.py` (líneas 660-748)
+**File**: `custom_components/ev_trip_planner/trip_manager.py` (lines 660-748)
 
 ```python
 async def async_calcular_energia_necesaria(
@@ -34,39 +34,39 @@ async def async_calcular_energia_necesaria(
 ) -> Dict[str, Any]:
 ```
 
-**Lógica de Cálculo**:
-1. **Obtiene SOC actual** del vehículo desde sensor configurado
-2. **Calcula energía actual** en batería: `energia_actual_kwh = (soc_actual / 100) * capacidad_bateria_kwh`
-3. **Calcula energía del viaje**: `energia_viaje` (directa de `kwh` o de `km * consumo`)
-4. **Calcula energía necesaria (bruta)**: `energia_necesaria = max(0, energia_viaje - energia_actual)`
-5. **Aplica margen de seguridad**: `energia_final = energia_necesaria * (1 + safety_margin_percent / 100)`
-   - `safety_margin_percent` es configurable (0-50%, default 10%)
-   - Se aplica al déficit de carga, no a la reserva de llegada
-6. **Calcula horas de carga**: `horas_carga = energia_final / potencia_carga_kw`
+**Calculation Logic**:
+1. **Gets current SOC** of the vehicle from configured sensor
+2. **Calculates current energy** in battery: `energia_actual_kwh = (soc_actual / 100) * capacidad_bateria_kwh`
+3. **Calculates trip energy**: `energia_viaje` (directly from `kwh` or from `km * consumo`)
+4. **Calculates necessary energy (gross)**: `energia_necesaria = max(0, energia_viaje - energia_actual)`
+5. **Applies safety margin**: `energia_final = energia_necesaria * (1 + safety_margin_percent / 100)`
+   - `safety_margin_percent` is configurable (0-50%, default 10%)
+   - Applied to charging deficit, not arrival reserve
+6. **Calculates charging hours**: `horas_carga = energia_final / potencia_carga_kw`
 
-**Retorna**:
+**Returns**:
 ```python
 {
-    "energia_necesaria_kwh": float,        # kWh a cargar (incluye margen)
-    "horas_carga_necesarias": float,       # Horas necesarias para cargar
-    "alerta_tiempo_insuficiente": bool,    # True si no hay tiempo suficiente
-    "horas_disponibles": float,            # Horas hasta el viaje
-    "margen_seguridad_aplicado": float,    # Porcentaje de margen usado
+    "energia_necesaria_kwh": float,        # kWh to charge (includes margin)
+    "horas_carga_necesarias": float,       # Hours needed to charge
+    "alerta_tiempo_insuficiente": bool,    # True if not enough time
+    "horas_disponibles": float,            # Hours until trip
+    "margen_seguridad_aplicado": float,    # Margin percentage used
 }
 ```
 
-**Ejemplo con Chispitas** (safety_margin=10%):
-- SOC actual: 49% → 19.6 kWh disponibles
-- Viaje: 50 km → 7.5 kWh necesarios
-- Energía needed raw: `max(0, 7.5 - 19.6) = 0` → 0 kWh (ya tiene suficiente)
-- **Con margen 10%**: sigue siendo 0 kWh
-- **Horas de carga**: 0 horas
+**Example with Chispitas** (safety_margin=10%):
+- Current SOC: 49% → 19.6 kWh available
+- Trip: 50 km → 7.5 kWh needed
+- Energy needed raw: `max(0, 7.5 - 19.6) = 0` → 0 kWh (already has enough)
+- **With 10% margin**: still 0 kWh
+- **Charging hours**: 0 hours
 
 ---
 
-### 2. Generación de Perfil de Potencia (`async_generate_power_profile`)
+### 2. Power Profile Generation (`async_generate_power_profile`)
 
-**Archivo**: `custom_components/ev_trip_planner/trip_manager.py` (líneas 750-890)
+**File**: `custom_components/ev_trip_planner/trip_manager.py` (lines 750-890)
 
 ```python
 async def async_generate_power_profile(
@@ -77,111 +77,111 @@ async def async_generate_power_profile(
 ) -> List[float]:
 ```
 
-**Características del Perfil**:
-- **Binario**: Cada hora es 0W (no carga) o máxima potencia (ej: 7400W)
-- **Inteligente**: Distribuye carga justo antes de cada viaje, no uniformemente
-- **Acumulativo**: Múltiples viajes se acumulan en el mismo perfil
-- **Horizonte configurable**: 7 días por defecto (168 horas)
+**Profile Characteristics**:
+- **Binary**: Each hour is 0W (no charging) or maximum power (e.g., 7400W)
+- **Smart**: Distributes charging just before each trip, not uniformly
+- **Cumulative**: Multiple trips accumulate in the same profile
+- **Configurable horizon**: 7 days by default (168 hours)
 
-**Algoritmo**:
-1. Para cada viaje en el horizonte de planificación:
-   - Calcula energía necesaria usando `async_calcular_energia_necesaria()`
-   - Si `energia_necesaria_kwh > 0`:
-     - Calcula horas de carga necesarias
-     - Programa carga `horas_carga_necesarias` antes del viaje
-     - Rellena esas horas con máxima potencia (en Watts)
-2. Retorna lista de 168 valores (7 días × 24 horas)
+**Algorithm**:
+1. For each trip in the planning horizon:
+   - Calculates necessary energy using `async_calcular_energia_necesaria()`
+   - If `energia_necesaria_kwh > 0`:
+     - Calculates necessary charging hours
+     - Schedules charging `horas_carga_necesarias` before the trip
+     - Fills those hours with maximum power (in Watts)
+2. Returns list of 168 values (7 days × 24 hours)
 
-**Ejemplo de Perfil**:
+**Profile Example**:
 ```python
-# Perfil para viaje el martes a las 09:00, necesita 3.9 kWh (0.53 horas)
-# Carga programada de 08:00-09:00 (1 hora completa)
-[0, 0, 0, ..., 0, 7400, 0, 0, ...]  # 7400W en la hora 8 (08:00-09:00)
+# Profile for trip on Tuesday at 09:00, needs 3.9 kWh (0.53 hours)
+# Scheduled charging from 08:00-09:00 (1 full hour)
+[0, 0, 0, ..., 0, 7400, 0, 0, ...]  # 7400W at hour 8 (08:00-09:00)
 ```
 
 ---
 
-### 3. Obtención de SOC del Vehículo (`async_get_vehicle_soc`)
+### 3. Vehicle SOC Retrieval (`async_get_vehicle_soc`)
 
-**Archivo**: `custom_components/ev_trip_planner/trip_manager.py` (líneas 892-930)
+**File**: `custom_components/ev_trip_planner/trip_manager.py` (lines 892-930)
 
 ```python
 async def async_get_vehicle_soc(self, vehicle_config: Dict[str, Any]) -> float:
 ```
 
-**Manejo de Sensores**:
-- **Sensor configurado**: Lee estado del sensor SOC y parsea valor numérico
-- **Sensor no disponible**: Retorna 0.0 y logea warning
-- **Sensor no configurado**: Retorna 0.0 (modo manual)
-- **Valor inválido**: Maneja `unavailable`, `unknown`, valores no numéricos
+**Sensor Handling**:
+- **Configured sensor**: Reads SOC sensor state and parses numeric value
+- **Sensor unavailable**: Returns 0.0 and logs warning
+- **Sensor not configured**: Returns 0.0 (manual mode)
+- **Invalid value**: Handles `unavailable`, `unknown`, non-numeric values
 
-**Formatos Soportados**:
+**Supported Formats**:
 - `"78"` → 78.0
 - `"78.5"` → 78.5
-- `"78%"` → 78.0 (elimina símbolo %)
-- `"78 %"` → 78.0 (elimina espacios y símbolo)
+- `"78%"` → 78.0 (removes % symbol)
+- `"78 %"` → 78.0 (removes spaces and symbol)
 
 ---
 
-## 📊 Sensores de Milestone 4
+## 📊 Milestone 4 Sensors
 
-### Sensor de Perfil de Carga (`PowerProfileSensor`)
+### Charging Profile Sensor (`PowerProfileSensor`)
 
-**Archivo**: `custom_components/ev_trip_planner/sensor.py` (líneas 164-220)
+**File**: `custom_components/ev_trip_planner/sensor.py` (lines 164-220)
 
-**Atributos**:
+**Attributes**:
 ```python
 {
-    "power_profile_watts": List[float],  # Perfil completo (168 valores)
-    "total_kwh_programmed": float,       # kWh totales programados
-    "hours_with_load": int,              # Número de horas con carga > 0
-    "next_charging_start": str,          # Próxima hora de inicio (ISO)
-    "next_charging_end": str,            # Próxima hora de fin (ISO)
-    "vehicle_id": str,                   # ID del vehículo
-    "charging_power_kw": float,          # Potencia de carga configurada
-    "planning_horizon_days": int         # Días de planificación
+    "power_profile_watts": List[float],  # Full profile (168 values)
+    "total_kwh_programmed": float,       # Total programmed kWh
+    "hours_with_load": int,              # Number of hours with charging > 0
+    "next_charging_start": str,          # Next start time (ISO)
+    "next_charging_end": str,            # Next end time (ISO)
+    "vehicle_id": str,                   # Vehicle ID
+    "charging_power_kw": float,          # Configured charging power
+    "planning_horizon_days": int         # Planning days
 }
 ```
 
-**Estado**: `"active"` o `"idle"` (si no hay viajes)
+**State**: `"active"` or `"idle"` (if no trips)
 
 ---
 
-## 🧪 Tests TDD Implementados
+## 🧪 Implemented TDD Tests
 
-**Archivo**: `tests/test_power_profile_tdd.py` (10 tests, 100% pasando)
+**File**: `tests/test_power_profile_tdd.py` (10 tests, 100% passing)
 
-### Tests de Cálculo de Energía:
-1. `test_calcular_energia_necesaria_soc_alto` - SOC 80%, no necesita carga
-2. `test_calcular_energia_necesaria_soc_medio` - SOC 40%, necesita carga parcial
-3. `test_calcular_energia_necesaria_soc_bajo` - SOC 20%, necesita carga completa
-4. `test_calcular_energia_necesaria_tiempo_insuficiente` - Alerta cuando horas_carga > horas_disponibles
+### Energy Calculation Tests:
+1. `test_calcular_energia_necesaria_soc_alto` - SOC 80%, no charging needed
+2. `test_calcular_energia_necesaria_soc_medio` - SOC 40%, partial charging needed
+3. `test_calcular_energia_necesaria_soc_bajo` - SOC 20%, full charging needed
+4. `test_calcular_energia_necesaria_tiempo_insuficiente` - Alert when charging_hours > available_hours
 
-### Tests de Generación de Perfil:
-5. `test_generar_perfil_potencia_maxima` - Perfil solo contiene 0W o max_power
-6. `test_generar_perfil_multiples_viajes` - Perfil con múltiples viajes se acumula
-7. `test_generar_perfil_sin_viajes` - Perfil vacío (todos ceros) cuando no hay viajes
+### Profile Generation Tests:
+5. `test_generar_perfil_potencia_maxima` - Profile only contains 0W or max_power
+6. `test_generar_perfil_multiples_viajes` - Profile with multiple trips accumulates
+7. `test_generar_perfil_sin_viajes` - Empty profile (all zeros) when no trips
 
-### Tests de Obtención de SOC:
-8. `test_get_vehicle_soc_sensor_no_disponible` - Maneja sensor unavailable
-9. `test_get_vehicle_soc_sensor_valido` - Obtiene SOC válido desde sensor
-10. `test_get_vehicle_soc_sensor_no_configurado` - Maneja vehículo sin sensor SOC
+### SOC Retrieval Tests:
+8. `test_get_vehicle_soc_sensor_no_disponible` - Handles unavailable sensor
+9. `test_get_vehicle_soc_sensor_valido` - Gets valid SOC from sensor
+10. `test_get_vehicle_soc_sensor_no_configurado` - Handles vehicle without SOC sensor
 
-**Cobertura**: 85% overall, 81% en `trip_manager.py` (líneas críticas > 90%)
+**Coverage**: 85% overall, 81% in `trip_manager.py` (critical lines > 90%)
 
 ---
 
-## 🔧 Configuración en Config Flow
+## 🔧 Config Flow Configuration
 
-### Nuevos Campos (Milestone 4):
+### New Fields (Milestone 4):
 
-**Paso 1: Configuración Básica**
-- `soc_sensor`: Sensor de State of Charge (%, device_class: battery)
-- `battery_capacity_kwh`: Capacidad total de batería (kWh)
-- `charging_power_kw`: Potencia máxima de carga (kW, ej: 7.4)
-- `safety_margin_percent`: Margen de seguridad SOC mínimo (%, default: 40)
+**Step 1: Basic Configuration**
+- `soc_sensor`: State of Charge sensor (%, device_class: battery)
+- `battery_capacity_kwh`: Total battery capacity (kWh)
+- `charging_power_kw`: Maximum charging power (kW, e.g., 7.4)
+- `safety_margin_percent`: Minimum post-trip SOC safety margin (%, default: 40)
 
-**Ejemplo OVMS (Chispitas)**:
+**OVMS Example (Chispitas)**:
 ```yaml
 soc_sensor: "sensor.ovms_chispitas_soc"
 battery_capacity_kwh: 40.0
@@ -189,7 +189,7 @@ charging_power_kw: 7.4
 safety_margin_percent: 40
 ```
 
-**Ejemplo Renault (Morgan)**:
+**Renault Example (Morgan)**:
 ```yaml
 soc_sensor: "sensor.morgan_battery_level"
 battery_capacity_kwh: 27.4
@@ -199,94 +199,94 @@ safety_margin_percent: 40
 
 ---
 
-## 📈 Ejemplos de Uso
+## 📈 Usage Examples
 
-### Ejemplo 1: SOC Alto (No Necesita Carga)
+### Example 1: High SOC (No Charging Needed)
 ```python
-# Datos
-soc_actual = 80%  # 32 kWh disponibles
-viaje = 7.5 kWh
-capacidad = 40 kWh
+# Data
+soc_actual = 80%  # 32 kWh available
+trip = 7.5 kWh
+capacity = 40 kWh
 
-# Cálculo
-post_viaje = 32 - 7.5 = 24.5 kWh (61% SOC)
-minimo = 40 * 0.40 = 16.0 kWh
+# Calculation
+post_trip = 32 - 7.5 = 24.5 kWh (61% SOC)
+minimum = 40 * 0.40 = 16.0 kWh
 
-# Resultado
-energia_necesaria = max(0, 16.0 - 24.5) = 0.0 kWh
-# No se programa carga
+# Result
+energy_needed = max(0, 16.0 - 24.5) = 0.0 kWh
+# No charging scheduled
 ```
 
-### Ejemplo 2: SOC Medio (Carga Parcial)
+### Example 2: Medium SOC (Partial Charging)
 ```python
-# Datos
-soc_actual = 49%  # 19.6 kWh disponibles
-viaje = 7.5 kWh
-capacidad = 40 kWh
+# Data
+soc_actual = 49%  # 19.6 kWh available
+trip = 7.5 kWh
+capacity = 40 kWh
 
-# Cálculo
-post_viaje = 19.6 - 7.5 = 12.1 kWh (30% SOC)
-minimo = 40 * 0.40 = 16.0 kWh
+# Calculation
+post_trip = 19.6 - 7.5 = 12.1 kWh (30% SOC)
+minimum = 40 * 0.40 = 16.0 kWh
 
-# Resultado
-energia_necesaria = max(0, 16.0 - 12.1) = 3.9 kWh
-horas_carga = 3.9 / 7.4 = 0.53 horas (32 minutos)
-# Se programa 1 hora de carga a máxima potencia
+# Result
+energy_needed = max(0, 16.0 - 12.1) = 3.9 kWh
+charging_hours = 3.9 / 7.4 = 0.53 hours (32 minutes)
+# 1 hour of charging at maximum power scheduled
 ```
 
-### Ejemplo 3: SOC Bajo (Carga Completa)
+### Example 3: Low SOC (Full Charging)
 ```python
-# Datos
-soc_actual = 20%  # 8.0 kWh disponibles
-viaje = 7.5 kWh
-capacidad = 40 kWh
+# Data
+soc_actual = 20%  # 8.0 kWh available
+trip = 7.5 kWh
+capacity = 40 kWh
 
-# Cálculo
-post_viaje = 8.0 - 7.5 = 0.5 kWh (1.25% SOC) ⚠️ CRÍTICO
-minimo = 40 * 0.40 = 16.0 kWh
+# Calculation
+post_trip = 8.0 - 7.5 = 0.5 kWh (1.25% SOC) ⚠️ CRITICAL
+minimum = 40 * 0.40 = 16.0 kWh
 
-# Resultado
-energia_necesaria = max(0, 16.0 - 0.5) = 15.5 kWh
-horas_carga = 15.5 / 7.4 = 2.09 horas (2 horas 5 minutos)
-# Se programa 3 horas de carga (redondeo hacia arriba)
-# Alerta: "Tiempo insuficiente" si horas_disponibles < 2.09
+# Result
+energy_needed = max(0, 16.0 - 0.5) = 15.5 kWh
+charging_hours = 15.5 / 7.4 = 2.09 hours (2 hours 5 minutes)
+# 3 hours of charging scheduled (rounded up)
+# Alert: "Insufficient time" if available_hours < 2.09
 ```
 
 ---
 
-## 🚨 Alertas y Notificaciones
+## 🚨 Alerts and Notifications
 
-### Alerta de Tiempo Insuficiente
-**Condición**: `horas_carga_necesarias > horas_disponibles`
+### Insufficient Time Alert
+**Condition**: `horas_carga_necesarias > horas_disponibles`
 
-**Mensaje**:
+**Message**:
 ```
-⚠️ Tiempo insuficiente para cargar
-Vehículo: chispitas
-Viaje: Trabajo (7.5 kWh)
-Necesita: 3.9 kWh (0.53 horas)
-Disponible: 0.25 horas (15 minutos)
-Acción requerida: Cargar manualmente o posponer viaje
+⚠️ Insufficient time to charge
+Vehicle: chispitas
+Trip: Work (7.5 kWh)
+Needs: 3.9 kWh (0.53 hours)
+Available: 0.25 hours (15 minutes)
+Required action: Charge manually or postpone trip
 ```
 
-**Ubicación**: Atributo `alerta_tiempo_insuficiente: true` en el cálculo de energía
+**Location**: `alerta_tiempo_insuficiente: true` attribute in energy calculation
 
 ---
 
-## 🔍 Integración con EMHASS
+## 🔍 EMHASS Integration
 
-### Flujo de Datos Completo
+### Complete Data Flow
 
-1. **Trip Manager** genera perfil de carga (168 horas, binario)
-2. **EMHASS Adapter** lee perfil y crea deferrable loads
-3. **EMHASS** optimiza schedule basado en precios de electricidad
-4. **Schedule Monitor** ejecuta acciones según schedule generado
-5. **Vehicle Controller** activa/desactiva carga físicamente
+1. **Trip Manager** generates charging profile (168 hours, binary)
+2. **EMHASS Adapter** reads profile and creates deferrable loads
+3. **EMHASS** optimizes schedule based on electricity prices
+4. **Schedule Monitor** executes actions according to generated schedule
+5. **Vehicle Controller** physically activates/deactivates charging
 
-### Ejemplo de Integración
+### Integration Example
 
 ```yaml
-# 1. Perfil generado por Trip Manager
+# 1. Profile generated by Trip Manager
 sensor.chispitas_power_profile:
   state: "active"
   attributes:
@@ -294,7 +294,7 @@ sensor.chispitas_power_profile:
     total_kwh_programmed: 3.9
     hours_with_load: 1
 
-# 2. EMHASS Adapter crea deferrable load
+# 2. EMHASS Adapter creates deferrable load
 sensor.emhass_deferrable_load_config_0:
   state: "active"
   attributes:
@@ -303,21 +303,21 @@ sensor.emhass_deferrable_load_config_0:
     def_end_timestep: 71
     trip_id: "rec_lun_abc123"
 
-# 3. EMHASS genera schedule
+# 3. EMHASS generates schedule
 sensor.emhass_deferrable0_schedule:
-  state: "02:00-03:00"  # Hora barata
+  state: "02:00-03:00"  # Cheap hour
 
-# 4. Schedule Monitor activa carga a las 02:00
-# 5. Vehicle Controller enciende switch.ovms_chispitas_carga
+# 4. Schedule Monitor activates charging at 02:00
+# 5. Vehicle Controller turns on switch.ovms_chispitas_carga
 ```
 
 ---
 
-## 📋 Validación en Producción
+## 📋 Production Validation
 
-### Pruebas con Vehículo Real (Chispitas)
+### Real Vehicle Testing (Chispitas)
 
-**Configuración**:
+**Configuration**:
 ```yaml
 vehicle_id: chispitas
 soc_sensor: sensor.ovms_chispitas_soc
@@ -326,80 +326,80 @@ charging_power_kw: 7.4
 safety_margin_percent: 40
 ```
 
-**Viaje de Prueba**:
+**Test Trip**:
 ```yaml
-dia_semana: lunes
+dia_semana: monday
 hora: "09:00"
 km: 50
 kwh: 7.5
-descripcion: "Trabajo"
+descripcion: "Work"
 ```
 
-**Resultado Esperado**:
-- SOC actual: 49% → 19.6 kWh
-- Energía necesaria: 3.9 kWh
-- Horas de carga: 0.53 → 1 hora programada
-- Perfil: 7400W en hora 8 (08:00-09:00)
-- Alerta: `false` (hay tiempo suficiente)
+**Expected Result**:
+- Current SOC: 49% → 19.6 kWh
+- Energy needed: 3.9 kWh
+- Charging hours: 0.53 → 1 hour scheduled
+- Profile: 7400W at hour 8 (08:00-09:00)
+- Alert: `false` (there is enough time)
 
 ---
 
-## 🚀 Próximos Pasos (Milestone 4.1)
+## 🚀 Next Steps (Milestone 4.1)
 
-### Mejoras Planificadas:
+### Planned Improvements:
 
-1. **Carga Distribuida Inteligente**
-   - Distribuir carga en múltiples horas (no solo 1 hora)
-   - Priorizar horas con electricidad más barata
-   - Implementar algoritmo de optimización simple
+1. **Smart Distributed Charging**
+   - Distribute charging across multiple hours (not just 1 hour)
+   - Prioritize hours with cheapest electricity
+   - Implement simple optimization algorithm
 
-2. **Múltiples Vehículos**
-   - Soporte para cargar 2+ vehículos simultáneamente
-   - Balanceo de carga según prioridad
-   - Límites de potencia del hogar
+2. **Multiple Vehicles**
+   - Support charging 2+ vehicles simultaneously
+   - Load balancing based on priority
+   - Home power limits
 
-3. **Predicción de SOC**
-   - Usar histórico para predecir consumo real
-   - Ajustar cálculos basados en temperatura
-   - Considerar eficiencia estacional
+3. **SOC Prediction**
+   - Use history to predict actual consumption
+   - Adjust calculations based on temperature
+   - Consider seasonal efficiency
 
-4. **Integración con Clima**
-   - Reducir rango esperado si frío/calor extremo
-   - Ajustar energía necesaria según condiciones
-   - Alertas de riesgo por clima adverso
+4. **Climate Integration**
+   - Reduce expected range if extreme cold/heat
+   - Adjust energy needed based on conditions
+   - Adverse weather risk alerts
 
-5. **UI de Perfil de Carga**
-   - Gráfico en dashboard mostrando próximas cargas
-   - Indicador de horas hasta próxima carga
-   - Botón "Cargar Ahora" forzado
+5. **Charging Profile UI**
+   - Chart in dashboard showing upcoming charges
+   - Hours until next charging indicator
+   - Forced "Charge Now" button
 
 ---
 
-## 📚 Referencias
+## 📚 References
 
-### Archivos Clave:
-- `custom_components/ev_trip_planner/trip_manager.py` (líneas 660-930)
-- `custom_components/ev_trip_planner/sensor.py` (líneas 164-220)
+### Key Files:
+- `custom_components/ev_trip_planner/trip_manager.py` (lines 660-930)
+- `custom_components/ev_trip_planner/sensor.py` (lines 164-220)
 - `tests/test_power_profile_tdd.py` (10 tests)
-- `tests/test_trip_manager_power_profile.py` (5 tests adicionales)
+- `tests/test_trip_manager_power_profile.py` (5 additional tests)
 
-### Documentación Relacionada:
-- `docs/MILESTONE_3_IMPLEMENTATION_PLAN.md` - Plan de implementación general
-- `docs/MILESTONE_3_REFINEMENT.md` - Requisitos refinados
-- `docs/ISSUES_CLOSED.md` - Issue #5 (BUG CRÍTICO resuelto)
+### Related Documentation:
+- `docs/MILESTONE_3_IMPLEMENTATION_PLAN.md` - General implementation plan
+- `docs/MILESTONE_3_REFINEMENT.md` - Refined requirements
+- `docs/ISSUES_CLOSED.md` - Issue #5 (CRITICAL BUG resolved)
 
-### Constantes:
+### Constants:
 ```python
-# en const.py
+# in const.py
 CONF_BATTERY_CAPACITY = "battery_capacity_kwh"
 CONF_CHARGING_POWER = "charging_power_kw"
 CONF_SAFETY_MARGIN = "safety_margin_percent"
-DEFAULT_SAFETY_MARGIN = 40  # 40% SOC mínimo
+DEFAULT_SAFETY_MARGIN = 40  # 40% minimum SOC
 ```
 
 ---
 
-**Documento Version**: 1.0  
+**Document Version**: 1.0  
 **Last Updated**: 2025-12-14  
 **Status**: ✅ IMPLEMENTED, TESTED & DEPLOYED  
 **Next Review**: After Milestone 4.1 planning

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-23T07:35:37Z",
+  "updated": "2026-04-23T16:39:23Z",
   "directories": [
     {
       "path": "./specs",
@@ -209,9 +209,7 @@
     {
       "name": "e2e-ux-tests-fix",
       "path": "./specs/e2e-ux-tests-fix",
-      "phase": "execution",
-      "taskIndex": 91,
-      "totalTasks": 98
+      "phase": "tasks"
     }
   ]
 }

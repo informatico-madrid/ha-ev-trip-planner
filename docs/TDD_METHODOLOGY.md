@@ -1,86 +1,86 @@
-# 🧪 Metodología TDD (Test-Driven Development) - EV Trip Planner
+# 🧪 TDD Methodology (Test-Driven Development) - EV Trip Planner
 
-**ADN del Desarrollador**: Esta metodología es **OBLIGATORIA** y **NON-NEGOTIABLE**. Siempre que se reinicie el contexto, este documento debe ser leído primero.
+**Developer DNA**: This methodology is **MANDATORY** and **NON-NEGOTIABLE**. Whenever the context is restarted, this document must be read first.
 
 ---
 
-## 📋 Principios Fundamentales
+## 📋 Fundamental Principles
 
 ### 1. **RED → GREEN → REFACTOR**
 
-**Fase RED**: Escribir tests que FALLAN primero
-- Antes de escribir cualquier código de producción, escribir el test
-- El test debe fallar inicialmente (verificar que el test es válido)
-- Si el test pasa inmediatamente, algo está mal (test falso positivo)
+**RED Phase**: Write tests that FAIL first
+- Before writing any production code, write the test
+- The test should fail initially (verify the test is valid)
+- If the test passes immediately, something is wrong (false positive test)
 
-**Fase GREEN**: Escribir el código mínimo para que el test PASE
-- Implementar solo lo necesario para hacer pasar el test
-- No pre-optimizar, no añadir funcionalidad extra
-- Los tests deben pasar después de esta fase
+**GREEN Phase**: Write the minimal code to make the test PASS
+- Implement only what is necessary to pass the test
+- Do not over-optimize, do not add extra functionality
+- Tests should pass after this phase
 
-**Fase REFACTOR**: Mejorar el código sin cambiar comportamiento
-- Una vez que todos los tests pasan, refactorizar si es necesario
-- Mantener todos los tests pasando durante el refactor
-- Mejorar legibilidad, rendimiento, mantenibilidad
+**REFACTOR Phase**: Improve code without changing behavior
+- Once all tests pass, refactor if necessary
+- Keep all tests passing during refactoring
+- Improve readability, performance, maintainability
 
 ---
 
-## 🎯 Ciclo de Desarrollo TDD (Obligatorio)
+## 🎯 TDD Development Cycle (Mandatory)
 
-### Para CADA Funcionalidad Nueva:
+### For EACH New Feature:
 
 ```bash
-# PASO 1: Escribir test (RED)
-# - Crear archivo de test si no existe
-# - Escribir test que describe la funcionalidad esperada
-# - Ejecutar test y verificar que FALLA
+# STEP 1: Write test (RED)
+# - Create test file if it doesn't exist
+# - Write test that describes expected behavior
+# - Run test and verify it FAILS
 
-pytest tests/test_nueva_funcionalidad.py -v
-# Resultado esperado: FAILED (1 failed)
+pytest tests/test_new_feature.py -v
+# Expected result: FAILED (1 failed)
 
-# PASO 2: Implementar código mínimo (GREEN)
-# - Crear archivo de producción si no existe
-# - Escribir el código MÍNIMO necesario
-# - Ejecutar test y verificar que PASA
+# STEP 2: Implement minimal code (GREEN)
+# - Create production file if it doesn't exist
+# - Write the MINIMAL code necessary
+# - Run test and verify it PASSES
 
-pytest tests/test_nueva_funcionalidad.py -v
-# Resultado esperado: PASSED (1 passed)
+pytest tests/test_new_feature.py -v
+# Expected result: PASSED (1 passed)
 
-# PASO 3: Refactorizar (REFACTOR)
-# - Mejorar el código si es necesario
-# - Verificar que todos los tests siguen pasando
+# STEP 3: Refactor (REFACTOR)
+# - Improve code if necessary
+# - Verify all tests still pass
 
 pytest tests/ -v
-# Resultado esperado: Todos los tests pasan
+# Expected result: All tests pass
 
-# PASO 4: Commit atómico
-git add tests/test_nueva_funcionalidad.py custom_components/...
-git commit -m "feat: [descripción] - TDD cycle complete"
+# STEP 4: Atomic commit
+git add tests/test_new_feature.py custom_components/...
+git commit -m "feat: [description] - TDD cycle complete"
 ```
 
 ---
 
-## 📦 Estructura de Tests
+## 📦 Test Structure
 
-### Convenciones de Nomenclatura:
+### Naming Conventions:
 
-- **Archivos de test**: `test_[modulo].py`
-- **Funciones de test**: `async def test_[escenario]_[condicion]()`
-- **Fixtures**: `@pytest.fixture` en `conftest.py`
-- **Test doubles compartidos**: en `tests/__init__.py` (NO en `conftest.py`)
+- **Test files**: `test_[module].py`
+- **Test functions**: `async def test_[scenario]_[condition]()`
+- **Fixtures**: `@pytest.fixture` in `conftest.py`
+- **Shared test doubles**: in `tests/__init__.py` (NOT in `conftest.py`)
 
 ---
 
-## 🔍 Tipos de Tests Requeridos
+## 🔍 Required Test Types
 
-### 1. **Unit Tests** (Cobertura > 80%)
+### 1. **Unit Tests** (Coverage > 80%)
 
-**Qué testear:**
-- Lógica de negocio (cálculos, validaciones)
-- Transformaciones de datos
-- Manejo de errores y edge cases
+**What to test:**
+- Business logic (calculations, validations)
+- Data transformations
+- Error handling and edge cases
 
-**Ejemplo:**
+**Example:**
 ```python
 async def test_calculate_kwh_needed_valid_input(hass):
     """Test kWh calculation with valid distance and consumption."""
@@ -97,12 +97,12 @@ async def test_calculate_kwh_needed_valid_input(hass):
 
 ### 2. **Integration Tests**
 
-**Qué testear:**
-- Interacción entre componentes
-- Flujos completos (ej: crear viaje → publicar en EMHASS → activar carga)
-- Comunicación con Home Assistant (services, states)
+**What to test:**
+- Component interaction
+- Complete flows (e.g., create trip → publish to EMHASS → activate charging)
+- Communication with Home Assistant (services, states)
 
-**Ejemplo:**
+**Example:**
 ```python
 async def test_trip_creation_triggers_emhass_publish(hass):
     """Test that creating a trip publishes to EMHASS."""
@@ -113,15 +113,15 @@ async def test_trip_creation_triggers_emhass_publish(hass):
     # Assert: Verify EMHASS sensor was created with correct attributes
 ```
 
-### 3. **Config Flow Tests** (CRÍTICO)
+### 3. **Config Flow Tests** (CRITICAL)
 
-**Qué testear:**
-- Validación de entrada del usuario
-- Transiciones entre pasos
-- Manejo de errores (sensores no existen, formato inválido)
-- Creación de entrada de configuración
+**What to test:**
+- User input validation
+- Step transitions
+- Error handling (sensors don't exist, invalid format)
+- Configuration entry creation
 
-**Ejemplo:**
+**Example:**
 ```python
 async def test_config_flow_invalid_sensor(hass):
     """Test config flow rejects non-existent sensor."""
@@ -133,66 +133,66 @@ async def test_config_flow_invalid_sensor(hass):
 
 ---
 
-## ✅ Checklist TDD por Funcionalidad
+## ✅ TDD Checklist per Feature
 
-Antes de marcar una tarea como completada, verificar:
+Before marking a task as complete, verify:
 
-- [ ] **Test escrito** (RED)
-  - [ ] Test describe el comportamiento esperado
-  - [ ] Test falla inicialmente (verificado)
-  - [ ] Test cubre casos normales y edge cases
+- [ ] **Test written** (RED)
+  - [ ] Test describes expected behavior
+  - [ ] Test fails initially (verified)
+  - [ ] Test covers normal cases and edge cases
 
-- [ ] **Código implementado** (GREEN)
-  - [ ] Código mínimo para pasar el test
-  - [ ] Test pasa después de implementación
-  - [ ] No hay código muerto
+- [ ] **Code implemented** (GREEN)
+  - [ ] Minimal code to pass the test
+  - [ ] Test passes after implementation
+  - [ ] No dead code
 
-- [ ] **Refactorización** (REFACTOR)
-  - [ ] Código limpio y legible
-  - [ ] Nombres descriptivos
-  - [ ] Comentarios solo donde sea necesario
-  - [ ] Todos los tests siguen pasando
+- [ ] **Refactoring** (REFACTOR)
+  - [ ] Clean and readable code
+  - [ ] Descriptive names
+  - [ ] Comments only where necessary
+  - [ ] All tests still passing
 
-- [ ] **Test Doubles correctos**
-  - [ ] Usa `MagicMock(spec=ClaseReal)` — nunca `MagicMock()` sin `spec` para clases propias
-  - [ ] Fakes/Stubs compartidos están en `tests/__init__.py`
-  - [ ] Patches solo en boundaries externos (nunca dentro del código de producción)
+- [ ] **Correct Test Doubles**
+  - [ ] Uses `MagicMock(spec=RealClass)` — never `MagicMock()` without `spec` for own classes
+  - [ ] Shared Fakes/Stubs are in `tests/__init__.py`
+  - [ ] Patches only at external boundaries (never inside production code)
 
-- [ ] **Documentación**
-  - [ ] Docstrings en funciones públicas
-  - [ ] Comentarios en lógica compleja
-  - [ ] README actualizado si es feature visible al usuario
+- [ ] **Documentation**
+  - [ ] Docstrings in public functions
+  - [ ] Comments in complex logic
+  - [ ] README updated if user-visible feature
 
 - [ ] **Commit**
-  - [ ] Mensaje claro: `feat/fix: descripción - TDD cycle`
-  - [ ] Incluye archivos de test y producción
-  - [ ] No incluye archivos temporales o de debug
+  - [ ] Clear message: `feat/fix: description - TDD cycle`
+  - [ ] Includes test and production files
+  - [ ] Does not include temporary or debug files
 
 ---
 
-## 🚨 Prohibiciones TDD (NO hacer)
+## 🚨 TDD Prohibitions (Do NOT do)
 
-❌ **NUNCA** escribir código de producción sin test previo
-❌ **NUNCA** escribir tests después del código (no es TDD)
-❌ **NUNCA** añadir funcionalidad que no esté en un test
-❌ **NUNCA** hacer commit con tests fallando
-❌ **NUNCA** borrar tests sin reemplazarlos con tests equivalentes
-❌ **NUNCA** usar `time.sleep()` en tests (usar `asyncio.sleep(0)` o fixtures)
-❌ **NUNCA** usar `MagicMock()` sin `spec` para sustituir clases propias del proyecto
-❌ **NUNCA** usar `patch()` dentro de código de producción — solo en tests, en los boundaries
+❌ **NEVER** write production code without prior test
+❌ **NEVER** write tests after code (this is not TDD)
+❌ **NEVER** add functionality not in a test
+❌ **NEVER** commit with failing tests
+❌ **NEVER** delete tests without replacing them with equivalent tests
+❌ **NEVER** use `time.sleep()` in tests (use `asyncio.sleep(0)` or fixtures)
+❌ **NEVER** use `MagicMock()` without `spec` to substitute project classes
+❌ **NEVER** use `patch()` inside production code — only in tests, at boundaries
 
 ---
 
-## 🏗️ Layered Test Doubles Strategy (OBLIGATORIO)
+## 🏗️ Layered Test Doubles Strategy (MANDATORY)
 
-Esta es la estrategia usada por integraciones HACS Platinum/Gold de referencia como [Frigate](https://github.com/blakeblackshear/frigate-hass-integration). Tiene **3 capas obligatorias** que trabajan juntas.
+This is the strategy used by Platinum/Gold HACS reference integrations like [Frigate](https://github.com/blakeblackshear/frigate-hass-integration). It has **3 mandatory layers** that work together.
 
-### 📌 Capa 1 — `tests/__init__.py`: Datos y Fakes compartidos
+### 📌 Layer 1 — `tests/__init__.py`: Shared data and Fakes
 
-Centraliza todos los datos de test y los helpers de creación de doubles en un único módulo importable. Esto evita duplicación y hace que los tests sean más fáciles de mantener.
+Centralizes all test data and test double creation helpers in a single importable module. This avoids duplication and makes tests easier to maintain.
 
 ```python
-# tests/__init__.py  — Patrón Frigate adaptado a ev-trip-planner
+# tests/__init__.py  — Frigate pattern adapted for ev-trip-planner
 
 from unittest.mock import AsyncMock, MagicMock
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -200,7 +200,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_NAME
 from custom_components.ev_trip_planner.const import DOMAIN
 
-# ――― Constantes de test compartidas (Fixtures de datos) ―――
+# ――― Shared test constants (Data Fixtures) ―――
 TEST_VEHICLE_ID = "coche1"
 TEST_ENTRY_ID = "test_entry_id_abc123"
 TEST_URL = "http://emhass.local:5000"
@@ -215,8 +215,8 @@ TEST_CONFIG = {
 
 TEST_TRIPS = {
     "recurring": [
-        {"id": "trip_001", "km": 50, "dia_semana": "lunes", "hora": "08:00"},
-        {"id": "trip_002", "km": 30, "dia_semana": "viernes", "hora": "09:00"},
+        {"id": "trip_001", "km": 50, "day_of_week": "monday", "time": "08:00"},
+        {"id": "trip_002", "km": 30, "day_of_week": "friday", "time": "09:00"},
     ],
     "punctual": [
         {"id": "trip_003", "km": 120, "datetime": "2026-05-01T10:00:00"},
@@ -232,7 +232,7 @@ TEST_COORDINATOR_DATA = {
 }
 
 
-# ――― Capa 1: Stub del TripManager (respuestas realistas precargadas) ―――
+# ――― Layer 1: TripManager Stub (realistic pre-loaded responses) ―――
 def create_mock_trip_manager() -> AsyncMock:
     """Create a stub TripManager with realistic pre-configured responses."""
     mock = AsyncMock()
@@ -247,19 +247,19 @@ def create_mock_trip_manager() -> AsyncMock:
     return mock
 
 
-# ――― Capa 1: Fake del Coordinator (datos en memoria) ―――
+# ――― Layer 1: Coordinator Fake (in-memory data) ―――
 def create_mock_coordinator(hass: HomeAssistant, entry=None, trip_manager=None):
     """Create a fake coordinator with in-memory data."""
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    coordinator = MagicMock(spec=TripPlannerCoordinator)  # spec OBLIGATORIO
-    coordinator.data = dict(TEST_COORDINATOR_DATA)  # copia para mutabilidad
+    coordinator = MagicMock(spec=TripPlannerCoordinator)  # spec MANDATORY
+    coordinator.data = dict(TEST_COORDINATOR_DATA)  # copy for mutability
     coordinator.hass = hass
     coordinator._trip_manager = trip_manager or create_mock_trip_manager()
     coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)
     return coordinator
 
 
-# ――― Capa 1: Config entry fake ―――
+# ――― Layer 1: Fake config entry ―――
 def create_mock_ev_config_entry(
     hass: HomeAssistant,
     data: dict | None = None,
@@ -276,7 +276,7 @@ def create_mock_ev_config_entry(
     return config_entry
 
 
-# ――― Capa 3: Setup completo con patch en el boundary de HA ―――
+# ――― Layer 3: Full setup with patch at HA boundary ―――
 async def setup_mock_ev_config_entry(
     hass: HomeAssistant,
     config_entry=None,
@@ -296,9 +296,9 @@ async def setup_mock_ev_config_entry(
     return config_entry, manager
 ```
 
-### 📌 Capa 2 — Stubs por método en tests individuales
+### 📌 Layer 2 — Per-method Stubs in individual tests
 
-Cuando un test concreto necesita una respuesta diferente a la del stub base, sobreescribir solo ese método:
+When a specific test needs a different response than the base stub, override only that method:
 
 ```python
 # test_trip_manager.py
@@ -307,7 +307,7 @@ from tests import create_mock_trip_manager
 async def test_add_trip_fails_when_duplicate(hass):
     """Test that adding a duplicate trip raises an error."""
     manager = create_mock_trip_manager()
-    # Capa 2: stub específico para este test
+    # Layer 2: test-specific stub
     manager.async_add_recurring_trip = AsyncMock(
         side_effect=ValueError("Trip already exists")
     )
@@ -316,9 +316,9 @@ async def test_add_trip_fails_when_duplicate(hass):
         await manager.async_add_recurring_trip({"id": "trip_001", "km": 50})
 ```
 
-### 📌 Capa 3 — Patch en los boundaries de HA
+### 📌 Layer 3 — Patch at HA boundaries
 
-Usar `patch()` exclusivamente para sustituir factories o dependencias inyectadas por HA, nunca para mockear internals de la integración:
+Use `patch()` exclusively for substituting factories or dependencies injected by HA, never to mock integration internals:
 
 ```python
 # test_init.py
@@ -328,10 +328,10 @@ async def test_integration_setup(hass):
     """Test the integration sets up correctly."""
     config_entry, manager = await setup_mock_ev_config_entry(hass)
     
-    # Verificar que HA registró la integración correctamente
+    # Verify HA registered the integration correctly
     assert hass.data[DOMAIN][config_entry.entry_id] is not None
     
-    # Verificar interacción (Mock pattern)
+    # Verify interaction (Mock pattern)
     manager.async_setup.assert_called_once()
 ```
 
@@ -341,22 +341,22 @@ async def test_integration_setup(hass):
 
 | Double | When to Use | HA Rule of Gold | Example from ev-trip-planner |
 |--------|--------------|-----------------|------------------------------|
-| **Fake** | Simplificar dependencias complejas con implementación real en memoria | Usar Fakes cuando necesitas comportamiento pero sin side effects | `coordinator.data = {"kwh_today": 5.0}` — datos reales en memoria |
-| **Stub** | Respuestas precargadas para métodos concretos | Stub I/O externo (ficheros, red) que tu código llama pero no debe ejecutar realmente | `async def mock_load(): return {"data": "cached"}` — valor predeterminado |
-| **Mock** | Verificar interacciones (call count, argumentos, orden) | **Nunca Mockés la base de datos, filesystem o red en tests de integración** | `coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)` verifica que fue llamado |
-| **Spy** | Envolver objeto real, registrar uso sin cambiar comportamiento | Usar Spies cuando necesitas el comportamiento real más verificación | `MagicMock(spec=DataUpdateCoordinator)` envuelve coordinator real, falla en llamadas inesperadas |
-| **Fixture** | Proporcionar datos de test u objetos helper; código de setup | Las fixtures son para datos de test y objetos helper, NO para verificar comportamiento | `mock_hass()` fixture crea instancia HA consistente |
-| **Patch** | Reemplazar temporalmente atributos/objetos en scope de módulo | Usar `patch()` solo en boundaries (llamadas a subsistemas HA), no dentro de tu código | `patch('custom_components.ev_trip_planner.services.handle_trip_create')` |
+| **Fake** | Simplify complex dependencies with real in-memory implementation | Use Fakes when you need behavior but no side effects | `coordinator.data = {"kwh_today": 5.0}` — real data in memory |
+| **Stub** | Preloaded responses for specific methods | Stub external I/O (files, network) that your code calls but should not actually execute | `async def mock_load(): return {"data": "cached"}` — default value |
+| **Mock** | Verify interactions (call count, arguments, order) | **Never Mock the database, filesystem or network in integration tests** | `coordinator.async_config_entry_first_refresh = AsyncMock(return_value=None)` verifies it was called |
+| **Spy** | Wrap real object, record usage without changing behavior | Use Spies when you need real behavior plus verification | `MagicMock(spec=DataUpdateCoordinator)` wraps real coordinator, fails on unexpected calls |
+| **Fixture** | Provide test data or helper objects; setup code | Fixtures are for test data and helper objects, NOT for verifying behavior | `mock_hass()` fixture creates consistent HA instance |
+| **Patch** | Temporarily replace attributes/objects in module scope | Use `patch()` only at boundaries (calls to HA subsystems), not inside your code | `patch('custom_components.ev_trip_planner.services.handle_trip_create')` |
 
 ### HA Rule of Gold (Strict)
 
-**"Nunca mockear los internals de Home Assistant — solo mockear dependencias externas y boundaries."**
+**"Never mock Home Assistant internals — only mock external dependencies and boundaries."**
 
-Esto significa:
-- ✅ **SIEMPRE mockear**: Servicios externos (EMHASS API, HTTP endpoints), filesystem calls, `hass.loop`, primitivas `asyncio`
-- ✅ **NUNCA mockear**: `hass.states`, `hass.services`, `entity_registry.async_entries_for_config_entry` — testear con objetos reales o Fakes
-- ⚠️ **CON MODERACIÓN**: Internals de `DataUpdateCoordinator`, config entry APIs — preferir tests de integración
-- ❗ **OBLIGATORIO**: Usar siempre `MagicMock(spec=ClaseReal)` — nunca `MagicMock()` sin `spec` para clases propias
+This means:
+- ✅ **ALWAYS mock**: External services (EMHASS API, HTTP endpoints), filesystem calls, `hass.loop`, `asyncio` primitives
+- ✅ **NEVER mock**: `hass.states`, `hass.services`, `entity_registry.async_entries_for_config_entry` — test with real objects or Fakes
+- ⚠️ **WITH MODERATION**: `DataUpdateCoordinator` internals, config entry APIs — prefer integration tests
+- ❗ **MANDATORY**: Always use `MagicMock(spec=RealClass)` — never `MagicMock()` without `spec` for own classes
 
 ### When to Use Each Test Double
 
@@ -398,91 +398,91 @@ trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
 with patch('homeassistant.helpers.storage.Store', return_value=mock_store):
     await async_cleanup_stale_storage(hass, vehicle_id)
 
-# FIXTURE: Provide test data (en tests/__init__.py, no en conftest.py)
+# FIXTURE: Provide test data (in tests/__init__.py, not in conftest.py)
 TEST_TRIPS = {"recurring": [{"id": "trip_001", "km": 50}], "punctual": []}
 ```
 
 ---
 
-## 🔄 Flujo de Trabajo Diario
+## 🔄 Daily Workflow
 
-### Al empezar a trabajar:
+### When starting work:
 
 ```bash
-# 1. Verificar estado actual
+# 1. Check current status
 git status
 
-# 2. Ejecutar todos los tests para asegurar baseline verde
+# 2. Run all tests to ensure green baseline
 pytest tests/ -v
-# Resultado: Todos los tests deben pasar
+# Result: All tests must pass
 
-# 3. Si hay tests fallando, arreglarlos ANTES de añadir nueva funcionalidad
+# 3. If tests are failing, fix them BEFORE adding new functionality
 ```
 
-### Durante el desarrollo:
+### During development:
 
 ```bash
-# 1. Escribir test (RED)
-# ... editar tests/test_nueva_funcionalidad.py ...
+# 1. Write test (RED)
+# ... edit tests/test_new_feature.py ...
 
-# 2. Ejecutar test y verificar que falla
-pytest tests/test_nueva_funcionalidad.py::test_nuevo_test -v
-# Resultado: FAILED (esperado)
+# 2. Run test and verify it fails
+pytest tests/test_new_feature.py::test_new_test -v
+# Result: FAILED (expected)
 
-# 3. Implementar código (GREEN)
-# ... editar custom_components/ev_trip_planner/...
+# 3. Implement code (GREEN)
+# ... edit custom_components/ev_trip_planner/...
 
-# 4. Ejecutar test y verificar que pasa
-pytest tests/test_nueva_funcionalidad.py::test_nuevo_test -v
-# Resultado: PASSED (esperado)
+# 4. Run test and verify it passes
+pytest tests/test_new_feature.py::test_new_test -v
+# Result: PASSED (expected)
 
-# 5. Ejecutar TODOS los tests para evitar regresiones
+# 5. Run ALL tests to prevent regressions
 pytest tests/ -v
-# Resultado: Todos deben pasar
+# Result: All must pass
 
-# 6. Refactorizar si es necesario (REFACTOR)
-# ... mejorar código ...
+# 6. Refactor if necessary (REFACTOR)
+# ... improve code ...
 
-# 7. Verificar tests siguen pasando
+# 7. Verify tests still pass
 pytest tests/ -v
 ```
 
-### Al finalizar:
+### When finishing:
 
 ```bash
-# 1. Ver cobertura
+# 1. Check coverage
 pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=term-missing
 
-# 2. Commit atómico
+# 2. Atomic commit
 git add tests/ custom_components/
-git commit -m "feat: nueva funcionalidad - TDD cycle complete"
+git commit -m "feat: new feature - TDD cycle complete"
 
-# 3. Push a feature branch
-git push origin feature/nueva-funcionalidad
+# 3. Push to feature branch
+git push origin feature/new-feature
 ```
 
 ---
 
-## 📚 Recursos y Ejemplos
+## 📚 Resources and Examples
 
-### Integración de referencia — Layered Test Doubles:
+### Reference Integration — Layered Test Doubles:
 
-- **Frigate** (patrón usado en esta metodología): https://github.com/blakeblackshear/frigate-hass-integration/blob/master/tests/__init__.py
-  - `tests/__init__.py` centraliza Fakes/Stubs: `TEST_CONFIG`, `TEST_STATS`, `create_mock_frigate_client()`
-  - `conftest.py` solo tiene pytest fixtures ligeras
-  - `patch()` solo en `setup_mock_frigate_config_entry()` — boundary de HA
+- **Frigate** (pattern used in this methodology): https://github.com/blakeblackshear/frigate-hass-integration/blob/master/tests/__init__.py
+  - `tests/__init__.py` centralizes Fakes/Stubs: `TEST_CONFIG`, `TEST_STATS`, `create_mock_frigate_client()`
+  - `conftest.py` only has lightweight pytest fixtures
+  - `patch()` only in `setup_mock_frigate_config_entry()` — HA boundary
 
-### Ejemplos de Tests en el Proyecto:
+### Test Examples in the Project:
 
-- `tests/test_config_flow_milestone3.py` - Tests de config flow Milestone 3
-- `tests/test_trip_manager.py` - Tests de gestión de viajes
-- `tests/test_sensors.py` - Tests de sensores
+- `tests/test_config_flow_milestone3.py` - Milestone 3 config flow tests
+- `tests/test_trip_manager.py` - Trip management tests
+- `tests/test_sensors.py` - Sensor tests
 
-### Patrones Comunes:
+### Common Patterns:
 
-**Mock de Home Assistant (usando pytest-homeassistant-custom-component):**
+**Home Assistant Mock (using pytest-homeassistant-custom-component):**
 ```python
-# conftest.py — solo fixtures ligeras
+# conftest.py — only lightweight fixtures
 @pytest.fixture
 def mock_config_entry(hass):
     """Return a mock config entry registered in hass."""
@@ -490,41 +490,41 @@ def mock_config_entry(hass):
     return create_mock_ev_config_entry(hass)
 ```
 
-**Test de Servicio con Layered Strategy:**
+**Service Test with Layered Strategy:**
 ```python
 # test_services.py
 from tests import create_mock_trip_manager, setup_mock_ev_config_entry
 
 async def test_service_add_trip(hass):
     """Test add trip service delegates to TripManager."""
-    # Arrange — usar helpers de tests/__init__.py
+    # Arrange — use helpers from tests/__init__.py
     config_entry, manager = await setup_mock_ev_config_entry(hass)
     
     # Act
     await hass.services.async_call(
         DOMAIN, "add_recurring_trip",
-        {"vehicle_id": "coche1", "km": 50, "dia_semana": "lunes"},
+        {"vehicle_id": "coche1", "km": 50, "day_of_week": "monday"},
         blocking=True,
     )
     
-    # Assert — Mock pattern: verificar que se delego correctamente
+    # Assert — Mock pattern: verify delegation
     manager.async_add_recurring_trip.assert_called_once()
 ```
 
 ---
 
-## 🎯 Recordatorio Final
+## 🎯 Final Reminder
 
-**ESTA METODOLOGÍA ES TU ADN COMO DESARROLLADOR**
+**THIS METHODOLOGY IS YOUR DEVELOPER DNA**
 
-- No se trata de "escribir tests", se trata de "diseñar software a través de tests"
-- Los tests son la especificación ejecutable del comportamiento esperado
-- Si no hay test, la funcionalidad no existe (no importa si el código está escrito)
-- Los test doubles mal usados (`MagicMock()` sin `spec`) son peores que no tener tests — dan falsa confianza
-- **Siempre que reinicies tu contexto, lee este documento primero**
+- It is not about "writing tests", it is about "designing software through tests"
+- Tests are the executable specification of expected behavior
+- If there is no test, the functionality does not exist (it does not matter if the code is written)
+- Misused test doubles (`MagicMock()` without `spec`) are worse than no tests — they give false confidence
+- **Whenever you restart your context, read this document first**
 
 ---
 
-**Documento Version**: 2.0
+**Document Version**: 2.0
 **Last Updated**: 2026-04-08
 **Status**: MANDATORY - Must be followed for all development

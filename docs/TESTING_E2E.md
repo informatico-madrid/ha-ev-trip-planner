@@ -1,80 +1,80 @@
-# Guía de Tests E2E — EV Trip Planner
+# E2E Testing Guide — EV Trip Planner
 
-Esta guía explica cómo ejecutar los tests End-to-End (Playwright) tanto **en local** como en el **pipeline de CI**. La configuración es 100% compatible entre ambos entornos.
-
----
-
-## Índice
-
-1. [Cómo funcionan los tests](#cómo-funcionan-los-tests)
-2. [Prerrequisitos](#prerrequisitos)
-3. [Ejecución en Local — Opción A (Docker Compose, recomendado)](#opción-a-docker-compose-recomendado)
-4. [Ejecución en Local — Opción B (hass manual)](#opción-b-hass-manual-sin-docker)
-5. [Ejecución en CI (GitHub Actions)](#ejecución-en-ci-github-actions)
-6. [Estructura de los tests](#estructura-de-los-tests)
-7. [Usuarios y autenticación](#usuarios-y-autenticación)
-8. [Comandos útiles](#comandos-útiles)
-9. [Resolución de problemas](#resolución-de-problemas)
+This guide explains how to run End-to-End tests (Playwright) both **locally** and in the **CI pipeline**. The configuration is 100% compatible between both environments.
 
 ---
 
-## Cómo funcionan los tests
+## Table of Contents
+
+1. [How Tests Work](#how-tests-work)
+2. [Prerequisites](#prerequisites)
+3. [Local Execution — Option A (Docker Compose, recommended)](#option-a-docker-compose-recommended)
+4. [Local Execution — Option B (manual hass)](#option-b-manual-hass-without-docker)
+5. [CI Execution (GitHub Actions)](#ci-execution-github-actions)
+6. [Test Structure](#test-structure)
+7. [Users and Authentication](#users-and-authentication)
+8. [Useful Commands](#useful-commands)
+9. [Troubleshooting](#troubleshooting)
+
+---
+
+## How Tests Work
 
 ```
 npm run test:e2e
        │
-       ├─► auth.setup.ts (globalSetup — se ejecuta UNA vez al inicio)
-       │     ├─ Espera a que HA responda en http://localhost:8123
-       │     ├─ Llama a la REST API de HA para crear el usuario "dev/dev" (si no existe)
-       │     ├─ Configura la integración ev_trip_planner via Config Flow REST API
+       ├─► auth.setup.ts (globalSetup — runs ONCE at start)
+       │     ├─ Waits for HA to respond at http://localhost:8123
+       │     ├─ Calls HA REST API to create user "dev/dev" (if not exists)
+       │     ├─ Configures ev_trip_planner integration via Config Flow REST API
        │     │     vehicle_name = "test_vehicle"
        │     │     charging_sensor = "input_boolean.test_ev_charging"
-       │     └─ Guarda la sesión autenticada en playwright/.auth/user.json
+       │     └─ Saves authenticated session to playwright/.auth/user.json
        │
-       ├─► tests/e2e/*.spec.ts  (cada test)
-       │     ├─ Carga la sesión guardada (storageState)
-       │     ├─ Navega directamente a /ev-trip-planner-test_vehicle
-       │     ├─ Realiza la acción (crear/editar/borrar viaje...)
-       │     └─ Limpia los datos creados
+       ├─► tests/e2e/*.spec.ts  (each test)
+       │     ├─ Loads saved session (storageState)
+       │     ├─ Navigates directly to /ev-trip-planner-test_vehicle
+       │     ├─ Performs action (create/edit/delete trip...)
+       │     └─ Cleans up created data
        │
-       └─► globalTeardown.ts  (limpia ficheros temporales)
+       └─► globalTeardown.ts  (cleans up temporary files)
 ```
 
-**Puntos clave:**
-- HA **debe estar corriendo** antes de ejecutar `npx playwright test`. La suite NO arranca HA.
-- La autenticación se hace vía **trusted_networks** (sin login form, bypass automático desde 127.0.0.1).
-- La integración se configura via REST API en `auth.setup.ts`, no vía UI.
-- El panel se registra en la barra lateral con el nombre `test_vehicle`.
-- La navegación al panel usa la URL directa `/ev-trip-planner-test_vehicle`.
+**Key points:**
+- HA **must be running** before executing `npx playwright test`. The suite does NOT start HA.
+- Authentication is done via **trusted_networks** (no login form, automatic bypass from 127.0.0.1).
+- Integration is configured via REST API in `auth.setup.ts`, not via UI.
+- Panel is registered in the sidebar with the name `test_vehicle`.
+- Panel navigation uses the direct URL `/ev-trip-planner-test_vehicle`.
 
 ---
 
-## Prerrequisitos
+## Prerequisites
 
-### Todos los entornos
+### All environments
 
 ```bash
-# Node.js ≥ 18 (comprobar)
+# Node.js ≥ 18 (check)
 node --version
 
-# Instalar dependencias Node
+# Install Node dependencies
 npm install
 
-# Instalar Chromium (solo se necesita Chromium)
+# Install Chromium (only Chromium is needed)
 npx playwright install chromium --with-deps
 ```
 
-### Solo para ejecución local (sin Docker)
+### Only for local execution (without Docker)
 
 ```bash
 # Python 3.11-3.14
 python3 --version
 
-# Instalar Home Assistant
+# Install Home Assistant
 pip install homeassistant
 ```
 
-### Solo para ejecución con Docker
+### Only for Docker execution
 
 ```bash
 # Docker + docker compose
@@ -84,60 +84,60 @@ docker compose version
 
 ---
 
-## Opción A: Docker Compose (recomendado)
+## Option A: Docker Compose (recommended)
 
-Esta es la forma más sencilla y reproducible. El `docker-compose.yml` ya está configurado con:
-- `trusted_networks` para bypass de login desde localhost.
-- `input_boolean.test_ev_charging` necesario para el Config Flow.
-- Volumen montando `custom_components/ev_trip_planner` desde el repo local.
+This is the simplest and most reproducible way. The `docker-compose.yml` is already configured with:
+- `trusted_networks` for login bypass from localhost.
+- `input_boolean.test_ev_charging` required for Config Flow.
+- Volume mounting `custom_components/ev_trip_planner` from the local repo.
 
-### 1. Arrancar Home Assistant
+### 1. Start Home Assistant
 
 ```bash
-# Desde la raíz del repositorio
+# From the repository root
 docker compose up -d
 
-# Comprobar que HA está listo (espera ~30-60 segundos)
+# Check that HA is ready (wait ~30-60 seconds)
 docker compose logs -f homeassistant
-# Ctrl+C cuando veas: "Home Assistant is running"
+# Ctrl+C when you see: "Home Assistant is running"
 ```
 
-### 2. Completar el onboarding de HA (solo la primera vez)
+### 2. Complete HA onboarding (first time only)
 
-Cuando HA arranca por primera vez en Docker, necesita el **onboarding inicial** (crear usuario admin). Tienes dos opciones:
+When HA starts for the first time in Docker, it needs the **initial onboarding** (create admin user). You have two options:
 
-**Opción A1 — Onboarding automático vía script:**
+**Option A1 — Automatic onboarding via script:**
 ```bash
 ./scripts/ha-onboard.sh
 ```
 
-**Opción A2 — Onboarding manual vía UI:**
-1. Abre http://localhost:8123 en el navegador.
-2. Crea el usuario: nombre=`Developer`, usuario=`dev`, contraseña=`dev`.
-3. Acepta todas las pantallas hasta llegar al dashboard.
+**Option A2 — Manual onboarding via UI:**
+1. Open http://localhost:8123 in the browser.
+2. Create the user: name=`Developer`, username=`dev`, password=`dev`.
+3. Accept all screens until reaching the dashboard.
 
-> ⚠️ Las credenciales `dev`/`dev` están hardcodeadas en `auth.setup.ts`. Si usas otras credenciales, edita ese fichero.
+> ⚠️ The `dev`/`dev` credentials are hardcoded in `auth.setup.ts`. If you use different credentials, edit that file.
 
-### 3. Ejecutar los tests
+### 3. Run tests
 
 ```bash
-# Ejecutar todos los tests E2E
+# Run all E2E tests
 npx playwright test tests/e2e/ --workers=1
 
-# O con make
+# Or with make
 make test-e2e
 
-# Con navegador visible (para ver qué hace)
+# With visible browser (to see what it does)
 make test-e2e-headed
 
-# Un solo fichero
+# Single file
 npx playwright test tests/e2e/create-trip.spec.ts
 
-# En modo debug (pausa en cada paso)
+# Debug mode (pauses at each step)
 make test-e2e-debug
 ```
 
-### 4. Parar Home Assistant
+### 4. Stop Home Assistant
 
 ```bash
 docker compose down
@@ -145,159 +145,159 @@ docker compose down
 
 ---
 
-## Opción B: hass manual (sin Docker)
+## Option B: manual hass (without Docker)
 
-Útil si ya tienes Python instalado y prefieres no usar Docker.
+Useful if you already have Python installed and prefer not to use Docker.
 
-### 1. Instalar Home Assistant
+### 1. Install Home Assistant
 
 ```bash
 pip install homeassistant
 ```
 
-### 2. Preparar el directorio de configuración
+### 2. Prepare the configuration directory
 
 ```bash
-# Crear directorio de config para tests
+# Create test config directory
 mkdir -p /tmp/ha-e2e-config/custom_components
 
-# Enlazar la configuración de test
+# Link test configuration
 cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
 
-# Enlazar el custom component
+# Link the custom component
 ln -sf $(pwd)/custom_components/ev_trip_planner \
        /tmp/ha-e2e-config/custom_components/ev_trip_planner
 ```
 
-### 3. Arrancar Home Assistant
+### 3. Start Home Assistant
 
 ```bash
 nohup hass -c /tmp/ha-e2e-config > /tmp/ha-e2e.log 2>&1 &
 echo "HA PID: $!"
 
-# Esperar a que esté listo (~30-60 segundos)
+# Wait for it to be ready (~30-60 seconds)
 until curl -sf -o /dev/null -w "%{http_code}" http://localhost:8123/api/ | grep -qE "401|200"; do
-  echo "Esperando HA..."
+  echo "Waiting for HA..."
   sleep 3
 done
-echo "HA listo!"
+echo "HA ready!"
 ```
 
-### 4. Completar el onboarding (solo la primera vez)
+### 4. Complete onboarding (first time only)
 
 ```bash
-# Script automático
+# Automatic script
 ./scripts/ha-onboard.sh
 
-# O abre http://localhost:8123 y créate el usuario dev/dev manualmente
+# Or open http://localhost:8123 and create the dev/dev user manually
 ```
 
-### 5. Ejecutar los tests
+### 5. Run tests
 
 ```bash
 npx playwright test tests/e2e/ --workers=1
 ```
 
-### 6. Parar Home Assistant
+### 6. Stop Home Assistant
 
 ```bash
 kill $(cat /tmp/ha-pid.txt) 2>/dev/null
-# o
+# or
 pkill -f "hass -c /tmp/ha-e2e-config"
 ```
 
 ---
 
-## Ejecución en CI (GitHub Actions)
+## CI Execution (GitHub Actions)
 
-El workflow `.github/workflows/playwright.yml` reproduce exactamente los pasos de la Opción B:
+The `.github/workflows/playwright.yml` workflow reproduces exactly the steps of Option B:
 
-1. Checkout del código.
-2. Instala Node y dependencias (`npm install`, `npx playwright install chromium`).
-3. Instala `homeassistant` via pip.
-4. Copia la configuración de test a `/tmp/ha-e2e-config/`.
-5. Arranca `hass -c /tmp/ha-e2e-config` en background.
-6. Espera a que la API responda (`HTTP 401`).
-7. Completa el onboarding automáticamente via REST API.
-8. Ejecuta `npx playwright test tests/e2e/ --workers=1`.
-9. Sube artefactos (`playwright-report/`, `test-results/`, logs de HA).
+1. Code checkout.
+2. Install Node and dependencies (`npm install`, `npx playwright install chromium`).
+3. Install `homeassistant` via pip.
+4. Copy test configuration to `/tmp/ha-e2e-config/`.
+5. Start `hass -c /tmp/ha-e2e-config` in background.
+6. Wait for API to respond (`HTTP 401`).
+7. Complete onboarding automatically via REST API.
+8. Execute `npx playwright test tests/e2e/ --workers=1`.
+9. Upload artifacts (`playwright-report/`, `test-results/`, HA logs).
 
-**No hay diferencia** entre ejecutar en local (Opción B) y en CI — usan la misma configuración.
+**No difference** between local execution (Option B) and CI — they use the same configuration.
 
 ---
 
-## Estructura de los tests
+## Test Structure
 
 ```
 tests/e2e/
   trips-helpers.ts              # Helpers: createTestTrip, deleteTestTrip, navigateToPanel
-  create-trip.spec.ts           # US-1: Crear viaje puntual y recurrente
-  edit-trip.spec.ts             # US-2: Editar viaje existente
-  delete-trip.spec.ts           # US-3: Eliminar viaje (confirmar / cancelar)
-  pause-resume-trip.spec.ts     # US-4: Pausar y reanudar viaje recurrente
-  complete-cancel-trip.spec.ts  # US-5: Completar y cancelar viaje puntual
-  trip-list-view.spec.ts        # US-6: Vista lista, detalles, botones por tipo
-  form-validation.spec.ts       # US-7: Campos del formulario, cambio de tipo, opciones
+  create-trip.spec.ts           # US-1: Create punctual and recurring trips
+  edit-trip.spec.ts             # US-2: Edit existing trip
+  delete-trip.spec.ts           # US-3: Delete trip (confirm / cancel)
+  pause-resume-trip.spec.ts     # US-4: Pause and resume recurring trip
+  complete-cancel-trip.spec.ts  # US-5: Complete and cancel punctual trip
+  trip-list-view.spec.ts        # US-6: List view, details, buttons by type
+  form-validation.spec.ts       # US-7: Form fields, type change, options
 ```
 
 ### Panel URL
 
-El panel del vehículo de test se registra en:
+The test vehicle panel is registered at:
 ```
 http://localhost:8123/ev-trip-planner-test_vehicle
 ```
 
-Cada test navega directamente a esta URL (la sesión autenticada está en `storageState`).
+Each test navigates directly to this URL (the authenticated session is in `storageState`).
 
-### Selectores usados
+### Selectors used
 
-Los tests usan IDs de elemento (`#trip-type`, `#trip-km`, etc.) y texto visible:
+Tests use element IDs (`#trip-type`, `#trip-km`, etc.) and visible text:
 
-| Elemento | Selector |
-|----------|----------|
-| Tipo de viaje | `page.locator('#trip-type')` |
-| Distancia | `page.locator('#trip-km')` |
-| Energía | `page.locator('#trip-kwh')` |
-| Descripción | `page.locator('#trip-description')` |
-| Fecha/hora | `page.locator('#trip-datetime')` |
-| Día semana | `page.locator('#trip-day')` |
-| Hora (recurrente) | `page.locator('#trip-time')` |
-| Botón crear | `page.getByRole('button', { name: 'Crear Viaje' })` |
-| Botón agregar | `page.getByRole('button', { name: '+ Agregar Viaje' })` |
-| Guardar cambios | `page.getByRole('button', { name: 'Guardar Cambios' })` |
-| Editar | `page.getByText('Editar')` |
-| Eliminar | `page.locator('.delete-btn')` |
-| Pausar | `page.getByText('Pausar')` |
-| Completar | `page.getByText('Completar')` |
+| Element | Selector |
+|---------|----------|
+| Trip type | `page.locator('#trip-type')` |
+| Distance | `page.locator('#trip-km')` |
+| Energy | `page.locator('#trip-kwh')` |
+| Description | `page.locator('#trip-description')` |
+| Date/time | `page.locator('#trip-datetime')` |
+| Day of week | `page.locator('#trip-day')` |
+| Time (recurring) | `page.locator('#trip-time')` |
+| Create button | `page.getByRole('button', { name: 'Create Trip' })` |
+| Add button | `page.getByRole('button', { name: '+ Add Trip' })` |
+| Save changes | `page.getByRole('button', { name: 'Save Changes' })` |
+| Edit | `page.getByText('Edit')` |
+| Delete | `page.locator('.delete-btn')` |
+| Pause | `page.getByText('Pause')` |
+| Complete | `page.getByText('Complete')` |
 
-### Diálogos nativos
+### Native dialogs
 
-Los botones Eliminar/Pausar/Completar/Cancelar usan `confirm()` y `alert()` nativos del navegador. Los tests los manejan con:
+Delete/Pause/Complete/Cancel buttons use native browser `confirm()` and `alert()`. Tests handle them with:
 
 ```typescript
-// Registrar handler ANTES de la acción
-const dialogPromise = setupDialogHandler(page, true);  // true = aceptar
-await tripCard.getByText('Eliminar').click();
+// Register handler BEFORE the action
+const dialogPromise = setupDialogHandler(page, true);  // true = accept
+await tripCard.getByText('Delete').click();
 const msg = await dialogPromise;
 ```
 
 ---
 
-## Usuarios y autenticación
+## Users and Authentication
 
-### Usuario de test
+### Test user
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| Nombre | Developer |
+| Name | Developer |
 | Username | `dev` |
 | Password | `dev` |
 
-Estas credenciales están hardcodeadas en `auth.setup.ts`. Cámbielas si usas un HA con credenciales diferentes.
+These credentials are hardcoded in `auth.setup.ts`. Change them if you use an HA with different credentials.
 
 ### trusted_networks
 
-La configuración `tests/ha-manual/configuration.yaml` incluye:
+The `tests/ha-manual/configuration.yaml` configuration includes:
 
 ```yaml
 homeassistant:
@@ -311,125 +311,125 @@ homeassistant:
     - type: homeassistant
 ```
 
-Esto permite que el navegador Playwright (desde 127.0.0.1) autentique automáticamente sin formulario de login.
+This allows the Playwright browser (from 127.0.0.1) to authenticate automatically without login form.
 
-### Sesión guardada
+### Saved session
 
-La sesión se guarda en `playwright/.auth/user.json` durante `globalSetup`. Este fichero está en `.gitignore` y se regenera en cada ejecución.
+The session is saved in `playwright/.auth/user.json` during `globalSetup`. This file is in `.gitignore` and is regenerated on each execution.
 
 ---
 
-## Comandos útiles
+## Useful Commands
 
 ```bash
-# Ejecutar TODOS los tests E2E
+# Run ALL E2E tests
 make test-e2e
 
-# Con navegador visible
+# With visible browser
 make test-e2e-headed
 
-# En modo debug interactivo (abre el Playwright Inspector)
+# Interactive debug mode (opens Playwright Inspector)
 make test-e2e-debug
 
-# Solo un fichero de test
+# Single test file
 npx playwright test tests/e2e/form-validation.spec.ts
 
-# Solo un test concreto (por nombre)
-npx playwright test tests/e2e/ --grep "should create a new puntual trip"
+# Single specific test (by name)
+npx playwright test tests/e2e/ --grep "should create a new punctual trip"
 
-# Ver informe HTML (tras una ejecución)
+# View HTML report (after a run)
 npx playwright show-report
 
-# Tests Python (unitarios, sin E2E)
+# Python tests (unit, without E2E)
 make test
 
-# Todos los checks (Python + lint + mypy)
+# All checks (Python + lint + mypy)
 make check
 ```
 
 ---
 
-## Resolución de problemas
+## Troubleshooting
 
-### HA no arranca / tests fallan con "connection refused"
+### HA does not start / tests fail with "connection refused"
 
 ```bash
-# Comprobar que HA está corriendo
+# Check that HA is running
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/
 
-# Ver logs de HA
-docker compose logs homeassistant   # si usas Docker
-tail -50 /tmp/ha-e2e.log            # si usas hass manual
+# View HA logs
+docker compose logs homeassistant   # if using Docker
+tail -50 /tmp/ha-e2e.log            # if using manual hass
 ```
 
-### "Integration already set up" o error en globalSetup
+### "Integration already set up" or error in globalSetup
 
-El `auth.setup.ts` detecta si la integración ya está configurada y la salta. Si hay un estado corrupto:
+The `auth.setup.ts` detects if the integration is already configured and skips it. If there is a corrupt state:
 
 ```bash
-# Docker: eliminar volúmenes y recrear
+# Docker: remove volumes and recreate
 docker compose down -v
 docker compose up -d
 
-# hass manual: limpiar configuración
+# hass manual: clean configuration
 rm -rf /tmp/ha-e2e-config/.storage
 ```
 
-### "trusted_networks" no funciona / aparece formulario de login
+### "trusted_networks" not working / login form appears
 
-Asegúrate de que `configuration.yaml` tiene la configuración correcta bajo `homeassistant:` (no a nivel raíz):
+Make sure `configuration.yaml` has the correct configuration under `homeassistant:` (not at root level):
 
 ```yaml
-# ✅ CORRECTO
+# ✅ CORRECT
 homeassistant:
   auth_providers:
     - type: trusted_networks
       ...
 
-# ❌ INCORRECTO (nivel raíz, no funciona en HA moderno)
+# ❌ INCORRECT (root level, does not work in modern HA)
 auth_providers:
   - type: trusted_networks
     ...
 ```
 
-### Lit no carga / panel en blanco
+### Lit not loading / blank panel
 
-El panel usa `lit-bundle.js` servido localmente por HA. Si el panel aparece en blanco:
+The panel uses `lit-bundle.js` served locally by HA. If the panel appears blank:
 
-1. Abre http://localhost:8123/ev-trip-planner/lit-bundle.js — debe devolver código JS.
-2. Si devuelve 404, reinicia HA para que registre los static paths.
+1. Open http://localhost:8123/ev-trip-planner/lit-bundle.js — it must return JS code.
+2. If it returns 404, restart HA to register the static paths.
 
-### Tests lentos o timeouts
+### Slow tests or timeouts
 
-Los tests tienen un timeout de 60 segundos por test. Si el sistema es lento:
+Tests have a 60-second timeout per test. If the system is slow:
 
 ```typescript
-// En playwright.config.ts, aumenta el timeout
+// In playwright.config.ts, increase the timeout
 timeout: 120_000,
 ```
 
-### "strict mode violation" — el selector encuentra múltiples elementos
+### "strict mode violation" — selector finds multiple elements
 
-Algunos tests usan `getByText('15')` que puede coincidir con fecha Y con kWh. En ese caso, acota el scope al trip card:
+Some tests use `getByText('15')` which can match both date and kWh. In that case, scope to the trip card:
 
 ```typescript
-const tripCard = page.locator('.trip-card', { hasText: 'Mi Viaje' }).last();
+const tripCard = page.locator('.trip-card', { hasText: 'My Trip' }).last();
 await expect(tripCard.getByText('15 kWh')).toBeVisible();
 ```
 
 ---
 
-## Variables de entorno
+## Environment Variables
 
-| Variable | Valor por defecto | Descripción |
-|----------|------------------|-------------|
-| `HA_URL` | `http://localhost:8123` | URL de Home Assistant |
-| `CI` | (vacío) | Si es `"true"`, activa retries y formato CI |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| `HA_URL` | `http://localhost:8123` | Home Assistant URL |
+| `CI` | (empty) | If `"true"`, enables retries and CI format |
 
-Para cambiar la URL de HA (por ejemplo, si usas otro puerto):
+To change the HA URL (for example, if you use a different port):
 
 ```bash
 HA_URL=http://localhost:8124 npx playwright test tests/e2e/
 ```
 
-> Nota: `auth.setup.ts` usa la constante `HA_URL = 'http://localhost:8123'`. Edita ese fichero si necesitas un puerto diferente de forma permanente.
+> Note: `auth.setup.ts` uses the constant `HA_URL = 'http://localhost:8123'`. Edit that file if you need a different port permanently.

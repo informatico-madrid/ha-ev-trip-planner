@@ -1,49 +1,47 @@
-# EV Trip Planner — Reglas de Código y Arquitectura (v2)
-## NOTA DE PRIORIDADES !!!
-tasks.md es la fuente de verdad para el orden
-         de implementación. CODEGUIDELINESia.md es referencia 
-        arquitectónica. Si entran en conflicto directo, aplica
-         tasks.md pero verifica que no se pierde ningún 
-        requisito de CODEGUIDELINES
-> Documento de referencia obligatorio para cualquier agente de IA o desarrollador.  
-> Versión: 2026-04-v2 · Análisis multi-integración: Bambu Lab (2085★), Bermuda (1695★), Battery Notes (1028★), Versatile Thermostat (1021★), Nordpool (Platinum)
+# EV Trip Planner — Code Rules and Architecture (v2)
+## PRIORITY NOTICE !!!
+tasks.md is the source of truth for implementation order.
+CODEGUIDELINESia.md is architectural reference. If they directly conflict, apply tasks.md but verify that no
+requirement from CODEGUIDELINES is lost.
+> Mandatory reference document for any AI agent or developer.
+> Version: 2026-04-v2 · Multi-integration analysis: Bambu Lab (2085★), Bermuda (1695★), Battery Notes (1028★), Versatile Thermostat (1021★), Nordpool (Platinum)
 
 ***
 
-## 1. Resumen Ejecutivo de Gaps Críticos
+## 1. Executive Summary of Critical Gaps
 
-Este análisis comparó `ha-ev-trip-planner` contra cinco integraciones HACS de referencia activas en 2025-2026. Se identificaron **12 gaps críticos** organizados en 4 categorías. Cada gap tiene una regla de código que lo cierra. ESTO ES LA GUIA GENERAL SI ES NECESARIO EN CASOS MUY DETERMINADOS SE PUEDEN HACER EXCEPCIONES PERO DEBEN SER JUSTIFICADAS Y DOCUMENTADAS EN EL CÓDIGOBASE CON UN COMENTARIO EXPLICATIVO Y APROVADOS POR EL HUMANO. 
+This analysis compared `ha-ev-trip-planner` against five active HACS reference integrations identified in 2025-2026. **12 critical gaps** were identified organized into 4 categories. Each gap has a code rule that closes it. THIS IS THE GENERAL GUIDE. IN VERY DETERMINED CASES EXCEPTIONS MAY BE MADE BUT THEY MUST BE JUSTIFIED AND DOCUMENTED IN THE CODEBASE WITH AN EXPLANATORY COMMENT AND APPROVED BY THE HUMAN.
 
-| ID | Categoría | Severidad | Impacto Visible |
+| ID | Category | Severity | Visible Impact |
 |---|---|---|---|
-| G-01 | Identidad de entidades | 🔴 Crítico | Sensores duplicados al reinstalar |
-| G-02 | Ciclo de actualización | 🔴 Crítico | Sensores no reflejan cambios |
-| G-03 | Arquitectura de entidades | 🔴 Crítico | Código imposible de mantener |
-| G-04 | Ciclo de vida de la integración | 🔴 Crítico | Sensores zombi tras desinstalar |
-| G-05 | Runtime data storage | 🟠 Alto | Fallos aleatorios tras reinicios |
-| G-06 | Código de test en producción | 🔴 Crítico | Estados de sensor inventados |
-| G-07 | Patrón `SensorEntityDescription` | 🟠 Alto | Código duplicado × cada sensor |
-| G-08 | `RestoreEntity` / `RestoreSensor` | 🟠 Alto | Sensores en `Unknown` tras reinicio HA |
-| G-09 | `async_migrate_entry` incompleto | 🟠 Alto | Migraciones silenciosamente incorrectas |
-| G-10 | `diagnostics.py` ausente | 🟡 Medio | Imposible depurar en producción |
-| G-11 | `ConfigEntryNotReady` no se lanza | 🟡 Medio | Errores de setup silenciosos |
-| G-12 | Separación de responsabilidades | 🔴 Crítico | God Object de 5000+ líneas |
+| | G-01 | Entity Identity | 🔴 Critical | Duplicate sensors on reinstall |
+| | G-02 | Update Cycle | 🔴 Critical | Sensors don't reflect changes |
+| | G-03 | Entity Architecture | 🔴 Critical | Code impossible to maintain |
+| | G-04 | Integration Lifecycle | 🔴 Critical | Zombie sensors after uninstall |
+| | G-05 | Runtime Data Storage | 🟠 High | Random failures after restarts |
+| | G-06 | Test Code in Production | 🔴 Critical | Invented sensor states |
+| | G-07 | `SensorEntityDescription` Pattern | 🟠 High | Duplicated code × each sensor |
+| | G-08 | `RestoreEntity` / `RestoreSensor` | 🟠 High | Sensors show `Unknown` after HA restart |
+| | G-09 | Incomplete `async_migrate_entry` | 🟠 High | Silently incorrect migrations |
+| | G-10 | Missing `diagnostics.py` | 🟡 Medium | Impossible to debug in production |
+| | G-11 | `ConfigEntryNotReady` Not Raised | 🟡 Medium | Silent setup errors |
+| | G-12 | Separation of Responsibilities | 🔴 Critical | God Object of 5000+ lines |
 
 ***
 
-## 2. Análisis por Integración de Referencia
+## 2. Reference Integration Analysis
 
-### 2.1 · ha-bambulab (2085★, actualizado diariamente)
+### 2.1 · ha-bambulab (2085★, updated daily)
 
-**Patrón clave que falta en ev-trip-planner: `SensorEntityDescription` + `definitions.py`**
+**Key pattern missing in ev-trip-planner: `SensorEntityDescription` + `definitions.py`**
 
-Bambu Lab separa la **definición** de los sensores de su **implementación**. Todos los sensores comparten una clase base única y sus diferencias se expresan como datos, no como código.
+Bambu Lab separates sensor **definition** from sensor **implementation**. All sensors share a single base class and their differences are expressed as data, not as code.
 
 ```python
 # bambu_lab/definitions.py
 @dataclass(frozen=True)
 class BambuLabSensorEntityDescription(SensorEntityDescription):
-    """Descriptor de sensor extendido."""
+    """Extended sensor descriptor."""
     value_fn: Callable[[BambuDataUpdateCoordinator], StateType] = None
     exists_fn: Callable[[BambuDataUpdateCoordinator], bool] = lambda _: True
     is_restoring: bool = False
@@ -56,63 +54,63 @@ PRINTER_SENSORS: tuple[BambuLabSensorEntityDescription, ...] = (
         exists_fn=lambda coordinator: coordinator.get_model().has_full_printer_data,
         is_restoring=True,
     ),
-    # ...decenas de sensores definidos como datos, NO como clases
+    # ...dozens of sensors defined as data, NOT as classes
 )
 ```
 
 ```python
-# bambu_lab/sensor.py — UNA sola clase para todos los sensores
+# bambu_lab/sensor.py — A SINGLE class for all sensors
 class BambuLabSensor(BambuLabEntity, SensorEntity):
     def __init__(self, coordinator, description: BambuLabSensorEntityDescription):
-        self._attr_unique_id = f"{printer.serial}_{description.key}"  # ← SIEMPRE presente
-        self.entity_description = description  # ← HA gestiona name, unit, device_class
+        self._attr_unique_id = f"{printer.serial}_{description.key}"  # ← ALWAYS present
+        self.entity_description = description  # ← HA manages name, unit, device_class
     
     @property
     def native_value(self):
-        return self.entity_description.value_fn(self.coordinator)  # ← Lee del coordinator
+        return self.entity_description.value_fn(self.coordinator)  # ← Reads from coordinator
 ```
 
-**ev-trip-planner tiene 8+ clases separadas** (`RecurringTripsCountSensor`, `PunctualTripsCountSensor`, etc.) cuando debería tener **1 clase base + un archivo de definiciones**.
+**ev-trip-planner has 8+ separate classes** (`RecurringTripsCountSensor`, `PunctualTripsCountSensor`, etc.) when it should have **1 base class + a definitions file**.
 
 ***
 
-### 2.2 · Bermuda (1695★, actualizado ayer)
+### 2.2 · Bermuda (1695★, updated yesterday)
 
-**Patrón clave que falta: `entry.runtime_data` con `@dataclass` + `TypeAlias` de ConfigEntry**
+**Key pattern missing: `entry.runtime_data` with `@dataclass` + `TypeAlias` of ConfigEntry**
 
 ```python
 # bermuda/__init__.py
 from dataclasses import dataclass
 
-type BermudaConfigEntry = ConfigEntry[BermudaData]  # TypeAlias tipado
+type BermudaConfigEntry = ConfigEntry[BermudaData]  # Typed TypeAlias
 
 @dataclass
 class BermudaData:
-    """Datos de runtime almacenados en config_entry.runtime_data."""
+    """Runtime data stored in config_entry.runtime_data."""
     coordinator: BermudaDataUpdateCoordinator
 
 async def async_setup_entry(hass: HomeAssistant, entry: BermudaConfigEntry) -> bool:
     coordinator = BermudaDataUpdateCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()  # ← Lanza ConfigEntryNotReady si falla
-    entry.runtime_data = BermudaData(coordinator)  # ← Una sola línea, tipada, sin strings
+    await coordinator.async_config_entry_first_refresh()  # ← Raises ConfigEntryNotReady if it fails
+    entry.runtime_data = BermudaData(coordinator)  # ← Single line, typed, no strings
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: BermudaConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    # ← NO necesita limpiar hass.data porque usó runtime_data
+    # ← Does NOT need to clean hass.data because it used runtime_data
 ```
 
-**ev-trip-planner usa** `DATA_RUNTIME = f"{DOMAIN}_runtime_data"` como string global, con múltiples namespaces (`f"{DOMAIN}_{entry_id}"`, `f"ev_trip_planner_{entry_id}"`) y fallbacks legacy anidados. Esto produce fallos aleatorios cuando HA intenta acceder a datos que fueron liberados antes de tiempo.
+**ev-trip-planner uses** `DATA_RUNTIME = f"{DOMAIN}_runtime_data"` as a global string, with multiple namespaces (`f"{DOMAIN}_{entry_id}"`, `f"ev_trip_planner_{entry_id}"`) and nested legacy fallbacks. This causes random failures when HA tries to access data that was freed too early.
 
-**Patrón adicional de Bermuda: `async_migrate_entries` para Entity Registry**
+**Additional Bermuda pattern: `async_migrate_entries` for Entity Registry**
 
 ```python
 # bermuda/__init__.py
 from homeassistant.helpers.entity_registry import async_migrate_entries
 
 async def async_migrate_entry(hass, config_entry):
-    # Migra los unique_id de entidades existentes en el Entity Registry
+    # Migrate existing entity unique_ids in the Entity Registry
     async def migrate_unique_id(entity_entry):
         if entity_entry.unique_id.startswith("OLD_PREFIX"):
             return {"new_unique_id": entity_entry.unique_id.replace("OLD_PREFIX", "NEW_PREFIX")}
@@ -120,15 +118,15 @@ async def async_migrate_entry(hass, config_entry):
     return True
 ```
 
-ev-trip-planner tiene un `async_migrate_entry` que solo migra `config_entry.data` pero **nunca migra los `unique_id` de las entidades en el Entity Registry**. Si el formato del `unique_id` cambia entre versiones, las entidades antiguas quedan como zombis.
+ev-trip-planner has an `async_migrate_entry` that only migrates `config_entry.data` but **never migrates entity `unique_id`s in the Entity Registry**. If the `unique_id` format changes between versions, old entities become zombies.
 
 ***
 
-### 2.3 · Battery Notes (1028★, actualizado ayer)
+### 2.3 · Battery Notes (1028★, updated yesterday)
 
-**Patrón clave que falta: `diagnostics.py`**
+**Key pattern missing: `diagnostics.py`**
 
-Battery Notes implementa `diagnostics.py` — un módulo estándar de HA que permite a los usuarios descargar un informe de diagnóstico desde la UI sin acceder a logs.
+Battery Notes implements `diagnostics.py` — a standard HA module that allows users to download a diagnostic report from the UI without accessing logs.
 
 ```python
 # battery_notes/diagnostics.py
@@ -139,7 +137,7 @@ TO_REDACT = {"serial_number", "mac_address"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    """Retorna datos de diagnóstico para mostrar en la UI de HA."""
+    """Returns diagnostic data for display in HA UI."""
     coordinator = entry.runtime_data.coordinator
     return async_redact_data({
         "config_entry": dict(entry.data),
@@ -148,14 +146,14 @@ async def async_get_config_entry_diagnostics(
     }, TO_REDACT)
 ```
 
-ev-trip-planner no tiene `diagnostics.py`. Cuando un usuario reporta un bug, no hay manera estándar de obtener el estado interno sin hackear el sistema.
+ev-trip-planner does not have `diagnostics.py`. When a user reports a bug, there is no standard way to get internal state without hacking the system.
 
-**Patrón adicional: `ConfigSubentry` para elementos dinámicos**
+**Additional pattern: `ConfigSubentry` for dynamic elements**
 
-Battery Notes usa `ConfigSubentry` (disponible desde HA 2024.x) para representar cada batería como una subentrada de configuración. Esto resuelve exactamente el mismo problema que ev-trip-planner tiene con los viajes: **elementos creados dinámicamente por el usuario que necesitan su propio ciclo de vida**.
+Battery Notes uses `ConfigSubentry` (available since HA 2024.x) to represent each battery as a config subentry. This solves the exact same problem ev-trip-planner has with trips: **user-created dynamic elements that need their own lifecycle**.
 
 ```python
-# Cada viaje podría ser un ConfigSubentry con su propio unique_id
+# Each trip could be a ConfigSubentry with its own unique_id
 subentry = ConfigSubentry(
     subentry_type="trip",
     unique_id=f"trip_{trip_id}",
@@ -169,40 +167,40 @@ hass.config_entries.async_add_subentry(config_entry, subentry)
 
 ### 2.4 · Versatile Thermostat (1021★)
 
-**Patrón clave que falta: `RestoreSensor` / `RestoreEntity`**
+**Key pattern missing: `RestoreSensor` / `RestoreEntity`**
 
-Versatile Thermostat restaura el último estado conocido de sus sensores tras un reinicio de HA, evitando el estado `Unknown` inicial.
+Versatile Thermostat restores the last known state of its sensors after an HA restart, avoiding the initial `Unknown` state.
 
 ```python
 from homeassistant.helpers.restore_state import RestoreEntity, RestoreSensor
 
 class VersatileThermostatSensor(CoordinatorEntity, RestoreSensor):
     async def async_added_to_hass(self) -> None:
-        """Restaura el estado al añadirse a HA."""
+        """Restores state when added to HA."""
         await super().async_added_to_hass()
         last_state = await self.async_get_last_sensor_data()
         if last_state:
             self._attr_native_value = last_state.native_value
-            # El sensor muestra el valor anterior hasta la primera actualización real
+            # Sensor shows previous value until first real update
 ```
 
-ev-trip-planner no implementa `RestoreSensor`. Cada vez que HA reinicia, todos los sensores muestran `Unknown` hasta el primer ciclo de polling — que puede tardar minutos si el coordinador tiene un `update_interval` largo.
+ev-trip-planner does not implement `RestoreSensor`. Every time HA restarts, all sensors show `Unknown` until the first polling cycle — which can take minutes if the coordinator has a long `update_interval`.
 
 ***
 
-## 3. Reglas de Código (Versión Completa)
+## 3. Code Rules (Complete Version)
 
-### R-01 · Todo Sensor Debe Tener `_attr_unique_id` — CRÍTICO
+### R-01 · Every Sensor Must Have `_attr_unique_id` — CRITICAL
 
 ```python
-# ❌ ACTUAL — sin unique_id (produce duplicados)
+# ❌ CURRENT — without unique_id (produces duplicates)
 class RecurringTripsCountSensor(TripPlannerSensor):
     def __init__(self, vehicle_id, coordinator):
         super().__init__(...)
         self._attr_name = f"{vehicle_id} recurring trips count"
-        # ← SIN unique_id
+        # ← NO unique_id
 
-# ✅ CORRECTO
+# ✅ CORRECT
 class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
     def __init__(self, coordinator, vehicle_id, description: TripSensorEntityDescription):
         super().__init__(coordinator)
@@ -210,9 +208,9 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)
         self.entity_description = description
 ```
 
-### R-02 · Usar `SensorEntityDescription` + `definitions.py` — CRÍTICO
+### R-02 · Use `SensorEntityDescription` + `definitions.py` — CRITICAL
 
-Eliminar las 8 clases de sensor separadas. Reemplazar con una clase base + descriptores.
+Remove the 8 separate sensor classes. Replace with a base class + descriptors.
 
 ```python
 # ev_trip_planner/definitions.py
@@ -240,12 +238,12 @@ TRIP_SENSORS: tuple[TripSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("kwh_today", 0.0),
         restore=True,
     ),
-    # ... todos los demás sensores como datos
+    # ... all other sensors as data
 )
 ```
 
 ```python
-# ev_trip_planner/sensor.py — UNA SOLA clase
+# ev_trip_planner/sensor.py — A SINGLE class
 class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
     def __init__(self, coordinator, vehicle_id, description):
         super().__init__(coordinator)
@@ -274,7 +272,7 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity)
         )
 ```
 
-### R-03 · Usar `entry.runtime_data` con `@dataclass` Tipado — CRÍTICO
+### R-03 · Use `entry.runtime_data` with Typed `@dataclass` — CRITICAL
 
 ```python
 # ev_trip_planner/__init__.py
@@ -292,7 +290,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EVTripConfigEntry) -> bo
     trip_manager = TripManager(hass, entry)
     coordinator = TripPlannerCoordinator(hass, entry, trip_manager)
     
-    await coordinator.async_config_entry_first_refresh()  # Lanza ConfigEntryNotReady si falla
+    await coordinator.async_config_entry_first_refresh()  # Raises ConfigEntryNotReady if it fails
     
     entry.runtime_data = EVTripRuntimeData(
         coordinator=coordinator,
@@ -303,61 +301,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: EVTripConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: EVTripConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    # ← NO necesita limpiar hass.data
+    # ← Does NOT need to clean hass.data
 ```
 
-Eliminar completamente `DATA_RUNTIME` y todos los namespaces `f"{DOMAIN}_{entry_id}"`.
+Completely remove `DATA_RUNTIME` and all `f"{DOMAIN}_{entry_id}"` namespaces.
 
-### R-04 · `async_remove_entry` Limpia Entity Registry y usa runtime_data — CRÍTICO
+### R-04 · `async_remove_entry` Cleans Entity Registry and uses runtime_data — CRITICAL
 
 ```python
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Elimina completamente todos los rastros de la integración."""
+    """Completely removes all traces of the integration."""
     from homeassistant.helpers import entity_registry as er
     
-    # 1. Limpiar Entity Registry
+    # 1. Clean Entity Registry
     entity_registry = er.async_get(hass)
     for entity_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
         entity_registry.async_remove(entity_entry.entity_id)
     
-    # 2. Limpiar storage del trip_manager
+    # 2. Clean trip_manager storage
     if hasattr(entry, 'runtime_data') and entry.runtime_data:
         await entry.runtime_data.trip_manager.async_remove_all_data()
     
-    # 3. Eliminar helpers de input si existen
-    # (código de limpieza de input_datetime, etc.)
+    # 3. Remove input helpers if they exist
+    # (cleanup code for input_datetime, etc.)
 ```
 
-### R-05 · Implementar `RestoreSensor` para Sensores con Datos Valiosos — ALTO
+### R-05 · Implement `RestoreSensor` for Sensors with Valuable Data — HIGH
 
 ```python
-# Para sensores de energía, siguiente viaje, etc.
+# For energy sensors, next trip, etc.
 from homeassistant.helpers.restore_state import RestoreSensor
 
 class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        # Restaurar estado previo para evitar Unknown tras reinicio
+        # Restore previous state to avoid Unknown after restart
         last_data = await self.async_get_last_sensor_data()
         if last_data and self.coordinator.data is None:
             self._attr_native_value = last_data.native_value
 ```
 
-Solo aplicar a sensores donde mostrar el valor anterior es mejor que `Unknown`:
+Only apply to sensors where showing the previous value is better than `Unknown`:
 - `kwh_needed_today`, `hours_needed_today`, `next_trip`, `next_deadline`
 
-### R-06 · Prohibido `unittest.mock` en Producción — CRÍTICO
+### R-06 · No `unittest.mock` in Production — CRITICAL
 
 ```python
-# ❌ ABSOLUTAMENTE PROHIBIDO en cualquier archivo fuera de tests/
+# ❌ ABSOLUTELY PROHIBITED in any file outside tests/
 from unittest.mock import MagicMock
 
-# ✅ CORRECTO: Si coordinator es None, es un bug. Fallar rápido.
+# ✅ CORRECT: If coordinator is None, it's a bug. Fail fast.
 if coordinator is None:
     raise ConfigEntryError(f"coordinator cannot be None for vehicle {vehicle_id}")
 ```
 
-### R-07 · Implementar `diagnostics.py` — MEDIO (requerido para HACS Quality)
+### R-07 · Implement `diagnostics.py` — MEDIUM (required for HACS Quality)
 
 ```python
 # ev_trip_planner/diagnostics.py
@@ -380,14 +378,14 @@ async def async_get_config_entry_diagnostics(
     }, TO_REDACT)
 ```
 
-Añadir `"diagnostics"` a `manifest.json`:
+Add `"diagnostics"` to `manifest.json`:
 ```json
 {
   "quality_scale": "silver"
 }
 ```
 
-### R-08 · `async_migrate_entry` Debe Migrar Entity Registry — ALTO
+### R-08 · `async_migrate_entry` Must Migrate Entity Registry — HIGH
 
 ```python
 from homeassistant.helpers.entity_registry import async_migrate_entries
@@ -396,7 +394,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     current_version = entry.version
     
     if current_version < 2:
-        # Migrar formato de unique_id: "ev_trip_planner_kwh_today" → "ev_trip_planner_{vehicle_id}_kwh_today"
+        # Migrate unique_id format: "ev_trip_planner_kwh_today" → "ev_trip_planner_{vehicle_id}_kwh_today"
         vehicle_id = entry.data.get("vehicle_id", "default")
         
         async def migrate_unique_id(entity_entry):
@@ -411,7 +409,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 ```
 
-### R-09 · `ConfigEntryNotReady` Obligatorio en `async_setup_entry` — MEDIO
+### R-09 · `ConfigEntryNotReady` Mandatory in `async_setup_entry` — MEDIUM
 
 ```python
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -421,173 +419,173 @@ async def async_setup_entry(hass, entry):
     
     try:
         await coordinator.async_config_entry_first_refresh()
-        # ← async_config_entry_first_refresh lanza ConfigEntryNotReady automáticamente
-        # si _async_update_data lanza UpdateFailed o cualquier excepción
+        # ← async_config_entry_first_refresh raises ConfigEntryNotReady automatically
+        # if _async_update_data raises UpdateFailed or any exception
     except ConfigEntryNotReady:
-        raise  # Re-lanzar para que HA reintente el setup
+        raise  # Re-raise to let HA retry setup
 ```
 
-Si el primer refresh falla, HA reintentará el setup automáticamente con backoff exponencial. Sin `ConfigEntryNotReady`, el setup falla silenciosamente y los sensores quedan en estado `Unavailable` permanentemente.
+If the first refresh fails, HA will retry setup automatically with exponential backoff. Without `ConfigEntryNotReady`, setup fails silently and sensors remain in `Unavailable` state permanently.
 
-### R-10 · `__init__.py` Solo Ciclo de Vida (<150 líneas) — CRÍTICO
+### R-10 · `__init__.py` Lifecycle Only (<150 lines) — CRITICAL
 
-El archivo `__init__.py` solo puede contener:
-- `PLATFORMS` constante
+The `__init__.py` file can only contain:
+- `PLATFORMS` constant
 - `EVTripRuntimeData` dataclass
-- `async_setup(hass, config)` (si existe)
+- `async_setup(hass, config)` (if exists)
 - `async_setup_entry(hass, entry)`
 - `async_unload_entry(hass, entry)`
 - `async_remove_entry(hass, entry)`
 - `async_migrate_entry(hass, entry)`
 
-**Todo lo demás va en su propio módulo:**
-- Handlers de servicios → `services.py`
-- Lógica de coordinador → `coordinator.py` (crear este archivo)
-- Helpers de dashboard → `dashboard.py` (ya existe, mantener)
-- Definiciones de sensores → `definitions.py` (crear)
+**Everything else goes in its own module:**
+- Service handlers → `services.py`
+- Coordinator logic → `coordinator.py` (create this file)
+- Dashboard helpers → `dashboard.py` (already exists, keep)
+- Sensor definitions → `definitions.py` (create)
 
-### R-11 · Logs Con Nivel Correcto — MEDIO
+### R-11 · Logs with Correct Level — MEDIUM
 
 ```python
-# ❌ PROHIBIDO — spam de WARNING en flujo normal
+# ❌ PROHIBITED — WARNING spam in normal flow
 _LOGGER.warning("=== async_setup_entry START === vehicle=%s", vehicle_id)
 _LOGGER.warning("=== _get_manager - runtime_data keys: %s ===", ...)
 
-# ✅ CORRECTO
-_LOGGER.debug("async_setup_entry start vehicle=%s", vehicle_id)  # flujo normal
-_LOGGER.info("Integration setup complete vehicle=%s", vehicle_id)  # evento importante
-_LOGGER.warning("Coordinator failed, will retry: %s", err)  # situación anómala recuperable
-_LOGGER.error("Cannot initialize trip_manager: %s", err)  # fallo crítico
+# ✅ CORRECT
+_LOGGER.debug("async_setup_entry start vehicle=%s", vehicle_id)  # normal flow
+_LOGGER.info("Integration setup complete vehicle=%s", vehicle_id)  # important event
+_LOGGER.warning("Coordinator failed, will retry: %s", err)  # recoverable anomalous situation
+_LOGGER.error("Cannot initialize trip_manager: %s", err)  # critical failure
 ```
 
-### R-12 · No Duplicar Clases para Compatibilidad con Tests — CRÍTICO
+### R-12 · No Duplicating Classes for Test Compatibility — CRITICAL
 
 ```python
-# ❌ PROHIBIDO — alias de compatibilidad que divergen de la implementación real
+# ❌ PROHIBITED — compatibility aliases that diverge from real implementation
 class RecurringTripsCountSensor(TripPlannerSensor):
     """Sensor for counting recurring trips (alias for backward compatibility)."""
-    # ... implementación completamente diferente a la clase base
+    # ... completely different implementation from base class
 
-# ✅ CORRECTO — una clase, los tests usan la misma implementación
-# Si los tests fallan porque la interfaz cambió, hay que actualizar los tests
+# ✅ CORRECT — one class, tests use the same implementation
+# If tests fail because the interface changed, update the tests
 ```
 
 ***
 
-## 4. Tabla Comparativa de Gaps vs. Integraciones de Referencia
+## 4. Comparative Gap Table vs. Reference Integrations
 
-| Patrón | ev-trip-planner | Bambu Lab | Bermuda | Battery Notes | Versatile Thermostat |
+| Pattern | ev-trip-planner | Bambu Lab | Bermuda | Battery Notes | Versatile Thermostat |
 |---|---|---|---|---|---|
-| `_attr_unique_id` en todos los sensores | ❌ 7/8 ausente | ✅ | ✅ | ✅ | ✅ |
-| `CoordinatorEntity` como base | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `_attr_unique_id` on all sensors | ❌ 7/8 missing | ✅ | ✅ | ✅ | ✅ |
+| `CoordinatorEntity` as base | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `SensorEntityDescription` + `definitions.py` | ❌ | ✅ | ✅ | ✅ | ❌ |
-| `entry.runtime_data` tipado | ❌ usa string global | ✅ | ✅ | ✅ | ❌ parcial |
+| Typed `entry.runtime_data` | ❌ uses global string | ✅ | ✅ | ✅ | ❌ partial |
 | `RestoreSensor` / `RestoreEntity` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `diagnostics.py` | ❌ | ✅ | ❌ | ✅ | ❌ |
-| `async_migrate_entry` + Entity Registry | ❌ solo config data | ❌ | ✅ | ✅ | ❌ |
-| `ConfigEntryNotReady` en first refresh | ✅ parcial | ✅ | ✅ | ✅ | ✅ |
-| `__init__.py` < 200 líneas | ❌ 5000+ | ✅ ~460 | ✅ ~140 | ✅ ~360 | ✅ ~210 |
-| Cero imports de `unittest.mock` | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Sin clases alias de compatibilidad | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Limpiar Entity Registry en remove | ❌ | ✅ vía HA | ✅ vía HA | ✅ explícito | ✅ vía HA |
+| `async_migrate_entry` + Entity Registry | ❌ only config data | ❌ | ✅ | ✅ | ❌ |
+| `ConfigEntryNotReady` on first refresh | ✅ partial | ✅ | ✅ | ✅ | ✅ |
+| `__init__.py` < 200 lines | ❌ 5000+ | ✅ ~460 | ✅ ~140 | ✅ ~360 | ✅ ~210 |
+| Zero `unittest.mock` imports | ❌ | ✅ | ✅ | ✅ | ✅ |
+| No compatibility alias classes | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Clean Entity Registry on remove | ❌ | ✅ via HA | ✅ via HA | ✅ explicit | ✅ via HA |
 
 ***
 
-## 5. Arquitectura Target Final
+## 5. Target Architecture
 
 ```
 custom_components/ev_trip_planner/
-├── __init__.py          # <150 líneas: SOLO lifecycle (setup/unload/remove/migrate)
-│                        # Exporta: EVTripRuntimeData, EVTripConfigEntry
-├── coordinator.py       # TripPlannerCoordinator(DataUpdateCoordinator) — CREAR
-├── definitions.py       # TRIP_SENSORS tuple[TripSensorEntityDescription] — CREAR
-├── diagnostics.py       # async_get_config_entry_diagnostics — CREAR
-├── sensor.py            # Una clase: TripPlannerSensor(CoordinatorEntity, RestoreSensor)
-├── services.py          # Handlers de servicios + registro — EXTRAER de __init__.py
-├── trip_manager.py      # Lógica de negocio (mantener, pocos cambios)
-├── config_flow.py       # Config flow (mantener, añadir version=2)
-├── const.py             # Constantes (mantener)
-└── ...resto sin cambios
+├── __init__.py          # <150 lines: ONLY lifecycle (setup/unload/remove/migrate)
+│                        # Exports: EVTripRuntimeData, EVTripConfigEntry
+├── coordinator.py       # TripPlannerCoordinator(DataUpdateCoordinator) — CREATE
+├── definitions.py       # TRIP_SENSORS tuple[TripSensorEntityDescription] — CREATE
+├── diagnostics.py       # async_get_config_entry_diagnostics — CREATE
+├── sensor.py            # One class: TripPlannerSensor(CoordinatorEntity, RestoreSensor)
+├── services.py          # Service handlers + registration — EXTRACT from __init__.py
+├── trip_manager.py      # Business logic (keep, few changes)
+├── config_flow.py       # Config flow (keep, add version=2)
+├── const.py             # Constants (keep)
+└── ...rest unchanged
 ```
 
-**Flujo de datos correcto (único camino válido):**
+**Correct data flow (only valid path):**
 
 ```
-Servicio HA invocado (add_trip / remove_trip / etc.)
+HA Service Invoked (add_trip / remove_trip / etc.)
         │
         ▼
 services.py handler
-        │  solo llama a:
+        │  only calls:
         ▼
 trip_manager.async_add_trip(...)
         │
         ▼
-coordinator.async_refresh()   ← única llamada que dispara actualizaciones
+coordinator.async_refresh()   ← only call that triggers updates
         │
         ▼
 coordinator._async_update_data()
-        │  construye coordinator.data = {...}
+        │  builds coordinator.data = {...}
         ▼
-CoordinatorEntity listeners notificados automáticamente
+CoordinatorEntity listeners notified automatically
         │
         ▼
-TripPlannerSensor.native_value lee coordinator.data
+TripPlannerSensor.native_value reads coordinator.data
         │
         ▼
-async_write_ha_state() → UI de HA actualizada
+async_write_ha_state() → HA UI updated
 ```
 
 ***
 
-## 6. Orden de Prioridad para Refactoring
+## 6. Refactoring Priority Order
 
-Implementar en este orden para maximizar estabilidad con el mínimo de cambios:
+Implement in this order to maximize stability with minimum changes:
 
-1. **Sprint 1 (Crítico — elimina duplicados y zombis):**
-   - Añadir `_attr_unique_id` a todos los sensores existentes
-   - Crear `coordinator.py` con `TripPlannerCoordinator(DataUpdateCoordinator)`
-   - Cambiar herencia de sensores a `CoordinatorEntity`
-   - Limpiar imports de `unittest.mock`
+1. **Sprint 1 (Critical — eliminates duplicates and zombies):**
+   - Add `_attr_unique_id` to all existing sensors
+   - Create `coordinator.py` with `TripPlannerCoordinator(DataUpdateCoordinator)`
+   - Change sensor inheritance to `CoordinatorEntity`
+   - Clean `unittest.mock` imports
 
-2. **Sprint 2 (Alto — estabilidad de lifecycle):**
-   - Migrar a `entry.runtime_data` con `@dataclass` tipado
-   - Refactorizar `__init__.py` extrayendo servicios a `services.py`
-   - Implementar `async_remove_entry` con limpieza de Entity Registry
-   - Añadir `ConfigEntryNotReady` en `async_config_entry_first_refresh`
+2. **Sprint 2 (High — lifecycle stability):**
+   - Migrate to `entry.runtime_data` with typed `@dataclass`
+   - Refactor `__init__.py` extracting services to `services.py`
+   - Implement `async_remove_entry` with Entity Registry cleanup
+   - Add `ConfigEntryNotReady` in `async_config_entry_first_refresh`
 
-3. **Sprint 3 (Medio — calidad y mantenibilidad):**
-   - Crear `definitions.py` con `SensorEntityDescription`
-   - Consolidar 8 clases de sensor en 1
-   - Implementar `RestoreSensor`
-   - Crear `diagnostics.py`
-   - Migrar `async_migrate_entry` para incluir Entity Registry
+3. **Sprint 3 (Medium — quality and maintainability):**
+   - Create `definitions.py` with `SensorEntityDescription`
+   - Consolidate 8 sensor classes into 1
+   - Implement `RestoreSensor`
+   - Create `diagnostics.py`
+   - Migrate `async_migrate_entry` to include Entity Registry
 
 ***
 
-## 7. Checklist de Revisión de PR
+## 7. PR Review Checklist
 
-Antes de hacer merge de cualquier PR:
+Before merging any PR:
 
-**Identidad de entidades:**
-- [ ] ¿Todos los `SensorEntity` tienen `_attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}"`?
-- [ ] ¿El `device_info` usa `identifiers={(DOMAIN, vehicle_id)}` consistente?
+**Entity Identity:**
+- [ ] Do all `SensorEntity` have `_attr_unique_id = f"{DOMAIN}_{vehicle_id}_{description.key}"`?
+- [ ] Does `device_info` use `identifiers={(DOMAIN, vehicle_id)}` consistently?
 
-**Arquitectura:**
-- [ ] ¿Los sensores heredan de `CoordinatorEntity`?
-- [ ] ¿`native_value` lee de `self.coordinator.data`, nunca de `trip_manager` directamente?
-- [ ] ¿No hay `async_update()` en sensores que usan coordinador?
+**Architecture:**
+- [ ] Do sensors inherit from `CoordinatorEntity`?
+- [ ] Does `native_value` read from `self.coordinator.data`, never directly from `trip_manager`?
+- [ ] Are there no `async_update()` calls in sensors that use coordinator?
 
-**Código limpio:**
-- [ ] ¿Cero imports de `unittest.mock` fuera de `tests/`?
-- [ ] ¿No hay clases "alias" creadas para compatibilidad con tests?
-- [ ] ¿Los logs de flujo normal usan `DEBUG`, no `WARNING`?
+**Clean Code:**
+- [ ] Zero `unittest.mock` imports outside `tests/`?
+- [ ] No "alias" classes created for test compatibility?
+- [ ] Are normal flow logs using `DEBUG`, not `WARNING`?
 
 **Lifecycle:**
-- [ ] ¿`__init__.py` tiene menos de 200 líneas?
-- [ ] ¿`async_remove_entry` limpia Entity Registry?
-- [ ] ¿`async_setup_entry` no limpia storage existente?
-- [ ] ¿Se usa `entry.runtime_data` en vez de `hass.data[DATA_RUNTIME]`?
+- [ ] Is `__init__.py` under 200 lines?
+- [ ] Does `async_remove_entry` clean Entity Registry?
+- [ ] Does `async_setup_entry` NOT clean existing storage?
+- [ ] Is `entry.runtime_data` used instead of `hass.data[DATA_RUNTIME]`?
 
-**Nuevo código:**
-- [ ] ¿Nuevos sensores usan `TripSensorEntityDescription` en `definitions.py`?
-- [ ] ¿Sensores con datos valiosos implementan `RestoreSensor`?
+**New Code:**
+- [ ] Do new sensors use `TripSensorEntityDescription` in `definitions.py`?
+- [ ] Do sensors with valuable data implement `RestoreSensor`?
