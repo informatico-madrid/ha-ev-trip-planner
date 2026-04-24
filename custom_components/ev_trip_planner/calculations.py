@@ -536,6 +536,67 @@ def calculate_multi_trip_charging_windows(
     return results
 
 
+def calculate_hours_deficit_propagation(
+    windows: List[Dict[str, Any]],
+    battery_capacity_kwh: float,
+    def_total_hours: List[float] | None = None,
+) -> List[Dict[str, Any]]:
+    """Walk backward from last trip to first, propagating unmet charging hours to earlier trips with spare capacity.
+
+    For each trip (last to first):
+    1. Calculate own deficit: hours needed minus hours available in window
+    2. Calculate spare capacity: available hours minus assigned def_total_hours
+    3. Absorb deficit from carrier using available spare
+    4. Propagate remaining deficit forward to previous trip
+
+    Args:
+        windows: List of window dicts from calculate_multi_trip_charging_windows().
+            Must contain: ventana_horas, horas_carga_necesarias.
+        battery_capacity_kwh: Battery capacity (for reference, not used in calculation).
+        def_total_hours: Optional list of total charging hours per trip.
+            If None, defaults to horas_carga_necesarias from each window.
+
+    Returns:
+        List of enriched window dicts with additional keys:
+        - deficit_hours_propagated: hours absorbed from next trip (float, 2dp)
+        - deficit_hours_to_propagate: remaining deficit (float, 2dp)
+        - adjusted_def_total_hours: original def_total_hours + absorbed (float, 2dp)
+    """
+    if not windows:
+        return []
+
+    N = len(windows)
+    defaults = [w["horas_carga_necesarias"] for w in windows]
+    if def_total_hours is None:
+        def_total_hours = defaults
+
+    results: List[Dict[str, Any]] = []
+    deficit_carrier: float = 0.0
+
+    for i in range(N - 1, -1, -1):
+        ventana = windows[i]["ventana_horas"]
+        horas_carga = windows[i]["horas_carga_necesarias"]
+        original_def_total = def_total_hours[i]
+        spare = max(0.0, ventana - original_def_total)
+
+        # How much can this trip absorb from the deficit carrier?
+        absorbed = min(deficit_carrier, spare)
+        deficit_carrier -= absorbed
+
+        # Own deficit: does this trip need more than its window allows?
+        own_deficit = max(0.0, horas_carga - ventana)
+        deficit_carrier += own_deficit
+
+        # Build result
+        result = dict(windows[i])
+        result["deficit_hours_propagated"] = round(absorbed, 2)
+        result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
+        result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
+        results.append(result)
+
+    return results
+
+
 # =============================================================================
 # PURE: SOC at start of trips
 # =============================================================================
