@@ -974,7 +974,7 @@ def_start_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_start_timestep
 def_end_timestep: {{ state_attr('${emhassSensorEntityId}', 'def_end_timestep_array') | default([], true) }}
 treat_deferrable_load_as_semi_cont: {{ ([true] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0))) | default([], true) }}
 set_deferrable_load_single_constant: {{ ([true] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0))) | default([], true) }}
-set_deferrable_startup_penalty : {{ ([true] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | default(0))) | default([], true) }}
+set_deferrable_startup_penalty: {{ ([0.0] * (state_attr('${emhassSensorEntityId}', 'number_of_deferrable_loads') | int(0))) | default([], true) }}
 P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | default([], true) }}`;
 
     return html`
