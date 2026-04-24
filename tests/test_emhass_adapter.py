@@ -1596,9 +1596,13 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
 
             timestep_upper = adapter._cached_per_trip_params["trip_upper"]["def_start_timestep"]
 
-            # THE CRITICAL ASSERTION: timestep must be clamped to 168
-            assert timestep_upper == 168, (
-                f"def_start_timestep should be clamped to 168 for 200-hour window, got {timestep_upper}"
+            # THE CRITICAL ASSERTION: timestep must be clamped to [0, 168] range.
+            # After the off-by-one fix (def_start -= 1), a 200-hour window clamps
+            # to 168 then subtracts 1 = 167. This is correct: the fix always expands
+            # the window backward by 1 timestep to compensate for EMHASS's exclusive
+            # end boundary convention.
+            assert timestep_upper == 167, (
+                f"def_start_timestep should be 167 (168 clamped - 1 off-by-one fix) for 200-hour window, got {timestep_upper}"
             )
 
         # Test CASE 2: Lower bound clamp (past window -> should clamp to 0)
