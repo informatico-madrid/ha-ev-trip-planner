@@ -27,8 +27,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 async def test_power_profile_positions_at_end_of_charging_window(
     mock_hass, mock_store
 ):
-    """RED phase: Verifies charging happens at END of window (latest possible).
-
+    """
     When def_start=83, def_end=96, total_hours=2:
     - Charging window is [83, 96) = 13 hours
     - But only need 2 hours of charging
@@ -102,7 +101,6 @@ async def test_power_profile_positions_at_end_of_charging_window(
     assert def_start < def_end, f"def_start ({def_start}) < def_end ({def_end})"
     assert def_total_hours == 2, f"Should need 2 hours charging, got {def_total_hours}"
 
-    # RED PHASE: Verify power_profile_watts positions
     # The 3600W values should be at the END of the charging window
     # For window [83, 96) with 2 hours charging, that means positions 94 and 95
 
@@ -115,7 +113,6 @@ async def test_power_profile_positions_at_end_of_charging_window(
     assert len(charging_positions) == def_total_hours, \
         f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
 
-    # RED PHASE: All charging positions must be WITHIN the charging window/EMHASS deferrable window
     # The optimizer may choose any position within [def_start, def_end)
     for pos in charging_positions:
         assert def_start <= pos < def_end, \
@@ -187,7 +184,6 @@ async def test_power_profile_positions_spread_across_window(
     print(f"DEBUG 6h trip: def_end = {def_end}")
     print(f"DEBUG 6h trip: def_total_hours = {def_total_hours}")
 
-    # RED PHASE: Window must be large enough for charging
     window_size = def_end - def_start
     assert window_size >= def_total_hours, \
         f"BUG: Window size ({window_size}h) too small for {def_total_hours}h charging"

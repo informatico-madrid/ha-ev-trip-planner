@@ -1168,7 +1168,7 @@ class TestEMHASSAdapterConstructorInjection:
     async def test_emhass_adapter_via_constructor(self, mock_hass_with_storage):
         """TripManager accepts emhass_adapter in constructor and get_emhass_adapter returns it.
 
-        T036 RED phase: This test should fail because constructor doesn't accept
+        T036 This test should fail because constructor doesn't accept
         emhass_adapter parameter yet. After T037-T040, it should pass.
         """
         mock_adapter = MagicMock()
@@ -1187,7 +1187,7 @@ class TestEMHASSAdapterConstructorInjection:
     async def test_set_emhass_adapter_still_works_after_refactor(self, mock_hass_with_storage):
         """set_emhass_adapter() still works after Phase C refactor (backward compatibility).
 
-        T036 RED phase: This test should fail because the refactor hasn't been done.
+        T036 This test should fail because the refactor hasn't been done.
         After T037-T040, the set_emhass_adapter() method should still be preserved.
         """
         # Create TripManager with emhass_adapter via constructor
@@ -1209,7 +1209,7 @@ class TestEMHASSAdapterConstructorInjection:
     async def test_get_emhass_adapter_returns_none_when_not_set(self, mock_hass_with_storage):
         """get_emhass_adapter returns None when no adapter is set (via constructor or setter).
 
-        T036 RED phase: This test verifies baseline behavior is preserved.
+        T036 This test verifies baseline behavior is preserved.
         """
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 

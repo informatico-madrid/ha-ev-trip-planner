@@ -24,8 +24,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 async def test_three_trips_puntual_and_recurring_charging_positions(
     mock_hass, mock_store
 ):
-    """RED phase: Verifies charging positions for 3 trips (mixed types).
-
+    """
     Original bug case from user:
     - Trip 1 (puntual): 7 kWh (2h) in 73 hours
     - Trip 2 (puntual): 21 kWh (6h) in 96 hours - HAD BUG: start=96, end=96
@@ -108,7 +107,6 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
     charging_positions1 = [i for i, p in enumerate(power_profile1) if p == 3600]
     print(f"  Charging positions: {charging_positions1}")
 
-    # RED PHASE: Window must be large enough
     window_size1 = def_end1 - def_start1
     assert window_size1 >= def_total1, \
         f"Trip1: Window ({window_size1}h) too small for {def_total1}h charging"
@@ -133,7 +131,6 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
     charging_positions2 = [i for i, p in enumerate(power_profile2) if p == 3600]
     print(f"  Charging positions: {charging_positions2}")
 
-    # RED PHASE: THE BUG - def_start must NOT equal def_end for a 6-hour charge
     assert def_start2 < def_end2, \
         f"Trip2 BUG: def_start ({def_start2}) should be < def_end ({def_end2}) for {def_total2}h charge"
 
@@ -172,7 +169,6 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
         assert def_start3 <= pos < def_end3, \
             f"Trip3: Position {pos} outside window [{def_start3}, {def_end3})"
 
-    # RED PHASE: Verify windows don't overlap improperly
     # For recurring trips, the window might be different
     # But all charging positions should be valid
     print("\n✓ All 3 trips have valid charging windows and positions")

@@ -25,8 +25,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 @pytest.mark.asyncio
 async def test_def_total_hours_exceeds_window_due_to_low_soc(mock_hass, mock_store):
-    """RED phase: Test that FAILS with current code, demonstrating the bug.
-
+    """
     Scenario: Very low SOC (5%) means trip needs ~9 hours of charging,
     but the charging window is only 1 hour. This creates an impossible EMHASS request.
     
@@ -96,7 +95,6 @@ async def test_def_total_hours_exceeds_window_due_to_low_soc(mock_hass, mock_sto
     # Verify charging is needed
     assert def_total_hours > 0, "With 5% SOC, charging should be needed"
     
-    # RED PHASE: This assertion FAILS when window < hours needed
     # The bug: def_total_hours (8h) > window_size (1h) -> EMHASS fails
     assert def_total_hours <= window_size, \
         f"BUG: def_total_hours ({def_total_hours}h) exceeds window_size ({window_size}h). " \
@@ -106,8 +104,7 @@ async def test_def_total_hours_exceeds_window_due_to_low_soc(mock_hass, mock_sto
 
 @pytest.mark.asyncio  
 async def test_def_total_hours_respects_window_size_cap(mock_hass, mock_store):
-    """RED phase: Test that FAILS - window size cap not applied to def_total_hours.
-    
+    """
     This test verifies that def_total_hours is properly capped to window_size
     when the window is smaller than hours needed.
     

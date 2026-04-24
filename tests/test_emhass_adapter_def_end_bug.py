@@ -20,8 +20,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 @pytest.mark.asyncio
 async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(mock_hass, mock_store):
-    """RED phase: Test that FAILS with current code, demonstrating the bug.
-
+    """
     Bug: When charging window starts near deadline, def_end_timestep equals
     def_start_timestep, creating a zero-duration window.
 
@@ -70,8 +69,6 @@ async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(moc
     def_end = params.get("def_end_timestep")
     def_total_hours = params.get("def_total_hours")
 
-    # RED PHASE: This assertion FAILS with current buggy code
-    # When charging window starts near deadline, def_end == def_start
     assert def_end > def_start, \
         f"BUG: def_end ({def_end}) should be > def_start ({def_start}) for {def_total_hours}h charge"
 
@@ -83,8 +80,7 @@ async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(moc
 
 @pytest.mark.asyncio
 async def test_populate_cache_entry_def_end_uses_fin_ventana_not_hours_available(mock_hass, mock_store):
-    """RED phase: Verifies the fix uses fin_ventana for def_end_timestep.
-
+    """
     This test will FAIL until the bug is fixed.
     """
     config = {

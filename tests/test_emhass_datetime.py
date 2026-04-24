@@ -1,6 +1,5 @@
 """Tests for EMHASS datetime offset handling.
 
-RED Phase: Test should FAIL because the bug exists.
 GREEN Phase: Test should PASS after the fix is applied.
 
 The bug: emhass_adapter.py lines 126, 333, 534, 537, 721 use datetime.now()
@@ -18,7 +17,6 @@ import math
 class TestDatetimeOffsetBug:
     """Test datetime offset bug in emhass_adapter.
 
-    RED Phase: test_datetime_subtraction_raises_typeerror FAILS (bug exists)
     GREEN Phase: test_datetime_subtraction_raises_typeerror PASSES (bug fixed)
     """
 
