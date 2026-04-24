@@ -510,8 +510,15 @@ def calculate_multi_trip_charging_windows(
         # Determine window start
         window_start: datetime | None
         if idx == 0:
+            now = datetime.now(timezone.utc)
             if hora_regreso is not None:
-                window_start = hora_regreso
+                # Car is already home, start charging from now not from past hora_regreso
+                # Only apply when trip is in the future (past trips keep original behavior)
+                aware_departure = _ensure_aware(trip_departure_time)
+                if aware_departure > now:
+                    window_start = max(_ensure_aware(hora_regreso), now)
+                else:
+                    window_start = hora_regreso
             else:
                 # trip_departure_time must not be None here
                 assert trip_departure_time is not None
