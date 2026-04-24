@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-24T06:55:08Z",
+  "updated": "2026-04-24T09:28:07Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 30,
+      "specsCount": 33,
       "isDefault": true
     }
   ],
@@ -217,6 +217,23 @@
       "phase": "execution",
       "taskIndex": 6,
       "totalTasks": 6
+    },
+    {
+      "name": "propagate-charge-deficit-algo",
+      "path": "./specs/propagate-charge-deficit-algo",
+      "phase": "execution",
+      "taskIndex": 0,
+      "totalTasks": 0
+    },
+    {
+      "name": "propagate-charge-wiring",
+      "path": "./specs/propagate-charge-wiring",
+      "phase": "requirements"
+    },
+    {
+      "name": "propagate-charge-test",
+      "path": "./specs/propagate-charge-test",
+      "phase": "requirements"
     }
   ]
 }

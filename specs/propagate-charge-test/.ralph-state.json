@@ -1,0 +1,16 @@
+{
+  "source": "plan",
+  "name": "propagate-charge-test",
+  "basePath": "./specs/propagate-charge-test",
+  "phase": "requirements",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [],
+  "epicName": "emhass-deferrable-integration"
+}
