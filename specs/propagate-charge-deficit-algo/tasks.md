@@ -31,7 +31,7 @@ Implement the pure function that walks backward through charging windows and pro
 
 Create `TestCalculateHoursDeficitPropagation` test class covering all scenarios.
 
-- [ ] 2.1 [TEST] Write test class with comprehensive scenarios
+- [x] 2.1 [TEST] Write test class with comprehensive scenarios
   - **Do**:
     1. Read `tests/test_calculations.py` to find where other test classes are defined
     2. Add `TestCalculateHoursDeficitPropagation` class with these test methods:
