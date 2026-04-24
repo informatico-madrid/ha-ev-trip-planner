@@ -481,21 +481,27 @@ def calculate_multi_trip_charging_windows(
 ) -> List[Dict[str, Any]]:
     """Calculate charging windows for multiple chained trips.
 
-    Each trip gets its own window. The first trip starts at hora_regreso.
-    Subsequent trips start after the previous trip ends plus a buffer gap.
+    Each trip gets its own window. The first trip's charging window starts at
+    max(hora_regreso, now) when hora_regreso is provided, or from now when
+    hora_regreso is None. Subsequent trips start after the previous trip
+    arrives plus return_buffer_hours.
 
     Args:
         trips: List of (departure_time, trip_dict) tuples, sorted by time.
         soc_actual: Current SOC percentage
-        hora_regreso: Return time for the first trip
+        hora_regreso: Physical return timestamp (may be in the past if car
+            is already home). When None, the car is assumed to be home.
         charging_power_kw: Charging power in kW
         battery_capacity_kwh: Battery capacity in kWh
         duration_hours: Duration of each trip in hours (how long car is away)
-        return_buffer_hours: Gap in hours between when a trip ends and the next trip begins
+        return_buffer_hours: Gap in hours between when a trip ends and the
+            next trip begins
         safety_margin_percent: Safety margin percentage for energy calculations
 
     Returns:
-        List of charging window dicts (one per trip).
+        List of per-trip charging window dicts with keys:
+            ventana_horas, kwh_necesarios, horas_carga_necesarias,
+            inicio_ventana, fin_ventana, es_suficiente.
     """
     if not trips:
         return []

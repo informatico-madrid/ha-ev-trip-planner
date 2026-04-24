@@ -593,7 +593,7 @@ class TestCalculateMultiTripChargingWindows:
         assert len(result) == 1
         # Window should start from now, not from departure - 6h
         assert result[0]["inicio_ventana"] >= now, \
-            f"inicio_ventana={result['inicio_ventana']} should be >= now={now}"
+            f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
         # ventana_horas = (departure + 6h) - now = 96 + 6 = 102h
         assert result[0]["ventana_horas"] == pytest.approx(102.0, abs=0.02)
 

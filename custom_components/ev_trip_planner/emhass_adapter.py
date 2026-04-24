@@ -871,7 +871,7 @@ class EMHASSAdapter:
             except Exception:
                 hora_regreso = None
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG async_publish_all: hora_regreso=%s, vehicle_id=%s, trips_count=%d",
             hora_regreso, self.vehicle_id, len(trips),
         )
