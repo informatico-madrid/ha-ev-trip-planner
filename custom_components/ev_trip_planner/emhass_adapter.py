@@ -901,7 +901,8 @@ class EMHASSAdapter:
             )
 
             # Build enriched windows map keyed by trip_id
-            for trip_id, enriched in zip(trip_order, enriched_windows):
+            # enriched_windows is in reverse order (backward propagation), so reverse it
+            for trip_id, enriched in zip(trip_order, reversed(enriched_windows)):
                 enriched_windows_map[trip_id] = enriched
 
         _LOGGER.debug(
