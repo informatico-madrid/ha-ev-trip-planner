@@ -341,6 +341,119 @@ class TestBug2TimezoneOffset:
         )
 
 
+class TestCalculateNextRecurringDatetimeTz:
+    """Tests for calculate_next_recurring_datetime with tz parameter.
+
+    Tests the branch where tz is not None and time has passed (days_ahead == 0
+    but candidate_local < local_ref), causing days_ahead to become 7.
+    """
+
+    def test_time_passed_same_day_pushes_to_next_week(self):
+        """When tz is provided and trip time has passed today, next week is returned.
+
+        Scenario: Reference is Friday 23:00 local (UTC+2 = 21:00 UTC).
+        Trip: Friday 22:00 local = 20:00 UTC (already passed).
+        Expected: Next Friday (7 days ahead).
+        """
+        from datetime import datetime, timedelta, timezone
+        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+
+        TZ_UTC_PLUS_2 = timezone(timedelta(hours=2))
+        # Friday April 24, 2026 at 23:00 local = 21:00 UTC
+        ref_local = datetime(2026, 4, 24, 23, 0, 0, tzinfo=TZ_UTC_PLUS_2)
+        # Trip: Friday 22:00 local = 20:00 UTC (already passed)
+        # Day=5 means Friday (JS getDay format: 0=Sun, 5=Fri)
+
+        result = calculate_next_recurring_datetime(
+            day=5,  # Friday in JS getDay format
+            time_str="22:00",
+            reference_dt=ref_local,
+            tz=TZ_UTC_PLUS_2,
+        )
+
+        assert result is not None
+        # Should be next Friday (7 days) since 22:00 local already passed
+        expected = datetime(2026, 5, 1, 20, 0, 0, tzinfo=timezone.utc)  # May 1 20:00 UTC
+        assert result == expected, (
+            f"Expected next Friday 20:00 UTC, got {result}. "
+            f"days_ahead should be 7 when trip time already passed."
+        )
+
+
+class TestCalculateTripTimeTz:
+    """Tests for calculate_trip_time with tz parameter (line 146 coverage).
+
+    The tz branch in calculate_trip_time was not covered by existing tests
+    because calculate_power_profile_from_trips calls calculate_next_recurring_datetime
+    (not calculate_trip_time) for recurring trips.
+    """
+
+    def test_trip_time_with_tz_covers_line_146(self):
+        """Test calculate_trip_time with tz parameter covers line 146 (local_now).
+
+        Scenario: Reference is Friday 09:15 UTC = 11:15 local (UTC+2).
+        Trip: Friday 13:30 local.
+        Result should be Friday 13:30 local converted to UTC.
+        """
+        from datetime import datetime, timedelta, timezone
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        TZ_UTC_PLUS_2 = timezone(timedelta(hours=2))
+        # Friday 09:15 UTC = 11:15 local (UTC+2)
+        ref_utc = datetime(2026, 4, 24, 9, 15, 0, tzinfo=timezone.utc)
+
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="13:30",
+            dia_semana="5",  # Friday in JS getDay format
+            datetime_str=None,
+            reference_dt=ref_utc,
+            tz=TZ_UTC_PLUS_2,  # This triggers the tz branch (line 146)
+        )
+
+        assert result is not None
+        # 13:30 local (UTC+2) = 11:30 UTC
+        expected = datetime(2026, 4, 24, 11, 30, 0, tzinfo=timezone.utc)
+        assert result == expected, (
+            f"Expected Friday 11:30 UTC, got {result}. "
+            f"hora '13:30' should be interpreted as local time (UTC+2)."
+        )
+
+    def test_trip_time_with_tz_time_passed_pushes_to_next_week(self):
+        """Test calculate_trip_time with tz where local time has already passed.
+
+        Scenario: Reference is Friday 14:00 UTC = 16:00 local (UTC+2).
+        Trip: Friday 13:30 local (already passed).
+        Result should be next Friday (7 days ahead).
+        """
+        from datetime import datetime, timedelta, timezone
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        TZ_UTC_PLUS_2 = timezone(timedelta(hours=2))
+        # Friday 14:00 UTC = 16:00 local (UTC+2) - trip time (13:30) has passed
+        ref_utc = datetime(2026, 4, 24, 14, 0, 0, tzinfo=timezone.utc)
+
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="13:30",
+            dia_semana="5",  # Friday in JS getDay format
+            datetime_str=None,
+            reference_dt=ref_utc,
+            tz=TZ_UTC_PLUS_2,  # This triggers the tz branch with time-passed subbranch
+        )
+
+        assert result is not None
+        # Next Friday: April 24 + 7 days = May 1
+        # 13:30 local (UTC+2) = 11:30 UTC
+        expected = datetime(2026, 5, 1, 11, 30, 0, tzinfo=timezone.utc)
+        assert result == expected, (
+            f"Expected next Friday 11:30 UTC, got {result}. "
+            f"When local time has passed, should push to next week."
+        )
+
+
 # =============================================================================
 # Integration: Full flow test (both bugs)
 # =============================================================================

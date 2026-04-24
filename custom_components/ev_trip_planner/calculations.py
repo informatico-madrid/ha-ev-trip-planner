@@ -139,10 +139,7 @@ def calculate_trip_time(
         now = reference_dt
         target_day = calculate_day_index(dia_semana or "lunes")
         local_time = datetime.strptime(hora, "%H:%M").time()
-        try:
-            hour = int(hora.split(":")[0])
-        except (ValueError, IndexError):
-            hour = 0
+        hour = local_time.hour
 
         if tz is not None:
             # BUG FIX: hora is local time, convert to UTC
@@ -521,7 +518,7 @@ def calculate_multi_trip_charging_windows(
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
         # This handles the case where return_buffer pushes window_start past the deadline
-        assert trip_departure_time is not None
+        assert trip_departure_time is not None  # Enforced upstream by calculate_charging_window_pure
         if window_start is not None and _ensure_aware(window_start) > _ensure_aware(trip_departure_time):
             window_start = trip_departure_time
 
