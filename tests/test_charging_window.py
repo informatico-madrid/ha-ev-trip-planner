@@ -785,15 +785,17 @@ class TestSequentialTripDefStartBug:
 class TestSingleTripBackwardCompatibility:
     """Test that single trip backward compatibility is maintained (AC-1.3)."""
 
-    def test_single_trip_backward_inicio_ventana_equals_hora_regreso(self):
-        """Test that single trip with return_buffer_hours produces inicio_ventana == hora_regreso.
+    def test_single_trip_backward_inicio_ventana_equals_now_when_hora_regreso_past(self):
+        """Test that single trip with past hora_regreso starts charging from now.
 
-        For a single trip, the charging window should start at hora_regreso (def_start=0).
-        This verifies backward compatibility: single trips should not be affected by
-        the sequential trip buffer logic.
+        When hora_regreso is in the past (car already home), inicio_ventana should be
+        max(hora_regreso, now) = now, not hora_regreso. This allows charging to start
+        immediately using available solar energy.
+
+        When hora_regreso is in the future (car not yet home), inicio_ventana should
+        be hora_regreso.
         """
-        # Use naive datetimes to avoid timezone issues
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_deadline = now + timedelta(hours=12)
         hora_regreso = now - timedelta(hours=2)  # Car already returned 2 hours ago
 
@@ -804,30 +806,29 @@ class TestSingleTripBackwardCompatibility:
             "descripcion": "Single trip",
         }
 
-        # Compute charging windows with 1 trip and return_buffer_hours=4.0
         results = calculate_multi_trip_charging_windows(
             trips=[
-                (trip_deadline.replace(tzinfo=timezone.utc), trip),
+                (trip_deadline, trip),
             ],
             soc_actual=50.0,
-            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            hora_regreso=hora_regreso,
             charging_power_kw=7.4,
             battery_capacity_kwh=50.0,
             return_buffer_hours=4.0,
         )
 
-        # Assert only 1 result for single trip
-        assert len(results) == 1, f"Expected 1 result, got {len(results)}"
+        assert len(results) == 1
 
-        # Assert inicio_ventana equals hora_regreso for single trip
-        # (single trip window starts at hora_regreso, not offset by buffer)
-        assert results[0]["inicio_ventana"] == hora_regreso.replace(tzinfo=timezone.utc), \
-            f"Single trip inicio_ventana should equal hora_regreso, got {results[0]['inicio_ventana']}"
+        # Car is already home: window starts from now, not from past hora_regreso
+        assert results[0]["inicio_ventana"] >= now, \
+            "inicio_ventana should be >= now when car is home"
 
-        # Verify that for a single trip, def_start would be 0
-        # (inicio_ventana == hora_regreso means delta_hours from now() to inicio_ventana is 0 or negative)
-        delta = (results[0]["inicio_ventana"] - datetime.now(timezone.utc)).total_seconds() / 3600
-        assert delta <= 0, "hora_regreso is in the past, so def_start_timestep should cap at 0"
+        # Verify def_start_timestep would be 0 after integer conversion.
+        delta = (results[0]["inicio_ventana"] - now).total_seconds() / 3600
+        assert 0 <= delta < 1, (
+            "inicio_ventana should remain within the current timestep "
+            "so def_start_timestep would be 0"
+        )
 
     def test_three_sequential_trips_cumulative_offset(self):
         """Test that three sequential trips have cumulative offset from sequential chaining.

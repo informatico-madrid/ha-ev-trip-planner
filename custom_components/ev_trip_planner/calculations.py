@@ -481,21 +481,27 @@ def calculate_multi_trip_charging_windows(
 ) -> List[Dict[str, Any]]:
     """Calculate charging windows for multiple chained trips.
 
-    Each trip gets its own window. The first trip starts at hora_regreso.
-    Subsequent trips start after the previous trip ends plus a buffer gap.
+    Each trip gets its own window. The first trip's charging window starts at
+    max(hora_regreso, now) when hora_regreso is provided, or from now when
+    hora_regreso is None. Subsequent trips start after the previous trip
+    arrives plus return_buffer_hours.
 
     Args:
         trips: List of (departure_time, trip_dict) tuples, sorted by time.
         soc_actual: Current SOC percentage
-        hora_regreso: Return time for the first trip
+        hora_regreso: Physical return timestamp (may be in the past if car
+            is already home). When None, the car is assumed to be home.
         charging_power_kw: Charging power in kW
         battery_capacity_kwh: Battery capacity in kWh
         duration_hours: Duration of each trip in hours (how long car is away)
-        return_buffer_hours: Gap in hours between when a trip ends and the next trip begins
+        return_buffer_hours: Gap in hours between when a trip ends and the
+            next trip begins
         safety_margin_percent: Safety margin percentage for energy calculations
 
     Returns:
-        List of charging window dicts (one per trip).
+        List of per-trip charging window dicts with keys:
+            ventana_horas, kwh_necesarios, horas_carga_necesarias,
+            inicio_ventana, fin_ventana, es_suficiente.
     """
     if not trips:
         return []
@@ -510,12 +516,21 @@ def calculate_multi_trip_charging_windows(
         # Determine window start
         window_start: datetime | None
         if idx == 0:
+            now = datetime.now(timezone.utc)
             if hora_regreso is not None:
-                window_start = hora_regreso
+                # Car is already home, start charging from now not from past hora_regreso
+                # Only apply when trip is in the future (past trips keep original behavior)
+                aware_departure = _ensure_aware(trip_departure_time)
+                if aware_departure > now:
+                    window_start = max(_ensure_aware(hora_regreso), now)
+                else:
+                    window_start = hora_regreso
             else:
                 # trip_departure_time must not be None here
                 assert trip_departure_time is not None
-                window_start = trip_departure_time - timedelta(hours=duration_hours)
+                # Car is assumed to be home (no return event detected).
+                # Charging starts from now, not from departure - duration.
+                window_start = now
         else:
             window_start = previous_arrival
 

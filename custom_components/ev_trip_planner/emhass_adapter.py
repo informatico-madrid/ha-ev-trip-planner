@@ -621,6 +621,14 @@ class EMHASSAdapter:
             if delta_hours_end > 0:
                 def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
+        # BUG FIX: EMHASS off-by-one in window calculation.
+        # The combination of int() for def_start and ceil(x-0.001) for def_end
+        # systematically produces a window that is 1 timestep too narrow.
+        # Subtract 1 from def_start to expand the window by 1 timestep.
+        # If def_start would go below 0, we reduce total_hours instead (below).
+        _def_start_before_expansion = def_start_timestep
+        def_start_timestep = max(0, def_start_timestep - 1)
+
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
         # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
@@ -645,6 +653,21 @@ class EMHASSAdapter:
             if adjusted_def_total_hours > 0:
                 needs_charging = True
                 power_watts = charging_power_kw * 1000
+
+        # BUG FIX (continued): If def_start was already 0 and couldn't be
+        # expanded backward, cap total_hours to the available window size.
+        # If there is no available timestep (window_size <= 0), skip charging
+        # entirely to prevent creating an impossible one-hour load.
+        # Note: We use a narrow guard here to not interfere with backward
+        # deficit propagation - that system handles most window-too-small cases.
+        if _def_start_before_expansion == 0:
+            window_size = def_end_timestep - def_start_timestep
+            if window_size <= 0:
+                total_hours = 0
+                needs_charging = False
+                power_watts = 0
+            elif window_size < math.ceil(total_hours):
+                total_hours = window_size
 
         # T1.3: Optimización - no calcular perfil si no se necesita carga
         if not needs_charging:
@@ -847,6 +870,11 @@ class EMHASSAdapter:
                 hora_regreso = await self._presence_monitor.async_get_hora_regreso()
             except Exception:
                 hora_regreso = None
+
+        _LOGGER.debug(
+            "DEBUG async_publish_all: hora_regreso=%s, vehicle_id=%s, trips_count=%d",
+            hora_regreso, self.vehicle_id, len(trips),
+        )
 
         # Batch compute charging windows for ALL trips at once (fixes sequential trip offset bug)
         trip_deadlines = []
