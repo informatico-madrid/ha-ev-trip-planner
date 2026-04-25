@@ -76,14 +76,13 @@ All documentation is being translated to English to maximize accessibility. Cont
 timeline
     title 3 Evolutionary Arcs
     section Exploration
-        2024 Q1 : Vive Coding : No specs, no tests, maximum debt
-        2024 Q2 : Prompt Engineering : Structured prompts, first templates
+        2025 Q3 : Vibe Coding : No specs, no tests, maximum debt
+        2025 Q4 : Prompt Engineering : Structured prompts, first templates
     section Systematization
-        2024 Q3 : Domain Skills : Fine-tuned context for HA ecosystem
-        2024 Q4 : SpecKit SDD : Formal specs with checklists
-        2025 Q1 : Smart Ralph Fork : Phase 5 Verification Loop
+        2026 Q1 : SpecKit SDD : Formal specs with checklists
+        2026 Q1 : Smart Ralph Fork : Phase 5 Verification Loop
     section Orchestration
-        2026 Q1 : BMad + Ralph : Multi-agent orchestration
+        2026 Q2 : BMad + Ralph : Multi-agent orchestration
 ```
 
 ### Arc 1: Exploration — "I discovered that without specifications, debt grows exponentially"
