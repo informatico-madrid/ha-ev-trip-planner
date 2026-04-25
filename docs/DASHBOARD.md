@@ -1,6 +1,9 @@
-# Dashboard Guide
+# Dashboard Guide (DEPRECATED)
 
-This guide explains how to use and configure the EV Trip Planner dashboard in Home Assistant to monitor your electric vehicle, track trips, and verify EMHASS integration.
+> ⚠️ **DEPRECATED**: The Lovelace Dashboard functionality is deprecated. Use the new native Home Assistant panel instead:
+> **Settings → Devices & Services → EV Trip Planner → Open Panel**
+
+This guide explains how to use the legacy Lovelace dashboard. For new installations, use the native panel.
 
 ---
 
@@ -12,6 +15,8 @@ EV Trip Planner provides two dashboard templates that are automatically created 
 2. **Simple Dashboard** (`ev-trip-planner-simple.yaml`) - Markdown-only, compatible with all installations
 
 The appropriate dashboard is automatically selected based on your Lovelace configuration.
+
+> ⚠️ **DEPRECATED**: Both dashboard templates are deprecated. Please use the native panel instead (Settings → Devices & Services → EV Trip Planner → Open Panel).
 
 ---
 

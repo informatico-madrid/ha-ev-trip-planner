@@ -22,7 +22,7 @@
 - [🔧 Troubleshooting](#-troubleshooting)
 - [📊 Development](#-development)
   - [🤖 Smart Ralph Methodology](#-smart-ralph-methodology)
-- [📚 Documentación](#-documentación)
+- [📚 Documentation](#-documentation)
 
 ---
 
@@ -36,15 +36,69 @@
 
 For the complete milestone history and project roadmap, see [ROADMAP.md](ROADMAP.md).
 
-### Core Features
-- **🗓️ Recurring and Punctual Trips**: Schedule daily/weekly trips or plan one-time trips with specific date/time
-- **🔋 Smart Optimization**: Calculates required energy based on distance, efficiency, and current SOC
-- **⚡ EMHASS Integration**: Energy optimization with dynamic schedules to take advantage of variable tariffs
-- **🎮 Vehicle Control**: 4 strategies (switch, service, script, external) for charge control
-- **🏠 Presence Detection**: Sensor and coordinates for safe charging
-- **🔔 Smart Notifications**: Alerts when charging is needed but not possible
-- **📱 Real-Time Sensors**: Automatic sensors with reactive updates
-- **🎛️ Lovelace Dashboard**: Preconfigured panel included
+### 🔬 Multi-Dimensional Charging Algorithm (Core Strength)
+
+```mermaid
+flowchart TD
+   A[Trip Data]
+   A1[Timestamps]
+   A2[Battery Info]
+   B[calculate_energy_needed]
+   C[calculate_charging_window_pure]
+   D[calculate_multi_trip_charging_windows]
+   E[calculate_deficit_propagation]
+   F[calculate_hours_deficit_propagation]
+   G[calculate_power_profile_from_trips]
+   H[calculate_deferrable_parameters]
+   I[EMHASS Schedule]
+
+   A --> B
+   A1 --> C
+   A2 --> B
+   B --> C
+   C --> D
+   D --> E
+   E --> F
+   F --> G
+   G --> H
+   H --> I
+
+   classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:1px
+   classDef core fill:#fff3e0,stroke:#e65100,stroke-width:1px
+   classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
+
+   class A,A1,A2 input
+   class B,C,D,E,F core
+   class G,H,I output
+```
+
+### Core Features (MVP)
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| 🗓️ **Recurring & Punctual Trips** | Schedule daily/weekly trips or one-time trips with specific date/time | ✅ MVP Ready |
+| 🔋 **Smart Optimization** | Calculates required energy based on distance, efficiency, and current SOC | ✅ MVP Ready |
+| ⚡ **EMHASS Integration** | Energy optimization with dynamic schedules to take advantage of variable tariffs | ✅ MVP Ready |
+| 🏠 **Presence Detection** | Sensor and coordinates for safe charging | ✅ MVP Ready |
+| 🔔 **Smart Notifications** | Alerts when charging is needed but not possible | 🔄 In Development |
+| 📱 **Real-Time Sensors** | Automatic sensors with reactive updates | ✅ MVP Ready |
+| 🎛️ **Lovelace Dashboard** | Preconfigured panel included | ❌ Deprecated (use native panel instead) |
+
+> **Note**: The legacy Lovelace Dashboard is deprecated. Use the new native Home Assistant panel instead (Settings → Devices & Services → EV Trip Planner → Open Panel).
+> 
+> **Vehicle Control** (4 strategies: switch, service, script, external) is documented in the [Roadmap](ROADMAP.md) — implementation code exists but automatic charge control is not yet connected end-to-end. Contributions welcome!
+
+## 🎯 MVP Status
+
+**This is a functioning MVP** ready for use with EMHASS to plan and manage vehicle charging. The core calculation engine is robust and production-ready.
+
+### Areas Needing Contribution
+
+⭐ Help us improve:
+- **Native Panel UI** - Continue improving the new native panel (Lovelace Dashboard is deprecated)
+- **Notifications** - Implement and test the notification system end-to-end  
+- **Vehicle Control** - Complete the external control strategy and improve sensor integration
+- **Vehicle Features** - Add configurable return time per trip, SOH (State of Health), auto-distance calculation with destinations, AI trip input
 
 ---
 
@@ -181,7 +235,7 @@ For the complete milestone history and project roadmap, see [ROADMAP.md](ROADMAP
 
 2. **Available translations**: The project includes Spanish (`es`) and English (`en`) translations. The interface displays in the language configured in your Home Assistant.
 
-3. **Automatic dashboard**: Upon completing configuration, the system will attempt to import a preconfigured Lovelace dashboard.
+3. **Automatic dashboard** (DEPRECATED): Upon completing configuration, the system would attempt to import a preconfigured Lovelace dashboard. Use the native panel instead.
 
 4. **Sensors will be created automatically**, including:
    - `sensor.{vehicle}_trips_list` - List of active trips
@@ -256,11 +310,16 @@ data:
   descripcion: "Airport"
 ```
 
-### View Trips on Dashboard
+### View Trips on Native Panel
 
-1. **Edit your** Lovelace dashboard
-2. **Add a card** → **Entities**
-3. **Select the vehicle sensors**
+Use the native panel instead of Lovelace Dashboard:
+
+1. Go to **Settings** → **Devices & Services** → **EV Trip Planner**
+2. Click **Open Panel** for your vehicle
+
+Alternatively, add sensor cards to any dashboard:
+1. **Add a card** → **Entities**
+2. **Select the vehicle sensors**
 
 ---
 
@@ -315,17 +374,19 @@ configure multiple shell commands, one per vehicle.
 
 ### Verify Integration
 
-1. **Dashboard**: Go to the `ev-trip-planner-{vehicle_id}` dashboard
+1. **Native Panel**: Go to Settings → Devices & Services → EV Trip Planner → Open Panel for your vehicle
 2. **Entities**: Search for `sensor.emhass_deferrable*` or `sensor.emhass_perfil_diferible*`
 3. **Logs**: Look for "Published X/Y deferrable loads" to confirm successful publication
 
 ---
 
-## 🚗 Vehicle Control
+## 🚗 Vehicle Control (Planned)
 
-### Control Types
+> ⚠️ **Status**: The Vehicle Control feature is **documented** and **partially implemented** in code, but the automatic charge control is **not yet connected end-to-end**. See [ROADMAP.md](ROADMAP.md) for details.
 
-EV Trip Planner supports 4 control strategies:
+### Control Types (Planned)
+
+EV Trip Planner will support 4 control strategies:
 
 | Type | Description | When to Use |
 |------|-------------|-------------|
@@ -335,50 +396,7 @@ EV Trip Planner supports 4 control strategies:
 | **Script** | Execute HA scripts | Customizable charging with complex logic |
 | **External** | No internal action | Delegate everything to external system |
 
-### Control Configuration
-
-#### Switch (Recommended for wallboxes)
-
-1. Select "Switch" as control type
-2. Choose the charging switch (e.g., `switch.wallbox_charging`)
-3. The system will turn the switch on/off according to EMHASS schedule
-
-#### Service
-
-1. Select "Service" as control type
-2. Provide ON service (e.g., `switch.turn_on`) and OFF service (e.g., `switch.turn_off`)
-3. Include service data if needed (target entity, parameters)
-
-#### Script
-
-1. Select "Script" as control type
-2. Choose the start script (e.g., `script.start_charging`)
-3. Choose the stop script (e.g., `script.stop_charging`)
-4. The system will execute the appropriate script according to EMHASS schedule
-
-#### External
-
-1. Select "External" as control type
-2. The integration will not execute any direct action
-3. Useful when another system manages charging
-
-### Presence Detection
-
-For safe operation, the system verifies:
-
-- **Charging sensor** (REQUIRED): Is the vehicle consuming energy?
-- **Home sensor** (optional): Is the vehicle at the expected location?
-- **Plug sensor** (optional): Is the charging cable connected?
-
-### Complete Control Flow
-
-```
-EMHASS optimizes schedules → ScheduleMonitor receives callbacks
-    → Verifies presence (presence_monitor)
-    → Is vehicle available and needs charging?
-        → Yes → VehicleController activates strategy (switch/service/script)
-        → No → Sends notification (if configured)
-```
+> 📖 **Full documentation**: See [`docs/VEHICLE_CONTROL.md`](docs/VEHICLE_CONTROL.md) for complete implementation guide.
 
 ---
 
@@ -498,12 +516,14 @@ To permanently delete all data:
   ```
 - Files are saved in `.storage/ev_trip_planner_{vehicle_id}.json`
 
-### Dashboard Doesn't Import
+### Dashboard Doesn't Import (DEPRECATED)
 
-- **Verify Lovelace is available**: The system needs Lovelace to be configured
-- The dashboard is created during the configuration flow, not after restart
-- If the dashboard doesn't appear, go to Configuration → Lovelace Dashboard → + (add)
-  and search for "EV Trip Planner" in the available dashboards list
+> ⚠️ **DEPRECATED**: The Lovelace Dashboard import is deprecated. Use the native panel instead:
+> Go to **Settings** → **Devices & Services** → **EV Trip Planner** → **Open Panel**
+
+The legacy Lovelace dashboard was created during the configuration flow. If you still need to access it:
+- Go to Configuration → Lovelace Dashboard
+- Search for "EV Trip Planner" in the available dashboards list
 
 ### EMHASS Issues
 
@@ -565,10 +585,10 @@ ha-ev-trip-planner/
 │   ├── diagnostics.py       # HA diagnostics support
 │   ├── panel.py             # Custom UI panel
 │   └── translations/        # Translations (en.json, es.json)
-├── frontend/                # Lovelace Panel (Lit web components)
+├── frontend/                # Native Panel (Lit web components)
 │   ├── panel.js
 │   └── panel.css
-├── dashboard/               # Predefined Dashboard YAMLs
+├── dashboard/               # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
 ├── tests/                   # Unit and integration tests
 │   ├── test_*.py            # ~85 test files
 │   └── e2e/                  # E2E Tests (Playwright)
@@ -632,13 +652,33 @@ npx playwright test tests/e2e/
 
 ---
 
-## 📚 Documentación
+## 📚 Documentation
 
-| Documentación | Descripción |
+| Documentation | Description |
 |---------------|-------------|
-| [📖 docs/index.md](docs/index.md) | Documentación para usuarios y desarrolladores |
-| [🤖 _ai/index.md](_ai/index.md) | Documentación técnica para agentes IA |
-| [📋 plans/DOCS_AUDIT_REPORT.md](plans/DOCS_AUDIT_REPORT.md) | Informe completo de auditoría de documentación |
+| [📖 docs/index.md](docs/index.md) | Documentation for users and developers |
+| [🤖 _ai/index.md](_ai/index.md) | Technical documentation for AI agents |
+| [📋 plans/DOCS_AUDIT_REPORT.md](plans/DOCS_AUDIT_REPORT.md) | Complete documentation audit report |
+
+---
+
+## 🤝 Acknowledgments
+
+This project stands on the shoulders of giants:
+
+- **[BMad Method](https://github.com/bmad-project/bmad)** — For the systematic AI-assisted development approach that guides the architecture and quality standards of this project
+- **[smart-ralph](https://github.com/tzachbon/smart-ralph)** — For the original EV trip planning concepts and initial inspiration
+- **[informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph)** — For the fork with development methodology specific to AI agents
+
+---
+
+## ⭐ Support This Project
+
+If you find this useful, please give it a star! Your support helps motivate continued development of:
+- Better panel UI and UX
+- Expanded vehicle integration options  
+- AI-powered trip planning
+- Advanced scheduling features
 
 ---
 
