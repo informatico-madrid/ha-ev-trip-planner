@@ -49,11 +49,11 @@ async def async_calcular_energia_necesaria(
 {
     "energia_necesaria_kwh": float,        # kWh to charge (includes margin)
     "horas_carga_necesarias": float,       # Hours needed to charge
-    "alerta_tiempo_insuficiente": bool,    # True if not enough time
     "horas_disponibles": float,            # Hours until trip
     "margen_seguridad_aplicado": float,    # Margin percentage used
 }
 ```
+⚠️ **NOTE**: `alerta_tiempo_insuficiente` is returned by `async_calcular_energia_necesaria()` but is **NOT exposed** to users via sensors or notifications. The user-facing `calcular_ventana_carga()` returns `es_suficiente` instead.
 
 **Example with Chispitas** (safety_margin=10%):
 - Current SOC: 49% → 19.6 kWh available
@@ -256,10 +256,11 @@ charging_hours = 15.5 / 7.4 = 2.09 hours (2 hours 5 minutes)
 
 ## 🚨 Alerts and Notifications
 
-### Insufficient Time Alert
-**Condition**: `horas_carga_necesarias > horas_disponibles`
+### ⚠️ Insufficient Time Alert — NOT IMPLEMENTED
 
-**Message**:
+**Condition**: `es_suficiente = false` returned by `calcular_ventana_carga()`
+
+**Intended Message** (NOT IMPLEMENTED — for reference only):
 ```
 ⚠️ Insufficient time to charge
 Vehicle: chispitas
@@ -269,7 +270,14 @@ Available: 0.25 hours (15 minutes)
 Required action: Charge manually or postpone trip
 ```
 
-**Location**: `alerta_tiempo_insuficiente: true` attribute in energy calculation
+**Current Status**: ❌ **NOT IMPLEMENTED**
+
+The logic for detecting insufficient charging time EXISTS in [`async_calcular_energia_necesaria()`](custom_components/ev_trip_planner/trip_manager.py:1545) as `alerta_tiempo_insuficiente`, but **no sensor, notification, or UI element exposes this to users**. The user-facing function `calcular_ventana_carga()` returns `es_suficiente` instead, which could be used to build such notifications.
+
+**Required to implement**:
+- Add a sensor or notification that exposes `es_suficiente` or `alerta_tiempo_insuficiente` to the user
+- Create notification service integration in `presence_monitor.py` or `schedule_monitor.py`
+- Add UI indicator in the native panel
 
 ---
 

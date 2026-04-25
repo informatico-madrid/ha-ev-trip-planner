@@ -3,11 +3,11 @@
 ## 📊 Project Status
 
 **Current version**: 0.5.20
-**Development phase**: Milestone 4.0.1 planned — not started  
-**Target Release**: v1.0.0 (Q2 2026)  
+**Development phase**: Milestone 4.0.1 hotfixes planned — M4 core features fully implemented
+**Target Release**: v1.0.0 (Q2 2026)
 **Tests**: 793+ Python (pytest) + 10 E2E (Playwright) passing
-**Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1  
-**Detected gaps**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)  
+**Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1
+**Detected gaps**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)
 
 ---
 
@@ -59,11 +59,15 @@
 - SOC-aware calculation with configurable safety margin
 - `emhass_perfil_diferible_{vehicle_id}` sensor with `power_profile_watts` attribute
 - Load distribution just before each trip
-- Insufficient time alerts
 - 5-step config flow
-- Lovelace dashboard with auto-import on config completion
+- Native panel (primary interface) — [`panel.py`](custom_components/ev_trip_planner/panel.py:37) with per-vehicle sidebar entries
+- Per-trip EMHASS sensor — [`TripEmhassSensor`](custom_components/ev_trip_planner/sensor.py:853) provides per-trip parameters
+- Power profile generation — [`async_generate_power_profile()`](custom_components/ev_trip_planner/trip_manager.py:2068)
+- Deferrables schedule generation — [`async_generate_deferrables_schedule()`](custom_components/ev_trip_planner/trip_manager.py:2244)
 - Retry logic: 3 attempts in 5-minute window
 - 398 tests passing, 85%+ coverage
+- ⚠️ **NOTE**: Lovelace dashboard auto-import (`dashboard.py`, 1262 lines) still executes on every setup but is DEPRECATED. Users should use the native panel instead.
+- ⚠️ **NOT IMPLEMENTED**: `alerta_tiempo_insuficiente` user notifications — code exists in [`async_calcular_energia_necesaria()`](custom_components/ev_trip_planner/trip_manager.py:1545) but **no sensor, notification, or UI element exposes this value**. The user-facing function [`calcular_ventana_carga()`](custom_components/ev_trip_planner/trip_manager.py:1550) returns `es_suficiente` instead. **Feature not exposed to users.**
 
 ### SOLID Refactoring (Apr 2026 — feat/solid-refactor-coverage branch)
 - `definitions.py`: `TripSensorEntityDescription` dataclass for sensor definitions
@@ -71,6 +75,30 @@
 - `diagnostics.py`: HACS quality diagnostic support
 - High test coverage >80% for all modules
 - 793 Python tests + 10 E2E Playwright passing
+
+---
+
+### ⚠️ Vehicle Control — Implemented but NOT Wired to UI
+
+**Status**: Code exists in production, but NOT accessible to users through the config flow.
+
+| Component | File | Lines | Status |
+|-----------|------|-------|--------|
+| `VehicleControlStrategy` ABC | [`vehicle_controller.py:83`](custom_components/ev_trip_planner/vehicle_controller.py:83) | 430 | ✅ Implemented |
+| `SwitchStrategy` | [`vehicle_controller.py:107`](custom_components/ev_trip_planner/vehicle_controller.py:107) | — | ✅ Implemented |
+| `ServiceStrategy` | [`vehicle_controller.py:146`](custom_components/ev_trip_planner/vehicle_controller.py:146) | — | ✅ Implemented |
+| `ScriptStrategy` | [`vehicle_controller.py:189`](custom_components/ev_trip_planner/vehicle_controller.py:189) | — | ✅ Implemented |
+| `ExternalStrategy` | [`vehicle_controller.py:230`](custom_components/ev_trip_planner/vehicle_controller.py:230) | — | ✅ Implemented |
+| `VehicleController` | [`vehicle_controller.py:280`](custom_components/ev_trip_planner/vehicle_controller.py:280) | — | ✅ Implemented |
+| `PresenceMonitor` | [`presence_monitor.py:34`](custom_components/ev_trip_planner/presence_monitor.py:34) | 770 | ✅ Implemented |
+| `ScheduleMonitor` | [`schedule_monitor.py:14`](custom_components/ev_trip_planner/schedule_monitor.py:14) | 324 | ✅ File exists, NEVER instantiated |
+| `VehicleScheduleMonitor` | [`schedule_monitor.py:55`](custom_components/ev_trip_planner/schedule_monitor.py:55) | — | ✅ File exists, NEVER used |
+
+**Gap**: `schedule_monitor.py` is **never imported** in `__init__.py`. The `control_strategy` / `control_type` configuration is **NOT exposed** in the config flow. Users cannot select a vehicle control strategy through the UI.
+
+**Impact**: The core "smart charging control" feature (automatic charge start/stop based on EMHASS schedules) does NOT work end-to-end, even though all the code exists.
+
+**Required fix**: Wire `ScheduleMonitor` into `__init__.py` async_setup, add `control_strategy` step to config flow, connect `VehicleController` to the hourly refresh callback.
 
 ---
 
@@ -108,12 +136,22 @@ After Milestone 4 production validation, critical issues were documented in [`do
   - **Solution hypothesis**: Add entity selectors for critical sensors to options flow
   - **Files**: `config_flow.py:887-951`
 
-#### P2 — Minor
+#### P0 — Critical (blocks core functionality)
+
+- **🔧 ScheduleMonitor exists but is NEVER instantiated** (NEW — discovered 2026-04-25)
+  - **Problem**: `schedule_monitor.py` (324 lines) contains `ScheduleMonitor` and `VehicleScheduleMonitor` classes with complete vehicle control logic
+  - **Status**: File exists in `custom_components/ev_trip_planner/` but is **never imported** in `__init__.py`
+  - **Impact**: The core "automatic charge control based on EMHASS schedules" feature does NOT work — users cannot set up automatic charging control even though the code exists
+  - **Files**: `schedule_monitor.py`, `vehicle_controller.py`, `__init__.py`
+  - **Required**: Wire into `async_setup_entry`, add `control_strategy` step to config flow
+
+#### P1 — High (UX)
 
 - **🔧 Sidebar not removed when deleting vehicle** (Gap #1)
-  - **Problem**: Missing `async_unregister_panel` call in `async_remove_entry_cleanup`
-  - **Solution hypothesis**: 1 line in `services.py:1495`
-  - **Files**: `services.py`
+  - **Problem**: `async_unregister_panel` IS called in `services.py:1471`, but may silently fail if HA version lacks `frontend.async_remove_panel`
+  - **Verification**: Code exists at [`services.py:1468-1472`](custom_components/ev_trip_planner/services.py:1468), calls `panel.async_unregister_panel`
+  - **Status**: **PARTIALLY FIXED** — the call exists, but depends on HA version compatibility
+  - **Files**: `services.py`, `panel.py`
 
 ### Control panel: EMHASS configuration to copy
 
@@ -195,13 +233,23 @@ P_deferrable:
 
 These limitations are documented and are deliberate design decisions for v1.0:
 
-1. **⚠️ EMHASS automatic charge control NOT WORKING**: `schedule_monitor.py` exists in code but is NOT connected to the main flow. The vehicle controller (Switch/Service/Script strategies) is implemented but never activated because schedule_monitor is never instantiated. This is a P0 critical issue blocking the core functionality.
-2. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
-3. **SOH (State of Health) selector NOT IMPLEMENTED**: Code infrastructure exists but there is no UI selector in config flow to configure a SOH sensor. Battery capacity is fixed, not dynamic.
-4. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
-5. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
-6. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
-7. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
+1. **⚠️ EMHASS automatic charge control NOT WORKING (P0 Critical)**: `schedule_monitor.py` (324 lines) exists but is **never instantiated**. The vehicle controller (4 strategies in `vehicle_controller.py`, 510 lines) is fully implemented but never activated because `ScheduleMonitor` is never wired into `__init__.py`. The config flow has NO step for `control_strategy`. **This is the single biggest gap in the project** — the code exists, it just needs to be connected. See [Vehicle Control section](#-vehicle-control--implemented-but-not-wired-to-ui) above.
+
+2. **⚠️ Lovelace deprecated code still executes on every setup**: `async_import_dashboard_for_entry()` is still called in `__init__.py:187`. The `dashboard.py` module (1262 lines) contains full Lovelace import logic that runs on every integration setup. This is DEPRECATED — the native panel is the primary interface. The Lovelace code should be removed or gated behind a feature flag.
+
+3. **⚠️ Panel cleanup may silently fail on some HA versions**: `async_unregister_panel` IS called in `services.py:1471`, but it depends on `frontend.async_remove_panel` which may not exist in all HA versions. If missing, the try/except silently swallows the error, leaving orphaned panel entries.
+
+4. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
+
+5. **SOH (State of Health) selector NOT IMPLEMENTED**: Code infrastructure exists but there is no UI selector in config flow to configure a SOH sensor. Battery capacity is fixed, not dynamic.
+
+6. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
+
+7. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
+
+8. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
+
+9. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
 
 ---
 
@@ -242,15 +290,18 @@ These limitations are documented and are deliberate design decisions for v1.0:
 ## 🎯 Use Cases — Prioritization
 
 ### P0 — Must Have (v1.0)
-- ✅ Single vehicle with automatic charging control
 - ✅ Single vehicle with notifications only (no control)
+- ⚠️ Single vehicle with automatic charging control — **code exists but NOT wired** (see Vehicle Control section above)
 - ✅ Weekly recurrent trips
 - ✅ Punctual trips
 - ✅ Energy and deadline calculations
+- ✅ Native panel per vehicle
+- ✅ EMHASS deferrable load publishing
 
 ### P1 — Should Have (v1.1)
 - ⏳ Multi-vehicle with shared line
 - ⏳ Dashboard with profile charts
+- 🔧 **NEW**: Wire ScheduleMonitor + VehicleController to complete automatic charging control
 
 ### P2 — Nice to Have (v1.2+)
 - ⏳ PHEV with hybrid logic
@@ -294,6 +345,9 @@ docs/
 doc/
 └── gaps/
     └── gaps.md                       # Production-detected problems with hypotheses
+
+_ai/
+└── PORTFOLIO.md                      # Portfolio-ready documentation
 ```
 
 ---
@@ -301,14 +355,16 @@ doc/
 ## 🤝 How to Contribute
 
 **High priority**:
+- 🔧 **Wire ScheduleMonitor + VehicleController** — This is the single highest-impact task: connect existing code to complete automatic charging control
 - Testing with different VE integrations (see pending list above)
-- UX feedback on dashboard
+- UX feedback on native panel (not Lovelace dashboard)
 - Translations to other languages
 - Bug reports
 
 **Medium priority**:
 - Additional automation examples
 - Performance optimizations
+- Remove deprecated Lovelace auto-import code (or gate behind feature flag)
 
 **Low priority** (wait for v1.0):
 - Advanced features
@@ -316,8 +372,8 @@ doc/
 
 ---
 
-**Last updated**: April 2026  
-**Status review**: After merge of feat/solid-refactor-coverage  
+**Last updated**: April 25, 2026
+**Status review**: After merge of feat/solid-refactor-coverage + full codebase audit (2026-04-25)
 
 ---
 
