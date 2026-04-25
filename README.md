@@ -40,36 +40,51 @@ For the complete milestone history and project roadmap, see [ROADMAP.md](ROADMAP
 
 ```mermaid
 flowchart TD
-   A[Trip Data]
-   A1[Timestamps]
-   A2[Battery Info]
-   B[calculate_energy_needed]
-   C[calculate_charging_window_pure]
-   D[calculate_multi_trip_charging_windows]
-   E[calculate_deficit_propagation]
-   F[calculate_hours_deficit_propagation]
-   G[calculate_power_profile_from_trips]
-   H[calculate_deferrable_parameters]
-   I[EMHASS Schedule]
+    subgraph INPUT["📥 Data Input"]
+        A["🚗 Trip Data<br/><small>distance, kwh, type</small>"]
+        A1["🕐 Timestamps<br/><small>departure, return, deadlines</small>"]
+        A2["🔋 Battery Info<br/><small>SOC, capacity, charging power</small>"]
+    end
 
-   A --> B
-   A1 --> C
-   A2 --> B
-   B --> C
-   C --> D
-   D --> E
-   E --> F
-   F --> G
-   G --> H
-   H --> I
+    subgraph CORE["⚙️ Multi-Dimensional Core Calculation"]
+        B["calculate_energy_needed<br/><small>Energy per trip (kWh + safety margin)</small>"]
+        D["calculate_multi_trip_charging_windows<br/><small>Chained windows across trips</small>"]
+        F["calculate_hours_deficit_propagation<br/><small>⬅ Backward pass: redistribute unmet hours</small>"]
+        E["calculate_deficit_propagation<br/><small>⬅ Backward pass: SOC milestone deficits</small>"]
+    end
 
-   classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:1px
-   classDef core fill:#fff3e0,stroke:#e65100,stroke-width:1px
-   classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px
+    subgraph OUTPUT["📤 EMHASS Output"]
+        G["calculate_power_profile_from_trips<br/><small>168h power profile (Watts)</small>"]
+        H["calculate_deferrable_parameters<br/><small>Per-trip EMHASS load params</small>"]
+        I["📋 EMHASS Schedule<br/><small>Template sensor → optimize</small>"]
+    end
 
-   class A,A1,A2 input
-   class B,C,D,E,F core
-   class G,H,I output
+    %% Input → Core
+    A --> B
+    A --> D
+    A1 --> D
+    A2 --> B
+    A2 --> D
+
+    %% Core internal flow
+    B -.->|"energy_kwh per trip"| D
+    D -->|"windows list"| F
+    D -->|"windows list"| E
+
+    %% Core → Output (independent paths)
+    D -.->|"trip data"| G
+    D -.->|"per trip"| H
+    G --> I
+    H --> I
+
+    %% Styling - Use DARK backgrounds with light text for visibility
+    classDef input fill:#01579b,stroke:#01579b,stroke-width:2px,color:#ffffff
+    classDef core fill:#e65100,stroke:#bf360c,stroke-width:2px,color:#ffffff
+    classDef output fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+
+    class A,A1,A2 input
+    class B,D,E,F core
+    class G,H,I output
 ```
 
 ### Core Features (MVP)
