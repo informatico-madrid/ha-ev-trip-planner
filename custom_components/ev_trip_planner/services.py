@@ -1118,58 +1118,50 @@ async def create_dashboard_input_helpers(
 
 
 async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:
-    """Clean up any existing storage for this vehicle_id BEFORE loading.
+    """Clean up YAML residual from a partial async_remove_entry_cleanup failure.
 
-    This handles the case where async_remove_entry wasn't called (e.g., due to HA bugs).
-    When a user deletes and re-adds an integration, we want a fresh start.
+    This is a SAFETY NET only. Normal deletion goes through async_remove_entry_cleanup()
+    which properly handles Store deletion + YAML cleanup atomically.
+
+    This function will NOT delete the Store — only the optional YAML fallback file
+    that may be left behind if async_remove_entry_cleanup failed between Store removal
+    and YAML removal. The Store is deleted by async_remove_entry_cleanup (line 1551).
     """
     try:
-        import os
         from pathlib import Path
 
         from homeassistant.helpers import storage as ha_storage
 
         cleanup_key = f"{DOMAIN}_{vehicle_id}"
-        _LOGGER.warning(
-            "=== async_cleanup_stale_storage - Checking for stale storage: %s ===",
-            cleanup_key,
-        )
-        cleanup_store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=cleanup_key)
-        existing_data = await cleanup_store.async_load()
-        if existing_data:
-            _LOGGER.warning(
-                "=== async_cleanup_stale_storage - Found stale storage for %s, cleaning up ===",
-                vehicle_id,
-            )
-            await cleanup_store.async_remove()
-            _LOGGER.info(
-                "Cleaned up stale storage for vehicle %s during setup", vehicle_id
-            )
-        else:
-            _LOGGER.warning(
-                "=== async_cleanup_stale_storage - No stale storage found for %s ===",
-                vehicle_id,
-            )
-        # Also check for YAML fallback storage and remove it
+
+        # Check for stale YAML-only file (residual from failed remove)
+        # Only clean it if the Store has already been removed (confirming delete ran)
         yaml_path = (
             Path(hass.config.config_dir or "/config")
             / "ev_trip_planner"
             / f"{cleanup_key}.yaml"
         )
         if yaml_path.exists():
-            _LOGGER.warning(
-                "=== async_cleanup_stale_storage - Found stale YAML storage for %s, cleaning up ===",
-                vehicle_id,
+            store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
+                hass, version=1, key=cleanup_key
             )
-            os.unlink(yaml_path)
-            _LOGGER.info(
-                "Cleaned up stale YAML storage for vehicle %s during setup", vehicle_id
-            )
+            existing_data = await store.async_load()
+            if not existing_data:
+                # Store already gone — YAML is orphaned residual from failed cleanup
+                yaml_path.unlink()
+                _LOGGER.info(
+                    "Cleaned up stale YAML-only storage for vehicle %s",
+                    vehicle_id,
+                )
+            else:
+                # Store exists with data — this is normal (restart or active vehicle).
+                # DO NOT delete YAML, the Store is the source of truth.
+                _LOGGER.debug(
+                    "Skipping YAML cleanup for %s — Store data exists (normal)",
+                    vehicle_id,
+                )
     except Exception as cleanup_err:
-        _LOGGER.warning(
-            "=== async_cleanup_stale_storage - Storage cleanup error (continuing): %s ===",
-            cleanup_err,
-        )
+        _LOGGER.warning("Cleanup safety net error (continuing): %s", cleanup_err)
 
 
 async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:

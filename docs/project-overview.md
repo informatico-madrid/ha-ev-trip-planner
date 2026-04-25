@@ -12,7 +12,7 @@
 |-----------|-------|
 | **Name** | EV Trip Planner for Home Assistant |
 | **Domain** | `ev_trip_planner` |
-| **Version** | 0.5.1 (integration) / 1.0.2 (package) |
+| **Version** | 0.5.20 (integration) / 1.0.2 (package) |
 | **License** | MIT |
 | **HACS Compatible** | Yes |
 | **Minimum HA Version** | 2026.3.3 |

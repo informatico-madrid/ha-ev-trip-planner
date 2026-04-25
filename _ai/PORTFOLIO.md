@@ -174,7 +174,7 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 
 **What to look at first:**
 1. This document (you are here) — 2-minute overview
-2. [`docs/ai-development-lab.md`](./ai-development-lab.md) — Full experiment documentation
+2. [`_ai/ai-development-lab.md`](./ai-development-lab.md) — Full experiment documentation
 3. [`docs/RALPH_METHODOLOGY.md`](./RALPH_METHODOLOGY.md) — Smart Ralph fork methodology
 4. [`doc/gaps/EXECUTIVE_SUMMARY.md`](../doc/gaps/EXECUTIVE_SUMMARY.md) — Debt management summary
 

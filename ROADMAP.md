@@ -2,12 +2,12 @@
 
 ## 📊 Project Status
 
-**Current version**: 0.4.2-dev  
+**Current version**: 0.5.20
 **Development phase**: Milestone 4.0.1 planned — not started  
 **Target Release**: v1.0.0 (Q2 2026)  
 **Tests**: 793+ Python (pytest) + 10 E2E (Playwright) passing
 **Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1  
-**Detected gaps**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
+**Detected gaps**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)  
 
 ---
 
@@ -34,12 +34,12 @@
 
 ### Milestone 3: EMHASS Integration & Smart Control (Dec 8, 2025)
 - `emhass_adapter.py`: Dynamic deferrable load publishing, index pool 0-49, persistence across restarts
-- `vehicle_controller.py`: 4 control strategies (Switch, Service, Script, External)
-- `schedule_monitor.py`: Real-time EMHASS schedule monitoring
+- `vehicle_controller.py`: 4 control strategies (Switch, Service, Script, External) — implemented but not end-to-end tested
 - `presence_monitor.py`: Sensor and coordinate-based presence detection, safety logic
 - Extended config flow with EMHASS and presence detection steps
 - 3 new sensors: `active_trips`, `presence_status`, `charging_readiness`
 - Migration service from sliders: `ev_trip_planner.import_from_sliders`
+- ⚠️ **NOTE**: `schedule_monitor.py` exists but is NOT connected — EMHASS-based automatic charge control does NOT work end-to-end
 - 156 tests with 93.6% pass rate
 
 ### Milestone 3.1: UX Improvements — Configuration Clarity (Dec 8, 2025)
@@ -49,10 +49,10 @@
 - "External EMHASS" renamed to "Notifications Only"
 
 ### Milestone 3.2: Advanced Configuration Options (Dec 8, 2025)
-- Dynamic battery capacity via sensor (with SOH support for degradation)
 - Consumption profiles by trip type (urban / highway / mixed)
 - Auto-cleanup of past punctual trips (configurable)
 - New sensor: `last_cleanup`
+- ⚠️ **NOTE**: SOH (State of Health) NOT IMPLEMENTED in config flow — code infrastructure exists but no UI selector for SOH sensor
 
 ### Milestone 4: Smart Charging Profile (Mar 18, 2026 — v0.4.0-dev)
 - Binary charging profile: 168-value array (24h x 7d), 0W or max power
@@ -60,14 +60,13 @@
 - `emhass_perfil_diferible_{vehicle_id}` sensor with `power_profile_watts` attribute
 - Load distribution just before each trip
 - Insufficient time alerts
-- Simplified 4-step config flow
+- 5-step config flow
 - Lovelace dashboard with auto-import on config completion
 - Retry logic: 3 attempts in 5-minute window
 - 398 tests passing, 85%+ coverage
 
 ### SOLID Refactoring (Apr 2026 — feat/solid-refactor-coverage branch)
-- `protocols.py`: Explicit interfaces (Protocol) for decoupling
-- `definitions.py`: Centralized entities, eliminating duplicates
+- `definitions.py`: `TripSensorEntityDescription` dataclass for sensor definitions
 - `coordinator.py`: Refactored to comply with SOLID, no direct coupling
 - `diagnostics.py`: HACS quality diagnostic support
 - High test coverage >80% for all modules
@@ -78,13 +77,13 @@
 ## 🚧 Next: Milestone 4.0.1 — Critical M4 Hotfixes
 
 **Status**: 📋 PLANNED — not started  
-**Problem details**: [`doc/gaps/gaps.md`](doc/gaps/gaps.md)  
+**Problem details**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)  
 **Target**: v0.4.3-dev  
 **Priority**: Blocks M4.1 start — these issues prevent EMHASS integration from working correctly in production
 
 ### Production-detected problems
 
-After Milestone 4 production validation, critical issues were documented in [`doc/gaps/gaps.md`](doc/gaps/gaps.md).
+After Milestone 4 production validation, critical issues were documented in [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md).
 
 ### Planned features / Fixes
 
@@ -92,9 +91,9 @@ After Milestone 4 production validation, critical issues were documented in [`do
 
 - **🔧 Incorrect EMHASS architecture** (Gap #8)
   - **Problem**: The `EmhassDeferrableLoadSensor` aggregates all trips into a single `power_profile_watts`. EMHASS needs separate deferrable profiles per trip to optimize each charge independently.
-  - **Solution hypothesis**: Create `TripEmhassDeferrableSensor` — one sensor per trip with attributes `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`
-  - **Impact**: Without this fix, EMHASS optimizes all trips as a single load
-  - **Files**: `sensor.py`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
+  - **Status**: `TripEmhassSensor` implemented at `sensor.py:853` — provides per-trip EMHASS parameters. Architecture gap may still exist if individual trip sensors are not properly published to EMHASS.
+  - **Impact**: Without proper per-trip publishing, EMHASS optimizes all trips as a single load
+  - **Files**: `sensor.py:853`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
 
 - **🔧 Charging power not updating profile** (Gap #5)
   - **Problem**: When changing `charging_power_kw` in options (e.g., 11kW → 3.6kW), the planning sensor does not update
@@ -146,7 +145,7 @@ P_deferrable:
 ```
 
 ### Prerequisites before starting M4.0.1
-- [ ] Validate cause hypotheses in [`doc/gaps/gaps.md`](doc/gaps/gaps.md)
+- [ ] Validate cause hypotheses in [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)
 - [ ] Confirm gaps #5 and #8 are reproducible
 - [ ] Verify that architecture fix (#8) does not break existing EMHASS integration
 - [ ] **Configure mutation testing (mutmut)** in CI/CD to validate test quality
@@ -179,7 +178,7 @@ P_deferrable:
 - **⚡ Distributed Charging**: Distribute energy across multiple hours based on grid price (instead of binary profile)
 - **🚗 Multi-Vehicle Support**: 2+ vehicles with power balancing on shared line
 - **🌡️ Temperature Adjustment**: Consumption correction based on weather forecast
-- **📊 Profile UI**: Charging profile chart in dashboard
+- **📊 Profile UI**: Charging profile chart in dashboard (requires `apexcharts-card` custom card — not installed by default)
 
 ### Prerequisites before starting M4.1
 - [ ] **Complete Milestone 4.0.1** (critical EMHASS hotfixes)
@@ -192,14 +191,17 @@ P_deferrable:
 
 ## ⚠️ Known Limitations (Active)
 
-**Problems detected in production**: See [`doc/gaps/gaps.md`](doc/gaps/gaps.md) for detailed analysis with cause hypotheses and solutions.
+**Problems detected in production**: See [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md) for detailed analysis with cause hypotheses and solutions.
 
 These limitations are documented and are deliberate design decisions for v1.0:
 
-1. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
-2. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
-3. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
-4. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
+1. **⚠️ EMHASS automatic charge control NOT WORKING**: `schedule_monitor.py` exists in code but is NOT connected to the main flow. The vehicle controller (Switch/Service/Script strategies) is implemented but never activated because schedule_monitor is never instantiated. This is a P0 critical issue blocking the core functionality.
+2. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
+3. **SOH (State of Health) selector NOT IMPLEMENTED**: Code infrastructure exists but there is no UI selector in config flow to configure a SOH sensor. Battery capacity is fixed, not dynamic.
+4. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
+5. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
+6. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
+7. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
 
 ---
 

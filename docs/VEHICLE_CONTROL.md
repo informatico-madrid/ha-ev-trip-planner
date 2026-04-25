@@ -577,4 +577,3 @@ Charging Sensor: binary_sensor.ev_trip_planner_{vehicle_id}_charging
 - [EMHASS Integration Guide](EMHASS_INTEGRATION.md)
 - [Shell Command Setup](SHELL_COMMAND_SETUP.md)
 - [Dashboard Guide](DASHBOARD.md)
-- [Configuration Examples](configuration_examples.yaml)

@@ -1,6 +1,6 @@
 # E2E Tests — EV Trip Planner
 
-> 📖 **Guía completa:** [`docs/TESTING_E2E.md`](../../docs/TESTING_E2E.md)
+> 📖 **Guía completa:** [`_ai/TESTING_E2E.md`](../../_ai/TESTING_E2E.md)
 
 Tests end-to-end con Playwright que verifican el flujo completo de CRUD de viajes
 (crear, editar, eliminar) y operaciones de ciclo de vida (pausar, reanudar, completar, cancelar).
@@ -20,7 +20,7 @@ npx playwright test tests/e2e/ --workers=1
 make test-e2e
 ```
 
-Ver [`docs/TESTING_E2E.md`](../../docs/TESTING_E2E.md) para instrucciones completas, troubleshooting y detalles de configuración.
+Ver [`_ai/TESTING_E2E.md`](../../_ai/TESTING_E2E.md) para instrucciones completas, troubleshooting y detalles de configuración.
 
 ## Estructura
 

@@ -18,7 +18,7 @@ impossible to test without deeply nested test doubles.
 
 
 **BEFORE deciding which type of double to use in any test, consult
-`docs/TDD_METHODOLOGY.md` section `## Layered Test Doubles Strategy` and
+`TDD_METHODOLOGY.md` section `## Layered Test Doubles Strategy` and
 `## Test Doubles Reference Table`.**
 These two sections are the project's source of truth. Not the criteria of
 the moment, not intuition, not "use Mock because it's easy".

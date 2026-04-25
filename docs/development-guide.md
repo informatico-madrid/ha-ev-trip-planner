@@ -102,7 +102,6 @@ npm test
 custom_components/ev_trip_planner/
 ├── __init__.py          # Integration lifecycle (setup/unload/migrate)
 ├── const.py             # All constants and config keys
-├── protocols.py         # Protocol interfaces for DI
 ├── utils.py             # Pure utility functions
 ├── calculations.py      # Pure calculation functions (no HA deps)
 ├── definitions.py       # Sensor entity descriptions

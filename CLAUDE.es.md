@@ -1,4 +1,4 @@
-MANDATORY OPEN AND APPLY .github/copilot-instructions.md and docs/CODEGUIDELINESia.md
+MANDATORY OPEN AND APPLY .github/copilot-instructions.md and _ai/CODEGUIDELINESia.md
 - Load `.github/copilot-instructions.md` as project context
 
 ## BMAD-METHOD Integration

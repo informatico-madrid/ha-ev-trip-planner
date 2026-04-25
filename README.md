@@ -1,222 +1,208 @@
-# 🚗⚡ EV Trip Planner para Home Assistant
+# 🚗⚡ EV Trip Planner for Home Assistant
 
-**Planifica viajes eléctricos y optimiza el consumo energético de tu vehículo**
+**Plan electric trips and optimize your vehicle's energy consumption**
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg
-  ?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Versión](https://img.shields.io/badge/version-0.4.1--dev-blue.svg
-  ?style=for-the-badge)](https://github.com/tu-usuario/ha-ev-trip-planner/releases)
-[![Licencia](https://img.shields.io/badge/license-MIT-green.svg
-  ?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet.svg
-  ?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
+[![HACS](https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![Version](https://img.shields.io/badge/version-0.5.20-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
+[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
 
-## 📋 Tabla de Contenidos
+## 📋 Table of Contents
 
-- [🎯 Características](#-características)
-- [⚠️ Prerrequisitos](#️-prerrequisitos)
-- [🚀 Instalación](#-instalación)
-  - [Método 1: HACS (Recomendado)](#método-1-hacs-recomendado)
-  - [Método 2: Instalación Manual](#método-2-instalación-manual)
-  - [Método 3: Desarrollo/Testing](#método-3-desarrollotesting)
-- [⚙️ Configuración Inicial](#️-configuración-inicial)
-- [🎮 Uso](#-uso)
-- [🔄 Actualización](#-actualización)
-- [🗑️ Desinstalación](#️-desinstalación)
-- [🔧 Solución de Problemas](#-solución-de-problemas)
-- [📊 Desarrollo](#-desarrollo)
-  - [🤖 Metodología Smart Ralph](#-metodología-smart-ralph)
+- [🎯 Features](#-features)
+- [⚠️ Prerequisites](#️-prerequisites)
+- [🚀 Installation](#-installation)
+  - [Method 1: HACS (Recommended)](#method-1-hacs-recommended)
+  - [Method 2: Manual Installation](#method-2-manual-installation)
+  - [Method 3: Development/Testing](#method-3-developmenttesting)
+- [⚙️ Initial Configuration](#️-initial-configuration)
+- [🎮 Usage](#-usage)
+- [🔄 Update](#-update)
+- [🗑️ Uninstallation](#️-uninstallation)
+- [🔧 Troubleshooting](#-troubleshooting)
+- [📊 Development](#-development)
+  - [🤖 Smart Ralph Methodology](#-smart-ralph-methodology)
+- [📚 Documentación](#-documentación)
 
 ---
 
-> 🧪 **Este proyecto es también un laboratorio de desarrollo asistido por IA.**
-> Cómo un arquitecto senior dirigió la generación de 12,000+ líneas de código funcional
-> mediante agentes IA especializados — [Ver Portfolio](docs/PORTFOLIO.md)
+> 🧪 **This project is also an AI-assisted development laboratory.**
+> How a senior architect led the generation of 12,000+ lines of functional code
+> through specialized AI agents — [See Portfolio](_ai/PORTFOLIO.md)
 
 ---
 
-## 🎯 Características
+## 🎯 Features
 
-### ✅ Milestone 2 - Gestión de Viajes (COMPLETADO)
-- **🗓️ Viajes Recurrentes**: Programa viajes diarios/semanales (trabajo, compras)
-- **📅 Viajes Puntuales**: Planifica viajes únicos con fecha/hora específica
-- **🔋 Optimización**: Calcula energía necesaria basada en distancia y eficiencia
-- **📱 Sensores en Tiempo Real**: 7 sensores automáticos con actualización reactiva
-- **🎛️ Dashboard incluido**: Panel Lovelace preconfigurado
+For the complete milestone history and project roadmap, see [ROADMAP.md](ROADMAP.md).
 
-### ✅ Milestone 3 - Integración EMHASS (COMPLETADO)
-- **⚡ Integración con EMHASS**: Optimización energética con horarios dinámicos
-- **🎮 Control de Vehículo**: 4 estrategias (switch, service, script, external)
-- **🏠 Detección de Presencia**: Sensor y coordenadas para seguridad
-- **🔔 Notificaciones Inteligentes**: Alertas cuando carga necesaria pero no posible
-- **🔄 Asignación de Índices**: Múltiples viajes por vehículo sin conflictos
-
-### ✅ Milestone 4 - Perfil de Carga Inteligente (COMPLETADO)
-- **📊 Perfil de Carga Binario**: 0W o máxima potencia, distribuido inteligentemente
-- **🔋 Cálculo SOC-Aware**: Considera batería actual y margen de seguridad configurable
-- **⚠️ Alertas de Tiempo**: Notifica si no hay tiempo suficiente para cargar
-- **📈 Sensor de Perfil**: Perfil de potencia con 168 horas de planificación
-- **🧠 Optimización Inteligente**: Distribuye carga justo antes de cada viaje
-
-### 🚀 Milestone 4.1 - Próximas Mejoras (EN DESARROLLO)
-- **⚡ Carga Distribuida**: Distribuir en múltiples horas con optimización de costes
-- **🚗 Múltiples Vehículos**: Soporte para 2+ vehículos con balanceo de carga
-- **🌡️ Predicción Climática**: Ajusta consumo según temperatura
-- **📊 UI Mejorada**: Gráficos de perfil de carga en dashboard
+### Core Features
+- **🗓️ Recurring and Punctual Trips**: Schedule daily/weekly trips or plan one-time trips with specific date/time
+- **🔋 Smart Optimization**: Calculates required energy based on distance, efficiency, and current SOC
+- **⚡ EMHASS Integration**: Energy optimization with dynamic schedules to take advantage of variable tariffs
+- **🎮 Vehicle Control**: 4 strategies (switch, service, script, external) for charge control
+- **🏠 Presence Detection**: Sensor and coordinates for safe charging
+- **🔔 Smart Notifications**: Alerts when charging is needed but not possible
+- **📱 Real-Time Sensors**: Automatic sensors with reactive updates
+- **🎛️ Lovelace Dashboard**: Preconfigured panel included
 
 ---
 
-## ⚠️ Prerrequisitos
+## ⚠️ Prerequisites
 
-### Para Usuarios Finales (Producción)
-- Home Assistant Core ≥ 2023.8.0 o Supervisor
-- HACS (Home Assistant Community Store) instalado
-- Acceso a "Modo Avanzado" en tu perfil de HA
-- **Opcional**: EMHASS instalado para optimización energética
+### For End Users (Production)
+- Home Assistant Core ≥ 2023.8.0 or Supervisor
+- HACS (Home Assistant Community Store) installed
+- "Advanced Mode" enabled in your HA profile
+- **Optional**: EMHASS installed for energy optimization
 
-### Para Desarrolladores
+### For Developers
 - Python 3.14
 - Git
-- Docker (opcional, para testing)
-- Conocimientos básicos de YAML y comandos Linux
+- Docker (optional, for testing)
+- Basic YAML and Linux command knowledge
 
 ---
 
-## 🚀 Instalación
+## 🚀 Installation
 
-### Método 1: HACS (Recomendado) ⭐
+### Method 1: HACS (Recommended) ⭐
 
-**Este es el método para usuarios finales. No requiere comandos de terminal.**
+**This is the method for end users. No terminal commands required.**
 
-1. **Abre Home Assistant** en tu navegador (`http://tu-ip:8123`)
+1. **Open Home Assistant** in your browser (`http://your-ip:8123`)
 
-2. **Accede a HACS**:
-   - Barra lateral → HACS
+2. **Access HACS**:
+   - Sidebar → HACS
 
-3. **Añade el repositorio personalizado**:
-   - HACS → Integraciones → ⋮ (menú) → Repositorios personalizados
-   - URL: `https://github.com/tu-usuario/ha-ev-trip-planner`
-   - Categoría: `Integración`
-   - Haz clic en **AÑADIR**
+3. **Add the custom repository**:
+   - HACS → Integrations → ⋮ (menu) → Custom repositories
+   - URL: `https://github.com/informatico-madrid/ha-ev-trip-planner`
+   - Category: `Integration`
+   - Click **ADD**
 
-4. **Instala la integración**:
-   - Busca "EV Trip Planner" en HACS
-   - Haz clic en el componente
-   - Presiona **DESCARGAR**
+4. **Install the integration**:
+   - Search for "EV Trip Planner" in HACS
+   - Click on the component
+   - Press **DOWNLOAD**
 
-5. **Reinicia Home Assistant**:
-   - Configuración → Sistema → Reiniciar
-   - Espera 30-60 segundos
+5. **Restart Home Assistant**:
+   - Configuration → System → Restart
+   - Wait 30-60 seconds
 
-6. **Añade la integración**:
-   - Configuración → Dispositivos y Servicios → + AÑADAR INTEGRACIÓN
-   - Busca "EV Trip Planner"
-   - Sigue el asistente de configuración
+6. **Add the integration**:
+   - Configuration → Devices and Services → + ADD INTEGRATION
+   - Search for "EV Trip Planner"
+   - Follow the configuration wizard
 
-✅ **¡Listo!** Los sensores se crearán automáticamente.
+✅ **Done!** Sensors will be created automatically.
 
 ---
 
-### Método 2: Instalación Manual (Producción)
+### Method 2: Manual Installation (Production)
 
-**Usa este método solo si no tienes HACS o necesitas una versión específica.**
+**Use this method only if you don't have HACS or need a specific version.**
 
-1. **Descarga la última versión**:
+1. **Download the latest version** from the releases page:
+   - Go to https://github.com/informatico-madrid/ha-ev-trip-planner/releases
+   - Download the `.zip` file of the version you want
+
+2. **Copy to Home Assistant directory**:
    ```bash
    cd /tmp
-   wget https://github.com/tu-usuario/ha-ev-trip-planner/archive/refs/tags/v1.0.0.zip
-   unzip v1.0.0.zip
-   ```
-
-2. **Copia al directorio de Home Assistant**:
-   ```bash
-   cp -r ha-ev-trip-planner-1.0.0/custom_components/ev_trip_planner \
+   unzip ha-ev-trip-planner-X.X.X.zip
+   cp -r ha-ev-trip-planner-X.X.X/custom_components/ev_trip_planner \
      $HOME/homeassistant/custom_components/
    ```
+   (Replace X.X.X with the downloaded version)
 
-3. **Corrige permisos**:
+3. **Fix permissions**:
    ```bash
    chown -R 1000:1000 $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
-4. **Reinicia Home Assistant**:
+4. **Restart Home Assistant**:
    ```bash
    docker restart homeassistant
    ```
 
-5. **Añade la integración** desde la UI (paso 6 del Método 1)
+5. **Add the integration** from the UI (step 6 from Method 1)
 
 ---
 
-### Método 3: Desarrollo/Testing
+### Method 3: Development/Testing
 
-**⚠️ SOLO para desarrollo. NO uses en producción.**
+**⚠️ ONLY for development. DO NOT use in production.**
 
-1. **Clona el repositorio**:
+1. **Clone the repository**:
    ```bash
-   cd $PROJECT_ROOT
-   git clone https://github.com/tu-usuario/ha-ev-trip-planner.git
+   cd /your/projects/directory
+   git clone https://github.com/informatico-madrid/ha-ev-trip-planner.git
    cd ha-ev-trip-planner
    ```
 
-2. **Crea enlace simbólico** (para desarrollo en caliente):
+2. **Create symbolic link** (for hot-reload development):
    ```bash
-   ln -sf $PROJECT_ROOT/custom_components/ev_trip_planner \
+   ln -sf /your/projects/directory/ha-ev-trip-planner/custom_components/ev_trip_planner \
      $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
-3. **Instala dependencias de desarrollo**:
+3. **Install development dependencies**:
    ```bash
+   cd ha-ev-trip-planner
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements_dev.txt
    ```
 
-4. **Ejecuta tests**:
+4. **Run tests**:
    ```bash
    pytest tests/ -v --cov=custom_components/ev_trip_planner
    ```
 
-5. **Reinicia Home Assistant** y verifica logs:
+5. **Restart Home Assistant** and check logs:
    ```bash
    docker restart homeassistant && docker logs -f homeassistant
    ```
 
 ---
 
-## ⚙️ Configuración Inicial
+## ⚙️ Initial Configuration
 
-### Configuración básica (UI)
+### Basic Configuration (UI)
 
-1. **Después de añadir la integración**, el asistente te guiará a través de **4 pasos simplificados**:
+1. **After adding the integration**, the wizard will guide you through **5 steps**:
 
-   - **Paso 1 - Vehículo**: Solo necesitas el nombre del vehículo (ej. "Chispitas", "Morgan")
-   - **Paso 2 - Sensores**: Capacidad de batería, potencia de carga, consumo
-   - **Paso 3 - EMHASS** (opcional): Configuración de optimización energética
-   - **Paso 4 - Control** (opcional): Tipo de control y notificaciones
+   - **Step 1 - Vehicle**: Vehicle name and SOC sensor
+   - **Step 2 - Battery**: Capacity, charging power, consumption
+   - **Step 3 - EMHASS** (optional): Energy optimization configuration
+   - **Step 4 - Presence** (optional): Home and plug sensors
+   - **Step 5 - Notifications**: Notification service and device
 
-2. **Traducción completa al español**: Todos los pasos, mensajes y campos de ayuda están en español, incluyendo sugerencias claras para los sensores opcionales.
+2. **Available translations**: The project includes Spanish (`es`) and English (`en`) translations. The interface displays in the language configured in your Home Assistant.
 
-3. **Dashboard automático**: Al completar la configuración, el dashboard de Lovelace se importa automáticamente a tu sistema.
+3. **Automatic dashboard**: Upon completing configuration, the system will attempt to import a preconfigured Lovelace dashboard.
 
-4. **Los sensores se crearán automáticamente**:
-   - `sensor.{vehiculo}_trips_list`
-   - `sensor.{vehiculo}_recurring_trips_count`
-   - `sensor.{vehiculo}_punctual_trips_count`
-   - Y sensores adicionales según la configuración
+4. **Sensors will be created automatically**, including:
+   - `sensor.{vehicle}_trips_list` - List of active trips
+   - `sensor.{vehicle}_next_trip` - Next trip
+   - `sensor.{vehicle}_next_deadline` - Deadline for charging
+   - `sensor.{vehicle}_kwh_today` - Required energy today
+   - `sensor.emhass_perfil_diferible_{vehicle_id}` - EMHASS charging profile
+   - Additional sensors based on configuration (presence, EMHASS deferrable, etc.)
 
-### Configuración avanzada (YAML)
+### Advanced Configuration (YAML)
 
-> ⚠️ **DEPRECADO**: La integración EV Trip Planner usa exclusivamente **config flow UI**.
-> No se soporta configuración via `configuration.yaml`. Esta sección se mantiene solo
-> para referencia histórica.
+> ⚠️ **DEPRECATED**: The EV Trip Planner integration uses exclusively **config flow UI**.
+> Configuration via `configuration.yaml` is not supported. This section is maintained only
+> for historical reference.
 
 <!--
 ```yaml
-# configuration.yaml (YA NO SOPORTADO)
+# configuration.yaml (NO LONGER SUPPORTED)
 ev_trip_planner:
   vehicles:
-    - name: "Chispitas"
+    - name: "MyCar"
       battery_capacity_kwh: 27
       efficiency_kwh_km: 0.15
       min_soc: 20
@@ -225,330 +211,449 @@ ev_trip_planner:
 
 ---
 
-## 🎮 Uso
+## 🎮 Usage
 
-### Crear un viaje recurrente (ej: trabajo)
+### Available Services
 
-1. **Herramientas para desarrolladores** → **Servicios**
-2. **Servicio**: `ev_trip_planner.add_recurring_trip`
-3. **Datos del servicio**:
+EV Trip Planner exposes the following services:
+
+| Service | Description |
+|---------|-------------|
+| `ev_trip_planner.add_recurring_trip` | Creates a recurring trip (weekdays, fixed time) |
+| `ev_trip_planner.add_punctual_trip` | Creates a punctual trip (specific date/time) |
+| `ev_trip_planner.edit_trip` | Modifies an existing trip |
+| `ev_trip_planner.delete_trip` | Deletes a trip |
+| `ev_trip_planner.pause_recurring_trip` | Pauses a recurring trip |
+| `ev_trip_planner.resume_recurring_trip` | Resumes a paused recurring trip |
+| `ev_trip_planner.get_trips` | Gets the list of configured trips |
+
+### Create a Recurring Trip (e.g., work)
+
+1. **Developer Tools** → **Services**
+2. **Service**: `ev_trip_planner.add_recurring_trip`
+3. **Service data**:
 
 ```yaml
 service: ev_trip_planner.add_recurring_trip
 data:
-  vehicle_id: "Chispitas"
-  dia_semana: "lunes"
+  vehicle_id: "MyCar"
+  dia_semana: "monday"
   hora: "08:00"
   km: 25
   kwh: 3.75
-  descripcion: "Trabajo"
+  descripcion: "Work"
 ```
 
-### Crear un viaje puntual (ej: aeropuerto)
+### Create a Punctual Trip (e.g., airport)
 
 ```yaml
 service: ev_trip_planner.add_punctual_trip
 data:
-  vehicle_id: "Chispitas"
+  vehicle_id: "MyCar"
   datetime: "2025-12-15T14:30:00"
   km: 50
   kwh: 7.5
-  descripcion: "Aeropuerto"
+  descripcion: "Airport"
 ```
 
-### Ver viajes en el dashboard
+### View Trips on Dashboard
 
-1. **Edita tu dashboard** Lovelace
-2. **Añade una tarjeta** → **Entidades**
-3. **Selecciona los 3 sensores** del vehículo
+1. **Edit your** Lovelace dashboard
+2. **Add a card** → **Entities**
+3. **Select the vehicle sensors**
 
 ---
 
-## ⚡ Integración EMHASS
+## ⚡ EMHASS Integration
 
-### ¿Qué es EMHASS?
+### What is EMHASS?
 
-**EMHASS** (Energy Management for Home Assistant) es un optimizador energético
-que gestiona cargas diferibles (como la carga de vehículos eléctricos) para
-aprovechar tarifas variables y energía renovable.
+**EMHASS** (Energy Management for Home Assistant) is an energy optimizer
+that manages deferrable loads (like electric vehicle charging) to take advantage
+of variable tariffs and renewable energy.
 
-### Configuración EMHASS
+### EMHASS Configuration
 
-Al configurar tu vehículo, puedes configurar estos parámetros EMHASS:
+When configuring your vehicle, you can configure these EMHASS parameters:
 
-| Parámetro | Descripción | Valor recomendado |
+| Parameter | Description | Recommended Value |
 |-----------|-------------|-------------------|
-| Planning Horizon | Días de planificación (1-365) | 7 días |
-| Max Deferrable Loads | Cargas simultáneas (10-100) | 50 |
-| Planning Sensor | Sensor de horizonte (opcional) | - |
+| Planning Horizon | Planning days (1-365) | 7 days |
+| Max Deferrable Loads | Simultaneous loads (10-100) | 50 |
+| Planning Sensor | Horizon sensor (optional) | - |
 
-### Ejemplo de shell command
+### Deferrable Load Sensors
 
-Para conectar EV Trip Planner con EMHASS, añade esto en tu
-`configuration.yaml`:
+The system creates template sensors:
+
+- `sensor.emhass_perfil_diferible_{vehicle_id}` - Aggregated power profile (168 values)
+- `sensor.emhass_deferrable{N}_power` - Power profile by index (N = 0-49)
+- `sensor.emhass_deferrable{N}_schedule` - Hourly detail with ISO 8601 timestamps
+
+Aggregated sensor attributes:
+- `power_profile_watts`: Array of 168 values (24h × 7d), 0 = no charge
+- `deferrables_schedule`: Hourly detail
+- `active_indices`: List of active indices
+
+### Shell Command Example (ADVANCED)
+
+For expert users using external EMHASS, add this to your `configuration.yaml`:
 
 ```yaml
 shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
-      "P_deferrable": {{ (state_attr(
-        'sensor.emhass_perfil_diferible_{vehicle_id}',
+      "P_deferrable": {{ state_attr(
+        'sensor.emhass_perfil_diferible_micar',
         'power_profile_watts'
-      ) | default([0]*168)) | tojson }}
+      ) | default([0]*168, true) | tojson }}
     }' http://$EMHASS_IP:5000/action/dayahead-optim
 ```
 
-**Nota**: Reemplaza `$EMHASS_IP` con la IP de tu servicio EMHASS (ej: `192.168.1.201`).
+**Note**: Replace `micar` with your vehicle ID. For multiple vehicles,
+configure multiple shell commands, one per vehicle.
 
-### Sensores de carga diferible
+### Verify Integration
 
-El sistema crea sensores de plantilla con atributos:
-
-- `sensor.emhass_perfil_diferible_{vehicle_id}` - Perfil de potencia
-- `power_profile_watts` - Array de 168 valores (1 semana)
-- `deferrables_schedule` - Detalle por hora
-
-### Verificar integración
-
-1. **Dashboard**: Ve al dashboard `ev-trip-planner-{vehiculo}`
-2. **Sensores**: Busca `sensor.emhass_perfil_diferible_*`
-3. **Logs**: Busca "emhass" en registros para errores
+1. **Dashboard**: Go to the `ev-trip-planner-{vehicle_id}` dashboard
+2. **Entities**: Search for `sensor.emhass_deferrable*` or `sensor.emhass_perfil_diferible*`
+3. **Logs**: Look for "Published X/Y deferrable loads" to confirm successful publication
 
 ---
 
-## 🚗 Control de Vehículo
+## 🚗 Vehicle Control
 
-### Tipos de control
+### Control Types
 
-EV Trip Planner soporta 4 estrategias de control:
+EV Trip Planner supports 4 control strategies:
 
-| Tipo | Descripción | Cuándo usarlo |
-|------|-------------|---------------|
-| **None** | Sin control | Solo notificaciones |
-| **Switch** | Controla un switch | Wallbox con switch entity |
-| **Service** | Llama a un servicio | Integración con servicio |
-| **Script** | Ejecuta un script | Carga con script HA |
-| **External** | Notificaciones only | Solo avisa, no controla |
+| Type | Description | When to Use |
+|------|-------------|-------------|
+| **None** | No automatic control | Monitoring and notifications only |
+| **Switch** | Direct ON/OFF control | Wallbox with switch entity |
+| **Service** | HA service calls | Integrations that expose services |
+| **Script** | Execute HA scripts | Customizable charging with complex logic |
+| **External** | No internal action | Delegate everything to external system |
 
-### Configuración de control
+### Control Configuration
 
-#### Switch (Recomendado)
+#### Switch (Recommended for wallboxes)
 
-1. Selecciona "Switch" como tipo de control
-2. Elige el switch de carga (ej: `switch.wallbox_charging`)
-3. El sistema encenderá/apagará el switch según EMHASS
+1. Select "Switch" as control type
+2. Choose the charging switch (e.g., `switch.wallbox_charging`)
+3. The system will turn the switch on/off according to EMHASS schedule
 
 #### Service
 
-1. Selecciona "Service" como tipo de control
-2. Proporciona el ID del servicio (ej: `button.start_charging`)
-3. El sistema llamará al servicio cuando sea necesario
+1. Select "Service" as control type
+2. Provide ON service (e.g., `switch.turn_on`) and OFF service (e.g., `switch.turn_off`)
+3. Include service data if needed (target entity, parameters)
 
 #### Script
 
-1. Selecciona "Script" como tipo de control
-2. Elige el script (ej: `script.charge_vehicle`)
-3. El sistema ejecutará el script para iniciar/detener carga
+1. Select "Script" as control type
+2. Choose the start script (e.g., `script.start_charging`)
+3. Choose the stop script (e.g., `script.stop_charging`)
+4. The system will execute the appropriate script according to EMHASS schedule
 
-#### External / Notificaciones Only
+#### External
 
-1. Selecciona "Notificaciones Only"
-2. Solo recibirás alertas cuando la carga sea necesaria
-3. No se realiza ningún control automático
+1. Select "External" as control type
+2. The integration will not execute any direct action
+3. Useful when another system manages charging
 
-### Detección de presencia
+### Presence Detection
 
-Para un funcionamiento seguro, el sistema verifica:
+For safe operation, the system verifies:
 
-- **Sensor de carga**: ¿El vehículo está cargando? (OBLIGATORIO)
-- **Sensor de hogar**: ¿El vehículo está en casa?
-- **Sensor de enchufe**: ¿Está conectado el cable?
+- **Charging sensor** (REQUIRED): Is the vehicle consuming energy?
+- **Home sensor** (optional): Is the vehicle at the expected location?
+- **Plug sensor** (optional): Is the charging cable connected?
 
-### Flujo de control
+### Complete Control Flow
 
 ```
-EMHASS optimiza → Trip Planner recibe → ¿Vehículo en casa?
-    → Sí → ¿Enchufado? → Sí → Activar carga
-    → No → Enviar notificación
+EMHASS optimizes schedules → ScheduleMonitor receives callbacks
+    → Verifies presence (presence_monitor)
+    → Is vehicle available and needs charging?
+        → Yes → VehicleController activates strategy (switch/service/script)
+        → No → Sends notification (if configured)
 ```
-
-### Notificaciones
-
-Cuando la carga sea necesaria pero no se pueda ejecutar:
-
-- "Vehículo no en casa - No se puede cargar"
-- "Vehículo no enchufado - No se puede cargar"
-- "Carga activada para viaje a {destino}"
 
 ---
 
-## 🔄 Actualización
+## 🔄 Update
 
-### Actualización automática (HACS)
+### Automatic Update (HACS)
 
-1. **HACS** → **Integraciones**
-2. Busca "EV Trip Planner"
-3. Si hay actualización disponible, aparecerá un botón **ACTUALIZAR**
-4. Haz clic y **reinicia Home Assistant**
+1. **HACS** → **Integrations**
+2. Search for "EV Trip Planner"
+3. If an update is available, an **UPDATE** button will appear
+4. Click it and **restart Home Assistant**
 
-### Actualización manual
+### Manual Update (from GitHub)
 
-1. **Descarga la nueva versión** (ver Método 2 de instalación)
-2. **Copia los archivos** sobreescribiendo los existentes
-3. **Reinicia Home Assistant**
+1. **Download the new version** from the releases page:
+   - Go to https://github.com/informatico-madrid/ha-ev-trip-planner/releases
 
-**⚠️ IMPORTANTE**: Las actualizaciones no borran tus viajes (usan Storage API).
+2. **Copy the files** overwriting existing ones
+
+3. **Restart Home Assistant**
+
+### Update from git (Developers)
+
+If you installed from git clone:
+```bash
+cd /your/ha-ev-trip-planner/directory
+git pull origin main
+docker restart homeassistant
+```
+
+**⚠️ IMPORTANT**: Updates do not delete your trips. Data persists
+in Home Assistant's Storage at `.storage/ev_trip_planner_{vehicle_id}`.
 
 ---
 
-## 🗑️ Desinstalación
+## 🗑️ Uninstallation
 
-### Método 1: Desde HACS (Recomendado)
+### Method 1: From HACS (Recommended)
 
-1. **HACS** → **Integraciones**
-2. Busca "EV Trip Planner"
-3. ⋮ (menú) → **Eliminar**
-4. **Reinicia Home Assistant**
+1. **HACS** → **Integrations**
+2. Search for "EV Trip Planner"
+3. ⋮ (menu) → **Remove**
+4. **Restart Home Assistant**
 
-### Método 2: Manual
+### Method 2: Manual
 
-1. **Elimina la integración**:
-   - Configuración → Dispositivos y Servicios
-   - Busca "EV Trip Planner"
-   - ⋮ → **Eliminar**
+1. **Remove the integration**:
+   - Configuration → Devices and Services
+   - Search for "EV Trip Planner"
+   - ⋮ → **Remove**
 
-2. **Elimina los archivos**:
+2. **Remove the files**:
    ```bash
    rm -rf $HOME/homeassistant/custom_components/ev_trip_planner
    ```
 
-3. **Elimina la configuración** de `configuration.yaml` (si la tienes)
+3. **Restart Home Assistant**
 
-4. **Reinicia Home Assistant**
+### ⚠️ Note About Trip Data
 
-**⚠️ Los datos de viajes se perderán** al desinstalar.
+> **🐛 KNOWN BUG**: When uninstalling the integration, trip data
+> saved in `.storage/` may not persist correctly between
+> uninstallation and reinstallation. This is a known bug documented
+> in the project roadmap.
+>
+> **Temporary mitigation**: Before uninstalling, export your trips using
+> the service `ev_trip_planner.get_trips` to have a backup.
+>
+> **Fix in development**: The team is working on a solution to
+> guarantee data persistence post-uninstallation.
+
+### Complete Cleanup (Optional)
+
+To permanently delete all data:
+
+1. Stop Home Assistant
+2. Delete data files:
+   ```bash
+   rm -f $HOME/homeassistant/.storage/ev_trip_planner_*.json
+   ```
+3. Delete any dashboard cards related to EV Trip Planner
+4. Restart Home Assistant
 
 ---
 
-## 🔧 Solución de Problemas
+## 🔧 Troubleshooting
 
-### Los sensores no aparecen
+### Sensors Don't Appear
 
-1. **Verifica logs**:
+1. **Check logs**:
    ```bash
    docker logs homeassistant --tail 50 | grep ev_trip_planner
    ```
 
-2. **Comprueba que la integración está cargada**:
-   - Configuración → Dispositivos y Servicios
-   - Debe aparecer "EV Trip Planner" con 3 dispositivos
+2. **Verify the integration is loaded**:
+   - Configuration → Devices and Services
+   - Search for "EV Trip Planner"
+   - You should see at least 1 device (configured vehicle)
+   - Each active trip creates additional sensors
 
-3. **Reinstala si es necesario**
+3. **Reinstall if necessary**
 
-### Error: "No se encuentra el servicio"
+### Error: "Service Not Found"
 
-- **Reinicia Home Assistant** (el servicio se registra al iniciar)
-- Verifica que el componente está en `custom_components/`
+- **Restart Home Assistant** (service is registered at startup)
+- Verify the component is in `custom_components/`:
+  ```bash
+  ls -la $HOME/homeassistant/custom_components/ev_trip_planner/
+  ```
 
-### Los viajes no se guardan
+### Trips Don't Save
 
-- **Los viajes ahora persisten entre reinicios**: El sistema usa Storage API de Home Assistant para guardar los viajes de forma persistente.
-- **Verifica permisos**:
+- **Trips persist between restarts** using Home Assistant's Storage API
+- **Check permissions**:
   ```bash
   ls -la $HOME/homeassistant/.storage/ | grep ev_trip_planner
   ```
-- Debe tener permisos `1000:1000` (usuario homeassistant)
-- Los archivos se guardan en `.storage/ev_trip_planner_{vehicle_id}.json`
+- Files are saved in `.storage/ev_trip_planner_{vehicle_id}.json`
 
-### El dashboard no se importa automáticamente
+### Dashboard Doesn't Import
 
-- **Verifica que Lovelace está disponible**: El sistema necesita que Lovelace esté configurado en Home Assistant.
-- **Mira los logs**:
-  ```bash
-  docker logs homeassistant --tail 50 | grep ev_trip_planner
-  ```
-- Busca mensajes como "Lovelace not available" o "Dashboard imported successfully"
-- El dashboard se sobrescribe automáticamente si ya existe
+- **Verify Lovelace is available**: The system needs Lovelace to be configured
+- The dashboard is created during the configuration flow, not after restart
+- If the dashboard doesn't appear, go to Configuration → Lovelace Dashboard → + (add)
+  and search for "EV Trip Planner" in the available dashboards list
 
----
+### EMHASS Issues
 
-## 📊 Desarrollo
+1. **Verify EMHASS is running**:
+   ```bash
+   curl http://$EMHASS_IP:5000/action/dayahead-optim
+   ```
 
-### 🤖 Metodología Smart Ralph
-
-Este plugin se desarrolló con **[`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)**,
-un fork de [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) que implementa
-un loop de desarrollo spec-driven con agentes IA especializados en paralelo revisando
-y ejecutando cada spec.
-
-Cada feature, fix o refactor pasó por un ciclo completo:
-`Research → Requirements → Design → Tasks → Implement → Verificación agéntica`
-
-El proyecto fue deliberadamente el laboratorio de pruebas del propio plugin — y a la vez
-resultó en un componente funcional y en producción. Más de 20 specs generadas a lo largo
-del desarrollo están en `specs/`.
-
-→ **[Ver metodología completa](docs/RALPH_METHODOLOGY.md)**
+2. **Verify EMHASS configuration**:
+   - EMHASS's `config.json` must have sufficient `number_of_deferrable_loads`
+   - If you configured more trips than available slots, trips won't appear in EMHASS
 
 ---
 
-La guía completa de testing E2E está en [docs/TESTING_E2E.md](docs/TESTING_E2E.md).
+## 📊 Development
 
-### Estructura del proyecto
+### 🤖 Smart Ralph Methodology
+
+This plugin was developed with **[`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)**,
+a fork of [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) that implements
+a spec-driven development loop with specialized AI agents in parallel reviewing
+and executing each spec.
+
+Every feature, fix, or refactor went through a complete cycle:
+`Research → Requirements → Design → Tasks → Implement → Agentic Verification`
+
+The project was deliberately the test laboratory for the plugin itself — and at the same time
+resulted in a functional component in production. Over 20 specs generated throughout
+development are in `specs/`.
+
+→ **[See complete methodology](_ai/RALPH_METHODOLOGY.md)**
+
+---
+
+The complete E2E testing guide is at [_ai/TESTING_E2E.md](_ai/TESTING_E2E.md).
+
+### Project Structure
 
 ```
 ha-ev-trip-planner/
 ├── custom_components/ev_trip_planner/
-│   ├── __init__.py          # Coordinator y setup
-│   ├── config_flow.py       # Configuración UI
-│   ├── const.py             # Constantes
-│   ├── sensor.py            # Sensores
-│   ├── trip_manager.py      # Lógica de viajes
-│   └── services.yaml        # Definición de servicios
-├── tests/
-│   ├── test_coordinator.py  # Tests coordinator
-│   ├── test_sensors.py      # Tests sensores
-│   └── test_trip_manager.py # Tests manager
-├── specs/                   # Historial de specs Smart Ralph
-├── .agents/skills/          # Skills de dominio HA para los agentes
-├── .github/workflows/
-│   └── python-tests.yml     # Python pytest tests
-├── hacs.json                # Metadata HACS
-├── manifest.json            # Metadata HA
-└── README.md               # Este archivo
+│   ├── __init__.py          # Entry point and setup
+│   ├── config_flow.py       # UI Configuration (5 steps)
+│   ├── const.py             # Constants
+│   ├── sensor.py            # Sensor entities
+│   ├── trip_manager.py      # Core trip logic
+│   ├── services.py          # Service handlers
+│   ├── services.yaml        # YAML service definition
+│   ├── emhass_adapter.py    # EMHASS integration
+│   ├── vehicle_controller.py # Vehicle control (switch/service/script)
+│   ├── presence_monitor.py   # Presence monitoring
+│   ├── schedule_monitor.py  # EMHASS schedule monitoring
+│   ├── dashboard.py          # Automatic dashboard import
+│   ├── coordinator.py        # Data coordinator
+│   ├── calculations.py      # Charge calculations
+│   ├── utils.py             # Utilities
+│   ├── yaml_trip_storage.py # Optional YAML storage
+│   ├── definitions.py       # Entity definitions
+│   ├── diagnostics.py       # HA diagnostics support
+│   ├── panel.py             # Custom UI panel
+│   └── translations/        # Translations (en.json, es.json)
+├── frontend/                # Lovelace Panel (Lit web components)
+│   ├── panel.js
+│   └── panel.css
+├── dashboard/               # Predefined Dashboard YAMLs
+├── tests/                   # Unit and integration tests
+│   ├── test_*.py            # ~85 test files
+│   └── e2e/                  # E2E Tests (Playwright)
+│       ├── create-trip.spec.ts
+│       ├── delete-trip.spec.ts
+│       └── ...
+├── specs/                   # Smart Ralph specs history
+├── docs/                    # User/developer documentation
+│   ├── index.md            # Documentation index
+│   ├── architecture.md     # System architecture
+│   ├── api-contracts.md    # API contracts
+│   ├── data-models.md      # Data models
+│   ├── development-guide.md # Development guide
+│   └── *.md                # Other documentation
+├── _ai/                     # AI agent documentation (dense/technical)
+│   ├── index.md           # AI documentation index
+│   ├── RALPH_METHODOLOGY.md # Smart Ralph methodology
+│   ├── TESTING_E2E.md      # E2E testing guide
+│   ├── PORTFOLIO.md        # Project portfolio
+│   └── *.md                # Technical guides for AI agents
+├── plans/                   # Active development plans
+├── _roo/skills/             # Roo agent skills
+├── .agents/skills/          # BMad agent skills
+├── .github/workflows/       # CI/CD
+├── hacs.json                # HACS metadata
+├── manifest.json            # HA metadata
+└── README.md               # This file
 ```
 
-### Ejecutar tests
+### Run Tests
 
+**Unit and integration tests:**
 ```bash
-cd $PROJECT_ROOT
+cd /your/ha-ev-trip-planner/directory
 source venv/bin/activate
 pytest tests/ -v --cov=custom_components/ev_trip_planner
 ```
 
-### Contribuir
+**Specific file tests:**
+```bash
+pytest tests/test_trip_manager.py -v
+pytest tests/test_emhass_adapter.py -v
+```
 
-1. **Fork el repositorio**
-2. **Crea una rama**: `git checkout -b feature/nueva-funcion`
-3. **Haz commits**: `git commit -am 'Añade nueva función'`
-4. **Push**: `git push origin feature/nueva-funcion`
-5. **Crea un Pull Request**
+**E2E Tests (requires Playwright):**
+```bash
+cd /your/ha-ev-trip-planner/directory
+npx playwright test tests/e2e/
+```
+
+**See E2E documentation:**
+→ **[Complete E2E testing guide](_ai/TESTING_E2E.md)**
+
+### Contributing
+
+1. **Fork the repository**
+2. **Create a branch**: `git checkout -b feature/new-feature`
+3. **Make commits**: `git commit -am 'Adds new feature'`
+4. **Push**: `git push origin feature/new-feature`
+5. **Create a Pull Request**
 
 ---
 
-## 📄 Licencia
+## 📚 Documentación
 
-MIT License - Ver archivo [LICENSE](LICENSE) para detalles
-
----
-
-## 🤝 Soporte
-
-- **Issues**: [GitHub Issues](https://github.com/tu-usuario/ha-ev-trip-planner/issues)
-- **Discusiones**: [GitHub
-  Discussions](https://github.com/tu-usuario/ha-ev-trip-planner/discussions)
-- **Documentación**: [Wiki](https://github.com/tu-usuario/ha-ev-trip-planner/wiki)
+| Documentación | Descripción |
+|---------------|-------------|
+| [📖 docs/index.md](docs/index.md) | Documentación para usuarios y desarrolladores |
+| [🤖 _ai/index.md](_ai/index.md) | Documentación técnica para agentes IA |
+| [📋 plans/DOCS_AUDIT_REPORT.md](plans/DOCS_AUDIT_REPORT.md) | Informe completo de auditoría de documentación |
 
 ---
 
-**⭐ Si te gusta este componente, dale una estrella en GitHub!**
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+---
+
+## 🤝 Support
+
+- **Issues**: [GitHub Issues](https://github.com/informatico-madrid/ha-ev-trip-planner/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/informatico-madrid/ha-ev-trip-planner/discussions)
+- **Documentation**: [Wiki](https://github.com/informatico-madrid/ha-ev-trip-planner/wiki)
+
+---
+
+**⭐ If you like this component, give it a star on GitHub!**

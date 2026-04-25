@@ -25,7 +25,6 @@ ha-ev-trip-planner/
 │       ├── panel.py                        # Native HA sidebar panel registration
 │       ├── dashboard.py                    # Auto-deploy Lovelace dashboards (storage + YAML modes)
 │       ├── utils.py                        # Utility functions (trip ID generation, validation)
-│       ├── protocols.py                    # Protocol interfaces for DI (TripStorageProtocol, EMHASSPublisherProtocol)
 │       ├── diagnostics.py                  # HA diagnostics support
 │       ├── yaml_trip_storage.py            # YAML-based trip storage fallback
 │       ├── manifest.json                   # HA integration manifest
@@ -85,7 +84,7 @@ ha-ev-trip-planner/
 │   ├── emhass-setup.md                     # EMHASS setup guide
 │   ├── TESTING_E2E.md                      # E2E testing guide
 │   ├── TDD_METHODOLOGY.md                  # TDD methodology
-│   ├── COMPLETE_USER_JOURNEY_BDD.md        # BDD user journey
+docs/source-tree-analysis.md
 │   └── ...                                 # Additional docs
 │
 ├── specs/                                  # 📋 Specification Documents

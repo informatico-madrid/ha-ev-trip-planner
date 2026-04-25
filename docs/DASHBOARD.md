@@ -417,6 +417,5 @@ curl -X POST http://YOUR_EMHASS_IP:5000/action/dayahead-optim \
 - [Shell Command Setup](SHELL_COMMAND_SETUP.md)
 - [Vehicle Control Guide](VEHICLE_CONTROL.md)
 - [Notification Setup](NOTIFICATIONS.md)
-- [Configuration Examples](configuration_examples.yaml)
 - [Home Assistant Dashboard Documentation](https://www.home-assistant.io/dashboards/)
 - [ApexCharts Card](https://github.com/RomRider/apexcharts-card)

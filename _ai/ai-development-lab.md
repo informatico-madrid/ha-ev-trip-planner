@@ -152,7 +152,7 @@ The project has evolved through **6 methodological phases**, each leaving artifa
 
 **Artifacts:**
 - Specs with numeric prefix (`001-milestone-3-2-complete/`, `007-complete-milestone-3-verify-1-2/`, etc.)
-- `docs/SPECKIT_SDD_FLOW_INTEGRATION_MAP.md`
+- `_ai/SPECKIT_SDD_FLOW_INTEGRATION_MAP.md`
 - Checklists per spec
 
 **Lessons learned:**
@@ -176,7 +176,7 @@ The project has evolved through **6 methodological phases**, each leaving artifa
 - Automatic repair loop with retry and human escalation
 
 **Artifacts:**
-- `docs/RALPH_METHODOLOGY.md` — Complete methodology documentation
+- `_ai/RALPH_METHODOLOGY.md` — Complete methodology documentation
 - Descriptive specs (`e2e-ux-tests-fix/`, `fix-sequential-trip-charging/`, etc.)
 - `docs/project-scan-report.json` — Automatic scan reports
 - `doc/gaps/gaps.md` — Problem analysis with verifiable hypotheses
@@ -488,7 +488,7 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 The entire development process is publicly documented:
 - Complete specs in `specs/`
 - Gaps and problems in `doc/gaps/gaps.md`
-- Methodology in `docs/RALPH_METHODOLOGY.md`
+- Methodology in `_ai/RALPH_METHODOLOGY.md`
 - Scan reports in `docs/project-scan-report.json`
 
 ### Reusable Artifacts
@@ -568,7 +568,7 @@ This project demonstrates that an experienced architect can:
 
 ### How to Use This Project as a Case Study
 
-1. **To understand methodological evolution:** Read [`docs/RALPH_METHODOLOGY.md`](./RALPH_METHODOLOGY.md) and [`CLAUDE.md`](../CLAUDE.md)
+1. **To understand methodological evolution:** Read [`_ai/RALPH_METHODOLOGY.md`](./RALPH_METHODOLOGY.md) and [`CLAUDE.md`](../CLAUDE.md)
 2. **To see specs in action:** Explore `specs/` — each spec has research, requirements, design and tasks
 3. **To understand the gaps:** Read [`doc/gaps/gaps.md`](../doc/gaps/gaps.md) — shows the diagnosis and hypothesis process
 4. **To replicate the flow:** Follow the steps in `_bmad/COMMANDS.md`

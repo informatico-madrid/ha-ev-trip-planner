@@ -330,5 +330,4 @@ shell_command:
 ## Related Documentation
 
 - [EMHASS Integration Guide](EMHASS_INTEGRATION.md)
-- [Configuration Examples](configuration_examples.yaml)
 - [Dashboard Guide](DASHBOARD.md)

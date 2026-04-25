@@ -137,7 +137,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - Entity registry management (unique_id migration)
 
 #### 7. `config_flow.py` — Configuration Flow (949 LOC)
-- 4-step setup wizard:
+- 5-step setup wizard:
   1. Vehicle name
   2. Battery/sensor configuration
   3. EMHASS integration (optional)
@@ -190,7 +190,6 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 |-----------|------|---------|
 | `const.py` | Constants | Config keys, defaults, enums, trip types |
 | `definitions.py` | Sensor definitions | `TripSensorEntityDescription` + `TRIP_SENSORS` tuple |
-| `protocols.py` | Protocol interfaces | `TripStorageProtocol`, `EMHASSPublisherProtocol` |
 | `utils.py` | Utilities | Trip ID generation, validation, sanitization |
 | `diagnostics.py` | HA diagnostics | Debug information for HA support |
 | `yaml_trip_storage.py` | YAML storage | Fallback storage for Container installs |

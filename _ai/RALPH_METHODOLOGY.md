@@ -175,10 +175,10 @@ and search.
     └── github-actions-docs/         # CI/CD workflows
 
 CLAUDE.md                            # → .github/copilot-instructions.md
-                                      #   + docs/CODEGUIDELINESia.md
+                                      #   + _ai/CODEGUIDELINESia.md
 ```
 
-Code guidelines are centralized in `docs/CODEGUIDELINESia.md` and
+Code guidelines are centralized in `_ai/CODEGUIDELINESia.md` and
 `.github/copilot-instructions.md`. All agents receive them as mandatory context
 on startup, ensuring style consistency and patterns across specs.
 

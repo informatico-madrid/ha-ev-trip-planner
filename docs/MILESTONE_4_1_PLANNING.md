@@ -4,8 +4,8 @@
 **Version**: 1.1  
 **Date**: 2025-12-14  
 **Last Review**: 2026-04-09  
-**Status**: 📋 **PLANNED — NOT STARTED**  
-**Target**: v0.5.0
+**Status**: 🏛️ **HISTORICAL — SUPERSEDED**  
+**Target**: v0.5.0 (superseded by v0.5.20)
 
 > ⚠️ **This document is a future work plan. Nothing described here is implemented yet.**  
 > The current code covers up to Milestone 4 (binary SOC-aware charging profile).  
