@@ -669,7 +669,10 @@ class EMHASSAdapter:
             total_hours = adjusted_def_total_hours
             # Override needs_charging based on adjusted hours.
             # A trip that originally needed no charging may now absorb propagated deficit.
-            if adjusted_def_total_hours > 0:
+            # CRITICAL: Only override if projected SOC for this trip allows charging (SOC < 100%).
+            # soc_current parameter is the projected SOC at this trip's charging window,
+            # not the current system SOC. This respects SOC propagation between trips.
+            if adjusted_def_total_hours > 0 and soc_current < 100.0:
                 needs_charging = True
                 power_watts = charging_power_kw * 1000
 
@@ -702,13 +705,13 @@ class EMHASSAdapter:
         # Cache per-trip params
         self._cached_per_trip_params[trip_id] = {
             "def_total_hours": math.ceil(total_hours),
-            "P_deferrable_nom": round(power_watts, 0),
-            "p_deferrable_nom": round(power_watts, 0),
+            "P_deferrable_nom": round(power_watts, 0) if total_hours > 0 else 0.0,
+            "p_deferrable_nom": round(power_watts, 0) if total_hours > 0 else 0.0,
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": def_end_timestep,
             "power_profile_watts": power_profile,
             "def_total_hours_array": [math.ceil(total_hours)],
-            "p_deferrable_nom_array": [round(power_watts, 0)],
+            "p_deferrable_nom_array": [round(power_watts, 0) if total_hours > 0 else 0.0],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],
             "p_deferrable_matrix": [power_profile],
