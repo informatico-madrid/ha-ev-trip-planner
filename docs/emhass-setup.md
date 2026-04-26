@@ -44,17 +44,19 @@ Ensure you have:
 
 The EV Trip Planner integration creates several sensors to support EMHASS optimization:
 
-### Aggregated Sensor
+### Deferrable Load Sensor
 
-**Entity ID**: `sensor.ev_trip_planner_{vehicle_id}_emhass_aggregated`
+**Entity ID**: `sensor.emhass_perfil_diferible_{entry_id}`
 
-This sensor contains **all 6 EMHASS parameters** for your active trips in a single entity, making it easy to reference in EMHASS configuration templates.
+This sensor provides the 168-hour power profile (`power_profile_watts` attribute) and deferrable schedule for EMHASS optimization. The `entry_id` is the Home Assistant config entry ID (visible in the integration page URL).
 
-### Per-Trip Sensors
+### Per-Trip EMHASS Sensors
 
-**Entity ID**: `sensor.emhass_params_{vehicle_id}_{trip_id}`
+**Entity ID**: `sensor.ev_trip_planner_{vehicle_id}_trip_{trip_id}` (unique_id: `emhass_trip_{vehicle_id}_{trip_id}`)
 
-These sensors contain EMHASS parameters for individual trips. Use these if you need trip-specific optimization logic.
+These sensors provide per-trip EMHASS parameters including `emhass_index`, `def_total_hours`, `P_deferrable_nom`, `def_start_timestep`, `def_end_timestep`, `power_profile_watts`, `kwh_needed`, and `deadline`. Use these for trip-specific optimization logic.
+
+> ⚠️ **Note**: The `sensor.ev_trip_planner_{vehicle_id}_emhass_aggregated` sensor referenced in previous versions of this document does not exist in the current codebase. Use the per-trip sensors or the deferrable load sensor instead.
 
 ## EMHASS Parameters Reference
 

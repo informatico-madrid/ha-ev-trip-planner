@@ -335,19 +335,28 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 ```
 docs/
-├── MILESTONE_4_1_PLANNING.md         # Detailed Milestone 4.1 plan (not started)
-├── MILESTONE_4_POWER_PROFILE.md      # M4 charging profile spec (completed)
-├── TDD_METHODOLOGY.md                # TDD methodology applied to project
-├── TESTING_E2E.md                    # E2E testing guide with Playwright
-├── IMPROVEMENTS_POST_MILESTONE3.md   # UX improvements implemented in M3.1/M3.2
-└── configuration_examples.yaml       # Complete YAML configuration examples
+├── MILESTONE_4_1_PLANNING.md # Detailed Milestone 4.1 plan (HISTORICAL — superseded)
+├── MILESTONE_4_POWER_PROFILE.md # M4 charging profile spec (HISTORICAL — completed)
+├── architecture.md # System architecture
+├── api-contracts.md # API contracts
+├── data-models.md # Data models
+├── development-guide.md # Development guide
+├── DASHBOARD.md # Dashboard guide (DEPRECATED — use native panel)
+├── VEHICLE_CONTROL.md # Vehicle control strategies
+├── SHELL_COMMAND_SETUP.md # Shell command setup for EMHASS
+├── emhass-setup.md # EMHASS integration setup
+├── source-tree-analysis.md # Source tree structure
+├── DOCS_DEEP_AUDIT.md # Documentation audit report
+└── e2e-date-diagnosis-final.md # E2E date debugging report
 
 doc/
 └── gaps/
-    └── gaps.md                       # Production-detected problems with hypotheses
+    └── gaps.es.md # Production-detected problems with hypotheses
 
 _ai/
-└── PORTFOLIO.md                      # Portfolio-ready documentation
+└── PORTFOLIO.md # Portfolio-ready documentation
+    TDD_METHODOLOGY.md # TDD methodology applied to project
+    TESTING_E2E.md # E2E testing guide with Playwright
 ```
 
 ---

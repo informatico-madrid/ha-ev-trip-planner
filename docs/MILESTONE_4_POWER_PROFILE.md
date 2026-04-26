@@ -1,9 +1,9 @@
 # 🚀 Milestone 4: Smart Charging Profile — Technical Documentation
 
-**Implementation Document**  
-**Version**: 1.0  
-**Date**: 2025-12-14  
-**Status**: ✅ IMPLEMENTED & VALIDATED  
+**Implementation Document**
+**Version**: 1.0
+**Date**: 2025-12-14
+**Status**: ✅ IMPLEMENTED & VALIDATED (historical — completed in v0.4.0-dev, current version is v0.5.20)
 **Target**: v0.4.0-dev
 
 ---
@@ -179,14 +179,14 @@ async def async_get_vehicle_soc(self, vehicle_config: Dict[str, Any]) -> float:
 - `soc_sensor`: State of Charge sensor (%, device_class: battery)
 - `battery_capacity_kwh`: Total battery capacity (kWh)
 - `charging_power_kw`: Maximum charging power (kW, e.g., 7.4)
-- `safety_margin_percent`: Minimum post-trip SOC safety margin (%, default: 40)
+- `safety_margin_percent`: Minimum post-trip SOC safety margin (%, default: 10)
 
 **OVMS Example (Chispitas)**:
 ```yaml
 soc_sensor: "sensor.ovms_chispitas_soc"
 battery_capacity_kwh: 40.0
 charging_power_kw: 7.4
-safety_margin_percent: 40
+safety_margin_percent: 10
 ```
 
 **Renault Example (Morgan)**:
@@ -194,7 +194,7 @@ safety_margin_percent: 40
 soc_sensor: "sensor.morgan_battery_level"
 battery_capacity_kwh: 27.4
 charging_power_kw: 7.4
-safety_margin_percent: 40
+safety_margin_percent: 10
 ```
 
 ---

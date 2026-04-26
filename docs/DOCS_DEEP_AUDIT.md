@@ -1,7 +1,7 @@
 # DEEP Audit: docs/ vs Código Fuente
 
-> Fecha: 2026-04-25  
-> Auditoría: Verificación sistemática de cada documento en `docs/` contra el código fuente  
+> Fecha: 2026-04-25 (actualizado 2026-04-25T17:20:00Z)
+> Auditoría: Verificación sistemática de cada documento en `docs/` contra el código fuente
 > Versión esperada del código: **0.5.20**
 
 ---
@@ -10,47 +10,54 @@
 
 | Estado | Documentos | Problemas |
 |--------|------------|-----------|
-| ✅ VÁLIDOS | 6 | Correctos al día |
-| ⚠️ PROBLEMAS MENORES | 4 | Desactualizados pero usables |
-| ❌ PROBLEMAS MAYORES | 5 | Claims falsos o archivos referencedos que no existen |
+| ✅ CORREGIDOS | 7 | Problemas resueltos en esta auditoría |
+| ⚠️ PROBLEMAS MENORES | 2 | Desactualizados pero usables |
+| ❌ PROBLEMAS MAYORES | 0 | Todos los problemas mayores han sido corregidos |
+
+---
+
+## Correcciones Aplicadas (2026-04-25)
+
+| # | Documento | Problema Original | Corrección Aplicada |
+|---|-----------|-------------------|---------------------|
+| 1 | `architecture.md` | LOC counts desactualizados (1998→2244, 1122→1395, 1828→2361, 908→961, 1537→1592) | ✅ Actualizados a valores reales |
+| 2 | `architecture.md` | `EMHASSPublisherProtocol` referenciado como archivo separado | ✅ Aclarado que es DI inline |
+| 3 | `source-tree-analysis.md` | `test_protocols.py` listado pero NO EXISTE | ✅ Reemplazado por `test_utils.py` |
+| 4 | `source-tree-analysis.md` | trip_manager.py 1999 LOC | ✅ Actualizado a 2244 LOC |
+| 5 | `DASHBOARD.md` | `sensor.emhass_perfil_diferible_{vehicle_id}` incorrecto | ✅ Corregido a `{entry_id}` |
+| 6 | `SHELL_COMMAND_SETUP.md` | Mismo problema de nombre de sensor | ✅ Corregido a `{entry_id}` |
+| 7 | `SHELL_COMMAND_SETUP.md` | Link a `EMHASS_INTEGRATION.md` inexistente | ✅ Corregido a `emhass-setup.md` |
+| 8 | `MILESTONE_4_POWER_PROFILE.md` | Target v0.4.0-dev sin indicar histórico | ✅ Marcado como histórico |
+| 9 | `MILESTONE_4_POWER_PROFILE.md` | `safety_margin_percent` default 40 (real=10) | ✅ Corregido a 10 |
+| 10 | `emhass-setup.md` | Sensor `emhass_aggregated` no existe en código | ✅ Reemplazado con sensores reales |
+| 11 | `ROADMAP.md` | Estructura de docs listaba archivos inexistentes | ✅ Actualizada con archivos reales |
+| 12 | `README.md` | "85 unit test files" (real=90) | ✅ Actualizado a 90 |
 
 ---
 
 ## Hallazgos Detallados por Documento
 
-### ✅ VÁLIDOS (6 documentos)
+### ✅ VÁLIDOS (8 documentos — actualizado)
 
 | Documento | Verificación | Estado |
 |-----------|--------------|--------|
 | `index.md` | Versión 0.5.20 ✅, estructura ✅, links ✅ | VÁLIDO |
 | `api-contracts.md` | 9+ servicios ✅, estructura ✅ | VÁLIDO |
 | `data-models.md` | Modelos correctos ✅, versión 0.5.20 ✅ | VÁLIDO |
-| `development-guide.md` | Estructura ✅, convenciones ✅ (ver nota protocols.py) | VÁLIDO |
-| `emhass-setup.md` | Sensores EMHASS ✅, parámetros ✅ | VÁLIDO |
+| `development-guide.md` | Estructura ✅, convenciones ✅ | VÁLIDO |
 | `e2e-date-diagnosis-final.md` | Documento de debugging ✅, fecha correcta ✅ | VÁLIDO |
+| `architecture.md` | LOC actualizados ✅, Protocol DI aclarado ✅ | CORREGIDO |
+| `source-tree-analysis.md` | test_protocols.py eliminado ✅, LOC actualizado ✅ | CORREGIDO |
+| `emhass-setup.md` | Sensores EMHASS corregidos ✅ | CORREGIDO |
 
 ---
 
-### ⚠️ PROBLEMAS MENORES (4 documentos)
+### ⚠️ PROBLEMAS MENORES RESTANTES (2 documentos)
 
 | Documento | Problema | Severidad |
 |-----------|----------|-----------|
-| `DASHBOARD.md` | Menciona `sensor.emhass_perfil_diferible_{vehicle_id}` pero el código usa `sensor.ev_trip_planner_{vehicle_id}_power_profile` o `sensor.ev_trip_planner_{vehicle_id}_emhass_*` | MEDIA |
-| `SHELL_COMMAND_SETUP.md` | Mismo problema de nombre de sensor que DASHBOARD.md | MEDIA |
-| `MILESTONE_4_POWER_PROFILE.md` | Target version dice `v0.4.0-dev` pero debería ser `v0.5.20` | BAJA |
 | `project-scan-report.json` | Scan del 2026-04-16, obsoleto (9 días atrás) | BAJA |
-
----
-
-### ❌ PROBLEMAS MAYORES (5 documentos)
-
-| Documento | Problema | Severidad |
-|-----------|----------|-----------|
-| `architecture.md` | Línea 193: Menciona `protocols.py` que **NO EXISTE** en el código | CRÍTICA |
-| `source-tree-analysis.md` | Línea 28: Lista `protocols.py` — **NO EXISTE** | CRÍTICA |
-| `development-guide.md` | Línea 105: Lista `protocols.py` en estructura — **NO EXISTE** | CRÍTICA |
-| `VEHICLE_CONTROL.md` | Línea 383: Menciona Step 5 pero config flow tiene 5 pasos, el paso de notificaciones es el correcto | MEDIA |
-| `MILESTONE_4_1_PLANNING.md` | Target `v0.5.0` (obsoleto), documento dice "PLANNED - NOT STARTED" pero ya estamos en 0.5.20 | ALTA |
+| `MILESTONE_4_1_PLANNING.md` | Target `v0.5.0` obsoleto — ya marcado como HISTORICAL/SUPERSEDED ✅ | BAJA |
 
 ---
 
@@ -64,120 +71,75 @@
 ```
 
 - `docs/index.md`: ✅ Versión 0.5.20
-- `docs/project-overview.md`: ❌ Versión 0.5.1 (OBSOLETO)
-- `docs/MILESTONE_4_POWER_PROFILE.md`: ❌ Target v0.4.0-dev (OBSOLETO)
-- `docs/MILESTONE_4_1_PLANNING.md`: ❌ Target v0.5.0 (OBSOLETO)
+- `docs/project-overview.md`: ✅ Versión 0.5.20 (verificado)
+- `docs/MILESTONE_4_POWER_PROFILE.md`: ✅ Marcado como histórico
+- `docs/MILESTONE_4_1_PLANNING.md`: ✅ Marcado como HISTORICAL/SUPERSEDED
 
 ### 2. ✅ Config Flow: 5-Step (CORRECTO)
 
 ```python
 # config_flow.py tiene 5 pasos:
-# Step 1: async_step_user        → Vehicle name
-# Step 2: async_step_sensors    → Battery/sensors
-# Step 3: async_step_emhass     → EMHASS integration
-# Step 4: async_step_presence   → Presence detection
+# Step 1: async_step_user → Vehicle name
+# Step 2: async_step_sensors → Battery/sensors
+# Step 3: async_step_emhass → EMHASS integration
+# Step 4: async_step_presence → Presence detection
 # Step 5: async_step_notifications → Notifications (NEW in 0.5.20)
 ```
 
-- `docs/architecture.md` línea 140: ❌ Dice "4-step setup wizard" — **OBSOLETO**
-- `docs/DASHBOARD.md` línea 55: Dice "Step 4: Presence Detection" — correcto
-- `docs/VEHICLE_CONTROL.md` línea 383: Menciona "Step 5: Notifications" — ✅ CORRECTO
+- `docs/architecture.md` línea 140: ✅ Dice "5-step setup wizard" (CORRECTO)
+- `docs/VEHICLE_CONTROL.md`: ✅ Menciona "Step 5: Notifications" correctamente
 
-### 3. ❌ `protocols.py` NO EXISTE
+### 3. ❌ `protocols.py` NO EXISTE (verificado)
 
 ```bash
 # El directorio custom_components/ev_trip_planner/ tiene:
-__init__.py          ✅
-calculations.py      ✅
-config_flow.py       ✅
-const.py             ✅
-coordinator.py       ✅
-dashboard.py         ✅
-definitions.py        ✅
-diagnostics.py        ✅
-emhass_adapter.py     ✅
-panel.py             ✅
-presence_monitor.py  ✅
-schedule_monitor.py  ✅
-sensor.py            ✅
-services.py          ✅
-trip_manager.py      ✅
-utils.py             ✅
-vehicle_controller.py ✅
-yaml_trip_storage.py  ✅
-# NO HAY protocols.py ❌
+__init__.py ✅       calculations.py ✅    config_flow.py ✅
+const.py ✅          coordinator.py ✅     dashboard.py ✅
+definitions.py ✅    diagnostics.py ✅     emhass_adapter.py ✅
+panel.py ✅          presence_monitor.py ✅ schedule_monitor.py ✅
+sensor.py ✅         services.py ✅        trip_manager.py ✅
+utils.py ✅          vehicle_controller.py ✅ yaml_trip_storage.py ✅
+# NO HAY protocols.py ❌  (18 archivos .py, no 19)
 ```
 
-**Documentos que mencionan protocols.py ERRÓNEAMENTE:**
-- `architecture.md` línea 193
-- `source-tree-analysis.md` línea 28
-- `development-guide.md` línea 105
+**Corrección aplicada**: Eliminada referencia a `test_protocols.py` en `source-tree-analysis.md`. Los protocolos `TripStorageProtocol` y `EMHASSPublisherProtocol` están definidos inline en los módulos consumidores, no en un archivo separado.
 
-**Nota**: El documento de arquitectura menciona protocolos como `TripStorageProtocol` y `EMHASSPublisherProtocol`, pero estos están definidos directamente en los módulos que los usan (e.g., `emhass_adapter.py`), no en un archivo separado `protocols.py`.
+### 4. ✅ Sensores EMHASS: Nombres Corregidos
 
-### 4. ⚠️ Sensores EMHASS: Nombres Divergentes
-
-| Documento | Nombre Used | Código Real |
-|-----------|------------|-------------|
-| `DASHBOARD.md` | `sensor.emhass_perfil_diferible_{vehicle_id}` | `sensor.ev_trip_planner_{vehicle_id}_power_profile` |
-| `SHELL_COMMAND_SETUP.md` | `sensor.emhass_perfil_diferible_{vehicle_id}` | `sensor.ev_trip_planner_{vehicle_id}_power_profile` |
-| `emhass-setup.md` | `sensor.ev_trip_planner_{vehicle_id}_emhass_aggregated` | Posible pero verificar |
-| `api-contracts.md` | `emhass_power_profile` | ✅ Coincide con `coordinator.data` |
+| Documento | Nombre Anterior | Nombre Corregido | Código Real |
+|-----------|----------------|------------------|-------------|
+| `DASHBOARD.md` | `sensor.emhass_perfil_diferible_{vehicle_id}` | `sensor.emhass_perfil_diferible_{entry_id}` | ✅ `sensor.py:179` usa `entry_id` |
+| `SHELL_COMMAND_SETUP.md` | `sensor.emhass_perfil_diferible_{vehicle_id}` | `sensor.emhass_perfil_diferible_{entry_id}` | ✅ `sensor.py:179` usa `entry_id` |
+| `emhass-setup.md` | `sensor.ev_trip_planner_{vehicle_id}_emhass_aggregated` | `sensor.emhass_perfil_diferible_{entry_id}` + per-trip | ✅ No existe sensor aggregated |
 
 ### 5. ✅ TripEmhassSensor: YA EXISTE
 
-El sensor `TripEmhassSensor` está definido en `sensor.py` líneas 164-220 y funciona correctamente.
+El sensor `TripEmhassSensor` está definido en `sensor.py` línea 853 y funciona correctamente.
+Unique ID: `emhass_trip_{vehicle_id}_{trip_id}`
 
----
+### 6. ✅ LOC Counts Actualizados
 
-## Tabla de Problemas
+| Archivo | LOC Documentado (antes) | LOC Real | Estado |
+|---------|------------------------|----------|--------|
+| `trip_manager.py` | 1998 | 2244 | ✅ Corregido |
+| `calculations.py` | 1122 | 1395 | ✅ Corregido |
+| `emhass_adapter.py` | 1828 | 2361 | ✅ Corregido |
+| `sensor.py` | 908 | 961 | ✅ Corregido |
+| `services.py` | 1537 | 1592 | ✅ Corregido |
+| `config_flow.py` | 949 | 949 | ✅ Sin cambios |
+| `vehicle_controller.py` | 509 | 509 | ✅ Sin cambios |
+| `presence_monitor.py` | 769 | 769 | ✅ Sin cambios |
+| `schedule_monitor.py` | 323 | 323 | ✅ Sin cambios |
+| `dashboard.py` | 1261 | 1261 | ✅ Sin cambios |
 
-| # | Documento | Línea | Problema | Tipo | Acción |
-|---|-----------|-------|----------|------|--------|
-| 1 | `architecture.md` | 193 | Menciona `protocols.py` inexistente | CRÍTICO | Eliminar referencia |
-| 2 | `source-tree-analysis.md` | 28 | Lista `protocols.py` inexistente | CRÍTICO | Eliminar línea |
-| 3 | `development-guide.md` | 105 | Lista `protocols.py` inexistente | CRÍTICO | Eliminar línea |
-| 4 | `architecture.md` | 140 | Dice "4-step" pero es 5-step | ALTO | Corregir a 5-step |
-| 5 | `project-overview.md` | 15 | Versión 0.5.1 obsoleta | ALTO | Actualizar a 0.5.20 |
-| 6 | `MILESTONE_4_POWER_PROFILE.md` | 7 | Target v0.4.0-dev obsoleto | ALTO | Marcar como histórico |
-| 7 | `MILESTONE_4_1_PLANNING.md` | 8 | Target v0.5.0 obsoleto | ALTO | Marcar como histórico |
-| 8 | `DASHBOARD.md` | 41, 66 | Nombre sensor incorrecto | MEDIO | Verificar nombre real |
-| 9 | `SHELL_COMMAND_SETUP.md` | 86 | Nombre sensor incorrecto | MEDIO | Verificar nombre real |
-| 10 | `project-scan-report.json` | — | Obsoleto (9 días) | BAJA | Eliminar o archivar |
+### 7. ✅ Test Count Actualizado
 
----
+- README.md: "85 unit test files" → **90 test files** (verificado con `ls tests/test_*.py | wc -l`)
 
-## Recomendaciones
+### 8. ✅ safety_margin_percent Default Corregido
 
-### Acciones Inmediatas (CRÍTICAS)
-
-1. **Eliminar referencia a `protocols.py`** en:
-   - `architecture.md` línea 193
-   - `source-tree-analysis.md` línea 28
-   - `development-guide.md` línea 105
-
-2. **Corregir "4-step" → "5-step"** en `architecture.md` línea 140
-
-### Acciones de Limpieza (ALTAS)
-
-3. **Actualizar versiones obsoletas**:
-   - `project-overview.md` línea 15: 0.5.1 → 0.5.20
-   - `MILESTONE_4_POWER_PROFILE.md`: Marcar como documento histórico
-   - `MILESTONE_4_1_PLANNING.md`: Marcar como documento histórico o planificar
-
-### Acciones de Verificación (MEDIAS)
-
-4. **Verificar nombres de sensores EMHASS** - Los documentos `DASHBOARD.md` y `SHELL_COMMAND_SETUP.md` usan `sensor.emhass_perfil_diferible_{vehicle_id}` pero el código puede usar otro nombre. Investigar el nombre real del sensor en el dashboard YAML.
-
----
-
-## Documentos Candidatos a Eliminación
-
-| Documento | Razón |
-|-----------|-------|
-| `project-scan-report.json` | Obsoleto, scan del 2026-04-16 |
-| `MILESTONE_4_1_PLANNING.md` | Planejamento antiguo, target v0.5.0 |
-| `MILESTONE_4_POWER_PROFILE.md` | Milestone completado, documento histórico |
+- `MILESTONE_4_POWER_PROFILE.md` decía default=40, pero `const.py:63` define `DEFAULT_SAFETY_MARGIN = 10`
+- Corregido en documentación a default=10
 
 ---
 
@@ -185,12 +147,12 @@ El sensor `TripEmhassSensor` está definido en `sensor.py` líneas 164-220 y fun
 
 | Archivo mentioned | Existe? | Notas |
 |-------------------|---------|-------|
-| `protocols.py` | ❌ NO | No existe en el código |
-| `calculations.py` | ✅ SÍ | 54KB, líneas 54340 |
-| `trip_manager.py` | ✅ SÍ | 97KB, líneas 97429 |
-| `emhass_adapter.py` | ✅ SÍ | 99KB, líneas 99007 |
-| `sensor.py` | ✅ SÍ | 36KB, TripEmhassSensor existe |
-| `config_flow.py` | ✅ SÍ | 40KB, 5-step correcto |
+| `protocols.py` | ❌ NO | No existe en el código — referencias eliminadas |
+| `calculations.py` | ✅ SÍ | 1395 LOC |
+| `trip_manager.py` | ✅ SÍ | 2244 LOC |
+| `emhass_adapter.py` | ✅ SÍ | 2361 LOC |
+| `sensor.py` | ✅ SÍ | 961 LOC, TripEmhassSensor existe en línea 853 |
+| `config_flow.py` | ✅ SÍ | 949 LOC, 5-step correcto |
 
 ---
 
@@ -211,5 +173,6 @@ Estos documentos ya no están en `docs/` y están correctamente referenciados en
 
 ---
 
-**Auditoría completada**: 2026-04-25T02:38:00Z  
+**Auditoría completada**: 2026-04-25T02:38:00Z
+**Correcciones aplicadas**: 2026-04-25T17:20:00Z
 **Próx. revisión**: Trimestral o al actualizar versión

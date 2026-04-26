@@ -35,7 +35,7 @@ Add this to your Home Assistant `configuration.yaml`:
 shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
-      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_VEHICLE_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_ENTRY_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
     }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
 ```
 
@@ -46,8 +46,8 @@ shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
       "P_deferrable": {{ (
-        state_attr('sensor.emhass_perfil_diferible_vehicle_1', 'power_profile_watts') | default([0]*168, true) +
-        state_attr('sensor.emhass_perfil_diferible_vehicle_2', 'power_profile_watts') | default([0]*168, true)
+        state_attr('sensor.emhass_perfil_diferible_entry_1', 'power_profile_watts') | default([0]*168, true) +
+        state_attr('sensor.emhass_perfil_diferible_entry_2', 'power_profile_watts') | default([0]*168, true)
       ) | tojson }}
     }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
 ```
@@ -83,7 +83,7 @@ shell_command:
 ### Sensor Entity
 
 The template references this sensor:
-- Entity ID: `sensor.emhass_perfil_diferible_{vehicle_id}`
+- Entity ID: `sensor.emhass_perfil_diferible_{entry_id}`
 - Attribute: `power_profile_watts` (array of 168 values)
 
 ---
@@ -157,9 +157,9 @@ shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
       "P_deferrable": {{ (
-        state_attr('sensor.emhass_perfil_diferible_vehicle_1', 'power_profile_watts') | default([0]*168, true) +
-        state_attr('sensor.emhass_perfil_diferible_vehicle_2', 'power_profile_watts') | default([0]*168, true) +
-        state_attr('sensor.emhass_perfil_diferible_vehicle_3', 'power_profile_watts') | default([0]*168, true)
+        state_attr('sensor.emhass_perfil_diferible_entry_1', 'power_profile_watts') | default([0]*168, true) +
+        state_attr('sensor.emhass_perfil_diferible_entry_2', 'power_profile_watts') | default([0]*168, true) +
+        state_attr('sensor.emhass_perfil_diferible_entry_3', 'power_profile_watts') | default([0]*168, true)
       ) | tojson }}
     }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
 ```
@@ -309,7 +309,7 @@ If EMHASS requires authentication:
 shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -X POST -d '{
-      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_VEHICLE_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_ENTRY_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
     }' http://YOUR_EMHASS_IP:5000/action/dayahead-optim
 ```
 
@@ -321,7 +321,7 @@ For secure connections:
 shell_command:
   emhass_day_ahead_optim: >
     curl -i -k -H "Content-Type: application/json" -X POST -d '{
-      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_VEHICLE_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_ENTRY_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
     }' https://YOUR_EMHASS_IP:5000/action/dayahead-optim
 ```
 
@@ -329,5 +329,5 @@ shell_command:
 
 ## Related Documentation
 
-- [EMHASS Integration Guide](EMHASS_INTEGRATION.md)
+- [EMHASS Integration Guide](emhass-setup.md)
 - [Dashboard Guide](DASHBOARD.md)

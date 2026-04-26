@@ -406,9 +406,28 @@ class EMHASSAdapter:
                 delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
-        # Calculate EMHASS parameters
-        total_hours = kwh / self._charging_power_kw
-        power_watts = self._charging_power_kw * 1000  # Convert to Watts
+        # Calculate EMHASS parameters using SOC-aware calculation
+        # FIX: Use calculate_energy_needed instead of simple kwh / charging_power_kw
+        from .calculations import calculate_energy_needed
+
+        energia_info = calculate_energy_needed(
+            trip,
+            self._battery_capacity_kwh,
+            soc_current,
+            self._charging_power_kw,
+            safety_margin_percent=self._safety_margin_percent,
+        )
+
+        # Use real calculated values considering SOC
+        total_hours = energia_info["horas_carga_necesarias"]
+        kwh_needed = energia_info["energia_necesaria_kwh"]
+
+        # Only set power_watts if charging is actually needed
+        if total_hours > 0:
+            power_watts = self._charging_power_kw * 1000  # Convert to Watts
+        else:
+            power_watts = 0.0
+
         end_timestep = min(int(hours_available), 168)  # Max 7 days
 
         # BUG FIX: Use fin_ventana for end_timestep when available
@@ -423,7 +442,7 @@ class EMHASSAdapter:
 
         # Create attributes
         _attributes = {
-            "def_total_hours": math.ceil(total_hours),
+            "def_total_hours": total_hours,
             "P_deferrable_nom": round(power_watts, 0),
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": end_timestep,
@@ -432,7 +451,7 @@ class EMHASSAdapter:
             "entry_id": self.entry_id,  # FR-1.2: For orphan detection
             "trip_description": trip.get("descripcion", ""),
             "status": "pending",
-            "kwh_needed": kwh,
+            "kwh_needed": kwh_needed,
             "deadline": deadline_dt.isoformat(),
             "emhass_index": emhass_index,
         }

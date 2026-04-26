@@ -98,10 +98,10 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - Manages `EVTripRuntimeData` per config entry
 - Handles config entry migration (v1 → v2)
 
-#### 2. `trip_manager.py` — Core Business Logic (1998 LOC)
+#### 2. `trip_manager.py` — Core Business Logic (2244 LOC)
 - Trip CRUD operations (recurring + punctual)
 - Energy calculation delegation to `calculations.py`
-- EMHASS synchronization via `EMHASSPublisherProtocol`
+- EMHASS synchronization via `EMHASSAdapter` (Protocol-based DI for testability)
 - HA Store persistence for trip data
 - SOC milestone calculations
 - Charging window calculations
@@ -112,7 +112,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - Aggregates data from TripManager + EMHASSAdapter
 - Exposes unified data contract for all sensors
 
-#### 4. `calculations.py` — Pure Functions (1122 LOC)
+#### 4. `calculations.py` — Pure Functions (1395 LOC)
 - 100% synchronous, no HA dependencies
 - All datetime functions take explicit `reference_dt` parameter
 - Key functions:
@@ -122,7 +122,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
   - `calculate_deferrable_parameters` — EMHASS deferrable load params
   - `generate_deferrable_schedule_from_trips` — EMHASS schedule generation
 
-#### 5. `emhass_adapter.py` — EMHASS Integration (1828 LOC)
+#### 5. `emhass_adapter.py` — EMHASS Integration (2361 LOC)
 - Publishes trips as EMHASS deferrable loads
 - Manages trip_id → emhass_index mapping (HA Store)
 - Power profile generation (binary: 0W or max power)
@@ -130,7 +130,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - Soft-delete with cooldown for index reuse
 - Notification dispatch for charging alerts
 
-#### 6. `sensor.py` — Sensor Entities (908 LOC)
+#### 6. `sensor.py` — Sensor Entities (961 LOC)
 - `TripPlannerSensor` — Base sensor using CoordinatorEntity + RestoreSensor
 - `TripEmhassSensor` — Per-trip EMHASS sensor (9 attributes)
 - Dynamic sensor creation based on trip data
@@ -145,7 +145,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - Options flow for reconfiguration
 - Entity selector for sensor picking
 
-#### 8. `services.py` — Service Handlers (1537 LOC)
+#### 8. `services.py` — Service Handlers (1592 LOC)
 - 9+ HA services:
   - `add_recurring_trip`, `add_punctual_trip`
   - `trip_create` (unified), `edit_trip`, `delete_trip`
@@ -221,7 +221,7 @@ TripPlannerCoordinator._async_update_data()
 |---------|-------|
 | **Coordinator** | DataUpdateCoordinator for sensor data polling |
 | **Strategy** | Vehicle control strategies (4 implementations) |
-| **Protocol (DI)** | `TripStorageProtocol`, `EMHASSPublisherProtocol` for testability |
+| **Protocol (DI)** | Protocol-based DI for testability (`TripStorageProtocol`, `EMHASSPublisherProtocol` defined inline in consuming modules) |
 | **Facade** | `services.py` as thin facade over TripManager |
 | **Observer** | `async_track_state_change_event` for sensor monitoring |
 | **Template Method** | Config flow with defined steps |

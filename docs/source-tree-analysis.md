@@ -16,7 +16,7 @@ ha-ev-trip-planner/
 │       ├── sensor.py                       # Sensor entities (TripPlannerSensor, TripEmhassSensor)
 │       ├── services.py                     # 🔵 9+ HA service handlers (trip CRUD, dashboard import)
 │       ├── services.yaml                   # Service definitions for HA UI
-│       ├── trip_manager.py                 # ⭐ CORE: Trip CRUD, energy calc, EMHASS sync (1999 LOC)
+│   ├── trip_manager.py # ⭐ CORE: Trip CRUD, energy calc, EMHASS sync (2244 LOC)
 │       ├── calculations.py                 # Pure calculation functions (extracted for testability)
 │       ├── emhass_adapter.py               # EMHASS integration adapter (deferrable loads, power profiles)
 │       ├── vehicle_controller.py           # 4 charging control strategies (switch, service, script, external)
@@ -50,7 +50,7 @@ ha-ev-trip-planner/
 │           ├── en.json                     # English translations
 │           └── es.json                     # Spanish translations
 │
-├── tests/                                  # 🧪 Python Unit Tests (90+ test files)
+├── tests/ # 🧪 Python Unit Tests (90 test files)
 │   ├── conftest.py                         # Shared fixtures (hass, config_entry, trip_manager)
 │   ├── test_trip_manager.py                # Core trip manager tests
 │   ├── test_calculations.py                # Pure calculation tests
@@ -63,7 +63,7 @@ ha-ev-trip-planner/
 │   ├── test_presence_monitor.py            # Presence monitor tests
 │   ├── test_schedule_monitor.py            # Schedule monitor tests
 │   ├── test_vehicle_controller*.py         # Vehicle controller tests
-│   ├── test_protocols.py                   # Protocol interface tests
+│   ├── test_utils.py # Utility function tests
 │   ├── fixtures/                           # Test fixtures (JSON trip/vehicle data)
 │   │   ├── trips/                          # Trip fixture data
 │   │   └── vehicles/                       # Vehicle fixture data

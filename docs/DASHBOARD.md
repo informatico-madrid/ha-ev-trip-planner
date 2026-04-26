@@ -43,7 +43,7 @@ Monitor the power profile sent to EMHASS for optimization:
 
 | Sensor | Description | Entity ID |
 |--------|-------------|-----------|
-| Deferrable Profile | Power schedule for EMHASS | `sensor.emhass_perfil_diferible_{vehicle_id}` |
+| Deferrable Profile | Power schedule for EMHASS | `sensor.emhass_perfil_diferible_{entry_id}` |
 
 **Attributes:**
 - `power_profile_watts`: Array of power values (Watts) for each hour
@@ -68,7 +68,7 @@ Verify that EMHASS is receiving and processing your deferrable loads correctly:
 
 Navigate to **Developer Tools** → **States** and search for:
 ```
-sensor.emhass_perfil_diferible_{vehicle_id}
+sensor.emhass_perfil_diferible_{entry_id}
 ```
 
 **Verify:**
@@ -121,7 +121,7 @@ Instructions for setting up the shell command to send data to EMHASS:
 shell_command:
   emhass_day_ahead_optim: >
     curl -i -H "Content-Type: application/json" -X POST -d '{
-      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_vehicle_id', 'power_profile_watts') | default([0]*168, true)) | tojson }}
+      "P_deferrable": {{ (state_attr('sensor.emhass_perfil_diferible_YOUR_ENTRY_ID', 'power_profile_watts') | default([0]*168, true)) | tojson }}
     }' http://TU_IP_EMHASS:5000/action/dayahead-optim
 ```
 
@@ -348,7 +348,7 @@ Combine with other HA integrations:
 | `sensor.{vehicle_id}_kwh_needed_today` | sensor | Today's energy needs |
 | `sensor.{vehicle_id}_soc` | sensor | Battery state of charge |
 | `sensor.{vehicle_id}_range` | sensor | Estimated range |
-| `sensor.emhass_perfil_diferible_{vehicle_id}` | sensor | Deferrable load profile |
+| `sensor.emhass_perfil_diferible_{entry_id}` | sensor | Deferrable load profile |
 
 ### Binary Sensors
 
@@ -399,7 +399,7 @@ custom_components/ev_trip_planner/dashboard/
 sensor.{vehicle_id}_trips_count         # Total trips
 sensor.{vehicle_id}_next_trip           # Next departure
 sensor.{vehicle_id}_kwh_needed_today    # Energy needed
-sensor.emhass_perfil_diferible_{vehicle_id}  # EMHASS profile
+sensor.emhass_perfil_diferible_{entry_id} # EMHASS profile
 ```
 
 ### EMHASS Verification Commands

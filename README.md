@@ -168,7 +168,7 @@ This project demonstrates a **new paradigm in software development** — archite
 |-------------|-------------|
 | **12,432 lines of AI-generated code** | All code written by AI agents under human architectural direction |
 | **18 production Python modules** | Fully functional Home Assistant integration |
-| **85 unit test files** | Every calculation function is parametrized tested |
+| **90 unit test files** | Every calculation function is parametrized tested |
 | **29 structured specifications** | Generated across 6 methodology phases |
 
 #### The Journey: From "Vibe Coding" to Structured Orchestration
@@ -733,7 +733,7 @@ ha-ev-trip-planner/
 │   └── panel.css
 ├── dashboard/               # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
 ├── tests/                   # Unit and integration tests
-│   ├── test_*.py            # ~85 test files
+│ ├── test_*.py # ~90 test files
 │   └── e2e/                  # E2E Tests (Playwright)
 │       ├── create-trip.spec.ts
 │       ├── delete-trip.spec.ts
