@@ -268,13 +268,16 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
             )
 
         if per_trip_params:
-            # Helper: filter active trips and sort by emhass_index ascending
+            # Helper: filter active trips and sort by deadline (def_start_timestep)
             active_trips_sorted: List[Dict[str, Any]] = []
             for trip_id, params in per_trip_params.items():
                 if params.get("activo", False):
                     active_trips_sorted.append(params)
-            # Sort by emhass_index ascending (index 0, 1, 2, ...)
-            active_trips_sorted.sort(key=lambda x: x.get("emhass_index", 0))
+            # CRITICAL FIX: Sort by def_start_timestep (chronological deadline order)
+            # Primary: def_start_timestep (chronological)
+            # Secondary: emhass_index (deterministic tie-breaker)
+            # This ensures arrays are in chronological order, with deterministic ordering when deadlines are equal
+            active_trips_sorted.sort(key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0)))
 
             # Aggregate all 6 array/matrix attrs from sorted active trips
             matrix: List[List[float]] = []

@@ -989,10 +989,21 @@ class EMHASSAdapter:
         projected_soc = soc_current
 
         # Publish each trip and populate per-trip cache with projected SOC
-        for trip in trips:
-            trip_id = trip.get("id")
-            if not trip_id:  # pragma: no cover - defensive: skip invalid trips
-                continue
+        # CRITICAL FIX: Iterate over trip_deadlines (chronological order), not trips (creation order)
+        # This ensures cache is populated in deadline order, which affects SOC propagation
+        # FALLBACK: If trip_deadlines is empty (e.g., all trips have invalid deadlines), use original trips order
+        trips_to_process = trip_deadlines if trip_deadlines else [(None, None, trip) for trip in trips]
+
+        for item in trips_to_process:
+            if trip_deadlines:
+                # Unpack (trip_id, deadline_dt, trip) from trip_deadlines
+                trip_id, deadline_dt, trip = item
+            else:
+                # Fallback: unpack (None, None, trip) from original trips
+                trip_id = trip.get("id")
+                deadline_dt = None
+                if not trip_id:  # pragma: no cover - defensive: skip invalid trips
+                    continue
 
             # Get batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
