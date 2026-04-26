@@ -665,14 +665,17 @@ class EMHASSAdapter:
         # backward to earlier trips with spare capacity. The propagated trip receives
         # adjusted_def_total_hours that includes absorbed deficit from later trips.
         needs_charging = decision.needs_charging
-        if adjusted_def_total_hours is not None:
+        if adjusted_def_total_hours is not None and adjusted_def_total_hours > 0:
+            # Only override total_hours if propagation provides hours > 0
+            # If adjusted_def_total_hours = 0, it means "no deficit propagated to this trip"
+            # but the trip may still need charging individually (keep decision.def_total_hours)
             total_hours = adjusted_def_total_hours
             # Override needs_charging based on adjusted hours.
             # A trip that originally needed no charging may now absorb propagated deficit.
             # CRITICAL: Only override if projected SOC for this trip allows charging (SOC < 100%).
             # soc_current parameter is the projected SOC at this trip's charging window,
             # not the current system SOC. This respects SOC propagation between trips.
-            if adjusted_def_total_hours > 0 and soc_current < 100.0:
+            if soc_current < 100.0:
                 needs_charging = True
                 power_watts = charging_power_kw * 1000
 
@@ -703,15 +706,24 @@ class EMHASSAdapter:
             )
 
         # Cache per-trip params
+        # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
+        # - def_total_hours already includes all adjustments (propagation + window size)
+        # - P_deferrable_nom should be power_watts ONLY if def_total_hours > 0
+        # This prevents the bug where needs_charging=True but total_hours=0 (e.g., due to
+        # window size reduction or empty profile from SOC <= 0%).
+        #
+        # The invariant: P_deferrable_nom > 0 ⇔ def_total_hours > 0
+        has_charging = total_hours > 0
+
         self._cached_per_trip_params[trip_id] = {
             "def_total_hours": math.ceil(total_hours),
-            "P_deferrable_nom": round(power_watts, 0) if total_hours > 0 else 0.0,
-            "p_deferrable_nom": round(power_watts, 0) if total_hours > 0 else 0.0,
+            "P_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
+            "p_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": def_end_timestep,
             "power_profile_watts": power_profile,
             "def_total_hours_array": [math.ceil(total_hours)],
-            "p_deferrable_nom_array": [round(power_watts, 0) if total_hours > 0 else 0.0],
+            "p_deferrable_nom_array": [round(power_watts, 0) if needs_charging else 0.0],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],
             "p_deferrable_matrix": [power_profile],
