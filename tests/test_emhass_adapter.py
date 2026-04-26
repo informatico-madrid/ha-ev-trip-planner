@@ -6258,10 +6258,11 @@ async def test_async_publish_all_deferrable_loads_uses_batch_windows(hass, mock_
         # Mock coordinator async_refresh
         mock_coordinator.async_refresh = AsyncMock()
 
-        # Trips with valid datetime (punctual trips) so batch computation is triggered
+        # Trips with valid future datetime (punctual trips) so batch computation is triggered
+        now = datetime.now(timezone.utc)
         trips = [
-            {"id": "batch_trip_001", "kwh": 5.0, "datetime": "2026-04-25T09:00:00"},
-            {"id": "batch_trip_002", "kwh": 5.0, "datetime": "2026-04-25T14:00:00"},
+            {"id": "batch_trip_001", "kwh": 5.0, "datetime": (now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0).isoformat()},
+            {"id": "batch_trip_002", "kwh": 5.0, "datetime": (now + timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0).isoformat()},
         ]
 
         hass.states.async_set = AsyncMock()
