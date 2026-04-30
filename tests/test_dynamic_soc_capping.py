@@ -10,7 +10,8 @@ Formula reference:
     limit = 35 + 65 * (1 / (1 + risk / t_base))
 
 TDD: These tests are written BEFORE implementation.
-Scenario A (T011) is the primary focus for this task.
+Scenario A (T011) covers commute-first then large trip.
+Scenario B (T012) covers large trip drain then commutes.
 """
 
 from __future__ import annotations
@@ -40,15 +41,6 @@ class TestDynamicSOCCapping:
                 24.0,
                 94.93,
                 id="Scenario A main: 22h idle, 41% post-trip, 30kWh, t_base=24",
-            ),
-            # T2: large trip draining to 0% -> risk negative -> 100%
-            pytest.param(
-                8,
-                0,
-                30,
-                24.0,
-                100.0,
-                id="Scenario A T2: large trip drain to 0%, 8h idle -> 100%",
             ),
             # T3: commute after drain, 48h idle
             pytest.param(
@@ -84,6 +76,46 @@ class TestDynamicSOCCapping:
         Large trip draining to 0% -> risk negative -> 100% allowed
         Long idle (48h) with 41% post-trip -> tighter cap ~89.9%
         Post-trip below 35% (sweet spot) -> no degradation risk -> 100%
+        """
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_dynamic_soc_limit,
+        )
+
+        result = calculate_dynamic_soc_limit(
+            t_hours, soc_post_trip, battery_capacity_kwh, t_base=t_base
+        )
+        assert result == pytest.approx(expected, rel=0.01)
+
+    # ------------------------------------------------------------------
+    # Scenario B: Large trip drain first, then commutes
+    # ------------------------------------------------------------------
+
+    @pytest.mark.parametrize(
+        "t_hours,soc_post_trip,battery_capacity_kwh,t_base,expected",
+        [
+            # Main Scenario B: 8h idle, 0% post-trip -> large trip drain -> 100%
+            pytest.param(
+                8,
+                0,
+                30,
+                24.0,
+                100.0,
+                id="Scenario B main: 8h idle, 0% post-trip -> 100%",
+            ),
+        ],
+    )
+    def test_scenario_b_large_drain_first(
+        self,
+        t_hours: float,
+        soc_post_trip: float,
+        battery_capacity_kwh: float,
+        t_base: float,
+        expected: float,
+    ) -> None:
+        """Scenario B: large trip drain first, then commutes.
+
+        Large trip draining battery to 0% -> negative risk -> 100% SOC allowed.
+        After this trip, subsequent commutes will see ~94.9% cap.
         """
         from custom_components.ev_trip_planner.calculations import (
             calculate_dynamic_soc_limit,

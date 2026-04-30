@@ -56,7 +56,7 @@
 ### Tests for User Story 1 (TDD)
 
 - [x] T011 [P] [US1] [VERIFY:TEST] Create `tests/test_dynamic_soc_capping.py` with unit test for Scenario A: `calculate_dynamic_soc_limit(22, 41, 30, t_base=24)` returns ~94.9% (`custom_components/ev_trip_planner/calculations.py`, `tests/test_dynamic_soc_capping.py`)
-- [ ] T012 [P] [US1] [VERIFY:TEST] Add unit test for Scenario B: `calculate_dynamic_soc_limit(8, 0, 30)` returns 100.0 (negative risk — large trip drain) (`tests/test_dynamic_soc_capping.py`)
+- [x] T012 [P] [US1] [VERIFY:TEST] Add unit test for Scenario B: `calculate_dynamic_soc_limit(8, 0, 30)` returns 100.0 (negative risk — large trip drain) (`tests/test_dynamic_soc_capping.py`)
 - [ ] T013 [P] [US1] [VERIFY:TEST] Add unit test for Scenario C (critical case): 4 identical trips, limit stays at 94.9% each iteration (`tests/test_dynamic_soc_capping.py`)
 - [ ] T014 [P] [US1] [VERIFY:TEST] Add unit tests for edge cases: zero idle hours (t=0 -> 100%), at sweet spot SOC (35% -> 100%), infinite T_base -> 100% (`tests/test_dynamic_soc_capping.py`)
 - [ ] T015 [P] [US1] [VERIFY:TEST] Add unit test for T_base configurability: `t_base=6 < t_base=24 < t_base=48` ordering of limits (`tests/test_dynamic_soc_capping.py`)
