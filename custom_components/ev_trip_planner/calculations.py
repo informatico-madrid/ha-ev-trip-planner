@@ -478,6 +478,7 @@ def calculate_multi_trip_charging_windows(
     duration_hours: float = 6.0,
     return_buffer_hours: float = 4.0,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
+    now: Optional[datetime] = None,
 ) -> List[Dict[str, Any]]:
     """Calculate charging windows for multiple chained trips.
 
@@ -516,7 +517,7 @@ def calculate_multi_trip_charging_windows(
         # Determine window start
         window_start: datetime | None
         if idx == 0:
-            now = datetime.now(timezone.utc)
+            now = now if now is not None else datetime.now(timezone.utc)
             if hora_regreso is not None:
                 # Car is already home, start charging from now not from past hora_regreso
                 # Only apply when trip is in the future (past trips keep original behavior)
@@ -901,6 +902,20 @@ def calculate_next_recurring_datetime(day: int | str, time_str: str, reference_d
 
     if tz is not None:
         # BUG FIX: time_str is local time, create in local tz and convert to UTC
+        # Convert string timezone (e.g., 'Europe/Madrid') to ZoneInfo if needed
+        if isinstance(tz, str):
+            try:
+                from zoneinfo import ZoneInfo
+                tz = ZoneInfo(tz)
+            except (ImportError, Exception):
+                # Cannot resolve timezone string, fall back to UTC behavior
+                tz = None
+        if tz is not None and not isinstance(tz, timezone):
+            # Validate tz is a proper tzinfo subclass
+            import datetime as _dt
+            if not isinstance(tz, _dt.tzinfo):
+                tz = None
+    if tz is not None:
         # Normalize reference_dt to aware (UTC) if naive to avoid TypeError
         aware_ref = reference_dt if reference_dt.tzinfo is not None else reference_dt.replace(tzinfo=timezone.utc)
         local_ref = aware_ref.astimezone(tz)

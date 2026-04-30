@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .calculations import (
     calculate_deferrable_parameters as calc_deferrable_parameters,
@@ -394,6 +395,7 @@ class EMHASSAdapter:
             battery_capacity_kwh=self._battery_capacity_kwh,
             duration_hours=6.0,
             safety_margin_percent=self._safety_margin_percent,
+            now=dt_util.now(),
         )
 
         # Extract inicio_ventana and fin_ventana (datetime) and convert to timesteps
@@ -520,8 +522,10 @@ class EMHASSAdapter:
                     day_js_format = (day + 1) % 7
 
                 try:
+                    _hass = getattr(self, 'hass', None)
                     result = calculate_next_recurring_datetime(
-                        day_js_format, time_str, datetime.now(timezone.utc)
+                        day_js_format, time_str, dt_util.now(),
+                        tz=_hass.config.time_zone if _hass else None,
                     )
                     # EC-011 FIX: calculate_next_recurring_datetime returns naive datetime.
                     # _ensure_aware converts it to UTC-aware to prevent TypeError when
@@ -571,7 +575,7 @@ class EMHASSAdapter:
 
         # Capture current time once to avoid inconsistencies from multiple datetime.now() calls
         # near hour boundaries (off-by-one errors)
-        now = datetime.now(timezone.utc)
+        now = dt_util.now()
 
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
@@ -611,6 +615,7 @@ class EMHASSAdapter:
                 battery_capacity_kwh=battery_capacity_kwh,
                 duration_hours=6.0,
                 safety_margin_percent=safety_margin_percent,
+                now=now,
             )
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
@@ -935,6 +940,7 @@ class EMHASSAdapter:
                 battery_capacity_kwh=self._battery_capacity_kwh,
                 return_buffer_hours=RETURN_BUFFER_HOURS,
                 safety_margin_percent=self._safety_margin_percent,
+                now=dt_util.now(),
             )
             for i, (trip_id, _, _) in enumerate(trip_deadlines):
                 if i < len(windows):
@@ -2328,9 +2334,11 @@ class EMHASSAdapter:
         """
         return calculate_power_profile_from_trips(
             trips, charging_power_kw, horizon=planning_horizon_hours,
+            reference_dt=dt_util.now(),
             soc_current=soc_current,
             battery_capacity_kwh=battery_capacity_kwh,
             safety_margin_percent=safety_margin_percent,
+            tz=getattr(self, 'hass', None) and self.hass.config.time_zone,
         )
 
     def _generate_schedule_from_trips(
@@ -2353,7 +2361,9 @@ class EMHASSAdapter:
         Returns:
             List of schedule dictionaries
         """
-        return generate_deferrable_schedule_from_trips(trips, charging_power_kw)
+        return generate_deferrable_schedule_from_trips(
+            trips, charging_power_kw, reference_dt=dt_util.now(),
+        )
 
     async def _get_current_soc(self) -> float | None:
         """Get current SOC from configured sensor.

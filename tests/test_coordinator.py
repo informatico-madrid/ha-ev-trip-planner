@@ -2,12 +2,35 @@
 
 import logging
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import Mock, MagicMock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.ev_trip_planner import TripPlannerCoordinator
 from custom_components.ev_trip_planner.trip_manager import TripManager
+
+
+@pytest.fixture
+def mock_store_class():
+    """Fixture to patch the Store class."""
+    from homeassistant.helpers import storage as ha_storage
+
+    class MockStore:
+        def __init__(self, hass, version, key, *, private=None):
+            self.hass = hass
+            self.version = version
+            self.key = key
+            self._storage = {}
+
+        async def async_load(self):
+            return self._storage.get("data")
+
+        async def async_save(self, data):
+            self._storage["data"] = data
+            return True
+
+    with patch.object(ha_storage, 'Store', MockStore):
+        yield MockStore
 
 
 @pytest.fixture
@@ -338,4 +361,193 @@ async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_
 
     # Should fallback to "unknown" when vehicle_name is missing
     assert coordinator.vehicle_id == "unknown"
+
+
+# =============================================================================
+# CATEGORÍA 2: Cambio de SOC del vehículo (≥5%)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
+    hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter, mock_store_class
+):
+    """Test que un cambio de SOC ≥5% actualiza el sensor EMHASS end-to-end.
+
+    Este test verifica el FLUJO COMPLETO:
+    1. PresenceMonitor detecta cambio de SOC ≥5%
+    2. Llama a trip_manager.publish_deferrable_loads()
+    3. EMHASSAdapter actualiza su cache (power_profile, schedule, etc.)
+    4. coordinator DEBERÍA actualizar coordinator.data
+    5. El sensor EMHASS DEBERÍA mostrar nuevos datos
+
+    ❌ ESTE TEST DEBERÍA FALLAR porque el paso 4 NO ocurre actualmente.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
+    from custom_components.ev_trip_planner.const import (
+        CONF_HOME_SENSOR,
+        CONF_PLUGGED_SENSOR,
+        CONF_SOC_SENSOR,
+    )
+
+    # Setup: Crear coordinator con EMHASS adapter
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter, logger=mock_logger
+    )
+
+    # Configurar PresenceMonitor
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    monitor = PresenceMonitor(hass, "test_vehicle", config, mock_trip_manager)
+    monitor._last_processed_soc = 50.0
+
+    # Mockear publish_deferrable_loads para verificar si se llama
+    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+
+    # Setup: Vehicle en casa y conectado
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    hass.states.get = mock_get_state
+
+    # Setup: EMHASS adapter devuelve datos iniciales (SOC 50%)
+    initial_power_profile = [3400.0, 0, 0, 0] * 42  # Perfil inicial
+    initial_schedule = [{"trip_id": "test", "power": 3400}]
+
+    mock_emhass_adapter.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": initial_power_profile,
+        "emhass_deferrables_schedule": initial_schedule,
+        "emhass_status": "ready",
+    }
+
+    # 1. Refresh inicial del coordinator
+    await coordinator.async_refresh()
+
+    # Guardar datos iniciales para comparar
+    initial_coordinator_data = coordinator.data["emhass_power_profile"].copy()
+
+    # 2. Simular cambio de SOC: 50% → 60% (10% delta, muy por encima del 5%)
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+
+    new_soc_state = Mock()
+    new_soc_state.state = "60"  # 10% de cambio
+
+    event = Mock()
+    event.data = {
+        "old_state": old_soc_state,
+        "new_state": new_soc_state,
+    }
+
+    # 3. Configurar EMHASS adapter para devolver NUEVOS datos (SOC 60%)
+    # Estos valores serán diferentes porque el SOC cambió
+    new_power_profile = [3600.0, 0, 0, 0] * 42  # Perfil con SOC 60%
+    new_schedule = [{"trip_id": "test", "power": 3600}]
+
+    mock_emhass_adapter.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": new_power_profile,
+        "emhass_deferrables_schedule": new_schedule,
+        "emhass_status": "ready",
+    }
+
+    # 4. Procesar el cambio de SOC
+    await monitor._async_handle_soc_change(event)
+
+    # VERIFICACIONES:
+
+    # 1. publish_deferrable_loads() se llamó
+    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+
+    # 2. _last_processed_soc se actualizó
+    assert monitor._last_processed_soc == 60.0
+
+    # 3. ❌ CRÍTICO: coordinator.data DEBERÍA actualizarse automáticamente
+    #    PERO actualMENTE NO se actualiza porque nadie llama a coordinator.async_refresh()
+    #
+    #    El EMHASSAdapter cambió su cache (new_power_profile vs initial_power_profile)
+    #    PERO coordinator.data sigue teniendo los datos VIEJOS
+    #
+    #    Verificación: coordinator.data NO cambió
+    assert coordinator.data["emhass_power_profile"] == initial_coordinator_data
+    # ❌ ESTO CONFIRMA EL BUG:
+    # - publish_deferrable_loads() se llama ✅
+    # - El cache del EMHASSAdapter cambia ✅
+    # - PERO coordinator.data NO se actualiza ❌
+    # - Por lo tanto, el sensor EMHASS NO se actualiza ❌
+
+
+
+@pytest.mark.asyncio
+async def test_coordinator_refresh_with_updated_emhass_cache(
+    hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger
+):
+    """Test que coordinator refresh actualiza el sensor cuando el cache EMHASS cambia.
+
+    Este test verifica que cuando el EMHASSAdapter actualiza su cache,
+    el coordinator lo refleja en coordinator.data.
+    """
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+    # Crear mock EMHASS adapter con datos actualizables
+    mock_emhass = MagicMock(spec=EMHASSAdapter)
+
+    # Setup: Datos iniciales (SOC 50%)
+    initial_power_profile = [3400.0, 0, 0, 0] * 42
+    initial_schedule = [{"trip_id": "test", "power": 3400}]
+
+    mock_emhass.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": initial_power_profile,
+        "emhass_deferrables_schedule": initial_schedule,
+        "emhass_status": "ready",
+        "per_trip_emhass_params": {},
+    }
+
+    # Crear coordinator
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager,
+        emhass_adapter=mock_emhass, logger=mock_logger
+    )
+
+    # 1. Refresh inicial
+    await coordinator.async_refresh()
+
+    # Verificar datos iniciales
+    assert coordinator.data["emhass_power_profile"][0] == 3400.0
+
+    # 2. Simular actualización del cache EMHASS (SOC cambia a 60%)
+    updated_power_profile = [4000.0, 0, 0, 0] * 42
+    updated_schedule = [{"trip_id": "test", "power": 4000}]
+
+    mock_emhass.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": updated_power_profile,
+        "emhass_deferrables_schedule": updated_schedule,
+        "emhass_status": "ready",
+        "per_trip_emhass_params": {},
+    }
+
+    # 3. Refresh del coordinator
+    await coordinator.async_refresh()
+
+    # 4. Verificar que coordinator.data se actualizó
+    assert coordinator.data["emhass_power_profile"][0] == 4000.0
+
+    # ✅ ESTE TEST PASA porque el coordinator SÍ lee el cache actualizado
+    # ❌ PERO el problema es: ¿QUIÉN actualiza el cache del EMHASSAdapter?
+    #    - PresenceMonitor llama a publish_deferrable_loads() ✅
+    #    - PERO publish_deferrable_loads() NO llama a coordinator.async_refresh() ❌
+    #    - Por lo tanto, el sensor NO se actualiza automáticamente ❌
 

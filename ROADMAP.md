@@ -76,6 +76,17 @@
 - High test coverage >80% for all modules
 - 793 Python tests + 10 E2E Playwright passing
 
+### Milestone 4.0.1: EMHASS Per-Trip Sensors & Hotfixes (Apr 26, 2026)
+- `TripEmhassSensor`: Per-trip EMHASS sensors with 9 attributes
+- Gap #8 fixed: EMHASS now receives per-trip optimization profiles
+- Gap #5 fixed: Charging power updates from options flow
+- Hours deficit propagation algorithm for multi-trip charging
+- 7 EMHASS integration bugs fixed (datetime, math.ceil, template keys)
+- 82 TDD tasks completed, 1470 tests passing, 100% coverage
+- Enhanced EMHASS aggregated sensor with `p_deferrable_matrix` attribute
+- PR #26 merged (m401-emhass-per-trip-sensors branch)
+- CHANGELOG: [0.5.21]
+
 ---
 
 ### ⚠️ Vehicle Control — Implemented but NOT Wired to UI
@@ -102,12 +113,151 @@
 
 ---
 
-## 🚧 Next: Milestone 4.0.1 — Critical M4 Hotfixes
+## ✅ Milestone 4.0.1 — Critical M4 Hotfixes (COMPLETED)
 
-**Status**: 📋 PLANNED — not started  
-**Problem details**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)  
-**Target**: v0.4.3-dev  
-**Priority**: Blocks M4.1 start — these issues prevent EMHASS integration from working correctly in production
+**Status**: ✅ COMPLETED — 2026-04-26  
+**Spec**: [`specs/m401-emhass-hotfixes/`](specs/m401-emhass-hotfixes/)  
+**Target**: v0.5.21  
+**PR**: [#26](https://github.com/informatico-madrid/ha-ev-trip-planner/pull/26)
+
+### Completed Features
+
+#### Gap #8 — EMHASS Per-Trip Sensors ✅
+- **TripEmhassSensor** class implemented with 9 attributes
+- Per-trip EMHASS parameters (def_total_hours, P_deferrable_nom, def_start_timestep, def_end_timestep, power_profile_watts, deadline, soc_target, vehicle_id, trip_id, emhass_index)
+- Sensor lifecycle tied to trip (create/update/delete with trip)
+- Device grouping under vehicle device (not per-trip device)
+- Automatic EMHASS configuration via `p_deferrable_matrix` attribute
+
+#### Gap #5 — Charging Power Update ✅
+- Fixed `entry.options.get("charging_power_kw")` read from options flow
+- Activated `setup_config_entry_listener()` in `__init__.py`
+- Profile updates propagate immediately on config change
+
+#### Additional Fixes ✅
+- **7 EMHASS bugs** fixed (datetime, math.ceil, template keys, entity IDs)
+- **Hours deficit propagation algorithm** for multi-trip charging
+- **82 TDD tasks** completed with 100% pass rate
+- **1470 tests** passing, 100% coverage on new code
+
+### Technical Details
+- **Files Modified**: sensor.py, emhass_adapter.py, trip_manager.py, __init__.py, panel.js
+- **New Tests**: test_trip_emhass_sensor.py, test_propagate_charge_deficit.py
+- **Documentation**: docs/emhass-setup.md with Jinja2 templates
+- **Quality**: Mypy clean (19 files, 0 errors)
+
+---
+
+## 🚧 Next: Milestone 4.0.2 — Panel UX Improvements
+
+**Status**: 📋 PLANNED — not started
+**Priority**: P1 - User Experience
+**Target**: v0.5.22
+
+### Planned Features
+
+#### Panel UX Debt Reduction
+- **Remove hardcoded CSS gradients**: Replace `#667eea`, `#764ba2` with HA theme variables
+  - Use `--ha-card-background`, `--primary-color`, `--secondary-color`
+  - Respect HA light/dark theme mode
+- **Responsive design improvements**: Mobile-friendly panel layout
+- **HA theme integration**: All colors use semantic theme variables
+
+#### EMHASS Configuration UX
+- **In-panel EMHASS config display**: Show ready-to-copy YAML/Jinja2 templates
+- **Copy button**: One-click copy of EMHASS configuration
+- **Dynamic template generation**: Always shows current trip configuration
+
+### Estimate
+- **Time**: 3-5 days
+- **Complexity**: Low-Medium (CSS refactoring + minor JS changes)
+- **Files**: frontend/panel.js, frontend/panel.css
+
+---
+
+## 🔋 Immediately After M4.0.2: Milestone 4.0.3 — Dynamic SOC Capping
+
+**Status**: 📋 PLANNED — not started
+**Priority**: P1 - Battery Health & Cost Optimization
+**Target**: v0.5.23
+**Documentation**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md#5-dynamic-soc-capping-for-battery-health-medium-priority-)
+
+### Planned Features
+
+#### Dynamic SOC Capping Algorithm
+- **Rational transition function**: `SOC_lim(h) = SOC_max + (100 - SOC_max) * [h / (h + T)]`
+  - `h` = hours until trip
+  - `SOC_max` = daily maximum SOC (configurable, default 80%)
+  - `T` = anticipation hours for full charge (configurable, default 24h)
+- **Gradual relaxation**: SOC limit increases as trip approaches
+- **Smart override**: Never exceeds SOC target required for trip
+
+#### User-Friendly Config Flow
+```yaml
+Battery Health Mode: [checkbox]
+
+Límite Diario de Carga:
+  slider: 70% ────●──── 95%
+  default: 80%
+  help: "Porcentaje máximo de carga cuando el viaje está lejos.
+         Preserva la salud de tu batería EV."
+
+Horas de Anticipación de Carga:
+  slider: 6h ─────●──── 48h
+  default: 24h
+  help: "Horas antes del viaje para permitir carga al 100%.
+         Ej: 24h = 'Un día antes del viaje, cargar al máximo necesario'"
+```
+
+#### Additional Features
+- Slow charging preference (3.7 kW vs 7.4 kW) when time allows
+- Avoid keeping battery at 100% for extended periods
+- Optional: Daily time windows for charging
+
+#### Bug Fix — `ventana_horas` Inflated by Away Time
+- **Problem**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + duration_hours(6h)`. This means the charging window includes 6h when the car is **away** and physically cannot charge. The actual deadline is `fin_ventana = trip_departure_time` (line 576), so `ventana_horas` should be `trip_departure_time - window_start`.
+- **Impact**: `def_total_hours` sent to EMHASS is inflated by `duration_hours` per trip, making EMHASS believe there is more charging time available than actually exists.
+- **Fix (short-term)**: Change `ventana_horas` to use `trip_departure_time - window_start` instead of `trip_arrival - window_start`.
+- **Fix (mid-term)**: Consolidate to a single gap value — currently both `duration_hours` (6h) and `return_buffer_hours` (4h) exist; only one should be used.
+- **Fix (long-term)**: Each trip gets its own return time field in config, and only that value is used for window calculation.
+- **Files**: `calculations.py:545-553`, `const.py:72`
+
+### Example Behavior (SOC_max=80%, T=24h)
+```
+72h until trip:  SOC_lim = 85%  (3 days away, preserve battery)
+48h until trip:  SOC_lim = 86.7%
+24h until trip:  SOC_lim = 90%   (1 day away, start preparing)
+12h until trip:  SOC_lim = 93.3%
+6h until trip:   SOC_lim = 96%
+2h until trip:   SOC_lim = 100%  (trip needs it, full charge)
+```
+
+### Benefits
+- **Battery Health**: Extend battery life by 15-20% according to studies
+- **Cost Optimization**: Reduce charging costs by up to 30% on variable tariffs
+- **User-Friendly**: Only 2 parameters to understand and configure
+
+### Estimate
+- **Time**: 3-4 days
+- **Complexity**: Medium (mathematical function + config flow + tests)
+- **Tests**: 6-8 TDD tests (edge cases: h=0, h=∞, soc_target<lim, monotonicity)
+- **Files**: trip_manager.py, calculations.py, config_flow.py, tests/test_dynamic_soc_capping.py
+
+---
+
+## 📋 Immediately After M4.0.2 (Priority Order)
+
+### P0 — Pending Critical Items
+1. **ScheduleMonitor activation** - Wire automatic charge control (P0 from original ROADMAP)
+2. **Config flow options expansion** - Make all 20+ fields editable (P0 from original ROADMAP)
+
+### P1 — Documentation
+1. **Update EMHASS setup guide** - Reflect per-trip sensor changes
+2. **Panel user guide** - How to use new EMHASS config display
+3. **Migration guide** - From aggregated-only to per-trip sensors
+
+### P2 — Enhancement Candidates
+1. **Multi-vehicle power balancing** - Shared charging line management (from M4.1)
 
 ### Production-detected problems
 
@@ -241,7 +391,9 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 4. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
 
-5. **SOH (State of Health) selector NOT IMPLEMENTED**: Code infrastructure exists but there is no UI selector in config flow to configure a SOH sensor. Battery capacity is fixed, not dynamic.
+5. **⚠️ No Dynamic SOC Capping (Battery Health)**: Current implementation always targets 100% SOC or uses fixed caps. There is no algorithm to dynamically limit SOC based on time until trip (e.g., 80% for trips in 3 days, 90% for trips in 24h, 100% for imminent trips). This impacts battery longevity and charging cost optimization. **Planned for Milestone 4.0.3**.
+
+   **Compatibility**: The new algorithm is **fully compatible** with the existing deficit propagation system. It adds a `soc_limite = min(soc_objetivo_ajustado, dynamic_limit)` at [`calculations.py:~800`](custom_components/ev_trip_planner/calculations.py). Trip requirements always override battery health limits.
 
 6. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
 
@@ -250,6 +402,8 @@ These limitations are documented and are deliberate design decisions for v1.0:
 8. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
 
 9. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
+
+10. **⚠️ `ventana_horas` inflated by away time (BUG)**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + 6h`. This includes 6h when the car is away and cannot charge. The real deadline is `fin_ventana = trip_departure_time`. This inflates `def_total_hours` sent to EMHASS by `duration_hours` per trip. **Planned fix in Milestone 4.0.3** — short-term: use `departure - window_start`; mid-term: consolidate to single gap value; long-term: per-trip return time field.
 
 ---
 
@@ -274,6 +428,11 @@ These limitations are documented and are deliberate design decisions for v1.0:
 - Real consumption learning from history
 - Weather and traffic-based prediction
 - Battery degradation tracking
+
+### v1.3+: Battery Health & Advanced Optimization
+- **Dynamic SOC Capping**: Rational transition function to limit SOC based on trip urgency (80% for distant trips, gradually increasing to 100% as trip approaches)
+- **Adaptive charging strategies**: Slow charging (3.7 kW) preference when time allows
+- **Battery preservation mode**: Avoid extended periods at 100% SOC
 
 ### v1.4: Route Planning
 - Integration with Google Maps / OpenStreetMap Nominatim

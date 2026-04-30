@@ -413,6 +413,22 @@ async def test_soc_debouncing_5_percent_threshold_allows_recalculation(
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 55.0
 
+    # ❌ TEST FLOJO: Solo verifica que se llama a publish_deferrable_loads()
+    # ✅ TEST COMPLETO debería verificar:
+    # 1. Que el EMHASSAdapter actualiza su cache (_cached_power_profile, etc.)
+    # 2. Que el coordinator.async_refresh() se llama
+    # 3. Que el sensor EMHASS muestra los nuevos datos
+    #
+    # Actualmente este test PASA pero NO detecta que el sensor NO se actualiza
+    #
+    # Para hacer este test completo, necesitaríamos:
+    # - Mockear el EMHASSAdapter y verificar que se actualiza el cache
+    # - Mockear el coordinator y verificar que async_refresh() se llama
+    # - Verificar que EmhassDeferrableLoadSensor.extra_state_attributes tiene nuevos datos
+    #
+    # Problema: El test actual no tiene acceso al coordinator ni al EMHASSAdapter
+    # Solución: Crear un test de integración completo en test_coordinator.py
+
 
 @pytest.mark.asyncio
 async def test_soc_debouncing_ignores_unavailable_state(

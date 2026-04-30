@@ -168,29 +168,83 @@ name: "Charging Profile and Prices"
 
 ---
 
-### 5. 🔋 Battery Health Optimization (LOW PRIORITY)
+### 5. 🔋 Dynamic SOC Capping for Battery Health (MEDIUM PRIORITY) ⭐
 
-**Current Problem**: Charging always uses maximum power, which is not optimal for long-term battery health.
+**Current Problem**: Charging always uses maximum power and targets 100% SOC, which is not optimal for long-term battery health. Fixed 80% caps don't adapt to trip urgency.
 
 **Proposed Solution**:
-- "Battery Health" mode that:
-  - Limits charging to 80% SOC for daily trips (configurable)
-  - Uses slow charging (3.7 kW) instead of fast (7.4 kW) when time allows
-  - Schedules charging to avoid battery at 100% for hours
+- **Dynamic SOC capping** using a rational transition function
+- Algorithm: `SOC_lim(h) = SOC_max + (100 - SOC_max) * [h / (h + T)]`
+  - Where `h` = hours until trip, `SOC_max` = daily limit, `T` = anticipation hours
+- Gradually relaxes SOC limit as trip approaches
+- Never exceeds SOC target required by trip
 
-**Example**:
-```yaml
-# Battery health configuration
-battery_health_mode: true
-max_daily_soc: 80  # Do not charge beyond 80% for daily trips
-prefer_slow_charging: true  # Use 3.7 kW when possible
+**Mathematical Properties**:
+- **Monotonic**: Always increases as trip approaches
+- **Bounded**: [SOC_max, 100%]
+- **Continuous**: Smooth transitions, no abrupt jumps
+- **Predictable**: Easy to explain verbally
+
+**Example Behavior (SOC_max=80%, T=24h)**:
+```
+72h until trip:  SOC_lim = 85%  (3 days away)
+48h until trip:  SOC_lim = 86.7%
+24h until trip:  SOC_lim = 90%   (1 day away)
+12h until trip:  SOC_lim = 93.3%
+6h until trip:   SOC_lim = 96%
+2h until trip:   SOC_lim = 100%  (trip needs it)
 ```
 
-**Benefit**: Extend battery life by 15-20% according to studies.
+**Config Flow Inputs (User-Friendly)**:
+```yaml
+Battery Health Mode: [checkbox]
 
-**Complexity**: Medium  
-**Estimate**: 2-3 days development  
-**Tests Required**: 4-5 TDD tests
+Límite Diario de Carga:
+  slider: 70% ────●──── 95%
+  default: 80%
+  help: "Porcentaje máximo de carga cuando el viaje está lejos.
+         Preserva la salud de tu batería EV (recomendado: 80%)."
+
+Horas de Anticipación de Carga:
+  slider: 6h ─────●──── 48h
+  default: 24h
+  help: "Horas antes del viaje para permitir carga al 100%.
+         Ej: 24h = 'Un día antes del viaje, cargar al máximo necesario'"
+```
+
+**Implementation Algorithm**:
+```python
+def calcular_soc_limite_dinamico(
+    horas_until_trip: float,
+    soc_max_daily: float = 80.0,
+    anticipation_hours: float = 24.0,
+    soc_target_necesario: float = 100.0
+) -> float:
+    """Dynamic SOC limit using rational transition function."""
+    if horas_until_trip < 0:
+        return soc_target_necesario
+
+    soc_limite = soc_max_daily + (100 - soc_max_daily) * (
+        horas_until_trip / (horas_until_trip + anticipation_hours)
+    )
+
+    # Never exceed SOC required for trip
+    return min(soc_limite, soc_target_necesario)
+```
+
+**Additional Features**:
+- Slow charging preference (3.7 kW vs 7.4 kW) when time allows
+- Avoid keeping battery at 100% for extended periods
+- Optional: Daily time windows for charging (avoid peak hours)
+
+**Benefit**:
+- Extend battery life by 15-20% according to studies
+- Reduce charging costs by up to 30% on variable tariffs
+- User-friendly: only 2 parameters to understand
+
+**Complexity**: Medium
+**Estimate**: 3-4 days development
+**Tests Required**: 6-8 TDD tests (edge cases: h=0, h=∞, soc_target<lim, etc.)
 
 ---
 
@@ -228,11 +282,12 @@ notifications:
 
 | Improvement | User Impact | Technical Complexity | Cost ROI | Priority | Target Version |
 |--------|----------------|-------------------|------------|-----------|----------------|
+| Wire ScheduleMonitor + VehicleController | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | **P0** | v0.5.22 |
 | Smart Distributed Charging | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **HIGH** | v0.5.0 |
+| Dynamic SOC Capping (Battery Health) | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | **MEDIUM** | v0.5.23 |
 | Multiple Vehicles | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **HIGH** | v0.5.0 |
 | Climate Prediction | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.5.1 |
 | Improved UI | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | MEDIUM | v0.5.1 |
-| Battery Health | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | LOW | v0.5.2 |
 | Notifications | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | MEDIUM | v0.5.1 |
 
 ---
@@ -299,20 +354,83 @@ async def test_vehicle_priority_affects_charging_order(hass):
 async def test_consumption_adjustment_extreme_cold(hass):
     """Test that extreme cold increases consumption by 20%."""
     # Arrange: 10 kWh trip, temperature 0°C
-    
+
     # Act: Calculate with climate adjustment
-    
+
     # Assert: 12 kWh needed (10 * 1.20)
     assert energy_needed == 12.0
 
 async def test_consumption_adjustment_optimal_temperature(hass):
     """Test that optimal temperature does not adjust consumption."""
     # Arrange: 10 kWh trip, temperature 20°C
-    
+
     # Act: Calculate with climate adjustment
-    
+
     # Assert: 10 kWh needed (no adjustment)
     assert energy_needed == 10.0
+```
+
+### Phase 3b: Dynamic SOC Capping Tests (MEDIUM PRIORITY)
+
+```python
+# tests/test_dynamic_soc_capping.py
+
+async def test_soc_limit_infinite_time(mocker):
+    """Test that SOC limit approaches SOC_max when trip is far away."""
+    # Arrange: Trip in 999 hours, SOC_max=80%, T=24h
+
+    # Act: Calculate dynamic SOC limit
+
+    # Assert: Should be very close to SOC_max
+    assert soc_limite == pytest.approx(80.0, rel=0.01)
+
+async def test_soc_limit_zero_time(mocker):
+    """Test that SOC limit allows 100% when trip is imminent."""
+    # Arrange: Trip in 0 hours (now), SOC_max=80%, T=24h
+
+    # Act: Calculate dynamic SOC limit
+
+    # Assert: Should allow 100% (trip needs it)
+    assert soc_limite == 100.0
+
+async def test_soc_limit_monotonic_increase(mocker):
+    """Test that SOC limit always increases as trip approaches."""
+    # Arrange: SOC_max=80%, T=24h
+    hours_list = [48, 24, 12, 6, 2, 0]
+
+    # Act: Calculate SOC limits for each time point
+
+    # Assert: Each value should be >= previous
+    assert all(soc_limits[i] <= soc_limits[i+1]
+               for i in range(len(soc_limits)-1))
+
+async def test_soc_limit_never_exceeds_trip_target(mocker):
+    """Test that SOC limit never exceeds SOC required for trip."""
+    # Arrange: Trip needs 85%, SOC_lim calculated at 90%
+
+    # Act: Calculate with trip target constraint
+
+    # Assert: Should return 85% (trip requirement)
+    assert soc_limite_final == 85.0
+
+async def test_soc_limit_custom_parameters(mocker):
+    """Test that custom SOC_max and T work correctly."""
+    # Arrange: SOC_max=70%, T=12h, trip in 24h
+
+    # Act: Calculate dynamic SOC limit
+
+    # Assert: Should respect custom parameters
+    expected = 70 + 30 * (24 / (24 + 12))  # = 90%
+    assert soc_limite == pytest.approx(expected, rel=0.01)
+
+async def test_soc_limit_negative_time(mocker):
+    """Test that negative time (past trip) returns trip target."""
+    # Arrange: Trip was 2 hours ago, needs 95%
+
+    # Act: Calculate dynamic SOC limit
+
+    # Assert: Should return trip target directly
+    assert soc_limite == 95.0
 ```
 
 ---
