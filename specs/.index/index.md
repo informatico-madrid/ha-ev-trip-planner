@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-01T00:16:36Z
+**Last updated:** 2026-05-01T06:33:46Z
 
 ## Directories (1)
 
@@ -50,7 +50,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | propagate-charge-deficit-algo | ./specs | execution | 0/0 tasks |
 | propagate-charge-wiring | ./specs | requirements |  |
 | propagate-charge-test | ./specs | requirements |  |
-| m403-dynamic-soc-capping | ./specs | execution | 40/82 tasks |
+| m403-dynamic-soc-capping | ./specs | execution | 73/82 tasks |
 
 ---
 

@@ -1,6 +1,6 @@
 """Tests for SOC Milestone Algorithm - Task 1.13: Consecutive Deficit Handling."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -1513,14 +1513,14 @@ class TestDynamicSOCCappingIntegration:
 
         trip_a = {
             "id": "trip_a",
-            "tipo": "punctual",
+            "tipo": "puntual",
             "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
             "km": 30.0,
             "kwh": 10.0,
         }
         trip_b = {
             "id": "trip_b",
-            "tipo": "punctual",
+            "tipo": "puntual",
             "datetime": (now + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M"),
             "km": 30.0,
             "kwh": 10.0,
@@ -1570,7 +1570,7 @@ class TestDynamicSOCCappingIntegration:
             if call_count[0] == 2:
                 return None  # second trip has no valid time
             dt_str = trip.get("datetime")
-            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)
 
         trip_manager._get_trip_time = mock_get_trip_time
         trip_manager.hass = mock_hass
@@ -1598,7 +1598,7 @@ class TestDynamicSOCCappingIntegration:
 
         trip_a = {
             "id": "trip_a",
-            "tipo": "punctual",
+            "tipo": "puntual",
             "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
             "km": 30.0,
             "kwh": 10.0,
@@ -1628,15 +1628,11 @@ class TestDynamicSOCCappingIntegration:
 
         trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
 
-        # Mock _get_trip_time to return a naive datetime with different timezone awareness
-        # This will cause the subtraction to fail when now_dt is UTC-aware
+        # Mock _get_trip_time to return a string instead of datetime.
+        # This causes (trip_time - now_dt) to raise TypeError, triggering
+        # the except Exception branch at line 1982.
         def mock_get_trip_time(trip):
-            dt_str = trip.get("datetime")
-            dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
-            # Return a timezone-aware datetime with a DIFFERENT timezone
-            # This will cause TypeError when subtracting from UTC-aware now_dt
-            from datetime import timezone as tz
-            return dt.replace(tzinfo=tz(timedelta(hours=5)))  # UTC+5, different from UTC
+            return "not_a_datetime"  # type: ignore[return-value]
 
         trip_manager._get_trip_time = mock_get_trip_time
         trip_manager.hass = mock_hass

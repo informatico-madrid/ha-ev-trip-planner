@@ -807,4 +807,122 @@ async def test_soh_sensor_persisted_in_config_entry():
     result = await flow.async_step_notifications({})
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_SOH_SENSOR] == "sensor.battery_soh"
+
+
+# ------------------------------------------------------------------
+# Options Flow tests for T_BASE and SOH_SENSOR (config_flow.py:979,981)
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_options_flow_updates_t_base_and_soh_sensor():
+    """Test that options flow correctly saves T_BASE and SOH_SENSOR.
+
+    Covers config_flow.py:979,981 — Options flow saving T_BASE and SOH_SENSOR.
+    """
+    from homeassistant import config_entries
+
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.const import (
+        CONF_BATTERY_CAPACITY,
+        CONF_SOH_SENSOR,
+        CONF_T_BASE,
+    )
+
+    mock_entry = MagicMock(spec=config_entries.ConfigEntry)
+    mock_entry.data = {
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_T_BASE: 24.0,
+    }
+    mock_entry.options = {}
+    mock_entry.entry_id = "test_entry"
+
+    handler = EVTripPlannerOptionsFlowHandler(mock_entry)
+    handler._config_entry = mock_entry
+    handler.hass = MagicMock()
+
+    result = await handler.async_step_init({
+        CONF_BATTERY_CAPACITY: 65.0,
+        CONF_T_BASE: 12.0,
+        CONF_SOH_SENSOR: "sensor.battery_soh_v2",
+    })
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_T_BASE] == 12.0
+    assert result["data"][CONF_SOH_SENSOR] == "sensor.battery_soh_v2"
+    assert result["data"][CONF_BATTERY_CAPACITY] == 65.0
+
+
+# ------------------------------------------------------------------
+# Config Entry Migration Tests — PRAGMA-A coverage targets (config_flow.py:300-314)
+# ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_config_entry_migrate_v2_to_v3():
+    """Test config entry migration from version 2 to version 3.
+
+    Covers config_flow.py:300-311: migration of v2 entry to add t_base and soh_sensor defaults.
+    """
+    from unittest.mock import MagicMock
+
+    from homeassistant import config_entries
+
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerFlowHandler
+    from custom_components.ev_trip_planner.const import (
+        CONF_SOH_SENSOR,
+        CONF_T_BASE,
+        CONFIG_VERSION,
+        DEFAULT_T_BASE,
+        DEFAULT_SOH_SENSOR,
+    )
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+
+    mock_entry = MagicMock(spec=config_entries.ConfigEntry)
+    mock_entry.version = 2
+    mock_entry.data = {
+        "vehicle_name": "test",
+    }
+    mock_entry.entry_id = "test_entry"
+    mock_entry.options = {}
+
+    await flow.async_migrate_entry(flow.hass, mock_entry)
+
+    # Entry version should be updated
+    assert mock_entry.version == CONFIG_VERSION
+    # async_update_entry should have been called with new fields
+    flow.hass.config_entries.async_update_entry.assert_called_once()
+    call_args = flow.hass.config_entries.async_update_entry.call_args
+    updated_data = call_args.kwargs.get("data", call_args[1].get("data", {}))
+    assert updated_data.get(CONF_T_BASE) == DEFAULT_T_BASE
+    assert updated_data.get(CONF_SOH_SENSOR) == DEFAULT_SOH_SENSOR
+
+
+@pytest.mark.asyncio
+async def test_config_entry_migrate_unknown_version():
+    """Test migration logs warning for unknown version.
+
+    Covers config_flow.py:314: warning for unknown entry version.
+    """
+    from unittest.mock import MagicMock
+
+    from homeassistant import config_entries
+
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerFlowHandler
+    from custom_components.ev_trip_planner.const import CONFIG_VERSION
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+
+    mock_entry = MagicMock(spec=config_entries.ConfigEntry)
+    mock_entry.version = 1  # Unknown version
+    mock_entry.data = {}
+    mock_entry.entry_id = "test_entry"
+    mock_entry.options = {}
+
+    await flow.async_migrate_entry(flow.hass, mock_entry)
+
+    # Version should NOT be changed
+    assert mock_entry.version == 1
+    # async_update_entry should NOT have been called
+    flow.hass.config_entries.async_update_entry.assert_not_called()

@@ -34,8 +34,17 @@ input_number:
     step: 1
     unit_of_measurement: "%"
 
-# Template sensor that mirrors the input_number as a real sensor entity
-# This is the soc_sensor configured in the integration config flow
+# SOH input_number — simulates battery health sensor for dynamic SOC capping
+input_number:
+  test_vehicle_soh:
+    name: "Test Vehicle SOH"
+    initial: 92
+    min: 50
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+
+# Template sensors for test_vehicle (mirrors input_numbers as real sensors)
 template:
   - sensor:
       - name: "Test Vehicle SOC"
@@ -43,6 +52,11 @@ template:
         unit_of_measurement: "%"
         device_class: battery
         state: "{{ states('input_number.test_vehicle_soc') | float(0) | round(0) }}"
+      - name: "Test Vehicle SOH"
+        unique_id: "test_vehicle_soh_sensor"
+        unit_of_measurement: "%"
+        device_class: battery_capacity
+        state: "{{ states('input_number.test_vehicle_soh') | float(92) | round(0) }}"
 
 # Logger debug config for E2E tests
 logger:

@@ -269,6 +269,22 @@ export function setupAlertHandler(page: Page): Promise<string> {
  * WARNING: Do NOT call this before tests that expect existing trips to be present.
  * @param page - Playwright Page object
  */
+/**
+ * Computes a future ISO datetime string for use in trip creation.
+ * Avoids hardcoded dates that break when the date passes.
+ * @param daysOffset - Days from now to schedule the trip
+ * @param timeStr - Time string in HH:MM format (default '08:00')
+ * @returns ISO datetime string in 'YYYY-MM-DDTHH:MM' format
+ */
+export function getFutureIso(daysOffset: number, timeStr: string = '08:00'): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  const [hh, mm] = (timeStr || '08:00').split(':').map((s) => Number(s));
+  d.setHours(hh, mm, 0, 0);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export async function cleanupTestTrips(page: Page): Promise<void> {
   // Wait for trip cards to be loaded
   await page.waitForSelector('.trip-card', { timeout: 5_000 }).catch(() => {

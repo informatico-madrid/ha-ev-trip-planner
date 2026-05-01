@@ -430,7 +430,7 @@ class TestDynamicSOCCapping:
         # Mock HA — sensor returns non-numeric value
         mock_hass = MagicMock()
         mock_state = MagicMock()
-        mock_state.state = "nan"  # non-numeric, triggers ValueError
+        mock_state.state = "abc"  # non-numeric, triggers ValueError
         mock_hass.states.get.return_value = mock_state
 
         result = bc.get_capacity(mock_hass)

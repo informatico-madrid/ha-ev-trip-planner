@@ -914,9 +914,9 @@ class TestAsyncCleanupStaleStorage:
 
     @pytest.mark.asyncio
     async def test_async_cleanup_stale_storage_handles_yaml_remove_error(self):
-        """async_cleanup_stale_storage catches exception from os.unlink.
+        """async_cleanup_stale_storage catches exception from yaml_path.unlink.
 
-        Tests the error path at lines 1164-1168 where YAML cleanup error is caught
+        Tests the error path at lines 1163-1164 where YAML cleanup error is caught
         and logged but doesn't propagate.
         """
         from custom_components.ev_trip_planner.services import async_cleanup_stale_storage
@@ -926,7 +926,8 @@ class TestAsyncCleanupStaleStorage:
 
         from homeassistant.helpers import storage as ha_storage
         mock_store = MagicMock()
-        mock_store.async_load = AsyncMock(return_value={"trips": []})
+        # Return falsy data so yaml_path.unlink() is called
+        mock_store.async_load = AsyncMock(return_value={})
         mock_store.async_remove = AsyncMock()
 
         yaml_dir = Path("/tmp/test_config/ev_trip_planner")
@@ -935,8 +936,8 @@ class TestAsyncCleanupStaleStorage:
         yaml_file.write_text("test: data")
 
         with patch.object(ha_storage, "Store", return_value=mock_store):
-            with patch("os.unlink", side_effect=OSError("Cannot remove file")):
-                # Should NOT raise - exception is caught
+            with patch("pathlib.Path.unlink", side_effect=OSError("Cannot remove file")):
+                # Should NOT raise - exception is caught at lines 1163-1164
                 await async_cleanup_stale_storage(hass, "test_vehicle")
 
 
@@ -1653,6 +1654,30 @@ class TestAsyncCleanupStaleStorageYaml:
 
             # YAML file should be removed
             assert not os.path.exists(yaml_path)
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_stale_storage_skips_when_store_exists(self, mock_hass):
+        """async_cleanup_stale_storage skips YAML cleanup when Store has data.
+
+        Covers services.py:1159: _LOGGER.debug in the else branch when store exists.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+        from homeassistant.helpers import storage as ha_storage
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={"trips": []})
+        mock_store.async_remove = AsyncMock()
+
+        yaml_dir = Path(mock_hass.config.config_dir) / "ev_trip_planner"
+        yaml_dir.mkdir(parents=True, exist_ok=True)
+        yaml_file = yaml_dir / "ev_trip_planner_test_vehicle.yaml"
+        yaml_file.write_text("test: data")
+
+        with patch.object(ha_storage, "Store", return_value=mock_store):
+            await svcs.async_cleanup_stale_storage(mock_hass, "test_vehicle")
+
+        # YAML file should NOT be removed since Store has data
+        assert yaml_file.exists()
 
 
 class TestAsyncCleanupOrphanedEmhassSensorsIteration:

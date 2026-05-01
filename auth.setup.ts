@@ -18,7 +18,7 @@
  *
  * CONFIG FLOW (5 steps via REST API):
  * - Step 1 (user): vehicle_name = "test_vehicle"
- * - Step 2 (sensors): battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20
+ * - Step 2 (sensors): battery_capacity_kwh=60, charging_power_kw=11, kwh_per_km=0.17, safety_margin_percent=20, t_base=24, soh_sensor=sensor.test_vehicle_soh
  * - Step 3 (emhass): planning_horizon_days=7, max_deferrable_loads=50, index_cooldown_hours=24
  * - Step 4 (presence): charging_sensor = "input_boolean.test_ev_charging"
  * - Step 5 (notifications): empty (optional)
@@ -259,13 +259,15 @@ async function setupIntegration(token: string): Promise<void> {
     throw new Error(`[auth.setup] Step 1 unexpected response: ${JSON.stringify(step1)}`);
   }
 
-  // Step 2: sensors
+  // Step 2: sensors (includes dynamic SOC capping fields)
   const step2 = await post(`${HA_URL}/api/config/config_entries/flow/${flowId}`, {
     battery_capacity_kwh: 60,
     charging_power_kw: 11,
     kwh_per_km: 0.17,
     safety_margin_percent: 20,
     soc_sensor: 'sensor.test_vehicle_soc',
+    t_base: 24,
+    soh_sensor: 'sensor.test_vehicle_soh',
   });
   if (step2.type !== 'form' || step2.step_id !== 'emhass') {
     throw new Error(`[auth.setup] Step 2 unexpected response: ${JSON.stringify(step2)}`);
@@ -352,6 +354,8 @@ async function globalSetup(): Promise<void> {
   // Wait for input_boolean.test_ev_charging to be available in HA
   // (it may take a few seconds after HA starts to register)
   await waitForEntity('input_boolean.test_ev_charging', 30_000);
+  // Wait for SOH sensor to be available in HA
+  await waitForEntity('sensor.test_vehicle_soh', 30_000);
 
   // Set up the integration only if not already done
   if (await isIntegrationSetUp(token)) {
