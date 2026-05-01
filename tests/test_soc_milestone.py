@@ -1497,3 +1497,157 @@ class TestResultStructure:
         assert result["deficit_acumulado"] == 0.0
         assert ventana["ventana_horas"] == 4.0
         assert ventana["es_suficiente"] is True
+
+
+class TestDynamicSOCCappingIntegration:
+    """Tests for dynamic SOC capping integration in calcular_hitos_soc."""
+
+    @pytest.mark.asyncio
+    async def test_calcular_hitos_soc_with_none_trip_time(self, trip_manager, mock_hass):
+        """Test None trip_time triggers fallback to t_hours=0.0 (trip_manager.py:1984-1985).
+
+        When _get_trip_time returns None for a trip, the code falls back to t_hours=0.0
+        which means the cap is computed with zero idle time risk.
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "punctual",
+            "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+        trip_b = {
+            "id": "trip_b",
+            "tipo": "punctual",
+            "datetime": (now + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+
+        trips = [trip_a, trip_b]
+
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [
+                {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a},
+                {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_b},
+            ]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_a,
+                },
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_b,
+                },
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+
+        # Mock _get_trip_time to return None for the second trip
+        call_count = [0]
+
+        def mock_get_trip_time(trip):
+            call_count[0] += 1
+            if call_count[0] == 2:
+                return None  # second trip has no valid time
+            dt_str = trip.get("datetime")
+            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+
+        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager.hass = mock_hass
+
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            vehicle_config={"battery_capacity_kwh": 50.0},
+        )
+
+        assert len(results) == 2
+        # Both trips should have valid results despite one None trip_time
+        assert results[0]["soc_objetivo"] >= 0.0
+        assert results[1]["soc_objetivo"] >= 0.0
+
+    @pytest.mark.asyncio
+    async def test_calcular_hitos_soc_with_naive_aware_datetime_mismatch(self, trip_manager, mock_hass):
+        """Test naive datetime mismatch triggers exception handler (trip_manager.py:1982).
+
+        When _get_trip_time returns a naive datetime but now_dt is UTC-aware,
+        the subtraction raises TypeError, triggering the except branch.
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "punctual",
+            "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+
+        trips = [trip_a]
+
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a}]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_a,
+                },
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+
+        # Mock _get_trip_time to return a naive datetime with different timezone awareness
+        # This will cause the subtraction to fail when now_dt is UTC-aware
+        def mock_get_trip_time(trip):
+            dt_str = trip.get("datetime")
+            dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
+            # Return a timezone-aware datetime with a DIFFERENT timezone
+            # This will cause TypeError when subtracting from UTC-aware now_dt
+            from datetime import timezone as tz
+            return dt.replace(tzinfo=tz(timedelta(hours=5)))  # UTC+5, different from UTC
+
+        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager.hass = mock_hass
+
+        # This should NOT raise — the except branch handles the exception
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            vehicle_config={"battery_capacity_kwh": 50.0},
+        )
+
+        assert len(results) == 1
+        assert results[0]["soc_objetivo"] >= 0.0

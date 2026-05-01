@@ -12,6 +12,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .calculations import (
+    BatteryCapacity,
     calculate_deferrable_parameters as calc_deferrable_parameters,
     calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
@@ -28,9 +29,13 @@ from .const import (
     CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
+    CONF_SOH_SENSOR,
+    CONF_T_BASE,
     CONF_VEHICLE_NAME,
     DEFAULT_INDEX_COOLDOWN_HOURS,
     DEFAULT_SAFETY_MARGIN,
+    DEFAULT_SOH_SENSOR,
+    DEFAULT_T_BASE,
     DOMAIN,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
@@ -118,6 +123,14 @@ class EMHASSAdapter:
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
         self._battery_capacity_kwh: float = entry_data.get(CONF_BATTERY_CAPACITY, 50.0)
         self._safety_margin_percent: float = entry_data.get("safety_margin_percent", DEFAULT_SAFETY_MARGIN)
+
+        # T059/T062: Battery health config — t_base and SOH sensor for real capacity
+        self._t_base: float = entry_data.get(CONF_T_BASE, DEFAULT_T_BASE)
+        soh_sensor_entity_id: Optional[str] = entry_data.get(CONF_SOH_SENSOR) or None
+        self._battery_cap = BatteryCapacity(
+            nominal_capacity_kwh=self._battery_capacity_kwh,
+            soh_sensor_entity_id=soh_sensor_entity_id,
+        )
 
         # Presence monitor helper for _get_hora_regreso
         # Note: EMHASSAdapter doesn't have its own presence_monitor

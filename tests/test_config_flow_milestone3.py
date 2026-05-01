@@ -909,8 +909,10 @@ def test_step_sensors_schema_validation():
     assert vol.Required(CONF_SAFETY_MARGIN) in schema
 
     # Verify all fields have defaults
-    # The schema should have 4 required fields
-    assert len([k for k in schema.keys() if isinstance(k, vol.Required)]) == 4
+    # The schema now has 5 required fields: battery_capacity, charging_power,
+    # consumption, safety_margin, t_base + 2 optional: soc_sensor, soh_sensor
+    required_fields = [k for k in schema.keys() if isinstance(k, vol.Required)]
+    assert len(required_fields) == 5
 
 
 def test_step_emhass_schema_validation():

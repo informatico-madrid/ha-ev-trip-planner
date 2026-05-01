@@ -898,6 +898,125 @@ class TestCalculateDeficitPropagation:
         # trip1 should have some deficit propagated from trip2
         # trip2 deficit > 0 means trip1's target was raised
 
+    # ------------------------------------------------------------------
+    # T023: SOC caps produce capped results
+    # ------------------------------------------------------------------
+
+    def test_soc_caps_produce_capped_results(self):
+        """T023: calculate_deficit_propagation with soc_caps produces capped results."""
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [
+            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T08:00", "kwh": 5.0},
+            {"id": "trip2", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T12:00", "kwh": 5.0},
+        ]
+        soc_data = [
+            {"soc_inicio": 60.0, "trip": trips[0], "arrival_soc": 60.0},
+            {"soc_inicio": 60.0, "trip": trips[1], "arrival_soc": 60.0},
+        ]
+        windows = [
+            {"ventana_horas": 2.0, "kwh_necesarios": 5.0, "horas_carga_necesarias": 0.68,
+             "inicio_ventana": datetime(2026, 4, 6, 6, 0), "fin_ventana": datetime(2026, 4, 6, 8, 0),
+             "es_suficiente": True},
+            {"ventana_horas": 2.0, "kwh_necesarios": 5.0, "horas_carga_necesarias": 0.68,
+             "inicio_ventana": datetime(2026, 4, 6, 10, 0), "fin_ventana": datetime(2026, 4, 6, 12, 0),
+             "es_suficiente": True},
+        ]
+        ref = datetime(2026, 4, 6, 6, 0)
+        # Cap trip1 at 80% and trip2 at 85%
+        soc_caps = [80.0, 85.0]
+        result = calculate_deficit_propagation(
+            trips=trips, soc_data=soc_data, windows=windows,
+            tasa_carga_soc=14.8, battery_capacity_kwh=50.0, reference_dt=ref,
+            soc_caps=soc_caps,
+        )
+        assert len(result) == 2
+        # Both results should be capped: soc_objetivo <= soc_caps
+        assert result[0]["soc_objetivo"] <= 80.0
+        assert result[1]["soc_objetivo"] <= 85.0
+
+    # ------------------------------------------------------------------
+    # T024: Backward compatibility (without soc_caps)
+    # ------------------------------------------------------------------
+
+    def test_backward_compatibility_without_soc_caps(self):
+        """T024: Without soc_caps, results identical to current behavior."""
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        trips = [
+            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T08:00", "kwh": 5.0},
+        ]
+        soc_data = [{"soc_inicio": 60.0, "trip": trips[0], "arrival_soc": 60.0}]
+        windows = [{
+            "ventana_horas": 6.0,
+            "kwh_necesarios": 5.0,
+            "horas_carga_necesarias": 0.68,
+            "inicio_ventana": datetime(2026, 4, 6, 2, 0),
+            "fin_ventana": datetime(2026, 4, 6, 8, 0),
+            "es_suficiente": True,
+        }]
+        ref = datetime(2026, 4, 6, 6, 0)
+        # Without soc_caps — should work exactly as before
+        result = calculate_deficit_propagation(
+            trips=trips, soc_data=soc_data, windows=windows,
+            tasa_carga_soc=14.8, battery_capacity_kwh=50.0, reference_dt=ref,
+        )
+        assert len(result) == 1
+        assert result[0]["deficit_acumulado"] >= 0.0
+        assert result[0]["soc_objetivo"] > 0.0
+
+    # ------------------------------------------------------------------
+    # T025: Forward-propagated SOC uses capped values
+    # ------------------------------------------------------------------
+
+    def test_forward_propagated_soc_uses_capped_values(self):
+        """T025: Capped SOC for first trip feeds into second trip start SOC."""
+        from custom_components.ev_trip_planner.calculations import calculate_deficit_propagation
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
+
+        # Two trips: trip1 at 8am, trip2 at 12pm
+        # trip1 has tight window (1h) so it propagates deficit to trip2
+        # Without caps: trip1 target raised, trip2 also raised
+        # With caps: trip1 capped, deficit absorbed in trip1, trip2 less affected
+        trips = [
+            {"id": "trip1", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T08:00", "kwh": 40.0},
+            {"id": "trip2", "tipo": TRIP_TYPE_PUNCTUAL, "datetime": "2026-04-06T12:00", "kwh": 40.0},
+        ]
+        soc_data = [
+            {"soc_inicio": 10.0, "trip": trips[0], "arrival_soc": 10.0},
+            {"soc_inicio": 10.0, "trip": trips[1], "arrival_soc": 10.0},
+        ]
+        windows = [
+            {"ventana_horas": 1.0, "kwh_necesarios": 40.0, "horas_carga_necesarias": 5.4,
+             "inicio_ventana": datetime(2026, 4, 6, 7, 0), "fin_ventana": datetime(2026, 4, 6, 8, 0),
+             "es_suficiente": False},
+            {"ventana_horas": 1.0, "kwh_necesarios": 40.0, "horas_carga_necesarias": 5.4,
+             "inicio_ventana": datetime(2026, 4, 6, 11, 0), "fin_ventana": datetime(2026, 4, 6, 12, 0),
+             "es_suficiente": False},
+        ]
+        ref = datetime(2026, 4, 6, 7, 0)
+
+        # Without caps: both trips have large deficits
+        result_no_cap = calculate_deficit_propagation(
+            trips=trips, soc_data=soc_data, windows=windows,
+            tasa_carga_soc=14.8, battery_capacity_kwh=50.0, reference_dt=ref,
+        )
+        # With caps: trip1 capped at 50%, trip2 at 55%
+        # This should reduce the deficit propagated to trip2
+        soc_caps = [50.0, 55.0]
+        result_capped = calculate_deficit_propagation(
+            trips=trips, soc_data=soc_data, windows=windows,
+            tasa_carga_soc=14.8, battery_capacity_kwh=50.0, reference_dt=ref,
+            soc_caps=soc_caps,
+        )
+        # Capped targets should be lower than uncapped
+        assert result_capped[0]["soc_objetivo"] <= result_no_cap[0]["soc_objetivo"]
+        assert result_capped[1]["soc_objetivo"] <= result_no_cap[1]["soc_objetivo"]
+        # Capped deficit should be lower (or equal) for both trips
+        assert result_capped[0]["deficit_acumulado"] <= result_no_cap[0]["deficit_acumulado"] + 0.01
+
 
 class TestCalculatePowerProfile:
     """Tests for calculate_power_profile."""

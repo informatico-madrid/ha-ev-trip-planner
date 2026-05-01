@@ -16,12 +16,22 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .const import DEFAULT_SAFETY_MARGIN, DEFAULT_SOC_BUFFER_PERCENT
+from .const import (
+    DEFAULT_SAFETY_MARGIN,
+    DEFAULT_SOC_BASE,
+    DEFAULT_SOC_BUFFER_PERCENT,
+    DEFAULT_SOH_SENSOR,
+    DEFAULT_T_BASE,
+    MIN_T_BASE,
+    MAX_T_BASE,
+)
 from .utils import calcular_energia_kwh
 
 # Public API: list of exported functions
 __all__ = [
+    "BatteryCapacity",
     "calculate_day_index",
+    "calculate_dynamic_soc_limit",
     "calculate_trip_time",
     "calculate_charging_rate",
     "calculate_soc_target",
@@ -38,6 +48,110 @@ __all__ = [
 ]
 
 _LOGGER = logging.getLogger(__name__)
+
+
+SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+@dataclass
+class BatteryCapacity:
+    """Frozen abstraction for real battery capacity with SOH-aware fallback.
+
+    Wraps nominal capacity and optional SOH sensor lookup to compute
+    the effective (degraded) capacity used everywhere in the system.
+
+    Attributes:
+        nominal_capacity_kwh: Battery's rated (nominal) capacity in kWh.
+        soh_sensor_entity_id: Optional HA sensor entity for SOH (%).
+    """
+
+    nominal_capacity_kwh: float
+    soh_sensor_entity_id: Optional[str] = None
+    _soh_value: Optional[float] = None
+    _soh_cached_at: Optional[datetime] = None
+    fallback_capacity: float = 50.0
+    SOH_CACHE_TTL_SECONDS: int = SOH_CACHE_TTL_SECONDS  # type: ignore[misc]
+
+    def _compute_capacity(self) -> float:
+        """Compute real capacity from nominal + cached SOH value."""
+        if self._soh_value is not None:
+            return self.nominal_capacity_kwh * self._soh_value / 100.0
+        return self.nominal_capacity_kwh  # fallback to nominal
+
+    def get_capacity(self, hass: Any | None = None) -> float:
+        """Get current real battery capacity, refreshing SOH cache if stale.
+
+        If SOH sensor is configured and cache is stale (>5 min), re-read the
+        sensor. If the sensor is unavailable, keep the last valid cached value
+        (hysteresis — do not oscillate capacity when sensor is noisy).
+        """
+        if not hass or not self.soh_sensor_entity_id:
+            return self._compute_capacity()
+
+        # Re-read if cache is stale OR never initialized
+        should_read = (
+            self._soh_cached_at is None
+            or (datetime.now() - self._soh_cached_at).total_seconds()
+            > self.SOH_CACHE_TTL_SECONDS
+        )
+        if should_read:
+            new_val = self._read_soh(hass)
+            if new_val is not None:
+                self._soh_value = new_val
+                self._soh_cached_at = datetime.now()
+            # If new_val is None, keep old cached value (hysteresis)
+
+        return self._compute_capacity()
+
+    get_capacity_kwh = get_capacity  # Alias for clarity
+
+    def _read_soh(self, hass: Any) -> Optional[float]:
+        """Read current SOH sensor value. Returns None if unavailable."""
+        state = hass.states.get(self.soh_sensor_entity_id)
+        if state is None or state.state in ("unknown", "unavailable"):
+            return None
+        try:
+            val = float(state.state)
+            return max(10.0, min(100.0, val))  # clamp to valid range
+        except (ValueError, TypeError):
+            return None
+
+
+def calculate_dynamic_soc_limit(
+    t_hours: float,
+    soc_post_trip: float,
+    battery_capacity_kwh: float,
+    t_base: float = DEFAULT_T_BASE,
+) -> float:
+    """Compute degradation-aware SOC upper bound.
+
+    Uses idle time and projected post-trip SOC to calculate a continuous
+    upper bound for charging. Larger idle times at high SOC produce
+    tighter caps to reduce battery degradation.
+
+    Formula:
+        risk = t_hours * (soc_post_trip - 35) / 65
+        If risk <= 0: return 100.0 (battery drained below sweet spot)
+        limit = 35 + 65 * (1 / (1 + risk / t_base))
+
+    Args:
+        t_hours: Hours until next trip.
+        soc_post_trip: Expected SOC after the trip completes.
+        battery_capacity_kwh: Battery capacity (not used in formula,
+            kept for API consistency).
+        t_base: User-configurable base window in hours (6-48, default 24).
+
+    Returns:
+        SOC limit clamped to [35.0, 100.0].
+    """
+    # Negative risk means battery was drained below the 35% sweet spot
+    # — no degradation risk, allow full charge
+    risk = t_hours * (soc_post_trip - DEFAULT_SOC_BASE) / 65.0
+    if risk <= 0:
+        return 100.0
+
+    limit = DEFAULT_SOC_BASE + 65.0 * (1.0 / (1.0 + risk / t_base))
+    return max(35.0, min(100.0, limit))
 
 
 def _ensure_aware(dt: datetime) -> datetime:
@@ -722,6 +836,8 @@ def calculate_deficit_propagation(
     reference_dt: datetime,
     trip_times: Optional[List[Optional[datetime]]] = None,
     soc_targets: Optional[List[float]] = None,
+    t_base: float = DEFAULT_T_BASE,
+    soc_caps: Optional[List[float]] = None,
 ) -> List[Dict[str, Any]]:
     """Calculate SOC milestones with backward deficit propagation.
 
@@ -807,12 +923,18 @@ def calculate_deficit_propagation(
         # Add propagated deficit
         soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
 
+        # Apply dynamic SOC cap if provided
+        if soc_caps is not None:
+            soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
+        else:
+            soc_objetivo_final = soc_objetivo_ajustado
+
         # Calculate available charging capacity
         capacidad_carga = tasa_carga_soc * ventana_horas
 
-        # Check for deficit
-        if soc_inicio + capacidad_carga < soc_objetivo_ajustado:
-            deficit = soc_objetivo_ajustado - (soc_inicio + capacidad_carga)
+        # Check for deficit (use capped target)
+        if soc_inicio + capacidad_carga < soc_objetivo_final:
+            deficit = soc_objetivo_final - (soc_inicio + capacidad_carga)
 
             # Propagate deficit to previous trip (in temporal order)
             if ordered_idx > 0:
@@ -842,12 +964,18 @@ def calculate_deficit_propagation(
             soc_objetivo = calculate_soc_target(trip, battery_capacity_kwh)
         soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
 
+        # Apply dynamic SOC cap if provided (same logic as backward loop)
+        if soc_caps is not None:
+            soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
+        else:
+            soc_objetivo_final = soc_objetivo_ajustado
+
         soc_inicio = soc_data_item["soc_inicio"]
-        kwh_necesarios = (soc_objetivo_ajustado - soc_inicio) * battery_capacity_kwh / 100
+        kwh_necesarios = (soc_objetivo_final - soc_inicio) * battery_capacity_kwh / 100
 
         results.append({
             "trip_id": trip.get("id", f"trip_{original_idx}"),
-            "soc_objetivo": round(soc_objetivo_ajustado, 2),
+            "soc_objetivo": round(soc_objetivo_final, 2),
             "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
             "deficit_acumulado": round(deficits[original_idx], 2),
             "ventana_carga": {

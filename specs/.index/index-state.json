@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-04-24T14:48:02Z",
+  "updated": "2026-05-01T00:16:36Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 33,
+      "specsCount": 34,
       "isDefault": true
     }
   ],
@@ -234,6 +234,13 @@
       "name": "propagate-charge-test",
       "path": "./specs/propagate-charge-test",
       "phase": "requirements"
+    },
+    {
+      "name": "m403-dynamic-soc-capping",
+      "path": "./specs/m403-dynamic-soc-capping",
+      "phase": "execution",
+      "taskIndex": 40,
+      "totalTasks": 82
     }
   ]
 }

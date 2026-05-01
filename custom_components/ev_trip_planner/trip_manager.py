@@ -23,7 +23,10 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CHARGING_POWER,
+    CONF_SOH_SENSOR,
     DEFAULT_CHARGING_POWER,
+    DEFAULT_SOH_SENSOR,
+    DEFAULT_T_BASE,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
@@ -36,6 +39,7 @@ from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
 # T3.2: Import function for recurring trip rotation
 from .calculations import calculate_next_recurring_datetime, calculate_day_index
+from .calculations import BatteryCapacity
 from .vehicle_controller import VehicleController
 
 _UNSET = object()
@@ -1905,14 +1909,24 @@ class TripManager:
         Returns:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
         """
-        from .calculations import calculate_deficit_propagation
+        from .calculations import calculate_deficit_propagation, calculate_dynamic_soc_limit, DEFAULT_T_BASE
 
         # Extract battery_capacity_kwh and safety_margin_percent from vehicle_config
         battery_capacity_kwh = 50.0
         safety_margin_percent = 10.0
+        soh_sensor_entity_id: Optional[str] = None
         if vehicle_config and isinstance(vehicle_config, dict):
             battery_capacity_kwh = vehicle_config.get("battery_capacity_kwh", 50.0)
             safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
+            soh_sensor_entity_id = vehicle_config.get(CONF_SOH_SENSOR) or None
+
+        # T051: Create BatteryCapacity instance from config for SOH-aware capacity
+        battery_cap = BatteryCapacity(
+            nominal_capacity_kwh=battery_capacity_kwh,
+            soh_sensor_entity_id=soh_sensor_entity_id,
+        )
+        # Use real capacity (SOH-adjusted if sensor configured, nominal otherwise)
+        real_capacity_kwh = battery_cap.get_capacity(self.hass)
 
         if not trips:
             return []
@@ -1946,25 +1960,60 @@ class TripManager:
             len(trips), soc_inicial, tasa_carga_soc
         )
 
-        # Delegate pure deficit propagation algorithm to calculations.py
-        # Pre-compute trip times using the instance's _get_trip_time method
-        # (which may be mocked in tests) for correct test compatibility
-        precomputed_trip_times = [self._get_trip_time(trip) for trip in trips]
-        # Pre-compute SOC targets using the instance's _calcular_soc_objetivo_base
-        # (which may be mocked in tests) for correct test compatibility
-        precomputed_soc_targets = [
-            self._calcular_soc_objetivo_base(trip, battery_capacity_kwh)
-            for trip in trips
-        ]
-        results = calculate_deficit_propagation(
-            trips=trips,
-            soc_data=soc_inicio_info,
-            windows=ventanas,
-            tasa_carga_soc=tasa_carga_soc,
-            battery_capacity_kwh=battery_capacity_kwh,
+        # Extract t_base from vehicle_config (falls back to DEFAULT_T_BASE)
+        t_base = DEFAULT_T_BASE
+        if vehicle_config and isinstance(vehicle_config, dict):
+            t_base = vehicle_config.get("t_base", DEFAULT_T_BASE)
+
+        # Pre-compute dynamic SOC caps per trip (for degradation-aware capping)
+        soc_caps: Optional[List[float]] = None
+        if trips:
+            precomputed_trip_times = [self._get_trip_time(trip) for trip in trips]
+            now_dt = datetime.now(timezone.utc)
+            soc_caps = [100.0] * len(trips)
+            for i, trip in enumerate(trips):
+                trip_time = precomputed_trip_times[i]
+                if trip_time:
+                    try:
+                        # Handle both naive and aware datetimes
+                        if getattr(trip_time, "tzinfo", None) is None:
+                            trip_time = trip_time.replace(tzinfo=timezone.utc)
+                        t_hours = (trip_time - now_dt).total_seconds() / 3600.0
+                    except Exception:
+                        t_hours = 0.0
+                else:
+                    t_hours = 0.0
+                # Use initial SOC as the post-trip baseline for degradation estimation.
+                # For multi-trip chains, the degradation formula uses the SOC after
+                # the previous trip completes. Since we're computing caps in one pass,
+                # we use soc_inicial as the conservative baseline (worst-case for cap).
+                limit = calculate_dynamic_soc_limit(
+                    t_hours, soc_inicial, real_capacity_kwh, t_base=t_base
+                )
+                soc_caps[i] = limit
+    
+            # Delegate pure deficit propagation algorithm to calculations.py
+            # Pre-compute trip times using the instance's _get_trip_time method
+            # (which may be mocked in tests) for correct test compatibility
+            # precomputed_trip_times is already set above if trips is non-empty
+            precomputed_trip_times = precomputed_trip_times if "precomputed_trip_times" in dir() else []
+            # Pre-compute SOC targets using the instance's _calcular_soc_objetivo_base
+            # (which may be mocked in tests) for correct test compatibility
+            precomputed_soc_targets = [
+                self._calcular_soc_objetivo_base(trip, real_capacity_kwh)
+                for trip in trips
+            ]
+            results = calculate_deficit_propagation(
+                trips=trips,
+                soc_data=soc_inicio_info,
+                windows=ventanas,
+                tasa_carga_soc=tasa_carga_soc,
+                battery_capacity_kwh=real_capacity_kwh,
             reference_dt=datetime.now(timezone.utc),
             trip_times=precomputed_trip_times,
             soc_targets=precomputed_soc_targets,
+            t_base=t_base,
+            soc_caps=soc_caps,
         )
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))

@@ -23,9 +23,12 @@ from custom_components.ev_trip_planner.const import (
     CONF_PLANNING_HORIZON,
     CONF_PLUGGED_SENSOR,
     CONF_SAFETY_MARGIN,
+    CONF_SOH_SENSOR,
+    CONF_T_BASE,
     CONF_VEHICLE_NAME,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
+    DEFAULT_T_BASE,
 )
 
 
@@ -635,3 +638,173 @@ async def test_default_values_are_used():
     assert result["data"][CONF_VEHICLE_NAME] == "Test"
     assert result["data"][CONF_BATTERY_CAPACITY] == 60.0
     assert result["data"][CONF_CHARGING_POWER] == 11.0
+
+
+# ----------------------------------------------------------------------
+# T034: T_base slider accepts default and persists in entry data
+# ----------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_t_base_persists_in_entry_data():
+    """T034: Config flow T_base slider accepts 24.0 and persists in entry data."""
+    from unittest.mock import MagicMock
+
+    from homeassistant.data_entry_flow import FlowResultType
+
+    from custom_components.ev_trip_planner.const import (
+        CONF_T_BASE,
+        DEFAULT_T_BASE,
+    )
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    # Complete full flow with explicit t_base
+    result = await flow.async_step_user({"vehicle_name": "TestVehicle"})
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_sensors({
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        CONF_CONSUMPTION: 0.15,
+        CONF_SAFETY_MARGIN: 20,
+        CONF_T_BASE: 24.0,
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_emhass({
+        CONF_PLANNING_HORIZON: 7,
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_presence({})
+    result = await flow.async_step_notifications({})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_T_BASE] == DEFAULT_T_BASE
+
+
+@pytest.mark.asyncio
+async def test_t_base_custom_value_persists():
+    """T034b: Custom T_base value persists in entry data."""
+    from unittest.mock import MagicMock
+
+    from homeassistant.data_entry_flow import FlowResultType
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    result = await flow.async_step_user({"vehicle_name": "TestVehicle"})
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_sensors({
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        CONF_CONSUMPTION: 0.15,
+        CONF_SAFETY_MARGIN: 20,
+        CONF_T_BASE: 12.0,
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_emhass({
+        CONF_PLANNING_HORIZON: 7,
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_presence({})
+    result = await flow.async_step_notifications({})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_T_BASE] == 12.0
+
+
+# ----------------------------------------------------------------------
+# T035: T_base rejects values outside 6-48h range
+# ----------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_t_base_rejects_below_min():
+    """T035: Config flow T_base rejects values below 6h with validation error."""
+    from homeassistant.data_entry_flow import FlowResultType
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
+
+    result = await flow.async_step_sensors({
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        CONF_CONSUMPTION: 0.15,
+        CONF_SAFETY_MARGIN: 20,
+        CONF_T_BASE: 3.0,  # Below min of 6
+    })
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+
+
+@pytest.mark.asyncio
+async def test_t_base_rejects_above_max():
+    """T035b: Config flow T_base rejects values above 48h with validation error."""
+    from homeassistant.data_entry_flow import FlowResultType
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
+
+    result = await flow.async_step_sensors({
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        CONF_CONSUMPTION: 0.15,
+        CONF_SAFETY_MARGIN: 20,
+        CONF_T_BASE: 60.0,  # Above max of 48
+    })
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+
+
+# ----------------------------------------------------------------------
+# T047: SOH sensor selector in config flow
+# ----------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_soh_sensor_selector_in_sensors_step():
+    """T047: Config flow sensors step includes SOH sensor entity selector."""
+    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
+    import voluptuous as vol
+
+    # CONF_SOH_SENSOR should be an Optional key in the sensors schema
+    soh_key = vol.Optional(CONF_SOH_SENSOR)
+    found = False
+    for key in STEP_SENSORS_SCHEMA.schema.keys():
+        if isinstance(key, vol.Optional) and key.schema == CONF_SOH_SENSOR:
+            found = True
+            break
+    assert found, "CONF_SOH_SENSOR should be an Optional key in STEP_SENSORS_SCHEMA"
+
+
+@pytest.mark.asyncio
+async def test_soh_sensor_persisted_in_config_entry():
+    """T047b: SOH sensor value is persisted when provided in config flow."""
+    from homeassistant.data_entry_flow import FlowResultType
+
+    flow = EVTripPlannerFlowHandler()
+    flow.hass = MagicMock()
+    flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
+
+    result = await flow.async_step_sensors({
+        CONF_BATTERY_CAPACITY: 60.0,
+        CONF_CHARGING_POWER: 11.0,
+        CONF_CONSUMPTION: 0.15,
+        CONF_SAFETY_MARGIN: 20,
+        CONF_T_BASE: 24.0,
+        CONF_SOH_SENSOR: "sensor.battery_soh",
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_emhass({
+        CONF_PLANNING_HORIZON: 7,
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+    })
+    assert result["type"] == FlowResultType.FORM
+    result = await flow.async_step_presence({})
+    result = await flow.async_step_notifications({})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_SOH_SENSOR] == "sensor.battery_soh"
