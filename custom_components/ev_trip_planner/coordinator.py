@@ -281,11 +281,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
             if not trip_matrix:
                 # Fallback: single row
-                row = [0.0] * 96
-                for t in range(start_timestep, end_timestep):
-                    if 0 <= t < 96:
-                        row[t] = power_watts
-                trip_matrix = [row]
+                trip_matrix = [[0.0] * 96]
 
             entry = {
                 "activo": True,
