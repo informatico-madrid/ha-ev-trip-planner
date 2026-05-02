@@ -53,7 +53,9 @@ class TestVehicleIdVsEntryIdCleanup:
     """
 
     @pytest.mark.asyncio
-    async def test_cleanup_fails_when_vehicle_id_differs_from_entry_id(self, hass, mock_store):
+    async def test_cleanup_fails_when_vehicle_id_differs_from_entry_id(
+        self, hass, mock_store
+    ):
         """Demonstrate bug: cleanup fails to remove sensor when vehicle_id != entry_id.
 
         This test SHOULD FAIL with the current code because:
@@ -74,7 +76,10 @@ class TestVehicleIdVsEntryIdCleanup:
             CONF_CHARGING_POWER: 7.4,
         }
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, config)
             adapter._loaded = True
             # Directly set entry_id since __init__ sets it from config (vehicle_name)
@@ -106,7 +111,10 @@ class TestVehicleIdVsEntryIdCleanup:
             hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
-            with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
                 await adapter.async_cleanup_vehicle_indices()
 
             # BUG: async_remove was NOT called because cleanup searched for vehicle_id in entity_id
@@ -119,7 +127,9 @@ class TestVehicleIdVsEntryIdCleanup:
             )
 
     @pytest.mark.asyncio
-    async def test_cleanup_succeeds_when_vehicle_id_matches_entry_id(self, hass, mock_store):
+    async def test_cleanup_succeeds_when_vehicle_id_matches_entry_id(
+        self, hass, mock_store
+    ):
         """Verify cleanup works when vehicle_id == entry_id (the working case)."""
         # Scenario: vehicle_id equals entry_id (the common/test case)
         vehicle_id = "test_vehicle"
@@ -132,7 +142,10 @@ class TestVehicleIdVsEntryIdCleanup:
             CONF_CHARGING_POWER: 7.4,
         }
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, config)
             adapter._loaded = True
 
@@ -158,14 +171,19 @@ class TestVehicleIdVsEntryIdCleanup:
             hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
-            with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
                 await adapter.async_cleanup_vehicle_indices()
 
             # This works because vehicle_id == entry_id
             assert hass.states.async_remove.called
 
     @pytest.mark.asyncio
-    async def test_cleanup_dangerous_fallback_test_vehicle_removed(self, hass, mock_store):
+    async def test_cleanup_dangerous_fallback_test_vehicle_removed(
+        self, hass, mock_store
+    ):
         """Verify dangerous fallback 'test_vehicle' was removed.
 
         The old fallback at line 1805-1806 was DANGEROUS because it removed
@@ -188,7 +206,10 @@ class TestVehicleIdVsEntryIdCleanup:
             CONF_CHARGING_POWER: 7.4,
         }
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, config)
             adapter._loaded = True
 
@@ -214,7 +235,10 @@ class TestVehicleIdVsEntryIdCleanup:
             hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
-            with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+            with patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ):
                 await adapter.async_cleanup_vehicle_indices()
 
             # After fix: sensor should NOT be removed because:

@@ -57,12 +57,17 @@ TEST_COORDINATOR_DATA = {
 # LAYER 1: FAKE CLASSES
 # =============================================================================
 
+
 class FakeTripStorage:
     """In-memory fake storage for tests."""
 
     def __init__(self, initial_data: Dict[str, Any] = None) -> None:
         # Preserve explicit empty dicts (T048: use `if initial_data is None` not `or {}`)
-        self._data = initial_data if initial_data is not None else {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
+        self._data = (
+            initial_data
+            if initial_data is not None
+            else {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
+        )
 
     async def async_load(self) -> Dict[str, Any]:
         return self._data
@@ -155,7 +160,9 @@ def create_mock_coordinator(hass=None, entry=None, trip_manager=None) -> MagicMo
     return mock
 
 
-def create_mock_ev_config_entry(hass=None, data: Dict[str, Any] = None, entry_id: str = TEST_ENTRY_ID):
+def create_mock_ev_config_entry(
+    hass=None, data: Dict[str, Any] = None, entry_id: str = TEST_ENTRY_ID
+):
     """Create a MockConfigEntry for testing."""
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 

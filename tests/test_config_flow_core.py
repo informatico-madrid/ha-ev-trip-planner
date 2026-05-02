@@ -40,9 +40,12 @@ async def test_full_flow_success():
     flow.context = {}
 
     # User step - step 1: vehicle basic info
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()) as _set_uid, patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
-    ) as _abort_check:
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()) as _set_uid,
+        patch.object(
+            flow, "_abort_if_unique_id_configured", return_value=None
+        ) as _abort_check,
+    ):
         result = await flow.async_step_user(
             {
                 CONF_VEHICLE_NAME: "Chispitas",
@@ -84,7 +87,10 @@ async def test_full_flow_success():
         mock_state.state = "on"
         flow.hass.states.get.return_value = mock_state
 
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
             result = await flow.async_step_presence({})
         # Should advance to step 5 (notifications)
         assert result["type"] == FlowResultType.FORM
@@ -130,8 +136,9 @@ async def test_emhass_step_with_sensor():
         CONF_VEHICLE_NAME: "TestVehicle",
     }
 
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
     ):
         result = await flow.async_step_emhass(
             {

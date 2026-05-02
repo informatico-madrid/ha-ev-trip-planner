@@ -29,7 +29,7 @@ def mock_store_class():
             self._storage["data"] = data
             return True
 
-    with patch.object(ha_storage, 'Store', MockStore):
+    with patch.object(ha_storage, "Store", MockStore):
         yield MockStore
 
 
@@ -71,18 +71,26 @@ def mock_emhass_adapter():
     return mock
 
 
-async def test_coordinator_initialization(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_initialization(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test that coordinator initializes correctly."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+    )
 
     assert coordinator.hass == hass
     assert coordinator._trip_manager == mock_trip_manager
     assert isinstance(coordinator, DataUpdateCoordinator)
 
 
-async def test_coordinator_refresh_triggers_update(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_refresh_triggers_update(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test that coordinator refresh triggers data update."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+    )
 
     # Mock the async_request_refresh method to track calls
     refresh_called = False
@@ -99,17 +107,17 @@ async def test_coordinator_refresh_triggers_update(hass: HomeAssistant, mock_tri
     assert refresh_called is True
 
 
-async def test_coordinator_data_returns_trip_info(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_data_returns_trip_info(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test that coordinator data returns trip information."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+    )
 
     # Add a test trip
     await mock_trip_manager.async_add_recurring_trip(
-        descripcion="Work",
-        dia_semana="lunes",
-        hora="09:00",
-        km=25,
-        kwh=3.75
+        descripcion="Work", dia_semana="lunes", hora="09:00", km=25, kwh=3.75
     )
 
     # Force data refresh
@@ -124,9 +132,13 @@ async def test_coordinator_data_returns_trip_info(hass: HomeAssistant, mock_trip
     assert len(data["recurring_trips"]) == 1
 
 
-async def test_coordinator_handles_empty_trips(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_handles_empty_trips(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test coordinator behavior with no trips."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+    )
 
     await coordinator.async_refresh()
 
@@ -136,9 +148,13 @@ async def test_coordinator_handles_empty_trips(hass: HomeAssistant, mock_trip_ma
     assert len(data["punctual_trips"]) == 0
 
 
-async def test_coordinator_async_refresh_trips_calls_async_refresh(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_async_refresh_trips_calls_async_refresh(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test that async_refresh_trips delegates to async_refresh."""
-    coordinator = TripPlannerCoordinator(hass, mock_config_entry, mock_trip_manager, logger=mock_logger)
+    coordinator = TripPlannerCoordinator(
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+    )
 
     refresh_called = False
 
@@ -154,7 +170,9 @@ async def test_coordinator_async_refresh_trips_calls_async_refresh(hass: HomeAss
     assert refresh_called is True
 
 
-async def test_coordinator_with_emhass_adapter_uses_cached_results(hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger):
+async def test_coordinator_with_emhass_adapter_uses_cached_results(
+    hass: HomeAssistant, mock_trip_manager, mock_config_entry, mock_logger
+):
     """Test coordinator uses emhass_adapter.get_cached_optimization_results() when adapter is set.
 
     This covers line 109: if self._emhass_adapter is not None.
@@ -171,8 +189,11 @@ async def test_coordinator_with_emhass_adapter_uses_cached_results(hass: HomeAss
 
     # Create coordinator with emhass adapter
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass,
+        logger=mock_logger,
     )
 
     # Set up the mock async_refresh to capture the data
@@ -208,7 +229,9 @@ class TestSensorAsyncAddedToHassRestore:
     """Tests for async_added_to_hass restore path when coordinator.data is None."""
 
     @pytest.mark.asyncio
-    async def test_async_added_to_hass_restores_state_when_restore_true_and_data_none(self):
+    async def test_async_added_to_hass_restores_state_when_restore_true_and_data_none(
+        self,
+    ):
         """async_added_to_hass restores _attr_native_value from last_state when restore=True and data is None.
 
         This covers lines 94-99 in sensor.py:
@@ -219,7 +242,9 @@ class TestSensorAsyncAddedToHassRestore:
                     self._attr_native_value = last_state.state
         """
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         # Create mock coordinator with None data (simulating HA restart before first refresh)
         mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
@@ -245,7 +270,10 @@ class TestSensorAsyncAddedToHassRestore:
         mock_last_state.state = "25.5"  # Previous kWh value
 
         # Patch RestoreSensor.async_get_last_state at class level
-        with patch("homeassistant.components.sensor.RestoreSensor.async_get_last_state", new_callable=AsyncMock) as mock_get_last:
+        with patch(
+            "homeassistant.components.sensor.RestoreSensor.async_get_last_state",
+            new_callable=AsyncMock,
+        ) as mock_get_last:
             mock_get_last.return_value = mock_last_state
 
             # Call async_added_to_hass (the method under test)
@@ -264,7 +292,9 @@ class TestSensorAsyncAddedToHassRestore:
         This covers lines 94-95: if self.entity_description.restore and self.coordinator.data is None
         """
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         # Create mock coordinator WITH data (normal operation, no restore needed)
         mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
@@ -284,7 +314,10 @@ class TestSensorAsyncAddedToHassRestore:
         sensor = TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
 
         # Mock async_get_last_state to ensure it's NOT called
-        with patch("homeassistant.components.sensor.RestoreSensor.async_get_last_state", new_callable=AsyncMock) as mock_get_last:
+        with patch(
+            "homeassistant.components.sensor.RestoreSensor.async_get_last_state",
+            new_callable=AsyncMock,
+        ) as mock_get_last:
             await sensor.async_added_to_hass()
             # async_get_last_state should NOT be called when data is not None
             mock_get_last.assert_not_called()
@@ -294,8 +327,15 @@ class TestSensorAsyncAddedToHassRestore:
 # coordinator.py - EMHASS data propagation (Task 1.18 RED, Task 1.19 GREEN)
 # =============================================================================
 
+
 @pytest.mark.asyncio
-async def test_coordinator_data_emhass_cache(hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter):
+async def test_coordinator_data_emhass_cache(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_trip_manager,
+    mock_logger,
+    mock_emhass_adapter,
+):
     """coordinator.data includes EMHASS fields from adapter cache.
 
     Task 1.18 test: expects coordinator.data to have emhass_power_profile,
@@ -305,8 +345,11 @@ async def test_coordinator_data_emhass_cache(hass: HomeAssistant, mock_config_en
 
     # Create coordinator with EMHASS adapter
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
+        logger=mock_logger,
     )
 
     # Call coordinator refresh
@@ -324,8 +367,11 @@ async def test_coordinator_data_emhass_cache(hass: HomeAssistant, mock_config_en
 # coordinator.py - vehicle_id property (Task 1.1 RED, Task 1.2 GREEN)
 # =============================================================================
 
+
 @pytest.mark.asyncio
-async def test_vehicle_id_property(hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger):
+async def test_vehicle_id_property(
+    hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger
+):
     """coordinator.vehicle_id returns normalized vehicle_id from entry.data[CONF_VEHICLE_NAME].
 
     This tests the happy path for Task 1.1/1.2.
@@ -333,8 +379,7 @@ async def test_vehicle_id_property(hass: HomeAssistant, mock_config_entry, mock_
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager,
-        logger=mock_logger
+        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
     )
 
     # vehicle_id should return normalized (lowercase, spaces replaced) vehicle_name
@@ -355,8 +400,7 @@ async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_
     entry_without_vehicle.data = {}  # Missing CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
-        hass, entry_without_vehicle, mock_trip_manager,
-        logger=mock_logger
+        hass, entry_without_vehicle, mock_trip_manager, logger=mock_logger
     )
 
     # Should fallback to "unknown" when vehicle_name is missing
@@ -370,7 +414,12 @@ async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_
 
 @pytest.mark.asyncio
 async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
-    hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger, mock_emhass_adapter, mock_store_class
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_trip_manager,
+    mock_logger,
+    mock_emhass_adapter,
+    mock_store_class,
 ):
     """Test que un cambio de SOC ≥5% actualiza el sensor EMHASS end-to-end.
 
@@ -392,8 +441,11 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
 
     # Setup: Crear coordinator con EMHASS adapter
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
+        logger=mock_logger,
     )
 
     # Configurar PresenceMonitor
@@ -490,7 +542,6 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
     # - Por lo tanto, el sensor EMHASS NO se actualiza ❌
 
 
-
 @pytest.mark.asyncio
 async def test_coordinator_refresh_with_updated_emhass_cache(
     hass: HomeAssistant, mock_config_entry, mock_trip_manager, mock_logger
@@ -518,8 +569,11 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
 
     # Crear coordinator
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass,
+        logger=mock_logger,
     )
 
     # 1. Refresh inicial
@@ -550,4 +604,3 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     #    - PresenceMonitor llama a publish_deferrable_loads() ✅
     #    - PERO publish_deferrable_loads() NO llama a coordinator.async_refresh() ❌
     #    - Por lo tanto, el sensor NO se actualiza automáticamente ❌
-

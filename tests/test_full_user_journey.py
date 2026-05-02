@@ -23,12 +23,16 @@ from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
 )
 from custom_components.ev_trip_planner import DOMAIN
-from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData, register_services
+from custom_components.ev_trip_planner.__init__ import (
+    EVTripRuntimeData,
+    register_services,
+)
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_hass():
@@ -73,11 +77,15 @@ def mock_hass():
     hass._services_registry = services_registry
 
     class Services:
-        def async_register(self, domain, name, handler, schema=None, supports_response=None):
+        def async_register(
+            self, domain, name, handler, schema=None, supports_response=None
+        ):
             if domain == DOMAIN:
                 services_registry[name] = handler
 
-        async def async_call(self, domain, service, data=None, blocking=True, return_response=False):
+        async def async_call(
+            self, domain, service, data=None, blocking=True, return_response=False
+        ):
             if domain == DOMAIN and service in services_registry:
                 handler = services_registry[service]
                 call = MagicMock()
@@ -112,8 +120,10 @@ def mock_hass():
         if asyncio.iscoroutinefunction(job_target):
             return job_target(*args, **kwargs)
         else:
+
             async def _wrapper():
                 return job_target(*args, **kwargs)
+
             return _wrapper()
 
     hass.async_run_hass_job = _mock_async_run_hass_job
@@ -124,6 +134,7 @@ def mock_hass():
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def _create_mock_manager():
     """Create a mock TripManager with all CRUD methods."""
@@ -203,6 +214,7 @@ def _create_mock_manager():
 # =============================================================================
 # Test: Full User Journey
 # =============================================================================
+
 
 class TestFullUserJourney:
     """Tests for complete user journey from vehicle setup to CRUD operations."""

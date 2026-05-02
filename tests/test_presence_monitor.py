@@ -26,9 +26,11 @@ def mock_hass():
     # Mock hass.bus for async_track_state_change_event
     hass.bus = Mock()
     hass.bus.async_listen = Mock()
+
     # Mock async_run_hass_job for debounce
     async def mock_async_run_hass_job(job, *_args, **_kwargs):
         return None
+
     hass.async_run_hass_job = mock_async_run_hass_job
     return hass
 
@@ -53,7 +55,7 @@ def mock_store_class():
             self._storage["data"] = data
             return True
 
-    with patch.object(ha_storage, 'Store', MockStore):
+    with patch.object(ha_storage, "Store", MockStore):
         yield MockStore
 
 
@@ -64,9 +66,9 @@ async def test_presence_monitor_instantiation_sensor_based(mock_hass):
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     assert monitor.hass == mock_hass
     assert monitor.vehicle_id == "test_vehicle"
     assert monitor.home_sensor == "binary_sensor.vehicle_home"
@@ -82,9 +84,9 @@ async def test_presence_monitor_instantiation_coordinate_based(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     assert monitor.home_coords == (40.4168, -3.7038)
     assert monitor.vehicle_coords_sensor == "sensor.vehicle_location"
 
@@ -97,9 +99,9 @@ async def test_presence_monitor_instantiation_mixed_config(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Sensor should take priority over coordinates
     assert monitor.home_sensor == "binary_sensor.vehicle_home"
     assert monitor.home_coords == (40.4168, -3.7038)
@@ -111,16 +113,16 @@ async def test_check_home_status_sensor_on(mock_hass):
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor state
     mock_state = Mock()
     mock_state.state = "on"
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is True
     mock_hass.states.get.assert_called_once_with("binary_sensor.vehicle_home")
 
@@ -131,16 +133,16 @@ async def test_check_home_status_sensor_off(mock_hass):
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor state
     mock_state = Mock()
     mock_state.state = "off"
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is False
 
 
@@ -150,14 +152,14 @@ async def test_check_home_status_sensor_not_found(mock_hass):
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor not found
     mock_hass.states.get = Mock(return_value=None)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is False
 
 
@@ -168,16 +170,16 @@ async def test_check_home_status_coordinate_at_home(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock vehicle coordinates (very close to home)
     mock_state = Mock()
     mock_state.state = "40.4169,-3.7039"  # ~15m away
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is True
 
 
@@ -188,16 +190,16 @@ async def test_check_home_status_coordinate_away(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock vehicle coordinates (far away)
     mock_state = Mock()
     mock_state.state = "41.0000,-4.0000"  # ~100km away
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is False
 
 
@@ -208,14 +210,14 @@ async def test_check_home_status_coordinate_sensor_not_found(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor not found
     mock_hass.states.get = Mock(return_value=None)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     # Should return True (blind mode) when sensor not found
     assert result is True
 
@@ -224,11 +226,11 @@ async def test_check_home_status_coordinate_sensor_not_found(mock_hass):
 async def test_check_home_status_no_config(mock_hass):
     """Test home status when no config provided (blind mode)."""
     config = {}
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     # Should return True (blind mode)
     assert result is True
 
@@ -239,16 +241,16 @@ async def test_check_plugged_status_sensor_on(mock_hass):
     config = {
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor state
     mock_state = Mock()
     mock_state.state = "on"
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_plugged_status()
-    
+
     assert result is True
 
 
@@ -258,16 +260,16 @@ async def test_check_plugged_status_sensor_off(mock_hass):
     config = {
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor state
     mock_state = Mock()
     mock_state.state = "off"
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_plugged_status()
-    
+
     assert result is False
 
 
@@ -275,11 +277,11 @@ async def test_check_plugged_status_sensor_off(mock_hass):
 async def test_check_plugged_status_no_sensor(mock_hass):
     """Test plugged status when no sensor configured."""
     config = {}
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = await monitor.async_check_plugged_status()
-    
+
     # Should return True (assume plugged)
     assert result is True
 
@@ -291,26 +293,26 @@ async def test_check_charging_readiness_ready(mock_hass):
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock both sensors on
     mock_home = Mock()
     mock_home.state = "on"
     mock_plugged = Mock()
     mock_plugged.state = "on"
-    
+
     def mock_get_state(entity_id):
         if entity_id == "binary_sensor.vehicle_home":
             return mock_home
         elif entity_id == "binary_sensor.vehicle_plugged":
             return mock_plugged
         return None
-    
+
     mock_hass.states.get = mock_get_state
-    
+
     ready, reason = await monitor.async_check_charging_readiness()
-    
+
     assert ready is True
     assert reason is None
 
@@ -322,26 +324,26 @@ async def test_check_charging_readiness_not_home(mock_hass):
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock home sensor off, plugged on
     mock_home = Mock()
     mock_home.state = "off"
     mock_plugged = Mock()
     mock_plugged.state = "on"
-    
+
     def mock_get_state(entity_id):
         if entity_id == "binary_sensor.vehicle_home":
             return mock_home
         elif entity_id == "binary_sensor.vehicle_plugged":
             return mock_plugged
         return None
-    
+
     mock_hass.states.get = mock_get_state
-    
+
     ready, reason = await monitor.async_check_charging_readiness()
-    
+
     assert ready is False
     assert reason == "Vehicle not at home"
 
@@ -353,26 +355,26 @@ async def test_check_charging_readiness_not_plugged(mock_hass):
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
         CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock home sensor on, plugged off
     mock_home = Mock()
     mock_home.state = "on"
     mock_plugged = Mock()
     mock_plugged.state = "off"
-    
+
     def mock_get_state(entity_id):
         if entity_id == "binary_sensor.vehicle_home":
             return mock_home
         elif entity_id == "binary_sensor.vehicle_plugged":
             return mock_plugged
         return None
-    
+
     mock_hass.states.get = mock_get_state
-    
+
     ready, reason = await monitor.async_check_charging_readiness()
-    
+
     assert ready is False
     assert reason == "Vehicle not plugged in"
 
@@ -382,9 +384,9 @@ async def test_parse_coordinates_brackets(mock_hass):
     """Test parsing coordinates with brackets."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = monitor._parse_coordinates("[40.4168, -3.7038]")
-    
+
     assert result == (40.4168, -3.7038)
 
 
@@ -393,9 +395,9 @@ async def test_parse_coordinates_no_brackets(mock_hass):
     """Test parsing coordinates without brackets."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = monitor._parse_coordinates("40.4168, -3.7038")
-    
+
     assert result == (40.4168, -3.7038)
 
 
@@ -404,9 +406,9 @@ async def test_parse_coordinates_invalid(mock_hass):
     """Test parsing invalid coordinates."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = monitor._parse_coordinates("invalid")
-    
+
     assert result is None
 
 
@@ -415,9 +417,9 @@ async def test_parse_coordinates_malformed(mock_hass):
     """Test parsing malformed coordinates."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     result = monitor._parse_coordinates("40.4168")
-    
+
     assert result is None
 
 
@@ -426,10 +428,10 @@ async def test_calculate_distance_same_point(mock_hass):
     """Test distance calculation for same point."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Same coordinates should give 0 distance
     distance = monitor._calculate_distance((40.4168, -3.7038), (40.4168, -3.7038))
-    
+
     assert abs(distance) < 0.001  # Very close to 0
 
 
@@ -438,10 +440,10 @@ async def test_calculate_distance_known_points(mock_hass):
     """Test distance calculation for known points."""
     config = {}
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Madrid to Barcelona (approximate)
     distance = monitor._calculate_distance((40.4168, -3.7038), (41.3851, 2.1734))
-    
+
     # Should be around 500km = 500,000 meters
     assert 400000 < distance < 600000
 
@@ -454,16 +456,16 @@ async def test_coordinate_priority_over_sensor(mock_hass):
         CONF_HOME_COORDINATES: "40.4168,-3.7038",
         CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
     }
-    
+
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
-    
+
     # Mock sensor state (should be used instead of coordinates)
     mock_state = Mock()
     mock_state.state = "on"
     mock_hass.states.get = Mock(return_value=mock_state)
-    
+
     result = await monitor.async_check_home_status()
-    
+
     assert result is True
     # Should have called sensor, not used coordinates
     mock_hass.states.get.assert_called_once_with("binary_sensor.vehicle_home")
@@ -767,6 +769,7 @@ async def test_check_plugged_status_sensor_not_found(mock_hass):
 # SOC Listener Tests (Task 1.6)
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_soc_listener_registered_with_soc_sensor(mock_hass):
     """Test SOC listener is registered when soc_sensor is configured."""
@@ -778,7 +781,9 @@ async def test_soc_listener_registered_with_soc_sensor(mock_hass):
         CONF_SOC_SENSOR: "sensor.ovms_soc",
     }
 
-    with patch('custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event') as mock_track:
+    with patch(
+        "custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event"
+    ) as mock_track:
         mock_track.return_value = Mock()
         monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
 
@@ -1080,7 +1085,9 @@ async def test_soc_listener_duplicate_setup_prevented(mock_hass):
         CONF_SOC_SENSOR: "sensor.ovms_soc",
     }
 
-    with patch('custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event') as mock_track:
+    with patch(
+        "custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event"
+    ) as mock_track:
         mock_track.return_value = Mock()
         monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
 
@@ -1620,7 +1627,8 @@ async def test_initial_no_departure_event(mock_hass):
     # states.async_set is only called from _async_persist_return_info
     # On initial away check, no persist should happen
     persist_calls = [
-        c for c in mock_hass.states.async_set.call_args_list
+        c
+        for c in mock_hass.states.async_set.call_args_list
         if c[0][0] == monitor._return_info_entity_id
     ]
     assert len(persist_calls) == 0
@@ -1706,3 +1714,31 @@ async def test_check_home_coordinates_vehicle_state_none(mock_hass):
 
     # None state should assume at home
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_soc_change_skipped_when_no_trip_manager(mock_hass):
+    """Cover lines 479-484: early return when _trip_manager is None."""
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create monitor WITHOUT a trip_manager (None)
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, trip_manager=None)
+
+    # Create a mock SOC event
+    old_state = Mock()
+    old_state.state = "50"
+    new_state = Mock()
+    new_state.state = "60"
+    event = Mock()
+    event.data = {"old_state": old_state, "new_state": new_state}
+
+    # Should return early without error (cover lines 479-484)
+    import asyncio
+
+    result = monitor._async_handle_soc_change(event)
+    if asyncio.iscoroutine(result):
+        await result
+    # If we got here without exception, the guard at line 479 worked

@@ -76,7 +76,9 @@ def _format_window_time(value: Any) -> str | None:
         return None
 
 
-class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor, SensorEntity):
+class TripPlannerSensor(
+    CoordinatorEntity[TripPlannerCoordinator], RestoreSensor, SensorEntity
+):
     """Sensor base for EV Trip Planner using CoordinatorEntity pattern.
 
     Reads from coordinator.data via entity_description.value_fn().
@@ -134,7 +136,9 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor
         """Return attributes from coordinator.data via entity_description.attrs_fn."""
         if self.coordinator.data is None:
             return {}
-        attrs_fn: Callable[[Dict[str, Any]], Dict[str, Any]] = getattr(self.entity_description, "attrs_fn", lambda _: {})
+        attrs_fn: Callable[[Dict[str, Any]], Dict[str, Any]] = getattr(
+            self.entity_description, "attrs_fn", lambda _: {}
+        )
         return attrs_fn(self.coordinator.data)
 
     @property
@@ -149,7 +153,9 @@ class TripPlannerSensor(CoordinatorEntity[TripPlannerCoordinator], RestoreSensor
         )
 
 
-class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
+class EmhassDeferrableLoadSensor(
+    CoordinatorEntity[TripPlannerCoordinator], SensorEntity
+):
     """Sensor para el perfil de carga diferible de EMHASS.
 
     Este sensor proporciona los datos necesarios para la integración con EMHASS:
@@ -177,7 +183,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         self.coordinator = coordinator
         self._entry_id = entry_id
         self._attr_unique_id = f"emhass_perfil_diferible_{entry_id}"
-        vehicle_id = getattr(coordinator, 'vehicle_id', entry_id)
+        vehicle_id = getattr(coordinator, "vehicle_id", entry_id)
         self._attr_name = f"EMHASS Perfil Diferible {vehicle_id}"
         self._attr_has_entity_name = True
         # Force HA to record state updates even when values are identical.
@@ -211,11 +217,11 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         if self.coordinator.data is None:
             _LOGGER.warning(
                 "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes called - coordinator.data is None! vehicle_id=%s",
-                getattr(self.coordinator, 'vehicle_id', 'unknown'),
+                getattr(self.coordinator, "vehicle_id", "unknown"),
             )
             return {}
 
-        vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
+        vehicle_id = getattr(self.coordinator, "vehicle_id", self._entry_id)
 
         # E2E-DEBUG-CRITICAL: Log entire coordinator.data structure
         _LOGGER.warning(
@@ -233,23 +239,29 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
         _LOGGER.warning(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: emhass_power_profile length=%d, non_zero=%d",
             len(self.coordinator.data.get("emhass_power_profile") or []),
-            sum(1 for x in (self.coordinator.data.get("emhass_power_profile") or []) if x > 0),
+            sum(
+                1
+                for x in (self.coordinator.data.get("emhass_power_profile") or [])
+                if x > 0
+            ),
         )
 
         attrs: Dict[str, Any] = {
             "power_profile_watts": self.coordinator.data.get("emhass_power_profile"),
-            "deferrables_schedule": self.coordinator.data.get("emhass_deferrables_schedule"),
+            "deferrables_schedule": self.coordinator.data.get(
+                "emhass_deferrables_schedule"
+            ),
             "emhass_status": self.coordinator.data.get("emhass_status"),
             "vehicle_id": vehicle_id,
         }
 
         # Extract aggregated params from per_trip_emhass_params
         per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
-        
+
         # P1.1: Initialize number_of_deferrable_loads BEFORE per_trip_params block
         # This ensures the attribute is always set, even when there are no trips
         number_of_deferrable_loads = 0
-        
+
         # DEBUG: Log per_trip_params for debugging
         _LOGGER.warning(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_params count=%d, entries=%s",
@@ -277,7 +289,9 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
             # Primary: def_start_timestep (chronological)
             # Secondary: emhass_index (deterministic tie-breaker)
             # This ensures arrays are in chronological order, with deterministic ordering when deadlines are equal
-            active_trips_sorted.sort(key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0)))
+            active_trips_sorted.sort(
+                key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
+            )
 
             # Aggregate all 6 array/matrix attrs from sorted active trips
             matrix: List[List[float]] = []
@@ -320,7 +334,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
                 attrs["def_start_timestep_array"] = def_start_timestep_array
             if def_end_timestep_array:
                 attrs["def_end_timestep_array"] = def_end_timestep_array
-        
+
         # P1.1: Set number_of_deferrable_loads AFTER per_trip_params block
         # This ensures the attribute is always set, even when there are no trips
         attrs["number_of_deferrable_loads"] = number_of_deferrable_loads
@@ -333,7 +347,7 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
 
         Returns device info using vehicle_id from coordinator.
         """
-        vehicle_id = getattr(self.coordinator, 'vehicle_id', self._entry_id)
+        vehicle_id = getattr(self.coordinator, "vehicle_id", self._entry_id)
 
         return dr.DeviceInfo(
             identifiers={(DOMAIN, vehicle_id)},
@@ -343,10 +357,16 @@ class EmhassDeferrableLoadSensor(CoordinatorEntity[TripPlannerCoordinator], Sens
             sw_version="2026.3.0",
         )
 
-    async def async_will_remove_from_hass(self) -> None:  # pragma: no cover  # HA entity lifecycle - entity removal triggers cleanup; tested via HA integration tests
+    async def async_will_remove_from_hass(
+        self,
+    ) -> None:  # pragma: no cover  # HA entity lifecycle - entity removal triggers cleanup; tested via HA integration tests
         """Clean up when entity is removed from Home Assistant."""
         trip_manager = getattr(self.coordinator, "trip_manager", None)
-        if trip_manager and hasattr(trip_manager, "_emhass_adapter") and trip_manager._emhass_adapter is not None:
+        if (
+            trip_manager
+            and hasattr(trip_manager, "_emhass_adapter")
+            and trip_manager._emhass_adapter is not None
+        ):
             await trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
 
 
@@ -383,7 +403,13 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
         self._attr_state_class = None
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         # Set enum options for estado
-        self._attr_options = ["active", "pendiente", "completado", "cancelado", "recurrente"]
+        self._attr_options = [
+            "active",
+            "pendiente",
+            "completado",
+            "cancelado",
+            "recurrente",
+        ]
 
     def _get_trip_data(self) -> Dict[str, Any]:
         """Get trip data from coordinator.
@@ -395,7 +421,11 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
             return {}
         recurring_trips = self.coordinator.data.get("recurring_trips", {})
         punctual_trips = self.coordinator.data.get("punctual_trips", {})
-        return recurring_trips.get(self._trip_id) or punctual_trips.get(self._trip_id) or {}
+        return (
+            recurring_trips.get(self._trip_id)
+            or punctual_trips.get(self._trip_id)
+            or {}
+        )
 
     @property
     def native_value(self) -> Any:
@@ -680,11 +710,17 @@ async def async_update_trip_sensor(
         return False
 
     # Find existing sensor in entity registry
-    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
+    entity_registry: EntityRegistry = getattr(
+        hass, "entity_registry", None
+    ) or er_async_get(hass)
     existing_entity = None
     for reg_entry in async_entries_for_config_entry(entity_registry, entry_id):
         unique_id = reg_entry.unique_id
-        if isinstance(unique_id, str) and trip_id in unique_id and "trip" in unique_id.lower():
+        if (
+            isinstance(unique_id, str)
+            and trip_id in unique_id
+            and "trip" in unique_id.lower()
+        ):
             existing_entity = reg_entry
             break
 
@@ -693,7 +729,9 @@ async def async_update_trip_sensor(
         state = hass.states.get(existing_entity.entity_id)
         if state:
             # Update internal trip data
-            _LOGGER.debug("Trip sensor found in registry for trip %s, state=%s", trip_id, state)
+            _LOGGER.debug(
+                "Trip sensor found in registry for trip %s, state=%s", trip_id, state
+            )
 
         # FIX: Trigger coordinator refresh to update sensor immediately
         # Sensor data comes from coordinator.data via CoordinatorEntity.
@@ -701,7 +739,9 @@ async def async_update_trip_sensor(
         coordinator = runtime_data.coordinator
         if coordinator:
             await coordinator.async_request_refresh()
-            _LOGGER.debug("Coordinator refresh triggered for trip %s sensor update", trip_id)
+            _LOGGER.debug(
+                "Coordinator refresh triggered for trip %s sensor update", trip_id
+            )
 
         _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
         return True
@@ -728,13 +768,19 @@ async def async_remove_trip_sensor(
     _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
 
     # Remove from Entity Registry
-    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
+    entity_registry: EntityRegistry = getattr(
+        hass, "entity_registry", None
+    ) or er_async_get(hass)
     removed = False
     for entry in async_entries_for_config_entry(entity_registry, entry_id):
         if trip_id in entry.unique_id:
             entity_registry.async_remove(entry.entity_id)
             removed = True
-            _LOGGER.debug("Entity registry entry removed for trip %s: %s", trip_id, entry.entity_id)
+            _LOGGER.debug(
+                "Entity registry entry removed for trip %s: %s",
+                trip_id,
+                entry.entity_id,
+            )
             break
 
     if removed:
@@ -769,14 +815,24 @@ async def async_remove_trip_emhass_sensor(
     _LOGGER.debug("Removing EMHASS sensor for trip %s", trip_id)
 
     # Remove from Entity Registry
-    entity_registry: EntityRegistry = getattr(hass, "entity_registry", None) or er_async_get(hass)
+    entity_registry: EntityRegistry = getattr(
+        hass, "entity_registry", None
+    ) or er_async_get(hass)
     removed = False
     for entry in async_entries_for_config_entry(entity_registry, entry_id):
         unique_id = entry.unique_id
-        if isinstance(unique_id, str) and trip_id in unique_id and "emhass" in unique_id:
+        if (
+            isinstance(unique_id, str)
+            and trip_id in unique_id
+            and "emhass" in unique_id
+        ):
             entity_registry.async_remove(entry.entity_id)
             removed = True
-            _LOGGER.debug("Entity registry entry removed for EMHASS trip %s: %s", trip_id, entry.entity_id)
+            _LOGGER.debug(
+                "Entity registry entry removed for EMHASS trip %s: %s",
+                trip_id,
+                entry.entity_id,
+            )
             break
 
     if removed:

@@ -14,6 +14,7 @@ import pytest
 # Dashboard validation error paths
 # =============================================================================
 
+
 class TestDashboardImportValidation:
     """Tests for dashboard import validation branches."""
 
@@ -143,6 +144,7 @@ class TestDashboardImportValidation:
 # Dashboard template loading error paths
 # =============================================================================
 
+
 class TestDashboardTemplateLoading:
     """Tests for dashboard template loading branches."""
 
@@ -186,9 +188,7 @@ class TestDashboardTemplateLoading:
         ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard._load_dashboard_template",
-                side_effect=DashboardNotFoundError(
-                    "test.yaml", ["path1", "path2"]
-                ),
+                side_effect=DashboardNotFoundError("test.yaml", ["path1", "path2"]),
             ):
                 result = await import_dashboard(
                     mock_hass,
@@ -203,6 +203,7 @@ class TestDashboardTemplateLoading:
 # =============================================================================
 # Dashboard storage error paths
 # =============================================================================
+
 
 class TestDashboardStorage:
     """Tests for dashboard storage branches."""
@@ -252,7 +253,9 @@ class TestDashboardStorage:
         assert result.storage_method == "yaml_fallback"
 
     @pytest.mark.asyncio
-    async def test_save_lovelace_storage_result_object_false_triggers_yaml_fallback(self):
+    async def test_save_lovelace_storage_result_object_false_triggers_yaml_fallback(
+        self,
+    ):
         """Regression test (RED): When _save_lovelace_dashboard returns a
         DashboardImportResult with success=False, import_dashboard must not
         treat it as truthy and must fall back to YAML.
@@ -581,6 +584,7 @@ class TestDashboardStorage:
 # Dashboard errors
 # =============================================================================
 
+
 class TestDashboardErrors:
     """Tests for DashboardError classes."""
 
@@ -608,7 +612,9 @@ class TestDashboardErrors:
 
         error = DashboardStorageError("storage_api", "Failed to write")
 
-        assert error.message == "Dashboard storage failed for storage_api: Failed to write"
+        assert (
+            error.message == "Dashboard storage failed for storage_api: Failed to write"
+        )
         assert error.details["storage_method"] == "storage_api"
         assert error.details["error"] == "Failed to write"
         assert error.details["error_type"] == "storage_error"
@@ -672,6 +678,7 @@ class TestDashboardErrors:
 # Dashboard helper functions
 # =============================================================================
 
+
 class TestDashboardHelpers:
     """Tests for dashboard helper functions."""
 
@@ -701,7 +708,9 @@ class TestCallAsyncExecutorSync:
     def test_call_async_executor_sync_without_attr(self):
         """_call_async_executor_sync falls back when hass has no async_add_executor_job."""
         from unittest.mock import MagicMock
-        from custom_components.ev_trip_planner.dashboard import _call_async_executor_sync
+        from custom_components.ev_trip_planner.dashboard import (
+            _call_async_executor_sync,
+        )
 
         # Create mock hass without async_add_executor_job
         hass = MagicMock(spec=[])

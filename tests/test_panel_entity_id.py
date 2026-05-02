@@ -21,7 +21,6 @@ import re
 from pathlib import Path
 
 
-
 # =============================================================================
 # TEST: Panel.js entity ID pattern matches sensor entity ID pattern
 # =============================================================================
@@ -36,7 +35,9 @@ class TestPanelEntityIdMatch:
         content = sensor_path.read_text()
 
         # Find the line where sensor unique_id is constructed
-        pattern = r'self\._attr_unique_id\s*=\s*f["\']emhass_perfil_diferible_([^"\']+)["\']'
+        pattern = (
+            r'self\._attr_unique_id\s*=\s*f["\']emhass_perfil_diferible_([^"\']+)["\']'
+        )
         match = re.search(pattern, content)
 
         assert match, "Could not find emhass_perfil_diferible_ pattern in sensor.py"
@@ -133,7 +134,9 @@ class TestPanelEntityIdMatch:
 
         # Verify the filter is used correctly in entity iteration (FR-2.1 multi-vehicle check)
         # Look for code that checks entity ID pattern AND extracts/verifies vehicle ID
-        check_pattern = r"if\s+.*entityId.*includes\s*\(.*['\"]emhass_perfil_diferible_['\"].*\)"
+        check_pattern = (
+            r"if\s+.*entityId.*includes\s*\(.*['\"]emhass_perfil_diferible_['\"].*\)"
+        )
         matches = re.findall(check_pattern, content, re.IGNORECASE)
 
         assert len(matches) >= 1, (
@@ -147,8 +150,10 @@ class TestPanelEntityIdMatch:
             "Could not find _renderEmhassConfig() method in panel.js"
         )
 
-        has_vehicle_filter_in_method = "state.attributes?.vehicle_id" in renderemhass_section or \
-                                       "state.attributes?.vehicle_id" in renderemhass_section
+        has_vehicle_filter_in_method = (
+            "state.attributes?.vehicle_id" in renderemhass_section
+            or "state.attributes?.vehicle_id" in renderemhass_section
+        )
         assert has_vehicle_filter_in_method, (
             "FR-2.1: _renderEmhassConfig() must filter EMHASS sensors by vehicle_id attribute.\n"
             "This prevents panel from rendering wrong vehicle's config in multi-vehicle installs."
@@ -171,8 +176,5 @@ class TestPanelEntityIdMatch:
 
     def _extract_entity_id_patterns(self, content: str) -> str:
         """Extract all entity ID patterns from panel.js for debugging."""
-        patterns = re.findall(
-            r'[`"\']sensor\.[a-z_]+[`"\']',
-            content
-        )
+        patterns = re.findall(r'[`"\']sensor\.[a-z_]+[`"\']', content)
         return "\n".join(sorted(set(patterns)))[:500]

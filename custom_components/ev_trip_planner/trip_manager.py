@@ -25,8 +25,6 @@ from .const import (
     CONF_CHARGING_POWER,
     CONF_SOH_SENSOR,
     DEFAULT_CHARGING_POWER,
-    DEFAULT_SOH_SENSOR,
-    DEFAULT_T_BASE,
     DOMAIN,
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
@@ -37,6 +35,7 @@ from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
+
 # T3.2: Import function for recurring trip rotation
 from .calculations import calculate_next_recurring_datetime, calculate_day_index
 from .calculations import BatteryCapacity
@@ -108,7 +107,11 @@ class TripManager:
         global _trip_manager_instance_count
         _trip_manager_instance_count += 1
         self._instance_id = _trip_manager_instance_count
-        _LOGGER.warning("=== TripManager instance created: id=%d, vehicle=%s ===", self._instance_id, vehicle_id)
+        _LOGGER.warning(
+            "=== TripManager instance created: id=%d, vehicle=%s ===",
+            self._instance_id,
+            vehicle_id,
+        )
 
         self.hass = hass
         self.vehicle_id = vehicle_id
@@ -146,7 +149,9 @@ class TripManager:
         """
         pure_validate_hora(hora)
 
-    def _parse_trip_datetime(self, trip_datetime: datetime | str, allow_none: bool = False) -> datetime | None:
+    def _parse_trip_datetime(
+        self, trip_datetime: datetime | str, allow_none: bool = False
+    ) -> datetime | None:
         """Parse trip datetime, ensuring timezone awareness for both object and string inputs.
 
         Handles two input types:
@@ -170,23 +175,22 @@ class TripManager:
                 parsed = dt_util.parse_datetime(trip_datetime)
                 if parsed is not None and parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
-                if parsed is None:  # pragma: no cover
-                    _LOGGER.warning(  # pragma: no cover
+                if parsed is None:
+                    _LOGGER.warning(
                         "Failed to parse trip datetime: %s, falling back to now",
                         repr(trip_datetime),
                     )
-                    if allow_none:  # pragma: no cover
-                        return None  # pragma: no cover
-                    return datetime.now(timezone.utc)  # pragma: no cover
+                    if allow_none:
+                        return None
+                    return datetime.now(timezone.utc)
                 return parsed
-            except Exception:  # pragma: no cover
-                _LOGGER.warning(  # pragma: no cover
-                    "Failed to parse trip datetime: %s", repr(trip_datetime))
-                return None if allow_none else datetime.now(timezone.utc)  # pragma: no cover
+            except Exception:
+                _LOGGER.warning(
+                    "Failed to parse trip datetime: %s", repr(trip_datetime)
+                )
+                return None if allow_none else datetime.now(timezone.utc)
 
-    def _sanitize_recurring_trips(
-        self, trips: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _sanitize_recurring_trips(self, trips: Dict[str, Any]) -> Dict[str, Any]:
         """Elimina viajes recurrentes con formato de hora inválido del almacenamiento.
 
         Delegates to pure utils.sanitize_recurring_trips for testability.
@@ -209,7 +213,9 @@ class TripManager:
             )
         return sanitized
 
-    async def publish_deferrable_loads(self, trips: Optional[List[Dict[str, Any]]] = None) -> None:
+    async def publish_deferrable_loads(
+        self, trips: Optional[List[Dict[str, Any]]] = None
+    ) -> None:
         """Publish current trips to EMHASS as deferrable loads and trigger coordinator refresh.
 
         Args:
@@ -219,7 +225,7 @@ class TripManager:
         """
         if trips is None:
             trips = await self._get_all_active_trips()
-        
+
         # T3.2: Calculate next occurrences for recurring trips
         # This must execute BEFORE the early return check because rotation is
         # independent of EMHASS publishing and should always happen
@@ -235,7 +241,7 @@ class TripManager:
                 # Extract day and time from trip
                 day_name = trip.get("dia_semana") or trip.get("day")
                 time_str = trip.get("hora")
-                
+
                 # Handle weekly frequency trips (all recurring trips use dia_semana)
                 if day_name and time_str:
                     try:
@@ -243,12 +249,12 @@ class TripManager:
                         day_index = calculate_day_index(day_name)
                         # Convert to JavaScript getDay() format (Sunday=0, Monday=1)
                         day_js_format = (day_index + 1) % 7
-                        
+
                         # Calculate next occurrence
                         next_occurrence = calculate_next_recurring_datetime(
                             day_js_format, time_str, datetime.now(timezone.utc)
                         )
-                        
+
                         _LOGGER.debug(
                             "T3.2: Recurring trip %s - day_name=%s, day_index=%s, day_js_format=%s, time_str=%s, next_occurrence=%s",
                             trip.get("id"),
@@ -258,7 +264,7 @@ class TripManager:
                             time_str,
                             next_occurrence,
                         )
-                        
+
                         if next_occurrence:
                             trip_id = trip.get("id")
                             # EC-003 FIX: Try to update the storage-backed dict first.
@@ -266,7 +272,9 @@ class TripManager:
                             # trips, or trips passed from outside), fall back to mutating
                             # the trip dict directly (original behavior).
                             if trip_id in self._recurring_trips:
-                                self._recurring_trips[trip_id]["datetime"] = next_occurrence.isoformat()
+                                self._recurring_trips[trip_id]["datetime"] = (
+                                    next_occurrence.isoformat()
+                                )
                             else:
                                 trip["datetime"] = next_occurrence.isoformat()
                             _LOGGER.debug(
@@ -284,18 +292,76 @@ class TripManager:
                             )
                     except Exception as err:
                         import traceback
+
                         _LOGGER.warning(
                             "Failed to rotate recurring trip %s: %s\n%s",
                             trip.get("id"),
                             err,
                             traceback.format_exc(),
                         )
-        
+
         # Early return if no EMHASS adapter - rotation already happened above
         if not self._emhass_adapter:
             return
-        
-        await self._emhass_adapter.async_publish_all_deferrable_loads(trips)
+
+        # T093: Pre-compute SOC caps via calcular_hitos_soc() before publishing.
+        # This is the authoritative SOC capping source per design.md Component 7.
+        # Results include per-trip soc_caps used to adjust kwh/hours/power.
+        soc_caps_by_id: Dict[str, float] = {}
+        try:
+            # Build vehicle_config from config entry data
+            vehicle_config: Dict[str, Any] = {}
+            entry_id = getattr(self, "_entry_id", None)
+            config_entry: Optional[ConfigEntry] = None
+            if entry_id:
+                config_entry = self.hass.config_entries.async_get_entry(entry_id)
+            if config_entry is None:
+                try:
+                    entries = self.hass.config_entries.async_entries(DOMAIN)
+                    for e in entries:
+                        if not getattr(e, "data", None):
+                            continue
+                        name = e.data.get("vehicle_name")
+                        if name and name.lower().replace(" ", "_") == self.vehicle_id:
+                            config_entry = e
+                            break
+                except Exception:
+                    config_entry = None
+            if config_entry is not None and config_entry.data is not None:
+                vehicle_config = dict(config_entry.data)
+            else:
+                vehicle_config = {"battery_capacity_kwh": 50.0}
+
+            # Get initial SOC
+            soc_inicial = await self.async_get_vehicle_soc(self.vehicle_id)
+            if soc_inicial is None:
+                soc_inicial = 50.0
+
+            # Call authoritative SOC capping function
+            charging_kw = vehicle_config.get("charging_power_kw", 3.6)
+            hits = await self.calcular_hitos_soc(
+                trips=trips,
+                soc_inicial=float(soc_inicial),
+                charging_power_kw=charging_kw,
+                vehicle_config=vehicle_config if vehicle_config else None,
+            )
+            # Extract per-trip SOC caps from results
+            for hit in hits:
+                trip_id = hit.get("trip_id", "")
+                soc_obj = hit.get("soc_objetivo", 100.0)
+                if trip_id:
+                    soc_caps_by_id[trip_id] = soc_obj
+        except Exception as err:
+            _LOGGER.debug(
+                "T093: calcular_hitos_soc() failed for SOC cap pre-computation: %s",
+                err,
+            )
+            # Graceful fallback: proceed without pre-computed caps
+
+        await self._emhass_adapter.async_publish_all_deferrable_loads(
+            trips,
+            soc_caps_by_id=soc_caps_by_id,
+        )
 
         # Trigger coordinator refresh to update sensor attributes and last_updated timestamp
         # This is critical for SOC change tests - when SOC changes, publish_deferrable_loads()
@@ -338,14 +404,17 @@ class TripManager:
                 "Skipping _load_trips for %s: already have %d punctual, %d recurring trips in memory",
                 self.vehicle_id,
                 len(self._punctual_trips),
-                len(self._recurring_trips)
+                len(self._recurring_trips),
             )
             return
 
         # DEBUG: Add stack trace to see who is calling _load_trips()
         import traceback
+
         _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
-        _LOGGER.warning("=== _load_trips CALLED FROM ===\n%s", traceback.format_stack()[-3])
+        _LOGGER.warning(
+            "=== _load_trips CALLED FROM ===\n%s", traceback.format_stack()[-3]
+        )
         try:
             # DI: use injected storage if available, otherwise fallback to direct Store
             stored_data: Optional[Dict[str, Any]] = None
@@ -464,7 +533,9 @@ class TripManager:
                 config_dir = "/config"
 
             # Construct YAML file path
-            yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"  # pragma: no cover
+            yaml_file = (
+                Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+            )  # pragma: no cover
 
             # Ensure directory exists
             yaml_file.parent.mkdir(parents=True, exist_ok=True)  # pragma: no cover
@@ -569,7 +640,9 @@ class TripManager:
                 config_dir = "/config"
 
             # Construct YAML file path
-            yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"  # pragma: no cover
+            yaml_file = (
+                Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
+            )  # pragma: no cover
 
             # Ensure directory exists
             yaml_file.parent.mkdir(parents=True, exist_ok=True)  # pragma: no cover
@@ -654,18 +727,26 @@ class TripManager:
         )
 
         # T034: Create sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
-        await async_create_trip_sensor(self.hass, self._entry_id, self._recurring_trips[trip_id])
+        from .sensor import (
+            async_create_trip_sensor,
+        )  # Local import to avoid circular dependency
+
+        await async_create_trip_sensor(
+            self.hass, self._entry_id, self._recurring_trips[trip_id]
+        )
 
         # T1.53: Create EMHASS sensor entity for the trip (after TripSensor)
         from .sensor import async_create_trip_emhass_sensor
+
         # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
         entry = self.hass.config_entries.async_get_entry(self._entry_id)
         if entry and entry.runtime_data:
             # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
             coordinator = entry.runtime_data.coordinator
             if coordinator:
-                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
+                await async_create_trip_emhass_sensor(
+                    self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id
+                )
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -708,18 +789,26 @@ class TripManager:
         )
 
         # T034: Create sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import async_create_trip_sensor  # Local import to avoid circular dependency
-        await async_create_trip_sensor(self.hass, self._entry_id, self._punctual_trips[trip_id])
+        from .sensor import (
+            async_create_trip_sensor,
+        )  # Local import to avoid circular dependency
+
+        await async_create_trip_sensor(
+            self.hass, self._entry_id, self._punctual_trips[trip_id]
+        )
 
         # T1.55: Create EMHASS sensor entity for the trip (after TripSensor)
         from .sensor import async_create_trip_emhass_sensor
+
         # Get coordinator from entry runtime_data (required for EMHASS sensor creation)
         entry = self.hass.config_entries.async_get_entry(self._entry_id)
         if entry and entry.runtime_data:
             # EVTripRuntimeData is a dataclass, access coordinator as attribute (not dict .get())
             coordinator = entry.runtime_data.coordinator
             if coordinator:
-                await async_create_trip_emhass_sensor(self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id)
+                await async_create_trip_emhass_sensor(
+                    self.hass, self._entry_id, coordinator, self.vehicle_id, trip_id
+                )
 
         # T019.3: Publish new trip to EMHASS
         if self._emhass_adapter:
@@ -742,8 +831,25 @@ class TripManager:
         )
 
         # Filter updates to only keep fields relevant to the trip type
-        RECURRENT_RELEVANT_FIELDS = {"dia_semana", "hora", "km", "kwh", "descripcion", "activo", "tipo", "id"}
-        PUNCTUAL_RELEVANT_FIELDS = {"datetime", "km", "kwh", "descripcion", "activo", "tipo", "id"}
+        RECURRENT_RELEVANT_FIELDS = {
+            "dia_semana",
+            "hora",
+            "km",
+            "kwh",
+            "descripcion",
+            "activo",
+            "tipo",
+            "id",
+        }
+        PUNCTUAL_RELEVANT_FIELDS = {
+            "datetime",
+            "km",
+            "kwh",
+            "descripcion",
+            "activo",
+            "tipo",
+            "id",
+        }
 
         # Get old trip data before update for comparison
         old_trip = None
@@ -752,13 +858,17 @@ class TripManager:
             old_trip = self._recurring_trips[trip_id].copy()
             trip_type = "recurring"
             # Filter: only apply updates to fields relevant for recurring trips
-            filtered_updates = {k: v for k, v in updates.items() if k in RECURRENT_RELEVANT_FIELDS}
+            filtered_updates = {
+                k: v for k, v in updates.items() if k in RECURRENT_RELEVANT_FIELDS
+            }
             self._recurring_trips[trip_id].update(filtered_updates)
         elif trip_id in self._punctual_trips:
             old_trip = self._punctual_trips[trip_id].copy()
             trip_type = "punctual"
             # Filter: only apply updates to fields relevant for punctual trips
-            filtered_updates = {k: v for k, v in updates.items() if k in PUNCTUAL_RELEVANT_FIELDS}
+            filtered_updates = {
+                k: v for k, v in updates.items() if k in PUNCTUAL_RELEVANT_FIELDS
+            }
             self._punctual_trips[trip_id].update(filtered_updates)
 
         if old_trip is None:
@@ -778,8 +888,13 @@ class TripManager:
         )
 
         # T035: Update the sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import async_update_trip_sensor  # Local import to avoid circular dependency
-        trip_data = self._recurring_trips.get(trip_id) or self._punctual_trips.get(trip_id)
+        from .sensor import (
+            async_update_trip_sensor,
+        )  # Local import to avoid circular dependency
+
+        trip_data = self._recurring_trips.get(trip_id) or self._punctual_trips.get(
+            trip_id
+        )
         if trip_data:
             await async_update_trip_sensor(self.hass, self._entry_id, trip_data)
 
@@ -811,12 +926,18 @@ class TripManager:
         _LOGGER.info("Deleted trip %s from vehicle %s", trip_id, self.vehicle_id)
 
         # T034: Remove sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import async_remove_trip_sensor  # Local import to avoid circular dependency
+        from .sensor import (
+            async_remove_trip_sensor,
+        )  # Local import to avoid circular dependency
+
         await async_remove_trip_sensor(self.hass, self._entry_id, trip_id)
 
         # T1.57: Remove EMHASS sensor entity for the trip (after TripSensor)
         from .sensor import async_remove_trip_emhass_sensor
-        await async_remove_trip_emhass_sensor(self.hass, self._entry_id, self.vehicle_id, trip_id)
+
+        await async_remove_trip_emhass_sensor(
+            self.hass, self._entry_id, self.vehicle_id, trip_id
+        )
 
         # T019.3: Remove from EMHASS when deleted
         if self._emhass_adapter:
@@ -824,7 +945,9 @@ class TripManager:
 
     async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
-        _LOGGER.warning("DEBUG async_delete_all_trips: START for vehicle %s", self.vehicle_id)
+        _LOGGER.warning(
+            "DEBUG async_delete_all_trips: START for vehicle %s", self.vehicle_id
+        )
 
         # CRITICAL FIX: Clear dictionaries FIRST, then publish empty list once.
         # Previously, this looped through trips calling _async_remove_trip_from_emhass,
@@ -855,7 +978,9 @@ class TripManager:
         # in async_publish_all_deferrable_loads clears _cached_per_trip_params and
         # _cached_power_profile and returns without republishing.
         if self._emhass_adapter:
-            _LOGGER.warning("DEBUG async_delete_all_trips: Calling publish_deferrable_loads([])")
+            _LOGGER.warning(
+                "DEBUG async_delete_all_trips: Calling publish_deferrable_loads([])"
+            )
             await self.publish_deferrable_loads([])
             # EXTRA SAFEGUARD: Also directly clear the adapter's cache as a backup.
             # This ensures _cached_per_trip_params is cleared even if the coordinator
@@ -864,7 +989,9 @@ class TripManager:
             self._emhass_adapter._published_trips = []
             self._emhass_adapter._cached_power_profile = []
             self._emhass_adapter._cached_deferrables_schedule = []
-            _LOGGER.warning("DEBUG async_delete_all_trips: Directly cleared adapter cache as safeguard")
+            _LOGGER.warning(
+                "DEBUG async_delete_all_trips: Directly cleared adapter cache as safeguard"
+            )
 
         # EXTRA SAFEGUARD: Directly clear coordinator data to ensure sensor sees empty state.
         # This addresses the case where _get_coordinator() returns None during deletion flow,
@@ -875,7 +1002,9 @@ class TripManager:
             if entry and hasattr(entry, "runtime_data") and entry.runtime_data:
                 coordinator = getattr(entry.runtime_data, "coordinator", None)
                 if coordinator is not None:
-                    _LOGGER.warning("DEBUG async_delete_all_trips: Directly clearing coordinator.data")
+                    _LOGGER.warning(
+                        "DEBUG async_delete_all_trips: Directly clearing coordinator.data"
+                    )
                     # Handle case where coordinator.data might be None before first refresh
                     existing_data = coordinator.data or {}
                     coordinator.data = {
@@ -885,13 +1014,22 @@ class TripManager:
                         "emhass_deferrables_schedule": [],
                     }
                     await coordinator.async_refresh()
-                    _LOGGER.warning("DEBUG async_delete_all_trips: Coordinator data cleared and refreshed")
+                    _LOGGER.warning(
+                        "DEBUG async_delete_all_trips: Coordinator data cleared and refreshed"
+                    )
                 else:
-                    _LOGGER.warning("DEBUG async_delete_all_trips: coordinator is None in runtime_data")
+                    _LOGGER.warning(
+                        "DEBUG async_delete_all_trips: coordinator is None in runtime_data"
+                    )
             else:
-                _LOGGER.warning("DEBUG async_delete_all_trips: entry or runtime_data is None/empty")
+                _LOGGER.warning(
+                    "DEBUG async_delete_all_trips: entry or runtime_data is None/empty"
+                )
         except Exception as err:
-            _LOGGER.warning("DEBUG async_delete_all_trips: Exception during coordinator cleanup: %s", err)
+            _LOGGER.warning(
+                "DEBUG async_delete_all_trips: Exception during coordinator cleanup: %s",
+                err,
+            )
 
         _LOGGER.info("Deleted all trips for vehicle %s", self.vehicle_id)
 
@@ -1177,23 +1315,45 @@ class TripManager:
     async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
         """Get all active trips for EMHASS publishing."""
         import traceback
-        _LOGGER.warning("DEBUG _get_all_active_trips: _recurring_trips count=%d", len(self._recurring_trips))
-        _LOGGER.warning("DEBUG _get_all_active_trips: _punctual_trips count=%d", len(self._punctual_trips))
-        _LOGGER.warning("DEBUG _get_all_active_trips: CALLED FROM\n%s", traceback.format_stack()[-3])
+
+        _LOGGER.warning(
+            "DEBUG _get_all_active_trips: _recurring_trips count=%d",
+            len(self._recurring_trips),
+        )
+        _LOGGER.warning(
+            "DEBUG _get_all_active_trips: _punctual_trips count=%d",
+            len(self._punctual_trips),
+        )
+        _LOGGER.warning(
+            "DEBUG _get_all_active_trips: CALLED FROM\n%s", traceback.format_stack()[-3]
+        )
 
         all_trips = []
         for trip in self._recurring_trips.values():
             if trip.get("activo", True):
-                _LOGGER.warning("DEBUG _get_all_active_trips: adding recurring trip id=%s, trip=%s", trip.get("id"), trip)
+                _LOGGER.warning(
+                    "DEBUG _get_all_active_trips: adding recurring trip id=%s, trip=%s",
+                    trip.get("id"),
+                    trip,
+                )
                 all_trips.append(trip)
 
         for trip_id, trip in self._punctual_trips.items():
             estado = trip.get("estado")
-            _LOGGER.warning("DEBUG _get_all_active_trips: punctual trip %s estado=%s, trip=%s", trip_id, estado, trip)
+            _LOGGER.warning(
+                "DEBUG _get_all_active_trips: punctual trip %s estado=%s, trip=%s",
+                trip_id,
+                estado,
+                trip,
+            )
             if estado == "pendiente":
                 all_trips.append(trip)
 
-        _LOGGER.warning("DEBUG _get_all_active_trips: returning %d trips: %s", len(all_trips), [t.get("id") for t in all_trips])
+        _LOGGER.warning(
+            "DEBUG _get_all_active_trips: returning %d trips: %s",
+            len(all_trips),
+            [t.get("id") for t in all_trips],
+        )
         return all_trips
 
     async def async_get_kwh_needed_today(self) -> float:
@@ -1511,15 +1671,15 @@ class TripManager:
             # Handle case where trip has datetime but tipo not set
             try:
                 trip_time = self._parse_trip_datetime(trip_datetime)
-                if trip_time is None:  # pragma: no cover
-                    pass  # pragma: no cover
+                if trip_time is None:
+                    pass
                 else:
                     now = dt_util.now()
                     try:
                         delta = trip_time - now
-                    except TypeError as err:  # pragma: no cover
+                    except TypeError as err:
                         # Diagnostic logging: record types and values to help reproduce E2E failures
-                        _LOGGER.error(  # pragma: no cover
+                        _LOGGER.error(
                             "Datetime subtraction TypeError: trip_datetime=%s (%s), now=%s (%s): %s",
                             repr(trip_datetime),
                             type(trip_datetime),
@@ -1528,20 +1688,20 @@ class TripManager:
                             err,
                         )
                         # Attempt to coerce trip_time to aware UTC and retry
-                        try:  # pragma: no cover
+                        try:
                             if getattr(trip_time, "tzinfo", None) is None:
                                 trip_time = trip_time.replace(tzinfo=timezone.utc)
                             delta = trip_time - now
                         except Exception:
                             # Give up computing delta — leave horas_disponibles at 0
-                            delta = None  # pragma: no cover
+                            delta = None
 
                     if delta is not None:
                         horas_disponibles = delta.total_seconds() / 3600
                         if horas_carga > horas_disponibles:
                             alerta_tiempo_insuficiente = True
-            except (KeyError, ValueError, TypeError):  # pragma: no cover
-                pass  # pragma: no cover
+            except (KeyError, ValueError, TypeError):
+                pass
 
         return {
             "energia_necesaria_kwh": round(energia_final, 3),
@@ -1620,7 +1780,9 @@ class TripManager:
             # Try parsing from trip dict directly
             trip_datetime = trip.get("datetime")
             if trip_datetime:
-                trip_departure_time = self._parse_trip_datetime(trip_datetime, allow_none=True)
+                trip_departure_time = self._parse_trip_datetime(
+                    trip_datetime, allow_none=True
+                )
 
         # Calculate inicio_ventana
         if parsed_hora_regreso is not None:
@@ -1644,7 +1806,9 @@ class TripManager:
         if trip_departure_time is not None:
             fin_ventana = trip_departure_time
         else:  # pragma: no cover  # HA time I/O - fallback when trip departure time unavailable
-            fin_ventana = dt_util.now() + timedelta(hours=DURACION_VIAJE_HORAS)  # pragma: no cover  # HA time I/O - default window calculation
+            fin_ventana = dt_util.now() + timedelta(
+                hours=DURACION_VIAJE_HORAS
+            )  # pragma: no cover  # HA time I/O - default window calculation
 
         # Calculate ventana_horas
         delta = fin_ventana - inicio_ventana
@@ -1754,7 +1918,9 @@ class TripManager:
                     window_start = parsed_hora_regreso
                 else:
                     # Car not yet returned - estimate return as departure - 6h
-                    window_start = trip_departure_time - timedelta(hours=DURACION_VIAJE_HORAS)
+                    window_start = trip_departure_time - timedelta(
+                        hours=DURACION_VIAJE_HORAS
+                    )
             else:
                 # Subsequent trips: window starts at previous trip's arrival
                 assert previous_arrival is not None
@@ -1774,7 +1940,9 @@ class TripManager:
                 "soc_current": soc_actual,
                 "safety_margin_percent": safety_margin_percent,
             }
-            energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+            energia_info = await self.async_calcular_energia_necesaria(
+                trip, vehicle_config
+            )
             kwh_necesarios = energia_info["energia_necesaria_kwh"]
 
             # Calculate horas_carga_necesarias
@@ -1786,15 +1954,17 @@ class TripManager:
             # Calculate es_suficiente
             es_suficiente = ventana_horas >= horas_carga_necesarias
 
-            results.append({
-                "ventana_horas": round(ventana_horas, 2),
-                "kwh_necesarios": round(kwh_necesarios, 3),
-                "horas_carga_necesarias": round(horas_carga_necesarias, 2),
-                "inicio_ventana": window_start,
-                "fin_ventana": trip_departure_time,
-                "es_suficiente": es_suficiente,
-                "trip": trip,
-            })
+            results.append(
+                {
+                    "ventana_horas": round(ventana_horas, 2),
+                    "kwh_necesarios": round(kwh_necesarios, 3),
+                    "horas_carga_necesarias": round(horas_carga_necesarias, 2),
+                    "inicio_ventana": window_start,
+                    "fin_ventana": trip_departure_time,
+                    "es_suficiente": es_suficiente,
+                    "trip": trip,
+                }
+            )
 
             # Update previous_arrival for next iteration
             previous_arrival = trip_arrival
@@ -1866,11 +2036,13 @@ class TripManager:
             else:
                 soc_llegada = soc_actual
 
-            results.append({
-                "soc_inicio": round(soc_inicio, 2),
-                "trip": trip,
-                "arrival_soc": round(soc_llegada, 2),
-            })
+            results.append(
+                {
+                    "soc_inicio": round(soc_inicio, 2),
+                    "trip": trip,
+                    "arrival_soc": round(soc_llegada, 2),
+                }
+            )
 
             # Actualizar SOC para el siguiente viaje
             soc_actual = soc_llegada
@@ -1885,6 +2057,10 @@ class TripManager:
         vehicle_config: Optional[Dict[str, Any]] = None,
         hora_regreso: Optional[datetime] = None,
     ) -> List[Dict[str, Any]]:
+        # NOTE: This function is not called from the production path (which uses
+        # calculate_dynamic_soc_limit() inline in emhass_adapter.py). It is kept as
+        # a reference implementation with 17+ unit tests verifying the algorithm.
+        # See T062/T087 review notes and task_review.md for the design decision.
         """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás.
 
         Implements the deficit detection and propagation algorithm:
@@ -1909,7 +2085,11 @@ class TripManager:
         Returns:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
         """
-        from .calculations import calculate_deficit_propagation, calculate_dynamic_soc_limit, DEFAULT_T_BASE
+        from .calculations import (
+            calculate_deficit_propagation,
+            calculate_dynamic_soc_limit,
+            DEFAULT_T_BASE,
+        )
 
         # Extract battery_capacity_kwh and safety_margin_percent from vehicle_config
         battery_capacity_kwh = 50.0
@@ -1957,7 +2137,9 @@ class TripManager:
 
         _LOGGER.debug(
             "Deficit propagation START: %d trips, soc_inicial=%.2f%%, tasa_carga_soc=%.2f%%/h",
-            len(trips), soc_inicial, tasa_carga_soc
+            len(trips),
+            soc_inicial,
+            tasa_carga_soc,
         )
 
         # Extract t_base from vehicle_config (falls back to DEFAULT_T_BASE)
@@ -1991,12 +2173,14 @@ class TripManager:
                     t_hours, soc_inicial, real_capacity_kwh, t_base=t_base
                 )
                 soc_caps[i] = limit
-    
+
             # Delegate pure deficit propagation algorithm to calculations.py
             # Pre-compute trip times using the instance's _get_trip_time method
             # (which may be mocked in tests) for correct test compatibility
             # precomputed_trip_times is already set above if trips is non-empty
-            precomputed_trip_times = precomputed_trip_times if "precomputed_trip_times" in dir() else []
+            precomputed_trip_times = (
+                precomputed_trip_times if "precomputed_trip_times" in dir() else []
+            )
             # Pre-compute SOC targets using the instance's _calcular_soc_objetivo_base
             # (which may be mocked in tests) for correct test compatibility
             precomputed_soc_targets = [
@@ -2009,12 +2193,12 @@ class TripManager:
                 windows=ventanas,
                 tasa_carga_soc=tasa_carga_soc,
                 battery_capacity_kwh=real_capacity_kwh,
-            reference_dt=datetime.now(timezone.utc),
-            trip_times=precomputed_trip_times,
-            soc_targets=precomputed_soc_targets,
-            t_base=t_base,
-            soc_caps=soc_caps,
-        )
+                reference_dt=datetime.now(timezone.utc),
+                trip_times=precomputed_trip_times,
+                soc_targets=precomputed_soc_targets,
+                t_base=t_base,
+                soc_caps=soc_caps,
+            )
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
@@ -2059,7 +2243,9 @@ class TripManager:
                 if entry_id:
                     config_entry = self.hass.config_entries.async_get_entry(entry_id)
                 else:
-                    config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                    config_entry = self.hass.config_entries.async_get_entry(
+                        self.vehicle_id
+                    )
 
                 # If direct lookup failed, scan entries by vehicle_name (tests
                 # and older setups may rely on that behaviour).
@@ -2070,15 +2256,22 @@ class TripManager:
                             if not getattr(e, "data", None):
                                 continue
                             name = e.data.get("vehicle_name")
-                            if name and name.lower().replace(" ", "_") == self.vehicle_id:
+                            if (
+                                name
+                                and name.lower().replace(" ", "_") == self.vehicle_id
+                            ):
                                 config_entry = e
                                 break
                     except Exception:
                         config_entry = None
 
                 if config_entry is not None and config_entry.data is not None:
-                    battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
-                    safety_margin_percent = config_entry.data.get("safety_margin_percent", 10.0)
+                    battery_capacity = config_entry.data.get(
+                        "battery_capacity_kwh", 50.0
+                    )
+                    safety_margin_percent = config_entry.data.get(
+                        "safety_margin_percent", 10.0
+                    )
                 else:
                     battery_capacity = 50.0
                     safety_margin_percent = 10.0
@@ -2092,8 +2285,14 @@ class TripManager:
             soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
 
         # Obtener hora_regreso si no fue proporcionada
-        if hora_regreso is None and self.vehicle_controller and self.vehicle_controller._presence_monitor:
-            hora_regreso = await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
+        if (
+            hora_regreso is None
+            and self.vehicle_controller
+            and self.vehicle_controller._presence_monitor
+        ):
+            hora_regreso = (
+                await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
+            )
 
         # Obtener todos los viajes pendientes
         all_trips = []
@@ -2101,8 +2300,12 @@ class TripManager:
             if trip.get("activo", True):
                 all_trips.append(trip)
         for trip in self._punctual_trips.values():
-            if trip.get("estado") == "pendiente":  # pragma: no cover  # HA storage I/O - estado filter for pending trips
-                all_trips.append(trip)  # pragma: no cover  # HA storage I/O - appending pending trips to list
+            if (
+                trip.get("estado") == "pendiente"
+            ):  # pragma: no cover  # HA storage I/O - estado filter for pending trips
+                all_trips.append(
+                    trip
+                )  # pragma: no cover  # HA storage I/O - appending pending trips to list
 
         # Delegate pure power profile calculation to calculations.py
         return calculate_power_profile(
@@ -2146,7 +2349,9 @@ class TripManager:
             if entry_id:
                 _config_entry = self.hass.config_entries.async_get_entry(entry_id)
             else:
-                _config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                _config_entry = self.hass.config_entries.async_get_entry(
+                    self.vehicle_id
+                )
 
             if _config_entry is not None and _config_entry.data is not None:
                 _config_entry.data.get("battery_capacity_kwh", 50.0)
@@ -2214,7 +2419,9 @@ class TripManager:
 
             if config_entry is not None and config_entry.data is not None:
                 battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
-                safety_margin_percent = config_entry.data.get("safety_margin_percent", 10.0)
+                safety_margin_percent = config_entry.data.get(
+                    "safety_margin_percent", 10.0
+                )
         except Exception:
             pass
         soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
@@ -2259,7 +2466,9 @@ class TripManager:
 
             # Distribuir la carga en las horas disponibles
             # hora_inicio_carga ya es >= 0 por max(0, ...), y range usa min(..., profile_length)
-            for h in range(int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)):
+            for h in range(
+                int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)
+            ):
                 power_profiles[idx][h] = charging_power_watts
 
         # Generar calendario con múltiples índices de carga diferible

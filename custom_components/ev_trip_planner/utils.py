@@ -79,7 +79,11 @@ def generate_trip_id(
 
     if trip_type == "recurrente":
         # Handle day input - normalize to Spanish abbreviation
-        day_input = (str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes").lower()
+        day_input = (
+            str(day_or_date)
+            if isinstance(day_or_date, date)
+            else day_or_date or "lunes"
+        ).lower()
 
         # Check if it's a known day name and get Spanish abbreviation
         if day_input in DAY_ABBREVIATIONS:

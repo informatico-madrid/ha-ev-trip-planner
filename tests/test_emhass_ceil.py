@@ -10,7 +10,6 @@ After fix: math.ceil(1.94) = 2 (int, correct for EMHASS)
 import math
 
 
-
 class TestDefTotalHoursMathCeil:
     """Test that def_total_hours uses math.ceil for proper rounding.
     GREEN Phase: Test PASSES after fix uses math.ceil() (correct)
@@ -41,7 +40,9 @@ class TestDefTotalHoursMathCeil:
 
         # The fix should make def_total_hours = 2, not 1.94
         # If this assertion fails, the fix hasn't been applied
-        assert ceiled == 2, "EMHASS requires def_total_hours to be 2 (ceil), not 1.94 (round)"
+        assert ceiled == 2, (
+            "EMHASS requires def_total_hours to be 2 (ceil), not 1.94 (round)"
+        )
 
     def test_ceil_edge_cases(self):
         """Test math.ceil edge cases."""

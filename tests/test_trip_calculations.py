@@ -18,14 +18,11 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {}
     hass.config_entries = MagicMock()
-    
+
     # Mock config entry con vehicle_name y charging_power_kw (para que async_entries lo encuentre)
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 3.6
-    }
+    mock_entry.data = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
     hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
@@ -46,14 +43,14 @@ def mock_hass():
     from homeassistant.helpers.storage import Store
 
     async def mock_async_load(self):
-        key = getattr(self, '_mock_key', None)
+        key = getattr(self, "_mock_key", None)
         if key is None:
             return []
         await asyncio.sleep(0)  # Simula async
         return _storage_data.get(key, [])
 
     async def mock_async_save(self, data):
-        key = getattr(self, '_mock_key', None)
+        key = getattr(self, "_mock_key", None)
         if key is not None:
             await asyncio.sleep(0)  # Simula async
             _storage_data[key] = data
@@ -96,7 +93,7 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         hora="14:00",
         km=25,
         kwh=3.75,
-        descripcion="Trabajo"
+        descripcion="Trabajo",
     )
 
     # Add punctual trip for tomorrow at 14:00 (closer than recurring trip)
@@ -105,7 +102,7 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         datetime_str=tomorrow.strftime("%Y-%m-%dT14:00"),
         km=50,
         kwh=7.5,
-        descripcion="Viaje largo"
+        descripcion="Viaje largo",
     )
 
     # Get next trip - should be tomorrow's punctual trip (closer in time)
@@ -118,12 +115,12 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
 @pytest.mark.asyncio
 async def test_get_next_trip_empty_returns_none(mock_hass):
     """Test that next trip returns None when no trips exist."""
-    
+
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # No trips added
     next_trip = await mgr.async_get_next_trip()
-    
+
     assert next_trip is None
 
 
@@ -140,18 +137,14 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
 
     # Add two trips for today
     await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish,
-        hora="08:00",
-        km=25,
-        kwh=3.75,
-        descripcion="Trabajo"
+        dia_semana=today_spanish, hora="08:00", km=25, kwh=3.75, descripcion="Trabajo"
     )
 
     await mgr.async_add_punctual_trip(
         datetime_str=datetime.now().strftime("%Y-%m-%dT14:00"),
         km=50,
         kwh=7.5,
-        descripcion="Compras"
+        descripcion="Compras",
     )
 
     # Get kWh needed today
@@ -165,10 +158,10 @@ async def test_get_kwh_needed_today_no_trips_returns_zero(mock_hass):
     """Test that kWh needed today returns 0 when no trips exist."""
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # No trips added
     kwh_today = await mgr.async_get_kwh_needed_today()
-    
+
     assert kwh_today == 0.0
 
 
@@ -185,11 +178,7 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
 
     # Add trip requiring 11.25 kWh for today
     await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish,
-        hora="08:00",
-        km=25,
-        kwh=11.25,
-        descripcion="Trabajo"
+        dia_semana=today_spanish, hora="08:00", km=25, kwh=11.25, descripcion="Trabajo"
     )
 
     # Calculate hours needed (uses default charging power from mock config)
@@ -197,5 +186,3 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
 
     # ceil(11.25 / 3.6) = ceil(3.125) = 4
     assert hours == 4
-
-

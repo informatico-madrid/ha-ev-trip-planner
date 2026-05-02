@@ -102,6 +102,7 @@ async def test_aggregated_sensor_matrix():
 # sensor.py - async_will_remove_from_hass for TripPlannerSensor
 # =============================================================================
 
+
 class TestAsyncWillRemoveFromHass:
     """Tests for async_will_remove_from_hass cleanup."""
 
@@ -109,7 +110,9 @@ class TestAsyncWillRemoveFromHass:
     async def test_will_remove_from_hass_cleans_up_emhass_indices(self):
         """async_will_remove_from_hass calls async_cleanup_vehicle_indices when adapter exists."""
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         mock_emhass_adapter = MagicMock()
         mock_emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
@@ -136,7 +139,10 @@ class TestAsyncWillRemoveFromHass:
 
         # Directly invoke the method logic to cover the branch
         # The actual hasattr check on trip_manager may not work with mock
-        if hasattr(mock_trip_manager, "_emhass_adapter") and mock_trip_manager._emhass_adapter is not None:
+        if (
+            hasattr(mock_trip_manager, "_emhass_adapter")
+            and mock_trip_manager._emhass_adapter is not None
+        ):
             await mock_trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
             mock_emhass_adapter.async_cleanup_vehicle_indices.assert_awaited_once()
 
@@ -144,6 +150,7 @@ class TestAsyncWillRemoveFromHass:
 # =============================================================================
 # sensor.py - _async_create_trip_sensors exception handling
 # =============================================================================
+
 
 class TestAsyncCreateTripSensorsExceptionHandling:
     """Tests for _async_create_trip_sensors exception handling in trip sensor creation."""
@@ -163,10 +170,12 @@ class TestAsyncCreateTripSensorsExceptionHandling:
         # Make TripSensor constructor raise
         with pytest.MonkeyPatch.context() as m:
             import custom_components.ev_trip_planner.sensor as sensor_module
+
             # Use object as base since TripSensor may not be in dir() at class definition time
             class BrokenTripSensor(object):
                 def __init__(self, *args, **kwargs):
                     raise RuntimeError("Simulated sensor creation failure")
+
             # Patch at module level
             m.setattr(sensor_module, "TripSensor", BrokenTripSensor)
 
@@ -179,6 +188,7 @@ class TestAsyncCreateTripSensorsExceptionHandling:
 # =============================================================================
 # sensor.py - async_create_trip_sensor error paths
 # =============================================================================
+
 
 class TestAsyncCreateTripSensorErrorPaths:
     """Tests for async_create_trip_sensor error handling."""
@@ -193,7 +203,9 @@ class TestAsyncCreateTripSensorErrorPaths:
 
         trip_data = {"id": "trip_1", "tipo": "puntual"}
 
-        result = await async_create_trip_sensor(mock_hass, "nonexistent_entry", trip_data)
+        result = await async_create_trip_sensor(
+            mock_hass, "nonexistent_entry", trip_data
+        )
 
         assert result is False
 
@@ -235,7 +247,9 @@ class TestAsyncCreateTripSensorErrorPaths:
         mock_entry.data = {"vehicle_name": "Test Vehicle"}
 
         mock_runtime_data = MagicMock()
-        type(mock_runtime_data).trip_manager = PropertyMock(return_value=mock_trip_manager)
+        type(mock_runtime_data).trip_manager = PropertyMock(
+            return_value=mock_trip_manager
+        )
         type(mock_runtime_data).coordinator = PropertyMock(return_value=None)
         type(mock_runtime_data).sensor_async_add_entities = PropertyMock(
             return_value=AsyncMock()
@@ -264,9 +278,15 @@ class TestAsyncCreateTripSensorErrorPaths:
         mock_entry.data = {"vehicle_name": "Test Vehicle"}
 
         mock_runtime_data = MagicMock()
-        type(mock_runtime_data).trip_manager = PropertyMock(return_value=mock_trip_manager)
-        type(mock_runtime_data).coordinator = PropertyMock(return_value=mock_coordinator)
-        type(mock_runtime_data).sensor_async_add_entities = PropertyMock(return_value=None)
+        type(mock_runtime_data).trip_manager = PropertyMock(
+            return_value=mock_trip_manager
+        )
+        type(mock_runtime_data).coordinator = PropertyMock(
+            return_value=mock_coordinator
+        )
+        type(mock_runtime_data).sensor_async_add_entities = PropertyMock(
+            return_value=None
+        )
         mock_entry.runtime_data = mock_runtime_data
 
         mock_hass = MagicMock()
@@ -283,6 +303,7 @@ class TestAsyncCreateTripSensorErrorPaths:
 # sensor.py - async_update_trip_sensor error paths
 # =============================================================================
 
+
 class TestAsyncUpdateTripSensor:
     """Tests for async_update_trip_sensor."""
 
@@ -296,7 +317,9 @@ class TestAsyncUpdateTripSensor:
 
         trip_data = {"id": "trip_1", "tipo": "puntual"}
 
-        result = await async_update_trip_sensor(mock_hass, "nonexistent_entry", trip_data)
+        result = await async_update_trip_sensor(
+            mock_hass, "nonexistent_entry", trip_data
+        )
 
         assert result is False
 
@@ -335,8 +358,12 @@ class TestAsyncUpdateTripSensor:
         mock_entry.data = {"vehicle_name": "Test Vehicle"}
 
         mock_runtime_data = MagicMock()
-        type(mock_runtime_data).trip_manager = PropertyMock(return_value=mock_trip_manager)
-        type(mock_runtime_data).coordinator = PropertyMock(return_value=mock_coordinator)
+        type(mock_runtime_data).trip_manager = PropertyMock(
+            return_value=mock_trip_manager
+        )
+        type(mock_runtime_data).coordinator = PropertyMock(
+            return_value=mock_coordinator
+        )
         type(mock_runtime_data).sensor_async_add_entities = PropertyMock(
             return_value=AsyncMock()
         )
@@ -361,6 +388,7 @@ class TestAsyncUpdateTripSensor:
 # =============================================================================
 # sensor.py - async_remove_trip_sensor tests
 # =============================================================================
+
 
 class TestAsyncRemoveTripSensor:
     """Tests for async_remove_trip_sensor."""
@@ -387,13 +415,16 @@ class TestAsyncRemoveTripSensor:
 # sensor.py - device_info for different sensor types
 # =============================================================================
 
+
 class TestSensorDeviceInfo:
     """Tests for device_info properties on different sensor types."""
 
     def test_trip_planner_sensor_device_info(self):
         """TripPlannerSensor.device_info returns correct device info."""
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = {"some_key": "value"}
@@ -458,6 +489,7 @@ class TestSensorDeviceInfo:
 # sensor.py - async_setup_entry error handling
 # =============================================================================
 
+
 class TestAsyncSetupEntryErrorHandling:
     """Tests for async_setup_entry error handling."""
 
@@ -487,13 +519,16 @@ class TestAsyncSetupEntryErrorHandling:
 # sensor.py - TripPlannerSensor extra_state_attributes edge cases
 # =============================================================================
 
+
 class TestTripPlannerSensorExtraStateAttributes:
     """Tests for TripPlannerSensor extra_state_attributes."""
 
     def test_extra_state_attributes_returns_empty_when_coordinator_data_is_none(self):
         """extra_state_attributes returns {} when coordinator.data is None."""
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
@@ -510,6 +545,7 @@ class TestTripPlannerSensorExtraStateAttributes:
         sensor = TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
 
         assert sensor.extra_state_attributes == {}
+
 
 class TestSensorAsyncUpdateTripSensor:
     """Tests for sensor.py lines 532-543: async_update_trip_sensor branches."""
@@ -596,6 +632,7 @@ class TestSensorAsyncUpdateTripSensor:
 
         assert result is True
 
+
 class TestFormatWindowTime:
     """Tests for _format_window_time function."""
 
@@ -647,7 +684,9 @@ class TestTripPlannerSensorNoneData:
     def test_native_value_returns_none_when_coordinator_data_is_none(self):
         """native_value returns None when coordinator.data is None."""
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
@@ -670,7 +709,9 @@ class TestTripPlannerSensorNoneData:
     ):
         """extra_state_attributes returns {} when coordinator.data is None."""
         from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+        from custom_components.ev_trip_planner.definitions import (
+            TripSensorEntityDescription,
+        )
 
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
@@ -920,7 +961,9 @@ async def test_aggregated_sensor_excludes_inactive():
                 "emhass_index": 1,
             },
             "trip_003": {
-                "p_deferrable_matrix": [[3.0] * 168],  # 1 deferrable load - should be EXCLUDED
+                "p_deferrable_matrix": [
+                    [3.0] * 168
+                ],  # 1 deferrable load - should be EXCLUDED
                 "number_of_deferrable_loads": 1,
                 "def_total_hours_array": [24.0],
                 "p_deferrable_nom_array": [1.0],
@@ -1234,7 +1277,6 @@ class TestGetManager:
             await _get_manager(mock_hass, "unknown_vehicle")
 
 
-
 # =============================================================================
 # sensor.py - EmhassDeferrableLoadSensor trips sorted by emhass_index
 # =============================================================================
@@ -1308,7 +1350,7 @@ async def test_get_active_trips_ordered_sorting():
     for i, row in enumerate(matrix):
         expected_value = [10.0, 20.0, 1.0][i]
         assert row[0] == expected_value, (
-            f"Row {i} should have first element {expected_value} (emhass_index {i+1}), got {row[0]}"
+            f"Row {i} should have first element {expected_value} (emhass_index {i + 1}), got {row[0]}"
         )
 
     # Verify all 5 array attrs are present and also sorted correctly
@@ -1446,7 +1488,9 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
     }
     # Use context manager to temporarily override vehicle_id property
     # This prevents class-level pollution that causes flakiness when tests run in random order
-    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+    with patch.object(
+        type(coordinator), "vehicle_id", new_callable=PropertyMock
+    ) as mock_vid:
         mock_vid.return_value = "test_vehicle"
 
         # Create aggregated sensor
@@ -1460,9 +1504,7 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         assert "deferrables_schedule" in attrs, (
             "deferrables_schedule should always be present"
         )
-        assert "emhass_status" in attrs, (
-            "emhass_status should always be present"
-        )
+        assert "emhass_status" in attrs, "emhass_status should always be present"
 
         # Assert array attrs behavior when no active trips:
         # - power_profile_watts, deferrables_schedule, emhass_status always present
@@ -1477,9 +1519,7 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         assert "deferrables_schedule" in attrs, (
             "deferrables_schedule should always be present"
         )
-        assert "emhass_status" in attrs, (
-            "emhass_status should always be present"
-        )
+        assert "emhass_status" in attrs, "emhass_status should always be present"
         assert attrs["emhass_status"] == "ready", (
             f"emhass_status should be 'ready', got {attrs['emhass_status']}"
         )
@@ -1494,10 +1534,18 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         assert "p_deferrable_matrix" not in attrs, (
             f"p_deferrable_matrix should NOT be present when no active trips, got {list(attrs.keys())}"
         )
-        assert "def_total_hours_array" not in attrs, "def_total_hours_array should NOT be present when no active trips"
-        assert "p_deferrable_nom_array" not in attrs, "p_deferrable_nom_array should NOT be present when no active trips"
-        assert "def_start_timestep_array" not in attrs, "def_start_timestep_array should NOT be present when no active trips"
-    assert "def_end_timestep_array" not in attrs, "def_end_timestep_array should NOT be present when no active trips"
+        assert "def_total_hours_array" not in attrs, (
+            "def_total_hours_array should NOT be present when no active trips"
+        )
+        assert "p_deferrable_nom_array" not in attrs, (
+            "p_deferrable_nom_array should NOT be present when no active trips"
+        )
+        assert "def_start_timestep_array" not in attrs, (
+            "def_start_timestep_array should NOT be present when no active trips"
+        )
+    assert "def_end_timestep_array" not in attrs, (
+        "def_end_timestep_array should NOT be present when no active trips"
+    )
 
 
 # =============================================================================
@@ -1619,7 +1667,9 @@ async def test_data_flow_adapter_to_sensors():
     }
     # Use context manager to temporarily override vehicle_id property
     # This prevents class-level pollution that causes flakiness when tests run in random order
-    with patch.object(type(coordinator), 'vehicle_id', new_callable=PropertyMock) as mock_vid:
+    with patch.object(
+        type(coordinator), "vehicle_id", new_callable=PropertyMock
+    ) as mock_vid:
         mock_vid.return_value = "test_vehicle"
 
         # Test 1: Per-trip sensor (TripEmhassSensor)

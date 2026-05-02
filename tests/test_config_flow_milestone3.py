@@ -28,11 +28,11 @@ async def test_step_emhass_valid_config(hass: HomeAssistant):
     """Test EMHASS step with valid configuration."""
     # Setup
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
-    
+
     # Execute: Submit planning horizon and max deferrable loads
     result = await flow.async_step_emhass(
         user_input={
@@ -40,11 +40,11 @@ async def test_step_emhass_valid_config(hass: HomeAssistant):
             CONF_MAX_DEFERRABLE_LOADS: 50,
         }
     )
-    
+
     # Verify: Flow continues to presence step
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "presence"
-    
+
     # Verify: Data stored correctly
     assert flow.context["vehicle_data"][CONF_PLANNING_HORIZON] == 7
     assert flow.context["vehicle_data"][CONF_MAX_DEFERRABLE_LOADS] == 50
@@ -78,11 +78,11 @@ async def test_step_emhass_invalid_horizon_too_high(hass: HomeAssistant):
 async def test_step_emhass_invalid_horizon_too_low(hass: HomeAssistant):
     """Test EMHASS step rejects horizon < 1 day."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {}}
-    
+
     # Execute: Submit horizon < 1 day
     result = await flow.async_step_emhass(
         user_input={
@@ -90,7 +90,7 @@ async def test_step_emhass_invalid_horizon_too_low(hass: HomeAssistant):
             CONF_MAX_DEFERRABLE_LOADS: 50,
         }
     )
-    
+
     # Verify: Error shown
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "emhass"
@@ -102,11 +102,11 @@ async def test_step_emhass_invalid_horizon_too_low(hass: HomeAssistant):
 async def test_step_emhass_invalid_max_loads_too_high(hass: HomeAssistant):
     """Test EMHASS step rejects max loads > 100."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {}}
-    
+
     # Execute: Submit max loads > 100
     result = await flow.async_step_emhass(
         user_input={
@@ -114,7 +114,7 @@ async def test_step_emhass_invalid_max_loads_too_high(hass: HomeAssistant):
             CONF_MAX_DEFERRABLE_LOADS: 101,
         }
     )
-    
+
     # Verify: Error shown
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "emhass"
@@ -126,11 +126,11 @@ async def test_step_emhass_invalid_max_loads_too_high(hass: HomeAssistant):
 async def test_step_emhass_invalid_max_loads_too_low(hass: HomeAssistant):
     """Test EMHASS step rejects max loads < 10."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {}}
-    
+
     # Execute: Submit max loads < 10
     result = await flow.async_step_emhass(
         user_input={
@@ -138,7 +138,7 @@ async def test_step_emhass_invalid_max_loads_too_low(hass: HomeAssistant):
             CONF_MAX_DEFERRABLE_LOADS: 9,
         }
     )
-    
+
     # Verify: Error shown
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "emhass"
@@ -150,14 +150,14 @@ async def test_step_emhass_invalid_max_loads_too_low(hass: HomeAssistant):
 async def test_step_emhass_with_planning_sensor(hass: HomeAssistant):
     """Test EMHASS step with planning sensor entity."""
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
-    
+
     flow = EVTripPlannerConfigFlow()
     flow.hass = hass
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
-    
+
     # Create a mock sensor entity
     await hass.states.async_set("sensor.test_planning_sensor", "5")
-    
+
     # Execute: Submit with planning sensor
     result = await flow.async_step_emhass(
         user_input={
@@ -166,11 +166,14 @@ async def test_step_emhass_with_planning_sensor(hass: HomeAssistant):
             CONF_MAX_DEFERRABLE_LOADS: 50,
         }
     )
-    
+
     # Verify: Flow continues and sensor stored
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "presence"
-    assert flow.context["vehicle_data"][CONF_PLANNING_SENSOR] == "sensor.test_planning_sensor"
+    assert (
+        flow.context["vehicle_data"][CONF_PLANNING_SENSOR]
+        == "sensor.test_planning_sensor"
+    )
 
 
 @pytest.mark.asyncio
@@ -185,6 +188,7 @@ async def test_step_presence_optional_skip(hass: HomeAssistant):
     # Execute: Skip presence step (empty user_input)
     # Mock entity registry for auto-selection
     from homeassistant.helpers import entity_registry as er
+
     mock_entity = MagicMock()
     mock_entity.entity_id = "binary_sensor.test_charging"
     mock_registry = MagicMock()
@@ -195,7 +199,7 @@ async def test_step_presence_optional_skip(hass: HomeAssistant):
     mock_state.state = "on"
     hass.states.get = MagicMock(return_value=mock_state)
 
-    with patch.object(er, 'async_get', return_value=mock_registry):
+    with patch.object(er, "async_get", return_value=mock_registry):
         result = await flow.async_step_presence(user_input={})
 
     # Verify: Should advance to notifications step
@@ -449,6 +453,7 @@ async def test_step_notifications_service_not_found(hass: HomeAssistant):
             # Only allow known services
             return service in ["notify.mobile_app", "notify.persistent_notification"]
         return True
+
     hass.services.has_service = _mock_has_service
 
     flow = EVTripPlannerConfigFlow()
@@ -611,7 +616,9 @@ def test_notification_entity_selector_config():
 @pytest.mark.asyncio
 async def test_options_flow_init_shows_form(hass: HomeAssistant):
     """Test options flow init shows form with current values."""
-    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.config_flow import (
+        EVTripPlannerOptionsFlowHandler,
+    )
     from unittest.mock import MagicMock
 
     # Create a mock config entry with current values
@@ -639,7 +646,9 @@ async def test_options_flow_init_shows_form(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_options_flow_init_updates_config(hass: HomeAssistant):
     """Test options flow init updates configuration."""
-    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.config_flow import (
+        EVTripPlannerOptionsFlowHandler,
+    )
     from unittest.mock import MagicMock
 
     # Create a mock config entry with current values
@@ -677,7 +686,9 @@ async def test_options_flow_init_updates_config(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_options_flow_uses_defaults_when_not_present(hass: HomeAssistant):
     """Test options flow uses defaults when current config doesn't have values."""
-    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.config_flow import (
+        EVTripPlannerOptionsFlowHandler,
+    )
     from unittest.mock import MagicMock
 
     # Create a mock config entry with minimal values
@@ -798,6 +809,7 @@ async def test_full_flow_with_minimal_config(hass: HomeAssistant):
     # Step 4: Presence - skip (empty)
     # Mock entity registry for auto-selection
     from homeassistant.helpers import entity_registry as er
+
     mock_entity = MagicMock()
     mock_entity.entity_id = "binary_sensor.test_charging"
     mock_registry = MagicMock()
@@ -808,7 +820,7 @@ async def test_full_flow_with_minimal_config(hass: HomeAssistant):
     mock_state.state = "on"
     hass.states.get = MagicMock(return_value=mock_state)
 
-    with patch.object(er, 'async_get', return_value=mock_registry):
+    with patch.object(er, "async_get", return_value=mock_registry):
         result = await flow.async_step_presence({})
     assert result["step_id"] == "notifications"
 

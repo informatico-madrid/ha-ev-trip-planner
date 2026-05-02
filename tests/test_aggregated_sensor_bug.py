@@ -28,6 +28,7 @@ from custom_components.ev_trip_planner.const import (
 
 class MockConfigEntry:
     """Mock ConfigEntry for testing."""
+
     def __init__(self, vehicle_id="test_vehicle", data=None):
         self.entry_id = "test_entry_id"
         self.data = data or {
@@ -39,6 +40,7 @@ class MockConfigEntry:
 
 class MockRuntimeData:
     """Mock runtime_data for ConfigEntry."""
+
     def __init__(self, coordinator=None, trip_manager=None):
         self.coordinator = coordinator
         self.trip_manager = trip_manager
@@ -86,6 +88,7 @@ def mock_coordinator():
 # AGGREGATED SENSOR DATA FLOW TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_async_publish_all_deferrable_loads_populates_non_empty_power_profile(
     hass, mock_store
@@ -116,13 +119,16 @@ async def test_async_publish_all_deferrable_loads_populates_non_empty_power_prof
     entry = MockConfigEntry("test_vehicle", config)
     entry.runtime_data = MockRuntimeData()
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
         # Mock _get_current_soc to return low SOC (20%) so charging IS needed
         # This is necessary because SOC-aware charging determines kwh_needed based on SOC
-        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+        with patch.object(adapter, "_get_current_soc", return_value=20.0):
             # Create a trip that SHOULD trigger power profile calculation
             trips = [
                 {
@@ -159,8 +165,10 @@ async def test_async_publish_all_deferrable_loads_populates_non_empty_power_prof
         )
 
         # Log for debugging
-        print(f"SUCCESS: _cached_power_profile populated with {len(adapter._cached_power_profile)} "
-              f"hourly values, {non_zero_count} with non-zero values")
+        print(
+            f"SUCCESS: _cached_power_profile populated with {len(adapter._cached_power_profile)} "
+            f"hourly values, {non_zero_count} with non-zero values"
+        )
 
 
 @pytest.mark.asyncio
@@ -188,12 +196,15 @@ async def test_aggregated_sensor_can_access_power_profile_via_coordinator(
     entry = MockConfigEntry("test_vehicle", config)
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
         # Mock _get_current_soc to return low SOC (20%) so charging IS needed
-        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+        with patch.object(adapter, "_get_current_soc", return_value=20.0):
             trips = [
                 {
                     "id": "trip_001",
@@ -225,14 +236,14 @@ async def test_aggregated_sensor_can_access_power_profile_via_coordinator(
             f"Non-zero count: {non_zero_count}. The EMHASS integration cannot schedule deferrable loads."
         )
 
-        print(f"SUCCESS: Coordinator can provide power_profile: {len(power_profile)} hours, "
-              f"{non_zero_count} with non-zero values")
+        print(
+            f"SUCCESS: Coordinator can provide power_profile: {len(power_profile)} hours, "
+            f"{non_zero_count} with non-zero values"
+        )
 
 
 @pytest.mark.asyncio
-async def test_get_cached_results_provides_real_data_to_sensor(
-    hass, mock_store
-):
+async def test_get_cached_results_provides_real_data_to_sensor(hass, mock_store):
     """Test that get_cached_optimization_results returns usable data for the sensor.
 
     This is a focused test on the integration point between EMHASSAdapter and the sensor.
@@ -253,12 +264,15 @@ async def test_get_cached_results_provides_real_data_to_sensor(
 
     entry = MockConfigEntry("test_vehicle", config)
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
         # Mock _get_current_soc to return low SOC (20%) so charging IS needed
-        with patch.object(adapter, '_get_current_soc', return_value=20.0):
+        with patch.object(adapter, "_get_current_soc", return_value=20.0):
             trips = [
                 {
                     "id": "trip_001",
@@ -298,5 +312,7 @@ async def test_get_cached_results_provides_real_data_to_sensor(
             "Without this, the EMHASS optimization has no deferrable load schedule to work with."
         )
 
-        print(f"Sensor data verification: power_profile has {len(power_profile)} hours, "
-              f"{sum(1 for v in power_profile if v > 0)} with charging power")
+        print(
+            f"Sensor data verification: power_profile has {len(power_profile)} hours, "
+            f"{sum(1 for v in power_profile if v > 0)} with charging power"
+        )

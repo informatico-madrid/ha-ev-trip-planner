@@ -74,9 +74,7 @@ async def test_publish_deferrable_loads_skips_trips_without_id(
     mock_coordinator = MagicMock()
     mock_coordinator.async_refresh = AsyncMock(return_value=None)
 
-    with patch.object(
-        EMHASSAdapter, "_get_coordinator", return_value=mock_coordinator
-    ):
+    with patch.object(EMHASSAdapter, "_get_coordinator", return_value=mock_coordinator):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -113,7 +111,11 @@ async def test_cleanup_raises_exception_for_registry(hass: HomeAssistant) -> Non
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_cleanup_reg",
         version=1,
     )
@@ -134,7 +136,9 @@ async def test_cleanup_raises_exception_for_registry(hass: HomeAssistant) -> Non
 
 
 @pytest.mark.asyncio
-async def test_cleanup_raises_exception_main_sensor_registry(hass: HomeAssistant) -> None:
+async def test_cleanup_raises_exception_main_sensor_registry(
+    hass: HomeAssistant,
+) -> None:
     """Test async_cleanup_vehicle_indices handles Exception for main sensor registry."""
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -142,7 +146,11 @@ async def test_cleanup_raises_exception_main_sensor_registry(hass: HomeAssistant
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_cleanup_main_reg",
         version=1,
     )
@@ -251,23 +259,30 @@ async def test_async_create_trip_emhass_sensor_no_callback(hass: HomeAssistant) 
     # Do NOT call add_to_hass - this avoids the full HA setup which overrides runtime_data
 
     # Set runtime_data with sensor_async_add_entities explicitly set to None
-    runtime_data = EVTripRuntimeData(coordinator=None, trip_manager=None, emhass_adapter=None)
-    runtime_data.sensor_async_add_entities = None  # Explicitly None to trigger error path
+    runtime_data = EVTripRuntimeData(
+        coordinator=None, trip_manager=None, emhass_adapter=None
+    )
+    runtime_data.sensor_async_add_entities = (
+        None  # Explicitly None to trigger error path
+    )
     entry.runtime_data = runtime_data
 
     # Mock coordinator
     mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
 
     # Mock hass.config_entries.async_get_entry to return our entry
-    with patch.object(hass.config_entries, 'async_get_entry', return_value=entry):
+    with patch.object(hass.config_entries, "async_get_entry", return_value=entry):
         # Should return False and log error
-        from custom_components.ev_trip_planner.sensor import async_create_trip_emhass_sensor
+        from custom_components.ev_trip_planner.sensor import (
+            async_create_trip_emhass_sensor,
+        )
+
         result = await async_create_trip_emhass_sensor(
             hass,
             entry.entry_id,
             mock_coordinator,
             "test_emhass_no_callback",
-            "trip_123"
+            "trip_123",
         )
         assert result is False
 
@@ -349,6 +364,7 @@ async def test_generate_power_profile_exception_fallback(
 
     # Should use fallback battery_capacity=50.0 (triggers 1713)
     from custom_components.ev_trip_planner.trip_manager import TripManager
+
     result = await trip_manager.async_generate_power_profile()
     assert isinstance(result, list)
 
@@ -377,7 +393,9 @@ async def test_presence_monitor_check_home_sensor_none(hass: HomeAssistant) -> N
 
 
 @pytest.mark.asyncio
-async def test_presence_monitor_check_home_sensor_state_none(hass: HomeAssistant) -> None:
+async def test_presence_monitor_check_home_sensor_state_none(
+    hass: HomeAssistant,
+) -> None:
     """Test _async_check_home_sensor handles state=None (line 319)."""
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
@@ -403,7 +421,9 @@ async def test_presence_monitor_check_home_sensor_state_none(hass: HomeAssistant
 
 
 @pytest.mark.asyncio
-async def test_presence_monitor_check_home_coords_no_coords(hass: HomeAssistant) -> None:
+async def test_presence_monitor_check_home_coords_no_coords(
+    hass: HomeAssistant,
+) -> None:
     """Test _async_check_home_coords handles missing home_coords (lines 331-333)."""
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
@@ -420,7 +440,9 @@ async def test_presence_monitor_check_home_coords_no_coords(hass: HomeAssistant)
 
 
 @pytest.mark.asyncio
-async def test_presence_monitor_check_home_coords_vehicle_sensor_none(hass: HomeAssistant) -> None:
+async def test_presence_monitor_check_home_coords_vehicle_sensor_none(
+    hass: HomeAssistant,
+) -> None:
     """Test _async_check_home_coords handles vehicle_coords_sensor=None (lines 336-340)."""
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
     from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES
@@ -435,11 +457,14 @@ async def test_presence_monitor_check_home_coords_vehicle_sensor_none(hass: Home
 
     # vehicle_coords_sensor is None by default - should trigger lines 336-340
     result = await monitor._async_check_home_coordinates()
-    assert result is True  # Lines 336-340: return True when vehicle_coords_sensor is None
+    assert (
+        result is True
+    )  # Lines 336-340: return True when vehicle_coords_sensor is None
 
 
 class _MockState:
     """Simple class for coverage-friendly state object (not a Mock)."""
+
     def __init__(self, state: str | None) -> None:
         self.state = state
 
@@ -499,7 +524,9 @@ async def test_generate_power_profile_exception_batterycapacity(
 @pytest.mark.asyncio
 async def test_schedule_monitor_notify_with_none_service() -> None:
     """Test _async_notify handles notification_service=None (line 282)."""
-    from custom_components.ev_trip_planner.schedule_monitor import VehicleScheduleMonitor
+    from custom_components.ev_trip_planner.schedule_monitor import (
+        VehicleScheduleMonitor,
+    )
 
     # Create VehicleScheduleMonitor with notification_service=None
     monitor = VehicleScheduleMonitor(
@@ -521,7 +548,9 @@ async def test_schedule_monitor_notify_with_none_service() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cleanup_raises_homeassistant_error_for_state(hass: HomeAssistant) -> None:
+async def test_cleanup_raises_homeassistant_error_for_state(
+    hass: HomeAssistant,
+) -> None:
     """Test async_cleanup_vehicle_indices handles HomeAssistantError for state."""
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -529,7 +558,11 @@ async def test_cleanup_raises_homeassistant_error_for_state(hass: HomeAssistant)
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_cleanup_hw",
         version=1,
     )
@@ -553,7 +586,9 @@ async def test_cleanup_raises_homeassistant_error_for_state(hass: HomeAssistant)
 
 
 @pytest.mark.asyncio
-async def test_cleanup_raises_homeassistant_error_vehicle_state(hass: HomeAssistant) -> None:
+async def test_cleanup_raises_homeassistant_error_vehicle_state(
+    hass: HomeAssistant,
+) -> None:
     """Test async_cleanup_vehicle_indices handles HomeAssistantError for vehicle state."""
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -561,7 +596,11 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(hass: HomeAssist
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_cleanup_hw_state",
         version=1,
     )
@@ -573,7 +612,9 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(hass: HomeAssist
     adapter._published_entity_ids = {"trip_1": "sensor.test"}
 
     # Mock state.async_remove to raise HomeAssistantError (triggers 1375-1376)
-    hass.states.async_remove = MagicMock(side_effect=HomeAssistantError("Vehicle state error"))
+    hass.states.async_remove = MagicMock(
+        side_effect=HomeAssistantError("Vehicle state error")
+    )
 
     # Cleanup should handle exception and continue
     await adapter.async_cleanup_vehicle_indices()
@@ -585,7 +626,9 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(hass: HomeAssist
 
 
 @pytest.mark.asyncio
-async def test_cleanup_raises_generic_exception_for_registry(hass: HomeAssistant) -> None:
+async def test_cleanup_raises_generic_exception_for_registry(
+    hass: HomeAssistant,
+) -> None:
     """Test async_cleanup_vehicle_indices handles generic Exception for registry."""
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -594,7 +637,11 @@ async def test_cleanup_raises_generic_exception_for_registry(hass: HomeAssistant
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_cleanup_reg_exception",
         version=1,
     )
@@ -612,6 +659,7 @@ async def test_cleanup_raises_generic_exception_for_registry(hass: HomeAssistant
 
     # Patch er.async_get to return our mock (the code uses er.async_get(self.hass))
     from homeassistant.helpers import entity_registry as er
+
     with patch.object(er, "async_get", return_value=mock_registry):
         # Cleanup should handle generic Exception and continue
         await adapter.async_cleanup_vehicle_indices()
@@ -634,7 +682,10 @@ async def test_presence_monitor_check_home_coords_state_none(
     hass: HomeAssistant,
 ) -> None:
     """Test _async_check_home_coords handles state=None (line 353)."""
-    from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES, CONF_VEHICLE_COORDINATES_SENSOR
+    from custom_components.ev_trip_planner.const import (
+        CONF_HOME_COORDINATES,
+        CONF_VEHICLE_COORDINATES_SENSOR,
+    )
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
     # Use correct config key
@@ -695,7 +746,7 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
     entry.runtime_data.trip_manager = MagicMock()
 
     # Create adapter with mock entry
-    with patch.object(ha_storage, 'Store', mock_store_class):
+    with patch.object(ha_storage, "Store", mock_store_class):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -717,7 +768,7 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
         "datetime": "2027-11-20T08:00:00",
     }
 
-    with patch.object(adapter, '_get_current_soc', side_effect=mock_get_soc):
+    with patch.object(adapter, "_get_current_soc", side_effect=mock_get_soc):
         # Should use fallback value of 50.0 and complete without error
         # Call the method and assert observable effects instead of swallowing exceptions.
         await adapter.async_publish_deferrable_load(trip_data)
@@ -764,7 +815,7 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
     mock_coordinator._trip_manager = mock_trip_manager
 
     # Create adapter with mock entry
-    with patch.object(ha_storage, 'Store', mock_store_class):
+    with patch.object(ha_storage, "Store", mock_store_class):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -786,7 +837,7 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
         {"id": "trip_2", "kwh": 15.0, "datetime": "2027-11-20T09:00:00"},
     ]
 
-    with patch.object(adapter, '_get_current_soc', side_effect=mock_get_soc):
+    with patch.object(adapter, "_get_current_soc", side_effect=mock_get_soc):
         # Call publish_deferrable_loads and assert cache/populated values instead of silencing
         await adapter.publish_deferrable_loads(trips_data)
         # The method should complete (result True/False depending on mocks),
@@ -811,7 +862,11 @@ async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> 
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Test",
-        data={"vehicle_name": "Test Car", "planning_horizon_days": 7, "max_deferrable_loads": 5},
+        data={
+            "vehicle_name": "Test Car",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 5,
+        },
         entry_id="test_update_sensor_match",
         version=1,
     )
@@ -858,7 +913,9 @@ async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> 
 
 
 @pytest.mark.asyncio
-async def test_async_publish_deferrable_load_recurring_no_day(hass: HomeAssistant, mock_store) -> None:
+async def test_async_publish_deferrable_load_recurring_no_day(
+    hass: HomeAssistant, mock_store
+) -> None:
     """Test async_publish_deferrable_load with recurring trip missing 'day' field.
 
     Covers lines 330-331: day=None case (day = trip.get("day") or trip.get("dia_semana"))
@@ -881,7 +938,10 @@ async def test_async_publish_deferrable_load_recurring_no_day(hass: HomeAssistan
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -906,7 +966,9 @@ async def test_async_publish_deferrable_load_recurring_no_day(hass: HomeAssistan
 
 
 @pytest.mark.asyncio
-async def test_async_publish_deferrable_load_recurring_no_time(hass: HomeAssistant, mock_store) -> None:
+async def test_async_publish_deferrable_load_recurring_no_time(
+    hass: HomeAssistant, mock_store
+) -> None:
     """Test async_publish_deferrable_load with recurring trip missing 'time' field.
 
     Covers lines 330-331: time_str=None case (time_str = trip.get("time") or trip.get("hora"))
@@ -929,7 +991,10 @@ async def test_async_publish_deferrable_load_recurring_no_time(hass: HomeAssista
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -978,7 +1043,10 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -1001,7 +1069,9 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
         # Should return False for trip with unparseable day/time (line 337-341)
         assert result is False
         # Should have released the index
-        adapter.async_release_trip_index.assert_called_once_with("invalid_trip_datetime")
+        adapter.async_release_trip_index.assert_called_once_with(
+            "invalid_trip_datetime"
+        )
 
 
 # =============================================================================
@@ -1010,7 +1080,9 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
 
 
 @pytest.mark.asyncio
-async def test_async_publish_deferrable_load_datetime_object(hass: HomeAssistant, mock_store) -> None:
+async def test_async_publish_deferrable_load_datetime_object(
+    hass: HomeAssistant, mock_store
+) -> None:
     """Test async_publish_deferrable_load with datetime object instead of string.
 
     Covers lines 566-569: fallback for non-string deadline (deadline_dt = deadline_str or datetime.now())
@@ -1032,12 +1104,16 @@ async def test_async_publish_deferrable_load_datetime_object(hass: HomeAssistant
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
         # Trip with datetime as datetime object, not string (lines 566-569)
         from datetime import datetime as dt
+
         trip_with_datetime = {
             "id": "trip_datetime_obj",
             "tipo": "punctual",
@@ -1093,7 +1169,10 @@ async def test_async_publish_deferrable_load_valid_recurring_covers_debug_log(
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -1169,7 +1248,10 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
         version=1,
     )
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -1243,7 +1325,10 @@ async def test_publish_deferrable_loads_presence_monitor_raises(
         version=1,
     )
 
-    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 

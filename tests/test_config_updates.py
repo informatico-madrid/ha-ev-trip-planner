@@ -73,7 +73,10 @@ async def test_config_update_triggers_republish(mock_hass: HomeAssistant, mock_s
     }
 
     # Create adapter
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -81,19 +84,24 @@ async def test_config_update_triggers_republish(mock_hass: HomeAssistant, mock_s
         # Mock config entry with new power value
         class MockConfigEntryData(dict):
             """Dict subclass that properly implements .get()"""
+
             pass
 
         new_entry = MagicMock()
         new_entry.entry_id = "test_entry_id_123"
         # Create a dict subclass that works properly
-        new_entry.data = MockConfigEntryData({
-            "vehicle_name": "test_vehicle",
-            "charging_power_kw": 7.4,  # Changed from 3.6
-        })
+        new_entry.data = MockConfigEntryData(
+            {
+                "vehicle_name": "test_vehicle",
+                "charging_power_kw": 7.4,  # Changed from 3.6
+            }
+        )
         # Also mock options since code checks options first (line 1516)
-        new_entry.options = MockConfigEntryData({
-            "charging_power_kw": 7.4,
-        })
+        new_entry.options = MockConfigEntryData(
+            {
+                "charging_power_kw": 7.4,
+            }
+        )
 
         # Mock async_get_entry to return new entry
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
@@ -125,7 +133,10 @@ async def test_no_republish_when_no_change(mock_hass: HomeAssistant, mock_store)
     }
 
     # Create adapter
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -134,19 +145,24 @@ async def test_no_republish_when_no_change(mock_hass: HomeAssistant, mock_store)
         # Mock config entry with SAME power value
         class MockConfigEntryData(dict):
             """Dict subclass that properly implements .get()"""
+
             pass
 
         new_entry = MagicMock()
         new_entry.entry_id = "test_entry_id_123"
         # Create a dict subclass that works properly
-        new_entry.data = MockConfigEntryData({
-            "vehicle_name": "test_vehicle",
-            "charging_power_kw": 7.4,  # Unchanged
-        })
+        new_entry.data = MockConfigEntryData(
+            {
+                "vehicle_name": "test_vehicle",
+                "charging_power_kw": 7.4,  # Unchanged
+            }
+        )
         # Also mock options since code checks options first (line 1516)
-        new_entry.options = MockConfigEntryData({
-            "charging_power_kw": 7.4,
-        })
+        new_entry.options = MockConfigEntryData(
+            {
+                "charging_power_kw": 7.4,
+            }
+        )
 
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=new_entry)
 
@@ -187,7 +203,10 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
     mock_entry.async_on_unload = MagicMock(return_value=mock_unsubscribe)
     mock_entry.add_update_listener = MagicMock(return_value=mock_unsubscribe)
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
 
@@ -198,18 +217,22 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
         adapter.setup_config_entry_listener()
 
         # Verify: Listener handle stored (returned by async_on_unload)
-        assert hasattr(adapter, '_config_entry_listener')
+        assert hasattr(adapter, "_config_entry_listener")
         assert adapter._config_entry_listener is mock_unsubscribe
 
         # Verify: async_get_entry was called with entry_id
-        mock_hass.config_entries.async_get_entry.assert_called_once_with("test_entry_id_123")
+        mock_hass.config_entries.async_get_entry.assert_called_once_with(
+            "test_entry_id_123"
+        )
 
         # Verify: add_update_listener was called with the handler
         mock_entry.add_update_listener.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_handle_config_entry_update_triggers_republish(mock_hass: HomeAssistant, mock_store):
+async def test_handle_config_entry_update_triggers_republish(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test that _handle_config_entry_update calls update_charging_power.
 
     The new pattern uses ConfigEntry.add_update_listener which passes
@@ -222,7 +245,10 @@ async def test_handle_config_entry_update_triggers_republish(mock_hass: HomeAssi
     }
 
     # Create adapter
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -241,9 +267,10 @@ async def test_handle_config_entry_update_triggers_republish(mock_hass: HomeAssi
         adapter.update_charging_power.assert_called_once()
 
 
-
 @pytest.mark.asyncio
-async def test_update_charging_power_handles_missing_entry(mock_hass: HomeAssistant, mock_store):
+async def test_update_charging_power_handles_missing_entry(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test that update_charging_power handles missing config entry gracefully.
 
     If the config entry no longer exists, the method should log a warning
@@ -256,7 +283,10 @@ async def test_update_charging_power_handles_missing_entry(mock_hass: HomeAssist
     }
 
     # Create adapter
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "nonexistent_entry_id"
 
@@ -310,9 +340,11 @@ def mock_hass():
 
 
 @pytest.mark.asyncio
-async def test_handle_config_entry_update_detects_t_base_change(mock_hass: HomeAssistant, mock_store):
+async def test_handle_config_entry_update_detects_t_base_change(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test _handle_config_entry_update detects t_base change.
-    
+
     Covers line 2331: changed_params.append("t_base")
     The old t_base differs from the new one, so the change is detected.
     """
@@ -322,7 +354,10 @@ async def test_handle_config_entry_update_detects_t_base_change(mock_hass: HomeA
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -352,9 +387,11 @@ async def test_handle_config_entry_update_detects_t_base_change(mock_hass: HomeA
 
 
 @pytest.mark.asyncio
-async def test_handle_config_entry_update_detects_soh_sensor_change(mock_hass: HomeAssistant, mock_store):
+async def test_handle_config_entry_update_detects_soh_sensor_change(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test _handle_config_entry_update detects SOH sensor change.
-    
+
     Covers line 2333: changed_params.append("soh_sensor")
     The old SOH sensor differs from the new one, so the change is detected.
     """
@@ -364,7 +401,10 @@ async def test_handle_config_entry_update_detects_soh_sensor_change(mock_hass: H
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -387,9 +427,11 @@ async def test_handle_config_entry_update_detects_soh_sensor_change(mock_hass: H
 
 
 @pytest.mark.asyncio
-async def test_handle_config_entry_update_detects_charging_power_change(mock_hass: HomeAssistant, mock_store):
+async def test_handle_config_entry_update_detects_charging_power_change(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test _handle_config_entry_update detects charging_power change.
-    
+
     Covers line 2329: changed_params.append("charging_power")
     CONF_CHARGING_POWER is in cur_options, so charging_power is always detected.
     """
@@ -399,7 +441,10 @@ async def test_handle_config_entry_update_detects_charging_power_change(mock_has
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -420,9 +465,11 @@ async def test_handle_config_entry_update_detects_charging_power_change(mock_has
 
 
 @pytest.mark.asyncio
-async def test_no_charging_needed_power_watts_zero(mock_hass: HomeAssistant, mock_store):
+async def test_no_charging_needed_power_watts_zero(
+    mock_hass: HomeAssistant, mock_store
+):
     """Test that power_watts is 0.0 when total_hours == 0 (no charging needed).
-    
+
     Note: Due to proactive charging logic in determine_charging_need, any valid trip
     always results in kwh_needed > 0. The only way to hit total_hours == 0 is with
     trips that have None datetime (impossible in real usage) or kwh=0 with SOC >= target
@@ -434,7 +481,10 @@ async def test_no_charging_needed_power_watts_zero(mock_hass: HomeAssistant, moc
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(mock_hass, config)
         adapter.entry_id = "test_entry_id_123"
         adapter.vehicle_id = "test_vehicle"
@@ -444,5 +494,7 @@ async def test_no_charging_needed_power_watts_zero(mock_hass: HomeAssistant, moc
         ]
 
         # Normal trip — should trigger charging
-        result = await adapter.async_publish_all_deferrable_loads(trips, charging_power_kw=7.4)
+        result = await adapter.async_publish_all_deferrable_loads(
+            trips, charging_power_kw=7.4
+        )
         assert result is not None

@@ -33,6 +33,7 @@ def mock_hass():
     async def mock_executor_job(func, *args):
         """Mock executor job that runs function synchronously."""
         return func(*args)
+
     hass.async_add_executor_job = mock_executor_job
     hass.loop = Mock()
     hass.loop.time.return_value = 0.0  # Required for async_track_time_interval in T3.1
@@ -179,7 +180,9 @@ class TestImportDashboard:
             assert res.storage_method == "storage_api"
 
     @pytest.mark.asyncio
-    async def test_import_dashboard_respects_structured_result_false_and_falls_back(self, mock_hass):
+    async def test_import_dashboard_respects_structured_result_false_and_falls_back(
+        self, mock_hass
+    ):
         """If _save_lovelace_dashboard returns a DashboardImportResult(success=False) import_dashboard falls back to YAML helper result."""
         from custom_components.ev_trip_planner.dashboard import (
             DashboardImportResult,
@@ -203,12 +206,15 @@ class TestImportDashboard:
             storage_method="yaml_fallback",
         )
 
-        with patch(
-            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
-            AsyncMock(return_value=fail_obj),
-        ), patch(
-            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
-            AsyncMock(return_value=yaml_obj),
+        with (
+            patch(
+                "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                AsyncMock(return_value=fail_obj),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+                AsyncMock(return_value=yaml_obj),
+            ),
         ):
             res = await import_dashboard(
                 mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
@@ -246,12 +252,15 @@ class TestImportDashboard:
 
         mock_hass.config.components = ["lovelace", "core"]
 
-        with patch(
-            "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
-            AsyncMock(return_value=False),
-        ), patch(
-            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
-            AsyncMock(return_value=True),
+        with (
+            patch(
+                "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
+                AsyncMock(return_value=False),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
+                AsyncMock(return_value=True),
+            ),
         ):
             res = await import_dashboard(
                 mock_hass, vehicle_id="test_vehicle", vehicle_name="Test Vehicle"
@@ -524,7 +533,9 @@ class TestImportDashboardAdditional:
         # Mock storage to fail
         mock_hass.storage = Mock()
         mock_hass.storage.async_read = AsyncMock(side_effect=Exception("Storage error"))
-        mock_hass.storage.async_write_dict = AsyncMock(side_effect=Exception("Write error"))
+        mock_hass.storage.async_write_dict = AsyncMock(
+            side_effect=Exception("Write error")
+        )
 
         # Mock services - save service fails, import service works
         mock_hass.services = Mock()
@@ -715,6 +726,7 @@ class TestAsyncUnloadEntry:
 
         # Set up runtime data using entry.runtime_data pattern (Phase 4)
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
         entry.runtime_data = EVTripRuntimeData(
             coordinator=MagicMock(),
             trip_manager=trip_manager,
@@ -741,10 +753,10 @@ class TestAsyncUnloadEntry:
             assert "cleanup_vehicle_indices" in call_order, (
                 "emhass_adapter.async_cleanup_vehicle_indices must be called during unload"
             )
-            assert "unload_platforms" in call_order, (
-                "platforms must be unloaded"
-            )
-            assert call_order.index("cleanup_vehicle_indices") < call_order.index("unload_platforms"), (
+            assert "unload_platforms" in call_order, "platforms must be unloaded"
+            assert call_order.index("cleanup_vehicle_indices") < call_order.index(
+                "unload_platforms"
+            ), (
                 "async_cleanup_vehicle_indices must be called BEFORE async_unload_platforms"
             )
 
@@ -805,7 +817,10 @@ class TestStartupOrphanCleanup:
         mock_hass.states.async_remove = mock_async_remove
 
         # Call the standalone cleanup function directly
-        from custom_components.ev_trip_planner import async_cleanup_orphaned_emhass_sensors
+        from custom_components.ev_trip_planner import (
+            async_cleanup_orphaned_emhass_sensors,
+        )
+
         await async_cleanup_orphaned_emhass_sensors(mock_hass)
 
         # NOTE: The current implementation is a placeholder that does nothing.
@@ -848,7 +863,10 @@ class TestStartupOrphanCleanup:
         mock_hass.states.async_remove = mock_async_remove
 
         # Call the standalone cleanup function directly
-        from custom_components.ev_trip_planner import async_cleanup_orphaned_emhass_sensors
+        from custom_components.ev_trip_planner import (
+            async_cleanup_orphaned_emhass_sensors,
+        )
+
         await async_cleanup_orphaned_emhass_sensors(mock_hass)
 
         # Active sensor should NOT be removed
@@ -857,10 +875,10 @@ class TestStartupOrphanCleanup:
         )
 
 
-
 # =============================================================================
 # __init__.py coverage tests - missing lines 84, 94, 114, 118-120, 127-140, 153
 # =============================================================================
+
 
 class TestAsyncMigrateEntryMissingLines:
     """Tests for missing lines in async_migrate_entry."""
@@ -891,9 +909,7 @@ class TestAsyncMigrateEntryMissingLines:
         return entry
 
     @pytest.mark.asyncio
-    async def test_migrate_entry_returns_none_for_non_domain_unique_id(
-        self, mock_hass
-    ):
+    async def test_migrate_entry_returns_none_for_non_domain_unique_id(self, mock_hass):
         """Test line 84: migrate_unique_id returns None when unique_id doesn't start with DOMAIN.
 
         This tests the return None at line 84 when old_uid doesn't start with 'ev_trip_planner_'.
@@ -914,7 +930,7 @@ class TestAsyncMigrateEntryMissingLines:
 
         with patch(
             "custom_components.ev_trip_planner.async_migrate_entries",
-            side_effect=mock_migrate_entries
+            side_effect=mock_migrate_entries,
         ):
             await async_migrate_entry(mock_hass, entry)
 
@@ -948,7 +964,7 @@ class TestAsyncMigrateEntryMissingLines:
 
         with patch(
             "custom_components.ev_trip_planner.async_migrate_entries",
-            side_effect=mock_migrate_entries
+            side_effect=mock_migrate_entries,
         ):
             await async_migrate_entry(mock_hass, entry)
 
@@ -1000,7 +1016,7 @@ class TestAsyncMigrateEntryMissingLines:
 
         with patch(
             "custom_components.ev_trip_planner.async_migrate_entries",
-            side_effect=mock_migrate_entries
+            side_effect=mock_migrate_entries,
         ):
             await async_migrate_entry(mock_hass, entry)
 
@@ -1055,37 +1071,43 @@ class TestAsyncSetupEntryMissingLines:
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
 
         # Mock all the service functions
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value=MagicMock()
-        ), patch(
-            "custom_components.ev_trip_planner.TripManager",
-            return_value=mock_trip_manager
-        ), patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-            MagicMock()
-        ), patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-            return_value=mock_coordinator
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.register_services"
-        ), patch(
-            "custom_components.ev_trip_planner.create_dashboard_input_helpers",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
-        ), patch(
-            "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+                return_value=mock_trip_manager,
+            ),
+            patch("custom_components.ev_trip_planner.EMHASSAdapter", MagicMock()),
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+                return_value=mock_coordinator,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new_callable=AsyncMock,
+            ),
+            patch("custom_components.ev_trip_planner.register_services"),
+            patch(
+                "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ),
         ):
             await async_setup_entry(mock_hass, entry)
 
@@ -1093,7 +1115,9 @@ class TestAsyncSetupEntryMissingLines:
         mock_presence_monitor._async_setup_soc_listener.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_setup_entry_with_planning_horizon_creates_emhass_adapter(self, mock_hass):
+    async def test_setup_entry_with_planning_horizon_creates_emhass_adapter(
+        self, mock_hass
+    ):
         """Test lines 118-120: EMHASSAdapter is created when planning_horizon_days is set.
 
         This tests the code path where emhass_adapter is created and loaded.
@@ -1118,37 +1142,46 @@ class TestAsyncSetupEntryMissingLines:
         mock_emhass_adapter = MagicMock()
         mock_emhass_adapter.async_load = AsyncMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value=MagicMock()
-        ), patch(
-            "custom_components.ev_trip_planner.TripManager",
-            return_value=mock_trip_manager
-        ), patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-            return_value=mock_emhass_adapter
-        ), patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-            return_value=mock_coordinator
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.register_services"
-        ), patch(
-            "custom_components.ev_trip_planner.create_dashboard_input_helpers",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
-        ), patch(
-            "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+                return_value=mock_trip_manager,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+                return_value=mock_emhass_adapter,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+                return_value=mock_coordinator,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new_callable=AsyncMock,
+            ),
+            patch("custom_components.ev_trip_planner.register_services"),
+            patch(
+                "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ),
         ):
             await async_setup_entry(mock_hass, entry)
 
@@ -1185,38 +1218,49 @@ class TestAsyncSetupEntryMissingLines:
         mock_coordinator = MagicMock()
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new_callable=AsyncMock
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value=MagicMock()
-        ), patch(
-            "custom_components.ev_trip_planner.TripManager",
-            return_value=mock_trip_manager
-        ), patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-            return_value=MagicMock()
-        ), patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-            return_value=mock_coordinator
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new_callable=AsyncMock
-        ) as mock_register_panel, patch(
-            "custom_components.ev_trip_planner.register_services"
-        ) as mock_register_services, patch(
-            "custom_components.ev_trip_planner.create_dashboard_input_helpers",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
-        ) as mock_create_helpers, patch(
-            "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
-            new_callable=AsyncMock,
-            return_value=MagicMock(success=True)
-        ) as mock_import_dashboard:
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+                return_value=mock_trip_manager,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+                return_value=mock_coordinator,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new_callable=AsyncMock,
+            ) as mock_register_panel,
+            patch(
+                "custom_components.ev_trip_planner.register_services"
+            ) as mock_register_services,
+            patch(
+                "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ) as mock_create_helpers,
+            patch(
+                "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+                new_callable=AsyncMock,
+                return_value=MagicMock(success=True),
+            ) as mock_import_dashboard,
+        ):
             await async_setup_entry(mock_hass, entry)
 
             # Verify async_register_panel_for_entry was called
@@ -1257,7 +1301,7 @@ class TestAsyncRemoveEntry:
 
         with patch(
             "custom_components.ev_trip_planner.async_remove_entry_cleanup",
-            new_callable=AsyncMock
+            new_callable=AsyncMock,
         ) as mock_cleanup:
             await async_remove_entry(mock_hass, entry)
 
@@ -1268,6 +1312,7 @@ class TestAsyncRemoveEntry:
 # =============================================================================
 # GAP #5 HOTFIX TESTS: Config entry listener activation
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_listener_activated_in_setup(mock_hass):
@@ -1306,45 +1351,57 @@ async def test_listener_activated_in_setup(mock_hass):
     # Mock hass.config_entries.async_forward_entry_setups
     mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
 
-    with patch(
-        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.async_register_static_paths",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.build_presence_config",
-        return_value=MagicMock()
-    ), patch(
-        "custom_components.ev_trip_planner.TripManager",
-        return_value=mock_trip_manager
-    ), patch(
-        "custom_components.ev_trip_planner.EMHASSAdapter",
-        return_value=mock_emhass_adapter
-    ), patch(
-        "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        return_value=mock_coordinator
-    ), patch(
-        "custom_components.ev_trip_planner.async_register_panel_for_entry",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.register_services"
-    ), patch(
-        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
-        new_callable=AsyncMock,
-        return_value=MagicMock(success=True)
-    ), patch(
-        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
-        new_callable=AsyncMock,
-        return_value=MagicMock(success=True)
+    with (
+        patch(
+            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_register_static_paths",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.build_presence_config",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "custom_components.ev_trip_planner.TripManager",
+            return_value=mock_trip_manager,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.EMHASSAdapter",
+            return_value=mock_emhass_adapter,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_register_panel_for_entry",
+            new_callable=AsyncMock,
+        ),
+        patch("custom_components.ev_trip_planner.register_services"),
+        patch(
+            "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+            new_callable=AsyncMock,
+            return_value=MagicMock(success=True),
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+            new_callable=AsyncMock,
+            return_value=MagicMock(success=True),
+        ),
     ):
         await async_setup_entry(mock_hass, entry)
 
     # Verify setup_config_entry_listener was called on the emhass_adapter
     # This validates FR-2, AC-1.2: listener is activated during setup
-    mock_emhass_adapter.setup_config_entry_listener.assert_called_once(), (
-        "setup_config_entry_listener() should be called after adapter creation "
-        "in async_setup_entry"
+    (
+        mock_emhass_adapter.setup_config_entry_listener.assert_called_once(),
+        (
+            "setup_config_entry_listener() should be called after adapter creation "
+            "in async_setup_entry"
+        ),
     )
 
 
@@ -1383,37 +1440,46 @@ async def test_async_setup_entry_vehicle_name_none(mock_hass):
 
     mock_hass.config_entries.async_forward_entry_setups = AsyncMock()
 
-    with patch(
-        "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.async_register_static_paths",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.build_presence_config",
-        return_value=MagicMock()
-    ), patch(
-        "custom_components.ev_trip_planner.TripManager",
-        return_value=mock_trip_manager
-    ), patch(
-        "custom_components.ev_trip_planner.EMHASSAdapter",
-        return_value=mock_emhass_adapter
-    ), patch(
-        "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        return_value=mock_coordinator
-    ), patch(
-        "custom_components.ev_trip_planner.async_register_panel_for_entry",
-        new_callable=AsyncMock
-    ), patch(
-        "custom_components.ev_trip_planner.register_services"
-    ), patch(
-        "custom_components.ev_trip_planner.create_dashboard_input_helpers",
-        new_callable=AsyncMock,
-        return_value=MagicMock(success=True)
-    ), patch(
-        "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
-        new_callable=AsyncMock,
-        return_value=MagicMock(success=True)
+    with (
+        patch(
+            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_register_static_paths",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.build_presence_config",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "custom_components.ev_trip_planner.TripManager",
+            return_value=mock_trip_manager,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.EMHASSAdapter",
+            return_value=mock_emhass_adapter,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_register_panel_for_entry",
+            new_callable=AsyncMock,
+        ),
+        patch("custom_components.ev_trip_planner.register_services"),
+        patch(
+            "custom_components.ev_trip_planner.create_dashboard_input_helpers",
+            new_callable=AsyncMock,
+            return_value=MagicMock(success=True),
+        ),
+        patch(
+            "custom_components.ev_trip_planner.async_import_dashboard_for_entry",
+            new_callable=AsyncMock,
+            return_value=MagicMock(success=True),
+        ),
     ):
         # Should handle None vehicle_name gracefully, using empty string fallback
         result = await async_setup_entry(mock_hass, entry)
@@ -1455,7 +1521,7 @@ async def test_async_unload_entry_vehicle_name_none(mock_hass):
     with patch(
         "custom_components.ev_trip_planner.async_unload_entry_cleanup",
         new_callable=AsyncMock,
-        return_value=True
+        return_value=True,
     ) as mock_cleanup:
         result = await async_unload_entry(mock_hass, entry)
 

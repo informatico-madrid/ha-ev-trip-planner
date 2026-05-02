@@ -111,7 +111,11 @@ class TestDiagnostics:
         entry.data = {}
 
         coordinator = MagicMock()
-        coordinator.data = {"recurring_trips": {}, "punctual_trips": {}, "kwh_today": 5.0}
+        coordinator.data = {
+            "recurring_trips": {},
+            "punctual_trips": {},
+            "kwh_today": 5.0,
+        }
         coordinator.last_update_success = True
 
         trip_manager = MagicMock()
@@ -129,7 +133,9 @@ class TestDiagnostics:
 
         # Verify coordinator data was extracted using correct attr name
         assert set(result["coordinator"]["data_keys"]) == {
-            "recurring_trips", "punctual_trips", "kwh_today",
+            "recurring_trips",
+            "punctual_trips",
+            "kwh_today",
         }
         assert result["coordinator"]["last_update_success"] is True
 

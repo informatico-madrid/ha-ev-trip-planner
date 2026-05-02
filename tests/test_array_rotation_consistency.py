@@ -27,7 +27,7 @@ class TestArrayRotationConsistency:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -104,10 +104,18 @@ class TestArrayRotationConsistency:
             await adapter.async_assign_index_to_trip(trip["id"])
 
         # Orden cronológico (Miércoles primero, Domingo último)
-        trips_chronological = [t for t in trips_creation_order if t["id"] in [
-            "trip_wednesday", "trip_thursday_1", "trip_thursday_2",
-            "trip_friday", "trip_sunday"
-        ]]
+        trips_chronological = [
+            t
+            for t in trips_creation_order
+            if t["id"]
+            in [
+                "trip_wednesday",
+                "trip_thursday_1",
+                "trip_thursday_2",
+                "trip_friday",
+                "trip_sunday",
+            ]
+        ]
 
         # Publicar todos
         await adapter.async_publish_all_deferrable_loads(trips_chronological)
@@ -131,10 +139,17 @@ class TestArrayRotationConsistency:
         # Construir arrays finales (como hace sensor.py después del fix)
         # Ordenar por (def_start_timestep, emhass_index)
         active_trips_sorted = [
-            (params.get("def_start_timestep", 0), params.get("emhass_index", 0), trip_id, params)
+            (
+                params.get("def_start_timestep", 0),
+                params.get("emhass_index", 0),
+                trip_id,
+                params,
+            )
             for trip_id, params in per_trip_params.items()
         ]
-        active_trips_sorted.sort(key=lambda x: (x[0], x[1]))  # Orden cronológico con tie-breaker
+        active_trips_sorted.sort(
+            key=lambda x: (x[0], x[1])
+        )  # Orden cronológico con tie-breaker
 
         def_start_final = []
         def_total_hours_final = []
@@ -152,18 +167,24 @@ class TestArrayRotationConsistency:
 
         # El primer valor debe ser el Miércoles (def_start ≈ 0)
         if def_start_final[0] > 100:  # Más de 100 horas = Domingo
-            print(f"\n❌ BUG: def_start[0]={def_start_final[0]} (Domingo) cuando debería ser ~0 (Miércoles)")
+            print(
+                f"\n❌ BUG: def_start[0]={def_start_final[0]} (Domingo) cuando debería ser ~0 (Miércoles)"
+            )
             bugs.append("def_start_array_wrong_order")
 
         # El último valor debe ser el Domingo (def_start > 100)
         if def_start_final[-1] < 100:
-            print(f"\n❌ BUG: El último valor tiene def_start={def_start_final[-1]}, debería ser >100 (Domingo)")
+            print(
+                f"\n❌ BUG: El último valor tiene def_start={def_start_final[-1]}, debería ser >100 (Domingo)"
+            )
             bugs.append("def_start_array_wrong_last")
 
         # Verificar orden estrictamente creciente
         for i in range(len(def_start_final) - 1):
             if def_start_final[i] >= def_start_final[i + 1]:
-                print(f"\n❌ BUG: Arrays no en orden cronológico: [{i}]={def_start_final[i]} >= [{i+1}]={def_start_final[i+1]}")
+                print(
+                    f"\n❌ BUG: Arrays no en orden cronológico: [{i}]={def_start_final[i]} >= [{i + 1}]={def_start_final[i + 1]}"
+                )
                 bugs.append("def_start_array_not_chronological")
 
         if not bugs:

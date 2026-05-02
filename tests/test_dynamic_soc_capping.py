@@ -252,9 +252,15 @@ class TestDynamicSOCCapping:
         soc_post_trip = 60
         battery_capacity_kwh = 30
 
-        limit_6h = calculate_dynamic_soc_limit(t_hours, soc_post_trip, battery_capacity_kwh, t_base=6)
-        limit_24h = calculate_dynamic_soc_limit(t_hours, soc_post_trip, battery_capacity_kwh, t_base=24)
-        limit_48h = calculate_dynamic_soc_limit(t_hours, soc_post_trip, battery_capacity_kwh, t_base=48)
+        limit_6h = calculate_dynamic_soc_limit(
+            t_hours, soc_post_trip, battery_capacity_kwh, t_base=6
+        )
+        limit_24h = calculate_dynamic_soc_limit(
+            t_hours, soc_post_trip, battery_capacity_kwh, t_base=24
+        )
+        limit_48h = calculate_dynamic_soc_limit(
+            t_hours, soc_post_trip, battery_capacity_kwh, t_base=48
+        )
 
         # Smaller T_base -> tighter cap (lower limit) for positive risk
         assert limit_6h < limit_24h < limit_48h
@@ -442,6 +448,7 @@ class TestDynamicSOCCapping:
 # Scenario Validation (US6+US7) — T067-T070
 # ------------------------------------------------------------------
 
+
 class TestScenarioValidation:
     """Integration tests validating full scenario SOC evolution.
 
@@ -455,7 +462,9 @@ class TestScenarioValidation:
         Each trip should charge to ~61% (not 100%) due to capping.
         Post-trip SOC ~41%.
         """
-        from custom_components.ev_trip_planner.calculations import calculate_dynamic_soc_limit
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_dynamic_soc_limit,
+        )
 
         # Scenario C: 30kWh battery, daily commute pattern
         # 22.5h idle between trips, post-trip SOC ~41%
@@ -469,8 +478,8 @@ class TestScenarioValidation:
         # All 4 trips have same pattern (identical idle + post-trip SOC)
         for i in range(4):
             cap = calculate_dynamic_soc_limit(22.5, 41.0, battery_kwh, t_base=t_base)
-            assert cap < 100.0, f"Trip {i+1} should be capped below 100%"
-            assert cap > 60.0, f"Trip {i+1} cap should allow reasonable charging"
+            assert cap < 100.0, f"Trip {i + 1} should be capped below 100%"
+            assert cap > 60.0, f"Trip {i + 1} cap should allow reasonable charging"
 
     def test_scenario_a_commute_then_drain(self) -> None:
         """T068: Scenario A — commute first, then large drain.
@@ -480,13 +489,17 @@ class TestScenarioValidation:
         Second commute: 22h idle, 41% -> cap ~94.9%
         Semi-drain: post-trip 10% -> risk negative -> 100% allowed
         """
-        from custom_components.ev_trip_planner.calculations import calculate_dynamic_soc_limit
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_dynamic_soc_limit,
+        )
 
         battery_kwh = 30.0
         t_base = 24.0
 
         # Commute: 22h idle, 41% post-trip
-        cap_commute = calculate_dynamic_soc_limit(22.0, 41.0, battery_kwh, t_base=t_base)
+        cap_commute = calculate_dynamic_soc_limit(
+            22.0, 41.0, battery_kwh, t_base=t_base
+        )
         assert cap_commute == pytest.approx(94.93, rel=0.01)
 
         # Large drain: post-trip SOC 0% -> risk negative -> 100%
@@ -503,21 +516,29 @@ class TestScenarioValidation:
         Large drain first: 100% allowed (no idle risk yet)
         Then commutes at 94.9% cap -> charge to ~61%
         """
-        from custom_components.ev_trip_planner.calculations import calculate_dynamic_soc_limit
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_dynamic_soc_limit,
+        )
 
         battery_kwh = 30.0
         t_base = 24.0
 
         # Large drain first: short idle, low post-trip SOC -> 100%
-        cap_drain_first = calculate_dynamic_soc_limit(1.0, 0.0, battery_kwh, t_base=t_base)
+        cap_drain_first = calculate_dynamic_soc_limit(
+            1.0, 0.0, battery_kwh, t_base=t_base
+        )
         assert cap_drain_first == 100.0
 
         # Then commute: 22h idle, 41% post-trip -> 94.9% cap
-        cap_commute = calculate_dynamic_soc_limit(22.0, 41.0, battery_kwh, t_base=t_base)
+        cap_commute = calculate_dynamic_soc_limit(
+            22.0, 41.0, battery_kwh, t_base=t_base
+        )
         assert cap_commute == pytest.approx(94.93, rel=0.01)
 
         # 48h idle commute: even tighter cap
-        cap_long_idle = calculate_dynamic_soc_limit(48.0, 41.0, battery_kwh, t_base=t_base)
+        cap_long_idle = calculate_dynamic_soc_limit(
+            48.0, 41.0, battery_kwh, t_base=t_base
+        )
         assert cap_long_idle < cap_commute, "Longer idle should produce tighter cap"
 
     def test_week_total_high_soc_reduction(self) -> None:
@@ -526,7 +547,9 @@ class TestScenarioValidation:
         Without capping: 4 trips * 22.5h idle at 100% SOC = 90h at >80%
         With capping: SOC capped to ~61%, so time at >80% drops to ~0h
         """
-        from custom_components.ev_trip_planner.calculations import calculate_dynamic_soc_limit
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_dynamic_soc_limit,
+        )
 
         battery_kwh = 30.0
         t_base = 24.0

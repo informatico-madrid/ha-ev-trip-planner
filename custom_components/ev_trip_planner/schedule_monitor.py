@@ -72,7 +72,9 @@ class VehicleScheduleMonitor:
         self.notification_service = notification_service
         self.emhass_adapter = emhass_adapter  # NEW: For index lookup
 
-        self._unsub_handlers: Dict[int, Callable[..., Any]] = {}  # index -> unsub function
+        self._unsub_handlers: Dict[
+            int, Callable[..., Any]
+        ] = {}  # index -> unsub function
         self._last_actions: Dict[int, str] = {}  # index -> last action
 
         _LOGGER.debug("Created VehicleScheduleMonitor for %s", vehicle_id)

@@ -28,7 +28,7 @@ class TestEMHASSIndexPersistenceBug:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -133,15 +133,17 @@ class TestEMHASSIndexPersistenceBug:
 
         # Orden cronológico REAL (Miércoles primero, Domingo último)
         trips_chronological = [
-            "trip_wednesday",   # PRIMER viaje cronológico (71 horas)
-            "trip_thursday_1",   # Segundo
-            "trip_thursday_2",   # Tercero
-            "trip_friday",       # Cuarto
-            "trip_sunday",       # ÚLTIMO viaje cronológico (>160 horas)
+            "trip_wednesday",  # PRIMER viaje cronológico (71 horas)
+            "trip_thursday_1",  # Segundo
+            "trip_thursday_2",  # Tercero
+            "trip_friday",  # Cuarto
+            "trip_sunday",  # ÚLTIMO viaje cronológico (>160 horas)
         ]
 
         # Convertir IDs a objetos trip completos
-        trips_to_publish = [t for t in trips_creation_order if t["id"] in trips_chronological]
+        trips_to_publish = [
+            t for t in trips_creation_order if t["id"] in trips_chronological
+        ]
 
         # Publicar todos los viajes (en orden cronológico)
         result = await adapter.async_publish_all_deferrable_loads(trips_to_publish)
@@ -163,7 +165,9 @@ class TestEMHASSIndexPersistenceBug:
                 def_end = params.get("def_end_timestep", -1)
 
                 print(f"{trip_id} (crónológicamente #{i}):")
-                print(f"  Índice EMHASS: {actual_index} (asignado por orden de creación)")
+                print(
+                    f"  Índice EMHASS: {actual_index} (asignado por orden de creación)"
+                )
                 print(f"  def_start_timestep: {def_start}")
                 print(f"  def_end_timestep: {def_end}")
                 print("")
@@ -179,7 +183,9 @@ class TestEMHASSIndexPersistenceBug:
         # Arrays construidos en orden CRONOLÓGICO (después del fix)
         # El fix cambió la iteración en emhass_adapter.py para usar trip_deadlines ordenado
         def_start_array = []
-        for trip_id, params in sorted(per_trip_params.items(), key=lambda x: x[1].get("def_start_timestep", 0)):
+        for trip_id, params in sorted(
+            per_trip_params.items(), key=lambda x: x[1].get("def_start_timestep", 0)
+        ):
             def_start = params.get("def_start_timestep", -1)
             def_start_array.append(def_start)
 
@@ -190,29 +196,32 @@ class TestEMHASSIndexPersistenceBug:
         if def_start_array[0] > 100:  # Más de 100 horas = más de 4 días
             print(f"❌ BUG: def_start[0]={def_start_array[0]} (índice 0)")
             print(f"   El primer viaje debería ser Miércoles con def_start ~70")
-            bugs_detectados.append({
-                'bug': 'first_trip_wrong',
-                'def_start_array': def_start_array,
-                'expected_first_start': '< 100',  # Miércoles
-                'actual_first_start': def_start_array[0],
-            })
+            bugs_detectados.append(
+                {
+                    "bug": "first_trip_wrong",
+                    "def_start_array": def_start_array,
+                    "expected_first_start": "< 100",  # Miércoles
+                    "actual_first_start": def_start_array[0],
+                }
+            )
 
         # Verificar que el último valor es el Domingo (>100 horas)
         if def_start_array[-1] < 100:
             print(f"❌ BUG: El último viaje tiene def_start={def_start_array[-1]}")
             print(f"   Debería ser Domingo con def_start > 100")
-            bugs_detectados.append({
-                'bug': 'last_trip_wrong',
-                'def_start_array': def_start_array,
-                'expected_last_start': '> 100',  # Domingo
-                'actual_last_start': def_start_array[-1],
-            })
+            bugs_detectados.append(
+                {
+                    "bug": "last_trip_wrong",
+                    "def_start_array": def_start_array,
+                    "expected_last_start": "> 100",  # Domingo
+                    "actual_last_start": def_start_array[-1],
+                }
+            )
 
         if bugs_detectados:
             print(f"\n=== BUGS CONFIRMADOS: {len(bugs_detectados)} ===")
             pytest.fail(
-                f"Bugs detectados después del fix. "
-                f"Total bugs: {len(bugs_detectados)}"
+                f"Bugs detectados después del fix. Total bugs: {len(bugs_detectados)}"
             )
         else:
             print("\n✅ FIX VERIFICADO: Los viajes están en orden cronológico correcto")

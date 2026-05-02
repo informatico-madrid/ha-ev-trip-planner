@@ -33,7 +33,7 @@ class TestDefTotalHoursMismatchBug:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -43,7 +43,9 @@ class TestDefTotalHoursMismatchBug:
 
         # Mock del sensor SOC (al 50% - NO 100%)
         self.mock_soc_sensor = MagicMock()
-        self.mock_soc_sensor.state = 50.0  # 50% SOC - suficiente para algunos viajes pero no todos
+        self.mock_soc_sensor.state = (
+            50.0  # 50% SOC - suficiente para algunos viajes pero no todos
+        )
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     async def test_def_total_hours_debe_coincidir_con_perfil_potencia(self):
@@ -69,7 +71,7 @@ class TestDefTotalHoursMismatchBug:
                 "dia_semana": "1",  # Martes
                 "hora": "09:00",
                 "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 1"
+                "descripcion": "Viaje 1",
             },
             {
                 "id": "viaje_2",
@@ -77,7 +79,7 @@ class TestDefTotalHoursMismatchBug:
                 "dia_semana": "2",  # Miércoles
                 "hora": "14:00",
                 "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 2"
+                "descripcion": "Viaje 2",
             },
             {
                 "id": "viaje_3",
@@ -85,7 +87,7 @@ class TestDefTotalHoursMismatchBug:
                 "dia_semana": "3",  # Jueves
                 "hora": "18:00",
                 "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 3"
+                "descripcion": "Viaje 3",
             },
             {
                 "id": "viaje_4",
@@ -93,7 +95,7 @@ class TestDefTotalHoursMismatchBug:
                 "dia_semana": "4",  # Viernes
                 "hora": "08:00",
                 "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 4"
+                "descripcion": "Viaje 4",
             },
             {
                 "id": "viaje_5",
@@ -101,8 +103,8 @@ class TestDefTotalHoursMismatchBug:
                 "dia_semana": "5",  # Sábado
                 "hora": "10:00",
                 "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 5"
-            }
+                "descripcion": "Viaje 5",
+            },
         ]
 
         # Configuración con SOC 50% (no 100%)
@@ -112,9 +114,13 @@ class TestDefTotalHoursMismatchBug:
         safety_margin = 10.0
 
         print("=== ESCENARIO: SOC 50% con múltiples viajes ===")
-        print(f"SOC inicial: {soc_current}% ({battery_capacity * soc_current / 100} kWh)")
+        print(
+            f"SOC inicial: {soc_current}% ({battery_capacity * soc_current / 100} kWh)"
+        )
         print(f"Consumo total de todos los viajes: {sum(t['kwh'] for t in trips)} kWh")
-        print(f"Energía disponible sin cargar: {battery_capacity * soc_current / 100} kWh")
+        print(
+            f"Energía disponible sin cargar: {battery_capacity * soc_current / 100} kWh"
+        )
         print("")
 
         # Verificar cálculos individuales
@@ -125,11 +131,13 @@ class TestDefTotalHoursMismatchBug:
                 battery_capacity_kwh=battery_capacity,
                 soc_current=soc_current,  # Todos usan el mismo SOC inicial
                 charging_power_kw=charging_power_kw,
-                safety_margin_percent=safety_margin
+                safety_margin_percent=safety_margin,
             )
-            print(f"{trip['id']} ({trip['kwh']} kWh): "
-                  f"Energía = {energy_info['energia_necesaria_kwh']} kWh, "
-                  f"Horas = {energy_info['horas_carga_necesarias']}")
+            print(
+                f"{trip['id']} ({trip['kwh']} kWh): "
+                f"Energía = {energy_info['energia_necesaria_kwh']} kWh, "
+                f"Horas = {energy_info['horas_carga_necesarias']}"
+            )
         print("")
 
         # Crear adapter
@@ -167,9 +175,9 @@ class TestDefTotalHoursMismatchBug:
             trip_id = trip["id"]
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
-                def_hours = params.get('def_total_hours', 0)
-                power_nom = params.get('P_deferrable_nom', 0.0)
-                power_profile = params.get('power_profile_watts', [])
+                def_hours = params.get("def_total_hours", 0)
+                power_nom = params.get("P_deferrable_nom", 0.0)
+                power_profile = params.get("power_profile_watts", [])
 
                 # Contar horas no-cero en el perfil
                 non_zero_hours = sum(1 for p in power_profile if p > 0)
@@ -189,33 +197,41 @@ class TestDefTotalHoursMismatchBug:
                         print(f"❌ BUG DETECTADO en {trip_id}:")
                         print(f"   P_deferrable tiene {non_zero_hours} horas con carga")
                         print(f"   PERO def_total_hours = 0 (debería ser > 0)")
-                        bugs_detectados.append({
-                            'trip_id': trip_id,
-                            'bug': 'def_total_hours_mismatch',
-                            'non_zero_hours': non_zero_hours,
-                            'def_hours': def_hours
-                        })
+                        bugs_detectados.append(
+                            {
+                                "trip_id": trip_id,
+                                "bug": "def_total_hours_mismatch",
+                                "non_zero_hours": non_zero_hours,
+                                "def_hours": def_hours,
+                            }
+                        )
 
                     if power_nom == 0.0:
                         print(f"❌ BUG DETECTADO en {trip_id}:")
-                        print(f"   P_deferrable tiene carga (non_zero_hours = {non_zero_hours})")
-                        print(f"   PERO P_deferrable_nom = 0.0 W (debería ser 3400.0 W)")
-                        bugs_detectados.append({
-                            'trip_id': trip_id,
-                            'bug': 'P_deferrable_nom_mismatch',
-                            'non_zero_hours': non_zero_hours,
-                            'power_nom': power_nom
-                        })
+                        print(
+                            f"   P_deferrable tiene carga (non_zero_hours = {non_zero_hours})"
+                        )
+                        print(
+                            f"   PERO P_deferrable_nom = 0.0 W (debería ser 3400.0 W)"
+                        )
+                        bugs_detectados.append(
+                            {
+                                "trip_id": trip_id,
+                                "bug": "P_deferrable_nom_mismatch",
+                                "non_zero_hours": non_zero_hours,
+                                "power_nom": power_nom,
+                            }
+                        )
 
         # Reportar resultados
         if bugs_detectados:
             print("\n=== BUGS CONFIRMADOS ===")
             for bug in bugs_detectados:
                 print(f"{bug['trip_id']}: {bug['bug']}")
-                if bug['bug'] == 'def_total_hours_mismatch':
+                if bug["bug"] == "def_total_hours_mismatch":
                     print(f"  - Tiene {bug['non_zero_hours']} horas de carga en perfil")
                     print(f"  - Pero def_total_hours = {bug['def_hours']}")
-                elif bug['bug'] == 'P_deferrable_nom_mismatch':
+                elif bug["bug"] == "P_deferrable_nom_mismatch":
                     print(f"  - Tiene {bug['non_zero_hours']} horas de carga en perfil")
                     print(f"  - Pero P_deferrable_nom = {bug['power_nom']} W")
 

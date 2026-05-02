@@ -36,7 +36,7 @@ class TestSOC100PropagationBugPending:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -70,7 +70,7 @@ class TestSOC100PropagationBugPending:
                 "dia_semana": "1",  # Martes
                 "hora": "09:00",
                 "kwh": 30.0,  # El viaje que causa el bug según usuario
-                "descripcion": "Primer viaje al 100% SOC"
+                "descripcion": "Primer viaje al 100% SOC",
             },
             {
                 "id": "segundo_viaje",  # Este tiene ventana pequeña, generará déficit
@@ -78,7 +78,7 @@ class TestSOC100PropagationBugPending:
                 "dia_semana": "1",  # Martes (misma día)
                 "hora": "10:00",  # Solo 1 hora después
                 "kwh": 45.0,  # Mucho carga en ventana muy pequeña
-                "descripcion": "Viaje con ventana pequeña (genera déficit)"
+                "descripcion": "Viaje con ventana pequeña (genera déficit)",
             },
             {
                 "id": "tercer_viaje",
@@ -86,7 +86,7 @@ class TestSOC100PropagationBugPending:
                 "dia_semana": "2",  # Miércoles
                 "hora": "14:00",
                 "kwh": 15.0,
-                "descripcion": "Viaje normal"
+                "descripcion": "Viaje normal",
             },
             {
                 "id": "cuarto_viaje",
@@ -94,7 +94,7 @@ class TestSOC100PropagationBugPending:
                 "dia_semana": "3",  # Jueves
                 "hora": "18:00",
                 "kwh": 20.0,
-                "descripcion": "Viaje normal"
+                "descripcion": "Viaje normal",
             },
             {
                 "id": "quinto_viaje",
@@ -102,8 +102,8 @@ class TestSOC100PropagationBugPending:
                 "dia_semana": "4",  # Viernes
                 "hora": "08:00",
                 "kwh": 25.0,
-                "descripcion": "Viaje normal"
-            }
+                "descripcion": "Viaje normal",
+            },
         ]
 
         # Configuración con SOC 100% - EL ESTADO INICIAL NO CAMBIA
@@ -126,16 +126,20 @@ class TestSOC100PropagationBugPending:
                 battery_capacity_kwh=battery_capacity,
                 soc_current=soc_current,
                 charging_power_kw=charging_power_kw,
-                safety_margin_percent=safety_margin
+                safety_margin_percent=safety_margin,
             )
-            print(f"{trip['id']} ({trip['kwh']} kWh): "
-                  f"Energía = {energy_info['energia_necesaria_kwh']} kWh, "
-                  f"Horas = {energy_info['horas_carga_necesarias']}")
+            print(
+                f"{trip['id']} ({trip['kwh']} kWh): "
+                f"Energía = {energy_info['energia_necesaria_kwh']} kWh, "
+                f"Horas = {energy_info['horas_carga_necesarias']}"
+            )
 
         print("")
         print("CONCLUSIONES INDIVIDUALES:")
         print("- Con carga proactiva, todos los viajes tienen energía > 0")
-        print("- El primer viaje (30 kWh): SOC 100% > 33 kWh → carga proactiva = 30 kWh")
+        print(
+            "- El primer viaje (30 kWh): SOC 100% > 33 kWh → carga proactiva = 30 kWh"
+        )
         print("")
 
         # Crear adapter
@@ -173,8 +177,8 @@ class TestSOC100PropagationBugPending:
 
         # Verificar el primer viaje (el que tiene el bug según usuario)
         primer_viaje_params = per_trip_params.get("primer_viaje", {})
-        def_hours = primer_viaje_params.get('def_total_hours', 0)
-        power_nom = primer_viaje_params.get('P_deferrable_nom', 0.0)
+        def_hours = primer_viaje_params.get("def_total_hours", 0)
+        power_nom = primer_viaje_params.get("P_deferrable_nom", 0.0)
 
         print(f"Primer viaje (30 kWh, SOC 100%):")
         print(f"  def_total_hours = {def_hours}")
@@ -189,7 +193,9 @@ class TestSOC100PropagationBugPending:
         else:
             # With proactive charging, this should NOT happen
             print(f"⚠️ Primer viaje tiene 0 horas (unexpected with proactive charging)")
-            assert def_hours > 0, "Con carga proactiva, el primer viaje debe tener horas de carga > 0"
+            assert def_hours > 0, (
+                "Con carga proactiva, el primer viaje debe tener horas de carga > 0"
+            )
 
         # Verificar TODOS los viajes - BUG 2
         print("")
@@ -200,11 +206,13 @@ class TestSOC100PropagationBugPending:
             trip_id = trip["id"]
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
-                def_hours = params.get('def_total_hours', 0)
-                power_nom = params.get('P_deferrable_nom', 0.0)
+                def_hours = params.get("def_total_hours", 0)
+                power_nom = params.get("P_deferrable_nom", 0.0)
 
-                print(f"Viaje {i+1} ({trip['kwh']} kWh): "
-                      f"def_total_hours = {def_hours}, P_deferrable_nom = {power_nom} W")
+                print(
+                    f"Viaje {i + 1} ({trip['kwh']} kWh): "
+                    f"def_total_hours = {def_hours}, P_deferrable_nom = {power_nom} W"
+                )
 
                 # With proactive charging, def_hours and power_nom should both be > 0
                 if def_hours > 0 and power_nom > 0:
@@ -247,15 +255,21 @@ class TestSOC100PropagationBugPending:
         print(f"Horas de carga máximas posibles: {horas_carga_maximas}")
 
         # Con SOC 100%, no se puede cargar nada
-        assert energia_adicional_maxima == 0.0, "Con SOC 100%, no se puede cargar energía adicional"
+        assert energia_adicional_maxima == 0.0, (
+            "Con SOC 100%, no se puede cargar energía adicional"
+        )
         assert horas_carga_maximas == 0.0, "Con SOC 100%, no puede haber horas de carga"
 
         # NOTE: While physically true, the algorithm now charges proactively
         # even at SOC 100%. The actual power profile clamping prevents
         # charging beyond battery capacity.
         print("✅ Principio físico verificado: SOC 100% = 0 horas físicas de carga")
-        print("   (El algoritmo de carga proactiva programa carga para preparar viajes futuros)")
-        print("   El perfil de potencia real limita la carga a la capacidad de la batería")
+        print(
+            "   (El algoritmo de carga proactiva programa carga para preparar viajes futuros)"
+        )
+        print(
+            "   El perfil de potencia real limita la carga a la capacidad de la batería"
+        )
 
 
 if __name__ == "__main__":

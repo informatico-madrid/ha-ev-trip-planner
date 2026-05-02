@@ -20,39 +20,37 @@ import { test, expect, type Page } from '@playwright/test';
 import { navigateToPanel, cleanupTestTrips } from './trips-helpers';
 
 /**
- * Open the options flow dialog for the EV Trip Planner integration.
+ * Navigate to the integration options flow and open the config dialog.
  *
+ * Pattern from zzz-integration-deletion-cleanup.spec.ts:
+ * Navigate directly to the integration config URL, wait for page,
+ * then find the Configure button within the test_vehicle section.
  * HA uses native <dialog> element for options flow.
  * Form fields use spinbutton elements with labels like "t_base*".
- *
- * In the SOC suite, there is exactly one integration entry (test_vehicle),
- * so we use a section-scoped selector to find the Configure button.
  */
 async function openOptionsDialog(page: Page): Promise<void> {
+  // Navigate directly to the integration configuration page (same pattern as
+  // zzz-integration-deletion-cleanup.spec.ts which works reliably)
   await page.goto('/config/integrations/integration/ev_trip_planner');
   await page.waitForLoadState('networkidle');
   await page.waitForSelector('text=Integration entries', { timeout: 15_000 });
 
-  // Scope: find the section/card containing "test_vehicle" (the integration title)
-  // then click the Configure button inside that same section.
-  // This avoids selecting a global Configure button that might exist outside the integration card.
-  const testVehicleSection = page.locator('section').filter({ hasText: 'test_vehicle' }).first();
-
-  // Primary: Configure button within the test_vehicle section
-  const sectionConfigureBtn = testVehicleSection.getByRole('button', { name: 'Configure' });
-  if (await sectionConfigureBtn.count().catch(() => 0) > 0) {
-    await sectionConfigureBtn.first().click({ force: true });
-    return;
-  }
-
-  // Fallback: any visible Configure button (should not happen in SOC suite)
+  // Find the Configure button for test_vehicle.
+  // HA renders integration entries as sections with the title text.
+  // The Configure button appears inside the integration entry card.
   const allConfigureBtns = page.getByRole('button', { name: 'Configure' });
-  if (await allConfigureBtns.count().catch(() => 0) > 0) {
-    await allConfigureBtns.first().click({ force: true });
-    return;
+  const count = await allConfigureBtns.count().catch(() => 0);
+  if (count === 0) {
+    throw new Error(
+      '[openOptionsDialog] Could not find Configure button for ev_trip_planner integration. ' +
+      'Page URL: ' + page.url() + '. Page title: ' + (await page.title()),
+    );
   }
 
-  throw new Error('[openOptionsDialog] Could not find Configure button for test_vehicle integration');
+  await allConfigureBtns.first().click({ force: true });
+
+  // Wait for the options dialog to appear (HA native <dialog>)
+  await expect(page.locator('dialog')).toBeVisible({ timeout: 10_000 });
 }
 
 /**
@@ -102,23 +100,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
   test('options flow should validate t_base range (6-48 hours)', async ({
     page,
   }) => {
-    // Set up a known state: change SOC via HA frontend (websocket)
-    const socResult = await page.evaluate(async () => {
-      const haMain = document.querySelector('home-assistant') as any;
-      if (!haMain?.hass) return { ok: false };
-      try {
-        await haMain.hass.callService('input_number', 'set_value', {
-          entity_id: 'input_number.test_vehicle_soc',
-          value: 50,
-        });
-        return { ok: true };
-      } catch { return { ok: false }; }
-    });
-    expect(socResult.ok).toBe(true);
-
-    await page.waitForTimeout(1000);
-
-    // Open options dialog
+    // Open options dialog (navigate to integration config page, click Configure)
     await openOptionsDialog(page);
 
     // Try to set t_base to 5 (below minimum of 6)
@@ -130,7 +112,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     await submitBtn.click();
 
     // Wait for form to process — should show validation error (dialog stays open)
-    await page.waitForTimeout(1000);
+    await expect(page.getByRole('button', { name: 'Submit' })).toBeVisible({ timeout: 10_000 });
 
     // The dialog should still be open with the form (has Submit button)
     const hasFormDialog = await page.getByRole('button', { name: 'Submit' }).count().catch(() => 0);
@@ -140,7 +122,8 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     const closeBtn = page.getByRole('button', { name: 'Close' });
     if (await closeBtn.count().catch(() => 0) > 0) {
       await closeBtn.click();
-      await page.waitForTimeout(500);
+      // Condition-based wait: verify dialog closed
+      await expect(closeBtn).not.toBeVisible({ timeout: 5_000 });
     }
     await openOptionsDialog(page);
 

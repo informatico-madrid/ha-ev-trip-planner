@@ -148,7 +148,11 @@ class TestTripCreate:
     async def test_add_multiple_recurring_trips(self, trip_manager, caplog):
         """Test adding multiple recurring trips."""
         # Add three recurring trips
-        for day, hour in [("lunes", "08:00"), ("miercoles", "09:00"), ("viernes", "10:00")]:
+        for day, hour in [
+            ("lunes", "08:00"),
+            ("miercoles", "09:00"),
+            ("viernes", "10:00"),
+        ]:
             await trip_manager.async_add_recurring_trip(
                 dia_semana=day,
                 hora=hour,
@@ -169,7 +173,7 @@ class TestTripCreate:
         # Add three punctual trips
         for i in range(3):
             await trip_manager.async_add_punctual_trip(
-                datetime_str=f"2026-03-{20+i:02d}T10:00",
+                datetime_str=f"2026-03-{20 + i:02d}T10:00",
                 km=50.0 * (i + 1),
                 kwh=10.0 * (i + 1),
             )
@@ -190,7 +194,9 @@ class TestTripCreate:
         )
 
         # Verify debug log was written
-        assert any("Adding recurring trip" in record.message for record in caplog.records)
+        assert any(
+            "Adding recurring trip" in record.message for record in caplog.records
+        )
 
 
 class TestTripRead:
@@ -326,7 +332,9 @@ class TestTripUpdate:
         )
 
         # Verify warning was logged
-        assert any("not found for update" in record.message for record in caplog.records)
+        assert any(
+            "not found for update" in record.message for record in caplog.records
+        )
 
         # Verify no trips were created
         trips = await trip_manager.async_get_punctual_trips()
@@ -469,7 +477,9 @@ class TestTripDelete:
         await trip_manager.async_delete_trip("nonexistent_trip")
 
         # Verify warning was logged
-        assert any("not found for deletion" in record.message for record in caplog.records)
+        assert any(
+            "not found for deletion" in record.message for record in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_cancel_punctual_trip(self, trip_manager, caplog):
@@ -575,7 +585,9 @@ class TestTripPersistence:
 
         # Verify that trips were added (storage error is expected with mock)
         # The important thing is that add_trip logs success
-        assert any("Added recurring trip" in record.message for record in caplog.records)
+        assert any(
+            "Added recurring trip" in record.message for record in caplog.records
+        )
 
 
 class TestTripManagerInitialization:
@@ -623,7 +635,9 @@ class TestChargingWindowCalculation:
         """
         # Setup: Add a punctual trip at 22:00 today
         # Use the format expected by trip_manager: %Y-%m-%dT%H:%M
-        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=22, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -638,7 +652,9 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today
-        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
 
         # Get the trip we just added
         trips = await trip_manager.async_get_punctual_trips()
@@ -653,19 +669,25 @@ class TestChargingWindowCalculation:
         )
 
         # Verify window is 4 hours (from 18:00 to 22:00)
-        assert result["ventana_horas"] == 4.0, f"Expected 4.0 hours, got {result['ventana_horas']}"
+        assert result["ventana_horas"] == 4.0, (
+            f"Expected 4.0 hours, got {result['ventana_horas']}"
+        )
 
         # Verify all expected fields are returned (AC-1 interface contract)
         assert "ventana_horas" in result, "Missing ventana_horas field"
         assert "kwh_necesarios" in result, "Missing kwh_necesarios field"
-        assert "horas_carga_necesarias" in result, "Missing horas_carga_necesarias field"
+        assert "horas_carga_necesarias" in result, (
+            "Missing horas_carga_necesarias field"
+        )
         assert "inicio_ventana" in result, "Missing inicio_ventana field"
         assert "fin_ventana" in result, "Missing fin_ventana field"
         assert "es_suficiente" in result, "Missing es_suficiente field"
 
         # Verify energy calculation
         assert result["kwh_necesarios"] == 10.0
-        assert result["horas_carga_necesarias"] == pytest.approx(1.35, rel=0.01)  # 10.0 / 7.4
+        assert result["horas_carga_necesarias"] == pytest.approx(
+            1.35, rel=0.01
+        )  # 10.0 / 7.4
 
         # Verify window start and end times
         assert result["inicio_ventana"] == hora_regreso
@@ -673,6 +695,7 @@ class TestChargingWindowCalculation:
 
         # Verify es_suficiente is True (4 hours > 1.35 hours needed)
         assert result["es_suficiente"] is True
+
 
 @pytest.fixture
 def mock_hass_with_storage():
@@ -795,7 +818,9 @@ async def test_async_generate_deferrables_schedule_returns_list(mock_hass_with_s
 
 
 @pytest.mark.asyncio
-async def test_async_generate_power_profile_with_presence_monitor(mock_hass_with_storage):
+async def test_async_generate_power_profile_with_presence_monitor(
+    mock_hass_with_storage,
+):
     """async_generate_power_profile uses presence_monitor for hora_regreso."""
     trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
     await trip_manager.async_setup()
@@ -949,7 +974,9 @@ class TestTripManagerAsyncRemoveTripSensor:
     """Tests for async_remove_trip_sensor error paths."""
 
     @pytest.mark.asyncio
-    async def test_async_remove_trip_sensor_registry_error(self, mock_hass_with_storage):
+    async def test_async_remove_trip_sensor_registry_error(
+        self, mock_hass_with_storage
+    ):
         """async_remove_trip_sensor handles registry error gracefully."""
         from custom_components.ev_trip_planner.sensor import async_remove_trip_sensor
 
@@ -962,15 +989,18 @@ class TestTripManagerAsyncRemoveTripSensor:
             side_effect=Exception("Registry error"),
         ):
             # Should not raise - exception is caught and logged
-            await async_remove_trip_sensor(mock_hass_with_storage, "test_entry", "trip_1")
-
+            await async_remove_trip_sensor(
+                mock_hass_with_storage, "test_entry", "trip_1"
+            )
 
 
 class TestTripManagerAsyncUpdateTripSensor:
     """Tests for async_update_trip_sensor error paths."""
 
     @pytest.mark.asyncio
-    async def test_async_update_trip_sensor_trip_not_found(self, mock_hass_with_storage):
+    async def test_async_update_trip_sensor_trip_not_found(
+        self, mock_hass_with_storage
+    ):
         """async_update_trip_sensor handles missing trip gracefully."""
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
         await trip_manager.async_setup()
@@ -980,7 +1010,9 @@ class TestTripManagerAsyncUpdateTripSensor:
         await trip_manager.async_update_trip_sensor("trip_1")
 
     @pytest.mark.asyncio
-    async def test_async_update_trip_sensor_registry_get_error(self, mock_hass_with_storage):
+    async def test_async_update_trip_sensor_registry_get_error(
+        self, mock_hass_with_storage
+    ):
         """async_update_trip_sensor handles registry get error."""
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
         await trip_manager.async_setup()
@@ -1006,7 +1038,6 @@ class TestTripManagerAsyncUpdateTripSensor:
             with patch.object(mock_hass_with_storage, "states") as mock_states:
                 mock_states.async_set = MagicMock(side_effect=Exception("State error"))
                 await trip_manager.async_update_trip_sensor("trip_1")
-
 
 
 class TestTripManagerGetTripTime:
@@ -1049,7 +1080,6 @@ class TestTripManagerGetTripTime:
         assert result is None
 
 
-
 class TestTripManagerDayIndex:
     """Tests for _get_day_index error paths."""
 
@@ -1066,7 +1096,6 @@ class TestTripManagerDayIndex:
 
         result = trip_manager._get_day_index("NotADay")
         assert result == 0  # Defaults to Monday
-
 
 
 class TestTripManagerSaveTrips:
@@ -1125,7 +1154,6 @@ class TestTripManagerSaveTrips:
                     await trip_manager.async_save_trips()
 
 
-
 class TestTripManagerEMHASSAdapter:
     """Tests for EMHASS adapter methods."""
 
@@ -1149,7 +1177,6 @@ class TestTripManagerEMHASSAdapter:
         trip_manager.set_emhass_adapter(mock_adapter)
 
         assert trip_manager.get_emhass_adapter() is mock_adapter
-
 
 
 class TestEMHASSAdapterConstructorInjection:
@@ -1184,7 +1211,9 @@ class TestEMHASSAdapterConstructorInjection:
         assert trip_manager.get_emhass_adapter() is mock_adapter
 
     @pytest.mark.asyncio
-    async def test_set_emhass_adapter_still_works_after_refactor(self, mock_hass_with_storage):
+    async def test_set_emhass_adapter_still_works_after_refactor(
+        self, mock_hass_with_storage
+    ):
         """set_emhass_adapter() still works after Phase C refactor (backward compatibility).
 
         T036 This test should fail because the refactor hasn't been done.
@@ -1206,7 +1235,9 @@ class TestEMHASSAdapterConstructorInjection:
         assert trip_manager.get_emhass_adapter() is mock_adapter_setter
 
     @pytest.mark.asyncio
-    async def test_get_emhass_adapter_returns_none_when_not_set(self, mock_hass_with_storage):
+    async def test_get_emhass_adapter_returns_none_when_not_set(
+        self, mock_hass_with_storage
+    ):
         """get_emhass_adapter returns None when no adapter is set (via constructor or setter).
 
         T036 This test verifies baseline behavior is preserved.
@@ -1216,12 +1247,13 @@ class TestEMHASSAdapterConstructorInjection:
         assert trip_manager.get_emhass_adapter() is None
 
 
-
 class TestTripManagerVehicleSOC:
     """Tests for vehicle SOC methods."""
 
     @pytest.mark.asyncio
-    async def test_async_get_vehicle_soc_returns_zero_on_no_entry(self, mock_hass_with_storage):
+    async def test_async_get_vehicle_soc_returns_zero_on_no_entry(
+        self, mock_hass_with_storage
+    ):
         """async_get_vehicle_soc returns 0.0 when no config entry found."""
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
         await trip_manager.async_setup()
@@ -1232,7 +1264,6 @@ class TestTripManagerVehicleSOC:
         # Returns 0.0 when no entry found
         result = await trip_manager.async_get_vehicle_soc("test_vehicle")
         assert result == 0.0
-
 
 
 class TestTripManagerCalcularVentana:
@@ -1260,7 +1291,6 @@ class TestTripManagerCalcularVentana:
         assert result["ventana_horas"] == 0.0
 
 
-
 class TestTripManagerGetAllTrips:
     """Tests for get_all_trips."""
 
@@ -1268,12 +1298,8 @@ class TestTripManagerGetAllTrips:
         """get_all_trips returns dict with recurring and punctual keys."""
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
 
-        trip_manager._recurring_trips = {
-            "rec_1": {"id": "rec_1", "tipo": "recurring"}
-        }
-        trip_manager._punctual_trips = {
-            "pun_1": {"id": "pun_1", "tipo": "punctual"}
-        }
+        trip_manager._recurring_trips = {"rec_1": {"id": "rec_1", "tipo": "recurring"}}
+        trip_manager._punctual_trips = {"pun_1": {"id": "pun_1", "tipo": "punctual"}}
 
         result = trip_manager.get_all_trips()
 
@@ -1283,19 +1309,27 @@ class TestTripManagerGetAllTrips:
         assert len(result["punctual"]) == 1
 
 
-
 class TestTripManagerAsyncAddRecurringTrip:
     """Tests for async_add_recurring_trip error paths."""
 
     @pytest.mark.asyncio
     async def test_async_add_recurring_trip_generates_id(self, mock_hass_with_storage):
         """async_add_recurring_trip generates trip_id if not provided."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "test_vehicle", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Mock the sensor creation and EMHASS to avoid side effects
-        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
-            with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_create_trip_sensor",
+            new_callable=AsyncMock,
+        ):
+            with patch.object(
+                trip_manager,
+                "_async_publish_new_trip_to_emhass",
+                new_callable=AsyncMock,
+            ):
                 await trip_manager.async_add_recurring_trip(
                     dia_semana="monday",
                     hora="08:00",
@@ -1309,13 +1343,24 @@ class TestTripManagerAsyncAddRecurringTrip:
         assert recurring_ids[0].startswith("rec_")
 
     @pytest.mark.asyncio
-    async def test_async_add_recurring_trip_with_custom_id(self, mock_hass_with_storage):
+    async def test_async_add_recurring_trip_with_custom_id(
+        self, mock_hass_with_storage
+    ):
         """async_add_recurring_trip uses provided trip_id."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "test_vehicle", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
-        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock):
-            with patch.object(trip_manager, "_async_publish_new_trip_to_emhass", new_callable=AsyncMock):
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_create_trip_sensor",
+            new_callable=AsyncMock,
+        ):
+            with patch.object(
+                trip_manager,
+                "_async_publish_new_trip_to_emhass",
+                new_callable=AsyncMock,
+            ):
                 await trip_manager.async_add_recurring_trip(
                     trip_id="custom_recurring_1",
                     dia_semana="monday",
@@ -1345,10 +1390,14 @@ class TestTripManagerAsyncAddRecurringTrip:
         """
         caplog.set_level("DEBUG")
 
-        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "morgan", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
-        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor") as mock_create:
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_create_trip_sensor"
+        ) as mock_create:
             # Mock the sensor.py function to return False (no existing entity)
             mock_create.return_value = False
 
@@ -1364,9 +1413,13 @@ class TestTripManagerAsyncAddRecurringTrip:
             # Assert sensor.py async_create_trip_sensor was called (not internal method)
             mock_create.assert_called_once()
             call_args = mock_create.call_args
-            assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
+            assert (
+                call_args[0][0] is mock_hass_with_storage
+            )  # hass is first positional arg
             assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
-            assert call_args[0][2].get("dia_semana") == "lunes"  # trip_data contains dia_semana="lunes"
+            assert (
+                call_args[0][2].get("dia_semana") == "lunes"
+            )  # trip_data contains dia_semana="lunes"
 
     @pytest.mark.asyncio
     async def test_add_recurring_calls_emhass_sensor_create(
@@ -1386,7 +1439,9 @@ class TestTripManagerAsyncAddRecurringTrip:
         """
         caplog.set_level("DEBUG")
 
-        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "morgan", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
@@ -1395,14 +1450,25 @@ class TestTripManagerAsyncAddRecurringTrip:
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
         from custom_components.ev_trip_planner import EVTripRuntimeData
+
         mock_entry.runtime_data = EVTripRuntimeData(
             coordinator=mock_coordinator, trip_manager=None
         )
 
         # Mock both sensor CRUD functions and config_entries.async_get_entry
-        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
-            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
-                with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_create_trip_sensor",
+            new_callable=AsyncMock,
+        ) as mock_trip_sensor:
+            with patch(
+                "custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor",
+                new_callable=AsyncMock,
+            ) as mock_emhass_sensor:
+                with patch.object(
+                    mock_hass_with_storage.config_entries,
+                    "async_get_entry",
+                    return_value=mock_entry,
+                ):
                     mock_trip_sensor.return_value = False  # No existing entity
                     mock_emhass_sensor.return_value = None  # EMHASS sensor void return
 
@@ -1422,12 +1488,20 @@ class TestTripManagerAsyncAddRecurringTrip:
                     # This will FAIL until task 1.53 implementation
                     mock_emhass_sensor.assert_called_once()
                     call_args = mock_emhass_sensor.call_args
-                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
-                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
-                    assert call_args[0][2] is mock_coordinator  # third arg is coordinator
+                    assert (
+                        call_args[0][0] is mock_hass_with_storage
+                    )  # hass is first positional arg
+                    assert (
+                        call_args[0][1] == "test_entry"
+                    )  # entry_id is second positional arg
+                    assert (
+                        call_args[0][2] is mock_coordinator
+                    )  # third arg is coordinator
                     assert call_args[0][3] == "morgan"  # fourth arg is vehicle_id
                     # The fifth arg should be the trip_id (extracted from the trip that was created)
-                    assert isinstance(call_args[0][4], str)  # trip_id should be a string
+                    assert isinstance(
+                        call_args[0][4], str
+                    )  # trip_id should be a string
 
 
 class TestTripManagerAsyncAddPunctualTrip:
@@ -1452,7 +1526,9 @@ class TestTripManagerAsyncAddPunctualTrip:
         """
         caplog.set_level("DEBUG")
 
-        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "morgan", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
@@ -1461,14 +1537,25 @@ class TestTripManagerAsyncAddPunctualTrip:
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
         from custom_components.ev_trip_planner import EVTripRuntimeData
+
         mock_entry.runtime_data = EVTripRuntimeData(
             coordinator=mock_coordinator, trip_manager=None
         )
 
         # Mock both sensor CRUD functions and config_entries.async_get_entry
-        with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
-            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
-                with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_create_trip_sensor",
+            new_callable=AsyncMock,
+        ) as mock_trip_sensor:
+            with patch(
+                "custom_components.ev_trip_planner.sensor.async_create_trip_emhass_sensor",
+                new_callable=AsyncMock,
+            ) as mock_emhass_sensor:
+                with patch.object(
+                    mock_hass_with_storage.config_entries,
+                    "async_get_entry",
+                    return_value=mock_entry,
+                ):
                     mock_trip_sensor.return_value = False  # No existing entity
                     mock_emhass_sensor.return_value = None  # EMHASS sensor void return
 
@@ -1487,14 +1574,21 @@ class TestTripManagerAsyncAddPunctualTrip:
                     # This will FAIL until task 1.55 implementation
                     mock_emhass_sensor.assert_called_once()
                     call_args = mock_emhass_sensor.call_args
-                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
-                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
-                    assert call_args[0][2] is mock_coordinator  # third arg is coordinator
+                    assert (
+                        call_args[0][0] is mock_hass_with_storage
+                    )  # hass is first positional arg
+                    assert (
+                        call_args[0][1] == "test_entry"
+                    )  # entry_id is second positional arg
+                    assert (
+                        call_args[0][2] is mock_coordinator
+                    )  # third arg is coordinator
                     assert call_args[0][3] == "morgan"  # fourth arg is vehicle_id
                     # The fifth arg should be the trip_id (extracted from the trip that was created)
                     # We just need to verify it's a string that exists, we don't check if it's still in the trips dict
-                    assert isinstance(call_args[0][4], str)  # trip_id should be a string
-
+                    assert isinstance(
+                        call_args[0][4], str
+                    )  # trip_id should be a string
 
 
 class TestTripManagerAsyncDeleteTrip:
@@ -1503,13 +1597,22 @@ class TestTripManagerAsyncDeleteTrip:
     @pytest.mark.asyncio
     async def test_async_delete_trip_not_found(self, mock_hass_with_storage):
         """async_delete_trip handles missing trip gracefully."""
-        trip_manager = TripManager(mock_hass_with_storage, "test_vehicle", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "test_vehicle", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Try to delete a trip that doesn't exist
         with patch.object(trip_manager, "async_save_trips", new_callable=AsyncMock):
-            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock):
-                with patch.object(trip_manager, "_async_remove_trip_from_emhass", new_callable=AsyncMock):
+            with patch(
+                "custom_components.ev_trip_planner.sensor.async_remove_trip_sensor",
+                new_callable=AsyncMock,
+            ):
+                with patch.object(
+                    trip_manager,
+                    "_async_remove_trip_from_emhass",
+                    new_callable=AsyncMock,
+                ):
                     await trip_manager.async_delete_trip("nonexistent_trip")
 
         # No error should be raised - just returns early
@@ -1533,7 +1636,9 @@ class TestTripManagerAsyncDeleteTrip:
         """
         caplog.set_level("DEBUG")
 
-        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "morgan", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
@@ -1542,13 +1647,18 @@ class TestTripManagerAsyncDeleteTrip:
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry"
         from custom_components.ev_trip_planner import EVTripRuntimeData
+
         mock_entry.runtime_data = EVTripRuntimeData(
             coordinator=mock_coordinator, trip_manager=None
         )
 
         # Mock config_entries.async_get_entry to return our properly configured entry
         # This ensures that both trip creation and deletion use the same mock entry
-        with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+        with patch.object(
+            mock_hass_with_storage.config_entries,
+            "async_get_entry",
+            return_value=mock_entry,
+        ):
             # Create a trip first (needs coordinator mock for EMHASS sensor creation)
             await trip_manager.async_add_recurring_trip(
                 dia_semana="lunes",
@@ -1559,13 +1669,21 @@ class TestTripManagerAsyncDeleteTrip:
             )
 
             # Mock both sensor CRUD functions
-            with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
-                with patch("custom_components.ev_trip_planner.sensor.async_remove_trip_emhass_sensor", new_callable=AsyncMock) as mock_emhass_sensor:
+            with patch(
+                "custom_components.ev_trip_planner.sensor.async_remove_trip_sensor",
+                new_callable=AsyncMock,
+            ) as mock_trip_sensor:
+                with patch(
+                    "custom_components.ev_trip_planner.sensor.async_remove_trip_emhass_sensor",
+                    new_callable=AsyncMock,
+                ) as mock_emhass_sensor:
                     mock_trip_sensor.return_value = True  # Successfully removed
                     mock_emhass_sensor.return_value = True  # Successfully removed
 
                     # Delete the trip
-                    await trip_manager.async_delete_trip(list(trip_manager._recurring_trips.keys())[0])
+                    await trip_manager.async_delete_trip(
+                        list(trip_manager._recurring_trips.keys())[0]
+                    )
 
                     # Assert TripSensor was removed
                     mock_trip_sensor.assert_called_once()
@@ -1574,12 +1692,17 @@ class TestTripManagerAsyncDeleteTrip:
                     # This will FAIL until task 1.57 implementation
                     mock_emhass_sensor.assert_called_once()
                     call_args = mock_emhass_sensor.call_args
-                    assert call_args[0][0] is mock_hass_with_storage  # hass is first positional arg
-                    assert call_args[0][1] == "test_entry"  # entry_id is second positional arg
+                    assert (
+                        call_args[0][0] is mock_hass_with_storage
+                    )  # hass is first positional arg
+                    assert (
+                        call_args[0][1] == "test_entry"
+                    )  # entry_id is second positional arg
                     assert call_args[0][2] == "morgan"  # third arg is vehicle_id
                     # The fourth arg should be the trip_id that was deleted
-                    assert isinstance(call_args[0][3], str)  # trip_id should be a string
-
+                    assert isinstance(
+                        call_args[0][3], str
+                    )  # trip_id should be a string
 
 
 class TestTripManagerAsyncPauseResume:
@@ -1607,6 +1730,7 @@ class TestTripManagerAsyncPauseResume:
 # =============================================================================
 # Pure calculation function tests (PRAGMA-C coverage for calcular_hitos_soc helpers)
 # =============================================================================
+
 
 class TestCalcularTasaCargaSoc:
     """Parametrized tests for _calcular_tasa_carga_soc - pure calculation function."""
@@ -1637,7 +1761,9 @@ class TestCalcularTasaCargaSoc:
         self, trip_manager, charging_power_kw, battery_capacity_kwh, expected
     ):
         """Test SOC charging rate calculation with various battery capacities."""
-        result = trip_manager._calcular_tasa_carga_soc(charging_power_kw, battery_capacity_kwh)
+        result = trip_manager._calcular_tasa_carga_soc(
+            charging_power_kw, battery_capacity_kwh
+        )
         assert abs(result - expected) < 0.001, f"Expected {expected}, got {result}"
 
 
@@ -1670,8 +1796,12 @@ class TestCalcularSocObjetivoBase:
         self, trip_manager, trip, battery_capacity_kwh, consumption, expected_soc
     ):
         """Test SOC target calculation with various trip data and battery capacities."""
-        result = trip_manager._calcular_soc_objetivo_base(trip, battery_capacity_kwh, consumption)
-        assert abs(result - expected_soc) < 0.001, f"Expected {expected_soc}, got {result}"
+        result = trip_manager._calcular_soc_objetivo_base(
+            trip, battery_capacity_kwh, consumption
+        )
+        assert abs(result - expected_soc) < 0.001, (
+            f"Expected {expected_soc}, got {result}"
+        )
 
 
 class TestTripManagerConstructorInjection:
@@ -1736,7 +1866,9 @@ class TestTripManagerConstructorInjection:
         assert hasattr(trip_manager, "_emhass_adapter")
         assert trip_manager._emhass_adapter is mock_emhass
 
-    def test_constructor_accepts_both_storage_and_emhass_adapter(self, mock_hass_with_storage):
+    def test_constructor_accepts_both_storage_and_emhass_adapter(
+        self, mock_hass_with_storage
+    ):
         """TripManager constructor should accept both storage and emhass_adapter parameters.
 
         This test FAILS with TypeError because current constructor does not
@@ -1772,7 +1904,9 @@ class TestTripManagerConstructorInjection:
         from custom_components.ev_trip_planner import trip_manager as tm_module
 
         # Verify _UNSET sentinel exists in the module
-        assert hasattr(tm_module, "_UNSET"), "TripManager module should define _UNSET sentinel"
+        assert hasattr(tm_module, "_UNSET"), (
+            "TripManager module should define _UNSET sentinel"
+        )
 
         # When called without storage/emhass_adapter, they should default to _UNSET
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")
@@ -1816,7 +1950,9 @@ class TestTripManagerLoadErrors:
         await trip_manager._load_trips()
 
         # Verify the exception was caught and logged
-        assert any("Error cargando viajes" in record.message for record in caplog.records)
+        assert any(
+            "Error cargando viajes" in record.message for record in caplog.records
+        )
 
         # Verify trip state was reset to empty
         assert trip_manager._trips == {}
@@ -1825,9 +1961,7 @@ class TestTripManagerLoadErrors:
         assert trip_manager._last_update is None
 
     @pytest.mark.asyncio
-    async def test_load_trips_value_error_handler(
-        self, mock_hass_no_storage, caplog
-    ):
+    async def test_load_trips_value_error_handler(self, mock_hass_no_storage, caplog):
         """Test that ValueError during trip loading is caught and handled.
 
         Tests another type of exception that could occur during storage load.
@@ -1850,7 +1984,9 @@ class TestTripManagerLoadErrors:
         await trip_manager._load_trips()
 
         # Verify the exception was caught
-        assert any("Error cargando viajes" in record.message for record in caplog.records)
+        assert any(
+            "Error cargando viajes" in record.message for record in caplog.records
+        )
 
         # Verify state was reset
         assert trip_manager._trips == {}
@@ -1897,7 +2033,9 @@ class TestRuntimeDataAttributeAccess:
         """
         caplog.set_level("DEBUG")
 
-        trip_manager = TripManager(mock_hass_with_storage, "morgan", entry_id="test_entry")
+        trip_manager = TripManager(
+            mock_hass_with_storage, "morgan", entry_id="test_entry"
+        )
         await trip_manager.async_setup()
 
         # Set up REAL EVTripRuntimeData dataclass (NOT MagicMock)
@@ -1910,9 +2048,16 @@ class TestRuntimeDataAttributeAccess:
         )
 
         # Mock config_entries.async_get_entry to return our properly configured entry
-        with patch.object(mock_hass_with_storage.config_entries, "async_get_entry", return_value=mock_entry):
+        with patch.object(
+            mock_hass_with_storage.config_entries,
+            "async_get_entry",
+            return_value=mock_entry,
+        ):
             # Mock async_create_trip_sensor to avoid needing full sensor setup
-            with patch("custom_components.ev_trip_planner.sensor.async_create_trip_sensor", new_callable=AsyncMock) as mock_trip_sensor:
+            with patch(
+                "custom_components.ev_trip_planner.sensor.async_create_trip_sensor",
+                new_callable=AsyncMock,
+            ) as mock_trip_sensor:
                 mock_trip_sensor.return_value = False  # No existing entity
 
                 # This will FAIL with: AttributeError: 'EVTripRuntimeData' object has no attribute 'get'
@@ -1927,3 +2072,167 @@ class TestRuntimeDataAttributeAccess:
 
                 # If we reach here without AttributeError, the bug is fixed
                 # The test passes when runtime_data.coordinator is accessed correctly
+
+
+@pytest.mark.asyncio
+async def test_rotate_recurring_trips_config_entry_no_data(mock_hass, vehicle_id):
+    """Cover lines 314, 317-320 in _rotate_recurring_trips: config entry fallback paths.
+
+    Creates a config entry with no 'data' attribute to trigger the continue at line 314
+    and the exception handler at lines 317-320.
+    """
+    entry = MagicMock()
+    entry.entry_id = "test_entry"
+    entry.data = {
+        "vehicle_name": vehicle_id,
+        "soc_sensor": "sensor.test_soc",
+        "charging_power_kw": 3.4,
+        "battery_capacity_kwh": 60.0,
+    }
+
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+
+    # Also add an entry without data to trigger line 314 continue
+    bad_entry = MagicMock()
+    bad_entry.entry_id = "bad_entry"
+    bad_entry.data = None  # No data → triggers line 314 continue
+
+    def mock_async_entries(domain=None):
+        return [bad_entry, entry]
+
+    mock_hass.config_entries.async_entries = MagicMock(side_effect=mock_async_entries)
+
+    # Mock storage
+    mock_storage = MagicMock()
+    mock_storage.async_load = AsyncMock(
+        return_value={"data": {"recurring_trips": {}, "punctual_trips": {}}}
+    )
+
+    tm = TripManager(
+        hass=mock_hass,
+        vehicle_id=vehicle_id,
+        entry_id="test_entry",
+        presence_config={},
+        storage=mock_storage,
+    )
+    await tm.async_setup()
+
+    # Set EMHASS adapter to trigger the T093 path in _rotate_recurring_trips
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    tm.set_emhass_adapter(mock_adapter)
+
+    # Call publish_deferrable_loads → triggers _rotate_recurring_trips with the bad_entry
+    await tm.publish_deferrable_loads()
+
+
+@pytest.mark.asyncio
+async def test_rotate_recurring_trips_soc_none_fallback(mock_hass, vehicle_id):
+    """Cover line 329 in _rotate_recurring_trips: SOC None fallback to 50.0.
+
+    Mocks async_get_vehicle_soc to return None to trigger the fallback path.
+    """
+    entry = MagicMock()
+    entry.entry_id = "test_entry"
+    entry.data = {
+        "vehicle_name": vehicle_id,
+        "soc_sensor": "sensor.test_soc",
+        "charging_power_kw": 3.4,
+        "battery_capacity_kwh": 60.0,
+    }
+
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+    mock_hass.config_entries.async_entries = MagicMock(return_value=[entry])
+
+    # Mock storage
+    mock_storage = MagicMock()
+    mock_storage.async_load = AsyncMock(
+        return_value={"data": {"recurring_trips": {}, "punctual_trips": {}}}
+    )
+
+    tm = TripManager(
+        hass=mock_hass,
+        vehicle_id=vehicle_id,
+        entry_id="test_entry",
+        presence_config={},
+        storage=mock_storage,
+    )
+    await tm.async_setup()
+
+    # Mock async_get_vehicle_soc to return None → triggers line 329 fallback
+    tm.async_get_vehicle_soc = AsyncMock(return_value=None)
+
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+    tm.set_emhass_adapter(mock_adapter)
+
+    # This should use 50.0 as fallback SOC
+    await tm.publish_deferrable_loads()
+    assert mock_adapter.async_publish_all_deferrable_loads.called
+
+
+@pytest.mark.asyncio
+async def test_rotate_recurring_trips_config_entry_search_paths(mock_hass, vehicle_id):
+    """Cover lines 313-320: config entry search in T093 pre-computation block.
+
+    Covers:
+    - Line 313-314: skip entries without data (continue)
+    - Lines 316-318: matching entry found (config_entry = e; break)
+    - Lines 319-320: exception handler (config_entry = None)
+    """
+    mock_hass.config_entries.async_get_entry = MagicMock(return_value=None)
+
+    call_count = [0]
+
+    def mock_async_entries(domain=None):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # First call: entries with mixed data
+            # no_data.data = None → line 313 → line 314 continue
+            # matching entry found → lines 316-318
+            no_data = MagicMock()
+            no_data.data = None
+            matching = MagicMock()
+            matching.data = {"vehicle_name": vehicle_id}
+            return [no_data, matching]
+        # Second call: raise exception → lines 319-320
+        raise RuntimeError("config_entries broken")
+
+    mock_hass.config_entries.async_entries = MagicMock(side_effect=mock_async_entries)
+
+    # Mock storage
+    mock_storage = MagicMock()
+    mock_storage.async_load = AsyncMock(
+        return_value={"data": {"recurring_trips": {}, "punctual_trips": {}}}
+    )
+
+    # Create mock adapter BEFORE constructing TripManager so T093 block
+    # executes during async_setup → publish_deferrable_loads
+    mock_adapter = MagicMock()
+    mock_adapter.async_publish_all_deferrable_loads = AsyncMock()
+
+    tm = TripManager(
+        hass=mock_hass,
+        vehicle_id=vehicle_id,
+        entry_id="test_entry",
+        presence_config={},
+        storage=mock_storage,
+    )
+
+    # Inject adapter before async_setup so publish_deferrable_loads doesn't
+    # early-return at line 295-296. Also mock async_get_vehicle_soc so it
+    # doesn't call async_entries again during the T093 block.
+    tm._emhass_adapter = mock_adapter
+    tm.async_get_vehicle_soc = AsyncMock(return_value=50.0)
+
+    await tm.async_setup()
+
+    # Call 1 (during async_setup → publish_deferrable_loads):
+    #   T093 async_entries returns [no_data, matching]
+    #   Loop: no_data.data=None → line 313 → line 314 continue
+    #   matching.data.vehicle_name == vehicle_id → lines 316-318
+    #   async_get_vehicle_soc uses mock → returns 50.0, NO async_entries call
+    # Call 2 (this explicit call):
+    #   T093 async_entries raises → except at line 319 → line 320 config_entry = None
+    await tm.publish_deferrable_loads()
+    assert mock_adapter.async_publish_all_deferrable_loads.called

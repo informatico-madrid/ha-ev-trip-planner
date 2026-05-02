@@ -1,4 +1,3 @@
-
 from types import SimpleNamespace
 
 
@@ -39,7 +38,9 @@ async def test_call_async_executor_with_coroutine_hass():
     assert result == 2
 
 
-async def test_import_dashboard_returns_structured_failure_when_yaml_helper_fails(monkeypatch):
+async def test_import_dashboard_returns_structured_failure_when_yaml_helper_fails(
+    monkeypatch,
+):
     """Simula que la API de storage falla y el helper YAML devuelve un DashboardImportResult fallido."""
     from custom_components.ev_trip_planner.dashboard import (
         import_dashboard,
@@ -109,7 +110,10 @@ async def test_save_yaml_creates_config_dir(tmp_path):
     cfg_dir = str(tmp_path / "config_dir")
     hass = Hass(cfg_dir)
 
-    dashboard_config = {"title": "t", "views": [{"path": "p", "title": "T", "cards": []}]}
+    dashboard_config = {
+        "title": "t",
+        "views": [{"path": "p", "title": "T", "cards": []}],
+    }
 
     res = await _save_dashboard_yaml_fallback(hass, dashboard_config, "vid")
     assert isinstance(res, DashboardImportResult)

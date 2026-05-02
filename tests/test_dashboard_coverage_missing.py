@@ -1,7 +1,10 @@
 import pytest
 
 from custom_components.ev_trip_planner import dashboard
-from custom_components.ev_trip_planner.dashboard import import_dashboard, DashboardImportResult
+from custom_components.ev_trip_planner.dashboard import (
+    import_dashboard,
+    DashboardImportResult,
+)
 
 
 @pytest.mark.asyncio

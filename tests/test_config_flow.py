@@ -135,8 +135,13 @@ async def test_emhass_step_with_defaults():
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "presence"
     # Verify EMHASS data was stored
-    assert flow.context["vehicle_data"][CONF_PLANNING_HORIZON] == DEFAULT_PLANNING_HORIZON
-    assert flow.context["vehicle_data"][CONF_MAX_DEFERRABLE_LOADS] == DEFAULT_MAX_DEFERRABLE_LOADS
+    assert (
+        flow.context["vehicle_data"][CONF_PLANNING_HORIZON] == DEFAULT_PLANNING_HORIZON
+    )
+    assert (
+        flow.context["vehicle_data"][CONF_MAX_DEFERRABLE_LOADS]
+        == DEFAULT_MAX_DEFERRABLE_LOADS
+    )
 
 
 @pytest.mark.asyncio
@@ -233,7 +238,7 @@ async def test_presence_step_skip_advances_to_notifications():
     mock_state.state = "on"
     flow.hass.states.get.return_value = mock_state
 
-    with patch.object(er, 'async_get', return_value=mock_registry):
+    with patch.object(er, "async_get", return_value=mock_registry):
         result = await flow.async_step_presence({})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
@@ -258,7 +263,9 @@ async def test_presence_step_with_charging_sensor():
     )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
-    assert flow.context["vehicle_data"][CONF_CHARGING_SENSOR] == "binary_sensor.charging"
+    assert (
+        flow.context["vehicle_data"][CONF_CHARGING_SENSOR] == "binary_sensor.charging"
+    )
 
 
 @pytest.mark.asyncio
@@ -317,7 +324,9 @@ async def test_presence_step_with_all_sensors():
     )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
-    assert flow.context["vehicle_data"][CONF_CHARGING_SENSOR] == "binary_sensor.charging"
+    assert (
+        flow.context["vehicle_data"][CONF_CHARGING_SENSOR] == "binary_sensor.charging"
+    )
     assert flow.context["vehicle_data"][CONF_HOME_SENSOR] == "binary_sensor.home"
     assert flow.context["vehicle_data"][CONF_PLUGGED_SENSOR] == "binary_sensor.plugged"
 
@@ -368,7 +377,10 @@ async def test_notifications_step_with_service():
     )
     # Should create entry with notification service stored
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert flow.context["vehicle_data"][CONF_NOTIFICATION_SERVICE] == "notify.mobile_app_iphone"
+    assert (
+        flow.context["vehicle_data"][CONF_NOTIFICATION_SERVICE]
+        == "notify.mobile_app_iphone"
+    )
 
 
 @pytest.mark.asyncio
@@ -416,7 +428,9 @@ async def test_full_flow_success():
     mock_state.state = "on"
     flow.hass.states.get.return_value = mock_state
 
-    with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+    with patch(
+        "homeassistant.helpers.entity_registry.async_get", return_value=mock_registry
+    ):
         result = await flow.async_step_presence({})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "notifications"
@@ -446,16 +460,20 @@ async def test_vehicle_data_persistence_across_steps():
 
     # Complete the full flow
     await flow.async_step_user({CONF_VEHICLE_NAME: "MyEV"})
-    await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 75.0,
-        CONF_CHARGING_POWER: 22.0,
-        CONF_CONSUMPTION: 0.18,
-        CONF_SAFETY_MARGIN: 15,
-    })
-    await flow.async_step_emhass({
-        CONF_PLANNING_HORIZON: 10,
-        CONF_MAX_DEFERRABLE_LOADS: 30,
-    })
+    await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 75.0,
+            CONF_CHARGING_POWER: 22.0,
+            CONF_CONSUMPTION: 0.18,
+            CONF_SAFETY_MARGIN: 15,
+        }
+    )
+    await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 10,
+            CONF_MAX_DEFERRABLE_LOADS: 30,
+        }
+    )
     await flow.async_step_presence({})
     result = await flow.async_step_notifications({})
 
@@ -620,16 +638,20 @@ async def test_default_values_are_used():
 
     # Provide values at each step to allow flow to complete
     result = await flow.async_step_user({CONF_VEHICLE_NAME: "Test"})
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,  # Will be overridden by default
-        CONF_SAFETY_MARGIN: 20,  # Will be overridden by default
-    })
-    result = await flow.async_step_emhass({
-        CONF_PLANNING_HORIZON: 7,  # Will be overridden by default
-        CONF_MAX_DEFERRABLE_LOADS: 50,  # Will be overridden by default
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,  # Will be overridden by default
+            CONF_SAFETY_MARGIN: 20,  # Will be overridden by default
+        }
+    )
+    result = await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 7,  # Will be overridden by default
+            CONF_MAX_DEFERRABLE_LOADS: 50,  # Will be overridden by default
+        }
+    )
     result = await flow.async_step_presence({})
     result = await flow.async_step_notifications({})
 
@@ -643,6 +665,7 @@ async def test_default_values_are_used():
 # ----------------------------------------------------------------------
 # T034: T_base slider accepts default and persists in entry data
 # ----------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_t_base_persists_in_entry_data():
@@ -663,18 +686,22 @@ async def test_t_base_persists_in_entry_data():
     # Complete full flow with explicit t_base
     result = await flow.async_step_user({"vehicle_name": "TestVehicle"})
     assert result["type"] == FlowResultType.FORM
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_SAFETY_MARGIN: 20,
-        CONF_T_BASE: 24.0,
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+            CONF_T_BASE: 24.0,
+        }
+    )
     assert result["type"] == FlowResultType.FORM
-    result = await flow.async_step_emhass({
-        CONF_PLANNING_HORIZON: 7,
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-    })
+    result = await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 7,
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+        }
+    )
     assert result["type"] == FlowResultType.FORM
     result = await flow.async_step_presence({})
     result = await flow.async_step_notifications({})
@@ -696,18 +723,22 @@ async def test_t_base_custom_value_persists():
 
     result = await flow.async_step_user({"vehicle_name": "TestVehicle"})
     assert result["type"] == FlowResultType.FORM
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_SAFETY_MARGIN: 20,
-        CONF_T_BASE: 12.0,
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+            CONF_T_BASE: 12.0,
+        }
+    )
     assert result["type"] == FlowResultType.FORM
-    result = await flow.async_step_emhass({
-        CONF_PLANNING_HORIZON: 7,
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-    })
+    result = await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 7,
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+        }
+    )
     assert result["type"] == FlowResultType.FORM
     result = await flow.async_step_presence({})
     result = await flow.async_step_notifications({})
@@ -720,6 +751,7 @@ async def test_t_base_custom_value_persists():
 # T035: T_base rejects values outside 6-48h range
 # ----------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_t_base_rejects_below_min():
     """T035: Config flow T_base rejects values below 6h with validation error."""
@@ -729,13 +761,15 @@ async def test_t_base_rejects_below_min():
     flow.hass = MagicMock()
     flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
 
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_SAFETY_MARGIN: 20,
-        CONF_T_BASE: 3.0,  # Below min of 6
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+            CONF_T_BASE: 3.0,  # Below min of 6
+        }
+    )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "sensors"
 
@@ -749,13 +783,15 @@ async def test_t_base_rejects_above_max():
     flow.hass = MagicMock()
     flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
 
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_SAFETY_MARGIN: 20,
-        CONF_T_BASE: 60.0,  # Above max of 48
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+            CONF_T_BASE: 60.0,  # Above max of 48
+        }
+    )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "sensors"
 
@@ -763,6 +799,7 @@ async def test_t_base_rejects_above_max():
 # ----------------------------------------------------------------------
 # T047: SOH sensor selector in config flow
 # ----------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_soh_sensor_selector_in_sensors_step():
@@ -789,19 +826,23 @@ async def test_soh_sensor_persisted_in_config_entry():
     flow.hass = MagicMock()
     flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
 
-    result = await flow.async_step_sensors({
-        CONF_BATTERY_CAPACITY: 60.0,
-        CONF_CHARGING_POWER: 11.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_SAFETY_MARGIN: 20,
-        CONF_T_BASE: 24.0,
-        CONF_SOH_SENSOR: "sensor.battery_soh",
-    })
+    result = await flow.async_step_sensors(
+        {
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+            CONF_T_BASE: 24.0,
+            CONF_SOH_SENSOR: "sensor.battery_soh",
+        }
+    )
     assert result["type"] == FlowResultType.FORM
-    result = await flow.async_step_emhass({
-        CONF_PLANNING_HORIZON: 7,
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-    })
+    result = await flow.async_step_emhass(
+        {
+            CONF_PLANNING_HORIZON: 7,
+            CONF_MAX_DEFERRABLE_LOADS: 50,
+        }
+    )
     assert result["type"] == FlowResultType.FORM
     result = await flow.async_step_presence({})
     result = await flow.async_step_notifications({})
@@ -813,6 +854,7 @@ async def test_soh_sensor_persisted_in_config_entry():
 # Options Flow tests for T_BASE and SOH_SENSOR (config_flow.py:979,981)
 # ------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_options_flow_updates_t_base_and_soh_sensor():
     """Test that options flow correctly saves T_BASE and SOH_SENSOR.
@@ -821,7 +863,9 @@ async def test_options_flow_updates_t_base_and_soh_sensor():
     """
     from homeassistant import config_entries
 
-    from custom_components.ev_trip_planner.config_flow import EVTripPlannerOptionsFlowHandler
+    from custom_components.ev_trip_planner.config_flow import (
+        EVTripPlannerOptionsFlowHandler,
+    )
     from custom_components.ev_trip_planner.const import (
         CONF_BATTERY_CAPACITY,
         CONF_SOH_SENSOR,
@@ -840,11 +884,13 @@ async def test_options_flow_updates_t_base_and_soh_sensor():
     handler._config_entry = mock_entry
     handler.hass = MagicMock()
 
-    result = await handler.async_step_init({
-        CONF_BATTERY_CAPACITY: 65.0,
-        CONF_T_BASE: 12.0,
-        CONF_SOH_SENSOR: "sensor.battery_soh_v2",
-    })
+    result = await handler.async_step_init(
+        {
+            CONF_BATTERY_CAPACITY: 65.0,
+            CONF_T_BASE: 12.0,
+            CONF_SOH_SENSOR: "sensor.battery_soh_v2",
+        }
+    )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_T_BASE] == 12.0
@@ -855,6 +901,7 @@ async def test_options_flow_updates_t_base_and_soh_sensor():
 # ------------------------------------------------------------------
 # Config Entry Migration Tests — PRAGMA-A coverage targets (config_flow.py:300-314)
 # ------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_config_entry_migrate_v2_to_v3():

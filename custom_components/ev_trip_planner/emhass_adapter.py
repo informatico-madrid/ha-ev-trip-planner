@@ -37,7 +37,6 @@ from .const import (
     DEFAULT_INDEX_COOLDOWN_HOURS,
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOH_SENSOR,
-    DEFAULT_T_BASE,
     DOMAIN,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
@@ -124,7 +123,9 @@ class EMHASSAdapter:
         # FR-3.1: Store charging power for reactive updates
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
         self._battery_capacity_kwh: float = entry_data.get(CONF_BATTERY_CAPACITY, 50.0)
-        self._safety_margin_percent: float = entry_data.get("safety_margin_percent", DEFAULT_SAFETY_MARGIN)
+        self._safety_margin_percent: float = entry_data.get(
+            "safety_margin_percent", DEFAULT_SAFETY_MARGIN
+        )
 
         # T064: Store baseline config values for change detection
         self._stored_charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
@@ -173,7 +174,9 @@ class EMHASSAdapter:
                 for idx_str, released_iso in stored_released.items():
                     idx = int(idx_str)
                     try:
-                        released_time = _ensure_aware(datetime.fromisoformat(released_iso))
+                        released_time = _ensure_aware(
+                            datetime.fromisoformat(released_iso)
+                        )
                         elapsed = (now - released_time).total_seconds()
                         if elapsed < self._index_cooldown_hours * 3600:
                             # Still in cooldown
@@ -370,7 +373,6 @@ class EMHASSAdapter:
             return False
 
         # Calculate parameters
-        kwh = float(trip.get("kwh", 0))
         deadline = trip.get("datetime")
 
         # BUG FIX (recurring trips): Use _calculate_deadline_from_trip helper
@@ -391,11 +393,20 @@ class EMHASSAdapter:
         # DEBUG: Log trip details before rejection check (debug level)
         _LOGGER.debug(
             "DEBUG async_publish_deferrable_load: trip_id=%s, deadline=%s, deadline_dt=%s, now=%s, hours_available=%.2f, kwh=%s",
-            trip_id, deadline, deadline_dt, now, hours_available, trip.get("kwh")
+            trip_id,
+            deadline,
+            deadline_dt,
+            now,
+            hours_available,
+            trip.get("kwh"),
         )
 
         if hours_available <= 0:
-            _LOGGER.warning("Trip deadline in past: %s (hours_available=%.2f)", trip_id, hours_available)
+            _LOGGER.warning(
+                "Trip deadline in past: %s (hours_available=%.2f)",
+                trip_id,
+                hours_available,
+            )
             await self.async_release_trip_index(trip_id)
             return False
 
@@ -425,7 +436,9 @@ class EMHASSAdapter:
             fin_ventana = charging_windows[0].get("fin_ventana")
             if inicio_ventana:
                 # Convert datetime to hours from now, clamped to 0-168 range
-                delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
+                delta_hours = (
+                    _ensure_aware(inicio_ventana) - now
+                ).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
         # Calculate EMHASS parameters using SOC-aware calculation
@@ -455,11 +468,17 @@ class EMHASSAdapter:
         # BUG FIX: Use fin_ventana for end_timestep when available
         # Use math.ceil to avoid truncation issues (e.g., 95.99 hours -> 96)
         # Guard: Check charging_windows is not empty before accessing [0]
-        if charging_windows and len(charging_windows) > 0 and charging_windows[0].get("fin_ventana"):
+        if (
+            charging_windows
+            and len(charging_windows) > 0
+            and charging_windows[0].get("fin_ventana")
+        ):
             fin_ventana = charging_windows[0].get("fin_ventana")
             # mypy: fin_ventana is Any|None, but we checked it's truthy above
             if isinstance(fin_ventana, datetime):
-                delta_hours_end = (_ensure_aware(fin_ventana) - now).total_seconds() / 3600
+                delta_hours_end = (
+                    _ensure_aware(fin_ventana) - now
+                ).total_seconds() / 3600
                 end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Create attributes
@@ -529,7 +548,10 @@ class EMHASSAdapter:
             time_str = trip.get("time") or trip.get("hora")
 
             if day is not None and time_str is not None:
-                from .calculations import calculate_next_recurring_datetime, calculate_day_index
+                from .calculations import (
+                    calculate_next_recurring_datetime,
+                    calculate_day_index,
+                )
 
                 # Convert day name to index (0=Monday for ES/EN names)
                 if isinstance(day, str):
@@ -542,9 +564,11 @@ class EMHASSAdapter:
                     day_js_format = (day + 1) % 7
 
                 try:
-                    _hass = getattr(self, 'hass', None)
+                    _hass = getattr(self, "hass", None)
                     result = calculate_next_recurring_datetime(
-                        day_js_format, time_str, dt_util.now(),
+                        day_js_format,
+                        time_str,
+                        dt_util.now(),
                         tz=_hass.config.time_zone if _hass else None,
                     )
                     # EC-011 FIX: calculate_next_recurring_datetime returns naive datetime.
@@ -573,9 +597,10 @@ class EMHASSAdapter:
         adjusted_def_total_hours: Optional[float] = None,
         soc_cap: Optional[float] = None,
     ) -> None:
-        # T062/T063: Wire t_base for dynamic SOC capping
-        t_base = getattr(self, "_t_base", DEFAULT_T_BASE)
+        t_base = self._t_base
         """Build and cache per-trip EMHASS parameters.
+
+        T062/T063: Wire t_base for dynamic SOC capping.
 
         Encapsulates the logic for assigning trip index, calculating charging windows,
         and populating the _cached_per_trip_params dictionary. This eliminates
@@ -602,19 +627,25 @@ class EMHASSAdapter:
 
         # Calculate per-trip params with charging windows
         # BUG FIX: Use _calculate_deadline_from_trip to handle both trip types
-        
+
         # T1.1: Determine charging need using pure function (H4, H5)
         decision = determine_charging_need(
-            trip, soc_current, battery_capacity_kwh,
-            charging_power_kw, safety_margin_percent,
+            trip,
+            soc_current,
+            battery_capacity_kwh,
+            charging_power_kw,
+            safety_margin_percent,
         )
-        
+
         # Logging estructurado para observabilidad (H11)
         _LOGGER.info(
             "Charging decision for trip %s: kwh_needed=%.2f, needs_charging=%s, soc=%.1f%%",
-            trip_id, decision.kwh_needed, decision.needs_charging, soc_current,
+            trip_id,
+            decision.kwh_needed,
+            decision.needs_charging,
+            soc_current,
         )
-        
+
         deadline_str = trip.get("datetime")
 
         # Calculate deadline_dt using the new helper method
@@ -626,7 +657,9 @@ class EMHASSAdapter:
         def_start_timestep = 0
         if pre_computed_inicio_ventana is not None:
             # Use pre-computed inicio_ventana from batch calculation
-            delta_hours = (_ensure_aware(pre_computed_inicio_ventana) - now).total_seconds() / 3600
+            delta_hours = (
+                _ensure_aware(pre_computed_inicio_ventana) - now
+            ).total_seconds() / 3600
             def_start_timestep = max(0, min(int(delta_hours), 168))
         else:
             # Fall back to existing single-trip calculation (backward compat)
@@ -643,7 +676,9 @@ class EMHASSAdapter:
             if charging_windows:
                 inicio_ventana = charging_windows[0].get("inicio_ventana")
                 if inicio_ventana:
-                    delta_hours = (_ensure_aware(inicio_ventana) - now).total_seconds() / 3600
+                    delta_hours = (
+                        _ensure_aware(inicio_ventana) - now
+                    ).total_seconds() / 3600
                     def_start_timestep = max(0, min(int(delta_hours), 168))
 
         hours_available = (deadline_dt - now).total_seconds() / 3600
@@ -658,12 +693,19 @@ class EMHASSAdapter:
         if pre_computed_fin_ventana is not None:
             # Batch path: use pre_computed_fin_ventana from batch charging windows
             fin_ventana_to_use = pre_computed_fin_ventana
-        elif pre_computed_inicio_ventana is None and "charging_windows" in locals() and charging_windows and len(charging_windows) > 0:
+        elif (
+            pre_computed_inicio_ventana is None
+            and "charging_windows" in locals()
+            and charging_windows
+            and len(charging_windows) > 0
+        ):
             # Fallback path: extract fin_ventana from locally calculated charging_windows
             fin_ventana_to_use = charging_windows[0].get("fin_ventana")
 
         if fin_ventana_to_use is not None:
-            delta_hours_end = (_ensure_aware(fin_ventana_to_use) - now).total_seconds() / 3600
+            delta_hours_end = (
+                _ensure_aware(fin_ventana_to_use) - now
+            ).total_seconds() / 3600
             # Guard: Skip if fin_ventana is in the past
             if delta_hours_end > 0:
                 def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
@@ -735,7 +777,8 @@ class EMHASSAdapter:
             power_profile = [0.0] * 168
         else:
             power_profile = self._calculate_power_profile_from_trips(
-                [trip], charging_power_kw,
+                [trip],
+                charging_power_kw,
                 soc_current=soc_current,
                 battery_capacity_kwh=battery_capacity_kwh,
                 safety_margin_percent=safety_margin_percent,
@@ -743,7 +786,6 @@ class EMHASSAdapter:
 
         # T062/T063: Cap per-trip power profile by SOC cap ratio
         if soc_cap is not None and soc_cap < 100.0:
-            cap_ratio = soc_cap / 100.0
             power_profile = [v * cap_ratio for v in power_profile]
 
         # Cache per-trip params
@@ -756,27 +798,36 @@ class EMHASSAdapter:
         # The invariant: P_deferrable_nom > 0 ⇔ def_total_hours > 0
         has_charging = total_hours > 0
 
-        # T062/T063: Compute dynamic SOC cap using t_base and real capacity
-        soc_target = 100.0
-        if deadline_dt is not None:
+        # T093: Use pre-computed soc_cap from caller (async_publish_all_deferrable_loads).
+        # If soc_cap is None (single-trip path via publish_deferrable_loads),
+        # compute inline as graceful fallback.
+        if soc_cap is None and deadline_dt is not None:
             t_hours = (deadline_dt - now).total_seconds() / 3600.0
             if t_hours > 0:
-                soc_target = calculate_dynamic_soc_limit(
+                soc_cap = calculate_dynamic_soc_limit(
                     t_hours=t_hours,
                     soc_post_trip=soc_current,
                     battery_capacity_kwh=battery_capacity_kwh,
                     t_base=t_base,
                 )
 
+        # T093: Compute soc_cap for cache entry (from pre-computed or fallback).
+        # If soc_cap was already provided via parameter or fallback above, use it.
+        # Otherwise default to 100 (no capping).
+        soc_cap_effective = soc_cap if soc_cap is not None else 100.0
+
         self._cached_per_trip_params[trip_id] = {
             "def_total_hours": math.ceil(total_hours),
             "P_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
             "p_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
+            "power_watts": power_watts,
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": def_end_timestep,
             "power_profile_watts": power_profile,
             "def_total_hours_array": [math.ceil(total_hours)],
-            "p_deferrable_nom_array": [round(power_watts, 0) if needs_charging else 0.0],
+            "p_deferrable_nom_array": [
+                round(power_watts, 0) if needs_charging else 0.0
+            ],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],
             "p_deferrable_matrix": [power_profile],
@@ -784,7 +835,7 @@ class EMHASSAdapter:
             "emhass_index": emhass_index,
             "kwh_needed": kwh_needed,
             "deadline": deadline_str,
-            "soc_target": soc_target,
+            "soc_target": soc_cap_effective,
             "activo": True,
         }
 
@@ -828,7 +879,10 @@ class EMHASSAdapter:
         return await self.async_publish_deferrable_load(trip)
 
     async def async_publish_all_deferrable_loads(
-        self, trips: List[Dict[str, Any]], charging_power_kw: Optional[float] = None
+        self,
+        trips: List[Dict[str, Any]],
+        charging_power_kw: Optional[float] = None,
+        soc_caps_by_id: Optional[Dict[str, float]] = None,
     ) -> bool:
         """
         Publish multiple trips, each with its own index.
@@ -853,7 +907,9 @@ class EMHASSAdapter:
         # Without this, _cached_per_trip_params retains stale data and the EMHASS sensor
         # shows old trips after integration deletion.
         if not trips:
-            _LOGGER.info("async_publish_all_deferrable_loads: Empty trips list, clearing cache and returning early")
+            _LOGGER.info(
+                "async_publish_all_deferrable_loads: Empty trips list, clearing cache and returning early"
+            )
             self._cached_per_trip_params.clear()
             self._cached_power_profile = []
             self._cached_deferrables_schedule = []
@@ -880,7 +936,11 @@ class EMHASSAdapter:
                     pass
             return True
 
-        _LOGGER.debug("DEBUG async_publish_all: trips count=%d, kwh values=%s", len(trips), [t.get("kwh") for t in trips])
+        _LOGGER.debug(
+            "DEBUG async_publish_all: trips count=%d, kwh values=%s",
+            len(trips),
+            [t.get("kwh") for t in trips],
+        )
         if charging_power_kw is None:
             charging_power_kw = self._charging_power_kw
         _LOGGER.debug("DEBUG: charging_power_kw=%.2f", charging_power_kw)
@@ -891,7 +951,7 @@ class EMHASSAdapter:
         # Clear stale cache entries before republish
         current_trip_ids = {trip.get("id") for trip in trips if trip.get("id")}
         stale_ids = set(self._cached_per_trip_params.keys()) - current_trip_ids
-        for stale_id in stale_ids:  # pragma: no cover - edge case: stale cache entries
+        for stale_id in stale_ids:
             del self._cached_per_trip_params[stale_id]
 
         # EC-020 FIX: Atomic publish with rollback on failure.
@@ -961,7 +1021,9 @@ class EMHASSAdapter:
 
         _LOGGER.debug(
             "DEBUG async_publish_all: hora_regreso=%s, vehicle_id=%s, trips_count=%d",
-            hora_regreso, self.vehicle_id, len(trips),
+            hora_regreso,
+            self.vehicle_id,
+            len(trips),
         )
 
         # Batch compute charging windows for ALL trips at once (fixes sequential trip offset bug)
@@ -1009,13 +1071,18 @@ class EMHASSAdapter:
                 if trip_id not in batch_charging_windows:
                     continue
                 decision = determine_charging_need(
-                    trip, projected_soc, self._battery_cap.get_capacity(self.hass),
-                    charging_power_kw, self._safety_margin_percent,
+                    trip,
+                    projected_soc,
+                    self._battery_cap.get_capacity(self.hass),
+                    charging_power_kw,
+                    self._safety_margin_percent,
                 )
                 trip_def_total_hours[trip_id] = decision.def_total_hours
                 ordered_trip_ids.append(trip_id)
                 projected_soc = getattr(
-                    decision, "projected_soc", projected_soc,
+                    decision,
+                    "projected_soc",
+                    projected_soc,
                 )
 
             # Run propagation on batch windows in the same order they were computed.
@@ -1027,7 +1094,8 @@ class EMHASSAdapter:
                 for tid in ordered_trip_ids
             ]
             enriched_windows = calculate_hours_deficit_propagation(
-                window_list, def_total_hours_list,
+                window_list,
+                def_total_hours_list,
             )
 
             # enriched_windows is now in the same order as ordered_trip_ids.
@@ -1036,7 +1104,8 @@ class EMHASSAdapter:
 
         _LOGGER.debug(
             "DEBUG async_publish_all_deferrable_loads: batch computed %d charging windows, propagation applied %d",
-            len(batch_charging_windows), len(enriched_windows_map),
+            len(batch_charging_windows),
+            len(enriched_windows_map),
         )
 
         # T2.1: Propagate SOC sequentially between trips
@@ -1047,7 +1116,9 @@ class EMHASSAdapter:
         # CRITICAL FIX: Iterate over trip_deadlines (chronological order), not trips (creation order)
         # This ensures cache is populated in deadline order, which affects SOC propagation
         # FALLBACK: If trip_deadlines is empty (e.g., all trips have invalid deadlines), use original trips order
-        trips_to_process = trip_deadlines if trip_deadlines else [(None, None, trip) for trip in trips]
+        trips_to_process = (
+            trip_deadlines if trip_deadlines else [(None, None, trip) for trip in trips]
+        )
 
         for item in trips_to_process:
             if trip_deadlines:
@@ -1057,45 +1128,59 @@ class EMHASSAdapter:
                 # Fallback: unpack (None, None, trip) from original trips
                 trip_id = trip.get("id")
                 deadline_dt = None
-                if not trip_id:  # pragma: no cover - defensive: skip invalid trips
+                if not trip_id:
                     continue
 
             # Get batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
-            pre_computed_inicio = batch_window.get("inicio_ventana") if batch_window else None
+            pre_computed_inicio = (
+                batch_window.get("inicio_ventana") if batch_window else None
+            )
             pre_computed_fin = batch_window.get("fin_ventana") if batch_window else None
 
             # Get adjusted hours from propagation (if available)
             adjusted_hours = None
             if trip_id in enriched_windows_map:
-                adjusted_hours = enriched_windows_map[trip_id].get("adjusted_def_total_hours")
+                adjusted_hours = enriched_windows_map[trip_id].get(
+                    "adjusted_def_total_hours"
+                )
 
             # Use projected SOC for this trip (considers previous trips' charging/consumption)
 
-            # T062/T063: Compute dynamic SOC cap for this trip
+            # T093: Use pre-computed SOC caps from calcular_hitos_soc()
+            # (authoritative source per design.md Component 7)
+            # Fallback to inline compute only if no pre-computed caps provided
             now = dt_util.now()
             soc_cap = None
             if deadline_dt is not None:
                 t_hours = (deadline_dt - now).total_seconds() / 3600.0
                 if t_hours > 0:
-                    real_cap = self._battery_cap.get_capacity(self.hass)
-                    t_base = getattr(self, "_t_base", DEFAULT_T_BASE)
-                    soc_cap = calculate_dynamic_soc_limit(
-                        t_hours=t_hours,
-                        soc_post_trip=projected_soc,
-                        battery_capacity_kwh=real_cap,
-                        t_base=t_base,
-                    )
+                    if soc_caps_by_id is not None and trip_id in soc_caps_by_id:
+                        soc_cap = soc_caps_by_id[trip_id]
+                    else:
+                        # Graceful fallback: compute inline (legacy path)
+                        real_cap = self._battery_cap.get_capacity(self.hass)
+                        soc_cap = calculate_dynamic_soc_limit(
+                            t_hours=t_hours,
+                            soc_post_trip=projected_soc,
+                            battery_capacity_kwh=real_cap,
+                            t_base=self._t_base,
+                        )
 
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, self._battery_cap.get_capacity(self.hass),
-                self._safety_margin_percent, projected_soc, hora_regreso,
+                trip,
+                trip_id,
+                charging_power_kw,
+                self._battery_cap.get_capacity(self.hass),
+                self._safety_margin_percent,
+                projected_soc,
+                hora_regreso,
                 pre_computed_inicio_ventana=pre_computed_inicio,
                 pre_computed_fin_ventana=pre_computed_fin,
                 adjusted_def_total_hours=adjusted_hours,
                 soc_cap=soc_cap,
             )
-            
+
             # Update projected SOC for next trip
             # 1. Add SOC gained from charging this trip
             if trip_id in batch_charging_windows:
@@ -1104,31 +1189,46 @@ class EMHASSAdapter:
                 # Get charging decision from cache
                 cached_params = self._cached_per_trip_params.get(trip_id, {})
                 def_total_hours = cached_params.get("def_total_hours", 0)
-                
+
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
-                horas_carga = min(def_total_hours, ventana_horas) if ventana_horas > 0 else 0
+                horas_carga = (
+                    min(def_total_hours, ventana_horas) if ventana_horas > 0 else 0
+                )
                 kwh_cargados = horas_carga * charging_power_kw
-                soc_ganado = (kwh_cargados / self._battery_cap.get_capacity(self.hass)) * 100 if self._battery_cap.get_capacity(self.hass) > 0 else 0
+                soc_ganado = (
+                    (kwh_cargados / self._battery_cap.get_capacity(self.hass)) * 100
+                    if self._battery_cap.get_capacity(self.hass) > 0
+                    else 0
+                )
             else:
                 soc_ganado = 0
-            
+
             # 2. Subtract SOC consumed by this trip
             trip_kwh = trip.get("kwh", 0.0)
-            soc_consumido = (trip_kwh / self._battery_cap.get_capacity(self.hass)) * 100 if self._battery_cap.get_capacity(self.hass) > 0 else 0
-            
+            soc_consumido = (
+                (trip_kwh / self._battery_cap.get_capacity(self.hass)) * 100
+                if self._battery_cap.get_capacity(self.hass) > 0
+                else 0
+            )
+
             # 3. Update projected SOC
             projected_soc = projected_soc + soc_ganado - soc_consumido
             # Clamp to valid range
             projected_soc = max(0.0, min(100.0, projected_soc))
-            
+
             _LOGGER.debug(
                 "SOC propagation: trip=%s, soc_start=%.1f%%, charged=%.2f%%, consumed=%.2f%%, soc_end=%.1f%%",
-                trip_id, projected_soc - soc_ganado + soc_consumido, soc_ganado, soc_consumido, projected_soc,
+                trip_id,
+                projected_soc - soc_ganado + soc_consumido,
+                soc_ganado,
+                soc_consumido,
+                projected_soc,
             )
 
         # Calculate aggregated power profile and schedule for all trips
         power_profile = self._calculate_power_profile_from_trips(
-            trips, charging_power_kw,
+            trips,
+            charging_power_kw,
             soc_current=soc_current,
             battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             safety_margin_percent=self._safety_margin_percent,
@@ -1142,7 +1242,9 @@ class EMHASSAdapter:
         for trip in trips:
             trip_id = trip.get("id")
             if trip_id and trip_id in self._cached_per_trip_params:
-                trip_profile = self._cached_per_trip_params[trip_id].get("power_profile_watts")
+                trip_profile = self._cached_per_trip_params[trip_id].get(
+                    "power_profile_watts"
+                )
                 if trip_profile:
                     capped_profile = [
                         capped_profile[i] + trip_profile[i]
@@ -1161,12 +1263,12 @@ class EMHASSAdapter:
         _LOGGER.debug(
             "DEBUG async_publish_all_deferrable_loads: calculated power_profile=%s, non_zero=%d",
             power_profile[:10] if power_profile else [],
-            sum(1 for x in power_profile if x > 0) if power_profile else 0
+            sum(1 for x in power_profile if x > 0) if power_profile else 0,
         )
         _LOGGER.debug(
             "DEBUG async_publish_all_deferrable_loads: trips for profile calculation: count=%d, trip_ids=%s",
             len(trips),
-            [t.get("id") for t in trips]
+            [t.get("id") for t in trips],
         )
 
         # Populate cache for coordinator retrieval
@@ -1204,7 +1306,8 @@ class EMHASSAdapter:
         expired = [
             idx
             for idx, released_time in self._released_indices.items()
-            if (now - _ensure_aware(released_time)).total_seconds() >= self._index_cooldown_hours * 3600
+            if (now - _ensure_aware(released_time)).total_seconds()
+            >= self._index_cooldown_hours * 3600
         ]
         for idx in expired:
             del self._released_indices[idx]
@@ -1294,10 +1397,7 @@ class EMHASSAdapter:
         enriched_trips: List[Dict[str, Any]] = []
         now = datetime.now(timezone.utc)
         for trip in trips:
-            if (
-                trip.get("tipo") == TRIP_TYPE_RECURRING
-                and not trip.get("datetime")
-            ):
+            if trip.get("tipo") == TRIP_TYPE_RECURRING and not trip.get("datetime"):
                 computed_dt = calculate_trip_time(
                     trip_tipo=TRIP_TYPE_RECURRING,
                     hora=trip.get("hora"),
@@ -1336,7 +1436,8 @@ class EMHASSAdapter:
         # Calculate power profile for all trips (SOC-aware)
         # 0W = no charging, positive values = charging power
         power_profile = self._calculate_power_profile_from_trips(
-            trips, charging_power_kw,
+            trips,
+            charging_power_kw,
             soc_current=soc_current,
             battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             safety_margin_percent=self._safety_margin_percent,
@@ -1364,7 +1465,7 @@ class EMHASSAdapter:
         # Compute current trip IDs from published trips
         current_trip_ids = {trip.get("id") for trip in trips if trip.get("id")}
         stale_ids = set(self._cached_per_trip_params.keys()) - current_trip_ids
-        for stale_id in stale_ids:  # pragma: no cover - edge case: stale cache entries
+        for stale_id in stale_ids:
             del self._cached_per_trip_params[stale_id]
             _LOGGER.debug("Cleared stale cache entry for trip %s", stale_id)
 
@@ -1390,8 +1491,13 @@ class EMHASSAdapter:
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, self._battery_cap.get_capacity(self.hass),
-                self._safety_margin_percent, soc_current, hora_regreso
+                trip,
+                trip_id,
+                charging_power_kw,
+                self._battery_cap.get_capacity(self.hass),
+                self._safety_margin_percent,
+                soc_current,
+                hora_regreso,
             )
 
         # PHASE 3 (3.2): Trigger coordinator refresh to propagate EMHASS data
@@ -2127,7 +2233,10 @@ class EMHASSAdapter:
                     should_remove = True
             if should_remove:
                 try:
-                    _LOGGER.warning("DEBUG async_cleanup_vehicle_indices: Removing sensor %s from hass.states", entity_id)
+                    _LOGGER.warning(
+                        "DEBUG async_cleanup_vehicle_indices: Removing sensor %s from hass.states",
+                        entity_id,
+                    )
                     self.hass.states.async_remove(entity_id)
                     removed_any = True
                 except HomeAssistantError as err:
@@ -2146,7 +2255,9 @@ class EMHASSAdapter:
         # directly set their state to empty to ensure def_total_hours_array = [].
         # This handles cases where the entity was re-added after removal.
         for entity_id in list(self.hass.states.async_entity_ids()):
-            if "emhass_perfil_diferible" in entity_id and (self.vehicle_id and self.vehicle_id in entity_id):
+            if "emhass_perfil_diferible" in entity_id and (
+                self.vehicle_id and self.vehicle_id in entity_id
+            ):
                 try:
                     # Directly set the state with empty attributes
                     # This forces def_total_hours_array to be empty
@@ -2160,7 +2271,7 @@ class EMHASSAdapter:
                             "deferrables_schedule": [],
                             "emhass_status": EMHASS_STATE_READY,
                             "vehicle_id": self.vehicle_id,
-                        }
+                        },
                     )
                     _LOGGER.warning(
                         "DEBUG async_cleanup_vehicle_indices: Force-set empty state for %s",
@@ -2241,12 +2352,18 @@ class EMHASSAdapter:
             entity_id = state.entity_id
             # Check for main sensor pattern
             if entity_id.startswith("sensor.emhass_perfil_diferible_"):
-                if state.attributes and state.attributes.get("entry_id") == self.entry_id:
+                if (
+                    state.attributes
+                    and state.attributes.get("entry_id") == self.entry_id
+                ):
                     state_clean = False
                     break
             # Check for per-trip config sensor pattern
             if entity_id.startswith("sensor.emhass_deferrable_load_config_"):
-                if state.attributes and state.attributes.get("entry_id") == self.entry_id:
+                if (
+                    state.attributes
+                    and state.attributes.get("entry_id") == self.entry_id
+                ):
                     state_clean = False
                     break
 
@@ -2292,13 +2409,13 @@ class EMHASSAdapter:
             return
 
         # Use ConfigEntry.add_update_listener pattern per HA best practices
-        self._config_entry_listener = (
-            self.config_entry.async_on_unload(
-                self.config_entry.add_update_listener(self._handle_config_entry_update)
-            )
+        self._config_entry_listener = self.config_entry.async_on_unload(
+            self.config_entry.add_update_listener(self._handle_config_entry_update)
         )
 
-    async def _handle_config_entry_update(self, hass: HomeAssistant, config_entry) -> None:
+    async def _handle_config_entry_update(
+        self, hass: HomeAssistant, config_entry
+    ) -> None:
         """
         Handle config entry update events.
 
@@ -2325,7 +2442,10 @@ class EMHASSAdapter:
         cur_options = dict(getattr(config_entry, "options", {}) or {})
         changed_params = []
         new_charging_power = cur_options.get(CONF_CHARGING_POWER)
-        if new_charging_power is not None and new_charging_power != self._stored_charging_power_kw:
+        if (
+            new_charging_power is not None
+            and new_charging_power != self._stored_charging_power_kw
+        ):
             changed_params.append("charging_power")
         new_t_base = cur_options.get(CONF_T_BASE, DEFAULT_T_BASE)
         if new_t_base != self._stored_t_base:
@@ -2353,8 +2473,8 @@ class EMHASSAdapter:
                     all_trips = trip_manager.get_all_trips()
                     if all_trips:
                         # Flatten dict: {"recurring": [...], "punctual": [...]} → list of trips
-                        all_trips_list = (
-                            all_trips.get("recurring", []) + all_trips.get("punctual", [])
+                        all_trips_list = all_trips.get("recurring", []) + all_trips.get(
+                            "punctual", []
                         )
                         _LOGGER.info(
                             "Reloading %d trips from trip_manager for republish",
@@ -2423,9 +2543,9 @@ class EMHASSAdapter:
     ) -> List[float]:
         """
         Calculate power profile from trips.
- 
+
         Delegates to the pure function from calculations.py.
- 
+
         Args:
             trips: List of trip dictionaries
             charging_power_kw: Charging power in kW
@@ -2433,17 +2553,19 @@ class EMHASSAdapter:
             soc_current: Current SOC percentage (optional, for SOC-aware charging)
             battery_capacity_kwh: Battery capacity in kWh (optional, for SOC-aware charging)
             safety_margin_percent: Safety margin percentage (optional, for SOC-aware charging)
- 
+
         Returns:
             List of power values in watts
         """
         return calculate_power_profile_from_trips(
-            trips, charging_power_kw, horizon=planning_horizon_hours,
+            trips,
+            charging_power_kw,
+            horizon=planning_horizon_hours,
             reference_dt=dt_util.now(),
             soc_current=soc_current,
             battery_capacity_kwh=battery_capacity_kwh,
             safety_margin_percent=safety_margin_percent,
-            tz=getattr(self, 'hass', None) and self.hass.config.time_zone,
+            tz=getattr(self, "hass", None) and self.hass.config.time_zone,
         )
 
     def _generate_schedule_from_trips(
@@ -2467,7 +2589,9 @@ class EMHASSAdapter:
             List of schedule dictionaries
         """
         return generate_deferrable_schedule_from_trips(
-            trips, charging_power_kw, reference_dt=dt_util.now(),
+            trips,
+            charging_power_kw,
+            reference_dt=dt_util.now(),
         )
 
     async def _get_current_soc(self) -> float | None:
@@ -2480,7 +2604,9 @@ class EMHASSAdapter:
         """
         # Use stored dict for soc_sensor access (works for dict, ConfigEntry, MockConfigEntry)
         entry_data = getattr(self, "_entry_dict", None)
-        if not entry_data:  # pragma: no cover - defensive: entry data should always exist
+        if (
+            not entry_data
+        ):  # pragma: no cover - defensive: entry data should always exist
             _LOGGER.warning("No entry data available for %s", self.vehicle_id)
             return None
 
@@ -2496,7 +2622,10 @@ class EMHASSAdapter:
 
         try:
             return float(state.state)
-        except (ValueError, TypeError) as e:  # pragma: no cover - defensive: invalid value
+        except (
+            ValueError,
+            TypeError,
+        ) as e:  # pragma: no cover - defensive: invalid value
             _LOGGER.warning(
                 "SOC sensor %s has invalid value: %s (error: %s)",
                 soc_sensor,

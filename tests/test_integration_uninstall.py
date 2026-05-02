@@ -48,6 +48,7 @@ class TestFullVehicleDeletion:
 
         # Set up runtime data using entry.runtime_data pattern (Phase 4)
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
         entry.runtime_data = EVTripRuntimeData(
             coordinator=MagicMock(),
             trip_manager=None,
@@ -57,11 +58,16 @@ class TestFullVehicleDeletion:
         # Mock unload
         async def mock_unload(entry, platforms):
             return True
+
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_unload_platforms = mock_unload
 
-        with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock):
+        with patch(
+            "custom_components.ev_trip_planner.async_unregister_panel",
+            new_callable=AsyncMock,
+        ):
             from custom_components.ev_trip_planner import async_unload_entry
+
             await async_unload_entry(mock_hass, entry)
 
         # Verify: Cleanup was called
@@ -91,6 +97,7 @@ class TestEmhassFullUnload:
         # Create mock config_entries with async_unload_platforms
         async def mock_unload_platforms(entry, platforms):
             return True
+
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_unload_platforms = mock_unload_platforms
 
@@ -111,7 +118,9 @@ class TestEmhassFullUnload:
             for entity_id in list(emhass_adapter._published_entity_ids):
                 await mock_hass.states.async_remove(entity_id)
 
-        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock(side_effect=cleanup_side_effect)
+        emhass_adapter.async_cleanup_vehicle_indices = AsyncMock(
+            side_effect=cleanup_side_effect
+        )
 
         # Simulate published sensors
         vehicle_sensor_id = f"sensor.emhass_perfil_diferible_{entry.entry_id}"
@@ -124,14 +133,19 @@ class TestEmhassFullUnload:
         mock_trip_manager.async_delete_all_trips = AsyncMock()
 
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
         entry.runtime_data = EVTripRuntimeData(
             coordinator=MagicMock(),
             trip_manager=mock_trip_manager,
             emhass_adapter=emhass_adapter,
         )
 
-        with patch("custom_components.ev_trip_planner.async_unregister_panel", new_callable=AsyncMock):
+        with patch(
+            "custom_components.ev_trip_planner.async_unregister_panel",
+            new_callable=AsyncMock,
+        ):
             from custom_components.ev_trip_planner import async_unload_entry
+
             result = await async_unload_entry(mock_hass, entry)
 
             assert result is True, "async_unload_entry should return True"
@@ -186,7 +200,10 @@ class TestAsyncRemoveEntryCleanupCascade:
             "trip_2": {"def_total_hours_array": [7], "activo": True, "emhass_index": 1},
         }
         emhass_adapter._cached_power_profile = [1000.0] * 168
-        emhass_adapter._cached_deferrables_schedule = [{"trip_id": "trip_1"}, {"trip_id": "trip_2"}]
+        emhass_adapter._cached_deferrables_schedule = [
+            {"trip_id": "trip_1"},
+            {"trip_id": "trip_2"},
+        ]
         emhass_adapter._published_trips = [
             {"id": "trip_1", "tipo": "puntual"},
             {"id": "trip_2", "tipo": "recurrente"},
@@ -202,8 +219,12 @@ class TestAsyncRemoveEntryCleanupCascade:
         async def mock_async_refresh():
             # Simulate real coordinator: reads from cleared cache after refresh
             cache = emhass_adapter.get_cached_optimization_results()
-            coordinator_data["per_trip_emhass_params"] = cache.get("per_trip_emhass_params", {})
-            coordinator_data["emhass_power_profile"] = cache.get("emhass_power_profile", [])
+            coordinator_data["per_trip_emhass_params"] = cache.get(
+                "per_trip_emhass_params", {}
+            )
+            coordinator_data["emhass_power_profile"] = cache.get(
+                "emhass_power_profile", []
+            )
 
         mock_coordinator.async_refresh = mock_async_refresh
         mock_coordinator.data = coordinator_data
@@ -211,6 +232,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         # CRITICAL: Set up entry.runtime_data so _get_coordinator() finds the coordinator.
         # The code checks entry.runtime_data.coordinator first, not _coordinator attribute.
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
         entry.runtime_data = EVTripRuntimeData(
             coordinator=mock_coordinator,
             trip_manager=None,
@@ -236,34 +258,47 @@ class TestAsyncRemoveEntryCleanupCascade:
             "trip_1": {"id": "trip_1", "tipo": "puntual"},
             "trip_2": {"id": "trip_2", "tipo": "recurrente"},
         }
-        trip_manager._recurring_trips = {"trip_2": {"id": "trip_2", "tipo": "recurrente"}}
+        trip_manager._recurring_trips = {
+            "trip_2": {"id": "trip_2", "tipo": "recurrente"}
+        }
         trip_manager._punctual_trips = {"trip_1": {"id": "trip_1", "tipo": "puntual"}}
 
         # ACT: Call async_delete_all_trips
         await trip_manager.async_delete_all_trips()
 
         # ASSERT: Cache should be cleared
-        print(f"DEBUG: _cached_per_trip_params after delete: {emhass_adapter._cached_per_trip_params}")
-        print(f"DEBUG: _cached_power_profile after delete: {emhass_adapter._cached_power_profile}")
-        print(f"DEBUG: _published_trips after delete: {emhass_adapter._published_trips}")
+        print(
+            f"DEBUG: _cached_per_trip_params after delete: {emhass_adapter._cached_per_trip_params}"
+        )
+        print(
+            f"DEBUG: _cached_power_profile after delete: {emhass_adapter._cached_power_profile}"
+        )
+        print(
+            f"DEBUG: _published_trips after delete: {emhass_adapter._published_trips}"
+        )
         print(f"DEBUG: coordinator_data: {coordinator_data}")
 
-        assert emhass_adapter._cached_per_trip_params == {}, \
+        assert emhass_adapter._cached_per_trip_params == {}, (
             f"BUG: _cached_per_trip_params should be empty after delete, got {emhass_adapter._cached_per_trip_params}"
-        assert emhass_adapter._cached_power_profile == [], \
+        )
+        assert emhass_adapter._cached_power_profile == [], (
             f"BUG: _cached_power_profile should be [] after delete, got {emhass_adapter._cached_power_profile}"
-        assert emhass_adapter._published_trips == [], \
+        )
+        assert emhass_adapter._published_trips == [], (
             f"BUG: _published_trips should be [] after delete, got {emhass_adapter._published_trips}"
+        )
 
         # Note: _index_map is NOT cleared by async_delete_all_trips - it's cleared by
         # async_cleanup_vehicle_indices which is called separately. The _index_map check
         # is done in the test_async_remove_entry_cleanup_clears_emhass_cache test.
 
         # CRITICAL: coordinator.data should reflect empty state after refresh
-        assert coordinator_data["per_trip_emhass_params"] == {}, \
+        assert coordinator_data["per_trip_emhass_params"] == {}, (
             f"BUG: coordinator.data should be empty after delete, got {coordinator_data['per_trip_emhass_params']}"
-        assert coordinator_data["emhass_power_profile"] == [], \
+        )
+        assert coordinator_data["emhass_power_profile"] == [], (
             f"BUG: coordinator.data emhass_power_profile should be [], got {coordinator_data['emhass_power_profile']}"
+        )
 
     @pytest.mark.asyncio
     async def test_async_remove_entry_cleanup_calls_store_async_remove(self):
@@ -275,7 +310,9 @@ class TestAsyncRemoveEntryCleanupCascade:
         This is critical: if store.async_remove() is NOT called, the storage file
         persists after deletion and trips "survive" even though in-memory state is cleared.
         """
-        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from custom_components.ev_trip_planner.services import (
+            async_remove_entry_cleanup,
+        )
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
         mock_hass = MagicMock()
@@ -314,9 +351,13 @@ class TestAsyncRemoveEntryCleanupCascade:
         # Mock entity_registry
         mock_registry = MagicMock()
         mock_registry.async_entries_for_config_entry = MagicMock(return_value=[])
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry), \
-             patch.object(ha_storage.Store, "__init__", tracking_init):
-
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ),
+            patch.object(ha_storage.Store, "__init__", tracking_init),
+        ):
             # Track async_remove calls
             remove_called_for_keys = []
             original_async_remove = ha_storage.Store.async_remove
@@ -334,10 +375,11 @@ class TestAsyncRemoveEntryCleanupCascade:
         # Verify async_remove was called
         # The key should be ev_trip_planner_{vehicle_id} where vehicle_id = "removal_test_vehicle"
         expected_key = "ev_trip_planner_removal_test_vehicle"
-        assert expected_key in remove_called_for_keys, \
-            f"BUG: store.async_remove() was NOT called for key {expected_key}! " \
-            f"Called for: {remove_called_for_keys}. " \
+        assert expected_key in remove_called_for_keys, (
+            f"BUG: store.async_remove() was NOT called for key {expected_key}! "
+            f"Called for: {remove_called_for_keys}. "
             f"This means storage file persists after deletion!"
+        )
 
         # Verify trip_manager.async_delete_all_trips was called
         mock_trip_manager.async_delete_all_trips.assert_called_once()
@@ -356,7 +398,9 @@ class TestAsyncRemoveEntryCleanupCascade:
 
         Uses REAL EMHASSAdapter to exercise actual cache clearing logic.
         """
-        from custom_components.ev_trip_planner.services import async_remove_entry_cleanup
+        from custom_components.ev_trip_planner.services import (
+            async_remove_entry_cleanup,
+        )
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
         from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
@@ -384,7 +428,10 @@ class TestAsyncRemoveEntryCleanupCascade:
             "trip_2": {"def_total_hours_array": [7], "activo": True, "emhass_index": 1},
         }
         emhass_adapter._cached_power_profile = [1000.0] * 168
-        emhass_adapter._cached_deferrables_schedule = [{"trip_id": "trip_1"}, {"trip_id": "trip_2"}]
+        emhass_adapter._cached_deferrables_schedule = [
+            {"trip_id": "trip_1"},
+            {"trip_id": "trip_2"},
+        ]
         emhass_adapter._cached_emhass_status = "ready"
 
         # Mock coordinator
@@ -396,8 +443,12 @@ class TestAsyncRemoveEntryCleanupCascade:
 
         async def mock_async_refresh():
             cache = emhass_adapter.get_cached_optimization_results()
-            coordinator_data["per_trip_emhass_params"] = cache.get("per_trip_emhass_params", {})
-            coordinator_data["emhass_power_profile"] = cache.get("emhass_power_profile", [])
+            coordinator_data["per_trip_emhass_params"] = cache.get(
+                "per_trip_emhass_params", {}
+            )
+            coordinator_data["emhass_power_profile"] = cache.get(
+                "emhass_power_profile", []
+            )
 
         mock_coordinator.async_refresh = mock_async_refresh
         mock_coordinator.data = coordinator_data
@@ -417,26 +468,39 @@ class TestAsyncRemoveEntryCleanupCascade:
         mock_store = MagicMock()
         mock_store.async_remove = AsyncMock()
 
-        with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry), \
-             patch.object(ha_storage.Store, "__init__", lambda self, hass, version, key: None), \
-             patch.object(ha_storage.Store, "async_remove", AsyncMock()):
-
+        with (
+            patch(
+                "homeassistant.helpers.entity_registry.async_get",
+                return_value=mock_registry,
+            ),
+            patch.object(
+                ha_storage.Store, "__init__", lambda self, hass, version, key: None
+            ),
+            patch.object(ha_storage.Store, "async_remove", AsyncMock()),
+        ):
             await async_remove_entry_cleanup(mock_hass, entry)
 
-        print(f"DEBUG: _cached_per_trip_params: {emhass_adapter._cached_per_trip_params}")
+        print(
+            f"DEBUG: _cached_per_trip_params: {emhass_adapter._cached_per_trip_params}"
+        )
         print(f"DEBUG: _cached_power_profile: {emhass_adapter._cached_power_profile}")
         print(f"DEBUG: _index_map: {emhass_adapter._index_map}")
         print(f"DEBUG: coordinator_data: {coordinator_data}")
 
-        assert emhass_adapter._cached_per_trip_params == {}, \
+        assert emhass_adapter._cached_per_trip_params == {}, (
             f"BUG: _cached_per_trip_params should be empty, got {emhass_adapter._cached_per_trip_params}"
-        assert emhass_adapter._cached_power_profile == [], \
+        )
+        assert emhass_adapter._cached_power_profile == [], (
             f"BUG: _cached_power_profile should be [], got {emhass_adapter._cached_power_profile}"
-        assert emhass_adapter._index_map == {}, \
+        )
+        assert emhass_adapter._index_map == {}, (
             f"BUG: _index_map should be empty, got {emhass_adapter._index_map}"
+        )
         # Read from mock to get the current state (dict expansion creates a new object)
         mock_coordinator_data = mock_coordinator.data
-        assert mock_coordinator_data["per_trip_emhass_params"] == {}, \
+        assert mock_coordinator_data["per_trip_emhass_params"] == {}, (
             f"BUG: coordinator.data should be empty, got {mock_coordinator_data['per_trip_emhass_params']}"
-        assert mock_coordinator_data["emhass_power_profile"] == [], \
+        )
+        assert mock_coordinator_data["emhass_power_profile"] == [], (
             f"BUG: coordinator.data emhass_power_profile should be [], got {mock_coordinator_data['emhass_power_profile']}"
+        )

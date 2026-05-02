@@ -64,7 +64,10 @@ class TestCalcularVentanaCarga:
 
         # Setup: next trip exists after return
         mock_trip_manager.async_get_next_trip_after = AsyncMock(
-            return_value={"id": "next_trip", "datetime": (datetime.now() + timedelta(hours=12)).isoformat()}
+            return_value={
+                "id": "next_trip",
+                "datetime": (datetime.now() + timedelta(hours=12)).isoformat(),
+            }
         )
 
         departure = datetime.now(timezone.utc) + timedelta(hours=10)
@@ -152,7 +155,10 @@ class TestAsyncCalcularEnergiaNecesaria:
         result = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
 
         # Assert: Should compute energy needs
-        assert result.get("energia_necesaria_kwh", 0) > 0 or "alerta_tiempo_insuficiente" in result
+        assert (
+            result.get("energia_necesaria_kwh", 0) > 0
+            or "alerta_tiempo_insuficiente" in result
+        )
 
     @pytest.mark.asyncio
     async def test_direct_kwh_trip(self, mock_trip_manager):

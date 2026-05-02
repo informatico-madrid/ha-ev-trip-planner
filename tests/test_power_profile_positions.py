@@ -24,15 +24,13 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
-async def test_power_profile_positions_at_end_of_charging_window(
-    mock_hass, mock_store
-):
+async def test_power_profile_positions_at_end_of_charging_window(mock_hass, mock_store):
     """
     When def_start=83, def_end=96, total_hours=2:
     - Charging window is [83, 96) = 13 hours
     - But only need 2 hours of charging
     - Expected: 3600W at positions 94 and 95 (last 2 positions)
-    
+
     NOTE: This test is SKIPPED because SOC-aware charging changes how kwh_needed
     is calculated, making the expected def_total_hours=2 no longer valid.
     """
@@ -110,24 +108,25 @@ async def test_power_profile_positions_at_end_of_charging_window(
     print(f"DEBUG: Charging positions (0-indexed) = {charging_positions}")
 
     # Verify there are exactly 2 charging hours
-    assert len(charging_positions) == def_total_hours, \
+    assert len(charging_positions) == def_total_hours, (
         f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
+    )
 
     # The optimizer may choose any position within [def_start, def_end)
     for pos in charging_positions:
-        assert def_start <= pos < def_end, \
+        assert def_start <= pos < def_end, (
             f"Charging position {pos} is OUTSIDE charging window/EMHASS window [{def_start}, {def_end})"
+        )
 
     # Additional: Verify the last charging position is before deadline
     last_charging_pos = max(charging_positions) if charging_positions else -1
-    assert last_charging_pos < def_end, \
+    assert last_charging_pos < def_end, (
         f"BUG: Last charging position {last_charging_pos} should be < def_end {def_end}"
+    )
 
 
 @pytest.mark.asyncio
-async def test_power_profile_positions_spread_across_window(
-    mock_hass, mock_store
-):
+async def test_power_profile_positions_spread_across_window(mock_hass, mock_store):
     """Test case where charging is spread across the window.
 
     This test covers the original user's bug report:
@@ -185,16 +184,18 @@ async def test_power_profile_positions_spread_across_window(
     print(f"DEBUG 6h trip: def_total_hours = {def_total_hours}")
 
     window_size = def_end - def_start
-    assert window_size >= def_total_hours, \
+    assert window_size >= def_total_hours, (
         f"BUG: Window size ({window_size}h) too small for {def_total_hours}h charging"
+    )
 
     # Verify charging positions are within window
     charging_positions = [i for i, p in enumerate(power_profile) if p == 3600]
     print(f"DEBUG 6h trip: Charging positions = {charging_positions}")
 
     for pos in charging_positions:
-        assert def_start <= pos < def_end, \
+        assert def_start <= pos < def_end, (
             f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
+        )
 
 
 if __name__ == "__main__":

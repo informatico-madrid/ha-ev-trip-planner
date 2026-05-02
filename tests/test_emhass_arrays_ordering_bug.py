@@ -31,7 +31,7 @@ class TestEMHASSArraysOrderingBug:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -136,15 +136,17 @@ class TestEMHASSArraysOrderingBug:
 
         # Orden cronológico REAL (debería ser el orden de los arrays)
         expected_chronological = [
-            "trip_wednesday",   # PRIMERO (71 horas desde ahora)
-            "trip_thursday_1",   # SEGUNDO
-            "trip_thursday_2",   # TERCERO
-            "trip_friday",       # CUARTO
-            "trip_sunday",       # ÚLTIMO (más de 160 horas)
+            "trip_wednesday",  # PRIMERO (71 horas desde ahora)
+            "trip_thursday_1",  # SEGUNDO
+            "trip_thursday_2",  # TERCERO
+            "trip_friday",  # CUARTO
+            "trip_sunday",  # ÚLTIMO (más de 160 horas)
         ]
 
         # Convertir IDs a objetos trip
-        trips_to_publish = [t for t in trips_creation_order if t["id"] in expected_chronological]
+        trips_to_publish = [
+            t for t in trips_creation_order if t["id"] in expected_chronological
+        ]
 
         # Publicar todos
         await adapter.async_publish_all_deferrable_loads(trips_to_publish)
@@ -152,7 +154,9 @@ class TestEMHASSArraysOrderingBug:
         # Obtener parámetros
         per_trip_params = adapter._cached_per_trip_params
 
-        print("\n=== ANÁLISIS DE ARRAYS (después del fix: orden por def_start_timestep) ===")
+        print(
+            "\n=== ANÁLISIS DE ARRAYS (después del fix: orden por def_start_timestep) ==="
+        )
 
         # Primero mostrar cada viaje con su índice y parámetros
         print("\n--- VIAJES INDIVIDUALES ---")
@@ -161,14 +165,18 @@ class TestEMHASSArraysOrderingBug:
             start = params.get("def_start_timestep", -1)
             end = params.get("def_end_timestep", -1)
             hours = params.get("def_total_hours", -1)
-            print(f"{trip_id}: index={idx}, def_start={start}, def_end={end}, hours={hours}")
+            print(
+                f"{trip_id}: index={idx}, def_start={start}, def_end={end}, hours={hours}"
+            )
 
         # Construir arrays como hace sensor.py DESPUÉS del fix
         active_trips_sorted = [
             (params.get("def_start_timestep", 0), trip_id, params)
             for trip_id, params in per_trip_params.items()
         ]
-        active_trips_sorted.sort(key=lambda x: x[0])  # Orden por def_start_timestep (cronológico)
+        active_trips_sorted.sort(
+            key=lambda x: x[0]
+        )  # Orden por def_start_timestep (cronológico)
 
         print("\n--- VIAJES ORDENADOS POR def_start_timestep (cronológico) ---")
         for start, trip_id, params in active_trips_sorted:
@@ -225,7 +233,7 @@ class TestEMHASSArraysOrderingBug:
             if def_start_final[i] >= def_start_final[i + 1]:
                 pytest.fail(
                     f"❌ Arrays no están en orden cronológico estricto: "
-                    f"def_start[{i}]={def_start_final[i]} >= def_start[{i+1}]={def_start_final[i+1]}"
+                    f"def_start[{i}]={def_start_final[i]} >= def_start[{i + 1}]={def_start_final[i + 1]}"
                 )
 
         print("\n✅ FIX VERIFICADO: Arrays están en orden cronológico correcto")

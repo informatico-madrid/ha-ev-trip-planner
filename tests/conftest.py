@@ -26,7 +26,7 @@ def enable_custom_integrations():
 @pytest.fixture(autouse=True)
 def mock_frame_reporting():
     """Mock frame reporting to avoid 'Frame helper not set up' error."""
-    with patch('homeassistant.helpers.frame.report_usage', return_value=None):
+    with patch("homeassistant.helpers.frame.report_usage", return_value=None):
         yield
 
 
@@ -87,13 +87,13 @@ def vehicle_id():
 def hass():
     """
     Fixture to provide a working HomeAssistant instance for tests.
-    
+
     This creates a minimal mock hass instance that avoids compatibility issues
     with pytest-homeassistant-custom-component.
     """
     # Create a mock hass instance instead of real HomeAssistant
     hass = MagicMock()
-    
+
     # Mock the config attributes
     hass.config = MagicMock()
     hass.config.config_dir = "/tmp/test_config"
@@ -101,47 +101,48 @@ def hass():
     hass.config.latitude = 40.0
     hass.config.longitude = -3.0
     hass.config.elevation = 0
-    
+
     # Mock states - use a dictionary to simulate state storage
     hass.states = MagicMock()
     hass._states_dict = {}  # Internal storage for states
-    
+
     def _mock_states_get(entity_id):
         """Get state from storage."""
         result = hass._states_dict.get(entity_id, None)
         print(f"DEBUG: hass.states.get('{entity_id}') -> {result}")
         return result
-    
+
     def _mock_states_set(entity_id, state, attributes=None):
         """Synchronous set for states."""
         from unittest.mock import MagicMock
+
         state_obj = MagicMock()
         state_obj.state = state
         state_obj.attributes = attributes or {}
         hass._states_dict[entity_id] = state_obj
         print(f"DEBUG: hass.states.set('{entity_id}', '{state}', {attributes})")
         return True
-    
+
     async def _mock_states_async_set(entity_id, state, attributes=None):
         """Asynchronous set for states."""
         print(f"DEBUG: hass.states.async_set('{entity_id}', '{state}', {attributes})")
         _mock_states_set(entity_id, state, attributes)
         return True
-    
+
     hass.states.get = _mock_states_get
     hass.states.set = _mock_states_set
     hass.states.async_set = _mock_states_async_set
-    
+
     # Mock services
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()
     hass.services.has_service = MagicMock(return_value=True)
-    
+
     # FIX: Añadir async_run_hass_job para el debounce del coordinator
     # El debounce llama a hass.async_run_hass_job(self._job) y espera el resultado
     # Necesitamos que devuelva una tarea/coroutine, no un MagicMock
     import asyncio
-    
+
     def _mock_async_run_hass_job(job, *args, **kwargs):
         """Mock async_run_hass_job for debounce - devuelve una tarea real."""
         if job is None:
@@ -153,12 +154,12 @@ def hass():
         job_kwargs = kwargs or {}
 
         # Si job tiene target (es un HassJob)
-        if hasattr(job, 'target'):
+        if hasattr(job, "target"):
             job_target = job.target
             # Si el job ya tiene args/kwargs incorporados
-            if hasattr(job, 'args'):
+            if hasattr(job, "args"):
                 job_args = job.args
-            if hasattr(job, 'kwargs'):
+            if hasattr(job, "kwargs"):
                 job_kwargs = job.kwargs
         else:
             # Si es una función directa
@@ -169,6 +170,7 @@ def hass():
 
         # Filtrar kwargs: solo pasar argumentos válidos
         import inspect
+
         sig = inspect.signature(job_target)
         valid_params = set(sig.parameters.keys())
 
@@ -187,11 +189,12 @@ def hass():
                 # Para funciones síncronas, envolver en coroutine
                 async def _wrapper():
                     return job_target(*job_args, **filtered_kwargs)
+
                 return asyncio.ensure_future(_wrapper())
         except Exception as e:
             _LOGGER.error("Error in mock_async_run_hass_job: %s", e, exc_info=True)
             raise
-    
+
     hass.async_run_hass_job = _mock_async_run_hass_job
 
     yield hass
@@ -270,7 +273,7 @@ def mock_store_class():
             self._storage["data"] = data
             return True
 
-    with patch.object(ha_storage, 'Store', MockStore):
+    with patch.object(ha_storage, "Store", MockStore):
         yield MockStore
 
 
@@ -294,7 +297,8 @@ def mock_entity_registry():
     def _entities_for_domain(domain):
         """Get all entities for a specific domain."""
         return [
-            entity for entity_id, entity in registry._entities.items()
+            entity
+            for entity_id, entity in registry._entities.items()
             if entity_id.startswith(f"{domain}.")
         ]
 
@@ -318,7 +322,10 @@ def mock_entity_registry():
             entity_id="sensor.ovms_consumption",
             domain="sensor",
             original_name="OVMS Consumption",
-            capabilities={"state_class": "measurement", "unit_of_measurement": "kWh/100km"},
+            capabilities={
+                "state_class": "measurement",
+                "unit_of_measurement": "kWh/100km",
+            },
         ),
         "binary_sensor.home_presence": MagicMock(
             entity_id="binary_sensor.home_presence",
@@ -367,7 +374,8 @@ def mock_device_registry():
     def _devices_for_config_entry(config_entry_id):
         """Get all devices for a specific config entry."""
         return [
-            device for device in registry._devices.values()
+            device
+            for device in registry._devices.values()
             if device.config_entries.get(config_entry_id)
         ]
 
@@ -450,12 +458,15 @@ def mock_er_async_get(mock_entity_registry):
     """Patch er.async_get to return mock_entity_registry."""
     from homeassistant.helpers import entity_registry as er
     from unittest.mock import patch
-    with patch.object(er, 'async_get', return_value=mock_entity_registry):
+
+    with patch.object(er, "async_get", return_value=mock_entity_registry):
         yield mock_entity_registry
 
 
 @pytest.fixture
-def mock_hass_with_entity_registry(hass, mock_entity_registry, mock_device_registry, mock_config_entries):
+def mock_hass_with_entity_registry(
+    hass, mock_entity_registry, mock_device_registry, mock_config_entries
+):
     """
     Return a mock hass instance with entity and device registries.
 
@@ -610,7 +621,9 @@ def trip_manager_with_entry_id(mock_hass, mock_store):
     """
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
-    return TripManager(mock_hass, "test_vehicle", entry_id="test_entry_123", storage=mock_store)
+    return TripManager(
+        mock_hass, "test_vehicle", entry_id="test_entry_123", storage=mock_store
+    )
 
 
 @pytest.fixture

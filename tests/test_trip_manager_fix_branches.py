@@ -36,7 +36,10 @@ async def test_entry_id_lookup_used_in_generate_power_profile() -> None:
         captured.update(kwargs)
         return [0.0]
 
-    with patch("custom_components.ev_trip_planner.calculations.calculate_power_profile", side_effect=fake_calc):
+    with patch(
+        "custom_components.ev_trip_planner.calculations.calculate_power_profile",
+        side_effect=fake_calc,
+    ):
         await tm.async_generate_power_profile()
 
     # verify battery_capacity from entry was used
@@ -51,6 +54,7 @@ async def test_async_entries_exception_uses_default_battery() -> None:
     hass.config_entries = MagicMock()
     # No entry found by async_get_entry
     hass.config_entries.async_get_entry = MagicMock(return_value=None)
+
     # async_entries raises
     def raise_exc(*args, **kwargs):
         raise RuntimeError("boom")
@@ -66,13 +70,14 @@ async def test_async_entries_exception_uses_default_battery() -> None:
         captured.update(kwargs)
         return [0.0]
 
-    with patch("custom_components.ev_trip_planner.calculations.calculate_power_profile", side_effect=fake_calc):
+    with patch(
+        "custom_components.ev_trip_planner.calculations.calculate_power_profile",
+        side_effect=fake_calc,
+    ):
         await tm.async_generate_power_profile()
 
     # Should have used default 50.0 when async_entries failed
     assert captured.get("battery_capacity_kwh") == 50.0
-
-
 
     @pytest.mark.asyncio
     async def test_generate_power_profile_finds_entry_via_async_entries() -> None:
@@ -99,12 +104,17 @@ async def test_async_entries_exception_uses_default_battery() -> None:
             captured.update(kwargs)
             return [0.0]
 
-        with patch("homeassistant.helpers.storage.Store.async_load", new_callable=lambda: AsyncMock(return_value=None)):
-            with patch("custom_components.ev_trip_planner.calculations.calculate_power_profile", side_effect=fake_calculate_power_profile):
+        with patch(
+            "homeassistant.helpers.storage.Store.async_load",
+            new_callable=lambda: AsyncMock(return_value=None),
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.calculations.calculate_power_profile",
+                side_effect=fake_calculate_power_profile,
+            ):
                 await tm.async_generate_power_profile()
 
         assert captured.get("battery_capacity_kwh") == 55.0
-
 
     @pytest.mark.asyncio
     async def test_generate_deferrables_schedule_uses_entry_from_async_entries():
@@ -134,10 +144,18 @@ async def test_async_entries_exception_uses_default_battery() -> None:
             captured_vehicle_config.update(vehicle_config)
             return {"energia_necesaria_kwh": 1.0, "horas_carga_necesarias": 1.0}
 
-        tm.async_calcular_energia_necesaria = AsyncMock(side_effect=fake_async_calcular_energia_necesaria)
+        tm.async_calcular_energia_necesaria = AsyncMock(
+            side_effect=fake_async_calcular_energia_necesaria
+        )
 
-        with patch("homeassistant.helpers.storage.Store.async_load", new_callable=lambda: AsyncMock(return_value=None)):
-            with patch("homeassistant.helpers.storage.Store.async_save", new_callable=lambda: AsyncMock(return_value=None)):
+        with patch(
+            "homeassistant.helpers.storage.Store.async_load",
+            new_callable=lambda: AsyncMock(return_value=None),
+        ):
+            with patch(
+                "homeassistant.helpers.storage.Store.async_save",
+                new_callable=lambda: AsyncMock(return_value=None),
+            ):
                 await tm.async_generate_deferrables_schedule()
 
         assert captured_vehicle_config.get("battery_capacity_kwh") == 42.0

@@ -615,7 +615,9 @@ def _validate_dashboard_config(
                 f"view_{i}_missing_path",
                 f"Dashboard view at index {i} missing required 'path' field",
             )
-        if "title" not in view:  # pragma: no cover  # validation already ensures title exists - caller filters invalid views upstream
+        if (
+            "title" not in view
+        ):  # pragma: no cover  # validation already ensures title exists - caller filters invalid views upstream
             raise DashboardValidationError(
                 f"view_{i}_missing_title",
                 f"Dashboard view at index {i} missing required 'title' field",
@@ -719,7 +721,9 @@ async def _load_dashboard_template(
                     template_content = _read_file_content(template_path)
             else:
                 # Fallback for tests where hass doesn't have async_add_executor_job  # pragma: no cover  # HA production always has async_add_executor_job; only tests without it reach this branch
-                template_content = _read_file_content(template_path)  # pragma: no cover  # HA storage I/O - fallback path for MagicMock hass objects in tests
+                template_content = _read_file_content(
+                    template_path
+                )  # pragma: no cover  # HA storage I/O - fallback path for MagicMock hass objects in tests
         except Exception as e:
             _LOGGER.error("Failed to read template file: %s", e)
             return None
@@ -816,7 +820,9 @@ async def _save_lovelace_dashboard(
                     storage_method="lovelace_save_service",
                 )
 
-            _LOGGER.warning("Dashboard config has no views to save")  # pragma: no cover  # HA storage API validation - empty views caught by _validate_dashboard_config upstream
+            _LOGGER.warning(
+                "Dashboard config has no views to save"
+            )  # pragma: no cover  # HA storage API validation - empty views caught by _validate_dashboard_config upstream
             raise DashboardStorageError(  # pragma: no cover  # HA storage API validation - empty views caught upstream
                 storage_method,
                 "Dashboard config has no views to save",
@@ -1012,7 +1018,9 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
 
         # Try to load to verify storage is available
         await test_store.async_load()  # pragma: no cover — HA I/O bound
-        _LOGGER.info("Store API test load succeeded for %s", vehicle_id)  # pragma: no cover — HA I/O bound
+        _LOGGER.info(
+            "Store API test load succeeded for %s", vehicle_id
+        )  # pragma: no cover — HA I/O bound
 
         # Store API is available
         return True  # pragma: no cover — HA I/O bound
@@ -1077,7 +1085,9 @@ async def _save_dashboard_yaml_fallback(
                 storage_method="yaml_fallback",
             )
 
-        if not isinstance(dashboard_config["views"], list):  # pragma: no cover  # validation already passed isinstance check upstream in _validate_dashboard_config
+        if not isinstance(
+            dashboard_config["views"], list
+        ):  # pragma: no cover  # validation already passed isinstance check upstream in _validate_dashboard_config
             _LOGGER.error("Dashboard 'views' must be a list")
             return DashboardImportResult(
                 success=False,
@@ -1100,7 +1110,9 @@ async def _save_dashboard_yaml_fallback(
             )
 
         for i, view in enumerate(dashboard_config["views"]):
-            if not isinstance(view, dict):  # pragma: no cover  # HA storage I/O validation - caller filters non-dict views upstream
+            if not isinstance(
+                view, dict
+            ):  # pragma: no cover  # HA storage I/O validation - caller filters non-dict views upstream
                 _LOGGER.error("Dashboard view at index %d must be a dict", i)
                 return DashboardImportResult(
                     success=False,
@@ -1196,7 +1208,9 @@ async def _save_dashboard_yaml_fallback(
             await _await_executor_result(
                 _call_async_executor_sync(hass, _create_directory, config_dir, 0o755)
             )
-            _LOGGER.info("Created config directory: %s", config_dir)  # pragma: no cover  # HA storage I/O - directory creation only happens when path doesn't exist
+            _LOGGER.info(
+                "Created config directory: %s", config_dir
+            )  # pragma: no cover  # HA storage I/O - directory creation only happens when path doesn't exist
 
         # Convert dashboard config to YAML
         yaml_content = yaml.dump(dashboard_config, default_flow_style=False)

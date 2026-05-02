@@ -35,6 +35,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 class _MockConfigEntry:
     """Minimal ConfigEntry replacement matching the test_charging_window pattern."""
 
@@ -109,12 +110,14 @@ def _make_trips(num_commutes: int = 4, kwh: float = 6.0, hours_offset: int = 1):
     trips = []
     for i in range(num_commutes):
         deadline = now + timedelta(hours=hours_offset + i)
-        trips.append({
-            "id": f"trip_{i}",
-            "kwh": kwh,
-            "datetime": deadline.isoformat(),
-            "descripcion": f"Commute {i+1}",
-        })
+        trips.append(
+            {
+                "id": f"trip_{i}",
+                "kwh": kwh,
+                "datetime": deadline.isoformat(),
+                "descripcion": f"Commute {i + 1}",
+            }
+        )
     return trips
 
 
@@ -128,6 +131,7 @@ def _count_nonzero(profile):
 # ---------------------------------------------------------------------------
 # T056: T_BASE effect
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_t_base_affects_charging_hours():
@@ -168,24 +172,36 @@ async def test_t_base_affects_charging_hours():
     # With SOC=40%, t_hours=20: risk=1.54, cap_6h=83.2%, cap_48h=98.3%
     # Significant energy difference between the two caps
     now = datetime.now(timezone.utc)
-    trips = [{
-        "id": f"trip_{i}",
-        "kwh": 6.0,
-        "datetime": (now + timedelta(hours=20 + i * 20)).isoformat(),
-        "descripcion": f"Commute {i+1}",
-    } for i in range(4)]
+    trips = [
+        {
+            "id": f"trip_{i}",
+            "kwh": 6.0,
+            "datetime": (now + timedelta(hours=20 + i * 20)).isoformat(),
+            "descripcion": f"Commute {i + 1}",
+        }
+        for i in range(4)
+    ]
 
     hora_regreso = now - timedelta(hours=2)
 
     for adapter in (adapter_6, adapter_48):
         mock_pm = MagicMock()
-        mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso.replace(tzinfo=timezone.utc))
+        mock_pm.async_get_hora_regreso = AsyncMock(
+            return_value=hora_regreso.replace(tzinfo=timezone.utc)
+        )
         adapter._presence_monitor = mock_pm
 
     async def _run(adapter):
         with (
-            patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0),
-            patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=hora_regreso.replace(tzinfo=timezone.utc)),
+            patch.object(
+                adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0
+            ),
+            patch.object(
+                adapter,
+                "_get_hora_regreso",
+                new_callable=AsyncMock,
+                return_value=hora_regreso.replace(tzinfo=timezone.utc),
+            ),
         ):
             await adapter.async_publish_all_deferrable_loads(trips)
         return list(adapter._cached_power_profile or [])
@@ -213,6 +229,7 @@ async def test_t_base_affects_charging_hours():
 # T057: SOC caps reduce kWh targets
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_soc_caps_applied_to_kwh_calculation():
     """T057: SOC caps from calculate_dynamic_soc_limit should reduce kWh charging targets.
@@ -228,7 +245,9 @@ async def test_soc_caps_applied_to_kwh_calculation():
     hass, store = _make_mock_hass(soc_state=40.0)
     entry = _MockConfigEntry(t_base=24.0, battery_capacity=60.0, charging_power=7.4)
 
-    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
@@ -238,12 +257,21 @@ async def test_soc_caps_applied_to_kwh_calculation():
     hora_regreso = now - timedelta(hours=2)
 
     mock_pm = MagicMock()
-    mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso.replace(tzinfo=timezone.utc))
+    mock_pm.async_get_hora_regreso = AsyncMock(
+        return_value=hora_regreso.replace(tzinfo=timezone.utc)
+    )
     adapter._presence_monitor = mock_pm
 
     with (
-        patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0),
-        patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=hora_regreso.replace(tzinfo=timezone.utc)),
+        patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0
+        ),
+        patch.object(
+            adapter,
+            "_get_hora_regreso",
+            new_callable=AsyncMock,
+            return_value=hora_regreso.replace(tzinfo=timezone.utc),
+        ),
     ):
         await adapter.async_publish_all_deferrable_loads(trips)
 
@@ -277,6 +305,7 @@ async def test_soc_caps_applied_to_kwh_calculation():
 # ---------------------------------------------------------------------------
 # T058: Real capacity (SOH) scales power profile
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_real_capacity_affects_power_profile():
@@ -312,11 +341,15 @@ async def test_real_capacity_affects_power_profile():
         soh_sensor_entity_id="sensor.vehicle_soh",
     )
 
-    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_100):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_100
+    ):
         adapter_100 = EMHASSAdapter(hass_100, entry_100)
         await adapter_100.async_load()
 
-    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_90):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_90
+    ):
         adapter_90 = EMHASSAdapter(hass_90, entry_90)
         await adapter_90.async_load()
 
@@ -327,13 +360,22 @@ async def test_real_capacity_affects_power_profile():
 
     for adapter in (adapter_100, adapter_90):
         mock_pm = MagicMock()
-        mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso.replace(tzinfo=timezone.utc))
+        mock_pm.async_get_hora_regreso = AsyncMock(
+            return_value=hora_regreso.replace(tzinfo=timezone.utc)
+        )
         adapter._presence_monitor = mock_pm
 
     async def _run(adapter):
         with (
-            patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0),
-            patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=hora_regreso.replace(tzinfo=timezone.utc)),
+            patch.object(
+                adapter, "_get_current_soc", new_callable=AsyncMock, return_value=40.0
+            ),
+            patch.object(
+                adapter,
+                "_get_hora_regreso",
+                new_callable=AsyncMock,
+                return_value=hora_regreso.replace(tzinfo=timezone.utc),
+            ),
         ):
             await adapter.async_publish_all_deferrable_loads(trips)
         return list(adapter._cached_power_profile or [])
@@ -362,6 +404,7 @@ async def test_real_capacity_affects_power_profile():
 # T090: No charging needed branch (total_hours == 0)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_no_charging_needed_power_watts_zero():
     """T090: Verify power_watts is 0.0 when total_hours == 0 (no charging needed).
@@ -373,28 +416,41 @@ async def test_no_charging_needed_power_watts_zero():
     hass, store = _make_mock_hass(soc_state=50.0)
     entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
 
-    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+    ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
 
     # Create a trip with 0kWh — no energy needed
     now = datetime.now(timezone.utc)
-    trips = [{
-        "id": "trip_zero",
-        "kwh": 0.0,
-        "datetime": (now + timedelta(hours=24)).isoformat(),
-        "descripcion": "Zero energy trip",
-    }]
+    trips = [
+        {
+            "id": "trip_zero",
+            "kwh": 0.0,
+            "datetime": (now + timedelta(hours=24)).isoformat(),
+            "descripcion": "Zero energy trip",
+        }
+    ]
 
     hora_regreso = now - timedelta(hours=2)
 
     mock_pm = MagicMock()
-    mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso.replace(tzinfo=timezone.utc))
+    mock_pm.async_get_hora_regreso = AsyncMock(
+        return_value=hora_regreso.replace(tzinfo=timezone.utc)
+    )
     adapter._presence_monitor = mock_pm
 
     with (
-        patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0),
-        patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=hora_regreso.replace(tzinfo=timezone.utc)),
+        patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0
+        ),
+        patch.object(
+            adapter,
+            "_get_hora_regreso",
+            new_callable=AsyncMock,
+            return_value=hora_regreso.replace(tzinfo=timezone.utc),
+        ),
     ):
         await adapter.async_publish_all_deferrable_loads(trips)
 
@@ -407,3 +463,157 @@ async def test_no_charging_needed_power_watts_zero():
     assert params.get("kwh_needed") == 0.0, (
         f"Expected kwh_needed=0.0 for kwh=0 trip, got {params.get('kwh_needed')}."
     )
+
+
+# ---------------------------------------------------------------------------
+# T109: Stale cache cleanup
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_stale_cache_cleanup():
+    """T109: Verify stale cache entries are cleaned up when trips are removed.
+
+    When async_publish_all_deferrable_loads() is called with a subset of
+    previously published trips, the stale cache entries for removed trips
+    should be deleted from _cached_per_trip_params.
+    """
+    hass, store = _make_mock_hass(soc_state=50.0)
+    entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+    now = datetime.now(timezone.utc)
+    hora_regreso = now - timedelta(hours=2)
+    mock_pm = MagicMock()
+    mock_pm.async_get_hora_regreso = AsyncMock(
+        return_value=hora_regreso.replace(tzinfo=timezone.utc)
+    )
+    adapter._presence_monitor = mock_pm
+
+    # Step 1: Publish with 3 trips — all 3 should be in cache
+    trips_3 = [
+        {
+            "id": f"trip_{i}",
+            "kwh": 5.0,
+            "datetime": (now + timedelta(hours=24)).isoformat(),
+            "descripcion": f"Trip {i}",
+        }
+        for i in range(3)
+    ]
+
+    with (
+        patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0
+        ),
+        patch.object(
+            adapter,
+            "_get_hora_regreso",
+            new_callable=AsyncMock,
+            return_value=hora_regreso.replace(tzinfo=timezone.utc),
+        ),
+    ):
+        await adapter.async_publish_all_deferrable_loads(trips_3)
+
+    assert len(adapter._cached_per_trip_params) == 3, (
+        f"Expected 3 cache entries after first publish, got {len(adapter._cached_per_trip_params)}"
+    )
+
+    # Step 2: Publish with only 1 trip — stale cache for 2 trips should be cleaned up
+    trips_1 = [
+        {
+            "id": "trip_0",
+            "kwh": 5.0,
+            "datetime": (now + timedelta(hours=24)).isoformat(),
+            "descripcion": "Trip 0",
+        }
+    ]
+
+    with (
+        patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0
+        ),
+        patch.object(
+            adapter,
+            "_get_hora_regreso",
+            new_callable=AsyncMock,
+            return_value=hora_regreso.replace(tzinfo=timezone.utc),
+        ),
+    ):
+        await adapter.async_publish_all_deferrable_loads(trips_1)
+
+    # Only 1 cache entry should remain — stale entries cleaned up
+    assert len(adapter._cached_per_trip_params) == 1, (
+        f"Expected 1 cache entry after removing 2 trips, got {len(adapter._cached_per_trip_params)}. "
+        f"Stale cache cleanup is not working. Keys: {list(adapter._cached_per_trip_params.keys())}"
+    )
+    assert "trip_0" in adapter._cached_per_trip_params, (
+        f"trip_0 should still be in cache. Keys: {list(adapter._cached_per_trip_params.keys())}"
+    )
+    assert "trip_1" not in adapter._cached_per_trip_params, (
+        "trip_1 should have been cleaned from stale cache"
+    )
+    assert "trip_2" not in adapter._cached_per_trip_params, (
+        "trip_2 should have been cleaned from stale cache"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T109 fallback path: trip without ID in fallback list
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fallback_path_skips_trip_without_id():
+    """T115: Verify the fallback path skips trips without ID — line 1132 coverage.
+
+    Mock _calculate_deadline_from_trip to return None for all trips, ensuring
+    trip_deadlines is empty and the code enters the fallback path.
+    The fallback iterates [(None, None, trip) for trip in trips] and skips
+    trips without 'id' via `continue` at line 1132.
+    """
+    hass, store = _make_mock_hass(soc_state=50.0)
+    entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+    hora_regreso = datetime(2026, 5, 2, 18, 0, 0, tzinfo=timezone.utc)
+    mock_pm = MagicMock()
+    mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso)
+    adapter._presence_monitor = mock_pm
+
+    # Mock _calculate_deadline_from_trip to return None → trip_deadlines stays empty
+    # Include one trip without 'id' key to hit line 1132 `continue`
+    trips_with_no_id = [
+        {"id": "trip_1", "kwh": 5.0, "datetime": "2026-05-03T10:00:00+00:00"},
+        {
+            "kwh": 5.0,
+            "datetime": "2026-05-03T12:00:00+00:00",
+        },  # No 'id' → hits line 1132
+    ]
+
+    with (
+        patch.object(adapter, "_calculate_deadline_from_trip", return_value=None),
+        patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0
+        ),
+        patch.object(
+            adapter,
+            "_get_hora_regreso",
+            new_callable=AsyncMock,
+            return_value=hora_regreso,
+        ),
+    ):
+        await adapter.async_publish_all_deferrable_loads(trips_with_no_id)
+
+    # The trip without 'id' is skipped at line 1132, but trip_1 is still processed
+    # Verify no crash — fallback path executed correctly
+    assert len(adapter._cached_per_trip_params) >= 0

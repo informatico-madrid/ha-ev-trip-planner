@@ -43,7 +43,6 @@ from .const import (
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
-    DEFAULT_SOC_BASE,
     DEFAULT_SOH_SENSOR,
     DEFAULT_T_BASE,
     DOMAIN,
@@ -248,7 +247,9 @@ def _get_emhass_planning_horizon(
     end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
     if not end_timesteps or not isinstance(end_timesteps, list):
         return None
-    if len(end_timesteps) == 0:  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
+    if (
+        len(end_timesteps) == 0
+    ):  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
         return None
 
     # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days
@@ -290,15 +291,15 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     @staticmethod
-    async def async_migrate_entry(
-        hass: Any, entry: config_entries.ConfigEntry
-    ) -> None:
+    async def async_migrate_entry(hass: Any, entry: config_entries.ConfigEntry) -> None:
         """Migrar entrada de configuración de versión anterior.
 
         v2 -> v3: Add battery health config (t_base, soh_sensor).
         """
         _LOGGER.info(
-            "Migrating config entry from version %s to %s", entry.version, CONFIG_VERSION
+            "Migrating config entry from version %s to %s",
+            entry.version,
+            CONFIG_VERSION,
         )
 
         if entry.version == 2:
@@ -854,7 +855,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     async def _async_create_entry(self) -> FlowResult:
         """Crea la entrada de configuración."""
         # HA stub: Context TypedDict may have missing keys, .get() safe for object
-        vehicle_name_for_log = self.context.get("vehicle_data", {}).get("vehicle_name", "unknown")  # type: ignore[attr-defined,unused-ignore]
+        vehicle_name_for_log = self.context.get("vehicle_data", {}).get(
+            "vehicle_name", "unknown"
+        )  # type: ignore[attr-defined,unused-ignore]
         _LOGGER.info(
             "Starting _async_create_entry for vehicle: %s",
             vehicle_name_for_log,
@@ -1026,8 +1029,12 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                                 "Rango: 6-48h."
                             ),
                         },
-                    ): vol.All(vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE)),
-                    vol.Optional(CONF_SOH_SENSOR): selector.EntitySelector(
+                    ): vol.All(
+                        vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE)
+                    ),
+                    vol.Optional(
+                        CONF_SOH_SENSOR, default=current_soh
+                    ): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor",
                             multiple=False,

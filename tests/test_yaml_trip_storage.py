@@ -183,11 +183,11 @@ class TestYamlTripStorageAsyncSave:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
-            await storage.async_save({"trips": {}, "recurring_trips": {}, "punctual_trips": {}})
+            await storage.async_save(
+                {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
+            )
 
         call_args = mock_store.async_save.call_args[0][0]
         assert "last_update" in call_args
         # Verify it's an ISO format timestamp
         assert "T" in call_args["last_update"]
-
-

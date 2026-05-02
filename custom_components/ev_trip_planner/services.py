@@ -747,9 +747,7 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
 
         # Load trips from HA storage
         try:
-            _LOGGER.info(
-                "=== _get_manager - Calling trip_manager.async_setup() ==="
-            )
+            _LOGGER.info("=== _get_manager - Calling trip_manager.async_setup() ===")
             await trip_manager.async_setup()
             _LOGGER.info(
                 "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ===",
@@ -1174,7 +1172,9 @@ async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
-        for entry in hass.config_entries.async_entries(DOMAIN):  # placeholder loop, no-op body
+        for entry in hass.config_entries.async_entries(
+            DOMAIN
+        ):  # placeholder loop, no-op body
             entries = er.async_entries_for_config_entry(registry, entry.entry_id)
             for _entry in entries:
                 pass  # Placeholder - actual cleanup logic would go here
@@ -1227,7 +1227,9 @@ async def async_register_static_paths(
         from homeassistant.components.http import StaticPathConfig
 
         HAS_STATIC_PATH_CONFIG = True
-    except ImportError:  # pragma: no cover — depends on HA version; tested via integration
+    except (
+        ImportError
+    ):  # pragma: no cover — depends on HA version; tested via integration
         HAS_STATIC_PATH_CONFIG = False
 
     component_dir = Path(__file__).parent
@@ -1274,7 +1276,11 @@ async def async_register_static_paths(
                 "Registered %d static path(s) for EV Trip Planner panel (early)",
                 len(static_paths),
             )
-        except (TypeError, AttributeError, RuntimeError) as err:  # pragma: no cover — HA infrastructure error path; not reproducible in unit tests
+        except (
+            TypeError,
+            AttributeError,
+            RuntimeError,
+        ) as err:  # pragma: no cover — HA infrastructure error path; not reproducible in unit tests
             _LOGGER.warning(
                 "async_register_static_paths (early) error: %s, trying legacy",
                 err,
@@ -1289,12 +1295,18 @@ async def async_register_static_paths(
                             hass.http.register_static_path(  # type: ignore[attr-defined] # HA stub: HomeAssistantHTTP has register_static_path
                                 path_spec.url_path, path_spec.path
                             )
-                    except RuntimeError as path_err:  # pragma: no cover — HA infrastructure error path
+                    except (
+                        RuntimeError
+                    ) as path_err:  # pragma: no cover — HA infrastructure error path
                         if "already registered" in str(path_err).lower():
                             continue
                         raise
-                _LOGGER.info("Registered static paths using legacy method (early)")  # pragma: no cover — reached only after HA infrastructure error path
-            except Exception as legacy_err:  # pragma: no cover — HA infrastructure error path
+                _LOGGER.info(
+                    "Registered static paths using legacy method (early)"
+                )  # pragma: no cover — reached only after HA infrastructure error path
+            except (
+                Exception
+            ) as legacy_err:  # pragma: no cover — HA infrastructure error path
                 _LOGGER.error("Failed to register static paths (early): %s", legacy_err)
     elif static_paths:
         _LOGGER.warning("hass.http is None - static paths cannot be registered early")
@@ -1401,13 +1413,17 @@ async def async_unload_entry_cleanup(
     # Get runtime data from entry.runtime_data (HA-recommended)
     runtime_data = getattr(entry, "runtime_data", None)
     trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
-    emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+    emhass_adapter = (
+        getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+    )
 
     # E2E-DEBUG-CRITICAL: Log cleanup of listener before deleting trips
     _LOGGER.debug(
         "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
         emhass_adapter,
-        getattr(emhass_adapter, "_config_entry_listener", None) if emhass_adapter else None,
+        getattr(emhass_adapter, "_config_entry_listener", None)
+        if emhass_adapter
+        else None,
     )
 
     # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
@@ -1415,7 +1431,10 @@ async def async_unload_entry_cleanup(
     # and would reload trips from trip_manager (which still has trips at this point).
     # By removing the listener first, we prevent any republish during deletion.
     if emhass_adapter:
-        if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+        if (
+            hasattr(emhass_adapter, "_config_entry_listener")
+            and emhass_adapter._config_entry_listener
+        ):
             emhass_adapter._config_entry_listener()
             emhass_adapter._config_entry_listener = None
             _LOGGER.debug(
@@ -1505,14 +1524,19 @@ async def async_remove_entry_cleanup(
     # Get runtime data from entry.runtime_data (HA-recommended pattern)
     runtime_data = getattr(entry, "runtime_data", None)
     trip_manager = getattr(runtime_data, "trip_manager", None) if runtime_data else None
-    emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+    emhass_adapter = (
+        getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+    )
 
     # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.
     # _handle_config_entry_update could be triggered during HA's deletion flow
     # and would reload trips from trip_manager (which still has trips at this point).
     if emhass_adapter:
         try:
-            if hasattr(emhass_adapter, "_config_entry_listener") and emhass_adapter._config_entry_listener:
+            if (
+                hasattr(emhass_adapter, "_config_entry_listener")
+                and emhass_adapter._config_entry_listener
+            ):
                 emhass_adapter._config_entry_listener()
         except Exception as err:
             _LOGGER.error("Error invoking config entry listener: %s", err)
@@ -1530,15 +1554,22 @@ async def async_remove_entry_cleanup(
     if emhass_adapter:
         try:
             await emhass_adapter.async_cleanup_vehicle_indices()
-            _LOGGER.info("Cleaned up EMHASS indices for vehicle %s during integration removal", vehicle_name)
+            _LOGGER.info(
+                "Cleaned up EMHASS indices for vehicle %s during integration removal",
+                vehicle_name,
+            )
         except Exception as err:
-            _LOGGER.error("Error cleaning up EMHASS indices for vehicle %s: %s", vehicle_name, err)
+            _LOGGER.error(
+                "Error cleaning up EMHASS indices for vehicle %s: %s", vehicle_name, err
+            )
 
     # Delete persistent storage for this vehicle
     from homeassistant.helpers import storage as ha_storage
 
     storage_key = f"{DOMAIN}_{vehicle_id}"
-    store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(hass, version=1, key=storage_key)
+    store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
+        hass, version=1, key=storage_key
+    )
     try:
         await store.async_remove()
     except Exception as store_err:
@@ -1576,7 +1607,12 @@ async def async_remove_entry_cleanup(
     ]
 
     for entity_id in input_helper_entities:
-        for prefix in ["input_select.", "input_datetime.", "input_number.", "input_text."]:
+        for prefix in [
+            "input_select.",
+            "input_datetime.",
+            "input_number.",
+            "input_text.",
+        ]:
             full_entity_id = f"{prefix}{entity_id}"
             try:
                 if hass.states.get(full_entity_id):
@@ -1587,6 +1623,8 @@ async def async_remove_entry_cleanup(
                         blocking=True,
                     )
             except Exception as err:
-                _LOGGER.exception("Failed removing input helper %s: %s", full_entity_id, err)
+                _LOGGER.exception(
+                    "Failed removing input helper %s: %s", full_entity_id, err
+                )
 
     _LOGGER.info("Entry removal complete for vehicle %s", vehicle_name)

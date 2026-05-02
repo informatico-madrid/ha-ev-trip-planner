@@ -52,11 +52,14 @@ async def test_power_profile_without_vehicle_config(trip_manager, sample_trip):
 
     # Call without vehicle_config (should not crash)
     profile = await trip_manager.async_generate_power_profile(
-        charging_power_kw=7.4,
-        planning_horizon_days=7
+        charging_power_kw=7.4, planning_horizon_days=7
     )
 
     # Should return a profile with correct structure
-    assert len(profile) == 7 * 24, "Should return profile with correct length (7 days * 24 hours)"
+    assert len(profile) == 7 * 24, (
+        "Should return profile with correct length (7 days * 24 hours)"
+    )
     assert isinstance(profile, list), "Should return a list"
-    assert all(isinstance(p, (int, float)) for p in profile), "All values should be numbers"
+    assert all(isinstance(p, (int, float)) for p in profile), (
+        "All values should be numbers"
+    )
