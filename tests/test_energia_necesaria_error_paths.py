@@ -24,7 +24,11 @@ def _future_iso():
 
 def _future_naive():
     """Naive datetime 7 days in the future — always valid regardless of when tests run."""
-    return (datetime.now() + timedelta(days=7)).replace(hour=18, minute=0, second=0, microsecond=0).isoformat()
+    return (
+        (datetime.now() + timedelta(days=7))
+        .replace(hour=18, minute=0, second=0, microsecond=0)
+        .isoformat()
+    )
 
 
 @pytest.fixture

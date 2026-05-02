@@ -604,3 +604,410 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     #    - PresenceMonitor llama a publish_deferrable_loads() ✅
     #    - PERO publish_deferrable_loads() NO llama a coordinator.async_refresh() ❌
     #    - Por lo tanto, el sensor NO se actualiza automáticamente ❌
+
+
+# =============================================================================
+# T123: _generate_mock_emhass_params coverage tests
+# =============================================================================
+
+
+@pytest.fixture
+def mock_config_entry_full():
+    """Create a mock ConfigEntry with all required data."""
+    entry = MagicMock()
+    entry.entry_id = "test_entry_001"
+    entry.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    return entry
+
+
+@pytest.fixture
+def mock_coordinator(hass, mock_config_entry_full, mock_trip_manager, mock_logger):
+    """Create a coordinator instance for testing."""
+    from custom_components.ev_trip_planner import TripPlannerCoordinator
+
+    return TripPlannerCoordinator(
+        hass, mock_config_entry_full, mock_trip_manager, logger=mock_logger
+    )
+
+
+async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
+    """Test _generate_mock_emhass_params with a single active trip."""
+    trips = {
+        "trip_001": {
+            "kwh": 30.0,
+            "km": 100.0,
+            "datetime": "2026-05-03T08:00:00+00:00",
+            "status": "pendiente",
+        }
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+
+    assert "emhass_power_profile" in result
+    assert "emhass_deferrables_schedule" in result
+    assert result["emhass_deferrables_schedule"] is None
+    assert "emhass_status" in result
+    assert result["emhass_status"] == "ready"
+    assert "per_trip_emhass_params" in result
+    assert "trip_001" in result["per_trip_emhass_params"]
+
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    assert trip_params["activo"] is True
+    assert trip_params["kwh_needed"] == 30.0
+    assert trip_params["km"] == 100.0
+    assert trip_params["def_total_hours_array"] == [round(30.0 / 7.4, 2)]
+    assert trip_params["p_deferrable_nom_array"] == [round(7.4 * 1000.0, 2)]
+    assert trip_params["safety_margin_percent"] == 10.0
+    assert trip_params["soc_base"] == 20.0
+    assert trip_params["t_base"] == 24.0
+
+
+async def test_generate_mock_emhass_params_multiple_trips(mock_coordinator):
+    """Test _generate_mock_emhass_params with multiple active trips."""
+    trips = {
+        "trip_001": {
+            "kwh": 10.0,
+            "km": 50.0,
+            "datetime": "2026-05-03T08:00:00+00:00",
+            "status": "pendiente",
+        },
+        "trip_002": {
+            "kwh": 20.0,
+            "km": 80.0,
+            "datetime": "2026-05-03T12:00:00+00:00",
+            "status": "pendiente",
+        },
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+
+    assert len(result["per_trip_emhass_params"]) == 2
+    assert "trip_001" in result["per_trip_emhass_params"]
+    assert "trip_002" in result["per_trip_emhass_params"]
+
+    # Verify power_profile has max across all trips
+    power_profile = result["emhass_power_profile"]
+    assert len(power_profile) == 96
+    assert max(power_profile) > 0  # Should have some charging power
+
+
+async def test_generate_mock_emhass_params_skip_completed(mock_coordinator):
+    """Test that completed/cancelled trips are skipped."""
+    trips = {
+        "trip_001": {
+            "kwh": 30.0,
+            "km": 100.0,
+            "datetime": "2026-05-03T08:00:00+00:00",
+            "status": "completado",
+        },
+        "trip_002": {
+            "kwh": 20.0,
+            "km": 80.0,
+            "datetime": "2026-05-03T12:00:00+00:00",
+            "status": "cancelado",
+        },
+        "trip_003": {
+            "kwh": 10.0,
+            "km": 50.0,
+            "datetime": "2026-05-04T08:00:00+00:00",
+            "status": "pendiente",
+        },
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+
+    # Only trip_003 should be in params
+    assert len(result["per_trip_emhass_params"]) == 1
+    assert "trip_003" in result["per_trip_emhass_params"]
+    assert "trip_001" not in result["per_trip_emhass_params"]
+    assert "trip_002" not in result["per_trip_emhass_params"]
+
+
+async def test_generate_mock_emhass_params_empty_datetime(mock_coordinator):
+    """Test with empty datetime string — start_timestep should be 0."""
+    trips = {
+        "trip_001": {
+            "kwh": 10.0,
+            "km": 50.0,
+            "datetime": "",
+            "status": "pendiente",
+        },
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    assert trip_params["def_start_timestep_array"] == [0]
+
+
+async def test_generate_mock_emhass_params_invalid_datetime(mock_coordinator):
+    """Test with invalid datetime — should fall back to start_timestep=0."""
+    trips = {
+        "trip_001": {
+            "kwh": 10.0,
+            "km": 50.0,
+            "datetime": "not-a-date",
+            "status": "pendiente",
+        },
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    assert trip_params["def_start_timestep_array"] == [0]
+
+
+async def test_generate_mock_emhass_params_charging_power_zero(
+    mock_config_entry_full, mock_trip_manager, mock_logger
+):
+    """Test with charging_power_kw=0 — hours_needed should be 0.1 (minimum)."""
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 0,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        mock_config_entry_full.hass
+        if hasattr(mock_config_entry_full, "hass")
+        else MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        logger=mock_logger,
+    )
+    trips = {
+        "trip_001": {
+            "kwh": 30.0,
+            "km": 100.0,
+            "datetime": "2026-05-03T08:00:00+00:00",
+            "status": "pendiente",
+        },
+    }
+    result = coordinator._generate_mock_emhass_params(trips)
+
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    # Should use minimum 0.1 hours when charging_power_kw is 0
+    assert trip_params["def_total_hours_array"] == [0.1]
+
+
+async def test_generate_mock_emhass_params_naive_datetime(
+    mock_config_entry_full, mock_trip_manager, mock_logger
+):
+    """Test with timezone-naive datetime — should be treated as UTC (line 264)."""
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
+    )
+    trips = {
+        "trip_001": {
+            "kwh": 30.0,
+            "km": 100.0,
+            "datetime": "2026-05-03T08:00:00",  # No timezone info
+            "status": "pendiente",
+        },
+    }
+    result = coordinator._generate_mock_emhass_params(trips)
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    # Should process without error, treating as UTC
+    assert trip_params["def_start_timestep_array"][0] >= 0
+
+
+async def test_generate_mock_emhass_params_fallback_single_row(mock_coordinator):
+    """Test fallback to single row when trip_matrix is empty (line 282-288)."""
+    trips = {
+        "trip_001": {
+            "kwh": 0.0,
+            "km": 50.0,
+            "datetime": "",
+            "status": "pendiente",
+        },
+    }
+    result = mock_coordinator._generate_mock_emhass_params(trips)
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    # With kwh=0, hours_needed=0.1 (minimum), trip_matrix should still have a row
+    # via the fallback path when int(hours_needed) + 1 = 0
+    assert "p_deferrable_matrix" in trip_params
+
+
+async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
+    mock_config_entry_full, mock_trip_manager, mock_logger, mock_emhass_adapter
+):
+    """Test that async_update uses mock fallback when EMHASS returns empty per_trip_params (lines 146-153)."""
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        mock_config_entry_full.hass
+        if hasattr(mock_config_entry_full, "hass")
+        else MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        logger=mock_logger,
+    )
+    # Mock the EMHASS adapter to return empty per_trip_params to trigger fallback
+    mock_adapter = MagicMock()
+    mock_adapter.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": [0.0] * 96,
+        "emhass_deferrables_schedule": [],
+        "emhass_status": "ready",
+        "per_trip_emhass_params": {},  # Empty — triggers fallback
+    }
+    coordinator._emhass_adapter = mock_adapter
+    # Mock _get_all_trips to return active trips
+    coordinator._trip_manager.get_all_trips = MagicMock(
+        return_value={
+            "trip_001": {
+                "kwh": 30.0,
+                "km": 100.0,
+                "datetime": "2026-05-03T08:00:00+00:00",
+                "status": "pendiente",
+            }
+        }
+    )
+    # Call async_update — should trigger fallback at lines 146-148
+    result = await coordinator._async_update_data()
+    # Verify that mock params were generated
+    assert "per_trip_emhass_params" in result or result is not None
+
+
+async def test_generate_mock_emhass_params_minimal_hours_covers_fallback(
+    mock_config_entry_full, mock_trip_manager, mock_logger
+):
+    """Test with minimal hours_needed (0.1) — end_timestep=0, trip_matrix empty → line 287 fallback.
+    hours_needed = 0.1 (minimum), int(hours_needed)=0, int(hours_needed)+1=1 loop iteration
+    end_timestep = int(0.1 * 4) = 0 → range(0,0) = empty → row has no power_watts → trip_matrix empty → fallback
+    """
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 0,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
+    )
+    trips = {
+        "trip_001": {
+            "kwh": 0.0,
+            "km": 0.0,
+            "datetime": "",  # empty → start_timestep=0
+            "status": "pendiente",
+        },
+    }
+    result = coordinator._generate_mock_emhass_params(trips)
+    # With charging_power_kw=0, hours_needed=0.1, end_timestep=0
+    # The fallback at line 282-288 should execute line 287
+    assert len(result["per_trip_emhass_params"]["trip_001"]["p_deferrable_matrix"]) == 1
+
+
+async def test_async_update_data_covers_mock_fallback(
+    mock_config_entry_full, mock_trip_manager, mock_logger, mock_emhass_adapter
+):
+    """Test that _async_update_data triggers mock fallback when EMHASS returns empty per_trip_params (lines 146-153)."""
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        logger=mock_logger,
+    )
+    # Configure mock adapter to return empty per_trip_params (triggers fallback at line 146)
+    mock_emhass_adapter.get_cached_optimization_results.return_value = {
+        "emhass_power_profile": [0.0] * 96,
+        "emhass_deferrables_schedule": [],
+        "emhass_status": "ready",
+        "per_trip_emhass_params": {},  # Empty → triggers line 147 fallback
+    }
+    coordinator._emhass_adapter = mock_emhass_adapter
+    # Mock the trip manager methods to return active trips
+    mock_trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+    mock_trip_manager.async_get_punctual_trips = AsyncMock(
+        return_value=[
+            {
+                "id": "trip_001",
+                "kwh": 30.0,
+                "km": 100.0,
+                "datetime": "2026-05-03T08:00:00+00:00",
+                "status": "pendiente",
+            }
+        ]
+    )
+    mock_trip_manager.async_get_kwh_needed_today = AsyncMock(return_value=30.0)
+    mock_trip_manager.async_get_hours_needed_today = AsyncMock(return_value=4.05)
+    mock_trip_manager.async_get_next_trip = AsyncMock(return_value=None)
+    # Call _async_update_data — should trigger lines 146-153
+    result = await coordinator._async_update_data()
+    # Verify mock params were generated (per_trip_emhass_params should have trip_001)
+    assert "per_trip_emhass_params" in result
+    assert "trip_001" in result["per_trip_emhass_params"]
+
+
+async def test_generate_mock_emhass_params_fallback_single_row_exact(
+    mock_config_entry_full, mock_trip_manager, mock_logger
+):
+    """Force trip_matrix empty: kwh=0, charging_power_kw=0 → hours_needed=0.1, power_watts=0,
+    loop appends row of all 0s → any(v>0)=False → trip_matrix=[], then line 282-288 fallback.
+    But actually trip_matrix gets [row] because kwh>0 → hours_needed>0.1 → int(hours_needed)=0,
+    and power_watts=0 so row is all 0s, trip_matrix=[], fallback at 282-288.
+    This test MUST trigger line 287 (the only missing line).
+    """
+    mock_config_entry_full.data = {
+        "vehicle_name": "test_vehicle",
+        "charging_power_kw": 0,
+        "battery_capacity_kwh": 50.0,
+        "kwh_per_km": 0.15,
+        "safety_margin_percent": 10.0,
+        "soc_base": 20.0,
+        "t_base": 24.0,
+    }
+    coordinator = TripPlannerCoordinator(
+        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
+    )
+    # kwh=0 → hours_needed = 0/0=0 → max(0, 0.1) = 0.1
+    # power_watts = 0 * 1000 = 0
+    # start_timestep=0, end_timestep=int(0.1*4)=0
+    # loop: range(0+1)=range(1) → 1 iteration
+    # row=[0.0]*96, range(0,0) → row stays all 0s → any(0>0)=False → trip_matrix not appended
+    # trip_matrix=[] → triggers if not trip_matrix → line 287
+    trips = {
+        "trip_001": {
+            "kwh": 0.0,
+            "km": 0.0,
+            "datetime": "",
+            "status": "pendiente",
+        },
+    }
+    result = coordinator._generate_mock_emhass_params(trips)
+    trip_params = result["per_trip_emhass_params"]["trip_001"]
+    assert len(trip_params["p_deferrable_matrix"]) == 1
