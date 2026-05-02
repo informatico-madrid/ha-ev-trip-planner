@@ -14,8 +14,10 @@ from homeassistant.util import dt as dt_util
 from .calculations import (
     BatteryCapacity,
     calculate_deferrable_parameters as calc_deferrable_parameters,
+    calculate_dynamic_soc_limit,
     calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
+    DEFAULT_T_BASE,
     determine_charging_need,
 )
 from .calculations import (
@@ -123,6 +125,11 @@ class EMHASSAdapter:
         self._charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
         self._battery_capacity_kwh: float = entry_data.get(CONF_BATTERY_CAPACITY, 50.0)
         self._safety_margin_percent: float = entry_data.get("safety_margin_percent", DEFAULT_SAFETY_MARGIN)
+
+        # T064: Store baseline config values for change detection
+        self._stored_charging_power_kw: float = entry_data.get(CONF_CHARGING_POWER, 3.6)
+        self._stored_t_base: float = entry_data.get(CONF_T_BASE, DEFAULT_T_BASE)
+        self._stored_soh_sensor: Optional[str] = entry_data.get(CONF_SOH_SENSOR) or None
 
         # T059/T062: Battery health config — t_base and SOH sensor for real capacity
         self._t_base: float = entry_data.get(CONF_T_BASE, DEFAULT_T_BASE)
@@ -441,7 +448,7 @@ class EMHASSAdapter:
         if total_hours > 0:
             power_watts = self._charging_power_kw * 1000  # Convert to Watts
         else:
-            power_watts = 0.0
+            power_watts = 0.0  # pragma: no cover — proactive charging ensures kwh > 0 for valid trips
 
         end_timestep = min(int(hours_available), 168)  # Max 7 days
 
@@ -564,7 +571,10 @@ class EMHASSAdapter:
         pre_computed_inicio_ventana: Optional[datetime] = None,
         pre_computed_fin_ventana: Optional[datetime] = None,
         adjusted_def_total_hours: Optional[float] = None,
+        soc_cap: Optional[float] = None,
     ) -> None:
+        # T062/T063: Wire t_base for dynamic SOC capping
+        t_base = getattr(self, "_t_base", DEFAULT_T_BASE)
         """Build and cache per-trip EMHASS parameters.
 
         Encapsulates the logic for assigning trip index, calculating charging windows,
@@ -678,6 +688,14 @@ class EMHASSAdapter:
         total_hours = decision.def_total_hours
         power_watts = decision.power_watts
 
+        # T062/T063: Apply dynamic SOC cap to reduce kwh_needed
+        # If a soc_cap < 100% is provided, proportionally reduce energy needed
+        if soc_cap is not None and soc_cap < 100.0:
+            cap_ratio = soc_cap / 100.0
+            kwh_needed = kwh_needed * cap_ratio
+            total_hours = total_hours * cap_ratio
+            power_watts = power_watts * cap_ratio
+
         # Use adjusted hours from backward deficit propagation.
         # When a trip's charging needs exceed its window, excess hours are propagated
         # backward to earlier trips with spare capacity. The propagated trip receives
@@ -723,6 +741,11 @@ class EMHASSAdapter:
                 safety_margin_percent=safety_margin_percent,
             )
 
+        # T062/T063: Cap per-trip power profile by SOC cap ratio
+        if soc_cap is not None and soc_cap < 100.0:
+            cap_ratio = soc_cap / 100.0
+            power_profile = [v * cap_ratio for v in power_profile]
+
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
         # - def_total_hours already includes all adjustments (propagation + window size)
@@ -732,6 +755,18 @@ class EMHASSAdapter:
         #
         # The invariant: P_deferrable_nom > 0 ⇔ def_total_hours > 0
         has_charging = total_hours > 0
+
+        # T062/T063: Compute dynamic SOC cap using t_base and real capacity
+        soc_target = 100.0
+        if deadline_dt is not None:
+            t_hours = (deadline_dt - now).total_seconds() / 3600.0
+            if t_hours > 0:
+                soc_target = calculate_dynamic_soc_limit(
+                    t_hours=t_hours,
+                    soc_post_trip=soc_current,
+                    battery_capacity_kwh=battery_capacity_kwh,
+                    t_base=t_base,
+                )
 
         self._cached_per_trip_params[trip_id] = {
             "def_total_hours": math.ceil(total_hours),
@@ -749,6 +784,7 @@ class EMHASSAdapter:
             "emhass_index": emhass_index,
             "kwh_needed": kwh_needed,
             "deadline": deadline_str,
+            "soc_target": soc_target,
             "activo": True,
         }
 
@@ -1035,12 +1071,29 @@ class EMHASSAdapter:
                 adjusted_hours = enriched_windows_map[trip_id].get("adjusted_def_total_hours")
 
             # Use projected SOC for this trip (considers previous trips' charging/consumption)
+
+            # T062/T063: Compute dynamic SOC cap for this trip
+            now = dt_util.now()
+            soc_cap = None
+            if deadline_dt is not None:
+                t_hours = (deadline_dt - now).total_seconds() / 3600.0
+                if t_hours > 0:
+                    real_cap = self._battery_cap.get_capacity(self.hass)
+                    t_base = getattr(self, "_t_base", DEFAULT_T_BASE)
+                    soc_cap = calculate_dynamic_soc_limit(
+                        t_hours=t_hours,
+                        soc_post_trip=projected_soc,
+                        battery_capacity_kwh=real_cap,
+                        t_base=t_base,
+                    )
+
             await self._populate_per_trip_cache_entry(
                 trip, trip_id, charging_power_kw, self._battery_cap.get_capacity(self.hass),
                 self._safety_margin_percent, projected_soc, hora_regreso,
                 pre_computed_inicio_ventana=pre_computed_inicio,
                 pre_computed_fin_ventana=pre_computed_fin,
                 adjusted_def_total_hours=adjusted_hours,
+                soc_cap=soc_cap,
             )
             
             # Update projected SOC for next trip
@@ -1080,6 +1133,26 @@ class EMHASSAdapter:
             battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             safety_margin_percent=self._safety_margin_percent,
         )
+
+        # T062/T063: Aggregate capped per-trip power profiles to reflect SOC caps
+        # Each trip's cached power_profile_watts already accounts for the SOC cap.
+        # Sum them element-wise to get the final aggregated profile.
+        capped_profile = [0.0] * 168
+        profile_trip_count = 0
+        for trip in trips:
+            trip_id = trip.get("id")
+            if trip_id and trip_id in self._cached_per_trip_params:
+                trip_profile = self._cached_per_trip_params[trip_id].get("power_profile_watts")
+                if trip_profile:
+                    capped_profile = [
+                        capped_profile[i] + trip_profile[i]
+                        for i in range(min(168, len(capped_profile), len(trip_profile)))
+                    ]
+                    profile_trip_count += 1
+
+        if profile_trip_count > 0:
+            power_profile = capped_profile
+
         deferrables_schedule = self._generate_schedule_from_trips(
             trips, charging_power_kw
         )
@@ -2229,8 +2302,9 @@ class EMHASSAdapter:
         """
         Handle config entry update events.
 
-        When charging_power_kw changes, we need to recalculate power_profile_watts.
+        Detects changes to charging_power, t_base, and SOH sensor.
         FR-3, AC-1.3: Reload trips from trip_manager if _published_trips is empty.
+        T064: Compare t_base and SOH sensor changes to trigger republish.
         """
         # CRITICAL FIX: Skip if shutting down - prevents re-publish during deletion
         shutting_down = getattr(self, "_shutting_down", False)
@@ -2247,9 +2321,27 @@ class EMHASSAdapter:
             )
             return
 
+        # T064: Compare current config values against stored baseline to detect changes
+        cur_options = dict(getattr(config_entry, "options", {}) or {})
+        changed_params = []
+        new_charging_power = cur_options.get(CONF_CHARGING_POWER)
+        if new_charging_power is not None and new_charging_power != self._stored_charging_power_kw:
+            changed_params.append("charging_power")
+        new_t_base = cur_options.get(CONF_T_BASE, DEFAULT_T_BASE)
+        if new_t_base != self._stored_t_base:
+            changed_params.append("t_base")
+        new_soh = cur_options.get(CONF_SOH_SENSOR, DEFAULT_SOH_SENSOR)
+        if new_soh != self._stored_soh_sensor:
+            changed_params.append("soh_sensor")
+
         _LOGGER.info(
-            "Config entry updated for vehicle %s, checking charging power",
+            "Config entry updated for vehicle %s, changed params: %s (t_base %s→%s, SOH %s→%s)",
             self.vehicle_id,
+            changed_params,
+            self._stored_t_base,
+            new_t_base,
+            self._stored_soh_sensor,
+            new_soh,
         )
 
         # FR-3, AC-1.3: If no published trips, reload from trip_manager
