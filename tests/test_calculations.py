@@ -300,17 +300,18 @@ class TestCalculateEnergyNeeded:
         assert result["margen_seguridad_aplicado"] == 10.0
 
     def test_energy_needed_safety_margin_zero(self):
-        """With safety_margin=0, energia_necesaria is raw energy."""
+        """With safety_margin=0, SOC sufficient → proactive charging = trip energy."""
         from custom_components.ev_trip_planner.calculations import calculate_energy_needed
         result = calculate_energy_needed(
             trip={"kwh": 10.0},
             battery_capacity_kwh=50.0,
-            soc_current=50.0,  # 50% SOC = 25kWh, viaje = 10kWh → necesita 0 (already enough)
+            soc_current=50.0,  # 50% SOC = 25kWh, viaje = 10kWh
             charging_power_kw=7.4,
             safety_margin_percent=0.0,
         )
-        # energia_objetivo = 10kWh, energia_actual = 25kWh → max(0, 10-25) = 0
-        assert result["energia_necesaria_kwh"] == 0.0
+        # energia_objetivo = 10kWh, energia_actual = 25kWh
+        # Proactive charging: SOC covers target → charge minimum = trip energy
+        assert result["energia_necesaria_kwh"] == 10.0
         assert result["margen_seguridad_aplicado"] == 0.0
 
     def test_energy_needed_safety_margin_applied(self):
@@ -332,7 +333,7 @@ class TestCalculateEnergyNeeded:
 
 
     def test_energy_needed_soc_sufficient_returns_zero(self):
-        """AC-0.1: SOC sufficient → energia_necesaria = 0."""
+        """AC-0.1: SOC sufficient → proactive charging = trip energy (not zero)."""
         from custom_components.ev_trip_planner.calculations import calculate_energy_needed
         result = calculate_energy_needed(
             trip={"kwh": 10.0},
@@ -341,8 +342,9 @@ class TestCalculateEnergyNeeded:
             charging_power_kw=7.4,
         )
         # energia_objetivo = 10 + 5 = 15kWh
-        # energia_actual = 40kWh → max(0, 15 - 40) = 0
-        assert result["energia_necesaria_kwh"] == 0.0
+        # energia_actual = 40kWh
+        # Proactive charging: SOC covers target → charge minimum = trip energy
+        assert result["energia_necesaria_kwh"] == 10.0
         assert result["margen_seguridad_aplicado"] == 10.0
 
     def test_energy_needed_post_trip_safety_margin_guaranteed(self):
@@ -391,7 +393,7 @@ class TestCalculateEnergyNeeded:
         assert result["energia_necesaria_kwh"] == 50.0
 
     def test_energy_needed_soc_over_100_percent(self):
-        """AC-0.3: SOC > 100% → energia_necesaria = 0."""
+        """AC-0.3: SOC > 100% → proactive charging = trip energy (not zero)."""
         from custom_components.ev_trip_planner.calculations import calculate_energy_needed
         result = calculate_energy_needed(
             trip={"kwh": 10.0},
@@ -400,7 +402,8 @@ class TestCalculateEnergyNeeded:
             charging_power_kw=7.4,
         )
         # energia_actual = 55kWh > energia_objetivo = 15kWh
-        assert result["energia_necesaria_kwh"] == 0.0
+        # Proactive charging: SOC covers target → charge minimum = trip energy
+        assert result["energia_necesaria_kwh"] == 10.0
 
     def test_energy_needed_soc_invalid_type_fallback(self):
         """AC-0.2: SOC invalid type → fallback to 0.0."""
@@ -418,8 +421,8 @@ class TestCalculateEnergyNeeded:
 class TestDetermineChargingNeed:
     """Tests for determine_charging_need function (T1.0, T1.5)."""
 
-    def test_determine_charging_need_soc_sufficient_no_charge(self):
-        """T1.5: SOC sufficient → needs_charging=False, kwh_needed=0."""
+    def test_determine_charging_need_soc_sufficient_proactive_charge(self):
+        """T1.5: SOC sufficient → proactive charging (not zero)."""
         from custom_components.ev_trip_planner.calculations import determine_charging_need
         decision = determine_charging_need(
             trip={"kwh": 2.0},
@@ -429,11 +432,11 @@ class TestDetermineChargingNeed:
             safety_margin_percent=10.0,
         )
         # Trip needs 2kWh + 5kWh margin = 7kWh
-        # 60% SOC = 30kWh available, no charge needed
-        assert decision.needs_charging is False
-        assert decision.kwh_needed == 0.0
-        assert decision.power_watts == 0.0
-        assert decision.def_total_hours == 0
+        # 60% SOC = 30kWh available → covers target → proactive charge = trip energy
+        assert decision.needs_charging is True
+        assert decision.kwh_needed == 2.0
+        assert decision.power_watts == 7400.0
+        assert decision.def_total_hours == 1
 
     def test_determine_charging_need_soc_insufficient_charges(self):
         """T1.5: SOC insufficient → needs_charging=True, calculates kwh_needed."""

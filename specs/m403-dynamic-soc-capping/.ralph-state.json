@@ -2,8 +2,8 @@
   "phase": "execution",
   "awaitingApproval": false,
   "relatedSpecs": [],
-  "taskIndex": 73,
-  "totalTasks": 82,
+  "taskIndex": 58,
+  "totalTasks": 91,
   "taskIteration": 1,
   "repairIteration": 0,
   "failedStory": null,
@@ -20,5 +20,20 @@
   "maxModificationDepth": 2,
   "nativeTaskMap": {},
   "nativeSyncEnabled": true,
-  "nativeSyncFailureCount": 0
+  "nativeSyncFailureCount": 0,
+  "external_unmarks": {
+    "T056": 1,
+    "T057": 1,
+    "T058": 1,
+    "T059": 1,
+    "T060": 1,
+    "T061": 1,
+    "T062": 1,
+    "T063": 1,
+    "T064": 1,
+    "T065": 1,
+    "T066": 1,
+    "T067": 1,
+    "T068": 1
+  }
 }

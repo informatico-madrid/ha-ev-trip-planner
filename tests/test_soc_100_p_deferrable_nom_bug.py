@@ -235,8 +235,8 @@ class TestSOC100PDeferrableNomBug:
         print(f"Viaje: {trip['kwh']} kWh")
         print(f"Cálculo individual: energía = {energy_info['energia_necesaria_kwh']} kWh, horas = {energy_info['horas_carga_necesarias']}")
 
-        # Debería ser 0 porque SOC 100% > 20 kWh + 10% = 22 kWh
-        assert energy_info['energia_necesaria_kwh'] == 0, "Viaje puntual debe tener 0 energía con SOC 100%"
+        # Proactive charging: SOC 100% covers target → charge minimum = trip energy
+        assert energy_info['energia_necesaria_kwh'] == 20.0, "Viaje puntual con SOC 100% requiere carga proactiva = energía del viaje"
 
         # Crear adapter y publicar
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -272,14 +272,8 @@ class TestSOC100PDeferrableNomBug:
             print(f"  def_total_hours: {def_hours}")
             print(f"  P_deferrable_nom: {power_nom} W")
 
-            # El bug: aunque def_hours=0, power_nom debería ser 0.0
-            if def_hours == 0 and power_nom > 0:
-                print(f"❌ BUG CONFIRMADO en viaje puntual: def_hours=0 pero power_nom={power_nom} W")
-                # Esto fallará, confirmando el bug
-                assert power_nom == 0.0, \
-                    f"BUG: Viaje puntual con def_hours=0 debe tener P_deferrable_nom=0.0, pero tiene {power_nom} W"
-            else:
-                print(f"✅ Viaje puntual correctamente tiene P_deferrable_nom=0.0")
+            # Proactive charging: trip energy > 0 → power_nom should match trip
+            assert power_nom > 0, f"Viaje puntual con carga proactiva debe tener P_deferrable_nom > 0, pero tiene {power_nom} W"
         else:
             print("❌ Viaje no encontrado en caché")
             pytest.fail("Viaje no se publicó correctamente")

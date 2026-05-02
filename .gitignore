@@ -112,3 +112,6 @@ _bmad-output/
 **/.progress.md
 .cline/
 .gemini/
+.roomodes
+mutants/
+plans

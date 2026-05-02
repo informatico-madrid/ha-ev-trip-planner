@@ -405,7 +405,7 @@ class EMHASSAdapter:
             soc_actual=soc_current,
             hora_regreso=hora_regreso,
             charging_power_kw=self._charging_power_kw,
-            battery_capacity_kwh=self._battery_capacity_kwh,
+            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             duration_hours=6.0,
             safety_margin_percent=self._safety_margin_percent,
             now=dt_util.now(),
@@ -427,7 +427,7 @@ class EMHASSAdapter:
 
         energia_info = calculate_energy_needed(
             trip,
-            self._battery_capacity_kwh,
+            self._battery_cap.get_capacity(self.hass),
             soc_current,
             self._charging_power_kw,
             safety_margin_percent=self._safety_margin_percent,
@@ -950,7 +950,7 @@ class EMHASSAdapter:
                 soc_actual=soc_current,
                 hora_regreso=hora_regreso,
                 charging_power_kw=charging_power_kw,
-                battery_capacity_kwh=self._battery_capacity_kwh,
+                battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
                 return_buffer_hours=RETURN_BUFFER_HOURS,
                 safety_margin_percent=self._safety_margin_percent,
                 now=dt_util.now(),
@@ -973,7 +973,7 @@ class EMHASSAdapter:
                 if trip_id not in batch_charging_windows:
                     continue
                 decision = determine_charging_need(
-                    trip, projected_soc, self._battery_capacity_kwh,
+                    trip, projected_soc, self._battery_cap.get_capacity(self.hass),
                     charging_power_kw, self._safety_margin_percent,
                 )
                 trip_def_total_hours[trip_id] = decision.def_total_hours
@@ -1036,7 +1036,7 @@ class EMHASSAdapter:
 
             # Use projected SOC for this trip (considers previous trips' charging/consumption)
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
+                trip, trip_id, charging_power_kw, self._battery_cap.get_capacity(self.hass),
                 self._safety_margin_percent, projected_soc, hora_regreso,
                 pre_computed_inicio_ventana=pre_computed_inicio,
                 pre_computed_fin_ventana=pre_computed_fin,
@@ -1055,13 +1055,13 @@ class EMHASSAdapter:
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
                 horas_carga = min(def_total_hours, ventana_horas) if ventana_horas > 0 else 0
                 kwh_cargados = horas_carga * charging_power_kw
-                soc_ganado = (kwh_cargados / self._battery_capacity_kwh) * 100 if self._battery_capacity_kwh > 0 else 0
+                soc_ganado = (kwh_cargados / self._battery_cap.get_capacity(self.hass)) * 100 if self._battery_cap.get_capacity(self.hass) > 0 else 0
             else:
                 soc_ganado = 0
             
             # 2. Subtract SOC consumed by this trip
             trip_kwh = trip.get("kwh", 0.0)
-            soc_consumido = (trip_kwh / self._battery_capacity_kwh) * 100 if self._battery_capacity_kwh > 0 else 0
+            soc_consumido = (trip_kwh / self._battery_cap.get_capacity(self.hass)) * 100 if self._battery_cap.get_capacity(self.hass) > 0 else 0
             
             # 3. Update projected SOC
             projected_soc = projected_soc + soc_ganado - soc_consumido
@@ -1077,7 +1077,7 @@ class EMHASSAdapter:
         power_profile = self._calculate_power_profile_from_trips(
             trips, charging_power_kw,
             soc_current=soc_current,
-            battery_capacity_kwh=self._battery_capacity_kwh,
+            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             safety_margin_percent=self._safety_margin_percent,
         )
         deferrables_schedule = self._generate_schedule_from_trips(
@@ -1265,7 +1265,7 @@ class EMHASSAdapter:
         power_profile = self._calculate_power_profile_from_trips(
             trips, charging_power_kw,
             soc_current=soc_current,
-            battery_capacity_kwh=self._battery_capacity_kwh,
+            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
             safety_margin_percent=self._safety_margin_percent,
         )
 
@@ -1317,7 +1317,7 @@ class EMHASSAdapter:
             if not trip_id:  # pragma: no cover - defensive: skip invalid trips
                 continue
             await self._populate_per_trip_cache_entry(
-                trip, trip_id, charging_power_kw, self._battery_capacity_kwh,
+                trip, trip_id, charging_power_kw, self._battery_cap.get_capacity(self.hass),
                 self._safety_margin_percent, soc_current, hora_regreso
             )
 

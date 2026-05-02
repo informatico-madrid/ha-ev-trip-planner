@@ -30,6 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 # que permite pequeñas variaciones sin ser exagerado
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
 
+# Umbral de cambio de SOC para disparar recálculo (debouncing)
+SOC_CHANGE_DEBOUNCE_PERCENT = 5.0
+
 
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
@@ -468,12 +471,11 @@ class PresenceMonitor:
         Called when the SOC sensor state changes. If the vehicle is home
         and plugged in, triggers power profile and schedule recalculation.
 
-        Debouncing: Only triggers recalculation if SOC change >= 5% delta.
+        Debouncing: Only triggers recalculation if SOC change >= SOC_CHANGE_DEBOUNCE_PERCENT.
 
         Args:
             event: The state change event from Home Assistant
         """
-        _LOGGER.debug("SOC change event received for %s", self.vehicle_id)
         if not self._trip_manager:
             _LOGGER.debug(
                 "SOC change detected for %s but no trip_manager available, skipping",
@@ -513,7 +515,7 @@ class PresenceMonitor:
         last_soc = self._last_processed_soc
         if last_soc is not None:
             delta = abs(new_soc - last_soc)
-            if delta < 5.0:
+            if delta < SOC_CHANGE_DEBOUNCE_PERCENT:
                 _LOGGER.debug(
                     "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below 5%% threshold, skipping",
                     self.vehicle_id,
@@ -522,12 +524,6 @@ class PresenceMonitor:
                     delta,
                 )
                 return
-
-        _LOGGER.debug(
-            "SOC change detected for %s: new SOC = %s",
-            self.vehicle_id,
-            new_soc,
-        )
 
         # Check if home and plugged
         is_home = await self.async_check_home_status()

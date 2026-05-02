@@ -7,6 +7,10 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   testDir: './tests/e2e',
+  projects: [
+    { name: 'main', testDir: './tests/e2e' },
+    { name: 'soc', testDir: './tests/e2e-dynamic-soc' },
+  ],
   timeout: 60000,
   retries: 1,
   workers: 1,

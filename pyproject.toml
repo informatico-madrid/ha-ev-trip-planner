@@ -50,7 +50,10 @@ pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --cov=custom_components/ev_trip_planner --cov-report=html --cov-report=term"
+# NOTE: --cov removed from addopts because pytest-cov causes a deadlock when
+# mutmut 3.x redirects stdout during in-process pytest.main() calls.
+# Run coverage separately: pytest --cov=custom_components/ev_trip_planner
+addopts = "-v"
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore:Inheritance class HomeAssistantApplication:DeprecationWarning",
@@ -71,3 +74,86 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstract",
 ]
+
+[tool.mutmut]
+paths_to_mutate = ["custom_components/ev_trip_planner"]
+runner = "pytest"
+tests_dir = ["tests/"]
+dict_synonyms = ["Dict", "Optional"]
+timeout = 600
+
+[tool.quality-gate.mutation]
+global_kill_threshold = 0.48
+fail_on_missing_module = false
+increment_step = 0.01
+target_final = 0.80
+modules_per_sprint = 2
+
+[tool.quality-gate.mutation.modules.calculations]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.utils]
+kill_threshold = 0.89
+status = "passing"
+
+[tool.quality-gate.mutation.modules.definitions]
+kill_threshold = 0.45
+status = "passing"
+
+[tool.quality-gate.mutation.modules.sensor]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.presence_monitor]
+kill_threshold = 0.52
+status = "passing"
+
+[tool.quality-gate.mutation.modules.trip_manager]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.emhass_adapter]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.config_flow]
+kill_threshold = 0.31
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.vehicle_controller]
+kill_threshold = 0.55
+status = "passing"
+
+[tool.quality-gate.mutation.modules.coordinator]
+kill_threshold = 0.37
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.schedule_monitor]
+kill_threshold = 0.50
+status = "passing"
+
+[tool.quality-gate.mutation.modules.yaml_trip_storage]
+kill_threshold = 0.50
+status = "passing"
+
+# Previously untracked modules — baseline thresholds set to current scores
+[tool.quality-gate.mutation.modules.__init__]
+kill_threshold = 0.51
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.dashboard]
+kill_threshold = 0.35
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.diagnostics]
+kill_threshold = 0.28
+status = "passing"
+
+[tool.quality-gate.mutation.modules.panel]
+kill_threshold = 0.37
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services]
+kill_threshold = 0.38
+status = "in_progress"

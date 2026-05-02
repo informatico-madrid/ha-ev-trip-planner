@@ -2,6 +2,11 @@
 
 Bug fix for PR #21: Event handler uses event.get() instead of event.data.get()
 for Home Assistant Event objects.
+
+NOTE: These tests use inspect.getsource() which creates false positives
+in mutation testing (mutmut removes code, test detects it, but mutant appears
+to "survive" because the test is checking source not behavior).
+Marked with mutation:skip for mutmut.
 """
 
 import inspect

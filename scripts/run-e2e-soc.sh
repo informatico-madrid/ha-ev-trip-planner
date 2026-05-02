@@ -1,31 +1,30 @@
 #!/usr/bin/env bash
-# run-e2e.sh — Clean setup and run E2E tests for EV Trip Planner
+# run-e2e-soc.sh — Clean setup and run E2E tests for EV Trip Planner SOC suite
 #
 # Usage:
-#   ./scripts/run-e2e.sh            # Default (headless, main suite)
-#   ./scripts/run-e2e.sh --headed    # With visible browser
-#   ./scripts/run-e2e.sh --debug    # Debug mode
-#   ./scripts/run-e2e.sh -- --suite tests/e2e-dynamic-soc   # Run specific suite
+#   ./scripts/run-e2e-soc.sh            # Default (headless, SOC suite)
+#   ./scripts/run-e2e-soc.sh --headed    # With visible browser
+#   ./scripts/run-e2e-soc.sh --debug    # Debug mode
 #
-# This script ALWAYS does a clean setup following Option B from TESTING_E2E.md:
-# 1. Kill any existing HA instance (port 8123)
-# 2. Clean and recreate HA config directory from scratch
-# 3. Start fresh HA instance
-# 4. Run onboarding
-# 5. Execute Playwright E2E test suite
+# This script uses INDEPENDENT setup from run-e2e.sh:
+# - Separate HA config directory (/tmp/ha-e2e-soc-config)
+# - Separate auth state file (user-soc.json)
+# - Separate Playwright config (playwright-soc.config.ts)
+# - Configuration YAML with SOC and SOH sensors included
 
 set -euo pipefail
 
-# --- Config ---
-HA_CONFIG_DIR="/tmp/ha-e2e-config"
-HA_PID_FILE="/tmp/ha-pid.txt"
+# --- Config (independent from run-e2e.sh) ---
+HA_CONFIG_DIR="/tmp/ha-e2e-soc-config"
+HA_PID_FILE="/tmp/ha-e2e-soc-pid.txt"
 LOG_DIR="/tmp/logs"
 mkdir -p "$LOG_DIR"
 TS=$(date +%Y%m%d_%H%M%S)
-HA_LOG_FILE="$LOG_DIR/ha-e2e-${TS}.log"
+HA_LOG_FILE="$LOG_DIR/ha-e2e-soc-${TS}.log"
 HA_URL="${HA_URL:-http://localhost:8123}"
 HEADLESS="--workers=1"
-TEST_SUITE="tests/e2e/"
+TEST_SUITE="tests/e2e-dynamic-soc"
+PLAYWRIGHT_CONFIG="playwright.soc.config.ts"
 
 # Parse args
 for arg in "$@"; do
@@ -33,18 +32,9 @@ for arg in "$@"; do
     --headed) HEADLESS="--workers=1 --headed" ;;
     --debug) HEADLESS="--workers=1 --debug" ;;
     --ci) HEADLESS="--workers=1" ;;
-    --suite) TEST_SUITE="tests/e2e/" ;;  # will be overwritten if --suite is before =
+    --suite) TEST_SUITE="tests/e2e-dynamic-soc" ;;
     *) ;;
   esac
-done
-
-# Handle --suite argument (can appear anywhere in args)
-for ((i=1; i<=$#; i++)); do
-  if [[ "${!i}" == "--suite" ]]; then
-    next=$((i+1))
-    TEST_SUITE="${!next}"
-    break
-  fi
 done
 
 echo "=========================================="
@@ -78,8 +68,8 @@ done
 
 sleep 2
 
-# Clean up stale auth state so globalSetup re-authenticates
-rm -f playwright/.auth/user.json
+# Clean up stale SOC auth state so globalSetup re-authenticates
+rm -f playwright/.auth/user-soc.json
 
 # --- Step 2: Clean and recreate HA config directory ---
 echo ""
@@ -91,7 +81,7 @@ rm -rf "${HA_CONFIG_DIR}"
 echo "  Creating directory structure..."
 mkdir -p "${HA_CONFIG_DIR}/custom_components"
 
-echo "  Copying configuration.yaml..."
+echo "  Copying configuration.yaml (with SOC/SOH sensors)..."
 cp tests/ha-manual/configuration.yaml "${HA_CONFIG_DIR}/configuration.yaml"
 
 echo "  Creating symlink for ev_trip_planner custom component..."
@@ -146,11 +136,11 @@ fi
 # --- Step 6: Run Playwright tests ---
 echo ""
 echo "[6/5] Running Playwright E2E tests..."
-echo "Command: npx playwright test ${TEST_SUITE} ${HEADLESS}"
+echo "Command: npx playwright test --config=${PLAYWRIGHT_CONFIG} ${HEADLESS}"
 echo "-------------------------------------------"
 
 set +e
-npx playwright test "${TEST_SUITE}" ${HEADLESS}
+npx playwright test --config="${PLAYWRIGHT_CONFIG}" ${HEADLESS}
 EXIT_CODE=$?
 set -e
 

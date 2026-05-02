@@ -23,8 +23,7 @@ input_boolean:
     name: "EV Charging Test"
     initial: false
 
-# SOC input_number — used as backing state for test_vehicle SOC sensor
-# E2E test 4.4 changes this value via HA UI to trigger SOC change → EMHASS recalculation
+# SOC and SOH input_numbers — used as backing state for test_vehicle sensors
 input_number:
   test_vehicle_soc:
     name: "Test Vehicle SOC"
@@ -33,9 +32,6 @@ input_number:
     max: 100
     step: 1
     unit_of_measurement: "%"
-
-# SOH input_number — simulates battery health sensor for dynamic SOC capping
-input_number:
   test_vehicle_soh:
     name: "Test Vehicle SOH"
     initial: 92
@@ -55,7 +51,7 @@ template:
       - name: "Test Vehicle SOH"
         unique_id: "test_vehicle_soh_sensor"
         unit_of_measurement: "%"
-        device_class: battery_capacity
+        device_class: battery
         state: "{{ states('input_number.test_vehicle_soh') | float(92) | round(0) }}"
 
 # Logger debug config for E2E tests

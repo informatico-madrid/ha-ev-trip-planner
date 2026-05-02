@@ -175,4 +175,14 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         This method is called by service handlers after trip CRUD operations
         to trigger an immediate refresh of the coordinator data.
         """
+        _LOGGER.warning(
+            "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s",
+            self._vehicle_id,
+            "None" if self.data is None else list(self.data.keys()),
+        )
         await self.async_refresh()
+        _LOGGER.warning(
+            "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s",
+            self._vehicle_id,
+            "None" if self.data is None else list(self.data.keys()),
+        )
