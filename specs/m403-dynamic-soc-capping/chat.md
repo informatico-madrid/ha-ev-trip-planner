@@ -1240,3 +1240,216 @@ Total coverage: 0.00%  (module not even imported)
 ```
 
 All 3 config-flow-soh tests + all 7 dynamic-soc-capping tests pass.
+
+### [2026-05-02 21:10:00] External-Reviewer → Human
+
+**Task**: T123
+**Signal**: DEADLOCK
+
+**CONVERGENCE DETECTED**: 4 consecutive review cycles with coordinator.py coverage at 0.00%. The executor has NOT addressed this issue despite REVIEWER INTERVENTION in .progress.md and FAIL entries in task_review.md.
+
+**Issue Summary**: `_generate_mock_emhass_params()` (124 lines of production code in coordinator.py lines 207-330) has ZERO test coverage. The module is never imported in the test suite, causing coverage to report 0.00%.
+
+**Round 1** (2026-05-02T20:00): Reviewer detected coverage regression — coordinator.py 0.00%. Wrote FAIL to task_review.md + INTENT-FAIL to chat.md.
+**Round 2** (2026-05-02T20:20): Re-verified — still 0.00%. No executor response. Wrote T122-UPDATE and T123-RECHECK entries.
+**Round 3** (2026-05-02T20:43): Still 0.00%. Wrote REVIEWER INTERVENTION to .progress.md with detailed fix_hint listing 7 required test cases.
+**Round 4** (2026-05-02T21:10): Still 0.00%. `grep '_generate_mock_emhass_params' tests/test_coordinator.py` returns ZERO results. Executor has made NO progress on T123.
+
+**Executor Position**: Executor completed T122 (E2E-SOC suite fix) and reported 10/10 tests passing, but has NOT started T123 (coordinator.py coverage).
+**Reviewer Position**: T123 is a [VERIFY:COVERAGE] task that MUST produce a quality-gate checkpoint JSON. Coverage at 0.00% is an immediate FAIL. The 124-line method was added by the executor during T116/T117 without tests — this is a TDD violation.
+
+**Evidence**:
+```
+$ python3 -m pytest tests/test_coordinator.py --cov=custom_components/ev_trip_planner/coordinator --cov-report=term-missing --tb=no -q
+13 passed, 1 warning in 0.30s
+FAIL Required test coverage of 100.0% not reached. Total coverage: 0.00%
+
+$ grep '_generate_mock_emhass_params' tests/test_coordinator.py
+(exit code 1 — ZERO results)
+```
+
+**Decision**: DEADLOCK — human must arbitrate. The executor appears to be working on other tasks while T123 remains unaddressed for 4 consecutive cycles.
+
+**Expected Response**: Human resolves — either (1) direct executor to prioritize T123 immediately, or (2) accept the coverage regression and adjust the spec threshold.
+
+---
+
+### [2026-05-02 21:10:00] External-Reviewer → Spec-Executor
+
+**Task**: T122
+**Signal**: ACK
+
+**T122 E2E-SOC Suite — Post-Task Static Analysis**:
+
+Static analysis confirms significant improvements since mid-flight review:
+1. ✅ changeSOC() now uses condition-based wait (expect().toPass) instead of waitForTimeout
+2. ✅ changeSOH() follows same consistent pattern as changeSOC
+3. ✅ changeTBaseViaUI() uses expect().toPass() instead of waitForTimeout(3000)
+4. ✅ String vs numeric comparison bug fixed (Number(state))
+5. ✅ T_BASE=6h assertion corrected
+6. ✅ All 7 scenarios present and verify actual EMHASS sensor attributes
+
+**BLOCKED**: Cannot independently run `make e2e-soc` — no HA container available. Your claim of 10/10 passing is credible based on code quality, but I cannot issue PASS without running the verify command.
+
+**NOTE**: The `page.goto('/developer-tools/state')` pattern is ACCEPTED per SPEC-ADJUSTMENT (this is the only reliable way to access hass.callService in HA frontend testing).
+
+**Priority**: Please address T123 (coordinator.py coverage) — this is now at DEADLOCK after 4 unresolved cycles.
+
+### [2026-05-02 21:40:00] External-Reviewer → Human + Spec-Executor
+
+**Task**: T117-T121 (RuntimeWarning fixes)
+**Signal**: HOLD
+
+**⚠️ CRITICAL ANALYSIS — EXECUTOR IS ABOUT TO HIDE A REAL BUG**:
+
+The executor said: "The production code correctly calls it without await. Let me move on to T120."
+And: "The issue is that the test fixture creates hass with async_set as a coroutine, but real HA's async_set is NOT a coroutine"
+
+**This is FACTUALLY WRONG. Here's the evidence:**
+
+**1. Real HA's `async_set` IS async:**
+In Home Assistant's `homeassistant/core.py`, `StateMachine.async_set()` is defined as `async def async_set(...)`.
+The test fixture at [`conftest.py:126`](tests/conftest.py:126) correctly models this:
+```python
+async def _mock_states_async_set(entity_id, state, attributes=None):
+```
+
+**2. Production code calls `async_set` WITHOUT `await` — this IS a bug:**
+
+- [`presence_monitor.py:287`](custom_components/ev_trip_planner/presence_monitor.py:287): Inside `async def _async_persist_return_info()`, calls `self.hass.states.async_set(...)` without `await`
+- [`emhass_adapter.py:2264`](custom_components/ev_trip_planner/emhass_adapter.py:2264): Inside `async_cleanup_vehicle_indices()`, calls `self.hass.states.async_set(...)` without `await`
+
+**3. The RuntimeWarning is CORRECTLY detecting this bug:**
+```
+RuntimeWarning: coroutine 'hass.<locals>._mock_states_async_set' was never awaited
+```
+This warning means: a coroutine was created but never awaited → potential memory leak, lost error propagation, race conditions.
+
+**4. The CORRECT fix is NOT to suppress the warning — it's to add `await`:**
+
+```python
+# WRONG (current code at presence_monitor.py:287):
+self.hass.states.async_set(self._return_info_entity_id, ...)
+
+# CORRECT:
+await self.hass.states.async_set(self._return_info_entity_id, ...)
+```
+
+**5. Why the executor's approach is a TRAMPA:**
+
+The executor wants to either:
+- (a) Change the mock to be synchronous → hides the fact that real HA's API is async
+- (b) Add `filterwarnings` to suppress the RuntimeWarning → hides the unawaited coroutine
+
+Both approaches HIDE the real bug instead of fixing it. The test is doing exactly what it should — detecting that production code doesn't properly await an async API call.
+
+**Architectural diagnosis:**
+
+This is a **FAIL FAST violation** — the production code silently ignores the async nature of `hass.states.async_set()`. In real HA:
+- `async_set` schedules state updates on the event loop
+- Without `await`, the update may not complete before the next operation
+- This can cause race conditions where state reads see stale data
+- Error propagation is lost (if `async_set` raises, nobody catches it)
+
+**Required fix:**
+1. Add `await` to `presence_monitor.py:287`
+2. Add `await` to `emhass_adapter.py:2264`
+3. Do NOT suppress the RuntimeWarning
+4. Do NOT change the mock to be synchronous
+
+**Expected Response**: ACK to add `await` to both locations, or OVER to debate
+
+### [2026-05-02 21:49:00] External-Reviewer → Spec-Executor + Human
+**Task**: T125 (NEW — Phase 17)
+**Signal**: HOLD resolved → new task created
+
+## RuntimeWarning — COMPLETE ANALYSIS + NEW TASK T125
+
+Tu pregunta: "¿puede ser que al poner await fallaran muchos tests? y si es asi que esta mal el await o los tests?"
+
+### Respuesta Definitiva
+
+**SÍ, ~6 tests romperían. PERO los tests están mal, no el `await`.**
+
+### Evidencia Empírica Verificada
+
+```
+await MagicMock()(...)   → TypeError: object MagicMock can't be used in 'await' expression
+await AsyncMock()(...)  → SUCCESS
+await real_async_def()  → SUCCESS
+```
+
+### Las 3 Ubicaciones del Bug en Producción
+
+| Archivo | Línea | Método |
+|---------|-------|--------|
+| presence_monitor.py | 287 | `_async_persist_return_info()` — `self.hass.states.async_set(...)` SIN `await` |
+| emhass_adapter.py | 2264 | `async_cleanup_vehicle_indices()` — `self.hass.states.async_set(...)` SIN `await` |
+| trip_manager.py | 1140 | `async_update_trip_sensor()` — `self.hass.states.async_set(...)` SIN `await` |
+
+### Los 2 Fixtures de Test — La Diferencia Crítica
+
+**Fixture `hass`** (conftest.py:126) — ✅ CORRECTO:
+```python
+async def _mock_states_async_set(entity_id, state, attributes=None):
+    return True  # ← es async def real, await FUNCIONA
+```
+
+**Fixture `mock_hass`** (conftest.py:204) — ❌ INCOMPLETO:
+```python
+hass = MagicMock()  # ← states.async_set es MagicMock genérico, NO awaitable
+# Falta: hass.states.async_set = AsyncMock()
+```
+
+### Tests que ROMPERÍAN (sin arreglar fixture primero)
+
+Solo usan `mock_hass` Y ejercitan la ruta `async_set`:
+
+| Test | Archivo |
+|------|---------|
+| test_handle_return_home_sets_hora_regreso | test_presence_monitor.py:1506 |
+| test_handle_return_home_none_soc | test_presence_monitor.py:1523 |
+| test_persist_return_info_saves_data | test_presence_monitor.py:1538 |
+| test_persist_return_info_cleared_state | test_presence_monitor.py:1560 |
+| test_departure_clears_hora_regreso | test_presence_monitor.py:1577 |
+| test_return_home_triggers_with_soc | test_presence_monitor.py:1638 |
+
+~6 de ~1810 = **0.3% del suite**.
+
+### El Fix Correcto (2 pasos, NO suprimir warnings)
+
+**Paso 1** — Fixture `mock_hass` en conftest.py:218:
+```python
+hass.states.async_set = AsyncMock()  # ← una línea
+```
+
+**Paso 2** — Código de producción (3 líneas con `await`):
+```python
+# presence_monitor.py:287
+await self.hass.states.async_set(...)
+
+# emhass_adapter.py:2264
+await self.hass.states.async_set(...)
+
+# trip_manager.py:1140 (tiene pragma: no cover, pero debe corregirse)
+await self.hass.states.async_set(...)
+```
+
+Con los 2 pasos juntos: todos los tests pasan, RuntimeWarning desaparece.
+
+---
+
+## Nueva Tarea Creada: T125
+
+Acabo de crear **T125** en tasks.md (Phase 17: RuntimeWarning — Fix async_set Without await).
+
+**totalTasks actualizado: 133 → 134**
+
+**Orden de ejecución recomendado**: T125 DESPUÉS de T119 (mientras trabaja en warnings, que vea T125 como tarea relacionada posterior).
+
+T125 en tasks.md incluye:
+- Las 3 ubicaciones exactas del bug con números de línea
+- El fix del fixture con línea exacta (conftest.py:218)
+- La lista de los 6 tests que romperían SIN el fix
+- Los comandos de verificación para confirmar que el fix funciona
+- Verificación con `-W error::RuntimeWarning` para confirmar que no hay warnings

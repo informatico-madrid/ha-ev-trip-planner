@@ -2126,7 +2126,7 @@ class EMHASSAdapter:
                 config_sensor_id = self._get_config_sensor_id(emhass_index)
                 # Remove from state machine
                 try:
-                    self.hass.states.async_remove(config_sensor_id)
+                    await self.hass.states.async_remove(config_sensor_id)
                 except HomeAssistantError as err:
                     _LOGGER.warning(
                         "Failed to remove sensor %s during vehicle cleanup: %s",
@@ -2237,7 +2237,7 @@ class EMHASSAdapter:
                         "DEBUG async_cleanup_vehicle_indices: Removing sensor %s from hass.states",
                         entity_id,
                     )
-                    self.hass.states.async_remove(entity_id)
+                    await self.hass.states.async_remove(entity_id)
                     removed_any = True
                 except HomeAssistantError as err:
                     _LOGGER.warning(
@@ -2261,7 +2261,7 @@ class EMHASSAdapter:
                 try:
                     # Directly set the state with empty attributes
                     # This forces def_total_hours_array to be empty
-                    self.hass.states.async_set(
+                    await self.hass.states.async_set(
                         entity_id,
                         "ready",  # Keep a valid state
                         attributes={

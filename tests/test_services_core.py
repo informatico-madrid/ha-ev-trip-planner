@@ -2808,7 +2808,7 @@ class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
         mock_entity_entry = MagicMock()
         mock_entity_entry.entity_id = "sensor.test"
         mock_registry = MagicMock()
-        mock_registry.async_remove = MagicMock()
+        mock_registry.async_remove = AsyncMock()
 
         with (
             patch(

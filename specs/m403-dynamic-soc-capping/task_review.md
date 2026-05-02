@@ -776,3 +776,65 @@ Review entry template:
   6. Edge: single trip with hours_needed < 1 → fallback single-row matrix
   7. Verify t_base, soc_base, safety_margin_percent in per_trip_params entry
 - resolved_at: <!-- pending executor fix -->
+
+### [task-T122-POST-TASK] E2E-SOC Suite — Post-Task Review (static analysis + BLOCKED)
+- status: BLOCKED
+- severity: minor
+- reviewed_at: 2026-05-02T21:10:00Z
+- criterion_failed: cannot independently verify — HA instance not available for E2E test execution
+- evidence: |
+  Executor claims: `make e2e-soc` → 10/10 tests passing (chat.md lines 1211-1243)
+  Independent verification attempted: `make e2e-soc` → CANNOT RUN (no HA container running)
+  `docker ps` shows: litellm-proxy, langfuse-bunker, vllm-engine, db-bunker, qdrant — NO homeassistant container
+  
+  Static analysis (post-task mode) — POSITIVE findings:
+  1. changeSOC() (line 44-71): navigates to /developer-tools/state with { waitUntil: 'networkidle' },
+     uses callService, condition-based wait with expect().toPass(), numeric comparison (Number(state)),
+     navigates back to panel — follows SPEC-ADJUSTMENT pattern
+  2. changeSOH() (line 78-102): same consistent pattern as changeSOC ✅
+  3. changeTBaseViaUI() (line 108-152): uses expect().toPass() instead of waitForTimeout(3000) ✅ FIXES previous WARNING
+  4. All 7 scenarios present (C, A, B, T_BASE=6h, T_BASE=48h, SOH=92%, Negative risk)
+  5. Tests verify actual EMHASS sensor attributes via page.evaluate() with hass.states
+  6. String vs numeric comparison bug fixed (Number(state) instead of string equality)
+  7. T_BASE=6h assertion corrected (was inverted per executor report)
+  8. Config flow SOH test: unnecessary SOC check removed
+  
+  Remaining concerns (inherited from working suite, accepted per SPEC-ADJUSTMENT):
+  - page.goto('/developer-tools/state') at lines 46, 80 — ACCEPTED (only reliable way to access hass.callService)
+  - page.goto('/config/integrations/integration/ev_trip_planner') at line 110 — ACCEPTED (same pattern as zzz-integration-deletion-cleanup.spec.ts)
+- fix_hint: When HA instance is available, run `make e2e-soc` to independently confirm 10/10 passing
+- review_submode: post-task
+- note: Static analysis shows significant improvement over initial review. Executor's evidence is credible but E2E execution not independently verified.
+
+### [task-T123-4TH-CYCLE] coordinator.py coverage regression — 4th CONSECUTIVE FAIL → DEADLOCK
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-02T21:10:00Z
+- criterion_failed: coordinator.py coverage 0.00% — _generate_mock_emhass_params() (124 lines) has ZERO test coverage for 4 consecutive review cycles
+- evidence: |
+  $ python3 -m pytest tests/test_coordinator.py --cov=custom_components/ev_trip_planner/coordinator --cov-report=term-missing --tb=no -q
+  13 passed, 1 warning in 0.30s
+  FAIL Required test coverage of 100.0% not reached. Total coverage: 0.00%
+  
+  $ grep '_generate_mock_emhass_params' tests/test_coordinator.py
+  (exit code 1 — ZERO results)
+  
+  $ python3 -m pytest tests/ --tb=no -q
+  1810 passed, 1 skipped, 9 warnings in 15.63s
+  
+  CONVERGENCE DETECTED: 4 consecutive cycles with identical FAIL:
+  - Cycle 1 (2026-05-02T20:00): coordinator.py coverage 0.00%
+  - Cycle 2 (2026-05-02T20:20): coordinator.py coverage 0.00%
+  - Cycle 3 (2026-05-02T20:43): coordinator.py coverage 0.00% — REVIEWER INTERVENTION written
+  - Cycle 4 (2026-05-02T21:10): coordinator.py coverage 0.00% — DEADLOCK escalation
+- fix_hint: |
+  Write tests for _generate_mock_emhass_params() in tests/test_coordinator.py:
+  1. Happy path: 2 trips → verify power_profile, def_total_hours_array, per_trip_params
+  2. Edge: trip with status="completado" → skipped
+  3. Edge: trip with empty datetime string → start_timestep=0
+  4. Edge: trip with invalid datetime → ValueError caught, start_timestep=0
+  5. Edge: charging_power_kw=0 → hours_needed=0, fallback to 0.1
+  6. Edge: single trip with hours_needed < 1 → fallback single-row matrix
+  7. Verify t_base, soc_base, safety_margin_percent in per_trip_params entry
+  Also: restore --cov to pyproject.toml addopts (T124)
+- resolved_at: <!-- DEADLOCK — human must arbitrate -->

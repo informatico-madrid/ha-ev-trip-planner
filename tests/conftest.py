@@ -129,9 +129,15 @@ def hass():
         _mock_states_set(entity_id, state, attributes)
         return True
 
+    async def _mock_states_async_remove(entity_id):
+        """Asynchronous remove for states."""
+        hass._states_dict.pop(entity_id, None)
+        return True
+
     hass.states.get = _mock_states_get
     hass.states.set = _mock_states_set
     hass.states.async_set = _mock_states_async_set
+    hass.states.async_remove = _mock_states_async_remove
 
     # Mock services
     hass.services = MagicMock()

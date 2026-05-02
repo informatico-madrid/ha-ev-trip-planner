@@ -3,7 +3,7 @@
   "awaitingApproval": false,
   "relatedSpecs": [],
   "taskIndex": 78,
-  "totalTasks": 133,
+  "totalTasks": 134,
   "taskIteration": 1,
   "repairIteration": 0,
   "failedStory": null,
@@ -34,11 +34,12 @@
     "T065": 2,
     "T066": 2,
     "T067": 2,
-    "T068": 2
+    "T068": 2,
+    "T123": 4
   },
   "chat": {
     "reviewer": {
-      "lastReadLine": 1207
+      "lastReadLine": 1455
     }
   }
 }

@@ -790,7 +790,7 @@ class TestSequentialTripDefStartBug:
         # Trip 0: deadline 12 hours from now
         # Trip 1: deadline 48 hours from now
         # Use naive datetimes to avoid timezone issues with datetime.now(timezone.utc)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 
@@ -946,7 +946,7 @@ class TestSingleTripBackwardCompatibility:
 
         This verifies AC-1.2: cumulative offset chaining across 3 trips.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
 
         # Create 3 trips with sequential deadlines (24h apart)
@@ -1026,7 +1026,7 @@ class TestWindowCappedAtDeadline:
         - inicio_ventana should be capped at or before fin_ventana (deadline)
         - Result should be a valid window (inicio_ventana <= fin_ventana)
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
 
         # Trip 0: deadline = now + 12h
@@ -1126,7 +1126,7 @@ class TestDefEndTimestepUnchanged:
         # Setup index map
         adapter._index_map = {"trip_0": 0, "trip_1": 1}
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 
@@ -1323,7 +1323,7 @@ class TestEmptyTripsEdgeCase:
         - Return an empty list
         - Not raise any exception or crash
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)
 
         # Should not raise any exception
@@ -1391,7 +1391,7 @@ class TestEMHASSAdapterBatchProcessing:
         adapter._index_map = {"trip_0": 0, "trip_1": 1}
 
         # Create two trips with sequential deadlines
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 

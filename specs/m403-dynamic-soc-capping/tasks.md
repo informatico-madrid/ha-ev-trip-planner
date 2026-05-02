@@ -729,3 +729,46 @@ These verify the implementation matches design.md decisions:
     - Fix approach: Add tests in `tests/test_coordinator.py` that exercise `_generate_mock_emhass_params()` with various trip configurations (empty trips, trips with datetime, trips without datetime, completed/cancelled trips). Also test the fallback path in `_async_update_data` when `per_trip_params` is empty and `all_trips` is non-empty.
     - Done when: `make test-cover` → "Required test coverage of 100% reached" AND coordinator.py shows 100%
     - Verify: `make test-cover`
+
+## Phase 17: RuntimeWarning — Fix async_set Without await (Priority: P1)
+
+**Purpose**: Fix RuntimeWarning "coroutine was never awaited" from production code calling `hass.states.async_set()` without `await`. This is a REAL BUG, not a test issue. The fix requires adding `await` in 3 locations AND fixing the `mock_hass` fixture in conftest.py.
+
+**Root Cause Analysis**:
+- Home Assistant's `hass.states.async_set()` is `async def async_set(...)` — a coroutine
+- Production code calls it without `await` → RuntimeWarning
+- Tests using fixture `hass` (conftest.py) correctly model async_set as `async def` → `await` works
+- Tests using fixture `mock_hass` (conftest.py) leave `async_set` as bare `MagicMock` → `await` fails
+- The executor was planning to SUPPRESS warnings instead of fixing the bug
+
+**Impact**: ~6 tests of ~1810 will break if `await` is added WITHOUT fixing `mock_hass` fixture. Fixing the fixture first means tests pass after the code fix.
+
+- [ ] T125 [FIX] **Fix RuntimeWarning — add `await` to async_set calls AND fix `mock_hass` fixture**
+
+  **Step 1 — Fix production code (3 locations)**:
+  1. [`presence_monitor.py:287`](custom_components/ev_trip_planner/presence_monitor.py:287): `self.hass.states.async_set(...)` → `await self.hass.states.async_set(...)`
+  2. [`emhass_adapter.py:2264`](custom_components/ev_trip_planner/emhass_adapter.py:2264): `self.hass.states.async_set(...)` → `await self.hass.states.async_set(...)`
+  3. [`trip_manager.py:1140`](custom_components/ev_trip_planner/trip_manager.py:1140): `self.hass.states.async_set(...)` → `await self.hass.states.async_set(...)`
+
+  **Step 2 — Fix `mock_hass` fixture**:
+  - In [`conftest.py:218`](tests/conftest.py:218), after `hass = MagicMock()`, add:
+    ```python
+    hass.states.async_set = AsyncMock()
+    ```
+
+  **Tests that will break WITHOUT Step 2** (all use `mock_hass` fixture):
+  - `test_handle_return_home_sets_hora_regreso` (test_presence_monitor.py:1506)
+  - `test_handle_return_home_none_soc` (test_presence_monitor.py:1523)
+  - `test_persist_return_info_saves_data` (test_presence_monitor.py:1538)
+  - `test_persist_return_info_cleared_state` (test_presence_monitor.py:1560)
+  - `test_departure_clears_hora_regreso` (test_presence_monitor.py:1577)
+  - `test_return_home_triggers_with_soc` (test_presence_monitor.py:1638)
+
+  **Tests that will NOT break** (they mock `_async_persist_return_info` directly or use `hass` fixture):
+  - All tests in test_functional_emhass_sensor_updates.py (mock the method, not the API)
+  - All tests using `hass` fixture (conftest.py:126 models async_set correctly as `async def`)
+  - All tests of `async_cleanup_vehicle_indices` (they use `hass` fixture)
+
+  - Done when: `python3 -m pytest tests/test_presence_monitor.py tests/test_trip_manager.py -v --tb=short 2>&1 | grep -E "(PASSED|FAILED)" | grep FAILED` → empty (no failures)
+  - Also verify: `python3 -m pytest tests/ -W error::RuntimeWarning -x 2>&1 | head -20` → no RuntimeWarning
+  - Verify: `make test`

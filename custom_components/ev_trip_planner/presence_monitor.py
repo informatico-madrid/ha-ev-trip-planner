@@ -284,7 +284,7 @@ class PresenceMonitor:
         )
 
         # Update HA state entity
-        self.hass.states.async_set(
+        await self.hass.states.async_set(
             self._return_info_entity_id,
             self.hora_regreso or "unknown",
             {

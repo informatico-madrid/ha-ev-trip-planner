@@ -128,7 +128,7 @@ async def test_cleanup_raises_exception_for_registry(hass: HomeAssistant) -> Non
 
     # Mock registry.async_remove to raise generic Exception (triggers 1347-1348)
     entity_registry = MagicMock()
-    entity_registry.async_remove = MagicMock(side_effect=Exception("Registry error"))
+    entity_registry.async_remove = AsyncMock(side_effect=Exception("Registry error"))
     hass.data[DOMAIN] = {"entity_registry": entity_registry}
 
     # Cleanup should handle exception and continue
@@ -163,7 +163,7 @@ async def test_cleanup_raises_exception_main_sensor_registry(
 
     # Mock registry.async_remove to raise generic Exception (triggers 1358-1359)
     entity_registry = MagicMock()
-    entity_registry.async_remove = MagicMock(side_effect=Exception("Main sensor error"))
+    entity_registry.async_remove = AsyncMock(side_effect=Exception("Main sensor error"))
 
     # Cleanup should handle exception and continue
     await adapter.async_cleanup_vehicle_indices()
@@ -574,7 +574,7 @@ async def test_cleanup_raises_homeassistant_error_for_state(
     adapter._published_entity_ids = {"trip_1": "sensor.test"}
 
     # Mock state.async_remove to raise HomeAssistantError (triggers 1338-1339)
-    hass.states.async_remove = MagicMock(side_effect=HomeAssistantError("Test error"))
+    hass.states.async_remove = AsyncMock(side_effect=HomeAssistantError("Test error"))
 
     # Cleanup should handle exception and continue
     await adapter.async_cleanup_vehicle_indices()
@@ -612,7 +612,7 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(
     adapter._published_entity_ids = {"trip_1": "sensor.test"}
 
     # Mock state.async_remove to raise HomeAssistantError (triggers 1375-1376)
-    hass.states.async_remove = MagicMock(
+    hass.states.async_remove = AsyncMock(
         side_effect=HomeAssistantError("Vehicle state error")
     )
 
@@ -655,7 +655,7 @@ async def test_cleanup_raises_generic_exception_for_registry(
     # Mock entity registry to raise generic Exception (triggers 1347-1348, 1358-1359)
     # NOT HomeAssistantError - a generic Exception
     mock_registry = MagicMock()
-    mock_registry.async_remove = MagicMock(side_effect=Exception("Registry not found"))
+    mock_registry.async_remove = AsyncMock(side_effect=Exception("Registry not found"))
 
     # Patch er.async_get to return our mock (the code uses er.async_get(self.hass))
     from homeassistant.helpers import entity_registry as er
