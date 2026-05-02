@@ -185,16 +185,25 @@ The previous implementation completed US1-US4 correctly (T001-T055) but FAILED o
 
 ## Phase 7: User Story 5 Fix — Wire Dynamic SOC Cap Into Production Path (Priority: P1)
 
-**IMPORTANT**: This phase was a REBUILD of US5. The original implementation stored `_t_base` and `_battery_cap` but never wired them. Phase 7b fixed the broken code, and the final wiring used a DIFFERENT approach than originally planned.
+**WARNING**: The previous implementation of US5 (T059-T062) was INCOMPLETE. The previous tasks stored `_t_base` and `_battery_cap` in `__init__` but NEVER wired them into the production path. This phase is a COMPLETE REBUILD of US5 with proper TDD integration tests.
 
-**Final wiring approach**: Instead of calling `calcular_hitos_soc()` + `calculate_deficit_propagation()`, the production path directly calls `calculate_dynamic_soc_limit()` inline. This is functionally equivalent and satisfies the design requirement. The external-reviewer flagged `calcular_hitos_soc` as dead code, but using `calculate_dynamic_soc_limit` directly was an acceptable alternative per the design spec.
+**Root cause of previous failure**:
+- T059: `self._t_base` stored at line 128 but zero reads after init
+- T060: `_battery_cap.get_capacity()` only called in trip_manager.py:1929, NOT in emhass_adapter.py
+- T061: `self._battery_capacity_kwh` (nominal) used at lines 953, 976, 1039, 1058, 1064, 1080, 1268, 1320
+- T062: `calcular_hitos_soc()` has zero callers in production — only its definition exists
 
-**Wiring state after Phase 7b**:
-- `self._t_base`: Assigned at line 135, READ at lines 577 and 1082 (via getattr), used in `calculate_dynamic_soc_limit()` calls at lines 768 and 1087. **WIRED.**
-- `self._battery_cap.get_capacity()`: 11 calls in emhass_adapter.py. **WIRED.**
-- `calculate_dynamic_soc_limit()`: Called inline at lines 764 and 1083. **WIRED.**
-- `calcular_hitos_soc()`: NOT called from emhass_adapter (defined at trip_manager.py:1880). This is acceptable because the inline approach is functionally equivalent.
-- Config change detection: Updated at lines 2330-2342 for t_base and SOH changes. **WIRED.**
+**Production path entry point**: `emhass_adapter.async_publish_all_deferrable_loads()` (line 794) → calls:
+1. `calculate_multi_trip_charging_windows()` at line 948 — uses `self._battery_capacity_kwh` (NOMINAL) at line 953
+2. `determine_charging_need()` at line 975 — uses `self._battery_capacity_kwh` (NOMINAL) at line 976
+3. `calculate_hours_deficit_propagation()` at line 993 — doesn't accept `soc_caps`
+4. `_populate_per_trip_cache_entry()` at line 1038 — passes `self._battery_capacity_kwh` (NOMINAL) at line 1039
+5. SOC propagation at lines 1058, 1064 — uses `self._battery_capacity_kwh` (NOMINAL)
+6. `_calculate_power_profile_from_trips()` at line 1077 — passes `self._battery_capacity_kwh` (NOMINAL) at line 1080
+
+**The function that DOES the capping (but is never called)**:
+- `calcular_hitos_soc()` in trip_manager.py:1880 — correctly computes `soc_caps` and calls `calculate_deficit_propagation(t_base, soc_caps)`
+- `calculate_deficit_propagation()` in calculations.py:849 — accepts `t_base` and `soc_caps` parameters
 
 ### Integration Tests (TDD — Write FIRST)
 
@@ -278,7 +287,7 @@ These are the actual wiring changes. Each one MUST be preceded by its correspond
 
 **CRITICAL**: Before working on Phase 7b, ensure you have read task_review.md to know which tasks have FAIL status and what fixes are required.
 
-- [ ] T083 [US5-REBUILD-FIX] [VERIFY:TEST] Fix SyntaxError in emhass_adapter.py: The executor attempted inline comments like `self._battery_capacity_kwh  # nominal — replaced by...` which left the Python file unimportable. Replace all 5 occurrences of the inline comment pattern with actual `self._battery_cap.get_capacity(self.hass)` replacements:
+- [x] T083 [US5-REBUILD-FIX] [VERIFY:TEST] Fix SyntaxError in emhass_adapter.py: The executor attempted inline comments like `self._battery_capacity_kwh  # nominal — replaced by...` which left the Python file unimportable. Replace all 5 occurrences of the inline comment pattern with actual `self._battery_cap.get_capacity(self.hass)` replacements:
   - Line 1058: `soc_ganado = (kwh_cargados / self._battery_capacity_kwh) * 100` → `soc_ganado = (kwh_cargados / self._battery_cap.get_capacity(self.hass)) * 100`
   - Line 1064: Complex expression with inline comments → `soc_consumido = (trip_kwh / self._battery_cap.get_capacity(self.hass)) * 100`
   - Line 1080: `battery_capacity_kwh=self._battery_capacity_kwh  # comment...` → `battery_capacity_kwh=self._battery_cap.get_capacity(self.hass)`
@@ -288,22 +297,22 @@ These are the actual wiring changes. Each one MUST be preceded by its correspond
   - **Done when**: `python3 -c "import custom_components.ev_trip_planner.emhass_adapter"` returns exit code 0 (no SyntaxError)
   - **Verify**: Run `python3 -m py_compile custom_components/ev_trip_planner/emhass_adapter.py` → no errors
 
-- [ ] T084 [US5-REBUILD-FIX] [VERIFY:TEST] Verify Python import works after fix: After T083, confirm the module can be imported without errors.
+- [x] T084 [US5-REBUILD-FIX] [VERIFY:TEST] Verify Python import works after fix: After T083, confirm the module can be imported without errors.
   - **Do**: Run `python3 -c "from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter; print('Import OK')"`
   - **Verify**: Output shows "Import OK" with no traceback
 
-- [ ] T085 [US5-REBUILD-FIX] [VERIFY:TEST] Run full test suite after SyntaxError fix: Verify no regressions introduced by T083.
+- [x] T085 [US5-REBUILD-FIX] [VERIFY:TEST] Run full test suite after SyntaxError fix: Verify no regressions introduced by T083.
   - **Do**: Run `python -m pytest tests/ -v --tb=short` and ensure no new failures
   - **Done when**: All tests that passed before T083 still pass
 
-- [ ] T086 [US5-REBUILD-FIX] [VERIFY:API] Wire `self._t_base` through charging decision path in `async_publish_all_deferrable_loads()`:
+- [x] T086 [US5-REBUILD-FIX] [VERIFY:API] Wire `self._t_base` through charging decision path in `async_publish_all_deferrable_loads()`:
   - **Current state**: `self._t_base` stored at line 128 but ZERO reads in production path (only 1 hit in grep)
   - **Spec requirement**: `grep -c "self._t_base" emhass_adapter.py` must be >= 2 (assignment + at least one read)
   - **Fix**: Add `t_base=self._t_base` parameter to `calculate_multi_trip_charging_windows()` call at line ~948. Check if the function accepts `t_base` parameter; if not, find correct way to pass it through.
   - **Files**: `custom_components/ev_trip_planner/emhass_adapter.py` line ~948, `custom_components/ev_trip_planner/calculations.py`
   - **Done when**: `grep "self._t_base" emhass_adapter.py` returns >= 2 hits
 
-- [ ] T087 [US5-REBUILD-FIX] [VERIFY:API] Integrate soc_caps computation in emhass_adapter.py production path:
+- [x] T087 [US5-REBUILD-FIX] [VERIFY:API] Integrate soc_caps computation in emhass_adapter.py production path:
   - **Current state**: `soc_caps` and `calcular_hitos_soc` exist in calculations.py and trip_manager.py but ZERO integration in emhass_adapter.py
   - **Spec requirement**: `grep -c "soc_caps\|calcular_hitos_soc\|calculate_deficit_propagation" emhass_adapter.py` must be >= 1
   - **Fix**: In `async_publish_all_deferrable_loads()`, compute soc_caps by calling `self._trip_manager.calcular_hitos_soc()` before `calculate_multi_trip_charging_windows()`. Pass soc_caps through the charging decision path.
@@ -320,7 +329,7 @@ These are the actual wiring changes. Each one MUST be preceded by its correspond
 
 ---
 
-- [ ] T089 [US5-REBUILD-FIX] [VERIFY:TEST] Fix T056 test sensitivity — use longer deadlines or compare kwh_needed directly:
+- [x] T089 [US5-REBUILD-FIX] [VERIFY:TEST] Fix T056 test sensitivity — use longer deadlines or compare kwh_needed directly:
   - **Current problem**: T056 `test_t_base_affects_charging_hours` compares `nonZeroHours` (integer hours) between T_BASE=6h and T_BASE=48h. With test trips having 1-4h deadlines, the SOC cap difference is only 96-99% vs 99.5-99.9%, producing <0.1h difference — undetectable in integer hours.
   - **Evidence**: `calculate_dynamic_soc_limit(t_hours=4, soc_post_trip=40, battery_capacity_kwh=60, t_base=6)` = 96.83% vs `t_base=48` = 99.59%. Difference: 2.76% → ~0.17kWh per trip → ~0.09h at 7.4kW.
   - **With longer deadlines**: `t_hours=96, t_base=6` = 64.14% (21.52kWh saved) vs `t_base=48` = 91.33% (5.20kWh saved). Difference: 27.19% → 16.32kWh → 2.2h at 7.4kW — EASILY detectable.

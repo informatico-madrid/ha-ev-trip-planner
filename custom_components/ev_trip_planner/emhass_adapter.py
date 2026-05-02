@@ -448,7 +448,7 @@ class EMHASSAdapter:
         if total_hours > 0:
             power_watts = self._charging_power_kw * 1000  # Convert to Watts
         else:
-            power_watts = 0.0  # pragma: no cover — proactive charging ensures kwh > 0 for valid trips
+            power_watts = 0.0
 
         end_timestep = min(int(hours_available), 168)  # Max 7 days
 

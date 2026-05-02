@@ -356,3 +356,54 @@ async def test_real_capacity_affects_power_profile():
         "This indicates BatteryCapacity.get_capacity() is NOT wired into the "
         "production path — both adapters use nominal capacity (60kWh)."
     )
+
+
+# ---------------------------------------------------------------------------
+# T090: No charging needed branch (total_hours == 0)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_no_charging_needed_power_watts_zero():
+    """T090: Verify power_watts is 0.0 when total_hours == 0 (no charging needed).
+
+    A trip with kwh=0 needs no charging. The proactive charging logic in
+    determine_charging_need returns total_hours=0 and power_watts=0.0 in that case.
+    This test verifies that branch in _populate_per_trip_cache_entry.
+    """
+    hass, store = _make_mock_hass(soc_state=50.0)
+    entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
+
+    with patch("custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+    # Create a trip with 0kWh — no energy needed
+    now = datetime.now(timezone.utc)
+    trips = [{
+        "id": "trip_zero",
+        "kwh": 0.0,
+        "datetime": (now + timedelta(hours=24)).isoformat(),
+        "descripcion": "Zero energy trip",
+    }]
+
+    hora_regreso = now - timedelta(hours=2)
+
+    mock_pm = MagicMock()
+    mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso.replace(tzinfo=timezone.utc))
+    adapter._presence_monitor = mock_pm
+
+    with (
+        patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=50.0),
+        patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=hora_regreso.replace(tzinfo=timezone.utc)),
+    ):
+        await adapter.async_publish_all_deferrable_loads(trips)
+
+    # Verify the per-trip cache entry has power_watts = 0.0
+    params = adapter._cached_per_trip_params.get("trip_zero", {})
+    assert params.get("power_watts") == 0.0, (
+        f"Expected power_watts=0.0 for kwh=0 trip, got {params.get('power_watts')}. "
+        "The total_hours == 0 branch (power_watts = 0.0) is not working."
+    )
+    assert params.get("kwh_needed") == 0.0, (
+        f"Expected kwh_needed=0.0 for kwh=0 trip, got {params.get('kwh_needed')}."
+    )
