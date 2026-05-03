@@ -782,3 +782,584 @@ This is the FINAL verification task. All previous tasks must be complete before 
   6. `make e2e 2>&1 | tail -10` → all E2E tests pass (requires HA container)
   7. `make e2e-soc 2>&1 | tail -10` → all E2E-SOC tests pass (requires HA container)
 - Verify: `make test` + quality-gate skill checkpoint JSON = PASS
+
+---
+
+## Phase 18: GITO Code Review Fixes
+
+**Source**: GITO code review report — 52 issues found, 39 classified as REAL PROBLEM after multi-round BMAD party-mode consensus (Winston=Architect, Amelia=Developer, Paige=Developer, Mary=PM, John=Researcher)
+**Classification date**: 2026-05-03
+**Result**: 39 REAL_PROBLEM, 13 FALSE_POSITIVE (filtered out)
+**Branch**: feature-soh-soc-cap (m403-dynamic-soc-capping spec — same PR)
+
+### GITO Classification Context
+
+**Spec context**: M4.0.3 Dynamic SOC Capping — implements `calculate_dynamic_soc_limit()` with formula `risk = t_hours * (soc_post_trip - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/t_base)]`. Integrates at `calculations.py:calculate_deficit_propagation()` line ~808. SOC_base = 35% (battery sweet spot). T_base = 24h default. SOH sensor integration. Config flow changes (t_base slider + SOH sensor selector). 136 tasks completed, 1822 tests passing, 100% coverage.
+
+**Architecture**: Home Assistant custom integration. BatteryCapacity abstraction for SOH-aware capacity. EMHASS adapter for optimization. Trip manager for scheduling. Vehicle controller for charging control. Playwright E2E tests in shadow DOM.
+
+**Project rules** (from CLAUDE.md and CODEGUIDELINESia.md): E2E tests run via `make e2e`/`make e2e-soc` (makefile only, no direct API calls). All tests must replicate real user behavior. Spanish documentation allowed but English preferred for technical comments. PEP 8 formatting. ruff for lint/format. mypy for type checking. 100% coverage target.
+
+### Phase 18 Sub-phases
+
+- **Phase 18.1 — Project Config**: T129–T133 (5 tasks: gitignore, newlines, mypy config)
+- **Phase 18.2 — Documentation**: T134–T138 (5 tasks: CHANGELOG, CLAUDE.md, ROADMAP typos/formatting)
+- **Phase 18.3 — Auth Setup**: T139–T140 (2 tasks: OAuth token reuse in polling loops)
+- **Phase 18.4 — Core Calculations**: T141–T143 (3 tasks: t_base parameter, IndexError, config flow migration)
+- **Phase 18.5 — EMHASS & Vehicle**: T144–T146 (3 tasks: stored config values, formatting)
+- **Phase 18.6 — Shell Scripts**: T147–T151 (5 tasks: run-e2e.sh and run-e2e-soc.sh bugs/typos)
+- **Phase 18.7 — Test Infrastructure**: T152–T153 (2 tasks: conftest.py mock robustness, config_flow SOH spec tests)
+- **Phase 18.8 — Playwright E2E Tests**: T154–T158 (5 tasks: .count().catch(), polling logic, locator syntax, page.once)
+- **Phase 18.9 — Test Code Bugs**: T159–T168 (10 tasks: comments, mocks, assertions, vacuous checks, anti-patterns)
+- **Phase 18.10 — Test Documentation**: T169–T172 (4 tasks: docstring mismatches, language consistency)
+- **Phase 18.11 — Test Excluded**: T173 (1 task: duplicated test logic in excluded folder)
+
+**Quality Gates**:
+- QG18-1: After Phase 18.3 — `make test` (all existing tests still pass, no regression from auth.setup changes)
+- QG18-2: After Phase 18.4 — `make test` + coverage check (core calculations changes are high-risk)
+- QG18-3: After Phase 18.6 — `make e2e` (shell script changes affect E2E runner)
+- QG18-4: After Phase 18.8 — `make e2e-soc` (Playwright test fixes must not break E2E-SOC suite)
+- QG18-5: After Phase 18.9 — full `make test` with 100% coverage
+- QG18-6: FINAL — all quality gates + `ruff check` + `ruff format --check` + `mypy` + `make e2e` + `make e2e-soc`
+
+---
+
+- [x] T129 **.gitignore: Fix malformed pattern on line 95** — [GITO #1](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/.gitignore#L95), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Amelia=REAL, Paige=REAL)
+
+The entry `doc/## Test Failure Review Protocol (MANDATO.md` contains unescaped special characters (`##`, spaces, parentheses) and appears to be a copy-paste error of a markdown heading. It will not match any valid file paths and should be removed or corrected to a proper path.
+
+- **File**: `.gitignore` line 95
+- **Current**: `doc/## Test Failure Review Protocol (MANDATO.md`
+- **Fix**: Remove the malformed entry entirely (it's clearly a copied heading fragment, not a valid path pattern)
+- **Why**: Invalid gitignore entries cause warnings in some git tools and clutter the file. They also mask real path-matching issues.
+- **Files affected**: `.gitignore`
+- **Done when**: `git check-ignore doc/## Test Failure Review Protocol` returns nothing; gitignore validates cleanly
+- **Verify**: `python3 -c "import subprocess; r = subprocess.run(['git', 'check-ignore', '.gitignore'], capture_output=True); print('gitignore valid' if r.returncode in (0,1) else 'INVALID')"`
+
+- [ ] T130 **CHANGELOG.md: Fix inconsistent variable naming in SOC limit algorithm documentation** — [GITO #2](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CHANGELOG.md#L227-L228), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Paige=REAL, Mary=REAL)
+
+The documented formula uses variables `t` and `T`, which do not match the function signature `calculate_dynamic_soc_limit(t_hours, soc_post_trip, t_base)`. This creates ambiguity for developers trying to implement or review the algorithm.
+
+- **File**: `CHANGELOG.md` lines 227-228
+- **Current**: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+- **Fix**: `risk = t_hours * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/t_base)]`
+- **Why**: The spec.md defines the algorithm with explicit parameter names `t_hours` and `t_base`. The CHANGELOG formula must match for developers to correctly implement or review.
+- **Spec context**: spec.md Section "Dynamic SOC Capping Algorithm" — formula `risk = t * (soc_post_trip - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]` with function `calculate_dynamic_soc_limit(t_hours, soc_post_trip, t_base)`
+- **Files affected**: `CHANGELOG.md`
+- **Done when**: Formula variables match function parameter names
+- **Verify**: `grep -n 'risk = t' CHANGELOG.md | grep -v t_hours && echo "STILL WRONG" || echo "OK"`
+
+- [ ] T131 **CLAUDE.md: Fix typographical and language errors in E2E guidelines** — [GITO #3](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L45-L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Amelia=REAL, Paige=REAL, John=REAL)
+
+The new E2E test section contains: 'válidom' (typo for 'válido'), missing capitalization after period ('si' → 'Si'), missing capitalization at start of sentence ('prohibido' → 'Prohibido'), unnecessary trailing spaces.
+
+- **File**: `CLAUDE.md` lines 45-47
+- **Current**:
+  - Line 45: `- Siempre se ejecutan con makefile ` (trailing space)
+  - Line 46: `- prohibido usar llamadas API` (missing capitalization)
+  - Line 47: `- Replicar comportamiento de un usuario real. si no puedes replicar el comportamiento de un usuario real no es un test válidom o hay un error en el diseño del test, o hay un error en el codigo de la aplicación.`
+- **Fix**:
+  - Line 45: `- Siempre se ejecutan con makefile`
+  - Line 46: `- Prohibido usar llamadas API`
+  - Line 47: `- Replicar comportamiento de un usuario real. Si no puedes replicar el comportamiento de un usuario real no es un test válido o hay un error en el diseño del test, o hay un error en el código de la aplicación.`
+- **Why**: Typographical errors in project documentation reduce professionalism and can cause confusion. 'válidom' is a clear typo. Capitalization missing after periods violates basic grammar rules.
+- **Files affected**: `CLAUDE.md`
+- **Done when**: All typos fixed, capitalization corrected, trailing spaces removed
+
+- [ ] T132 **CLAUDE.md: Add missing newline at end of file** — [GITO #4](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Amelia=REAL, Paige=REAL)
+
+The file ends without a trailing newline character, which violates POSIX conventions and can cause linting failures or unexpected behavior in some tools.
+
+- **File**: `CLAUDE.md` (end of file)
+- **Fix**: Ensure the file ends with exactly one newline character
+- **Why**: POSIX requires text files to end with a newline. Many tools (diff, git, linters) expect this.
+- **Files affected**: `CLAUDE.md`
+- **Done when**: `tail -c 1 CLAUDE.md | xxd` shows `0a` (newline)
+
+- [ ] T133 **pyproject.toml: Fix mismatched Python version in mypy configuration** — [GITO #17](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/pyproject.toml#L36), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+The `python_version` in `[tool.mypy]` is set to `"3.14"`, which conflicts with `py311` in Black and `3.11` in Pylint. Python 3.14 is not yet a stable release — this is clearly a typo.
+
+- **File**: `pyproject.toml` line 36
+- **Current**: `python_version = "3.14"`
+- **Fix**: `python_version = "3.11"`
+- **Why**: Inconsistent Python version across tooling causes mypy to validate against wrong features. Black targets py311, Pylint targets 3.11 — mypy must match.
+- **Spec context**: Project targets Python 3.11 as defined in pyproject.toml (Black config and Pylint config)
+- **Files affected**: `pyproject.toml`
+- **Done when**: All three tool configs (mypy, Black, Pylint) use consistent Python 3.11
+- **Verify**: `grep python_version pyproject.toml` shows `"3.11"`
+
+---
+
+Quality Gate QG18-1: Run `make test` after documentation and config fixes to ensure no regression. All 1822 tests must still pass.
+
+---
+
+- [ ] T134 **ROADMAP.md: Fix chronological inconsistency in milestone ordering** — [GITO #5](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L164-L197), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, John=REAL, Paige=REAL)
+
+Milestone 4.0.3 is titled 'Immediately After M4.0.2' and marked 'COMPLETED — 2026-05-03', but Milestone 4.0.2 is listed later as 'Next' and 'PLANNED — not started'. This violates standard roadmap progression.
+
+- **File**: `ROADMAP.md` lines 164-197 (M4.0.2 section) vs lines 191-197 (M4.0.3 section)
+- **Fix**: Reorder milestones so M4.0.2 appears before M4.0.3 (chronologically correct). M4.0.3 completed 2026-05-03, M4.0.2 is next.
+- **Why**: Roadmaps must present milestones in chronological order. Reversed ordering confuses release sequencing and project status.
+- **Files affected**: `ROADMAP.md`
+
+- [ ] T135 **ROADMAP.md: Fix stale 'Development phase' status in project header** — [GITO #6](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L6), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, John=REAL, Paige=REAL)
+
+The header states '**Development phase**: Milestone 4.0.1 hotfixes planned', yet M4.0.1 is completed, M4.0.2 is the next target, and M4.0.3 is completed.
+
+- **File**: `ROADMAP.md` line 6
+- **Current**: `**Development phase**: Milestone 4.0.1 hotfixes planned — M4 core features fully implemented`
+- **Fix**: Update to reflect current active milestones
+- **Why**: Stale development phase status misleads anyone checking project progress.
+- **Files affected**: `ROADMAP.md`
+
+- [ ] T136 **ROADMAP.md: Fix formatting error — period inside inline code block** — [GITO #8](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L235), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL-R2, Paige=REAL, Amelia=REAL)
+
+Line 235 incorrectly places a period inside backticks: `...instead of \`trip_arrival - window_start.\`` — the period should be outside the code delimiters.
+
+- **File**: `ROADMAP.md` line 235
+- **Fix**: Move period outside the backtick delimiters
+- **Why**: Periods inside inline code blocks render incorrectly in markdown and look unprofessional.
+- **Files affected**: `ROADMAP.md`
+
+- [ ] T137 **auth.setup.soc.ts: Fix redundant OAuth token flow inside polling loop** — [GITO #10](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.soc.ts#L63-L86), Classification: REAL_PROBLEM, Consensus: 1/2 split (Winston=REAL, Amelia=FALSE) — 3 rounds
+
+`getAccessToken()` performs a full HTTP-based OAuth exchange. Calling it inside the retry loop of `waitForEntity` means a new token flow is initiated on every poll (every 2s). This is inefficient, wastes network resources, and may trigger rate-limiting.
+
+- **File**: `auth.setup.soc.ts` lines 63-86 (waitForEntity) and lines 69
+- **Current**: `headers: { Authorization: \`Bearer ${await getAccessToken()}\` }` inside while loop
+- **Fix**: Accept token as parameter: `async function waitForEntity(entityId: string, token: string, timeoutMs = 30_000)` — fetch token once in globalSetup and pass it in.
+- **Why**: Calling full OAuth POST every 2s in a polling loop is wasteful and may hit rate limits. The token obtained in globalSetup should be reused.
+- **Spec context**: This is test setup code (e2e test fixtures), not production code. The fix should maintain the same functionality with better performance.
+- **Files affected**: `auth.setup.soc.ts`
+- **Done when**: waitForEntity receives token as parameter; globalSetup passes the token
+
+- [ ] T138 **auth.setup.ts: Fix inefficient re-authentication in waitForEntity polling loop** — [GITO #11](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.ts#L60-L83), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Identical issue to T137 but in the non-SOC variant of auth.setup.ts. The `waitForEntity` function invokes `getAccessToken()` on every iteration of its polling loop. The `globalSetup` function already retrieves a valid access token before calling `waitForEntity`.
+
+- **File**: `auth.setup.ts` lines 60-83
+- **Current**: `headers: { Authorization: \`Bearer ${await getAccessToken()}\` }` inside while loop
+- **Fix**: Accept token as parameter and reuse: `async function waitForEntity(entityId: string, timeoutMs = 30_000, token: string)`
+- **Why**: Same as T137 — full OAuth flow every 2s is wasteful. Token already available from globalSetup.
+- **Files affected**: `auth.setup.ts`
+- **Done when**: waitForEntity receives token as parameter; globalSetup passes the token
+
+---
+
+Quality Gate QG18-2: Run `make test` after auth.setup changes. All 1822 tests must pass. No regression.
+
+---
+
+- [ ] T139 **calculations.py: Remove unused t_base parameter from calculate_deficit_propagation** — [GITO #12](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L871-L882), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+The `t_base` parameter is added to the function signature but is never referenced or used within the function body. It should either be removed or properly integrated (e.g., passed to `calculate_dynamic_soc_limit` if intended for dynamic SOC capping) to avoid dead code.
+
+- **File**: `custom_components/ev_trip_planner/calculations.py` lines 871-882
+- **Current**: `t_base: float = DEFAULT_T_BASE` in function signature, never used in body
+- **Fix**: Either remove the parameter entirely (if not needed for dynamic SOC capping) OR wire it into `calculate_dynamic_soc_limit()` call inside the function
+- **Why**: Dead code parameters confuse callers and suggest the function does something it doesn't. If t_base was intended for the dynamic SOC capping algorithm, it must be wired.
+- **Spec context**: The spec defines t_base (T_base) as the time constant for the dynamic SOC capping algorithm. The function `calculate_deficit_propagation()` integrates the dynamic SOC limit at line ~808. If t_base is not being used there, the parameter was added by mistake and should be removed to match the actual implementation.
+- **Files affected**: `custom_components/ev_trip_planner/calculations.py`
+- **Done when**: Function signature matches actual parameter usage; no dead parameters
+- **Verify**: `grep 't_base' custom_components/ev_trip_planner/calculations.py | head -20` — verify all references are meaningful
+
+- [ ] T140 **calculations.py: Add bounds check for soc_caps array access** — [GITO #13](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L969-L973), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL-R3 after 3 rounds, Amelia=REAL)
+
+The code accesses `soc_caps[original_idx]` without verifying that `original_idx < len(soc_caps)`. If `soc_caps` is shorter than the number of trips, this raises `IndexError`. The `soc_targets` access at lines 961-962 HAS a bounds check — the `soc_caps` guard was apparently forgotten during implementation.
+
+- **File**: `custom_components/ev_trip_planner/calculations.py` lines 969-971
+- **Current**:
+  ```python
+  if soc_caps is not None:
+      soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
+  ```
+- **Fix**:
+  ```python
+  if soc_caps is not None and original_idx < len(soc_caps):
+      soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
+  else:
+      soc_objetivo_final = soc_objetivo_ajustado
+  ```
+- **Why**: Inconsistent bounds check pattern (soc_targets has guard, soc_caps does not). If future callers pass mismatched arrays, this crashes. The pattern was already established by the soc_targets guard and should be duplicated for soc_caps.
+- **Spec context**: This is the integration point where `calculate_dynamic_soc_limit()` results (via `soc_caps`) interact with the deficit propagation backward chaining. A crash here breaks the entire charging schedule.
+- **Files affected**: `custom_components/ev_trip_planner/calculations.py`
+- **Done when**: Bounds check added for soc_caps array access
+- **Verify**: Add a unit test with `len(soc_caps) < len(trips)` to confirm no IndexError
+
+- [ ] T141 **config_flow.py: Fix async_migrate_entry implementation** — [GITO #14](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/config_flow.py#L293-L317), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Three bugs in `async_migrate_entry`: (1) Return type is `None` but HA expects `bool` — returning None signals migration failure; (2) `hass.config_entries.async_update_entry` is called without `await` on an async coroutine; (3) Manually mutates `entry.version` instead of passing `version=CONFIG_VERSION` to `async_update_entry`, bypassing HA's internal registry update.
+
+- **File**: `custom_components/ev_trip_planner/config_flow.py` lines 293-317
+- **Current**:
+  ```python
+  @staticmethod
+  async def async_migrate_entry(...) -> None:
+      ...
+      hass.config_entries.async_update_entry(entry, data=data)  # no await!
+      entry.version = CONFIG_VERSION  # manual mutation!
+  ```
+- **Fix**:
+  ```python
+  @staticmethod
+  async def async_migrate_entry(...) -> bool:
+      ...
+      if entry.version == 2:
+          new_data = dict(entry.data)
+          new_data[CONF_T_BASE] = DEFAULT_T_BASE
+          new_data[CONF_SOH_SENSOR] = DEFAULT_SOH_SENSOR
+          await hass.config_entries.async_update_entry(entry, data=new_data, version=CONFIG_VERSION)
+          return True
+      return False
+  ```
+- **Why**: This is a critical Home Assistant integration lifecycle bug. v2 → v3 migration WILL FAIL for users upgrading to this version. The missing `await` silently does nothing. Manual version mutation bypasses HA's persistence.
+- **Spec context**: M4.0.3 adds new config fields (`t_base`, `soh_sensor`). Existing users upgrading from v2 to v3 need migration to get these fields with safe defaults.
+- **Files affected**: `custom_components/ev_trip_planner/config_flow.py`
+- **Done when**: Return type is `bool`, `await` added, version passed to async_update_entry
+- **Verify**: Add a unit test calling `async_migrate_entry` with a v2 entry, verify it returns True and version is updated
+
+---
+
+Quality Gate QG18-3: Run `make test` — config_flow.py changes are critical (config entry migration). All 1822 tests must pass.
+
+---
+
+- [ ] T142 **emhass_adapter.py: Update stored baseline configuration values after change detection** — [GITO #15](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/emhass_adapter.py#L2438-L2467), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+In `_handle_config_entry_update`, the code compares current config options against `self._stored_*` attributes but never updates them after a change is detected. Subsequent updates compare against initial values, not previous ones, causing incorrect change detection.
+
+- **File**: `custom_components/ev_trip_planner/emhass_adapter.py` lines 2438-2467
+- **Current**: Detects `changed_params` but never sets `self._stored_charging_power_kw = new_charging_power`, etc.
+- **Fix**: After detecting each change, update the corresponding `_stored_*` attribute. Also reinitialize `self._battery_cap` if `t_base` or `soh_sensor` changes.
+- **Why**: Change detection must be incremental. Without updating stored values, the same change is always detected as "new" and previous changes are never tracked.
+- **Spec context**: T_base and SOH sensor are new M4.0.3 config options. If they change, `BatteryCapacity` must be recalculated.
+- **Files affected**: `custom_components/ev_trip_planner/emhass_adapter.py`
+- **Done when**: Each detected change updates its `_stored_*` attribute; battery cap reinitialized on t_base/soh changes
+
+- [ ] T143 **vehicle_controller.py: Fix non-idiomatic Python formatting** — [GITO #16](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/vehicle_controller.py), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Non-standard line breaks violate PEP 8: return type annotations (`None`, `bool`) split across multiple lines, simple conditionals unnecessarily wrapped, method signatures split unnecessarily.
+
+- **Files**: `custom_components/ev_trip_planner/vehicle_controller.py` (lines ~72-76, ~358-360, ~497-501, ~512-514, ~517-520)
+- **Current patterns**:
+  ```python
+  async def async_call_service(...) -> (
+      None
+  ):
+  ```
+  vs correct: `async def async_call_service(...) -> None:`
+- **Fix**: Consolidate return type annotations and simple conditionals to single lines per PEP 8
+- **Why**: PEP 8 is the Python standard. Non-idiomatic formatting increases visual noise and makes code harder to read. ruff will flag these as format violations.
+- **Files affected**: `custom_components/ev_trip_planner/vehicle_controller.py`
+- **Done when**: All return type annotations and simple conditionals follow PEP 8 single-line convention
+- **Verify**: `ruff format --check custom_components/ev_trip_planner/vehicle_controller.py` → 0 files to format
+
+---
+
+Quality Gate QG18-4: Run `make test` — vehicle_controller.py formatting only (no logic changes). All 1822 tests must pass.
+
+---
+
+- [ ] T144 **scripts/run-e2e-soc.sh: Fix typo in step counter [6/5] → [6/6]** — [GITO #18](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L138), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+The script prints `[6/5]` for the Playwright test step, but there are 6 steps total.
+
+- **File**: `scripts/run-e2e-soc.sh` line 138
+- **Current**: `echo "[6/5] Running Playwright E2E tests..."`
+- **Fix**: `echo "[6/6] Running Playwright E2E tests..."`
+- **Why**: Incorrect step count in progress indicator confuses users and indicates a copy-paste error.
+- **Files affected**: `scripts/run-e2e-soc.sh`
+
+- [ ] T145 **scripts/run-e2e-soc.sh: Remove unreachable code after exit** — [GITO #19](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L171-L174), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Lines 171-174 contain echo statements after `exit` on line 169. These are dead code.
+
+- **File**: `scripts/run-e2e-soc.sh` lines 171-174
+- **Current**: echo statements after `exit 0`
+- **Fix**: Remove the unreachable echo statements
+- **Why**: Dead code confuses maintainers who expect it to execute.
+- **Files affected**: `scripts/run-e2e-soc.sh`
+
+- [ ] T146 **scripts/run-e2e-soc.sh: Remove unused variable TEST_SUITE** — [GITO #20](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L26,L35), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+`TEST_SUITE` is initialized on line 26 and updated via CLI parsing on line 35, but never referenced or passed to any command.
+
+- **File**: `scripts/run-e2e-soc.sh` lines 26 and 35
+- **Current**: `TEST_SUITE="tests/e2e-dynamic-soc"` and `--suite) TEST_SUITE="tests/e2e-dynamic-soc" ;;`
+- **Fix**: Remove both the variable definition and the CLI argument handler (or wire it in if intended for future use — remove both for now)
+- **Why**: Unused variables increase maintenance burden and suggest incomplete implementation.
+- **Files affected**: `scripts/run-e2e-soc.sh`
+
+- [ ] T147 **scripts/run-e2e.sh: Fix incorrect step count in progress indicator** — [GITO #22](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e.sh#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+The echo at line 148 displays `"[6/5]"`. The script defines 6 distinct steps, but the indicator claims only 5 total.
+
+- **File**: `scripts/run-e2e.sh` line 148
+- **Current**: `echo "[6/5] Running Playwright E2E tests..."`
+- **Fix**: `echo "[6/6] Running Playwright E2E tests..."`
+- **Why**: Same as T144 — inconsistent step count in progress indicator.
+- **Files affected**: `scripts/run-e2e.sh`
+
+---
+
+Quality Gate QG18-5: Run `make e2e` and `make e2e-soc` — shell script changes affect the E2E runners.
+
+---
+
+- [ ] T148 **tests/conftest.py: Add None fallbacks for job.args and job.kwargs** — [GITO #23](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/conftest.py#L167-L169), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+
+`_mock_async_run_hass_job` assigns `job_args = job.args` and `job_kwargs = job.kwargs` without None fallbacks. If either is None, unpacking raises TypeError/AttributeError.
+
+- **File**: `tests/conftest.py` lines 167-169
+- **Current**: `job_args = job.args` / `job_kwargs = job.kwargs`
+- **Fix**: `job_args = job.args or ()` / `job_kwargs = job.kwargs or {}`
+- **Why**: Mock helpers must be robust against different HassJob instantiations where args/kwargs may be None.
+- **Files affected**: `tests/conftest.py`
+- **Done when**: No TypeError/AttributeError when job.args or job.kwargs is None
+
+- [ ] T149 **tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts: Fix .count().catch() TypeError** — [GITO #24](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts#L42), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+
+`locator.count()` is synchronous and returns a number. Calling `.catch()` on it throws `TypeError: Number.prototype.catch is not a function`. Appears on lines 42, 118, and 123.
+
+- **File**: `tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts` lines 42, 118, 123
+- **Current**: `await allConfigureBtns.count().catch(() => 0)`
+- **Fix**: `allConfigureBtns.count()` (synchronous return, no await, no .catch())
+- **Why**: .count() returns a number, not a Promise. The .catch() call crashes the test before any validation runs.
+- **Files affected**: `tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts`
+- **Done when**: All .count().catch() patterns replaced with plain .count()
+- **Verify**: `grep '.count().catch()' tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts` → no matches
+
+- [ ] T150 **tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts: Fix .count().catch() and polling logic bugs** — [GITO #25 + #26](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts#L117-L150), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL for #25), 2/2 (Winston=REAL, Amelia=REAL for #26)
+
+T150-1: `.count().catch()` on lines 117 and 121 — same as T149.
+
+T150-2: Polling logic in `changeTBaseViaUI` (lines 138-150) calls `page.evaluate()` without asserting its return value. `expect(async () => {...}).toPass()` passes immediately because `page.evaluate()` never throws — it resolves to a boolean. The retry/polling mechanism is completely bypassed.
+
+- **File**: `tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts` lines 117, 121, 138-150
+- **Fix for T150-1**: Replace `await configureBtn.count().catch(() => 0)` with `configureBtn.count()`
+- **Fix for T150-2**: Extract the `page.evaluate()` result into a variable and assert it:
+  ```typescript
+  const exists = await page.evaluate(() => { ... });
+  expect(exists).toBe(true);
+  ```
+- **Why**: T150-1 crashes the test. T150-2 makes the polling ineffective — the test proceeds to interact with stale configuration without waiting for it to propagate.
+- **Files affected**: `tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts`
+- **Done when**: .count().catch() patterns removed; polling logic properly asserts evaluate() result
+- **Verify**: `make e2e-soc`
+
+- [ ] T151 **tests/e2e-dynamic-soc/trips-helpers.ts: Fix invalid Playwright locator and page.once in loop** — [GITO #27 + #28](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/trips-helpers.ts#L226-L332), Classification: REAL_PROBLEM, Consensus: 1/1 (Winston=REAL for #27), 2/2 (Winston=REAL, Amelia=REAL for #28)
+
+T151-1: `locator('..')` on line 226 — Playwright does not support relative navigation with `..` in locator syntax. Throws runtime error.
+
+T151-2: `page.once('dialog', ...)` on lines 330-332 inside a for loop — the listener is removed after first invocation. On second iteration, no dialog handler is active, test hangs indefinitely.
+
+- **File**: `tests/e2e-dynamic-soc/trips-helpers.ts` lines 226 and 330-332
+- **Fix for T151-1**: `tripCard.locator('xpath=..').locator('.delete-btn').first()`
+- **Fix for T151-2**: Use `page.waitForEvent('dialog').then(dialog => dialog.accept())` or `page.on` with proper cleanup
+- **Why**: T151-1 crashes immediately. T151-2 causes test hangs on any iteration beyond the first dialog.
+- **Files affected**: `tests/e2e-dynamic-soc/trips-helpers.ts`
+- **Done when**: locator('..') replaced with xpath syntax; page.once replaced with proper event handling
+- **Verify**: `make e2e-soc`
+
+- [ ] T152 **tests/test_coordinator.py: Fix misleading comments with incorrect arithmetic** — [GITO #30](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_coordinator.py#L841-L842,L997-L1002), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+
+Comments claim `int(hours_needed) + 1 = 0` when hours_needed >= 0.1, and `0/0=0`. Both are mathematically incorrect and misleading.
+
+- **File**: `tests/test_coordinator.py` lines 841-842, 997-1002
+- **Current**: `int(hours_needed) + 1 = 0` and `0/0=0`
+- **Fix**: Replace with correct descriptions:
+  - `via the fallback path when trip_matrix remains empty after loop iterations`
+  - `kwh=0 triggers minimum hours_needed (0.1) → power_watts=0 → all-zero row → triggers fallback`
+- **Why**: Incorrect math in comments misleads developers debugging fallback paths.
+- **Files affected**: `tests/test_coordinator.py`
+
+- [ ] T153 **tests/test_emhass_index_persistence_bug.py: Fix comment that contradicts actual list order** — [GITO #32](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_emhass_index_persistence_bug.py#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Comment claims trips are published in 'orden cronológico' (chronological order), but the list comprehension preserves original insertion order, not chronological.
+
+- **File**: `tests/test_emhass_index_persistence_bug.py` line 148
+- **Current**: `# Publicar todos los viajes (en orden cronológico)`
+- **Fix**: `# Publicar todos los viajes (filtrado, mantiene orden de creación original)`
+- **Why**: Misleading comments about data ordering cause confusion when debugging index persistence.
+- **Files affected**: `tests/test_emhass_index_persistence_bug.py`
+
+- [ ] T154 **tests/test_entity_registry.py: Fix MockRegistry.async_get_or_create config_entry handling** — [GITO #33](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_entity_registry.py#L257-L259), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+MockRegistry stores the raw FakeEntry object in `config_entry_id` when `config_entry=` kwarg is passed, but comparison in `async_entries_for_config_entry` compares object to string.
+
+- **File**: `tests/test_entity_registry.py` lines 257-259
+- **Current**: `config_entry_id = kwargs.get("config_entry", kwargs.get("config_entry_id", ""))`
+- **Fix**:
+  ```python
+  config_entry_obj = kwargs.get("config_entry")
+  config_entry_id = kwargs.get("config_entry_id", "")
+  if config_entry_obj is not None:
+      config_entry_id = config_entry_obj.entry_id
+  ```
+- **Why**: Mock must accurately reflect Home Assistant's EntityRegistry behavior where config_entry object is extracted to its entry_id string.
+- **Files affected**: `tests/test_entity_registry.py`
+
+- [ ] T155 **tests/test_full_user_journey.py: Fix vacuous assertions** — [GITO #34](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_full_user_journey.py#L291), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Assertions `assert result is not None or result is None` (tautology, always True) on lines 291, 344, 383, 421, 450 and `assert True` on line 473. These disable test assertions entirely.
+
+- **File**: `tests/test_full_user_journey.py` lines 291, 344, 383, 421, 450, 473
+- **Current**: `assert result is not None or result is None` / `assert True`
+- **Fix**: `assert result is not None` (or `assert result` where appropriate) / `pass`
+- **Why**: Tautological assertions always pass, hiding real failures. A test with these assertions gives a false sense of coverage.
+- **Files affected**: `tests/test_full_user_journey.py`
+
+- [ ] T156 **tests/test_init.py: Fix broken assertion that creates a no-op tuple** — [GITO #35](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_init.py#L1399-L1405), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+A trailing comma makes the assertion evaluate to a tuple `(None, "...")` which is discarded. The `assert_called_once()` method doesn't accept a message argument, and the original comma-separated syntax makes the assertion a complete no-op.
+
+- **File**: `tests/test_init.py` lines 1399-1405
+- **Current**: `(mock_emhass_adapter.setup_config_entry_listener.assert_called_once(), (...),)`
+- **Fix**: `mock_emhass_adapter.setup_config_entry_listener.assert_called_once()`
+- **Why**: The test passes even if the listener is never called. This is a critical regression — if the listener isn't called, the integration silently breaks.
+- **Files affected**: `tests/test_init.py`
+
+- [ ] T157 **tests/test_panel_entity_id.py: Remove redundant duplicate condition** — [GITO #36](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_panel_entity_id.py#L153-L156), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+The boolean expression evaluates the exact same substring condition twice with `or` — a clear copy-paste error.
+
+- **File**: `tests/test_panel_entity_id.py` lines 153-156
+- **Current**: `"state.attributes?.vehicle_id" in renderemhass_section or "state.attributes?.vehicle_id" in renderemhass_section`
+- **Fix**: Remove the duplicate — keep just one check
+- **Why**: Duplicate condition masks the intended verification. The second check adds zero logical value and likely hides the real bug.
+- **Files affected**: `tests/test_panel_entity_id.py`
+
+- [ ] T158 **tests/test_power_profile_tdd.py: Fix test that validates empty trips instead of multiple trips** — [GITO #37](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_power_profile_tdd.py#L166-L183), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Test `test_generar_perfil_multiples_viajes` is named to verify multiple-trip accumulation but mocks `_async_load_trips` to return an empty list.
+
+- **File**: `tests/test_power_profile_tdd.py` lines 166-183
+- **Current**: `trip_manager._async_load_trips = AsyncMock(return_value=[])`
+- **Fix**: Return multiple trips:
+  ```python
+  trip_manager._async_load_trips = AsyncMock(return_value=[
+      {"kwh": 10.0, "datetime": dt_util.now() + timedelta(hours=2)},
+      {"kwh": 15.0, "datetime": dt_util.now() + timedelta(hours=5)},
+  ])
+  ```
+  Assert that power is applied to specific hours for both trips.
+- **Why**: The test claims to test multi-trip accumulation but actually tests the empty-trip path. This leaves a gap in test coverage.
+- **Files affected**: `tests/test_power_profile_tdd.py`
+
+- [ ] T159 **tests/test_propagate_charge_integration.py: Remove duplicate assertion block** — [GITO #39](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_propagate_charge_integration.py#L183-L185), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+
+The assertion `'power_profile_watts' in cache1` is duplicated on consecutive lines.
+
+- **File**: `tests/test_propagate_charge_integration.py` lines 183-185
+- **Fix**: Remove the duplicate assertion
+- **Why**: Redundant assertions serve no testing purpose and increase maintenance burden.
+- **Files affected**: `tests/test_propagate_charge_integration.py`
+
+- [ ] T160 **tests/test_sensor_coverage.py: Fix anti-pattern — test implementation details instead of calling method** — [GITO #40](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L142-L147), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Test manually duplicates internal conditional logic of `async_will_remove_from_hass` instead of invoking the method directly. Tests implementation details, not behavior.
+
+- **File**: `tests/test_sensor_coverage.py` lines 142-147
+- **Current**: `if hasattr(mock_trip_manager, "_emhass_adapter"): await mock_trip_manager._emhass_adapter.async_cleanup_vehicle_indices()`
+- **Fix**: Instantiate the sensor, call `await sensor.async_will_remove_from_hass()`, then assert the mocked behavior.
+- **Why**: Testing implementation details makes tests fragile to refactoring.
+- **Files affected**: `tests/test_sensor_coverage.py`
+
+- [ ] T161 **tests/test_sensor_coverage.py: Add missing assertions in exception handling test** — [GITO #41](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L182-L186), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Test invokes `_async_create_trip_sensors` but lacks assertions to verify the expected outcome (empty list returned).
+
+- **File**: `tests/test_sensor_coverage.py` lines 182-186
+- **Current**: Only invokes the function, no assertion
+- **Fix**: `result = await _async_create_trip_sensors(...)`, then `assert result == []`
+- **Why**: Without assertions, a future regression where the function raises unhandled exceptions would cause the test to silently pass.
+- **Files affected**: `tests/test_sensor_coverage.py`
+
+- [ ] T162 **tests/test_services_core.py: Fix incorrect mock type for async method async_remove** — [GITO #43](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_services_core.py#L969), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+`mock_store.async_remove` is mocked with `MagicMock` instead of `AsyncMock`. `Store.async_remove()` is an async method — awaiting a MagicMock result raises TypeError.
+
+- **File**: `tests/test_services_core.py` lines 969, 1069-1070, 1089, 1117, 1138, 1160, 1776 (7 occurrences)
+- **Current**: `mock_store.async_remove = MagicMock()`
+- **Fix**: `mock_store.async_remove = AsyncMock()` (or `AsyncMock(side_effect=...)` where applicable)
+- **Why**: Awaiting a non-coroutine MagicMock raises TypeError. All 7 occurrences must be fixed.
+- **Files affected**: `tests/test_services_core.py`
+- **Done when**: grep shows no remaining `async_remove = MagicMock` in the file
+- **Verify**: `python3 -m pytest tests/test_services_core.py -q` → no TypeError
+
+---
+
+Quality Gate QG18-6: Run `make test` after all test code fixes. All 1822 tests must pass.
+
+---
+
+- [ ] T163 **tests/test_soc_100_propagation_bug_pending.py: Fix docstrings that incorrectly state test must fail** — [GITO #45](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L1-L15,L26-L27,L52-L63), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Module docstring (lines 1-15), class docstring (lines 26-27), and method docstring (lines 52-63) state the test "DEBE FALLAR" (must fail). But the implementation asserts proactive charging success (`assert def_hours > 0`). Contradiction confuses maintainers and CI/CD.
+
+- **File**: `tests/test_soc_100_propagation_bug_pending.py` lines 1-15, 26-27, 52-63
+- **Current**: "TEST QUE DEBE FALLAR", "Test que DEBE FALLAR por el bug", "TEST QUE DEBE FALLAR - Reproduce el reporte exacto"
+- **Fix**: Update docstrings to accurately describe the test as verifying proactive charging behavior at SOC 100%. If the test is intentionally pending, add `pytest.mark.xfail` with a clear reason.
+- **Why**: Misleading docstrings signal false CI status and confuse future maintainers.
+- **Files affected**: `tests/test_soc_100_propagation_bug_pending.py`
+
+- [ ] T164 **tests/test_soc_100_propagation_bug_pending.py: Fix confusing comparison in print statement** — [GITO #46](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L141-L143), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+
+Print statement compares `SOC 100% > 33 kWh` — comparing a state of charge percentage to an absolute energy value. Logically flawed and confusing.
+
+- **File**: `tests/test_soc_100_propagation_bug_pending.py` line 142
+- **Current**: `"- El primer viaje (30 kWh): SOC 100% > 33 kWh → carga proactiva = 30 kWh"`
+- **Fix**: `"- El primer viaje (30 kWh): Capacidad total (50 kWh) > 33 kWh → carga proactiva = 30 kWh"`
+- **Why**: Comparing percentage to energy (kWh) is logically inconsistent. Reference actual battery capacity.
+- **Files affected**: `tests/test_soc_100_propagation_bug_pending.py`
+
+- [ ] T165 **tests/test_trip_manager_datetime_tz.py: Align function name with docstring** — [GITO #49](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_trip_manager_datetime_tz.py#L21-L26), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+
+GITO classified as FALSE_POSITIVE: naming inconsistency doesn't affect code correctness. The docstring correctly describes the test intent (testing tz-aware datetime handling).
+
+- **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
+
+- [ ] T166 **tests/test_trip_manager_datetime_tz.py: Remove hardcoded line numbers from docstrings** — [GITO #50](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_trip_manager_datetime_tz.py#L65-L70), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+
+GITO classified as FALSE_POSITIVE: hardcoded line numbers are style, not correctness.
+
+- **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
+
+- [ ] T167 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: Fix misleading module docstring** — [GITO #51](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests_excluded_from_mutmut/test_vehicle_controller_event.py#L3-L4), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+
+GITO classified as FALSE_POSITIVE: misleading phrasing in docstring is style, not correctness.
+
+- **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
+
+- [ ] T168 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: Remove duplicated test logic** — [GITO #52](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests_excluded_from_mutmut/test_vehicle_controller_event.py), Classification: REAL_PROBLEM, Consensus: 1/2 split (Winston=REAL, Amelia=FALSE)
+
+Two test functions (`test_event_data_extraction_uses_event_data_get` and `test_ha_event_object_structure`) perform identical assertions. Duplicated test logic increases maintenance burden for zero additional coverage.
+
+- **File**: `tests_excluded_from_mutmut/test_vehicle_controller_event.py`
+- **Issue**: Both tests assert the same `event.get()` behavior with identical setup
+- **Fix**: Consolidate into a single comprehensive test, or remove one if it provides no unique coverage
+- **Why**: Duplicated assertions serve no defensive purpose. Each additional test that asserts the same thing increases maintenance burden without increasing confidence.
+- **Files affected**: `tests_excluded_from_mutmut/test_vehicle_controller_event.py`
+- **Done when**: Only one test function with comprehensive assertions remains
+- **Verify**: `make test` still passes with one fewer test
+
+---
+
+Quality Gate QG18-7: FINAL Quality Gate — all GITO REAL fixes complete.
+
+- [x] T169 [VERIFY] **Final Quality Gate for Phase 18 — 0 warnings, 100% coverage, all tests pass, all E2E pass, mypy clean, ruff clean**
+
+This is the FINAL verification task for Phase 18. All previous tasks must be complete before this runs.
+
+- Done when:
+  1. `python3 -m pytest tests/ -W error::RuntimeWarning -q 2>&1 | tail -3` → 0 RuntimeWarning
+  2. `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → 0 failed
+  3. `ruff check custom_components/ tests/ 2>&1 | tail -3` → 0 errors
+  4. `ruff format --check custom_components/ tests/ 2>&1 | tail -3` → 0 files to format
+  5. `python3 -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -q 2>&1 | grep "TOTAL"` → 100%
+  6. `make e2e 2>&1 | tail -10` → all E2E tests pass (requires HA container)
+  7. `make e2e-soc 2>&1 | tail -10` → all E2E-SOC tests pass (requires HA container)
+  8. `python3 -m mypy custom_components/ev_trip_planner/ --config-file pyproject.toml 2>&1 | tail -5` → 0 errors
+- Verify: `make test` + quality-gate skill checkpoint JSON = PASS

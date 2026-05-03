@@ -92,7 +92,6 @@ playwright-results.xml
 ui-map.local.md
 .claude/playwright-env.local.md
 playwright-env.local.md
-doc/## Test Failure Review Protocol (MANDATO.md
 .qwen/settings.json
 .qwen/settings.json.orig
 .claude/settings copy.json
@@ -115,3 +114,7 @@ _bmad-output/
 .roomodes
 mutants/
 plans
+gito-classification-final.md
+code-review-report.md
+code-review-report.json
+gito-classification-results.json
