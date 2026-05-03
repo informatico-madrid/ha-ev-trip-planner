@@ -220,6 +220,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.23] - 2026-05-03 - Dynamic SOC Capping for Battery Health (M4.0.3 COMPLETED)
+
+### Added
+- **Dynamic SOC Capping algorithm** — Intelligent battery health optimization that limits charging based on degradation risk
+  - `calculate_dynamic_soc_limit(t_hours, soc_post_trip, t_base)` — Core algorithm
+  - Formula: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+  - Lower risk when post-trip SOC is below 35% (sweet spot) → allows 100%
+  - Gradual relaxation: 72h away → ~85%, 24h → ~90%, 2h → ~100%
+  - Never exceeds trip requirements — safety-first: `min(required_soc, dynamic_limit)`
+- **BatteryCapacity class** (`calculations.py`) — SOH-aware battery capacity tracking
+  - Reads SOH from user-configurable HA sensor
+  - 5-minute cache with hysteresis fallback
+  - Graceful degradation: nominal capacity when SOH unavailable
+  - SOH clamped to [10, 100]% range
+- **Deficit propagation with SOC caps** — `calculate_deficit_propagation()` now accepts optional `soc_caps` parameter
+  - Backward and forward propagation respects dynamic SOC limits per trip
+  - Backward compatible: works identically when `soc_caps=None`
+  - Uses `soc_objetivo_final = min(soc_objetivo_ajustado, soc_cap)` in both propagation directions
+- **Config flow: T_base slider** (Battery Health step)
+  - Slider: 6h to 48h, default 24h
+  - Validation error for values outside range
+  - Persists in entry data, editable via options flow
+- **Config flow: SOH sensor selector** — Optional sensor entity for battery State of Health (%)
+- **Config flow: SOC base selector** — Configurable battery sweet spot (default 35%)
+- **Config version migration** v2→v3: Adds `t_base=24.0`, `soh_sensor=""`, `soc_base=35.0` to existing entries
+
+### Changed
+- **SOC calculation in deficit propagation** — Now applies dynamic SOC caps when `soc_caps` available
+  - `calcular_hitos_soc()` computes per-trip dynamic limits before deficit propagation
+  - EMHASS adapter uses pre-computed `soc_caps_by_id` for accurate energy estimates
+- **Charging power update propagation** — SOC-cap-aware when publishing to EMHASS
+
+### Fixed
+- **Structurally unreachable code** — Removed dead `# pragma: no cover` block in `coordinator.py` (lines 282-288)
+  - Fallback loop could never fill timesteps when the primary loop already failed
+  - Reduced from 107 to 104 statements, still 100% coverage
+- **RuntimeWarning: coroutine never awaited** — Reverted incorrect `await` on `@callback` methods
+  - `async_set()`, `async_remove()`, `registry.async_remove()` are sync `@callback` methods
+  - Fixed test fixtures to model `@callback` correctly (remove async from mock functions)
+  - Set `asyncio_default_fixture_loop_scope = "function"` in pyproject.toml
+- **Coordinator coverage regression** — `_generate_mock_emhass_params()` restored to 100% coverage via test
+
+### Technical Details
+- **Files Modified**:
+  - `calculations.py` — `BatteryCapacity` class, `calculate_dynamic_soc_limit()`, `calculate_deficit_propagation(t_base, soc_caps)`
+  - `trip_manager.py` — `calcular_hitos_soc()` with SOC cap pre-computation
+  - `config_flow.py` — T_base slider, SOH sensor selector, config migration v2→v3
+  - `emhass_adapter.py` — SOC cap usage in per-trip emission, pre-computed caps integration
+  - `const.py` — `CONF_T_BASE`, `CONF_SOC_BASE`, `CONF_SOH_SENSOR`, `DEFAULT_T_BASE`, etc.
+  - `coordinator.py` — Removed dead code pragma block
+  - `pyproject.toml` — asyncio fixture scope, deprecation filters, coverage gate
+  - `conftest.py` — `@callback` mock corrections
+- **Test Coverage**: 1822 tests passing, 1 skipped, 100% coverage, 0 RuntimeWarnings
+- **New Test Files**: `test_coordinator.py` (25 tests), `test_dynamic_soc_capping.py`
+- **Spec**: `specs/m403-dynamic-soc-capping/` — 136 tasks completed
+
+---
+
 ## [Unreleased]
 
 ### Fixed

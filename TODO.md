@@ -1,7 +1,7 @@
 # TODO / BACKLOG — EV Trip Planner
 
-> **Last updated**: 2026-04-09  
-> **Current version**: 0.4.1-dev (branch `feat/solid-refactor-coverage`)  
+> **Last updated**: 2026-05-03
+> **Current version**: 0.5.23
 > This file reflects the actual project state. For detailed milestone plans, see docs in `docs/`.
 
 ---

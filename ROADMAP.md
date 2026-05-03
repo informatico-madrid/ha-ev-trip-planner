@@ -2,10 +2,10 @@
 
 ## 📊 Project Status
 
-**Current version**: 0.5.20
+**Current version**: 0.5.23
 **Development phase**: Milestone 4.0.1 hotfixes planned — M4 core features fully implemented
 **Target Release**: v1.0.0 (Q2 2026)
-**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) passing
+**Tests**: 1822 Python (pytest) + 40 E2E (Playwright) passing
 **Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1
 **Detected gaps**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)
 
@@ -86,6 +86,19 @@
 - Enhanced EMHASS aggregated sensor with `p_deferrable_matrix` attribute
 - PR #26 merged (m401-emhass-per-trip-sensors branch)
 - CHANGELOG: [0.5.21]
+
+### Milestone 4.0.3: Dynamic SOC Capping for Battery Health (May 3, 2026)
+- **Dynamic SOC capping algorithm**: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+  - Gradual relaxation: distant trips → lower limit, imminent trips → 100%
+  - Never exceeds trip requirements: `min(required_soc, dynamic_limit)`
+- **BatteryCapacity class**: SOH-aware battery capacity from HA sensor, 5-min cache, graceful fallback
+- **Deficit propagation with SOC caps**: Backward/forward propagation respects dynamic limits per trip
+- **Config flow**: T_base slider (6-48h, default 24h), SOH sensor selector, SOC base selector
+- **Config migration**: v2→v3 adds `t_base`, `soh_sensor`, `soc_base` to existing entries
+- **RuntimeWarning fix**: Reverted incorrect `await` on `@callback` methods, fixed test fixtures
+- **Dead code removal**: Removed structurally unreachable pragma block from coordinator.py
+- **136 TDD tasks completed**, 1822 tests passing, 1 skipped, 100% coverage, 0 RuntimeWarnings
+- CHANGELOG: [0.5.23]
 
 ---
 
@@ -175,12 +188,13 @@
 
 ---
 
-## 🔋 Immediately After M4.0.2: Milestone 4.0.3 — Dynamic SOC Capping
+## 🔋 Immediately After M4.0.2: Milestone 4.0.3 — Dynamic SOC Capping ✅ COMPLETED
 
-**Status**: 📋 PLANNED — not started
+**Status**: ✅ COMPLETED — 2026-05-03
 **Priority**: P1 - Battery Health & Cost Optimization
-**Target**: v0.5.23
-**Documentation**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md#5-dynamic-soc-capping-for-battery-health-medium-priority-)
+**Target**: v0.5.23 (achieved)
+**Spec**: [`specs/m403-dynamic-soc-capping/`](specs/m403-dynamic-soc-capping/)
+**136 tasks completed**, 1822 tests passing, 100% coverage
 
 ### Planned Features
 
@@ -391,9 +405,7 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 4. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
 
-5. **⚠️ No Dynamic SOC Capping (Battery Health)**: Current implementation always targets 100% SOC or uses fixed caps. There is no algorithm to dynamically limit SOC based on time until trip (e.g., 80% for trips in 3 days, 90% for trips in 24h, 100% for imminent trips). This impacts battery longevity and charging cost optimization. **Planned for Milestone 4.0.3**.
-
-   **Compatibility**: The new algorithm is **fully compatible** with the existing deficit propagation system. It adds a `soc_limite = min(soc_objetivo_ajustado, dynamic_limit)` at [`calculations.py:~800`](custom_components/ev_trip_planner/calculations.py). Trip requirements always override battery health limits.
+5. **✅ Dynamic SOC Capping COMPLETED in M4.0.3**: The algorithm is now fully implemented. Users can configure `t_base` (6-48h), SOH sensor, and SOC base. The dynamic limit follows: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`. Trips always succeed regardless of dynamic limits.
 
 6. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
 
