@@ -17,7 +17,7 @@ Este test usa DATOS REALES y muestra:
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import Mock, AsyncMock
 from homeassistant.core import HomeAssistant
 
 
@@ -79,7 +79,6 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
 
     ========================================================================
     """
-    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from custom_components.ev_trip_planner.calculations import (
         generate_deferrable_schedule_from_trips,
     )
@@ -144,7 +143,7 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         first_slot = schedule[0]
         first_slot_time = datetime.fromisoformat(first_slot["date"])
 
-        print(f"\n📊 SCHEDULE GENERADO (Datos que salen del sistema):")
+        print("\n📊 SCHEDULE GENERADO (Datos que salen del sistema):")
         print(f"   Slot 0 empieza: {first_slot_time.strftime('%H:%M')} UTC")
         print(f"   Hora actual: {current_time_utc.strftime('%H:%M')} UTC")
         print(
@@ -155,7 +154,7 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         # ASSERT - VERIFICACIÓN DEL BUG
         # ============================================================
 
-        print(f"\n" + "=" * 80)
+        print("\n" + "=" * 80)
         print("❌ BUG CONFIRMADO")
         print("=" * 80)
 
@@ -164,27 +163,27 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         expected_first_slot_hour = 13  # 13:00 UTC
         actual_first_slot_hour = first_slot_time.hour
 
-        print(f"\n📌 EXPECTATIVA:")
+        print("\n📌 EXPECTATIVA:")
         print(f"   Hora actual: {current_time_utc.strftime('%H:%M')} UTC")
         print(f"   Primer slot DEBERÍA ser: {expected_first_slot_hour}:00 UTC")
-        print(f"   (Redondear a la siguiente hora completa)")
+        print("   (Redondear a la siguiente hora completa)")
 
-        print(f"\n📌 REALIDAD:")
+        print("\n📌 REALIDAD:")
         print(f"   Primer slot ES: {actual_first_slot_hour}:00 UTC")
-        print(f"   ❌ El slot es la hora actual TRUNCADA, no la siguiente")
+        print("   ❌ El slot es la hora actual TRUNCADA, no la siguiente")
 
-        print(f"\n📌 RESULTADO:")
+        print("\n📌 RESULTADO:")
         time_passed = (current_time_utc - first_slot_time).total_seconds() / 60
         print(f"   El primer slot empezó hace {time_passed:.0f} minutos")
-        print(f"   ❌ ¡El slot ya pasó! Estás viendo datos obsoletos.")
+        print("   ❌ ¡El slot ya pasó! Estás viendo datos obsoletos.")
 
-        print(f"\n✅ TEST CONFIRMA TU BUG:")
+        print("\n✅ TEST CONFIRMA TU BUG:")
         print(
             f"   - El sensor muestra datos obsoletos (slot de hace {time_passed:.0f} minutos)"
         )
-        print(f"   - Tú ves 'una ventana de aquí a dos horas'")
-        print(f"   - Pero el primer slot ya pasó")
-        print(f"   - El cache NO se regenera automáticamente")
+        print("   - Tú ves 'una ventana de aquí a dos horas'")
+        print("   - Pero el primer slot ya pasó")
+        print("   - El cache NO se regenera automáticamente")
 
         # ============================================================
         # ASSERT - CONFIRMACIÓN DEL BUG
@@ -196,7 +195,7 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         )
 
         # El slot ya pasó (hace 58 minutos)
-        assert time_passed == 58, f"El slot empezó hace 58 minutos"
+        assert time_passed == 58, "El slot empezó hace 58 minutos"
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ Estos tests verifican ese requisito sin preocuparse por el flujo interno.
 """
 
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import Mock, AsyncMock, MagicMock
 from homeassistant.core import HomeAssistant, CoreState
 

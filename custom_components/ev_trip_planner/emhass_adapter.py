@@ -655,8 +655,9 @@ class EMHASSAdapter:
             deadline_dt = now
 
         def_start_timestep = 0
+        delta_hours: float = 0.0
+        charging_windows: list[dict[str, Any]] = []
         if pre_computed_inicio_ventana is not None:
-            # Use pre-computed inicio_ventana from batch calculation
             delta_hours = (
                 _ensure_aware(pre_computed_inicio_ventana) - now
             ).total_seconds() / 3600
@@ -721,7 +722,7 @@ class EMHASSAdapter:
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
         # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
-        if pre_computed_inicio_ventana is None and "delta_hours" in locals():
+        if pre_computed_inicio_ventana is None and "delta_hours" in locals() and delta_hours is not None:
             if delta_hours <= 168 and def_start_timestep >= def_end_timestep:
                 def_start_timestep = max(0, def_end_timestep - 1)
 
@@ -732,6 +733,7 @@ class EMHASSAdapter:
 
         # T062/T063: Apply dynamic SOC cap to reduce kwh_needed
         # If a soc_cap < 100% is provided, proportionally reduce energy needed
+        cap_ratio: float = 1.0
         if soc_cap is not None and soc_cap < 100.0:
             cap_ratio = soc_cap / 100.0
             kwh_needed = kwh_needed * cap_ratio
@@ -1077,8 +1079,9 @@ class EMHASSAdapter:
                     charging_power_kw,
                     self._safety_margin_percent,
                 )
-                trip_def_total_hours[trip_id] = decision.def_total_hours
-                ordered_trip_ids.append(trip_id)
+                ordered_trip_ids.append(trip_id)  # pyright: ignore[reportArgumentType]
+                if trip_id:
+                    trip_def_total_hours[trip_id] = decision.def_total_hours
                 projected_soc = getattr(
                     decision,
                     "projected_soc",
@@ -1087,10 +1090,10 @@ class EMHASSAdapter:
 
             # Run propagation on batch windows in the same order they were computed.
             window_list = [batch_charging_windows[tid] for tid in ordered_trip_ids]
-            def_total_hours_list = [
-                trip_def_total_hours.get(
-                    tid, batch_charging_windows[tid].get("horas_carga_necesarias", 0.0)
-                )
+            def_total_hours_list: list[float] = [
+                float(trip_def_total_hours.get(
+                    tid, batch_charging_windows[tid].get("horas_carga_necesarias", 0.0) or 0.0
+                ))
                 for tid in ordered_trip_ids
             ]
             enriched_windows = calculate_hours_deficit_propagation(
@@ -1121,6 +1124,8 @@ class EMHASSAdapter:
         )
 
         for item in trips_to_process:
+            trip_id: str | None = None
+            trip: dict[str, Any] = {}
             if trip_deadlines:
                 # Unpack (trip_id, deadline_dt, trip) from trip_deadlines
                 trip_id, deadline_dt, trip = item
@@ -1130,6 +1135,9 @@ class EMHASSAdapter:
                 deadline_dt = None
                 if not trip_id:
                     continue
+
+            # Type narrow: trip_id is guaranteed to be str after the above guards
+            assert isinstance(trip_id, str)
 
             # Get batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
@@ -2144,8 +2152,8 @@ class EMHASSAdapter:
                     )
 
         # Clear the main vehicle sensor from registry
+        main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
         try:
-            main_sensor_id = f"sensor.emhass_perfil_diferible_{self.entry_id}"
             registry.async_remove(main_sensor_id)
         except Exception as err:  # Entity may not exist or already removed
             _LOGGER.debug(

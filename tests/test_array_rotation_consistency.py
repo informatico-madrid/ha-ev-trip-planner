@@ -9,7 +9,6 @@ Esto sugiere que def_total_hours_array SÍ rotó pero def_start_timestep_array N
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter

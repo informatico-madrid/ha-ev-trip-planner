@@ -15,6 +15,8 @@ from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
+    CONF_T_BASE,
+    CONF_SOH_SENSOR,
 )
 
 
@@ -303,40 +305,6 @@ async def test_update_charging_power_handles_missing_entry(
 # ============================================================================
 # T066 Coverage: Tests for 4 missing lines in emhass_adapter.py
 # ============================================================================
-
-from unittest.mock import patch, AsyncMock, MagicMock
-import pytest
-from homeassistant.core import HomeAssistant
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_MAX_DEFERRABLE_LOADS,
-    CONF_CHARGING_POWER,
-    CONF_T_BASE,
-    CONF_SOH_SENSOR,
-)
-
-
-@pytest.fixture
-def mock_store():
-    """Create a mock store for testing."""
-    store = MagicMock()
-    store.async_load = AsyncMock(return_value=None)
-    store.async_save = AsyncMock(return_value=None)
-    return store
-
-
-@pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance."""
-    hass = MagicMock()
-    hass.config_entries = MagicMock()
-    hass.bus = MagicMock()
-    hass.states = MagicMock()
-    hass.states.async_remove = MagicMock(return_value=None)
-    hass.states.async_get = MagicMock(return_value=None)
-    hass.states.async_set = MagicMock(return_value=None)
-    return hass
 
 
 @pytest.mark.asyncio

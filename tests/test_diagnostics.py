@@ -1,7 +1,7 @@
 """Tests for diagnostics module."""
 
 import pytest
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.diagnostics import (
     REDACT_KEYS,

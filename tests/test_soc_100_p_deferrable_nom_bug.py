@@ -11,8 +11,7 @@ Esto es exactamente lo que reportó el usuario:
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
@@ -100,11 +99,12 @@ class TestSOC100PDeferrableNomBug:
             },
         ]
 
-        # Configuración con SOC 100%
-        battery_capacity = 50.0
-        soc_current = 100.0  # SOC al 100%
+        # Configuración con SOC 100% (stored but test validates via adapter output)
+        # Config values used in EMHASS output verification (not local computation)
+        _battery_capacity = 50.0
+        _soc_current = 100.0  # SOC al 100%
         charging_power_kw = 3.4
-        safety_margin = 10.0
+        _safety_margin = 10.0
 
         # Crear adapter
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -170,7 +170,7 @@ class TestSOC100PDeferrableNomBug:
 
         # Si no detectamos el bug, forzar el test a fallar con un mensaje claro
         if not bug_detectado:
-            print(f"\n⚠️  No se detectó el bug P_deferrable_nom en esta ejecución")
+            print("\n⚠️  No se detectó el bug P_deferrable_nom en esta ejecución")
             print("   Intentando con un escenario más específico...")
 
             # Forzar el bug publicando individualmente
@@ -246,7 +246,7 @@ class TestSOC100PDeferrableNomBug:
             safety_margin_percent=safety_margin,
         )
 
-        print(f"=== VIAJE PUNTUAL ===")
+        print("=== VIAJE PUNTUAL ===")
         print(f"Viaje: {trip['kwh']} kWh")
         print(
             f"Cálculo individual: energía = {energy_info['energia_necesaria_kwh']} kWh, horas = {energy_info['horas_carga_necesarias']}"
@@ -287,7 +287,7 @@ class TestSOC100PDeferrableNomBug:
             def_hours = params.get("def_total_hours", 0)
             power_nom = params.get("P_deferrable_nom", 0.0)
 
-            print(f"Resultados en caché:")
+            print("Resultados en caché:")
             print(f"  def_total_hours: {def_hours}")
             print(f"  P_deferrable_nom: {power_nom} W")
 

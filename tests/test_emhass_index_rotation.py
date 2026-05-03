@@ -14,7 +14,6 @@ no por orden CRONOLÓGICO.
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -69,8 +68,6 @@ class TestEMHASSIndexRotation:
         - Índice 1: Miércoles (segundo, incorrecto)
         ...
         """
-        now = datetime.now(timezone.utc)
-
         # Crear 5 viajes en orden CRONOLÓGICO (Miércoles → Domingo)
         trips_chronological = [
             {

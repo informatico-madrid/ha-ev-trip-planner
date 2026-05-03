@@ -20,7 +20,6 @@ BatteryCapacity (T016) tests the new abstraction.
 
 from __future__ import annotations
 
-import math
 
 import pytest
 
@@ -393,7 +392,7 @@ class TestDynamicSOCCapping:
 
     def test_battery_capacity_cache_ttl(self) -> None:
         """BatteryCapacity caches SOH reads with 5-min TTL."""
-        from unittest.mock import MagicMock, PropertyMock
+        from unittest.mock import MagicMock
 
         from custom_components.ev_trip_planner.calculations import BatteryCapacity
 

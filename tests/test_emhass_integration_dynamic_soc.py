@@ -18,16 +18,12 @@ Each test verifies a specific wiring target:
 
 from __future__ import annotations
 
-import asyncio
-import sys
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from homeassistant.util import dt as dt_util
 
-from custom_components.ev_trip_planner.calculations import BatteryCapacity
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 

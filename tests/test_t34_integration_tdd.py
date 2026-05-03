@@ -62,7 +62,7 @@ class TestT34_Integration:
         # Arrange - Create a recurring trip that should rotate (past Monday)
         # Use a dynamically computed past Monday
         past_monday = _past_datetime_for_weekday(1)  # 1=Monday
-        next_monday = _next_weekday_from_now(1)  # Next Monday from now
+        _next_monday = _next_weekday_from_now(1)  # noqa: F841 — next Monday reference
 
         recurring_trip = {
             "id": "rec_test_1",

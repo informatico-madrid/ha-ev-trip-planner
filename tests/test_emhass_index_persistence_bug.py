@@ -10,7 +10,6 @@ Bug real:
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -195,7 +194,7 @@ class TestEMHASSIndexPersistenceBug:
         # El primer valor (índice 0) debería ser ~70 (Miércoles)
         if def_start_array[0] > 100:  # Más de 100 horas = más de 4 días
             print(f"❌ BUG: def_start[0]={def_start_array[0]} (índice 0)")
-            print(f"   El primer viaje debería ser Miércoles con def_start ~70")
+            print("   El primer viaje debería ser Miércoles con def_start ~70")
             bugs_detectados.append(
                 {
                     "bug": "first_trip_wrong",
@@ -208,7 +207,7 @@ class TestEMHASSIndexPersistenceBug:
         # Verificar que el último valor es el Domingo (>100 horas)
         if def_start_array[-1] < 100:
             print(f"❌ BUG: El último viaje tiene def_start={def_start_array[-1]}")
-            print(f"   Debería ser Domingo con def_start > 100")
+            print("   Debería ser Domingo con def_start > 100")
             bugs_detectados.append(
                 {
                     "bug": "last_trip_wrong",

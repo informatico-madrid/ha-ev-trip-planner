@@ -3188,5 +3188,5 @@ class TestCalculateNextRecurringDatetimeTimezone:
 
         # Patch ZoneInfo inside the calculations module
         with patch("zoneinfo.ZoneInfo", broken_zoneinfo):
-            result = calculate_next_recurring_datetime(0, "09:00", tz="Europe/Madrid")
+            calculate_next_recurring_datetime(0, "09:00", tz="Europe/Madrid")
             # Should not raise — fallback to None tz (UTC behavior)

@@ -2202,7 +2202,7 @@ class TripManager:
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
-        return results
+        return results  # pyright: ignore[reportPossiblyUnboundVariable]
 
     async def async_generate_power_profile(
         self,

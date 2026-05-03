@@ -1238,9 +1238,10 @@ async def async_register_static_paths(
     lit_bundle_path = component_dir / "frontend" / "lit-bundle.js"
 
     static_paths: list[Any] = []
+
     if panel_js_path.exists():
         static_paths.append(
-            StaticPathConfig(
+            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]  # pyright: ignore[reportPossiblyUnboundVariable]
                 "/ev-trip-planner/panel.js",
                 str(panel_js_path),
                 cache_headers=False,
@@ -1250,7 +1251,7 @@ async def async_register_static_paths(
         )
     if lit_bundle_path.exists():
         static_paths.append(
-            StaticPathConfig(
+            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]
                 "/ev-trip-planner/lit-bundle.js",
                 str(lit_bundle_path),
                 cache_headers=False,
@@ -1260,7 +1261,7 @@ async def async_register_static_paths(
         )
     if panel_css_path.exists():
         static_paths.append(
-            StaticPathConfig(
+            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]
                 "/ev-trip-planner/panel.css",
                 str(panel_css_path),
                 cache_headers=False,

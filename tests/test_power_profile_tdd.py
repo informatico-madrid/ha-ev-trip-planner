@@ -173,8 +173,24 @@ class TestGenerarPerfilPotencia:
         # Mock _async_load_trips para devolver viajes reales
         trip_manager._async_load_trips = AsyncMock(
             return_value=[
-                {"id": "test1", "tipo": "puntual", "datetime": "2026-05-10T08:00", "km": 50, "kwh": 7.5, "descripcion": "test trip", "status": "pendiente"},
-                {"id": "test2", "tipo": "puntual", "datetime": "2026-05-10T18:00", "km": 30, "kwh": 4.5, "descripcion": "test trip 2", "status": "pendiente"},
+                {
+                    "id": "test1",
+                    "tipo": "puntual",
+                    "datetime": "2026-05-10T08:00",
+                    "km": 50,
+                    "kwh": 7.5,
+                    "descripcion": "test trip",
+                    "status": "pendiente",
+                },
+                {
+                    "id": "test2",
+                    "tipo": "puntual",
+                    "datetime": "2026-05-10T18:00",
+                    "km": 30,
+                    "kwh": 4.5,
+                    "descripcion": "test trip 2",
+                    "status": "pendiente",
+                },
             ]
         )
 

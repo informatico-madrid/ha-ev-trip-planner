@@ -676,7 +676,6 @@ async def test_t_base_persists_in_entry_data():
 
     from custom_components.ev_trip_planner.const import (
         CONF_T_BASE,
-        DEFAULT_T_BASE,
     )
 
     flow = EVTripPlannerFlowHandler()
@@ -808,7 +807,7 @@ async def test_soh_sensor_selector_in_sensors_step():
     import voluptuous as vol
 
     # CONF_SOH_SENSOR should be an Optional key in the sensors schema
-    soh_key = vol.Optional(CONF_SOH_SENSOR)
+    vol.Optional(CONF_SOH_SENSOR)  # noqa: F841 — used for schema introspection
     found = False
     for key in STEP_SENSORS_SCHEMA.schema.keys():
         if isinstance(key, vol.Optional) and key.schema == CONF_SOH_SENSOR:
@@ -918,7 +917,6 @@ async def test_config_entry_migrate_v2_to_v3():
         CONF_SOH_SENSOR,
         CONF_T_BASE,
         CONFIG_VERSION,
-        DEFAULT_T_BASE,
         DEFAULT_SOH_SENSOR,
     )
 
@@ -940,7 +938,9 @@ async def test_config_entry_migrate_v2_to_v3():
         entry.data = kwargs.get("data", entry.data)
         return True
 
-    mock_hass.config_entries.async_update_entry = AsyncMock(side_effect=mock_update_entry)
+    mock_hass.config_entries.async_update_entry = AsyncMock(
+        side_effect=mock_update_entry
+    )
 
     await flow.async_migrate_entry(flow.hass, mock_entry)
 
@@ -965,7 +965,6 @@ async def test_config_entry_migrate_unknown_version():
     from homeassistant import config_entries
 
     from custom_components.ev_trip_planner.config_flow import EVTripPlannerFlowHandler
-    from custom_components.ev_trip_planner.const import CONFIG_VERSION
 
     flow = EVTripPlannerFlowHandler()
     flow.hass = MagicMock()

@@ -1,7 +1,7 @@
 {
   "phase": "execution",
-  "taskIndex": 138,
-  "totalTasks": 177,
+  "taskIndex": 183,
+  "totalTasks": 183,
   "taskIteration": 1,
   "repairIteration": 0,
   "failedStory": null,
@@ -19,5 +19,10 @@
   "awaitingApproval": false,
   "nativeTaskMap": {},
   "nativeSyncEnabled": true,
-  "nativeSyncFailureCount": 0
+  "nativeSyncFailureCount": 0,
+  "chat": {
+    "reviewer": {
+      "lastReadLine": 2429
+    }
+  }
 }

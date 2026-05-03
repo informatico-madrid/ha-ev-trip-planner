@@ -7,9 +7,7 @@ This test verifies the current proactive charging algorithm:
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
@@ -172,7 +170,7 @@ class TestSOC100PropagationBugPending:
         def_hours = primer_viaje_params.get("def_total_hours", 0)
         power_nom = primer_viaje_params.get("P_deferrable_nom", 0.0)
 
-        print(f"Primer viaje (30 kWh, SOC 100%):")
+        print("Primer viaje (30 kWh, SOC 100%):")
         print(f"  def_total_hours = {def_hours}")
         print(f"  P_deferrable_nom = {power_nom} W")
         print("")
@@ -184,7 +182,7 @@ class TestSOC100PropagationBugPending:
             print(f"   P_deferrable_nom = {power_nom} W")
         else:
             # With proactive charging, this should NOT happen
-            print(f"⚠️ Primer viaje tiene 0 horas (unexpected with proactive charging)")
+            print("⚠️ Primer viaje tiene 0 horas (unexpected with proactive charging)")
             assert def_hours > 0, (
                 "Con carga proactiva, el primer viaje debe tener horas de carga > 0"
             )
@@ -192,7 +190,7 @@ class TestSOC100PropagationBugPending:
         # Verificar TODOS los viajes - BUG 2
         print("")
         print("=== VERIFICACIÓN DE TODOS LOS VIAJES (BUG 2) ===")
-        bug2_detectado = False
+        _bug2_detectado = False  # noqa: F841 — flag for bug detection in debug print
 
         for i, trip in enumerate(trips):
             trip_id = trip["id"]
@@ -208,10 +206,10 @@ class TestSOC100PropagationBugPending:
 
                 # With proactive charging, def_hours and power_nom should both be > 0
                 if def_hours > 0 and power_nom > 0:
-                    print(f"  ✅ (proactive charging active)")
+                    print("  ✅ (proactive charging active)")
                 elif def_hours == 0 and power_nom == 0:
                     # This shouldn't happen with proactive charging
-                    print(f"  ⚠️ (no charging - unexpected)")
+                    print("  ⚠️ (no charging - unexpected)")
 
     def test_soc_100_impossible_physics(self):
         """
@@ -226,7 +224,7 @@ class TestSOC100PropagationBugPending:
         # Con SOC 100%, la energía disponible es máxima
         energia_disponible = battery_capacity * (soc_current / 100.0)
 
-        print(f"=== VERIFICACIÓN FÍSICA ===")
+        print("=== VERIFICACIÓN FÍSICA ===")
         print(f"Batería: {battery_capacity} kWh")
         print(f"SOC: {soc_current}%")
         print(f"Energía disponible: {energia_disponible} kWh")

@@ -12,9 +12,7 @@ Este es un bug diferente al de SOC 100%.
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
-import asyncio
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
@@ -196,7 +194,7 @@ class TestDefTotalHoursMismatchBug:
                     if def_hours == 0:
                         print(f"❌ BUG DETECTADO en {trip_id}:")
                         print(f"   P_deferrable tiene {non_zero_hours} horas con carga")
-                        print(f"   PERO def_total_hours = 0 (debería ser > 0)")
+                        print("   PERO def_total_hours = 0 (debería ser > 0)")
                         bugs_detectados.append(
                             {
                                 "trip_id": trip_id,
@@ -211,9 +209,7 @@ class TestDefTotalHoursMismatchBug:
                         print(
                             f"   P_deferrable tiene carga (non_zero_hours = {non_zero_hours})"
                         )
-                        print(
-                            f"   PERO P_deferrable_nom = 0.0 W (debería ser 3400.0 W)"
-                        )
+                        print("   PERO P_deferrable_nom = 0.0 W (debería ser 3400.0 W)")
                         bugs_detectados.append(
                             {
                                 "trip_id": trip_id,
