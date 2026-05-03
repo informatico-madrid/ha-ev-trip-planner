@@ -117,7 +117,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
             },  # valid
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.states.get = MagicMock(return_value=MagicMock(state="50"))
 
         await adapter.async_publish_all_deferrable_loads(trips)
@@ -177,7 +177,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field(
             },  # valid
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
         await adapter.async_publish_all_deferrable_loads(trips)

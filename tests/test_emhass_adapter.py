@@ -294,7 +294,7 @@ async def test_async_remove_deferrable_load_cleans_up_sensor(hass, mock_store):
 
         # Mock entity registry
         mock_er = MagicMock()
-        mock_er.async_remove = AsyncMock()
+        mock_er.async_remove = MagicMock()
         hass.data["entity_registry"] = mock_er
 
         result = await adapter.async_remove_deferrable_load("trip_001")
@@ -360,7 +360,7 @@ async def test_async_clear_error_clears_error_state(hass, mock_store):
         mock_state = MagicMock()
         mock_state.attributes = {"emhass_status": EMHASS_STATE_ERROR}
         hass.states.get = MagicMock(return_value=mock_state)
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Clear the error
         await adapter.async_clear_error()
@@ -394,7 +394,7 @@ async def test_async_update_deferrable_load_calls_publish(
         await adapter.async_assign_index_to_trip("trip_001")
 
         # Mock states and republish
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         mock_coordinator.async_refresh = AsyncMock()
 
         trip = {
@@ -522,7 +522,7 @@ async def test_async_notify_error_sends_notification(hass, mock_store):
         await adapter.async_load()
 
         # Mock hass.states.async_set to avoid errors in _async_update_error_status
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         # Mock hass.services.async_call for the notification
         hass.services.async_call = AsyncMock(return_value=True)
 
@@ -712,7 +712,7 @@ async def test_async_cleanup_vehicle_indices_cleans_up_all_indices(hass, mock_st
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
@@ -723,7 +723,7 @@ async def test_async_cleanup_vehicle_indices_cleans_up_all_indices(hass, mock_st
             await adapter.async_assign_index_to_trip("trip_002")
 
             # Mock hass.states.async_remove
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             # Cleanup
             await adapter.async_cleanup_vehicle_indices()
@@ -813,7 +813,7 @@ async def test_async_update_charging_power_updates_value(hass, mock_store):
         hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
         # Mock hass.states.async_set for republish
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Mock coordinator to avoid "can't await MagicMock" error
         mock_coordinator = MagicMock()
@@ -858,7 +858,7 @@ async def test_async_publish_all_deferrable_loads_publishes_multiple_trips(
             {"id": "trip_002", "descripcion": "Trip 2", "kwh": 10.0, "hora": "10:00"},
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Should complete without error
         await adapter.async_publish_all_deferrable_loads(trips)
@@ -892,7 +892,7 @@ async def test_async_publish_all_deferrable_loads_uses_fallback_charging_power_w
             {"id": "trip_001", "descripcion": "Trip 1", "kwh": 5.0, "hora": "09:00"},
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Call with charging_power_kw=None - should use _charging_power_kw fallback
         await adapter.async_publish_all_deferrable_loads(trips, charging_power_kw=None)
@@ -950,7 +950,7 @@ async def test_async_publish_all_deferrable_loads_populates_per_trip_cache(
             },
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Publish trips
         await adapter.async_publish_all_deferrable_loads(trips)
@@ -1283,7 +1283,7 @@ async def test_async_handle_emhass_unavailable_calls_notify_error(hass, mock_sto
         await adapter.async_load()
 
         # Mock hass.states.async_set and services.async_call
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.services.async_call = AsyncMock(return_value=True)
 
         result = await adapter.async_handle_emhass_unavailable("Connection refused")
@@ -1312,7 +1312,7 @@ async def test_async_handle_sensor_error_calls_notify_error(hass, mock_store):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.services.async_call = AsyncMock(return_value=True)
 
         result = await adapter.async_handle_sensor_error(
@@ -1340,7 +1340,7 @@ async def test_async_handle_shell_command_failure_calls_notify_error(hass, mock_
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.services.async_call = AsyncMock(return_value=True)
 
         result = await adapter.async_handle_shell_command_failure()
@@ -2697,14 +2697,14 @@ async def test_async_cleanup_vehicle_indices_handles_state_remove_error(
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
         ):
             # Make hass.states.async_remove raise HomeAssistantError
-            hass.states.async_remove = AsyncMock(
+            hass.states.async_remove = MagicMock(
                 side_effect=HomeAssistantError("State not found")
             )
 
@@ -2737,11 +2737,11 @@ async def test_async_cleanup_vehicle_indices_handles_registry_remove_error(
         await adapter.async_assign_index_to_trip("trip_001")
 
         # Mock hass.states.async_remove to succeed
-        hass.states.async_remove = AsyncMock()
+        hass.states.async_remove = MagicMock()
 
         # Mock registry.async_remove to raise Exception
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock(
+        mock_registry.async_remove = MagicMock(
             side_effect=Exception("Registry entry not found")
         )
 
@@ -2779,7 +2779,7 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
 
         # Mock entity registry
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         call_count = 0
 
@@ -2791,7 +2791,7 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
                 return  # First call succeeds
             raise HomeAssistantError("Main sensor not found")
 
-        hass.states.async_remove = AsyncMock(side_effect=state_remove_side_effect)
+        hass.states.async_remove = MagicMock(side_effect=state_remove_side_effect)
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
@@ -2844,13 +2844,13 @@ class TestEmhassAdapterCleanupEmptyIndices:
 
             # Mock entity registry
             mock_registry = MagicMock()
-            mock_registry.async_remove = AsyncMock()
+            mock_registry.async_remove = MagicMock()
 
             with patch(
                 "homeassistant.helpers.entity_registry.async_get",
                 return_value=mock_registry,
             ):
-                hass.states.async_remove = AsyncMock()
+                hass.states.async_remove = MagicMock()
 
                 # Should NOT raise even with empty _index_map
                 await adapter.async_cleanup_vehicle_indices()
@@ -2978,7 +2978,7 @@ class TestPublishDeferrableLoadDeadlineHandling:
         adapter = EMHASSAdapter(hass, config)
         adapter.async_assign_index_to_trip = AsyncMock(return_value=0)
         adapter.async_release_trip_index = AsyncMock()
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Future deadline as ISO string
         future_time = (datetime.now() + timedelta(hours=10)).isoformat()
@@ -3117,7 +3117,7 @@ class TestPublishDeferrableLoadsCoordinatorPath:
 
             # Ensure _get_coordinator returns None
             adapter._get_coordinator = MagicMock(return_value=None)
-            adapter.hass.states.async_set = AsyncMock()
+            adapter.hass.states.async_set = MagicMock()
 
             trips = [{"id": "trip_1", "kwh": 7.4, "hora": "09:00"}]
 
@@ -3155,7 +3155,7 @@ class TestPublishDeferrableLoadsCoordinatorPath:
         ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
-            adapter.hass.states.async_set = AsyncMock()
+            adapter.hass.states.async_set = MagicMock()
 
             # Mock _get_coordinator to return our mock
             adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
@@ -3230,7 +3230,7 @@ class TestPublishDeferrableLoadsWithCache:
         ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
-            adapter.hass.states.async_set = AsyncMock()
+            adapter.hass.states.async_set = MagicMock()
             adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
 
             trips = [
@@ -3415,7 +3415,7 @@ class TestAsyncUpdateErrorStatusCoverage:
             adapter = EMHASSAdapter(hass, config)
             await adapter.async_load()
 
-            adapter.hass.states.async_set = AsyncMock(
+            adapter.hass.states.async_set = MagicMock(
                 side_effect=HomeAssistantError("State update failed")
             )
 
@@ -3573,7 +3573,7 @@ class TestAsyncClearErrorCoverage:
             mock_state = MagicMock()
             mock_state.attributes = {"error_type": "old_error"}
             adapter.hass.states.get = MagicMock(return_value=mock_state)
-            adapter.hass.states.async_set = AsyncMock(
+            adapter.hass.states.async_set = MagicMock(
                 side_effect=HomeAssistantError("Failed to update")
             )
 
@@ -3860,7 +3860,7 @@ async def test_publish_deferrable_loads_coordinator_refresh_raises(hass, mock_st
             {"id": "trip_001", "descripcion": "Trip 1", "kwh": 5.0, "hora": "09:00"},
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Create a mock coordinator that raises when async_refresh is called
         mock_coordinator = MagicMock()
@@ -3917,13 +3917,13 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_registry_remova
             # Trip sensors succeed (return None)
 
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock(side_effect=registry_remove_side_effect)
+        mock_registry.async_remove = MagicMock(side_effect=registry_remove_side_effect)
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
             return_value=mock_registry,
         ):
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             # Should NOT raise - error is caught at lines 1182-1187
             await adapter.async_cleanup_vehicle_indices()
@@ -4736,7 +4736,7 @@ class TestAsyncUpdateErrorStatusHomeAssistantError:
             await adapter.async_load()
 
             # Mock hass.states.async_set to raise HomeAssistantError
-            adapter.hass.states.async_set = AsyncMock(
+            adapter.hass.states.async_set = MagicMock(
                 side_effect=HomeAssistantError("State error")
             )
 
@@ -4861,7 +4861,7 @@ class TestAsyncClearErrorHomeAssistantError:
             mock_state = MagicMock()
             mock_state.attributes = {"error_type": "old_error"}
             adapter.hass.states.get = MagicMock(return_value=mock_state)
-            adapter.hass.states.async_set = AsyncMock(
+            adapter.hass.states.async_set = MagicMock(
                 side_effect=HomeAssistantError("State error")
             )
 
@@ -5000,7 +5000,7 @@ async def test_publish_enriches_recurring_trip_with_datetime(hass, mock_store):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Mock _presence_monitor for _get_hora_regreso calls
         mock_presence_monitor = MagicMock()
@@ -5053,7 +5053,7 @@ async def test_publish_skips_recurring_trip_without_hora(hass, mock_store):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Mock _presence_monitor for _get_hora_regreso calls
         mock_presence_monitor = MagicMock()
@@ -5103,7 +5103,7 @@ async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Mock _presence_monitor for _get_hora_regreso calls
         mock_presence_monitor = MagicMock()
@@ -6594,7 +6594,7 @@ async def test_async_publish_all_deferrable_loads_uses_batch_windows(
             },
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Call async_publish_all_deferrable_loads which should use batch computation
         result = await adapter.async_publish_all_deferrable_loads(trips)
@@ -6663,7 +6663,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_without_id(
             },  # No id - should be skipped
         ]
 
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
 
         # Should not raise even with invalid trip
         result = await adapter.async_publish_all_deferrable_loads(trips)
@@ -6738,7 +6738,7 @@ async def test_cleanup_removes_matching_sensor(hass, mock_store):
             [],  # force-set loop (empty after removal)
         ]
     )
-    hass.states.async_remove = AsyncMock()
+    hass.states.async_remove = MagicMock()
 
     mock_registry = MagicMock()
     with patch(
@@ -6762,7 +6762,7 @@ async def test_cleanup_sensor_removal_homeassistant_error(hass, mock_store):
             [],  # force-set loop
         ]
     )
-    hass.states.async_remove = AsyncMock(side_effect=HomeAssistantError("test error"))
+    hass.states.async_remove = MagicMock(side_effect=HomeAssistantError("test error"))
 
     mock_registry = MagicMock()
     with patch(
@@ -6786,7 +6786,7 @@ async def test_cleanup_force_sets_remaining_sensor(hass, mock_store):
             [entity],  # force-set loop - still there
         ]
     )
-    hass.states.async_remove = AsyncMock()
+    hass.states.async_remove = MagicMock()
     hass.states.async_set = MagicMock()
 
     mock_registry = MagicMock()
@@ -6812,7 +6812,7 @@ async def test_cleanup_force_set_exception(hass, mock_store):
             [entity],  # force-set loop
         ]
     )
-    hass.states.async_remove = AsyncMock()
+    hass.states.async_remove = MagicMock()
     hass.states.async_set = MagicMock(side_effect=Exception("force set failed"))
 
     mock_registry = MagicMock()
@@ -6898,7 +6898,7 @@ async def test_cleanup_matches_sensor_by_entry_id(hass, mock_store):
             [],  # force-set loop
         ]
     )
-    hass.states.async_remove = AsyncMock()
+    hass.states.async_remove = MagicMock()
 
     mock_registry = MagicMock()
     with patch(

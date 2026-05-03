@@ -57,7 +57,7 @@ def mock_hass():
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()
     hass.services.has_service = MagicMock(return_value=True)
-    hass.states.async_set = AsyncMock()
+    hass.states.async_set = MagicMock()
     return hass
 
 

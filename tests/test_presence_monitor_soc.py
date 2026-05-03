@@ -1,7 +1,7 @@
 """Tests for Presence Monitor SOC functionality (Task 1.8)."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
@@ -18,7 +18,7 @@ def mock_hass():
     hass = Mock(spec=HomeAssistant)
     hass.data = {}  # Required by ha_storage.Store
     hass.states = Mock()
-    hass.states.async_set = AsyncMock()
+    hass.states.async_set = MagicMock()
     hass.services = Mock()
     hass.services.async_call = AsyncMock()
     # Mock hass.bus for async_track_state_change_event

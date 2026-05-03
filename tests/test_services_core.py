@@ -966,7 +966,7 @@ class TestAsyncCleanupStaleStorage:
         mock_store = MagicMock()
         # Return falsy data so yaml_path.unlink() is called
         mock_store.async_load = AsyncMock(return_value={})
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
 
         yaml_dir = Path("/tmp/test_config/ev_trip_planner")
         yaml_dir.mkdir(parents=True, exist_ok=True)
@@ -1066,7 +1066,7 @@ class TestAsyncRemoveEntryCleanup:
         hass, mock_entry = mock_hass_removal
 
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock(
+        mock_store.async_remove = MagicMock(
             side_effect=RuntimeError("Cannot remove storage")
         )
         with patch.object(ha_storage, "Store", return_value=mock_store):
@@ -1086,7 +1086,7 @@ class TestAsyncRemoveEntryCleanup:
         hass, mock_entry = mock_hass_removal
 
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock(return_value=None)
+        mock_store.async_remove = MagicMock(return_value=None)
 
         yaml_dir = Path("/tmp/test_config/ev_trip_planner")
         yaml_dir.mkdir(parents=True, exist_ok=True)
@@ -1114,7 +1114,7 @@ class TestAsyncRemoveEntryCleanup:
         )
 
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
         with patch.object(ha_storage, "Store", return_value=mock_store):
             # Should NOT raise - exception is caught
             await async_remove_entry_cleanup(hass, mock_entry)
@@ -1135,7 +1135,7 @@ class TestAsyncRemoveEntryCleanup:
         )
 
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
         with patch.object(ha_storage, "Store", return_value=mock_store):
             # Should NOT raise - exception is caught and _config_entry_listener still set to None
             await async_remove_entry_cleanup(hass, mock_entry)
@@ -1157,7 +1157,7 @@ class TestAsyncRemoveEntryCleanup:
         )
 
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
         with patch.object(ha_storage, "Store", return_value=mock_store):
             # Should NOT raise - exception is caught
             await async_remove_entry_cleanup(hass, mock_entry)
@@ -1773,7 +1773,7 @@ class TestAsyncCleanupStaleStorageYaml:
 
         mock_store = MagicMock()
         mock_store.async_load = AsyncMock(return_value={"trips": []})
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
 
         yaml_dir = Path(mock_hass.config.config_dir) / "ev_trip_planner"
         yaml_dir.mkdir(parents=True, exist_ok=True)
@@ -2139,7 +2139,7 @@ class TestAsyncRemoveEntryCleanupMissingVehicleName:
 
         # Mock store for storage removal
         mock_store = MagicMock()
-        mock_store.async_remove = AsyncMock()
+        mock_store.async_remove = MagicMock()
         with patch(
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
@@ -2808,7 +2808,7 @@ class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
         mock_entity_entry = MagicMock()
         mock_entity_entry.entity_id = "sensor.test"
         mock_registry = MagicMock()
-        mock_registry.async_remove = AsyncMock()
+        mock_registry.async_remove = MagicMock()
 
         with (
             patch(

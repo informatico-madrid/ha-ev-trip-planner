@@ -1036,7 +1036,7 @@ class TestTripManagerAsyncUpdateTripSensor:
         ):
             # Should not raise even if hass.states.async_set fails
             with patch.object(mock_hass_with_storage, "states") as mock_states:
-                mock_states.async_set = AsyncMock(side_effect=Exception("State error"))
+                mock_states.async_set = MagicMock(side_effect=Exception("State error"))
                 await trip_manager.async_update_trip_sensor("trip_1")
 
 

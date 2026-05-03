@@ -128,7 +128,7 @@ async def test_cleanup_raises_exception_for_registry(hass: HomeAssistant) -> Non
 
     # Mock registry.async_remove to raise generic Exception (triggers 1347-1348)
     entity_registry = MagicMock()
-    entity_registry.async_remove = AsyncMock(side_effect=Exception("Registry error"))
+    entity_registry.async_remove = MagicMock(side_effect=Exception("Registry error"))
     hass.data[DOMAIN] = {"entity_registry": entity_registry}
 
     # Cleanup should handle exception and continue
@@ -163,7 +163,7 @@ async def test_cleanup_raises_exception_main_sensor_registry(
 
     # Mock registry.async_remove to raise generic Exception (triggers 1358-1359)
     entity_registry = MagicMock()
-    entity_registry.async_remove = AsyncMock(side_effect=Exception("Main sensor error"))
+    entity_registry.async_remove = MagicMock(side_effect=Exception("Main sensor error"))
 
     # Cleanup should handle exception and continue
     await adapter.async_cleanup_vehicle_indices()
@@ -574,7 +574,7 @@ async def test_cleanup_raises_homeassistant_error_for_state(
     adapter._published_entity_ids = {"trip_1": "sensor.test"}
 
     # Mock state.async_remove to raise HomeAssistantError (triggers 1338-1339)
-    hass.states.async_remove = AsyncMock(side_effect=HomeAssistantError("Test error"))
+    hass.states.async_remove = MagicMock(side_effect=HomeAssistantError("Test error"))
 
     # Cleanup should handle exception and continue
     await adapter.async_cleanup_vehicle_indices()
@@ -612,7 +612,7 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(
     adapter._published_entity_ids = {"trip_1": "sensor.test"}
 
     # Mock state.async_remove to raise HomeAssistantError (triggers 1375-1376)
-    hass.states.async_remove = AsyncMock(
+    hass.states.async_remove = MagicMock(
         side_effect=HomeAssistantError("Vehicle state error")
     )
 
@@ -655,7 +655,7 @@ async def test_cleanup_raises_generic_exception_for_registry(
     # Mock entity registry to raise generic Exception (triggers 1347-1348, 1358-1359)
     # NOT HomeAssistantError - a generic Exception
     mock_registry = MagicMock()
-    mock_registry.async_remove = AsyncMock(side_effect=Exception("Registry not found"))
+    mock_registry.async_remove = MagicMock(side_effect=Exception("Registry not found"))
 
     # Patch er.async_get to return our mock (the code uses er.async_get(self.hass))
     from homeassistant.helpers import entity_registry as er
@@ -822,7 +822,7 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
         # Set up coordinator access
         adapter._coordinator = mock_coordinator
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Set the indices
         adapter._available_indices = {0, 1, 2, 3, 4}
@@ -1126,7 +1126,7 @@ async def test_async_publish_deferrable_load_datetime_object(
         mock_coordinator.data = {"recurring_trips": {}, "punctual_trips": {}}
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
         adapter.async_save = AsyncMock()
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Should not raise datetime parsing error
         # Result may be True/False for other mock-related reasons, but should not fail on datetime parsing
@@ -1204,7 +1204,7 @@ async def test_async_publish_deferrable_load_valid_recurring_covers_debug_log(
         adapter._available_indices = {0, 1, 2, 3, 4}
         adapter._index_map = {}
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
 
         # Call with valid trip - should execute the happy path at lines 332-344
         # The debug log at lines 341-344 should be executed
@@ -1270,7 +1270,7 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
         mock_coordinator._trip_manager = mock_trip_manager
 
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
         adapter._available_indices = {0, 1, 2, 3, 4}
         adapter._index_map = {}
 
@@ -1336,7 +1336,7 @@ async def test_publish_deferrable_loads_presence_monitor_raises(
         mock_coordinator.async_refresh = AsyncMock(return_value=None)
         adapter._coordinator = mock_coordinator
         adapter._get_coordinator = MagicMock(return_value=mock_coordinator)
-        adapter.hass.states.async_set = AsyncMock()
+        adapter.hass.states.async_set = MagicMock()
         adapter._available_indices = {0, 1, 2, 3, 4}
         adapter._index_map = {"trip_pm_err": 0}
 

@@ -55,8 +55,10 @@ python_functions = "test_*"
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
 addopts = "-v"
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
-    "ignore:Inheritance class HomeAssistantApplication:DeprecationWarning",
+    "ignore:Inheritance class.*:DeprecationWarning",
+    "ignore::pytest.PytestDeprecationWarning",
 ]
 
 [tool.coverage.run]

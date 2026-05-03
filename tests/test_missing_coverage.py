@@ -195,7 +195,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             # Track calls
@@ -268,7 +268,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -331,7 +331,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -391,7 +391,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -463,7 +463,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -524,7 +524,7 @@ class TestEC020_FailedTripRollback:
                 },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):

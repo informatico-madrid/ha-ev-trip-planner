@@ -2287,7 +2287,7 @@ class TestEMHASSErrorNotifications:
 
         # Mock states for sensor
         hass.states = MagicMock()
-        hass.states.async_set = AsyncMock()
+        hass.states.async_set = MagicMock()
         hass.states.get = MagicMock(return_value=None)
 
         return hass

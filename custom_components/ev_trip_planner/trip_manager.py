@@ -1137,7 +1137,7 @@ class TripManager:
                 native_value = "recurrente"
 
             # Update state via Home Assistant core
-            await self.hass.states.async_set(
+            self.hass.states.async_set(
                 entity_id,
                 native_value,
                 attributes=state_attributes,

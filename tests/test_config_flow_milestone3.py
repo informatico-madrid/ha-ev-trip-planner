@@ -156,7 +156,7 @@ async def test_step_emhass_with_planning_sensor(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Create a mock sensor entity
-    await hass.states.async_set("sensor.test_planning_sensor", "5")
+    hass.states.async_set("sensor.test_planning_sensor", "5")
 
     # Execute: Submit with planning sensor
     result = await flow.async_step_emhass(
@@ -229,9 +229,9 @@ async def test_step_presence_with_sensors(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Create mock binary_sensors
-    await hass.states.async_set("binary_sensor.test_charging", "on")
-    await hass.states.async_set("binary_sensor.test_home", "on")
-    await hass.states.async_set("binary_sensor.test_plugged", "off")
+    hass.states.async_set("binary_sensor.test_charging", "on")
+    hass.states.async_set("binary_sensor.test_home", "on")
+    hass.states.async_set("binary_sensor.test_plugged", "off")
 
     # Execute: Select sensors
     result = await flow.async_step_presence(
@@ -266,7 +266,7 @@ async def test_step_presence_home_sensor_not_found(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Create charging sensor but not home sensor
-    await hass.states.async_set("binary_sensor.test_charging", "on")
+    hass.states.async_set("binary_sensor.test_charging", "on")
 
     # Execute: Select non-existent home sensor
     result = await flow.async_step_presence(
@@ -293,8 +293,8 @@ async def test_step_presence_plugged_sensor_not_found(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Create charging and home sensors but not plugged sensor
-    await hass.states.async_set("binary_sensor.test_charging", "on")
-    await hass.states.async_set("binary_sensor.test_home", "on")
+    hass.states.async_set("binary_sensor.test_charging", "on")
+    hass.states.async_set("binary_sensor.test_home", "on")
 
     # Execute: Select non-existent plugged sensor
     result = await flow.async_step_presence(
@@ -322,9 +322,9 @@ async def test_step_presence_with_all_sensors(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Create all sensors
-    await hass.states.async_set("binary_sensor.test_charging", "on")
-    await hass.states.async_set("binary_sensor.test_home", "on")
-    await hass.states.async_set("binary_sensor.test_plugged", "on")
+    hass.states.async_set("binary_sensor.test_charging", "on")
+    hass.states.async_set("binary_sensor.test_home", "on")
+    hass.states.async_set("binary_sensor.test_plugged", "on")
 
     # Execute: Provide all presence sensors
     result = await flow.async_step_presence(
@@ -359,7 +359,7 @@ async def test_step_presence_charging_sensor_required(hass: HomeAssistant):
     flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
     # Execute: Provide only home sensor without charging sensor
-    await hass.states.async_set("binary_sensor.test_home", "on")
+    hass.states.async_set("binary_sensor.test_home", "on")
     result = await flow.async_step_presence(
         user_input={
             CONF_HOME_SENSOR: "binary_sensor.test_home",
@@ -416,8 +416,8 @@ async def test_complete_config_flow_with_emhass_and_presence(hass: HomeAssistant
     assert result["step_id"] == "presence"
 
     # Step 2: Presence configuration
-    await hass.states.async_set("binary_sensor.test_charging", "on")
-    await hass.states.async_set("binary_sensor.test_home", "on")
+    hass.states.async_set("binary_sensor.test_charging", "on")
+    hass.states.async_set("binary_sensor.test_home", "on")
     result = await flow.async_step_presence(
         user_input={
             CONF_CHARGING_SENSOR: "binary_sensor.test_charging",
@@ -855,7 +855,7 @@ async def test_full_flow_with_all_config(hass: HomeAssistant):
     assert result["step_id"] == "emhass"
 
     # Step 3: EMHASS - all values
-    await hass.states.async_set("sensor.planning_horizon", "14")
+    hass.states.async_set("sensor.planning_horizon", "14")
     result = await flow.async_step_emhass(
         {
             CONF_PLANNING_HORIZON: 14,
@@ -866,9 +866,9 @@ async def test_full_flow_with_all_config(hass: HomeAssistant):
     assert result["step_id"] == "presence"
 
     # Step 4: Presence - all sensors
-    await hass.states.async_set("binary_sensor.charging", "on")
-    await hass.states.async_set("binary_sensor.home", "on")
-    await hass.states.async_set("binary_sensor.plugged", "on")
+    hass.states.async_set("binary_sensor.charging", "on")
+    hass.states.async_set("binary_sensor.home", "on")
+    hass.states.async_set("binary_sensor.plugged", "on")
     result = await flow.async_step_presence(
         {
             CONF_CHARGING_SENSOR: "binary_sensor.charging",

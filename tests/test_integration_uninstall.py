@@ -92,7 +92,7 @@ class TestEmhassFullUnload:
         # Create mock Home Assistant instance with config_entries attribute
         mock_hass = MagicMock()
         mock_hass.data = {}
-        mock_hass.states.async_remove = AsyncMock()
+        mock_hass.states.async_remove = MagicMock()
 
         # Create mock config_entries with async_unload_platforms
         async def mock_unload_platforms(entry, platforms):
@@ -116,7 +116,7 @@ class TestEmhassFullUnload:
 
         async def cleanup_side_effect():
             for entity_id in list(emhass_adapter._published_entity_ids):
-                await mock_hass.states.async_remove(entity_id)
+                mock_hass.states.async_remove(entity_id)
 
         emhass_adapter.async_cleanup_vehicle_indices = AsyncMock(
             side_effect=cleanup_side_effect
@@ -180,7 +180,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         mock_hass.data = {}
         mock_hass.config.config_dir = "/tmp/test"
         mock_hass.services.async_call = AsyncMock()
-        mock_hass.states.async_remove = AsyncMock()
+        mock_hass.states.async_remove = MagicMock()
         mock_hass.states.get = MagicMock(return_value=None)
 
         entry = MagicMock()
@@ -320,7 +320,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         mock_hass.config.config_dir = "/tmp/test"
         mock_hass.states.get = MagicMock(return_value=None)
         mock_hass.services.async_call = AsyncMock()
-        mock_hass.states.async_remove = AsyncMock()
+        mock_hass.states.async_remove = MagicMock()
 
         # Track what Store is created and how it's used
         created_stores = []
@@ -409,7 +409,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         mock_hass.config.config_dir = "/tmp/test"
         mock_hass.states.get = MagicMock(return_value=None)
         mock_hass.services.async_call = AsyncMock()
-        mock_hass.states.async_remove = AsyncMock()
+        mock_hass.states.async_remove = MagicMock()
 
         entry = MagicMock()
         entry.entry_id = "cleanup_test_entry"

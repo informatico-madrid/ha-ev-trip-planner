@@ -108,7 +108,7 @@ class TestVehicleIdVsEntryIdCleanup:
                     [sensor_entity_id],  # force-set loop
                 ]
             )
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
             with patch(
@@ -168,7 +168,7 @@ class TestVehicleIdVsEntryIdCleanup:
                     [sensor_entity_id],
                 ]
             )
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
             with patch(
@@ -232,7 +232,7 @@ class TestVehicleIdVsEntryIdCleanup:
                     [sensor_entity_id],
                 ]
             )
-            hass.states.async_remove = AsyncMock()
+            hass.states.async_remove = MagicMock()
 
             mock_registry = MagicMock()
             with patch(

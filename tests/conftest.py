@@ -123,14 +123,14 @@ def hass():
         print(f"DEBUG: hass.states.set('{entity_id}', '{state}', {attributes})")
         return True
 
-    async def _mock_states_async_set(entity_id, state, attributes=None):
-        """Asynchronous set for states."""
+    def _mock_states_async_set(entity_id, state, attributes=None):
+        """Mock for StateMachine.async_set — @callback decorator, NOT async def."""
         print(f"DEBUG: hass.states.async_set('{entity_id}', '{state}', {attributes})")
         _mock_states_set(entity_id, state, attributes)
         return True
 
-    async def _mock_states_async_remove(entity_id):
-        """Asynchronous remove for states."""
+    def _mock_states_async_remove(entity_id):
+        """Mock for StateMachine.async_remove — @callback decorator, NOT async def."""
         hass._states_dict.pop(entity_id, None)
         return True
 

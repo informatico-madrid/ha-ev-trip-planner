@@ -455,7 +455,7 @@ async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
     mock_reg_entry = MockRegEntry()
 
     mock_registry = MagicMock()
-    mock_registry.async_remove = AsyncMock(return_value=None)
+    mock_registry.async_remove = MagicMock(return_value=None)
 
     # Mock ConfigEntry
     mock_entry = MagicMock()
@@ -513,7 +513,7 @@ async def test_remove_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
 
     # Create empty entity registry
     mock_registry = MagicMock()
-    mock_registry.async_remove = AsyncMock(return_value=None)
+    mock_registry.async_remove = MagicMock(return_value=None)
 
     # Mock ConfigEntry
     mock_entry = MagicMock()

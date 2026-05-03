@@ -58,7 +58,8 @@ def mock_hass(config_entry):
     class MockRegistry:
         """Mock entity registry that tracks entities."""
 
-        def __init__(self):
+        def __init__(self, hass_mock):
+            self.hass_mock = hass_mock
             self.entries = {}
             # Add entities attribute with get_entries_for_config_entry_id method
             self.entities = self
@@ -83,8 +84,7 @@ def mock_hass(config_entry):
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
         def async_remove(self, entity_id):
-            # EntityRegistry.async_remove is NOT async - returns None
-            # See: homeassistant/helpers/entity_registry.py
+            """EntityRegistry.async_remove is @callback, NOT async def."""
             if entity_id in self.entries:
                 del self.entries[entity_id]
 
@@ -95,7 +95,7 @@ def mock_hass(config_entry):
             self.config_entry_id = config_entry_id
 
     # Create mock registry
-    mock_registry = MockRegistry()
+    mock_registry = MockRegistry(hass)
     hass.entity_registry = mock_registry
 
     # Mock hass.data for runtime storage
