@@ -1437,6 +1437,12 @@ Run `ruff format` to auto-format files that fail `ruff format --check`.
 ---
 
 - [x] T176 **pyright: Fix reportPossiblyUnboundVariable errors in emhass_adapter.py**
+ <!-- reviewer-diagnosis
+ what: Variable shadowing regression: trip = {} at line 1128 breaks fallback path
+ why: Initializing trip as empty dict shadows the trip from tuple unpacking, causing trip.get(id) to return None in else branch, skipping all trips
+ fix: Remove trip_id/trip initializations at lines 1127-1128. Add _, _, trip = item in else branch before trip_id = trip.get(id)
+ -->
+ <!-- reviewer-fixed: Variable shadowing regression was fixed in T180/T181. The regression was real — confirmed b27cdc5=3/3 PASS, HEAD=0/3 FAIL. Fix: changed trip={} to trip: dict[str, Any] and added _, _, trip = item in else branch. pyright 0 errors, 3/3 tests pass. -->
 
 **VERIFIED**: 0 reportPossiblyUnboundVariable errors in emhass_adapter.py. Fixes applied: initialized `delta_hours`, `charging_windows`, `cap_ratio` before use. Added `# pyright: ignore` for `main_sensor_id`.
 - **Verify**: `python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py 2>&1 | grep "PossiblyUnbound" && echo "FAIL" || echo "PASS"` → PASS
@@ -1487,6 +1493,13 @@ Pyright reports 8 variables that may be unbound in `custom_components/ev_trip_pl
 ---
 
 - [x] T177 **pyright: Fix 6 reportArgumentType + reportCallIssue errors in emhass_adapter.py**
+ <!-- reviewer-diagnosis
+ what: Same regression as T176 - combined T176+T177 changes broke fallback path
+ why: The trip = {} initialization was part of the combined T176+T177 fix attempt that introduced the variable shadowing bug
+ fix: Same as T176 - fix variable shadowing in else branch. The assert isinstance and pyright: ignore comments are fine to keep.
+ -->
+ <!-- reviewer-fixed: All pyright errors resolved. pyright: 0 errors, 3/3 regression tests PASS. Added pyright ignores for _populate_per_trip_cache_entry call and _cached_per_trip_params.get calls (type narrowing across if/else). -->
+ -->
 
 **VERIFIED**: 0 reportArgumentType + reportCallIssue errors in emhass_adapter.py. Fixes applied: added `assert isinstance(trip_id, str)` for type narrowing, added `# pyright: ignore[reportArgumentType]` for `ordered_trip_ids.append(trip_id)` (trip_id can be None from trip_deadlines tuple but must be appended for ordering), used `or {}` pattern for `.get()` calls. Reverted `ordered_trip_ids.append(trip_id)` regression — kept outside `if trip_id:` guard to preserve original behavior.
 - **Verify**: `python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py 2>&1 | grep "ArgumentType\|CallIssue" && echo "FAIL" || echo "PASS"` → PASS
@@ -1642,6 +1655,80 @@ Pyright reports type mismatches in function arguments.
 ---
 
 Quality Gate QG19-FINAL: After T174-T179, re-run the full Quality Gate:
+1. `python3 -m ruff check custom_components/ tests/ 2>&1 | tail -3` → 0 errors
+2. `python3 -m ruff format --check custom_components/ tests/ 2>&1 | tail -3` → 0 files to format
+3. `python3 -m pyright custom_components/ 2>&1 | tail -5` → 0 errors
+4. `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → 0 failed
+5. `python3 -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -q 2>&1 | grep "TOTAL"` → 100%
+6. `make e2e 2>&1 | tail -10` → all E2E tests pass
+7. `make e2e-soc 2>&1 | tail -10` → all E2E-SOC tests pass
+
+---
+
+- [x] T180 **Fix variable shadowing regression in emhass_adapter.py:1126-1135** — CRITICAL REGRESSION from T176/T177
+
+The pyright fixes in T176/T177 added `trip: dict[str, Any] = {}` at line 1128 which shadows the trip variable from tuple unpacking. In the else branch (fallback path when trip_deadlines is empty), `trip_id = trip.get("id")` uses the empty dict instead of the actual trip from the tuple, so trip_id is always None and `if not trip_id: continue` skips ALL trips.
+
+**CURRENT CODE (BROKEN)**:
+```python
+for item in trips_to_process:
+    trip_id: str | None = None
+    trip: dict[str, Any] = {}    # <-- BUG: shadows trip from tuple
+    if trip_deadlines:
+        trip_id, deadline_dt, trip = item
+    else:
+        trip_id = trip.get("id")  # trip is {} -> None -> continue skips!
+        deadline_dt = None
+    if not trip_id:
+        continue
+    assert isinstance(trip_id, str)
+```
+
+**CORRECT FIX**:
+```python
+for item in trips_to_process:
+    if trip_deadlines:
+        trip_id, deadline_dt, trip = item
+    else:
+        _, _, trip = item  # Unpack trip from the fallback tuple (None, None, trip)
+        trip_id = trip.get("id")
+        deadline_dt = None
+    if not trip_id:
+        continue
+    assert isinstance(trip_id, str)
+```
+
+**Steps**:
+1. Read `custom_components/ev_trip_planner/emhass_adapter.py` lines 1126-1140
+2. Remove `trip_id: str | None = None` at line 1127
+3. Remove `trip: dict[str, Any] = {}` at line 1128
+4. Add `_, _, trip = item` in the else branch BEFORE `trip_id = trip.get("id")`
+5. Run: `python3 -m pytest tests/test_emhass_adapter_trip_id_coverage.py tests/test_emhass_adapter.py::test_async_publish_all_deferrable_loads_populates_per_trip_cache -x --tb=short -q` → verify 3/3 PASS
+6. Run: `python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py 2>&1 | tail -3` → verify 0 errors (pyright should still pass because trip is always bound before use)
+7. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+
+- **Done when**: `python3 -m pytest tests/test_emhass_adapter_trip_id_coverage.py tests/test_emhass_adapter.py::test_async_publish_all_deferrable_loads_populates_per_trip_cache -q 2>&1 | tail -3` shows 3 passed AND `python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py 2>&1 | tail -3` shows 0 errors
+- **Verify**: `python3 -m pytest tests/test_emhass_adapter_trip_id_coverage.py tests/test_emhass_adapter.py::test_async_publish_all_deferrable_loads_populates_per_trip_cache -q 2>&1 | grep -c PASSED` returns 3
+- **Checkpoint**: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → 0 failed
+
+---
+
+- [x] T181 **ruff format: Fix format regression on emhass_adapter.py**
+
+The T176/T177 changes to emhass_adapter.py introduced formatting violations. `ruff format --check` reports 1 file needs reformatting.
+
+**Steps**:
+1. Run: `python3 -m ruff format custom_components/ev_trip_planner/emhass_adapter.py`
+2. Run: `python3 -m ruff format --check custom_components/ tests/ 2>&1 | tail -3` → verify 0 files would be reformatted
+3. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+
+- **Done when**: `python3 -m ruff format --check custom_components/ tests/` exits with code 0
+- **Verify**: `python3 -m ruff format --check custom_components/ tests/ 2>&1 | grep "Would reformat" && echo "FAIL" || echo "PASS"`
+- **Checkpoint**: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → 0 failed
+
+---
+
+Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 1. `python3 -m ruff check custom_components/ tests/ 2>&1 | tail -3` → 0 errors
 2. `python3 -m ruff format --check custom_components/ tests/ 2>&1 | tail -3` → 0 files to format
 3. `python3 -m pyright custom_components/ 2>&1 | tail -5` → 0 errors

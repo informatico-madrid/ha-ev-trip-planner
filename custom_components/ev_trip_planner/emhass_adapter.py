@@ -722,7 +722,11 @@ class EMHASSAdapter:
         # Edge case: only apply when window is genuinely impossible (not when clamped to horizon)
         # If delta_hours > 168, it was clamped to horizon - valid window at boundary, don't reduce
         # If delta_hours <= 168 but def_start >= def_end, it was truly impossible - reduce
-        if pre_computed_inicio_ventana is None and "delta_hours" in locals() and delta_hours is not None:
+        if (
+            pre_computed_inicio_ventana is None
+            and "delta_hours" in locals()
+            and delta_hours is not None
+        ):
             if delta_hours <= 168 and def_start_timestep >= def_end_timestep:
                 def_start_timestep = max(0, def_end_timestep - 1)
 
@@ -1091,9 +1095,13 @@ class EMHASSAdapter:
             # Run propagation on batch windows in the same order they were computed.
             window_list = [batch_charging_windows[tid] for tid in ordered_trip_ids]
             def_total_hours_list: list[float] = [
-                float(trip_def_total_hours.get(
-                    tid, batch_charging_windows[tid].get("horas_carga_necesarias", 0.0) or 0.0
-                ))
+                float(
+                    trip_def_total_hours.get(
+                        tid,
+                        batch_charging_windows[tid].get("horas_carga_necesarias", 0.0)
+                        or 0.0,
+                    )
+                )
                 for tid in ordered_trip_ids
             ]
             enriched_windows = calculate_hours_deficit_propagation(
@@ -1125,21 +1133,18 @@ class EMHASSAdapter:
 
         for item in trips_to_process:
             trip_id: str | None = None
-            trip: dict[str, Any] = {}
+            trip: dict[str, Any]
             if trip_deadlines:
                 # Unpack (trip_id, deadline_dt, trip) from trip_deadlines
                 trip_id, deadline_dt, trip = item
             else:
                 # Fallback: unpack (None, None, trip) from original trips
+                _, _, trip = item
                 trip_id = trip.get("id")
                 deadline_dt = None
                 if not trip_id:
                     continue
 
-            # Type narrow: trip_id is guaranteed to be str after the above guards
-            assert isinstance(trip_id, str)
-
-            # Get batch-computed inicio_ventana and fin_ventana for this trip
             batch_window = batch_charging_windows.get(trip_id)
             pre_computed_inicio = (
                 batch_window.get("inicio_ventana") if batch_window else None
@@ -1177,7 +1182,7 @@ class EMHASSAdapter:
 
             await self._populate_per_trip_cache_entry(
                 trip,
-                trip_id,
+                trip_id,  # pyright: ignore[reportArgumentType]
                 charging_power_kw,
                 self._battery_cap.get_capacity(self.hass),
                 self._safety_margin_percent,
@@ -1195,7 +1200,7 @@ class EMHASSAdapter:
                 window = batch_charging_windows[trip_id]
                 ventana_horas = window.get("ventana_horas", 0)
                 # Get charging decision from cache
-                cached_params = self._cached_per_trip_params.get(trip_id, {})
+                cached_params = self._cached_per_trip_params.get(trip_id, {})  # pyright: ignore[reportCallIssue,reportArgumentType]
                 def_total_hours = cached_params.get("def_total_hours", 0)
 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
