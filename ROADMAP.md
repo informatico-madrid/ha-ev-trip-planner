@@ -3,7 +3,7 @@
 ## 📊 Project Status
 
 **Current version**: 0.5.23
-**Development phase**: Milestone 4.0.1 hotfixes planned — M4 core features fully implemented
+**Development phase**: Milestone 4.0.3 completed — M4.0.2 next target
 **Target Release**: v1.0.0 (Q2 2026)
 **Tests**: 1822 Python (pytest) + 40 E2E (Playwright) passing
 **Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1
@@ -86,19 +86,6 @@
 - Enhanced EMHASS aggregated sensor with `p_deferrable_matrix` attribute
 - PR #26 merged (m401-emhass-per-trip-sensors branch)
 - CHANGELOG: [0.5.21]
-
-### Milestone 4.0.3: Dynamic SOC Capping for Battery Health (May 3, 2026)
-- **Dynamic SOC capping algorithm**: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
-  - Gradual relaxation: distant trips → lower limit, imminent trips → 100%
-  - Never exceeds trip requirements: `min(required_soc, dynamic_limit)`
-- **BatteryCapacity class**: SOH-aware battery capacity from HA sensor, 5-min cache, graceful fallback
-- **Deficit propagation with SOC caps**: Backward/forward propagation respects dynamic limits per trip
-- **Config flow**: T_base slider (6-48h, default 24h), SOH sensor selector, SOC base selector
-- **Config migration**: v2→v3 adds `t_base`, `soh_sensor`, `soc_base` to existing entries
-- **RuntimeWarning fix**: Reverted incorrect `await` on `@callback` methods, fixed test fixtures
-- **Dead code removal**: Removed structurally unreachable pragma block from coordinator.py
-- **136 TDD tasks completed**, 1822 tests passing, 1 skipped, 100% coverage, 0 RuntimeWarnings
-- CHANGELOG: [0.5.23]
 
 ---
 
