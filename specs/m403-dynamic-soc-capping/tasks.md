@@ -1038,7 +1038,7 @@ In `_handle_config_entry_update`, the code compares current config options again
 - **Files affected**: `custom_components/ev_trip_planner/emhass_adapter.py`
 - **Done when**: Each detected change updates its `_stored_*` attribute; battery cap reinitialized on t_base/soh changes
 
-- [ ] T143 **vehicle_controller.py: Fix non-idiomatic Python formatting** — [GITO #16](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/vehicle_controller.py), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T143 **vehicle_controller.py: Fix non-idiomatic Python formatting** — [GITO #16](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/vehicle_controller.py), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Non-standard line breaks violate PEP 8: return type annotations (`None`, `bool`) split across multiple lines, simple conditionals unnecessarily wrapped, method signatures split unnecessarily.
 
