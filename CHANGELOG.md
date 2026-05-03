@@ -225,7 +225,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Dynamic SOC Capping algorithm** — Intelligent battery health optimization that limits charging based on degradation risk
   - `calculate_dynamic_soc_limit(t_hours, soc_post_trip, t_base)` — Core algorithm
-  - Formula: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+  - Formula: `risk = t_hours * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/t_base)]`
   - Lower risk when post-trip SOC is below 35% (sweet spot) → allows 100%
   - Gradual relaxation: 72h away → ~85%, 24h → ~90%, 2h → ~100%
   - Never exceeds trip requirements — safety-first: `min(required_soc, dynamic_limit)`

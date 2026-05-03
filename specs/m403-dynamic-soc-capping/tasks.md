@@ -836,7 +836,7 @@ The entry `doc/## Test Failure Review Protocol (MANDATO.md` contains unescaped s
 - **Done when**: `git check-ignore doc/## Test Failure Review Protocol` returns nothing; gitignore validates cleanly
 - **Verify**: `python3 -c "import subprocess; r = subprocess.run(['git', 'check-ignore', '.gitignore'], capture_output=True); print('gitignore valid' if r.returncode in (0,1) else 'INVALID')"`
 
-- [ ] T130 **CHANGELOG.md: Fix inconsistent variable naming in SOC limit algorithm documentation** — [GITO #2](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CHANGELOG.md#L227-L228), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Paige=REAL, Mary=REAL)
+- [x] T130 **CHANGELOG.md: Fix inconsistent variable naming in SOC limit algorithm documentation** — [GITO #2](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CHANGELOG.md#L227-L228), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Paige=REAL, Mary=REAL)
 
 The documented formula uses variables `t` and `T`, which do not match the function signature `calculate_dynamic_soc_limit(t_hours, soc_post_trip, t_base)`. This creates ambiguity for developers trying to implement or review the algorithm.
 
