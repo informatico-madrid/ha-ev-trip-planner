@@ -1120,6 +1120,110 @@
 - fix_hint: Remove `trip_id: str | None = None` and `trip: dict[str, Any] = {}` initializations at lines 1127-1128. Add `_, _, trip = item` in the else branch before `trip_id = trip.get("id")`. This satisfies pyright (trip is always bound) and preserves original behavior.
 - resolved_at: <!-- executor fills when fix applied -->
 
+### [task-T180] Fix variable shadowing regression in emhass_adapter.py
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  $ python3 -m pytest tests/test_emhass_adapter_trip_id_coverage.py tests/test_emhass_adapter.py::test_async_publish_all_deferrable_loads_populates_per_trip_cache -x --tb=short -q
+  3 passed in 0.30s
+  All 3 tests PASS. The variable shadowing regression was correctly fixed.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [task-T180] Fix variable shadowing regression in emhass_adapter.py
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  $ python3 -m pytest tests/test_emhass_adapter_trip_id_coverage.py tests/test_emhass_adapter.py::test_async_publish_all_deferrable_loads_populates_per_trip_cache -x --tb=short -q
+  3 passed in 0.30s
+  All 3 tests PASS. The variable shadowing regression was correctly fixed.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [task-T181] ruff format: Fix format regression on emhass_adapter.py
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  $ python3 -m ruff format --check custom_components/ tests/
+  126 files already formatted
+  $ python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/panel.py
+  0 errors, 0 warnings, 0 informations
+  $ python3 -m ruff check custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/panel.py
+  All checks passed!
+  Phase 19 L3A COMPLETE: ruff check 0 errors, ruff format 0 files, pyright 0 errors (non-sensor.py)
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [CYCLE-16-SUMMARY] Phase 19 Complete — T174-T181 ALL PASS
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  Phase 19 L3A Quality Gate: ALL 8 tasks VERIFIED PASS
+  - T174: ruff check --fix 83→0 errors ✅
+  - T175: ruff format --check 0 files to reformat ✅
+  - T176: pyright emhass_adapter.py 0 errors ✅
+  - T177: pyright services.py 0 errors ✅
+  - T178: pyright trip_manager.py 0 errors ✅
+  - T179: pyright panel.py 0 errors ✅
+  - T180: regression fix 3/3 tests PASS ✅
+  - T181: ruff format 126 files already formatted ✅
+  
+  Note: sensor.py has 16 pre-existing pyright errors (reportIncompatibleVariableOverride)
+  These are NOT part of Phase 19 scope and were pre-existing before executor changes.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [task-T181] ruff format: Fix format regression on emhass_adapter.py
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  $ python3 -m ruff format --check custom_components/ tests/
+  126 files already formatted
+  $ python3 -m pyright custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/panel.py
+  0 errors, 0 warnings, 0 informations
+  $ python3 -m ruff check custom_components/ev_trip_planner/emhass_adapter.py custom_components/ev_trip_planner/services.py custom_components/ev_trip_planner/trip_manager.py custom_components/ev_trip_planner/panel.py
+  All checks passed!
+  Phase 19 L3A COMPLETE: ruff check 0 errors, ruff format 0 files, pyright 0 errors (non-sensor.py)
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [CYCLE-16-SUMMARY] Phase 19 Complete — T174-T181 ALL PASS
+
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T21:44:00Z
+- criterion_failed: none
+- evidence: |
+  Phase 19 L3A Quality Gate: ALL 8 tasks VERIFIED PASS
+  - T174: ruff check --fix 83→0 errors ✅
+  - T175: ruff format --check 0 files to reformat ✅
+  - T176: pyright emhass_adapter.py 0 errors ✅
+  - T177: pyright services.py 0 errors ✅
+  - T178: pyright trip_manager.py 0 errors ✅
+  - T179: pyright panel.py 0 errors ✅
+  - T180: regression fix 3/3 tests PASS ✅
+  - T181: ruff format 126 files already formatted ✅
+  
+  Note: sensor.py has 16 pre-existing pyright errors (reportIncompatibleVariableOverride)
+  These are NOT part of Phase 19 scope and were pre-existing before executor changes.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills when fix applied -->
+
 ### [task-T177-REGRESSION] T177 pyright reportArgumentType — SAME REGRESSION AS T176
 
 - status: FAIL
