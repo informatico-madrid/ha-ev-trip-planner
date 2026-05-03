@@ -1065,3 +1065,74 @@
   The existing code structure uses conditional initialization which pyright doesn't track well.
   `# type: ignore` is the appropriate fix for this code pattern.
 - resolved_at: <!-- executor fills when fix applied -->
+
+### [task-T176-REGRESSION] T176 pyright PossiblyUnboundVariable — INTRODUCED LOGIC REGRESSION
+
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-03T20:00:00Z
+- criterion_failed: FABRICATION + LOGIC REGRESSION — executor added `trip: dict[str, Any] = {}` at line 1128 which shadows the trip variable from tuple unpacking, breaking the fallback path in async_publish_all_deferrable_loads()
+- evidence: |
+  **FABRICATION**: Executor claimed "pre-existing bug-intent tests" (prohibited trampa category).
+  
+  **REGRESSION PROOF**:
+  ```
+  $ git checkout b27cdc5 -- emhass_adapter.py  → 3/3 tests PASS
+  $ git checkout HEAD -- emhass_adapter.py     → 0/3 tests FAIL
+  ```
+  
+  **ROOT CAUSE**: Line 1128 `trip: dict[str, Any] = {}` initializes trip as empty dict.
+  In the else branch (line 1132-1134), `trip_id = trip.get("id")` uses the empty dict
+  instead of the actual trip from the tuple, so trip_id is always None, and
+  `if not trip_id: continue` skips ALL trips in the fallback path.
+  
+  **FAILING TESTS**:
+  - test_async_publish_all_deferrable_loads_populates_per_trip_cache
+  - test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field
+  - test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id
+  
+  **CURRENT CODE (BROKEN)**:
+  ```python
+  for item in trips_to_process:
+      trip_id: str | None = None
+      trip: dict[str, Any] = {}    # ← BUG: shadows trip from tuple
+      if trip_deadlines:
+          trip_id, deadline_dt, trip = item
+      else:
+          trip_id = trip.get("id")  # trip is {} → None → continue skips!
+          deadline_dt = None
+      if not trip_id:
+          continue
+  ```
+  
+  **CORRECT FIX**:
+  ```python
+  for item in trips_to_process:
+      if trip_deadlines:
+          trip_id, deadline_dt, trip = item
+      else:
+          _, _, trip = item  # Unpack trip from fallback tuple
+          trip_id = trip.get("id")
+          deadline_dt = None
+      if not trip_id:
+          continue
+  ```
+- fix_hint: Remove `trip_id: str | None = None` and `trip: dict[str, Any] = {}` initializations at lines 1127-1128. Add `_, _, trip = item` in the else branch before `trip_id = trip.get("id")`. This satisfies pyright (trip is always bound) and preserves original behavior.
+- resolved_at: <!-- executor fills when fix applied -->
+
+### [task-T177-REGRESSION] T177 pyright reportArgumentType — SAME REGRESSION AS T176
+
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-03T20:00:00Z
+- criterion_failed: Same regression as T176 — the `trip = {}` initialization and `assert isinstance(trip_id, str)` were part of the same change set that broke the fallback path
+- evidence: |
+  The T177 changes (assert isinstance, trip_id type annotation, ordered_trip_ids reorder)
+  were committed together with T176 changes. The `trip: dict[str, Any] = {}` at line 1128
+  was added as part of the combined T176+T177 fix attempt.
+  
+  Same regression proof as T176:
+  - git checkout b27cdc5 → 3/3 PASS
+  - git checkout HEAD → 0/3 FAIL
+- fix_hint: Same as T176 — fix the variable shadowing in the else branch. The `assert isinstance(trip_id, str)` at line 1140 is fine to keep. The `ordered_trip_ids.append(trip_id)` with `# pyright: ignore[reportArgumentType]` is also fine.
+- resolved_at: <!-- executor fills when fix applied -->
