@@ -994,12 +994,10 @@ async def test_generate_mock_emhass_params_fallback_single_row_exact(
     coordinator = TripPlannerCoordinator(
         MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
     )
-    # kwh=0 → hours_needed = 0/0=0 → max(0, 0.1) = 0.1
+    # kwh=0 → hours_needed = min(0.1) → 0.1 (minimum floor, not 0/0=0)
     # power_watts = 0 * 1000 = 0
     # start_timestep=0, end_timestep=int(0.1*4)=0
-    # loop: range(0+1)=range(1) → 1 iteration
-    # row=[0.0]*96, range(0,0) → row stays all 0s → any(0>0)=False → trip_matrix not appended
-    # trip_matrix=[] → triggers if not trip_matrix → line 287
+    # trip_matrix stays empty → triggers fallback at line 287
     trips = {
         "trip_001": {
             "kwh": 0.0,

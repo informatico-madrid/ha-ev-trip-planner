@@ -114,11 +114,11 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
   // Find Configure button for test_vehicle entry
   const testVehicleSection = page.locator('section').filter({ hasText: 'test_vehicle' }).first();
   const configureBtn = testVehicleSection.getByRole('button', { name: 'Configure' });
-  if (await configureBtn.count().catch(() => 0) > 0) {
+  if ((await configureBtn.count()) > 0) {
     await configureBtn.first().click({ force: true });
   } else {
     const allBtns = page.getByRole('button', { name: 'Configure' });
-    if (await allBtns.count().catch(() => 0) > 0) {
+    if ((await allBtns.count()) > 0) {
       await allBtns.first().click({ force: true });
     } else {
       throw new Error('[changeTBaseViaUI] Could not find Configure button');
@@ -136,10 +136,9 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
   await expect(finishBtn).not.toBeVisible({ timeout: 5_000 });
   // Wait for config change to propagate (condition-based)
   await expect(async () => {
-    await page.evaluate(() => {
+    const result = await page.evaluate(() => {
       const ha = document.querySelector('home-assistant') as any;
       if (ha?.hass?.states) {
-        // Verify the integration config is accessible (proves page loaded after dialog close)
         const entry = Object.values(ha.hass.states).find((s: any) =>
           s?.entity_id?.includes('ev_trip_planner'),
         );
@@ -147,6 +146,7 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
       }
       return false;
     });
+    expect(result).toBe(true);
   }).toPass({ timeout: 10_000 });
   await navigateToPanel(page);
 }

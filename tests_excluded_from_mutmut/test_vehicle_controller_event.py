@@ -51,34 +51,6 @@ class TestEventHandling:
             "Event handler should use event.data.get() for HA Event objects"
 
     @pytest.mark.asyncio
-    async def test_ha_event_object_structure(self):
-        """Test that we understand HA Event object structure.
-
-        Home Assistant Event objects have:
-        - event.data: dict - The event payload/data
-        - event.event_type: str - The event type (e.g., 'state_changed')
-        - event.time_fired: datetime - When the event was fired
-        - event.origin: str - Where the event originated
-
-        They do NOT have:
-        - event.get() method - This is a dict method, not an Event method
-
-        This test documents the expected structure and verifies the fix.
-        """
-        # Get source code dynamically
-        source = inspect.getsource(PresenceMonitor._async_handle_soc_change)
-
-        # The correct way to access event data:
-        # new_state = event.data.get("new_state")
-        assert 'event.data.get' in source, \
-            "Should use event.data.get() for HA Event objects"
-
-        # NOT the buggy way:
-        # new_state = event.get("data", {}).get("new_state")
-        assert 'event.get("data")' not in source, \
-            "Should NOT use event.get() for HA Event objects"
-
-    @pytest.mark.asyncio
     async def test_async_handle_soc_change_with_mock_event(self):
         """Test that _async_handle_soc_change works with a mock HA Event.
 

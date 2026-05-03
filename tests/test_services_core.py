@@ -966,7 +966,7 @@ class TestAsyncCleanupStaleStorage:
         mock_store = MagicMock()
         # Return falsy data so yaml_path.unlink() is called
         mock_store.async_load = AsyncMock(return_value={})
-        mock_store.async_remove = MagicMock()
+        mock_store.async_remove = AsyncMock()
 
         yaml_dir = Path("/tmp/test_config/ev_trip_planner")
         yaml_dir.mkdir(parents=True, exist_ok=True)

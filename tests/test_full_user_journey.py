@@ -271,7 +271,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 3: Create a recurring trip
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        await mock_hass.services.async_call(
             DOMAIN,
             "trip_create",
             {
@@ -284,11 +284,16 @@ class TestFullUserJourney:
                 "descripcion": "Commute to work",
             },
             blocking=True,
-            return_response=True,
+            return_response=False,
         )
 
-        # Verify trip was created
-        assert result is not None or result is None
+        # Verify trip was created — trip_create handler returns None,
+        # so verify via the manager's async_add_recurring_trip call
+        assert manager.async_add_recurring_trip.called
+        call_kwargs = manager.async_add_recurring_trip.call_args.kwargs
+        assert call_kwargs["dia_semana"] == "lunes"
+        assert call_kwargs["hora"] == "08:00"
+        assert call_kwargs["km"] == 50.0
 
         # =====================================================================
         # STEP 4: View trips

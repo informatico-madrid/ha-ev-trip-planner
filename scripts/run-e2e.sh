@@ -53,7 +53,7 @@ echo "=========================================="
 
 # --- Step 1: ALWAYS kill any existing HA instance ---
 echo ""
-echo "[1/5] Killing any existing Home Assistant instances..."
+echo "[1/6] Killing any existing Home Assistant instances..."
 
 # Kill by PID file
 if [ -f "$HA_PID_FILE" ]; then
@@ -83,7 +83,7 @@ rm -f playwright/.auth/user.json
 
 # --- Step 2: Clean and recreate HA config directory ---
 echo ""
-echo "[2/5] Setting up fresh HA config directory at ${HA_CONFIG_DIR}..."
+echo "[2/6] Setting up fresh HA config directory at ${HA_CONFIG_DIR}..."
 
 # Remove old config entirely for clean slate
 rm -rf "${HA_CONFIG_DIR}"
@@ -104,7 +104,7 @@ echo "✅ Config setup complete"
 
 # --- Step 3: Start Home Assistant ---
 echo ""
-echo "[3/5] Starting Home Assistant..."
+echo "[3/6] Starting Home Assistant..."
 
 echo "  Starting hass -c ${HA_CONFIG_DIR} ... (logs -> $HA_LOG_FILE)"
 
@@ -117,7 +117,7 @@ echo "  HA started with PID $HA_PID"
 
 # --- Step 4: Wait for HA to be ready ---
 echo ""
-echo "[4/5] Waiting for Home Assistant to be ready..."
+echo "[4/6] Waiting for Home Assistant to be ready..."
 
 for i in $(seq 1 40); do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${HA_URL}/api/" 2>/dev/null || echo "000")
@@ -136,7 +136,7 @@ done
 
 # --- Step 5: Run onboarding ---
 echo ""
-echo "[5/5] Running onboarding..."
+echo "[5/6] Running onboarding..."
 if ./scripts/ha-onboard.sh "$HA_URL"; then
   echo "✅ Onboarding complete"
 else
@@ -145,7 +145,7 @@ fi
 
 # --- Step 6: Run Playwright tests ---
 echo ""
-echo "[6/5] Running Playwright E2E tests..."
+echo "[6/6] Running Playwright E2E tests..."
 echo "Command: npx playwright test ${TEST_SUITE} ${HEADLESS}"
 echo "-------------------------------------------"
 
@@ -176,9 +176,9 @@ else
   echo "E2E tests passed. HA log: $HA_LOG_FILE"
 fi
 
-exit $EXIT_CODE
-
 echo ""
 echo "=========================================="
 echo "✅ E2E tests complete!"
 echo "=========================================="
+
+exit $EXIT_CODE

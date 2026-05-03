@@ -1396,13 +1396,7 @@ async def test_listener_activated_in_setup(mock_hass):
 
     # Verify setup_config_entry_listener was called on the emhass_adapter
     # This validates FR-2, AC-1.2: listener is activated during setup
-    (
-        mock_emhass_adapter.setup_config_entry_listener.assert_called_once(),
-        (
-            "setup_config_entry_listener() should be called after adapter creation "
-            "in async_setup_entry"
-        ),
-    )
+    mock_emhass_adapter.setup_config_entry_listener.assert_called_once()
 
 
 # =============================================================================

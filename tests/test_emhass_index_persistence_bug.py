@@ -131,13 +131,13 @@ class TestEMHASSIndexPersistenceBug:
 
         print("\n=== PASO 2: PUBLICAR TODOS LOS VIAJES ===")
 
-        # Orden cronológico REAL (Miércoles primero, Domingo último)
+        # Orden de publicación por índice de creation_order (no es estrictamente cronológico)
         trips_chronological = [
-            "trip_wednesday",  # PRIMER viaje cronológico (71 horas)
-            "trip_thursday_1",  # Segundo
-            "trip_thursday_2",  # Tercero
-            "trip_friday",  # Cuarto
-            "trip_sunday",  # ÚLTIMO viaje cronológico (>160 horas)
+            "trip_thursday_2",  # Index 2 en creation_order (creado tercero, pero índice bajo)
+            "trip_friday",  # Index 3
+            "trip_sunday",  # Index 4 (creado primero, índice 0)
+            "trip_wednesday",  # Index 7 (creado último, índice 6)
+            "trip_thursday_1",  # Index 8
         ]
 
         # Convertir IDs a objetos trip completos

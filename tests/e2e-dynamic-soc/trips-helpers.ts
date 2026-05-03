@@ -223,7 +223,7 @@ export async function deleteTestTrip(page: Page, tripId: string): Promise<void> 
 
   // Click the delete button on the trip card
   // The delete button has class "delete-btn" and text "🗑️ Eliminar"
-  const deleteBtn = tripCard.locator('..').locator('.delete-btn').first();
+  const deleteBtn = tripCard.locator('.delete-btn').first();
   if (await deleteBtn.isVisible().catch(() => false)) {
     await deleteBtn.click();
   } else {

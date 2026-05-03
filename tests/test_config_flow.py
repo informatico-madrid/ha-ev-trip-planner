@@ -6,7 +6,7 @@ to entry creation, verifying data persistence and validation.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
@@ -923,7 +923,9 @@ async def test_config_entry_migrate_v2_to_v3():
     )
 
     flow = EVTripPlannerFlowHandler()
-    flow.hass = MagicMock()
+    mock_hass = MagicMock()
+    mock_hass.config_entries.async_update_entry = AsyncMock(return_value=True)
+    flow.hass = mock_hass
 
     mock_entry = MagicMock(spec=config_entries.ConfigEntry)
     mock_entry.version = 2
@@ -932,6 +934,13 @@ async def test_config_entry_migrate_v2_to_v3():
     }
     mock_entry.entry_id = "test_entry"
     mock_entry.options = {}
+
+    async def mock_update_entry(entry, **kwargs):
+        entry.version = kwargs.get("version", entry.version)
+        entry.data = kwargs.get("data", entry.data)
+        return True
+
+    mock_hass.config_entries.async_update_entry = AsyncMock(side_effect=mock_update_entry)
 
     await flow.async_migrate_entry(flow.hass, mock_entry)
 

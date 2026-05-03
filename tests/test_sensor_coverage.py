@@ -109,9 +109,8 @@ class TestAsyncWillRemoveFromHass:
     @pytest.mark.asyncio
     async def test_will_remove_from_hass_cleans_up_emhass_indices(self):
         """async_will_remove_from_hass calls async_cleanup_vehicle_indices when adapter exists."""
-        from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-        from custom_components.ev_trip_planner.definitions import (
-            TripSensorEntityDescription,
+        from custom_components.ev_trip_planner.sensor import (
+            EmhassDeferrableLoadSensor,
         )
 
         mock_emhass_adapter = MagicMock()
@@ -120,31 +119,16 @@ class TestAsyncWillRemoveFromHass:
         mock_trip_manager = MagicMock()
         mock_trip_manager._emhass_adapter = mock_emhass_adapter
 
-        # The coordinator is accessed via self.coordinator from CoordinatorEntity
-        # TripPlannerCoordinator stores trip_manager as _trip_manager
         mock_coordinator = MagicMock()
         mock_coordinator.data = {"some_key": "value"}
-        mock_coordinator._trip_manager = mock_trip_manager
+        mock_coordinator.trip_manager = mock_trip_manager
+        mock_coordinator.vehicle_id = "test_vehicle"
 
-        desc = TripSensorEntityDescription(
-            key="test_key",
-            name="Test",
-            icon="mdi:car",
-            native_unit_of_measurement=None,
-            state_class=None,
-            value_fn=lambda data: data.get("test_key") if data else None,
-            attrs_fn=lambda data: {},
-        )
-        TripPlannerSensor(mock_coordinator, "test_vehicle", desc)
+        sensor_instance = EmhassDeferrableLoadSensor(mock_coordinator, "test_entry")
 
-        # Directly invoke the method logic to cover the branch
-        # The actual hasattr check on trip_manager may not work with mock
-        if (
-            hasattr(mock_trip_manager, "_emhass_adapter")
-            and mock_trip_manager._emhass_adapter is not None
-        ):
-            await mock_trip_manager._emhass_adapter.async_cleanup_vehicle_indices()
-            mock_emhass_adapter.async_cleanup_vehicle_indices.assert_awaited_once()
+        # Call the actual method to test behavior (not implementation details)
+        await sensor_instance.async_will_remove_from_hass()
+        mock_emhass_adapter.async_cleanup_vehicle_indices.assert_awaited_once()
 
 
 # =============================================================================
@@ -179,9 +163,11 @@ class TestAsyncCreateTripSensorsExceptionHandling:
             # Patch at module level
             m.setattr(sensor_module, "TripSensor", BrokenTripSensor)
 
-            await _async_create_trip_sensors(
+            result = await _async_create_trip_sensors(
                 mock_hass, mock_trip_manager, "vehicle_test", "entry_test"
             )
+            # Should return empty list when all fail
+            assert result == []
             # Should return empty list when all fail
 
 

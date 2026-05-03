@@ -1254,3 +1254,41 @@ Review entry template:
 **L3B Analysis — SKIPPED (BMAD unavailable):**
 
 Tier B violations deferred. Tier A violations are architectural debt from pre-existing codebase, not regressions from this spec. T111/T112 explicitly assessed as N/A with rationale.
+
+### [task-T137] auth.setup.soc.ts: Fix redundant OAuth token flow inside polling loop
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T08:59:00Z
+- criterion_failed: none
+- evidence: |
+  git diff auth.setup.soc.ts:
+  - async function waitForEntity(entityId: string, timeoutMs = 30_000)
+  + async function waitForEntity(entityId: string, token: string, timeoutMs = 30_000)
+  - headers: { Authorization: `Bearer ${await getAccessToken()}` }
+  + headers: { Authorization: `Bearer ${token}` }
+  + await waitForEntity('input_boolean.test_ev_charging', token, 30_000)
+  + await waitForEntity('sensor.test_vehicle_soh', token, 30_000)
+  → getAccessToken() removed from polling loop. Token obtained ONCE in globalSetup (line 355).
+  → No remaining `await getAccessToken()` in polling loop.
+  → T137 PASS. OAuth flow no longer wasteful.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills -->
+
+### [task-T138] auth.setup.ts: Fix inefficient re-authentication in waitForEntity polling loop
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-03T08:59:00Z
+- criterion_failed: none
+- evidence: |
+  git diff auth.setup.ts:
+  - async function waitForEntity(entityId: string, timeoutMs = 30_000)
+  + async function waitForEntity(entityId: string, timeoutMs = 30_000, token: string)
+  - headers: { Authorization: `Bearer ${await getAccessToken()}` }
+  + headers: { Authorization: `Bearer ${token}` }
+  + await waitForEntity('input_boolean.test_ev_charging', 30_000, token)
+  + await waitForEntity('sensor.test_vehicle_soh', 30_000, token)
+  → getAccessToken() removed from polling loop. Token obtained ONCE in globalSetup (line 352).
+  → No remaining `await getAccessToken()` in polling loop.
+  → T138 PASS. Re-auth removed from retry loop.
+- fix_hint: N/A
+- resolved_at: <!-- executor fills -->

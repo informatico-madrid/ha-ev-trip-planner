@@ -135,7 +135,7 @@ fi
 
 # --- Step 6: Run Playwright tests ---
 echo ""
-echo "[6/5] Running Playwright E2E tests..."
+echo "[6/6] Running Playwright E2E tests..."
 echo "Command: npx playwright test --config=${PLAYWRIGHT_CONFIG} ${HEADLESS}"
 echo "-------------------------------------------"
 
@@ -166,9 +166,9 @@ else
   echo "E2E tests passed. HA log: $HA_LOG_FILE"
 fi
 
-exit $EXIT_CODE
-
 echo ""
 echo "=========================================="
 echo "✅ E2E tests complete!"
 echo "=========================================="
+
+exit $EXIT_CODE

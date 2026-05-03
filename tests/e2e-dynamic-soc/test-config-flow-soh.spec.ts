@@ -39,7 +39,7 @@ async function openOptionsDialog(page: Page): Promise<void> {
   // HA renders integration entries as sections with the title text.
   // The Configure button appears inside the integration entry card.
   const allConfigureBtns = page.getByRole('button', { name: 'Configure' });
-  const count = await allConfigureBtns.count().catch(() => 0);
+  const count = await allConfigureBtns.count();
   if (count === 0) {
     throw new Error(
       '[openOptionsDialog] Could not find Configure button for ev_trip_planner integration. ' +

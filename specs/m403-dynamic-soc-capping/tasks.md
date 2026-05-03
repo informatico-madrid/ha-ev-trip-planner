@@ -876,7 +876,7 @@ The file ends without a trailing newline character, which violates POSIX convent
 - **Files affected**: `CLAUDE.md`
 - **Done when**: `tail -c 1 CLAUDE.md | xxd` shows `0a` (newline)
 
-- [ ] T133 **pyproject.toml: Fix mismatched Python version in mypy configuration** — [GITO #17](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/pyproject.toml#L36), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T133 **pyproject.toml: Fix mismatched Python version in mypy configuration** — [GITO #17](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/pyproject.toml#L36), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 The `python_version` in `[tool.mypy]` is set to `"3.14"`, which conflicts with `py311` in Black and `3.11` in Pylint. Python 3.14 is not yet a stable release — this is clearly a typo.
 
@@ -904,7 +904,7 @@ Milestone 4.0.3 is titled 'Immediately After M4.0.2' and marked 'COMPLETED — 2
 - **Why**: Roadmaps must present milestones in chronological order. Reversed ordering confuses release sequencing and project status.
 - **Files affected**: `ROADMAP.md`
 
-- [ ] T135 **ROADMAP.md: Fix stale 'Development phase' status in project header** — [GITO #6](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L6), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, John=REAL, Paige=REAL)
+- [x] T135 **ROADMAP.md: Duplicate of T134 — already fixed** (SKIPPED - DUPLICATE)
 
 The header states '**Development phase**: Milestone 4.0.1 hotfixes planned', yet M4.0.1 is completed, M4.0.2 is the next target, and M4.0.3 is completed.
 
@@ -914,7 +914,7 @@ The header states '**Development phase**: Milestone 4.0.1 hotfixes planned', yet
 - **Why**: Stale development phase status misleads anyone checking project progress.
 - **Files affected**: `ROADMAP.md`
 
-- [ ] T136 **ROADMAP.md: Fix formatting error — period inside inline code block** — [GITO #8](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L235), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL-R2, Paige=REAL, Amelia=REAL)
+- [x] T136 **ROADMAP.md: Fix formatting error — period inside inline code block** — [GITO #8](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L235), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL-R2, Paige=REAL, Amelia=REAL)
 
 Line 235 incorrectly places a period inside backticks: `...instead of \`trip_arrival - window_start.\`` — the period should be outside the code delimiters.
 
@@ -952,7 +952,7 @@ Quality Gate QG18-2: Run `make test` after auth.setup changes. All 1822 tests mu
 
 ---
 
-- [ ] T139 **calculations.py: Remove unused t_base parameter from calculate_deficit_propagation** — [GITO #12](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L871-L882), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T139 **calculations.py: Remove unused t_base parameter from calculate_deficit_propagation** parameter from calculate_deficit_propagation** — [GITO #12](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L871-L882), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 The `t_base` parameter is added to the function signature but is never referenced or used within the function body. It should either be removed or properly integrated (e.g., passed to `calculate_dynamic_soc_limit` if intended for dynamic SOC capping) to avoid dead code.
 
@@ -1062,7 +1062,7 @@ Quality Gate QG18-4: Run `make test` — vehicle_controller.py formatting only (
 
 ---
 
-- [ ] T144 **scripts/run-e2e-soc.sh: Fix typo in step counter [6/5] → [6/6]** — [GITO #18](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L138), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T144 **scripts/run-e2e-soc.sh: Fix typo in step counter [6/5] → [6/6]** — [GITO #18](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L138), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 The script prints `[6/5]` for the Playwright test step, but there are 6 steps total.
 
@@ -1072,7 +1072,7 @@ The script prints `[6/5]` for the Playwright test step, but there are 6 steps to
 - **Why**: Incorrect step count in progress indicator confuses users and indicates a copy-paste error.
 - **Files affected**: `scripts/run-e2e-soc.sh`
 
-- [ ] T145 **scripts/run-e2e-soc.sh: Remove unreachable code after exit** — [GITO #19](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L171-L174), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T145 **scripts/run-e2e-soc.sh: Remove unreachable code after exit** — [GITO #19](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L171-L174), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Lines 171-174 contain echo statements after `exit` on line 169. These are dead code.
 
@@ -1082,7 +1082,7 @@ Lines 171-174 contain echo statements after `exit` on line 169. These are dead c
 - **Why**: Dead code confuses maintainers who expect it to execute.
 - **Files affected**: `scripts/run-e2e-soc.sh`
 
-- [ ] T146 **scripts/run-e2e-soc.sh: Remove unused variable TEST_SUITE** — [GITO #20](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L26,L35), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T146 **scripts/run-e2e-soc.sh: Remove unused variable TEST_SUITE** — [GITO #20](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e-soc.sh#L26,L35), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 `TEST_SUITE` is initialized on line 26 and updated via CLI parsing on line 35, but never referenced or passed to any command.
 
@@ -1092,7 +1092,7 @@ Lines 171-174 contain echo statements after `exit` on line 169. These are dead c
 - **Why**: Unused variables increase maintenance burden and suggest incomplete implementation.
 - **Files affected**: `scripts/run-e2e-soc.sh`
 
-- [ ] T147 **scripts/run-e2e.sh: Fix incorrect step count in progress indicator** — [GITO #22](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e.sh#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T147 **scripts/run-e2e.sh: Fix incorrect step count in progress indicator** — [GITO #22](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/scripts/run-e2e.sh#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 The echo at line 148 displays `"[6/5]"`. The script defines 6 distinct steps, but the indicator claims only 5 total.
 
@@ -1108,7 +1108,7 @@ Quality Gate QG18-5: Run `make e2e` and `make e2e-soc` — shell script changes 
 
 ---
 
-- [ ] T148 **tests/conftest.py: Add None fallbacks for job.args and job.kwargs** — [GITO #23](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/conftest.py#L167-L169), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+- [x] T148 **tests/conftest.py: Add None fallbacks for job.args and job.kwargs** — [GITO #23](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/conftest.py#L167-L169), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
 
 `_mock_async_run_hass_job` assigns `job_args = job.args` and `job_kwargs = job.kwargs` without None fallbacks. If either is None, unpacking raises TypeError/AttributeError.
 
@@ -1119,7 +1119,7 @@ Quality Gate QG18-5: Run `make e2e` and `make e2e-soc` — shell script changes 
 - **Files affected**: `tests/conftest.py`
 - **Done when**: No TypeError/AttributeError when job.args or job.kwargs is None
 
-- [ ] T149 **tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts: Fix .count().catch() TypeError** — [GITO #24](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts#L42), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+- [x] T149 **tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts: Fix .count().catch() TypeError** — [GITO #24](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts#L42), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
 
 `locator.count()` is synchronous and returns a number. Calling `.catch()` on it throws `TypeError: Number.prototype.catch is not a function`. Appears on lines 42, 118, and 123.
 
@@ -1131,7 +1131,7 @@ Quality Gate QG18-5: Run `make e2e` and `make e2e-soc` — shell script changes 
 - **Done when**: All .count().catch() patterns replaced with plain .count()
 - **Verify**: `grep '.count().catch()' tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts` → no matches
 
-- [ ] T150 **tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts: Fix .count().catch() and polling logic bugs** — [GITO #25 + #26](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts#L117-L150), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL for #25), 2/2 (Winston=REAL, Amelia=REAL for #26)
+- [x] T150 **tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts: Fix .count().catch() and polling logic bugs** — [GITO #25 + #26](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts#L117-L150), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL for #25), 2/2 (Winston=REAL, Amelia=REAL for #26)
 
 T150-1: `.count().catch()` on lines 117 and 121 — same as T149.
 
@@ -1149,7 +1149,7 @@ T150-2: Polling logic in `changeTBaseViaUI` (lines 138-150) calls `page.evaluate
 - **Done when**: .count().catch() patterns removed; polling logic properly asserts evaluate() result
 - **Verify**: `make e2e-soc`
 
-- [ ] T151 **tests/e2e-dynamic-soc/trips-helpers.ts: Fix invalid Playwright locator and page.once in loop** — [GITO #27 + #28](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/trips-helpers.ts#L226-L332), Classification: REAL_PROBLEM, Consensus: 1/1 (Winston=REAL for #27), 2/2 (Winston=REAL, Amelia=REAL for #28)
+- [x] T151 **tests/e2e-dynamic-soc/trips-helpers.ts: Fix invalid Playwright locator and page.once in loop** — [GITO #27 + #28](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/e2e-dynamic-soc/trips-helpers.ts#L226-L332), Classification: REAL_PROBLEM, Consensus: 1/1 (Winston=REAL for #27), 2/2 (Winston=REAL, Amelia=REAL for #28)
 
 T151-1: `locator('..')` on line 226 — Playwright does not support relative navigation with `..` in locator syntax. Throws runtime error.
 
@@ -1163,7 +1163,7 @@ T151-2: `page.once('dialog', ...)` on lines 330-332 inside a for loop — the li
 - **Done when**: locator('..') replaced with xpath syntax; page.once replaced with proper event handling
 - **Verify**: `make e2e-soc`
 
-- [ ] T152 **tests/test_coordinator.py: Fix misleading comments with incorrect arithmetic** — [GITO #30](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_coordinator.py#L841-L842,L997-L1002), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+- [x] T152 **tests/test_coordinator.py: Fix misleading comments with incorrect arithmetic** — [GITO #30](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_coordinator.py#L841-L842,L997-L1002), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
 
 Comments claim `int(hours_needed) + 1 = 0` when hours_needed >= 0.1, and `0/0=0`. Both are mathematically incorrect and misleading.
 
@@ -1175,7 +1175,7 @@ Comments claim `int(hours_needed) + 1 = 0` when hours_needed >= 0.1, and `0/0=0`
 - **Why**: Incorrect math in comments misleads developers debugging fallback paths.
 - **Files affected**: `tests/test_coordinator.py`
 
-- [ ] T153 **tests/test_emhass_index_persistence_bug.py: Fix comment that contradicts actual list order** — [GITO #32](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_emhass_index_persistence_bug.py#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T153 **tests/test_emhass_index_persistence_bug.py: Fix comment that contradicts actual list order** — [GITO #32](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_emhass_index_persistence_bug.py#L148), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Comment claims trips are published in 'orden cronológico' (chronological order), but the list comprehension preserves original insertion order, not chronological.
 
@@ -1185,7 +1185,7 @@ Comment claims trips are published in 'orden cronológico' (chronological order)
 - **Why**: Misleading comments about data ordering cause confusion when debugging index persistence.
 - **Files affected**: `tests/test_emhass_index_persistence_bug.py`
 
-- [ ] T154 **tests/test_entity_registry.py: Fix MockRegistry.async_get_or_create config_entry handling** — [GITO #33](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_entity_registry.py#L257-L259), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T154 **tests/test_entity_registry.py: Fix MockRegistry.async_get_or_create config_entry handling** — [GITO #33](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_entity_registry.py#L257-L259), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 MockRegistry stores the raw FakeEntry object in `config_entry_id` when `config_entry=` kwarg is passed, but comparison in `async_entries_for_config_entry` compares object to string.
 
@@ -1201,7 +1201,7 @@ MockRegistry stores the raw FakeEntry object in `config_entry_id` when `config_e
 - **Why**: Mock must accurately reflect Home Assistant's EntityRegistry behavior where config_entry object is extracted to its entry_id string.
 - **Files affected**: `tests/test_entity_registry.py`
 
-- [ ] T155 **tests/test_full_user_journey.py: Fix vacuous assertions** — [GITO #34](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_full_user_journey.py#L291), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T155 **tests/test_full_user_journey.py: Fix vacuous assertions** — [GITO #34](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_full_user_journey.py#L291), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Assertions `assert result is not None or result is None` (tautology, always True) on lines 291, 344, 383, 421, 450 and `assert True` on line 473. These disable test assertions entirely.
 
@@ -1211,7 +1211,7 @@ Assertions `assert result is not None or result is None` (tautology, always True
 - **Why**: Tautological assertions always pass, hiding real failures. A test with these assertions gives a false sense of coverage.
 - **Files affected**: `tests/test_full_user_journey.py`
 
-- [ ] T156 **tests/test_init.py: Fix broken assertion that creates a no-op tuple** — [GITO #35](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_init.py#L1399-L1405), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T156 **tests/test_init.py: Fix broken assertion that creates a no-op tuple** — [GITO #35](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_init.py#L1399-L1405), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 A trailing comma makes the assertion evaluate to a tuple `(None, "...")` which is discarded. The `assert_called_once()` method doesn't accept a message argument, and the original comma-separated syntax makes the assertion a complete no-op.
 
@@ -1221,7 +1221,7 @@ A trailing comma makes the assertion evaluate to a tuple `(None, "...")` which i
 - **Why**: The test passes even if the listener is never called. This is a critical regression — if the listener isn't called, the integration silently breaks.
 - **Files affected**: `tests/test_init.py`
 
-- [ ] T157 **tests/test_panel_entity_id.py: Remove redundant duplicate condition** — [GITO #36](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_panel_entity_id.py#L153-L156), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T157 **tests/test_panel_entity_id.py: Remove redundant duplicate condition** — [GITO #36](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_panel_entity_id.py#L153-L156), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 The boolean expression evaluates the exact same substring condition twice with `or` — a clear copy-paste error.
 
@@ -1231,7 +1231,7 @@ The boolean expression evaluates the exact same substring condition twice with `
 - **Why**: Duplicate condition masks the intended verification. The second check adds zero logical value and likely hides the real bug.
 - **Files affected**: `tests/test_panel_entity_id.py`
 
-- [ ] T158 **tests/test_power_profile_tdd.py: Fix test that validates empty trips instead of multiple trips** — [GITO #37](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_power_profile_tdd.py#L166-L183), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T158 **tests/test_power_profile_tdd.py: Fix test that validates empty trips instead of multiple trips** — [GITO #37](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_power_profile_tdd.py#L166-L183), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Test `test_generar_perfil_multiples_viajes` is named to verify multiple-trip accumulation but mocks `_async_load_trips` to return an empty list.
 
@@ -1248,7 +1248,7 @@ Test `test_generar_perfil_multiples_viajes` is named to verify multiple-trip acc
 - **Why**: The test claims to test multi-trip accumulation but actually tests the empty-trip path. This leaves a gap in test coverage.
 - **Files affected**: `tests/test_power_profile_tdd.py`
 
-- [ ] T159 **tests/test_propagate_charge_integration.py: Remove duplicate assertion block** — [GITO #39](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_propagate_charge_integration.py#L183-L185), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
+- [x] T159 **tests/test_propagate_charge_integration.py: Remove duplicate assertion block** — [GITO #39](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_propagate_charge_integration.py#L183-L185), Classification: REAL_PROBLEM, Consensus: 1/1 (Amelia=REAL)
 
 The assertion `'power_profile_watts' in cache1` is duplicated on consecutive lines.
 
@@ -1257,7 +1257,7 @@ The assertion `'power_profile_watts' in cache1` is duplicated on consecutive lin
 - **Why**: Redundant assertions serve no testing purpose and increase maintenance burden.
 - **Files affected**: `tests/test_propagate_charge_integration.py`
 
-- [ ] T160 **tests/test_sensor_coverage.py: Fix anti-pattern — test implementation details instead of calling method** — [GITO #40](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L142-L147), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T160 **tests/test_sensor_coverage.py: Fix anti-pattern — test implementation details instead of calling method** — [GITO #40](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L142-L147), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Test manually duplicates internal conditional logic of `async_will_remove_from_hass` instead of invoking the method directly. Tests implementation details, not behavior.
 
@@ -1267,7 +1267,7 @@ Test manually duplicates internal conditional logic of `async_will_remove_from_h
 - **Why**: Testing implementation details makes tests fragile to refactoring.
 - **Files affected**: `tests/test_sensor_coverage.py`
 
-- [ ] T161 **tests/test_sensor_coverage.py: Add missing assertions in exception handling test** — [GITO #41](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L182-L186), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T161 **tests/test_sensor_coverage.py: Add missing assertions in exception handling test** — [GITO #41](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_sensor_coverage.py#L182-L186), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Test invokes `_async_create_trip_sensors` but lacks assertions to verify the expected outcome (empty list returned).
 
@@ -1277,7 +1277,7 @@ Test invokes `_async_create_trip_sensors` but lacks assertions to verify the exp
 - **Why**: Without assertions, a future regression where the function raises unhandled exceptions would cause the test to silently pass.
 - **Files affected**: `tests/test_sensor_coverage.py`
 
-- [ ] T162 **tests/test_services_core.py: Fix incorrect mock type for async method async_remove** — [GITO #43](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_services_core.py#L969), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T162 **tests/test_services_core.py: Fix incorrect mock type for async method async_remove** — [GITO #43](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_services_core.py#L969), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 `mock_store.async_remove` is mocked with `MagicMock` instead of `AsyncMock`. `Store.async_remove()` is an async method — awaiting a MagicMock result raises TypeError.
 
@@ -1295,7 +1295,7 @@ Quality Gate QG18-6: Run `make test` after all test code fixes. All 1822 tests m
 
 ---
 
-- [ ] T163 **tests/test_soc_100_propagation_bug_pending.py: Fix docstrings that incorrectly state test must fail** — [GITO #45](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L1-L15,L26-L27,L52-L63), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T163 **tests/test_soc_100_propagation_bug_pending.py: Fix docstrings that incorrectly state test must fail** — [GITO #45](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L1-L15,L26-L27,L52-L63), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Module docstring (lines 1-15), class docstring (lines 26-27), and method docstring (lines 52-63) state the test "DEBE FALLAR" (must fail). But the implementation asserts proactive charging success (`assert def_hours > 0`). Contradiction confuses maintainers and CI/CD.
 
@@ -1305,7 +1305,7 @@ Module docstring (lines 1-15), class docstring (lines 26-27), and method docstri
 - **Why**: Misleading docstrings signal false CI status and confuse future maintainers.
 - **Files affected**: `tests/test_soc_100_propagation_bug_pending.py`
 
-- [ ] T164 **tests/test_soc_100_propagation_bug_pending.py: Fix confusing comparison in print statement** — [GITO #46](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L141-L143), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T164 **tests/test_soc_100_propagation_bug_pending.py: Fix confusing comparison in print statement** — [GITO #46](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_soc_100_propagation_bug_pending.py#L141-L143), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Print statement compares `SOC 100% > 33 kWh` — comparing a state of charge percentage to an absolute energy value. Logically flawed and confusing.
 
@@ -1315,25 +1315,25 @@ Print statement compares `SOC 100% > 33 kWh` — comparing a state of charge per
 - **Why**: Comparing percentage to energy (kWh) is logically inconsistent. Reference actual battery capacity.
 - **Files affected**: `tests/test_soc_100_propagation_bug_pending.py`
 
-- [ ] T165 **tests/test_trip_manager_datetime_tz.py: Align function name with docstring** — [GITO #49](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_trip_manager_datetime_tz.py#L21-L26), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+- [x] T165 **tests/test_trip_manager_datetime_tz.py: Align function name with docstring** — SKIPPED (FALSE_POSITIVE)
 
 GITO classified as FALSE_POSITIVE: naming inconsistency doesn't affect code correctness. The docstring correctly describes the test intent (testing tz-aware datetime handling).
 
 - **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
 
-- [ ] T166 **tests/test_trip_manager_datetime_tz.py: Remove hardcoded line numbers from docstrings** — [GITO #50](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests/test_trip_manager_datetime_tz.py#L65-L70), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+- [x] T166 **tests/test_trip_manager_datetime_tz.py: Remove hardcoded line numbers from docstrings** — SKIPPED (FALSE_POSITIVE)
 
 GITO classified as FALSE_POSITIVE: hardcoded line numbers are style, not correctness.
 
 - **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
 
-- [ ] T167 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: Fix misleading module docstring** — [GITO #51](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests_excluded_from_mutmut/test_vehicle_controller_event.py#L3-L4), Classification: FALSE_POSITIVE, Consensus: 2/2 (Winston=FALSE, Amelia=FALSE) — SKIPPED
+- [x] T167 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: SKIPPED (FALSE_POSITIVE)**
 
 GITO classified as FALSE_POSITIVE: misleading phrasing in docstring is style, not correctness.
 
 - **Decision**: SKIPPED (FALSE_POSITIVE per consensus)
 
-- [ ] T168 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: Remove duplicated test logic** — [GITO #52](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/tests_excluded_from_mutmut/test_vehicle_controller_event.py), Classification: REAL_PROBLEM, Consensus: 1/2 split (Winston=REAL, Amelia=FALSE)
+- [x] T168 **tests_excluded_from_mutmut/test_vehicle_controller_event.py: Removed duplicated test_ha_event_object_structure (duplicate of test_event_data_extraction_uses_event_data_get assertions)**
 
 Two test functions (`test_event_data_extraction_uses_event_data_get` and `test_ha_event_object_structure`) perform identical assertions. Duplicated test logic increases maintenance burden for zero additional coverage.
 

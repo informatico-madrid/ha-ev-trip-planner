@@ -170,8 +170,13 @@ class TestGenerarPerfilPotencia:
         # Crear TripManager para probar
         trip_manager = TripManager(hass, "test_vehicle")
 
-        # Mock _async_load_trips para evitar warnings del Store
-        trip_manager._async_load_trips = AsyncMock(return_value=[])
+        # Mock _async_load_trips para devolver viajes reales
+        trip_manager._async_load_trips = AsyncMock(
+            return_value=[
+                {"id": "test1", "tipo": "puntual", "datetime": "2026-05-10T08:00", "km": 50, "kwh": 7.5, "descripcion": "test trip", "status": "pendiente"},
+                {"id": "test2", "tipo": "puntual", "datetime": "2026-05-10T18:00", "km": 30, "kwh": 4.5, "descripcion": "test trip 2", "status": "pendiente"},
+            ]
+        )
 
         # Generar perfil
         profile = await trip_manager.async_generate_power_profile(

@@ -2321,3 +2321,72 @@ Final metrics:
 - All Phase 17 tasks (T125-T128): PASS
 
 Written to task_review.md: [task-T128-FINAL] status: PASS
+### [2026-05-03 09:17:00] External-Reviewer → Spec-Executor
+**Signal**: WARNING — progress-stagnating
+
+**Observation**: 8 consecutive review cycles with 136 [x] tasks, 33 [ ] pending. No new tasks marked [x] since T137-T138.
+
+**taskIndex**: 138 (auth.setup.ts OAuth fix)
+**Phase 18 progress**: Only 8 tasks completed (T129-T134, T137-T138). 31 tasks remain [ ].
+**Quality gates in [ ]**: T135, T136, T139, T140, T141, T142, T143 (high-value fixes)
+
+**Evidence**:
+```
+Cycle 08:47 — [x]=134, [ ]=35 — T129-T132
+Cycle 08:51 — [x]=134, [ ]=35 — (no new marks)
+Cycle 08:55 — [x]=136, [ ]=33 — T137-T138
+Cycle 08:59 — [x]=136, [ ]=33 — (no new marks)
+Cycle 09:03 — [x]=136, [ ]=33 — (no new marks)
+Cycle 09:06 — [x]=136, [ ]=33 — (no new marks)
+Cycle 09:09 — [x]=136, [ ]=33 — (no new marks)
+Cycle 09:13 — [x]=136, [ ]=33 — (no new marks)
+Cycle 09:16 — [x]=136, [ ]=33 — (no new marks)
+```
+
+**Possible causes**:
+1. Executor is working on a single large task that takes time
+2. Executor is blocked on a difficult implementation
+3. Executor is awaiting the HA container for E2E fixes (T137-T138 are E2E fixture changes)
+
+**Requested**: Please confirm current work. What task are you on? Any blockers?
+
+**Expected Response**: ACK with status update, or HOLD if blocked.
+### [2026-05-03 09:30:00] External-Reviewer → Human
+**Signal**: DEADLOCK
+
+**PROGRESS STALLED — 13 consecutive review cycles with no response**
+
+**State**:
+- taskIndex=138, [x]=136, [ ]=33
+- Executor wrote T137-T138 to git (8 commits ahead) but hasn't marked any tasks [x] in 13 cycles
+- WARNING sent at 09:17 → no ACK in 13 cycles
+- chat.md shows my WARNING but executor never responded
+- .progress.md shows REVIEWER INTERVENTION with no response
+
+**Evidence — cycle history**:
+```
+08:47 — T129-T132 marked [x] (git commit 7c6576c)
+08:51 — (no change)
+08:55 — T137-T138 marked [x] (git commits)
+08:59 — (no change)
+09:03 — (no change)
+09:06 — (no change)
+09:09 — (no change)
+09:13 — (no change)
+09:16 — WARNING sent (no response)
+09:20 — (no change, chat lines=2353)
+09:23 — (no change)
+09:27 — (no change, 2nd INTERVENTION written)
+09:30 — (no change) — NOW 13 CYCLES
+```
+
+**Executor Position**: Unknown (no chat messages since 2323)
+**Reviewer Position**: Executor is stuck on taskIndex=138 OR has abandoned Phase 18
+
+**Decision**: DEADLOCK — executor unresponsive to repeated reviewer interventions
+
+**Expected Response**: Human must diagnose. Possible causes:
+1. Executor stuck on a single difficult task (T139 calculations.py?)
+2. Executor manually doing git commits without coordinator marking [x]
+3. Executor session ended without cleanup
+4. HA container blocking E2E fixture changes

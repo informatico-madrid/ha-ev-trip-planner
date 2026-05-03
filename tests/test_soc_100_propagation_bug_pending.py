@@ -1,17 +1,9 @@
 """
-TEST QUE DEBE FALLAR - Bug de propagación de déficit en SOC 100%
+SOC 100% propagation behavior test
 
-Este test reproduce el escenario exacto donde el sistema de propagación de déficit
-ignora el SOC 100% y asigna horas de carga incorrectamente.
-
-El usuario reportó:
-- number_of_deferrable_loads: 5
-- def_total_hours: [2, 0, 0, 0, 0] ← Primer viaje tiene 2 horas con SOC 100%
-- P_deferrable_nom: [3400.0, 3400.0, 3400.0, 3400.0, 3400.0]
-
-CON SOC 100% EL PRIMER VIAJE NO PUEDE TENER 2 HORAS DE CARGA.
-
-Este test FALLARÁ hasta que se arregle el bug de propagación de déficit.
+This test verifies the current proactive charging algorithm:
+- Con SOC 100%, el sistema programa carga proactiva para preparar viajes futuros
+- El perfil de potencia real limita la carga a la capacidad de la batería
 """
 
 import pytest
@@ -138,7 +130,7 @@ class TestSOC100PropagationBugPending:
         print("CONCLUSIONES INDIVIDUALES:")
         print("- Con carga proactiva, todos los viajes tienen energía > 0")
         print(
-            "- El primer viaje (30 kWh): SOC 100% > 33 kWh → carga proactiva = 30 kWh"
+            "- El primer viaje (30 kWh): Con carga proactiva se programa carga para preparar viaje"
         )
         print("")
 
