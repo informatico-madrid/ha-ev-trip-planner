@@ -56,9 +56,61 @@
 
 ## 🔄 In Progress
 
-- [ ] Achieve >80% coverage in all modules after SOLID refactoring
-- [ ] Fix tests that failed due to interface changes after refactor
-- [ ] Review and consolidate documentation (ROADMAP, README, docs/)
+- [x] Achieve >80% coverage in all modules after SOLID refactoring (1822 tests, 100% coverage)
+- [x] Fix tests that failed due to interface changes after refactor
+- [x] Review and consolidate documentation (ROADMAP, README, docs/)
+
+---
+
+## ✅ Completed
+
+### Milestone 4.0.3 — Dynamic SOC Capping (COMPLETED 2026-05-03)
+- Dynamic SOC capping algorithm: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+- `BatteryCapacity` class: SOH-aware battery capacity from HA sensor with 5-min cache
+- Deficit propagation with SOC caps: backward/forward propagation respects dynamic limits
+- 4-layer quality gate (L3A→L1→L2→L3B) with .roo external-reviewer
+- Spec integrity protection (HALLAZGO #11): external-reviewer enhanced to detect spec modification traps
+- Config flow changes: T_base slider (6-48h), SOH sensor, SOC base
+- RuntimeWarning fixes, dead code removal, coordinator coverage
+- 1822 tests passing, 1 skipped, 100% coverage, 0 RuntimeWarnings, clean ruff
+- Dual-agent quality system: Ralph executor + .roo external-reviewer with 117 skills
+- Three-layer review: Gito (local) → Ralph/.roo (parallel) → CodeRabbit (external)
+
+---
+
+## 🔄 Next Steps (Planned)
+
+- [ ] **Code Cleanup + Dead Code Elimination** — Systematic removal of all dead code using .roo quality-gate scripts (antipattern_checker, solid_metrics, weak_test_detector)
+- [ ] **Mutation Testing Integration** — Configure mutation testing thresholds per-module, integrate with quality-gate Layer 1, establish mutation kill thresholds
+- [ ] **Deterministic Quality Gates** — Add ARNs (Architecture Requirement Notations) and deterministic quality gates that allow near-autonomous technical debt elimination using specs, BMAD, and quality-gate/mutation skills
+- [ ] **Full Mutation Testing Coverage** — Achieve mutation kill threshold ≥0.70 across all modules
+- [ ] **Zero Dead Code** — Eliminate all unreachable code paths identified by antipattern_checker
+
+---
+
+## ✅ Completed
+
+### Milestone 4.0.3 — Dynamic SOC Capping (COMPLETED 2026-05-03)
+- Dynamic SOC capping algorithm: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`
+- `BatteryCapacity` class: SOH-aware battery capacity from HA sensor with 5-min cache
+- Deficit propagation with SOC caps: backward/forward propagation respects dynamic limits
+- 4-layer quality gate (L3A→L1→L2→L3B) with .roo external-reviewer
+- Spec integrity protection (HALLAZGO #11): external-reviewer enhanced to detect spec modification traps
+- Config flow changes: T_base slider (6-48h), SOH sensor, SOC base
+- RuntimeWarning fixes, dead code removal, coordinator coverage
+- 1822 tests passing, 1 skipped, 100% coverage, 0 RuntimeWarnings, clean ruff
+- Dual-agent quality system: Ralph executor + .roo external-reviewer with 117 skills
+- Three-layer review: Gito (local) → Ralph/.roo (parallel) → CodeRabbit (external)
+
+---
+
+## 🔄 Next Steps (Planned)
+
+- [ ] **Code Cleanup + Dead Code Elimination** — Systematic removal of all dead code using .roo quality-gate scripts (antipattern_checker, solid_metrics, weak_test_detector)
+- [ ] **Mutation Testing Integration** — Configure mutation testing thresholds per-module, integrate with quality-gate Layer 1, establish mutation kill thresholds
+- [ ] **Deterministic Quality Gates** — Add ARNs (Architecture Requirement Notations) and deterministic quality gates that allow near-autonomous technical debt elimination using specs, BMAD, and quality-gate/mutation skills
+- [ ] **Full Mutation Testing Coverage** — Achieve mutation kill threshold ≥0.70 across all modules
+- [ ] **Zero Dead Code** — Eliminate all unreachable code paths identified by antipattern_checker
 
 ---
 

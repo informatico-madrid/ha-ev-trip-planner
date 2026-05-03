@@ -552,8 +552,31 @@ _ai/
 
 ---
 
-**Last updated**: April 25, 2026
-**Status review**: After merge of feat/solid-refactor-coverage + full codebase audit (2026-04-25)
+## 🔄 Next Steps — Code Quality & Technical Debt (Planned After M4.0.3)
+
+**Status**: 📋 PLANNED — not started
+**Triggered by**: M4.0.3 completion (2026-05-03)
+
+### Code Cleanup + Dead Code Elimination
+- Systematic removal of all dead code using .roo quality-gate scripts (antipattern_checker, solid_metrics, weak_test_detector)
+- Target: Zero unreachable code paths
+- Focus areas: deprecated dashboard.py code, unused vehicle_controller strategies, orphaned schedule_monitor references
+
+### Mutation Testing Integration
+- Configure mutation testing thresholds per-module (mutmut)
+- Integrate with quality-gate Layer 1
+- Establish mutation kill thresholds (target: ≥0.70 across all modules)
+- Initial baseline run on M4.0.3 codebase
+
+### Deterministic Quality Gates
+- Add ARNs (Architecture Requirement Notations) — formal constraints on module dependencies, API contracts, and test coverage minimums
+- Enable near-autonomous technical debt elimination using specs + quality-gate skills
+- Each PR validated against ARNs before merge
+
+---
+
+**Last updated**: May 3, 2026
+**Status review**: After M4.0.3 completion + full codebase audit (2026-05-03)
 
 ---
 

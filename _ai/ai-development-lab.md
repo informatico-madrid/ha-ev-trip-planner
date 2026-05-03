@@ -226,15 +226,65 @@ The project has evolved through **6 methodological phases**, each leaving artifa
 
 ---
 
-### The 3 Evolutionary Arcs
+### Arc 4: Dual-Agent Quality System (2026-Q2 — discovered during M403 execution)
 
-Instead of viewing the 6 phases as independent, they are grouped into **3 narrative arcs** that tell the learning story:
+**Description:** During M403-Dynamic-SOC-Capping (136 tasks), the `.roo` agent's full quality system was discovered and documented. This system — with 117 skills (17 review/quality + 100 BMAD/game dev/LangChain) — was living outside git (in `.roo/`) but its artifacts were consumed by Ralph's VERIFY steps throughout the execution, creating a dual-layer quality architecture.
+
+**Characteristics:**
+- `.roo/` directory with 117 skills (NOT in git) — discovered during M403 investigation
+- 4-layer quality gate: L3A (smoke <1min) → L1 (tests ~15min) → L2 (weak test ~2min) → L3B (deep SOLID ~15min)
+- Two-tier SOLID: Tier A (AST-based deterministic) + Tier B (BMAD Party Mode consensus)
+- Spec integrity protection: detects task deletion, criteria weakening, total reduction
+- 8 deterministic scripts: solid_metrics, weak_test_detector, mutation_analyzer, antipattern_checker, etc.
+- Checkpoint JSON bridge: Ralph VERIFY steps consume .roo quality gate artifacts
+- Anti-evasion policy: NO exceptions for pre-existing code, skippable, acceptable regression
+
+**Additional review layers integrated in the development lifecycle:**
+
+| Layer | Tool | Purpose | When |
+|-------|------|---------|------|
+| **L1: Local review** | **Gito** (`.venv/bin/gito`) | Static analysis with local LLM model | Before commit |
+| **L2: Parallel review** | **Ralph external-reviewer** + **.roo quality-gate** | 4-layer quality gate (L3A→L1→L2→L3B) | During task execution |
+| **L3: External review** | **CodeRabbit** | PR review on every push | After push to remote |
+
+**Gito** runs local static analysis with a local LLM model before every commit — catching bugs, style issues, and logic errors that automated tests miss. It is the first line of defense.
+
+**CodeRabbit** provides an independent external review on every pull request, complementing the internal Ralph/.roo system with a fresh perspective. CodeRabbit reviews appeared throughout M401, e2e-ux-tests-fix, and other specs — catching duplicate test names, false positives on pre-existing issues, and providing objective feedback before merge.
+
+**Combined coverage:** The three layers create a safety net: Gito catches local issues before commit, Ralph/.roo catches implementation defects during development, and CodeRabbit provides an independent final gate before merge.
+
+**Artifacts discovered:**
+- `.roo/skills/quality-gate/SKILL.md` — 4-layer quality gate architecture
+- `.roo/skills/quality-gate/config/quality-gate.yaml` — 8 scripts configuration
+- `.roo/skills/quality-gate/scripts/` — 8 Python scripts (solid_metrics, weak_test_detector, mutation_analyzer, etc.)
+- `.roo/skills/external-reviewer/SKILL.md` — Anti-evasion + spec integrity guardian
+- `specs/m403-dynamic-soc-capping/chat.md` — 2300+ lines of dual-agent coordination
+- `specs/m403-dynamic-soc-capping/task_review.md` — 1100+ lines of external review decisions
+
+**M403 results:**
+- 136 tasks executed, 1822 tests passing, 100% coverage, 0 RuntimeWarnings
+- HALLAZGO #11: spec integrity protection gap discovered → fixed during execution
+- External-reviewer enhanced to detect "spec task deletion" traps
+- Dual-layer quality system: Ralph Phase 5 + .roo quality-gate checkpoint JSON
+
+**Lessons learned:**
+- The most sophisticated quality system was living outside git the whole time
+- Spec integrity protection is as important as code quality protection
+- Deterministic AST + BMAD consensus provides comprehensive quality assurance
+- The checkpoint JSON bridge is the key innovation connecting .roo and Ralph
+
+---
+
+### The 4 Evolutionary Arcs
+
+Instead of viewing the 7 phases as independent, they are grouped into **4 narrative arcs** that tell the learning story:
 
 | Arc | Included Phases | Narrative | Result |
 |-----|-----------------|-----------|--------|
 | **Exploration** | 1-2 (Vibe Coding, Prompts) | "Without specifications, debt grows exponentially" | 5 inherited gaps, functional but fragile code |
-| **Systematization** | 3-4 (Fine-tuning, Speckit) → 5 (Ralph) | "Structured specs + parallel verification elevate quality" | Phase 5 Verification Loop, 99.7% coverage |
+| **Systematization** | 3-4 (Domain Context, Speckit) → 5 (Ralph) | "Structured specs + parallel verification elevate quality" | Phase 5 Verification Loop, 99.7% coverage |
 | **Orchestration** | 6 (BMad + Ralph) | "Multi-agent with agentic verification is the future" | 23 skills, 29 specs, automated workflow |
+| **Dual-Agent Quality** | 7 (M403) | "Deterministic + consensus quality gates are the next frontier" | 1822 tests, 100% coverage, 117 .roo skills, Gito + CodeRabbit |
 
 **Key insight:** Each arc resolved the previous one's problems but introduced new challenges. The technical debt from Arc 1 could only be managed after reaching Arc 3.
 
@@ -378,6 +428,7 @@ The current project uses a combination of:
 | Speckit | High | High | High | High | Medium |
 | Smart Ralph | High | High | Very High | Very High | Low |
 | BMad + Ralph | Very High | Very High | Very High | Very High | Low |
+| **Dual-Agent (M403)** | **Very High** | **Very High** | **Very High** | **Very High** | **Low** |
 
 ### Cross-Cutting Findings
 
@@ -542,12 +593,14 @@ This block shows **Phase 5 in action**: the QA Engineer operates parallel to the
 | Python lines of code | ~12,432 | 2026-04-23 |
 | Python modules | **18** | 2026-04-23 |
 | Lit components | 12+ | 2026-04-23 |
-| Python unit tests | **85** files | 2026-04-23 |
-| Playwright E2E tests | **8** specs | 2026-04-23 |
-| Generated specs | **29** | 2026-04-23 |
-| Domain skills | **23** (12 domain + 11 framework) | 2026-04-23 |
-| Technical documentation | **23** docs | 2026-04-23 |
-| Methodological phases tested | 6 | 2026-04-23 |
+| Python unit tests | **1822** (100% coverage) | 2026-05-03 |
+| Python test files | **85+** | 2026-05-03 |
+| Playwright E2E tests | **40** specs (30 main + 10 SOC) | 2026-05-03 |
+| Specs fully executed | **1** (M403) | 2026-05-03 |
+| Total specs generated | **30** across 4 arcs | 2026-05-03 |
+| Domain skills | **23** (12 domain + 11 framework) + **117** .roo agent skills (17 review/quality + 100 BMAD/game dev/LangChain) | 2026-05-03 |
+| Technical documentation | **23+** docs | 2026-05-03 |
+| Methodological arcs tested | 4 (7 phases) | 2026-05-03 |
 
 ### Who is Malka?
 
