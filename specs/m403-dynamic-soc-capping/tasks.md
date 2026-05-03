@@ -1026,7 +1026,7 @@ Quality Gate QG18-3: Run `make test` — config_flow.py changes are critical (co
 
 ---
 
-- [ ] T142 **emhass_adapter.py: Update stored baseline configuration values after change detection** — [GITO #15](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/emhass_adapter.py#L2438-L2467), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T142 **emhass_adapter.py: Update stored baseline configuration values after change detection** — e2953ea — [GITO #15](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/emhass_adapter.py#L2438-L2467), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 In `_handle_config_entry_update`, the code compares current config options against `self._stored_*` attributes but never updates them after a change is detected. Subsequent updates compare against initial values, not previous ones, causing incorrect change detection.
 

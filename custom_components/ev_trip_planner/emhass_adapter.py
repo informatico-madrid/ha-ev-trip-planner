@@ -2454,6 +2454,21 @@ class EMHASSAdapter:
         if new_soh != self._stored_soh_sensor:
             changed_params.append("soh_sensor")
 
+        # T142: Update stored baseline values after change detection
+        if new_charging_power is not None:
+            self._stored_charging_power_kw = new_charging_power
+        self._stored_t_base = new_t_base
+        self._stored_soh_sensor = new_soh
+
+        # T142: Reinitialize _t_base and _battery_cap if t_base or SOH sensor changes
+        if "t_base" in changed_params or "soh_sensor" in changed_params:
+            self._t_base = new_t_base
+            soh_entity = new_soh if new_soh else None
+            self._battery_cap = BatteryCapacity(
+                nominal_capacity_kwh=self._battery_capacity_kwh,
+                soh_sensor_entity_id=soh_entity,
+            )
+
         _LOGGER.info(
             "Config entry updated for vehicle %s, changed params: %s (t_base %s→%s, SOH %s→%s)",
             self.vehicle_id,
