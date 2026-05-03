@@ -57,13 +57,13 @@ async function waitForHA(): Promise<void> {
  * This is needed because input_booleans defined in configuration.yaml may take
  * some time to register after HA starts, especially in CI environments.
  */
-async function waitForEntity(entityId: string, timeoutMs = 30_000): Promise<void> {
+async function waitForEntity(entityId: string, timeoutMs = 30_000, token: string): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
     try {
       const response = await fetch(`${HA_URL}/api/states`, {
-        headers: { Authorization: `Bearer ${await getAccessToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const states = await response.json() as Array<{ entity_id: string }>;
@@ -353,9 +353,9 @@ async function globalSetup(): Promise<void> {
 
   // Wait for input_boolean.test_ev_charging to be available in HA
   // (it may take a few seconds after HA starts to register)
-  await waitForEntity('input_boolean.test_ev_charging', 30_000);
+  await waitForEntity('input_boolean.test_ev_charging', 30_000, token);
   // Wait for SOH sensor to be available in HA
-  await waitForEntity('sensor.test_vehicle_soh', 30_000);
+  await waitForEntity('sensor.test_vehicle_soh', 30_000, token);
 
   // Set up the integration only if not already done
   if (await isIntegrationSetUp(token)) {

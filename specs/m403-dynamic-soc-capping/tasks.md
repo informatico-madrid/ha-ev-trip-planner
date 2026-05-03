@@ -923,7 +923,7 @@ Line 235 incorrectly places a period inside backticks: `...instead of \`trip_arr
 - **Why**: Periods inside inline code blocks render incorrectly in markdown and look unprofessional.
 - **Files affected**: `ROADMAP.md`
 
-- [ ] T137 **auth.setup.soc.ts: Fix redundant OAuth token flow inside polling loop** — [GITO #10](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.soc.ts#L63-L86), Classification: REAL_PROBLEM, Consensus: 1/2 split (Winston=REAL, Amelia=FALSE) — 3 rounds
+- [x] T137 **auth.setup.soc.ts: Fix redundant OAuth token flow inside polling loop** — [GITO #10](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.soc.ts#L63-L86), Classification: REAL_PROBLEM, Consensus: 1/2 split (Winston=REAL, Amelia=FALSE) — 3 rounds
 
 `getAccessToken()` performs a full HTTP-based OAuth exchange. Calling it inside the retry loop of `waitForEntity` means a new token flow is initiated on every poll (every 2s). This is inefficient, wastes network resources, and may trigger rate-limiting.
 
@@ -935,7 +935,7 @@ Line 235 incorrectly places a period inside backticks: `...instead of \`trip_arr
 - **Files affected**: `auth.setup.soc.ts`
 - **Done when**: waitForEntity receives token as parameter; globalSetup passes the token
 
-- [ ] T138 **auth.setup.ts: Fix inefficient re-authentication in waitForEntity polling loop** — [GITO #11](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.ts#L60-L83), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T138 **auth.setup.ts: Fix inefficient re-authentication in waitForEntity polling loop** — [GITO #11](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/auth.setup.ts#L60-L83), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Identical issue to T137 but in the non-SOC variant of auth.setup.ts. The `waitForEntity` function invokes `getAccessToken()` on every iteration of its polling loop. The `globalSetup` function already retrieves a valid access token before calling `waitForEntity`.
 
