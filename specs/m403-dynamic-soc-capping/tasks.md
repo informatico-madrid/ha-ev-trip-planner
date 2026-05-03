@@ -849,7 +849,7 @@ The documented formula uses variables `t` and `T`, which do not match the functi
 - **Done when**: Formula variables match function parameter names
 - **Verify**: `grep -n 'risk = t' CHANGELOG.md | grep -v t_hours && echo "STILL WRONG" || echo "OK"`
 
-- [ ] T131 **CLAUDE.md: Fix typographical and language errors in E2E guidelines** — [GITO #3](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L45-L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Amelia=REAL, Paige=REAL, John=REAL)
+- [x] T131 **CLAUDE.md: Fix typographical and language errors in E2E guidelines** — [GITO #3](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L45-L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Amelia=REAL, Paige=REAL, John=REAL)
 
 The new E2E test section contains: 'válidom' (typo for 'válido'), missing capitalization after period ('si' → 'Si'), missing capitalization at start of sentence ('prohibido' → 'Prohibido'), unnecessary trailing spaces.
 
@@ -866,7 +866,7 @@ The new E2E test section contains: 'válidom' (typo for 'válido'), missing capi
 - **Files affected**: `CLAUDE.md`
 - **Done when**: All typos fixed, capitalization corrected, trailing spaces removed
 
-- [ ] T132 **CLAUDE.md: Add missing newline at end of file** — [GITO #4](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Amelia=REAL, Paige=REAL)
+- [x] T132 **CLAUDE.md: Add missing newline at end of file** — [GITO #4](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/CLAUDE.md#L47), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, Amelia=REAL, Paige=REAL)
 
 The file ends without a trailing newline character, which violates POSIX conventions and can cause linting failures or unexpected behavior in some tools.
 
@@ -895,7 +895,7 @@ Quality Gate QG18-1: Run `make test` after documentation and config fixes to ens
 
 ---
 
-- [ ] T134 **ROADMAP.md: Fix chronological inconsistency in milestone ordering** — [GITO #5](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L164-L197), Classification: REAL_PROBLEM, Consensus: 3/3 (Winston=REAL, John=REAL, Paige=REAL)
+- [x] T134 **ROADMAP.md: Fix stale 'Development phase' status in project header** — [GITO #6](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/ROADMAP.md#L6), Classification: REAL_PROBLEM, Consensus: 3/3
 
 Milestone 4.0.3 is titled 'Immediately After M4.0.2' and marked 'COMPLETED — 2026-05-03', but Milestone 4.0.2 is listed later as 'Next' and 'PLANNED — not started'. This violates standard roadmap progression.
 
