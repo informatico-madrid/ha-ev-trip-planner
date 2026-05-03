@@ -291,7 +291,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     @staticmethod
-    async def async_migrate_entry(hass: Any, entry: config_entries.ConfigEntry) -> None:
+    async def async_migrate_entry(hass: Any, entry: config_entries.ConfigEntry) -> bool:
         """Migrar entrada de configuración de versión anterior.
 
         v2 -> v3: Add battery health config (t_base, soh_sensor).
@@ -304,17 +304,19 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         if entry.version == 2:
             # Add new v3 fields with safe defaults
-            data = dict(entry.data)
-            data[CONF_T_BASE] = DEFAULT_T_BASE
-            data[CONF_SOH_SENSOR] = DEFAULT_SOH_SENSOR
-            hass.config_entries.async_update_entry(entry, data=data)
-            entry.version = CONFIG_VERSION
-            _LOGGER.info("Config entry migrated to version %d", CONFIG_VERSION)
-
-        else:
-            _LOGGER.warning(
-                "Unknown config entry version %s, cannot migrate", entry.version
+            new_data = dict(entry.data)
+            new_data[CONF_T_BASE] = DEFAULT_T_BASE
+            new_data[CONF_SOH_SENSOR] = DEFAULT_SOH_SENSOR
+            await hass.config_entries.async_update_entry(
+                entry, data=new_data, version=CONFIG_VERSION
             )
+            _LOGGER.info("Config entry migrated to version %d", CONFIG_VERSION)
+            return True
+
+        _LOGGER.warning(
+            "Unknown config entry version %s, cannot migrate", entry.version
+        )
+        return False
 
     def __init__(self) -> None:
         """Inicializa el flujo de configuración."""

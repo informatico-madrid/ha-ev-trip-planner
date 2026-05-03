@@ -965,7 +965,7 @@ The `t_base` parameter is added to the function signature but is never reference
 - **Done when**: Function signature matches actual parameter usage; no dead parameters
 - **Verify**: `grep 't_base' custom_components/ev_trip_planner/calculations.py | head -20` — verify all references are meaningful
 
-- [ ] T140 **calculations.py: Add bounds check for soc_caps array access** — [GITO #13](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L969-L973), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL-R3 after 3 rounds, Amelia=REAL)
+- [x] T140 **calculations.py: Add bounds check for soc_caps array access** — [GITO #13](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/calculations.py#L969-L973), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL-R3 after 3 rounds, Amelia=REAL)
 
 The code accesses `soc_caps[original_idx]` without verifying that `original_idx < len(soc_caps)`. If `soc_caps` is shorter than the number of trips, this raises `IndexError`. The `soc_targets` access at lines 961-962 HAS a bounds check — the `soc_caps` guard was apparently forgotten during implementation.
 
@@ -988,7 +988,7 @@ The code accesses `soc_caps[original_idx]` without verifying that `original_idx 
 - **Done when**: Bounds check added for soc_caps array access
 - **Verify**: Add a unit test with `len(soc_caps) < len(trips)` to confirm no IndexError
 
-- [ ] T141 **config_flow.py: Fix async_migrate_entry implementation** — [GITO #14](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/config_flow.py#L293-L317), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
+- [x] T141 **config_flow.py: Fix async_migrate_entry implementation** — [GITO #14](https://github.com/informatico-madrid/ha-ev-trip-planner/blob/feature-soh-soc-cap/custom_components/ev_trip_planner/config_flow.py#L293-L317), Classification: REAL_PROBLEM, Consensus: 2/2 (Winston=REAL, Amelia=REAL)
 
 Three bugs in `async_migrate_entry`: (1) Return type is `None` but HA expects `bool` — returning None signals migration failure; (2) `hass.config_entries.async_update_entry` is called without `await` on an async coroutine; (3) Manually mutates `entry.version` instead of passing `version=CONFIG_VERSION` to `async_update_entry`, bypassing HA's internal registry update.
 

@@ -967,7 +967,7 @@ def calculate_deficit_propagation(
         soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
 
         # Apply dynamic SOC cap if provided
-        if soc_caps is not None:
+        if soc_caps is not None and original_idx < len(soc_caps):
             soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
         else:
             soc_objetivo_final = soc_objetivo_ajustado
@@ -1008,7 +1008,7 @@ def calculate_deficit_propagation(
         soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
 
         # Apply dynamic SOC cap if provided (same logic as backward loop)
-        if soc_caps is not None:
+        if soc_caps is not None and original_idx < len(soc_caps):
             soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
         else:
             soc_objetivo_final = soc_objetivo_ajustado
