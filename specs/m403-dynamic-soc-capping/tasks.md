@@ -1956,7 +1956,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 **Checkpoint**: Test fixes batch 2 complete — T190-T193 complete.
 
-- [ ] T194 [P] [GITO] Fix test_sensor_coverage.py incorrect indentation assertion (#29) + duplicate assertions (#30)
+- [x] T194 [P] [GITO] Fix test_sensor_coverage.py incorrect indentation assertion (#29) + duplicate assertions (#30)
 
 **Issue #29** (`tests/test_sensor_coverage.py:1532-1534`): The assertion for indentation level is incorrect — likely checking wrong column number or using wrong comparison. Fix: correct the indentation value being asserted.
 
@@ -1988,7 +1988,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_soc_100): translate failure message, remove unused variables`
 - **GITO Issues**: #31, #32
 
-- [ ] T196 [GITO] Fix test_soc_100_propagation_bug_pending.py misleading name/contradictory docstring (#33)
+- [x] T196 [GITO] Fix test_soc_100_propagation_bug_pending.py misleading name/contradictory docstring (#33)
 
 **Issue #33** (`tests/test_soc_100_propagation_bug_pending.py:16-17,42-53`): Test file name suggests "pending" (not yet implemented) but the test is fully implemented. The docstring at lines 42-53 contradicts the name. Fix: rename test file to remove "pending" if the test is complete, or update docstring to reflect that this is a known limitation waiting for a fix. The most likely fix is renaming the test to remove the misleading "pending" suffix and updating the docstring to accurately describe what the test verifies.
 
