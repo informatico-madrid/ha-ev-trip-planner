@@ -1859,7 +1859,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_config_flow): correct T_BASE assertion value, add SOH persistence assertion`
 - **GITO Issues**: #17, #18
 
-- [ ] T188 [GITO] Fix test_config_updates.py name/docstring/assertion mismatch (#19)
+- [x] T188 [GITO] Fix test_config_updates.py name/docstring/assertion mismatch (#19)
 
 **Issue #19** (`tests/test_config_updates.py:436-468`): Test name, docstring, and assertion do not align. The test name says "update T_BASE" but the docstring mentions something else, and the assertion checks the wrong key. Fix: align all three — rename test, correct docstring, fix assertion to verify the correct config entry key.
 
