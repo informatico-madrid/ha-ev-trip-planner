@@ -1561,7 +1561,7 @@ class TestTripManagerAsyncAddPunctualTrip:
 
                     # Add a punctual trip
                     await trip_manager.async_add_punctual_trip(
-                        datetime="2024-01-15T08:00:00",
+                        datetime_str="2024-01-15T08:00:00",
                         km=25.0,
                         kwh=5.0,
                         descripcion="Test punctual trip for EMHASS sensor creation",

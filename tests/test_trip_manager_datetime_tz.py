@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_handles_naive_datetime(
+async def test_async_calcular_energia_necesaria_handles_tz_aware_datetime(
     monkeypatch,
 ) -> None:
     """Calling async_calcular_energia_necesaria with a tz-aware datetime object

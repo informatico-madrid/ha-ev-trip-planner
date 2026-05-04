@@ -2003,7 +2003,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_soc_100): correct misleading test name and docstring`
 - **GITO Issue**: #33
 
-- [ ] T197 [P] [GITO] Fix test_trip_manager.py parameter name (#34) + test_trip_manager_datetime_tz.py mismatched name/docstring (#35)
+- [x] T197 [P] [GITO] Fix test_trip_manager.py parameter name (#34) + test_trip_manager_datetime_tz.py mismatched name/docstring (#35)
 
 **Issue #34** (`tests/test_trip_manager.py:1565`): Test function calls use `datetime=` as parameter name but the function signature expects `datetime_str=`. Fix: change `datetime=` → `datetime_str=` in the function call.
 
