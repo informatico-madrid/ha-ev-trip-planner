@@ -433,15 +433,13 @@ async def test_handle_config_entry_update_detects_charging_power_change(
 
 
 @pytest.mark.asyncio
-async def test_no_charging_needed_power_watts_zero(
+async def test_async_publish_all_deferrable_loads_skips_trip_without_datetime(
     mock_hass: HomeAssistant, mock_store
 ):
-    """Test that power_watts is 0.0 when total_hours == 0 (no charging needed).
+    """Test that async_publish_all_deferrable_loads skips trips without datetime fields.
 
-    Note: Due to proactive charging logic in determine_charging_need, any valid trip
-    always results in kwh_needed > 0. The only way to hit total_hours == 0 is with
-    trips that have None datetime (impossible in real usage) or kwh=0 with SOC >= target
-    (which the proactive charging logic prevents). This line uses pragma: no cover.
+    When a trip lacks datetime/day/time fields, calculate_power_profile returns an
+    empty profile (non_zero=0) and publish_deferrable_load fails, returning False.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -461,8 +459,8 @@ async def test_no_charging_needed_power_watts_zero(
             {"id": "trip_001", "descripcion": "Trip 1", "kwh": 5.0, "hora": "09:00"},
         ]
 
-        # Normal trip — should trigger charging
+        # Trip without datetime — should be skipped, returns False
         result = await adapter.async_publish_all_deferrable_loads(
             trips, charging_power_kw=7.4
         )
-        assert result is not None
+        assert result is False
