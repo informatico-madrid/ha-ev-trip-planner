@@ -1843,7 +1843,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 ### Python Test Code Fixes
 
-- [ ] T187 [P] [GITO] Fix test_config_flow.py mismatched assertion (#17) + Missing SOH assertion (#18)
+- [x] T187 [P] [GITO] Fix test_config_flow.py mismatched assertion (#17) + Missing SOH assertion (#18)
 
 **Issue #17** (`tests/test_config_flow.py:709`): Assertion value `t_base` default does not match the test name/intent. The test checks T_BASE default value but asserts wrong expected value. Fix: correct the assertion to match the actual `DEFAULT_T_BASE` constant value.
 
