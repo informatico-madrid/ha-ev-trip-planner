@@ -1874,7 +1874,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_config_updates): align test name, docstring, and assertion`
 - **GITO Issue**: #19
 
-- [ ] T189 [GITO] Fix test_dynamic_soc_capping.py expected value (#20) + misleading docstring (#21)
+- [x] T189 [GITO] Fix test_dynamic_soc_capping.py expected value (#20) + misleading docstring (#21)
 
 **Issue #20** (`tests/test_dynamic_soc_capping.py:474-475`): Test expects `22.5h idle` but the computed value should be `94.82` not `94.93`. The expected value in the assertion is wrong — it uses `94.93` but the correct calculation with the given inputs produces `94.82`. Fix: change expected from `94.93` to `94.82`.
 

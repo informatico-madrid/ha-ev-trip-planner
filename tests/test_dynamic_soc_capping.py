@@ -458,7 +458,7 @@ class TestScenarioValidation:
     def test_scenario_c_daily_commute_cap(self) -> None:
         """T067: Scenario C — 4 identical 30km trips with 22.5h idle each.
 
-        Each trip should charge to ~61% (not 100%) due to capping.
+        Each trip should charge to ~94.8% (not 100%) due to capping.
         Post-trip SOC ~41%.
         """
         from custom_components.ev_trip_planner.calculations import (
@@ -472,7 +472,7 @@ class TestScenarioValidation:
 
         # Trip 1: 22.5h idle, post-trip SOC 41%
         cap_1 = calculate_dynamic_soc_limit(22.5, 41.0, battery_kwh, t_base=t_base)
-        assert cap_1 == pytest.approx(94.93, rel=0.01)
+        assert cap_1 == pytest.approx(94.82, rel=0.01)
 
         # All 4 trips have same pattern (identical idle + post-trip SOC)
         for i in range(4):
