@@ -1820,7 +1820,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 ### TypeScript/E2E Fixes
 
-- [ ] T186 [P] [GITO] Fix CSS selector '..' in trips-helpers.ts (#13) + Replace deprecated waitForTimeout (#14) + Fix detached JSDoc (#15)
+- [x] T186 [P] [GITO] Fix CSS selector '..' in trips-helpers.ts (#13) + Replace deprecated waitForTimeout (#14) + Fix detached JSDoc (#15)
 
 **Issue #13** (`tests/e2e-dynamic-soc/trips-helpers.ts:343`): `tripCard.locator('..')` is an invalid CSS selector — `'..' is not valid CSS for "parent". Fix: change to `tripCard.locator('xpath=..')` to use XPath parent selector.
 

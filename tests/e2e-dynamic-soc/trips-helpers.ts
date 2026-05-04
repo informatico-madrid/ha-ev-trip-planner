@@ -233,7 +233,7 @@ export async function deleteTestTrip(page: Page, tripId: string): Promise<void> 
   }
 
   // Wait briefly for dialogs to be handled
-  await page.waitForTimeout(1_000);
+  await new Promise(r => setTimeout(r, 1_000));
 
   // Remove dialog handler to avoid interference with other tests
   page.removeListener('dialog', dialogHandler);
@@ -280,12 +280,6 @@ export function setupAlertHandler(page: Page): Promise<string> {
 }
 
 /**
- * Cleans up ALL visible trip cards from the panel by deleting them.
- * This is used in beforeEach to ensure a clean state before each test.
- * WARNING: Do NOT call this before tests that expect existing trips to be present.
- * @param page - Playwright Page object
- */
-/**
  * Computes a future ISO datetime string for use in trip creation.
  * Avoids hardcoded dates that break when the date passes.
  * @param daysOffset - Days from now to schedule the trip
@@ -301,6 +295,12 @@ export function getFutureIso(daysOffset: number, timeStr: string = '08:00'): str
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/**
+ * Cleans up ALL visible trip cards from the panel by deleting them.
+ * This is used in beforeEach to ensure a clean state before each test.
+ * WARNING: Do NOT call this before tests that expect existing trips to be present.
+ * @param page - Playwright Page object
+ */
 export async function cleanupTestTrips(page: Page): Promise<void> {
   // Wait for trip cards to be loaded
   await page.waitForSelector('.trip-card', { timeout: 5_000 }).catch(() => {
@@ -337,15 +337,15 @@ export async function cleanupTestTrips(page: Page): Promise<void> {
     if (deleteBtnVisible) {
       await deleteBtn.click();
       // Wait for deletion to process
-      await page.waitForTimeout(500);
+      await new Promise(r => setTimeout(r, 500));
     } else {
       // Fallback: find delete by text in parent
-      const parent = tripCard.locator('..');
+      const parent = tripCard.locator('xpath=..');
       const deleteInParent = parent.getByText('Eliminar').first();
       const deleteVisible = await deleteInParent.isVisible().catch(() => false);
       if (deleteVisible) {
         await deleteInParent.click();
-        await page.waitForTimeout(500);
+        await new Promise(r => setTimeout(r, 500));
       }
     }
   }
