@@ -436,7 +436,9 @@ async def import_dashboard(
 
     try:
         # Call the save helper and check its structured result explicitly.
-        save_result = await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id, vehicle_name)
+        save_result = await _save_lovelace_dashboard(
+            hass, dashboard_config, vehicle_id, vehicle_name
+        )
 
         # If helper returns a DashboardImportResult, respect its .success flag.
         if isinstance(save_result, DashboardImportResult):

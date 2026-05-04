@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-04T10:03:31Z",
+  "updated": "2026-05-04T11:06:59Z",
   "directories": [
     {
       "path": "./specs",
@@ -238,8 +238,8 @@
     {
       "name": "m403-dynamic-soc-capping",
       "path": "./specs/m403-dynamic-soc-capping",
-      "phase": "execution",
-      "taskIndex": 185,
+      "phase": "completed",
+      "taskIndex": 204,
       "totalTasks": 204
     }
   ]

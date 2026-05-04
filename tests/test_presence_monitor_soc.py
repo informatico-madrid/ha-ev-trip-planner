@@ -1,7 +1,7 @@
 """Tests for Presence Monitor SOC functionality (Task 1.8)."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, MagicMock, patch
+from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
