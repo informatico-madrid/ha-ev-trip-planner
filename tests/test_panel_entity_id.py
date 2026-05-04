@@ -152,7 +152,6 @@ class TestPanelEntityIdMatch:
 
         has_vehicle_filter_in_method = (
             "state.attributes?.vehicle_id" in renderemhass_section
-            or "state.attributes?.vehicle_id" in renderemhass_section
         )
         assert has_vehicle_filter_in_method, (
             "FR-2.1: _renderEmhassConfig() must filter EMHASS sensors by vehicle_id attribute.\n"
