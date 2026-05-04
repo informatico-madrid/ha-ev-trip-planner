@@ -13,8 +13,8 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
 
 
-class TestSOC100PropagationBugPending:
-    """Test que DEBE FALLAR por el bug de propagación de déficit en SOC 100%."""
+class TestSOC100PropagationBug:
+    """Verifies proactive charging at SOC 100% uses power profile clamping."""
 
     def setup_method(self):
         """Configuración inicial para cada test."""
@@ -41,15 +41,11 @@ class TestSOC100PropagationBugPending:
 
     async def test_soc_100_first_trip_must_not_have_2_hours(self):
         """
-        TEST QUE DEBE FALLAR - Reproduce el reporte exacto del usuario.
+        Verifies proactive charging at SOC 100% assigns charge hours to trips.
 
-        El usuario reportó:
-        def_total_hours: [2, 0, 0, 0, 0]
-        P_deferrable_nom: [3400.0, 3400.0, 3400.0, 3400.0, 3400.0]
-
-        CON SOC 100% EL PRIMER VIAJE NO PUEDE TENER 2 HORAS.
-
-        Este test fallará hasta que se arregle el bug de propagación de déficit.
+        Reproduces user report scenario where def_total_hours and P_deferrable_nom
+        were zeroed out incorrectly. With proactive charging, even at SOC 100%,
+        trips should receive minimum charge hours.
         """
         # Crear escenario EXACTO que causa propagación de déficit
         # El primer viaje (30 kWh) absorberá el déficit de viajes posteriores
@@ -187,9 +183,6 @@ class TestSOC100PropagationBugPending:
                 "Con carga proactiva, el primer viaje debe tener horas de carga > 0"
             )
 
-        # Verificar TODOS los viajes - BUG 2
-        print("")
-        print("=== VERIFICACIÓN DE TODOS LOS VIAJES (BUG 2) ===")
         _bug2_detectado = False  # noqa: F841 — flag for bug detection in debug print
 
         for i, trip in enumerate(trips):
@@ -263,5 +256,5 @@ class TestSOC100PropagationBugPending:
 
 
 if __name__ == "__main__":
-    # Este test DEBE fallar hasta que se arregle el bug
+    # Verify proactive charging behavior at SOC 100%
     pytest.main([__file__, "-v", "-s"])

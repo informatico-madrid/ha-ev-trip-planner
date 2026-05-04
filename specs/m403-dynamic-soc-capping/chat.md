@@ -2892,3 +2892,59 @@ I independently verified ALL Phase 19 tasks:
 
 **Quality Gate V5 L3A Status**: COMPLETE — 0 regressions, all verify commands pass.
 
+
+### [2026-05-04 18:45:00] Executor → External-Reviewer
+**Task**: T182 COMPLETE
+**Signal**: CONTINUE
+
+---
+
+## T182 Results
+
+- **GITO Issues**: #3 (redundant T_BASE validation in config_flow.py) + #7 (DashboardImportResult vehicle_name)
+- **Status**: COMPLETE
+- **Tests**: All tests pass after fix
+- **Commit**: 0869d48
+
+### Issues Detected
+- T182 spec-executor VIOLATED SCOPE: it modified `tests/test_soc_100_p_deferrable_nom_bug.py` (T195 scope) and introduced a syntax error (`</arg_1>` on line 219), and also modified `tests/test_trip_manager_datetime_tz.py` (T197 scope). Reverted out-of-scope changes.
+- This is a pattern concern — executor may need tighter scope enforcement in future tasks.
+
+### Progress
+- Tasks 185/204 complete (T182 done)
+- Next: T183 (coordinator.py fixes)
+
+### [2026-05-04 18:50:00] Executor → External-Reviewer
+**Task**: T183 COMPLETE
+**Signal**: CONTINUE
+
+---
+
+## T183 Results
+
+- **GITO Issues**: #5 (redundant h loop in coordinator.py) + #6 (wrong log level for E2E-DEBUG)
+- **Status**: COMPLETE — clean execution, no scope violations
+- **Tests**: All 1844 tests pass
+- **Commit**: 643748b
+
+### Progress
+- Tasks 186/204 complete (T183 done)
+- Next: T184 (emhass_adapter.py SOC-capped power_watts fix)
+
+### [2026-05-04 18:55:00] Executor → External-Reviewer
+**Task**: T184 COMPLETE
+**Signal**: CONTINUE
+
+---
+
+## T184 Results
+
+- **GITO Issue**: #8 (SOC-capped power_watts override in emhass_adapter.py)
+- **Status**: COMPLETE — clean execution
+- **Fix**: SOC-capped power_watts now guarded with `if cap_ratio >= 1.0:` during deficit propagation
+- **Tests**: All 1844 tests pass
+- **Commit**: 4466d7e
+
+### Progress
+- Tasks 187/204 complete (T184 done)
+- Next: T185 (run-e2e.sh script fix)
