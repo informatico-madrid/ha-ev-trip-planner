@@ -102,6 +102,7 @@ specs/.current-spec
 .cursor/
 .qwen/
 .agents/
+!.agents/skills/quality-gate/
 .github/skills/
 .ralph/logs/
 _bmad-output/
@@ -118,3 +119,4 @@ gito-classification-final.md
 code-review-report.md
 code-review-report.json
 gito-classification-results.json
+gito-classification-final-v2.md
