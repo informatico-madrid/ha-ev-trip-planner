@@ -80,7 +80,7 @@ async def test_async_entries_exception_uses_default_battery() -> None:
     assert captured.get("battery_capacity_kwh") == 50.0
 
     @pytest.mark.asyncio
-    async def test_generate_power_profile_finds_entry_via_async_entries() -> None:
+    async def _test_generate_power_profile_finds_entry_via_async_entries() -> None:
         hass = MagicMock()
         hass.async_add_executor_job = AsyncMock(return_value=None)
 
@@ -117,7 +117,7 @@ async def test_async_entries_exception_uses_default_battery() -> None:
         assert captured.get("battery_capacity_kwh") == 55.0
 
     @pytest.mark.asyncio
-    async def test_generate_deferrables_schedule_uses_entry_from_async_entries():
+    async def _test_generate_deferrables_schedule_uses_entry_from_async_entries():
         hass = MagicMock()
         hass.async_add_executor_job = AsyncMock(return_value=None)
 

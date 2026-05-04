@@ -1909,7 +1909,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_emhass_integration,full_user_journey): replace trivial and tautological assertions`
 - **GITO Issues**: #22, #24
 
-- [ ] T191 [GITO] Fix test_panel_entity_id.py duplicate condition tautology (#25)
+- [x] T191 [GITO] Fix test_panel_entity_id.py duplicate condition tautology (#25)
 
 **Issue #25** (`tests/test_panel_entity_id.py:153-156`): The condition checks the same value twice in an `or` clause (e.g., `if entity_id == expected or entity_id == expected`), making one branch a logical tautology. Fix: identify the duplicated condition, correct it to check the intended different value or remove the redundant branch.
 
