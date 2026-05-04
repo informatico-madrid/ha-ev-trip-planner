@@ -27,17 +27,6 @@ HA_URL="${HA_URL:-http://localhost:8123}"
 HEADLESS="--workers=1"
 TEST_SUITE="tests/e2e/"
 
-# Parse args
-for arg in "$@"; do
-  case "$arg" in
-    --headed) HEADLESS="--workers=1 --headed" ;;
-    --debug) HEADLESS="--workers=1 --debug" ;;
-    --ci) HEADLESS="--workers=1" ;;
-    --suite) TEST_SUITE="tests/e2e/" ;;  # will be overwritten if --suite is before =
-    *) ;;
-  esac
-done
-
 # Handle --suite argument (can appear anywhere in args)
 for ((i=1; i<=$#; i++)); do
   if [[ "${!i}" == "--suite" ]]; then
