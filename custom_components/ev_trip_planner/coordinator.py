@@ -192,13 +192,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         This method is called by service handlers after trip CRUD operations
         to trigger an immediate refresh of the coordinator data.
         """
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s",
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )
         await self.async_refresh()
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s",
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
@@ -271,13 +271,12 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
             # Build p_deferrable_matrix for this trip
             trip_matrix: list[list[float]] = []
-            for h in range(int(hours_needed) + 1):
-                row = [0.0] * 96  # 24h * 4 timesteps/hour
-                for t in range(start_timestep, end_timestep):
-                    if 0 <= t < 96:
-                        row[t] = power_watts
-                if any(v > 0 for v in row):
-                    trip_matrix.append(row)
+            row = [0.0] * 96  # 24h * 4 timesteps/hour
+            for t in range(start_timestep, end_timestep):
+                if 0 <= t < 96:
+                    row[t] = power_watts
+            if any(v > 0 for v in row):
+                trip_matrix.append(row)
 
             if not trip_matrix:
                 # Fallback: single row

@@ -1747,7 +1747,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 ### Production Code Fixes
 
-- [ ] T182 [P] [GITO] Remove redundant T_BASE validation in config_flow.py (#3) + Fix vehicle_name passed to DashboardImportResult in dashboard.py (#7)
+- [x] T182 [P] [GITO] Remove redundant T_BASE validation in config_flow.py (#3) + Fix vehicle_name passed to DashboardImportResult in dashboard.py (#7)
 
 **Issue #3** (`config_flow.py:428-440`): Manual `if t_base < MIN_T_BASE or t_base > MAX_T_BASE` check is unreachable dead code — Voluptuous already validates this in `STEP_SENSORS_SCHEMA` via `vol.All(vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE))`. Remove lines 428-439 entirely.
 
@@ -1765,7 +1765,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(config_flow,dashboard): remove dead T_BASE validation, fix DashboardImportResult vehicle_name`
 - **GITO Issues**: #3, #7
 
-- [ ] T183 [P] [GITO] Remove redundant loop in coordinator.py (#5) + Fix log level for debug logs (#6)
+- [x] T183 [P] [GITO] Remove redundant loop in coordinator.py (#5) + Fix log level for debug logs (#6)
 
 **Issue #5** (`coordinator.py:274-284`): The outer `for h in range(int(hours_needed) + 1)` loop iterates but `h` is never used inside the body. Each iteration rebuilds the same `row` array with the same values. The inner loop over `t` does all the real work. Remove the `h` loop and the `row` re-initialization, keeping only the inner `t` loop logic.
 
