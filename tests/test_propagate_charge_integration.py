@@ -181,10 +181,6 @@ class TestPropagateChargeIntegration:
         assert "power_profile_watts" in cache1
         assert "power_profile_watts" in cache2
 
-        # Power profiles should be set (indicates full flow completed)
-        assert "power_profile_watts" in cache1
-        assert "power_profile_watts" in cache2
-
     @pytest.mark.asyncio
     async def test_single_trip_unchanged_regression(
         self,

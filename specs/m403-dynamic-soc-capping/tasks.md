@@ -1940,7 +1940,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_presence_monitor_soc): use AsyncMock, translate comments to English`
 - **GITO Issues**: #26, #27
 
-- [ ] T193 [GITO] Fix test_propagate_charge_integration.py duplicated assertion block (#28)
+- [x] T193 [GITO] Fix test_propagate_charge_integration.py duplicated assertion block (#28)
 
 **Issue #28** (`tests/test_propagate_charge_integration.py:180-186`): Same assertion block appears twice consecutively with identical logic. Fix: remove the duplicate assertion block, keep only one instance.
 
