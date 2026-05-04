@@ -682,9 +682,40 @@ class TestDuplicateDashboardNameCollision:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        # Create config directory
+        # Create config directory and pre-existing dashboard file
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
+        existing = config_dir / "ev-trip-planner-vehicle1.yaml"
+        existing.write_text("existing: content")
+
+        # Override mock_hass_container config_dir to point to the temp path
+        mock_hass_container.config.config_dir = str(config_dir)
+
+        # Import dashboard when path already exists
+        from custom_components.ev_trip_planner.dashboard import (
+            _save_dashboard_yaml_fallback,
+        )
+
+        dashboard_config = {
+            "title": "Test Dashboard",
+            "views": [
+                {
+                    "path": "vehicle1",
+                    "title": "Vehicle 1",
+                    "cards": [],
+                }
+            ],
+        }
+
+        await _save_dashboard_yaml_fallback(
+            mock_hass_container,
+            dashboard_config,
+            "vehicle1",
+        )
+
+        # Verify a new file with -2- suffix was created
+        new_files = list(config_dir.glob("ev-trip-planner-vehicle1.yaml.*"))
+        assert len(new_files) >= 1, "Should create new file with suffix"
 
     @pytest.mark.asyncio
     async def test_duplicate_dashboard_name_overwrites(self, mock_hass_container):
@@ -742,8 +773,7 @@ class TestDuplicateDashboardNameCollision:
         )
         # New file should be created with some suffix (check for any file with suffix)
         new_files = list(config_dir.glob("ev-trip-planner-vehicle1.yaml.*"))
-        # Skip assertion - file naming can vary based on existing files
-        assert len(new_files) >= 0, "Should create new file"
+        assert len(new_files) >= 1, "Should create new file with suffix"
 
 
 class TestCRUDOperationsViaDashboard:

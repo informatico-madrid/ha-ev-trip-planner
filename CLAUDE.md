@@ -40,8 +40,8 @@ Use `/bmalph` to navigate phases. Use `/bmad-help` to discover all commands. Use
 | `/ux-designer` | UX Designer | User experience, wireframes |
 | `/qa` | QA Engineer | Test automation, quality assurance |
 
-## TEST E2E
+## E2E TESTS
 
-- Siempre se ejecutan con makefile
-- Prohibido usar llamadas API
-- Replicar comportamiento de un usuario real. Si no puedes replicar el comportamiento de un usuario real no es un test válido o hay un error en el diseño del test, o hay un error en el código de la aplicación.
+- Always run them via the Makefile
+- API calls are strictly prohibited
+- Must replicate real user behavior. If the test cannot replicate real user behavior, it is invalid, indicating either a flaw in the test design or an error in the application code.

@@ -16,19 +16,14 @@ import math
 class TestDatetimeOffsetBug:
     """Test datetime offset bug in emhass_adapter.
 
-    GREEN Phase: test_datetime_subtraction_raises_typeerror PASSES (bug fixed)
+    GREEN Phase: test_aware_datetime_subtraction_succeeds PASSES (bug fixed)
     """
 
-    def test_datetime_subtraction_raises_typeerror(self):
-        """Test that naive - aware datetime subtraction raises TypeError.
+    def test_aware_datetime_subtraction_succeeds(self):
+        """Test that offset-aware datetime subtraction works after the fix.
 
-        RED Phase (before fix): This test FAILS because emhass_adapter uses
-        naive datetime.now() which cannot subtract from offset-aware datetimes.
-
-        GREEN Phase (after fix): This test PASSES because emhass_adapter now
-        uses datetime.now(timezone.utc) which is offset-aware.
-
-        This is the CORE test - it directly tests the buggy code path.
+        After the fix, emhass_adapter uses datetime.now(timezone.utc)
+        which is offset-aware and can subtract from other aware datetimes.
         """
         # Use a deadline in the future (1 day from now)
         deadline = datetime.now(timezone.utc) + timedelta(days=1)

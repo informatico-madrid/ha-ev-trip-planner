@@ -213,13 +213,10 @@ export async function deleteTestTrip(page: Page, tripId: string): Promise<void> 
   const tripCard = page.getByText(description).last();
   await tripCard.waitFor({ state: 'visible', timeout: 5_000 });
 
-  // Set up handlers for both confirm and alert dialogs
-  let dialogCount = 0;
-  const dialogHandler = async (dialog: import('@playwright/test').Dialog) => {
-    dialogCount++;
+  // Use page.once to avoid stacking listeners if this function throws or times out
+  await page.once('dialog', async (dialog: import('@playwright/test').Dialog) => {
     await dialog.accept();
-  };
-  page.on('dialog', dialogHandler);
+  });
 
   // Click the delete button on the trip card
   // The delete button has class "delete-btn" and text "🗑️ Eliminar"
@@ -232,11 +229,8 @@ export async function deleteTestTrip(page: Page, tripId: string): Promise<void> 
       .getByText('Eliminar').click();
   }
 
-  // Wait briefly for dialogs to be handled
+  // Wait briefly for dialog to be handled
   await new Promise(r => setTimeout(r, 1_000));
-
-  // Remove dialog handler to avoid interference with other tests
-  page.removeListener('dialog', dialogHandler);
 }
 
 /**

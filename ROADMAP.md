@@ -3,7 +3,7 @@
 ## 📊 Project Status
 
 **Current version**: 0.5.23
-**Development phase**: Milestone 4.0.3 completed — M4.0.2 next target
+**Development phase**: Milestone 4.0.3 completed — M4.1 next target
 **Target Release**: v1.0.0 (Q2 2026)
 **Tests**: 1822 Python (pytest) + 40 E2E (Playwright) passing
 **Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1

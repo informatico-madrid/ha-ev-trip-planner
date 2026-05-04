@@ -382,7 +382,7 @@ def mock_device_registry():
         return [
             device
             for device in registry._devices.values()
-            if device.config_entries.get(config_entry_id)
+            if config_entry_id in device.config_entries
         ]
 
     def _async_get_device(device_id):

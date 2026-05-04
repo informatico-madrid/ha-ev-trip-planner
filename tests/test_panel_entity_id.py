@@ -141,7 +141,7 @@ class TestPanelEntityIdMatch:
 
         assert len(matches) >= 1, (
             f"panel.js should check if entityId includes `emhass_perfil_diferible_`\n"
-            f"to extract vehicle ID. Found {len(matches)} matches, expected at least 1."
+            f"to verify the EMHASS sensor prefix filter is present. Found {len(matches)} matches, expected at least 1."
         )
 
         # FR-2.1 MUST-HAVE: Verify vehicle_id filtering is in _renderEmhassConfig

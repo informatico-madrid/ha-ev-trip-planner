@@ -175,7 +175,7 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 | Power profile not propagating | High | Low | 🔴 High | Hypothesis documented |
 | Dashboard hardcoded gradients | Low | Low | 🟢 Low | Hypothesis documented |
 
-**Debt Management Score: 88%** — All gaps inherited from Phase 1 (Vive Coding). Their transparent documentation demonstrates mature engineering practice, not negligence.
+**Debt Management Score: 88%** — All gaps inherited from Phase 1 (Vibe Coding). Their transparent documentation demonstrates mature engineering practice, not negligence.
 
 ---
 

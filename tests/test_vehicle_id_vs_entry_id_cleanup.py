@@ -53,17 +53,13 @@ class TestVehicleIdVsEntryIdCleanup:
     """
 
     @pytest.mark.asyncio
-    async def test_cleanup_fails_when_vehicle_id_differs_from_entry_id(
+    async def test_cleanup_succeeds_when_vehicle_id_differs_from_entry_id(
         self, hass, mock_store
     ):
-        """Demonstrate bug: cleanup fails to remove sensor when vehicle_id != entry_id.
+        """Verify cleanup succeeds when vehicle_id differs from entry_id.
 
-        This test SHOULD FAIL with the current code because:
-        - sensor entity_id is: sensor.emhass_perfil_diferible_entry_abc123
-        - cleanup checks: "mi_coche" in entity_id → FALSE
-        - result: sensor NOT removed (bug!)
-
-        After fix: should also check entry_id in entity_id, so cleanup succeeds.
+        The cleanup code now checks both vehicle_id and entry_id in entity_id,
+        so sensors are correctly removed even when vehicle_id != entry_id.
         """
         # Scenario: vehicle_id is "mi_coche" but entry_id is "entry_abc123"
         vehicle_id = "mi_coche"

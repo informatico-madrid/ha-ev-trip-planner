@@ -480,11 +480,11 @@ def calculate_energy_needed(
     # Energía actual en batería
     energia_actual = (soc_current / 100.0) * battery_capacity_kwh
 
-    # Proactive charging trigger: charge when SOC drops below trip energy.
-    # Without this, trips scheduled in the future never trigger charging
-    # because current SOC covers the trip + safety margin individually.
-    # When energy_actual >= energia_objetivo, we still charge a minimum
-    # (energia_viaje) to prepare for future trips in a chain.
+    # Proactive charging trigger: ensure capacity for trip chains even when
+    # current SOC covers the trip target. Without this, future trips in a chain
+    # would never trigger charging because current SOC covers each trip
+    # individually. When energia_actual >= energia_objetivo, charge a minimum
+    # (energia_viaje) to prepare for the next trip in the chain.
     if energia_actual >= energia_objetivo:
         # SOC covers full target but not enough headroom for trip chain.
         # Charge minimum = trip energy (ensures proactive preparation).

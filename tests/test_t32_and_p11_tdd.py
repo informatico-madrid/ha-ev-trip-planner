@@ -3,11 +3,15 @@
 These tests are RED by design - they document expected behavior that is not yet implemented.
 """
 
+import logging
+
 import pytest
 from unittest.mock import Mock
 
-from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
+from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
+
+logger = logging.getLogger(__name__)
 
 # Import fixtures from conftest
 
@@ -42,10 +46,10 @@ class TestP11_NumberOfDeferrableLoadsFix:
     async def test_emhass_sensor_zero_deferrable_shows_zero_not_none(
         self, mock_coordinator
     ):
-        """TDD: Sensor con 0 cargas aplazables debe mostrar 0, no none."""
+        """TDD: Sensor with 0 deferrable loads must show 0, not None."""
         # Arrange
         mock_coordinator.data = {
-            "per_trip_emhass_params": {},  # Sin trips
+            "per_trip_emhass_params": {},  # No trips
             "emhass_power_profile": [0.0] * 168,
         }
 
@@ -59,7 +63,7 @@ class TestP11_NumberOfDeferrableLoadsFix:
 
     @pytest.mark.asyncio
     async def test_emhass_sensor_with_trips_shows_correct_count(self, mock_coordinator):
-        """TDD: Sensor con N cargas debe mostrar N."""
+        """TDD: Sensor with N loads must show N."""
         # Arrange
         mock_coordinator.data = {
             "per_trip_emhass_params": {
@@ -85,37 +89,39 @@ class TestT32_RecurringTripRotation:
     async def test_recurring_trip_past_deadline_uses_next_week(
         self, trip_manager_no_entry_id
     ):
-        """TDD: Viaje recurrente pasado debe usar la próxima ocurrencia."""
+        """TDD: Past recurring trip must use next occurrence."""
         # Arrange
         past_trip = {
             "id": "recurring_1",
             "tipo": "recurring",
             "day": "monday",
             "hora": "08:00",
-            "datetime": "2026-04-13T08:00:00",  # Monday pasado
+            "datetime": "2026-04-13T08:00:00",  # Past Monday
         }
         original_datetime = past_trip["datetime"]
 
         # Act
-        print(
-            f"DEBUG: Before publish_deferrable_loads - trip datetime: {past_trip['datetime']}"
+        logger.debug(
+            "Before publish_deferrable_loads - trip datetime: %s",
+            past_trip["datetime"],
         )
         await trip_manager_no_entry_id.publish_deferrable_loads([past_trip])
-        print(
-            f"DEBUG: After publish_deferrable_loads - trip datetime: {past_trip['datetime']}"
+        logger.debug(
+            "After publish_deferrable_loads - trip datetime: %s",
+            past_trip["datetime"],
         )
 
-        # Assert - El datetime debe ser diferente del original (actualizado por T3.2)
-        # Por ahora este test fallará porque T3.2 no está implementado
+        # Assert - The datetime must be different from the original (updated by T3.2)
+        # For now this test will fail because T3.2 is not implemented
         assert past_trip["datetime"] != original_datetime, (
-            "T3.2: El datetime del viaje recurrente pasado debe actualizarse"
+            "T3.2: The datetime of the past recurring trip must be updated"
         )
 
     @pytest.mark.asyncio
     async def test_multiple_recurring_trips_rotated_correctly(
         self, trip_manager_with_entry_id
     ):
-        """TDD: Múltiples viajes recurrentes deben rotarse independientemente."""
+        """TDD: Multiple recurring trips must rotate independently."""
         # Arrange
         trips = [
             {
@@ -144,6 +150,6 @@ class TestT32_RecurringTripRotation:
         # Act
         await trip_manager_with_entry_id.publish_deferrable_loads(trips)
 
-        # Assert - Todos los viajes recurrentes deben tener datetime actualizado
-        # Por ahora este test no falla porque no hay implementación
-        # Cuando se implemente T3.2, los datetimes deben cambiar
+        # Assert - All recurring trips must have updated datetime
+        # For now this test doesn't fail because there is no implementation
+        # When T3.2 is implemented, the datetimes must change

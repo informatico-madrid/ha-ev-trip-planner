@@ -311,7 +311,7 @@ class TestEmhassDeferrableLoadSensor:
     async def test_sensor_includes_last_update_attribute(
         self, mock_coordinator, sensor
     ):
-        """Test that last_update timestamp is present after coordinator update."""
+        """Test that emhass_status attribute is present and correct after coordinator update."""
         # When coordinator.data is updated, the sensor should reflect it
         mock_coordinator.data = {
             **mock_coordinator.data,
@@ -342,7 +342,8 @@ class TestEmhassDeferrableLoadSensor:
     async def test_sensor_emhass_status_error_on_exception(
         self, mock_coordinator, sensor
     ):
-        """Test that emhass_status is set to error on exception."""
+        """Test that exception in coordinator sets emhass_status to error."""
+        # Simulate error state in coordinator data
         mock_coordinator.data = {
             **mock_coordinator.data,
             "emhass_power_profile": None,

@@ -2177,10 +2177,8 @@ class TripManager:
             # Delegate pure deficit propagation algorithm to calculations.py
             # Pre-compute trip times using the instance's _get_trip_time method
             # (which may be mocked in tests) for correct test compatibility
-            # precomputed_trip_times is already set above if trips is non-empty
-            precomputed_trip_times = (
-                precomputed_trip_times if "precomputed_trip_times" in dir() else []
-            )
+            # precomputed_trip_times is set above (line 2153) when trips is non-empty,
+            # and used below at line 2196 — the dir() fallback is always dead code
             # Pre-compute SOC targets using the instance's _calcular_soc_objetivo_base
             # (which may be mocked in tests) for correct test compatibility
             precomputed_soc_targets = [

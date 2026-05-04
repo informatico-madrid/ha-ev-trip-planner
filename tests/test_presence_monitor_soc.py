@@ -480,7 +480,7 @@ async def test_soc_debouncing_ignores_unavailable_state(mock_hass, mock_trip_man
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered
-    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    mock_trip_manager.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 

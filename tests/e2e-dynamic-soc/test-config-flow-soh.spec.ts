@@ -14,7 +14,7 @@
  * - As a user, I want to configure T_BASE window for dynamic SOC capping
  * - As a user, I want validation that T_BASE is within 6-48h range
  *
- * [VE0] [VERIFY:API] E2E Config Flow Validation
+ * [VE0] E2E Config Flow Validation
  */
 import { test, expect, type Page } from '@playwright/test';
 import { navigateToPanel, cleanupTestTrips } from './trips-helpers';
