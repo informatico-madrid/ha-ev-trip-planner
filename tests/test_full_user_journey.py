@@ -346,7 +346,7 @@ class TestFullUserJourney:
         )
 
         # Verify update was successful
-        assert result is not None or result is None
+        assert manager.async_update_trip.called
 
         # Verify the trip was updated by listing trips again
         result = await mock_hass.services.async_call(
@@ -385,7 +385,7 @@ class TestFullUserJourney:
         )
 
         # Verify punctual trip was created
-        assert result is not None or result is None
+        assert manager.async_add_punctual_trip.called
 
         # =====================================================================
         # STEP 7: Verify both trips exist
@@ -423,7 +423,8 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert result is not None or result is None
+        assert manager.async_delete_trip.called
+        assert manager.async_delete_trip.call_args.args[0] == punctual_trip_id
 
         # Verify the trip was deleted
         result = await mock_hass.services.async_call(
@@ -452,7 +453,8 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert result is not None or result is None
+        assert manager.async_delete_trip.called
+        assert manager.async_delete_trip.call_args.args[0] == trip_id
 
         # =====================================================================
         # STEP 10: Verify all trips are deleted
@@ -475,4 +477,6 @@ class TestFullUserJourney:
         # =====================================================================
         # All steps completed successfully!
         # =====================================================================
-        assert True  # If we got here, all steps passed
+        # Verify manager state: all trips should be empty after full CRUD cycle
+        assert len(manager._recurring_trips) == 0
+        assert len(manager._punctual_trips) == 0

@@ -1893,7 +1893,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 **Checkpoint**: Test fixes batch 1 complete — T187-T189 complete.
 
-- [ ] T190 [P] [GITO] Fix test_emhass_integration.py trivial assertion (#22) + test_full_user_journey.py tautological assertions (#24)
+- [x] T190 [P] [GITO] Fix test_emhass_integration.py trivial assertion (#22) + test_full_user_journey.py tautological assertions (#24)
 
 **Issue #22** (`tests/test_emhass_integration.py:615`): Assertion `assert len(cache) >= 0` is trivially always true. The test should verify that the cache was actually populated with meaningful data. Fix: change to `assert len(cache) > 0` and optionally verify specific keys exist in the cache.
 
