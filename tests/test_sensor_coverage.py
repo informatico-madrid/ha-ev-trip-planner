@@ -1496,16 +1496,9 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         # - power_profile_watts, deferrables_schedule, emhass_status always present
         # - number_of_deferrable_loads always present (0 when no active trips)
         # - other array attrs only present when there's data
-        assert "power_profile_watts" in attrs, (
-            "power_profile_watts should always be present"
-        )
         assert attrs["power_profile_watts"] == [100.0, 200.0, 150.0], (
             f"power_profile_watts should always show profile, got {attrs['power_profile_watts']}"
         )
-        assert "deferrables_schedule" in attrs, (
-            "deferrables_schedule should always be present"
-        )
-        assert "emhass_status" in attrs, "emhass_status should always be present"
         assert attrs["emhass_status"] == "ready", (
             f"emhass_status should be 'ready', got {attrs['emhass_status']}"
         )
@@ -1529,9 +1522,9 @@ async def test_aggregated_sensor_empty_when_no_active_trips():
         assert "def_start_timestep_array" not in attrs, (
             "def_start_timestep_array should NOT be present when no active trips"
         )
-    assert "def_end_timestep_array" not in attrs, (
-        "def_end_timestep_array should NOT be present when no active trips"
-    )
+        assert "def_end_timestep_array" not in attrs, (
+            "def_end_timestep_array should NOT be present when no active trips"
+        )
 
 
 # =============================================================================
