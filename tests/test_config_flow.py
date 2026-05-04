@@ -798,6 +798,7 @@ async def test_soh_sensor_persisted_in_config_entry():
     result = await flow.async_step_notifications({})
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_SOH_SENSOR] == "sensor.battery_soh"
 
 
 # ------------------------------------------------------------------
