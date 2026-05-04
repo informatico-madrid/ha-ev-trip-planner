@@ -1924,7 +1924,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_panel_entity_id): remove duplicate condition in test assertion`
 - **GITO Issue**: #25
 
-- [ ] T192 [GITO] Fix test_presence_monitor_soc.py incorrect mock type (#26) + non-English comments (#27)
+- [x] T192 [GITO] Fix test_presence_monitor_soc.py incorrect mock type (#26) + non-English comments (#27)
 
 **Issue #26** (`tests/test_presence_monitor_soc.py:21`): Uses `MagicMock` where `AsyncMock` is required. The mocked method is called with `await`, so `MagicMock` will raise `TypeError: object MagicMock can't be used in 'await' expression`. Fix: change `MagicMock` → `AsyncMock` for the async mock.
 
@@ -1972,7 +1972,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_sensor_coverage): correct indentation assertion, remove duplicate blocks`
 - **GITO Issues**: #29, #30
 
-- [ ] T195 [GITO] Fix test_soc_100_p_deferrable_nom_bug.py spanglish failure message (#31) + dead code unused variables (#32)
+- [x] T195 [GITO] Fix test_soc_100_p_deferrable_nom_bug.py spanglish failure message (#31) + dead code unused variables (#32)
 
 **Issue #31** (`tests/test_soc_100_p_deferrable_nom_bug.py:218`): Failure message contains Spanglish ("El SOC objetivo debe ser <= al limite dynamic"). Fix: translate to pure English.
 

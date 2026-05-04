@@ -101,10 +101,7 @@ class TestSOC100PDeferrableNomBug:
 
         # Configuración con SOC 100% (stored but test validates via adapter output)
         # Config values used in EMHASS output verification (not local computation)
-        _battery_capacity = 50.0
-        _soc_current = 100.0  # SOC al 100%
         charging_power_kw = 3.4
-        _safety_margin = 10.0
 
         # Crear adapter
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -215,7 +212,7 @@ class TestSOC100PDeferrableNomBug:
                 "❌ BUG CONFIRMADO: P_deferrable_nom no es 0 cuando def_total_hours=0"
             )
             pytest.fail(
-                "Bug confirmado: P_deferrable_nom mantiene valor nominal a pesar de no needing carga"
+                "Bug confirmed: P_deferrable_nom retains nominal value despite no charging needed"
             )
 
     async def test_soc_100_p_deferrable_nom_puntual(self):
