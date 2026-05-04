@@ -2035,7 +2035,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_trip_manager): remove nested test discovery, simplify formatting`
 - **GITO Issues**: #36, #37
 
-- [ ] T199 [GITO] Fix test_vehicle_id_vs_entry_id_cleanup.py fixture name mismatch (#38) + test_vehicle_controller_event.py mock masks AttributeError (#39)
+- [x] T199 [GITO] Fix test_vehicle_id_vs_entry_id_cleanup.py fixture name mismatch (#38) + test_vehicle_controller_event.py mock masks AttributeError (#39)
 
 **Issue #38** (`tests/test_vehicle_id_vs_entry_id_cleanup.py:24`): Fixture name does not match the name used in tests that depend on it. The fixture is defined with one name but tests request it with another. Fix: align the fixture name with the test's `request.fixturename` or update the test to use the correct fixture name.
 

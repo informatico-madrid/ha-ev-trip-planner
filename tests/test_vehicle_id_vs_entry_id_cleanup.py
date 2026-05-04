@@ -21,7 +21,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.fixture
-def mock_hass():
+def hass():
     """Create a mock hass instance."""
     hass = MagicMock()
     hass.config = MagicMock()

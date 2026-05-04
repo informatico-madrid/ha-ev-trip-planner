@@ -90,6 +90,11 @@ class TestEventHandling:
 
         mock_event = MagicMock()
         mock_event.data = {"new_state": mock_new_state}
+        mock_event.get = MagicMock(
+            side_effect=AttributeError(
+                "Mock HA Event has no .get() method — code should use event.data.get()"
+            )
+        )
 
         # Create a presence monitor with minimal config
         config = {
