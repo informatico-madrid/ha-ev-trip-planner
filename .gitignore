@@ -102,7 +102,7 @@ specs/.current-spec
 .cursor/
 .qwen/
 .agents/
-!.agents/skills/quality-gate/
+!.agents/skills/
 .github/skills/
 .ralph/logs/
 _bmad-output/
