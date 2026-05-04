@@ -747,55 +747,6 @@ async def test_t_base_custom_value_persists():
 
 
 # ----------------------------------------------------------------------
-# T035: T_base rejects values outside 6-48h range
-# ----------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_t_base_rejects_below_min():
-    """T035: Config flow T_base rejects values below 6h with validation error."""
-    from homeassistant.data_entry_flow import FlowResultType
-
-    flow = EVTripPlannerFlowHandler()
-    flow.hass = MagicMock()
-    flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
-
-    result = await flow.async_step_sensors(
-        {
-            CONF_BATTERY_CAPACITY: 60.0,
-            CONF_CHARGING_POWER: 11.0,
-            CONF_CONSUMPTION: 0.15,
-            CONF_SAFETY_MARGIN: 20,
-            CONF_T_BASE: 3.0,  # Below min of 6
-        }
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "sensors"
-
-
-@pytest.mark.asyncio
-async def test_t_base_rejects_above_max():
-    """T035b: Config flow T_base rejects values above 48h with validation error."""
-    from homeassistant.data_entry_flow import FlowResultType
-
-    flow = EVTripPlannerFlowHandler()
-    flow.hass = MagicMock()
-    flow.context = {"vehicle_data": {"vehicle_name": "TestVehicle"}}
-
-    result = await flow.async_step_sensors(
-        {
-            CONF_BATTERY_CAPACITY: 60.0,
-            CONF_CHARGING_POWER: 11.0,
-            CONF_CONSUMPTION: 0.15,
-            CONF_SAFETY_MARGIN: 20,
-            CONF_T_BASE: 60.0,  # Above max of 48
-        }
-    )
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "sensors"
-
-
-# ----------------------------------------------------------------------
 # T047: SOH sensor selector in config flow
 # ----------------------------------------------------------------------
 

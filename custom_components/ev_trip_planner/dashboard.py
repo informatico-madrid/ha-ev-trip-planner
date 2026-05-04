@@ -436,7 +436,7 @@ async def import_dashboard(
 
     try:
         # Call the save helper and check its structured result explicitly.
-        save_result = await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id)
+        save_result = await _save_lovelace_dashboard(hass, dashboard_config, vehicle_id, vehicle_name)
 
         # If helper returns a DashboardImportResult, respect its .success flag.
         if isinstance(save_result, DashboardImportResult):
@@ -480,7 +480,7 @@ async def import_dashboard(
     _LOGGER.info("Attempting YAML fallback for Container environment")
     try:
         yaml_result = await _save_dashboard_yaml_fallback(
-            hass, dashboard_config, vehicle_id
+            hass, dashboard_config, vehicle_id, vehicle_name
         )
 
         # `_save_dashboard_yaml_fallback` may return a DashboardImportResult
@@ -764,6 +764,7 @@ async def _save_lovelace_dashboard(
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
+    vehicle_name: str = "",
 ) -> DashboardImportResult:
     """Save dashboard to Lovelace storage.
 
@@ -815,7 +816,7 @@ async def _save_lovelace_dashboard(
                 return DashboardImportResult(
                     success=True,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     dashboard_type="simple",
                     storage_method="lovelace_save_service",
                 )
@@ -847,7 +848,7 @@ async def _save_lovelace_dashboard(
                 "Store API not available, falling back to YAML for %s", vehicle_id
             )
             return await _save_dashboard_yaml_fallback(
-                hass, dashboard_config, vehicle_id
+                hass, dashboard_config, vehicle_id, vehicle_name
             )
 
         try:
@@ -923,7 +924,7 @@ async def _save_lovelace_dashboard(
                 return DashboardImportResult(
                     success=True,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     dashboard_type="simple",
                     storage_method="storage_api",
                 )
@@ -955,7 +956,7 @@ async def _save_lovelace_dashboard(
         )
         # Fall back to YAML on any error
         yaml_result = await _save_dashboard_yaml_fallback(
-            hass, dashboard_config, vehicle_id
+            hass, dashboard_config, vehicle_id, vehicle_name
         )
         if isinstance(yaml_result, DashboardImportResult):
             return yaml_result
@@ -964,7 +965,7 @@ async def _save_lovelace_dashboard(
                 yaml_result if isinstance(yaml_result, bool) else yaml_result.success
             ),
             vehicle_id=vehicle_id,
-            vehicle_name=vehicle_id,
+            vehicle_name=vehicle_name,
             dashboard_type="simple",
             storage_method="yaml_fallback",
         )
@@ -972,7 +973,7 @@ async def _save_lovelace_dashboard(
     # Storage not available - fall back to YAML
     _LOGGER.info("Storage API not available, falling back to YAML for %s", vehicle_id)
     yaml_result = await _save_dashboard_yaml_fallback(
-        hass, dashboard_config, vehicle_id
+        hass, dashboard_config, vehicle_id, vehicle_name
     )
     if isinstance(yaml_result, DashboardImportResult):
         return yaml_result
@@ -980,7 +981,7 @@ async def _save_lovelace_dashboard(
     return DashboardImportResult(  # pragma: no cover  # HA storage I/O - yaml_fallback boolean wrapping defensive path
         success=yaml_result if isinstance(yaml_result, bool) else yaml_result.success,
         vehicle_id=vehicle_id,
-        vehicle_name=vehicle_id,
+        vehicle_name=vehicle_name,
         dashboard_type="simple",
         storage_method="yaml_fallback",
     )
@@ -1036,6 +1037,7 @@ async def _save_dashboard_yaml_fallback(
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
+    vehicle_name: str = "",
 ) -> DashboardImportResult:
     """Save dashboard as YAML file for Container environment.
 
@@ -1057,7 +1059,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1068,7 +1070,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1079,7 +1081,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1092,7 +1094,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1103,7 +1105,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1117,7 +1119,7 @@ async def _save_dashboard_yaml_fallback(
                 return DashboardImportResult(
                     success=False,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     error="Invalid dashboard config",
                     dashboard_type="simple",
                     storage_method="yaml_fallback",
@@ -1129,7 +1131,7 @@ async def _save_dashboard_yaml_fallback(
                 return DashboardImportResult(
                     success=False,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     error="Invalid dashboard config",
                     dashboard_type="simple",
                     storage_method="yaml_fallback",
@@ -1141,7 +1143,7 @@ async def _save_dashboard_yaml_fallback(
                 return DashboardImportResult(
                     success=False,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     error="Invalid dashboard config",
                     dashboard_type="simple",
                     storage_method="yaml_fallback",
@@ -1153,7 +1155,7 @@ async def _save_dashboard_yaml_fallback(
                 return DashboardImportResult(
                     success=False,
                     vehicle_id=vehicle_id,
-                    vehicle_name=vehicle_id,
+                    vehicle_name=vehicle_name,
                     error="Invalid dashboard config",
                     dashboard_type="simple",
                     storage_method="yaml_fallback",
@@ -1166,7 +1168,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1231,7 +1233,7 @@ async def _save_dashboard_yaml_fallback(
             return DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
-                vehicle_name=vehicle_id,
+                vehicle_name=vehicle_name,
                 error="Invalid dashboard config",
                 dashboard_type="simple",
                 storage_method="yaml_fallback",
@@ -1258,7 +1260,7 @@ async def _save_dashboard_yaml_fallback(
         return DashboardImportResult(
             success=True,
             vehicle_id=vehicle_id,
-            vehicle_name=vehicle_id,
+            vehicle_name=vehicle_name,
             dashboard_type="simple",
             storage_method="yaml_fallback",
         )
@@ -1268,7 +1270,7 @@ async def _save_dashboard_yaml_fallback(
         return DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id,
-            vehicle_name=vehicle_id,
+            vehicle_name=vehicle_name,
             error=str(e),
             dashboard_type="simple",
             storage_method="yaml_fallback",

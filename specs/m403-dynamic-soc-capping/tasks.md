@@ -1736,3 +1736,343 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 5. `python3 -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing -q 2>&1 | grep "TOTAL"` → 100%
 6. `make e2e 2>&1 | tail -10` → all E2E tests pass
 7. `make e2e-soc 2>&1 | tail -10` → all E2E-SOC tests pass
+
+---
+
+## Phase 7: GITO Code Review Cleanup
+
+**Purpose**: Fix 29 REAL PROBLEMS confirmed by BMAD party-mode consensus after GITO automated review flagged 39 issues. 10 were classified as false positives and discarded. Quality-gate must verify ONLY these 29 fixed issues pass; pre-existing code problems on main are DISCARDED.
+
+**Source**: GITO automated review + BMAD 4-agent consensus classification. See `.progress.md` for full issue details.
+
+### Production Code Fixes
+
+- [ ] T182 [P] [GITO] Remove redundant T_BASE validation in config_flow.py (#3) + Fix vehicle_name passed to DashboardImportResult in dashboard.py (#7)
+
+**Issue #3** (`config_flow.py:428-440`): Manual `if t_base < MIN_T_BASE or t_base > MAX_T_BASE` check is unreachable dead code — Voluptuous already validates this in `STEP_SENSORS_SCHEMA` via `vol.All(vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE))`. Remove lines 428-439 entirely.
+
+**Issue #7** (`dashboard.py:439,763,818,926,967,983,482,1035,1060,1261`): All calls to `DashboardImportResult` pass `vehicle_id` where `vehicle_name` is expected. For each line, verify the parameter position: if `DashboardImportResult(success=True, method=..., id=vehicle_id)` the 3rd positional arg should be `vehicle_name`. Fix: replace `vehicle_id` with `vehicle_name` in the correct position for each `DashboardImportResult` constructor call.
+
+**Steps**:
+1. Read `custom_components/ev_trip_planner/config_flow.py` lines 425-445, remove the `# Validate t_base` block (lines 428-439)
+2. Read `custom_components/ev_trip_planner/dashboard.py` lines 435-490, 760-820, 920-990, 1030-1065, 1255-1265 — identify all `DashboardImportResult(` calls, verify which parameter is `vehicle_id` vs `vehicle_name`
+3. Fix all `vehicle_id` → `vehicle_name` substitutions in `DashboardImportResult` constructor calls
+4. Run: `python3 -m pytest tests/test_config_flow.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+5. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+
+- **Done when**: T_BASE validation block removed, all DashboardImportResult calls pass vehicle_name
+- **Verify**: `grep -n "Validate t_base" custom_components/ev_trip_planner/config_flow.py && echo "FAIL" || echo "PASS"` && `grep -c "DashboardImportResult.*vehicle_id" custom_components/ev_trip_planner/dashboard.py && echo "FAIL" || echo "PASS"`
+- **Commit**: `fix(config_flow,dashboard): remove dead T_BASE validation, fix DashboardImportResult vehicle_name`
+- **GITO Issues**: #3, #7
+
+- [ ] T183 [P] [GITO] Remove redundant loop in coordinator.py (#5) + Fix log level for debug logs (#6)
+
+**Issue #5** (`coordinator.py:274-284`): The outer `for h in range(int(hours_needed) + 1)` loop iterates but `h` is never used inside the body. Each iteration rebuilds the same `row` array with the same values. The inner loop over `t` does all the real work. Remove the `h` loop and the `row` re-initialization, keeping only the inner `t` loop logic.
+
+**Issue #6** (`coordinator.py:195-204`): `_LOGGER.warning` used for `E2E-DEBUG` log messages in `async_refresh_trips()`. These are debug-level diagnostics, not warnings. Change both `_LOGGER.warning` calls to `_LOGGER.debug`.
+
+**Steps**:
+1. Read `custom_components/ev_trip_planner/coordinator.py` lines 192-210, change `_LOGGER.warning` → `_LOGGER.debug` on lines 195 and 201
+2. Read `custom_components/ev_trip_planner/coordinator.py` lines 270-285, remove the outer `for h in range(int(hours_needed) + 1):` loop header and re-indent the body (row construction, t loop, check, append)
+3. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+
+- **Done when**: `h` variable removed, log level downgraded to debug
+- **Verify**: `grep -n "for h in range" custom_components/ev_trip_planner/coordinator.py && echo "FAIL" || echo "PASS"` && `grep -n "E2E-DEBUG.*warning" custom_components/ev_trip_planner/coordinator.py && echo "FAIL" || echo "PASS"` && `grep -n "_LOGGER.debug.*E2E-DEBUG" custom_components/ev_trip_planner/coordinator.py`
+- **Commit**: `fix(coordinator): remove dead h loop, downgrade E2E-DEBUG from warning to debug`
+- **GITO Issues**: #5, #6
+
+- [ ] T184 [GITO] Fix SOC-capped power_watts override in emhass_adapter.py (#8)
+
+**Issue #8** (`emhass_adapter.py:759-761`): During deficit propagation, when `adjusted_def_total_hours > 0`, the code sets `power_watts = charging_power_kw * 1000` unconditionally — this overwrites any SOC-capped power that may have been computed earlier. The SOC-cap logic should be preserved. Fix: only set `power_watts` if no SOC cap was already applied (check if `power_watts` is already at the SOC-capped value), or pass the SOC-capped power through the override block.
+
+**Steps**:
+1. Read `custom_components/ev_trip_planner/emhass_adapter.py` lines 755-770
+2. Identify where SOC-capped power_watts was set before this block
+3. Fix: change `power_watts = charging_power_kw * 1000` to only override when no SOC-cap is active, or preserve the capped value
+4. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+
+- **Done when**: SOC-capped power_watts is no longer overwritten during deficit propagation
+- **Verify**: `grep -A5 "adjusted_def_total_hours" custom_components/ev_trip_planner/emhass_adapter.py | grep "power_watts = " → verify SOC-cap-aware override
+- **Commit**: `fix(emhass_adapter): preserve SOC-capped power_watts during deficit propagation`
+- **GITO Issue**: #8
+
+**Checkpoint**: All 10 production code issues fixed — T182-T184 complete.
+
+### Script Fix
+
+- [ ] T185 [GITO] Fix run-e2e.sh fragile --suite parsing (#9) + Remove dead code (#10)
+
+**Issue #9** (`scripts/run-e2e.sh:31-48`): The first `for arg in "$@"` loop has a `--suite` case that sets `TEST_SUITE` to a hardcoded value without consuming the next argument. The second loop then correctly parses `--suite <value>`, but the first loop's `--suite)` case sets `TEST_SUITE="tests/e2e/"` (same as default) and falls through — the real problem is the `;;` is missing so it falls into `*) ;;` causing `set -u` to trigger with unset variables if args contain spaces. Fix: remove the broken first loop entirely (lines 31-39), keep only the second loop which correctly handles `--suite <value>`.
+
+**Issue #10** (`scripts/run-e2e.sh:36`): The comment `# will be overwritten if --suite is before =` is misleading — the first loop processes positional args, not `--suite=value` format. Remove the misleading comment and dead `--suite)` case from the first loop.
+
+**Steps**:
+1. Read `scripts/run-e2e.sh` lines 30-48
+2. Delete the entire first `for arg in "$@"` loop (lines 31-39)
+3. Keep only the correct second loop (lines 42-48)
+4. Run: `bash -n scripts/run-e2e.sh` → verify syntax OK
+5. Run: `bash -u scripts/run-e2e.sh --suite tests/e2e-dynamic-soc/ --help 2>&1 | head -5` → verify no crash
+
+- **Done when**: First loop removed, script parses `--suite <value>` correctly
+- **Verify**: `bash -n scripts/run-e2e.sh && echo "SYNTAX_PASS"` && `bash -u scripts/run-e2e.sh --suite tests/e2e-dynamic-soc/ 2>&1 | head -3` → verify no unset variable error
+- **Commit**: `fix(run-e2e): remove fragile --suite parsing loop, keep correct implementation`
+- **GITO Issues**: #9, #10
+
+### TypeScript/E2E Fixes
+
+- [ ] T186 [P] [GITO] Fix CSS selector '..' in trips-helpers.ts (#13) + Replace deprecated waitForTimeout (#14) + Fix detached JSDoc (#15)
+
+**Issue #13** (`tests/e2e-dynamic-soc/trips-helpers.ts:343`): `tripCard.locator('..')` is an invalid CSS selector — `'..' is not valid CSS for "parent". Fix: change to `tripCard.locator('xpath=..')` to use XPath parent selector.
+
+**Issue #14** (`tests/e2e-dynamic-soc/trips-helpers.ts:236,340,349`): `page.waitForTimeout()` is deprecated in Playwright. Replace with `await new Promise(r => setTimeout(r, ms))` — but since `setTimeout` is not async-friendly in Playwright context, the correct replacement is `await page.waitForFunction` or `await page.waitForTimeout` with a FIXME comment. Actually, the Playwright-recommended approach is `await new Promise(resolve => setTimeout(resolve, ms))`.
+
+**Issue #15** (`tests/e2e-dynamic-soc/trips-helpers.ts:266-289`): JSDoc comment block (lines 266-280) for `cleanupTestTrips` is detached from its declaration by 16 lines. The comment describes `cleanupTestTrips` but there are other declarations between it and the actual function. Move the JSDoc to immediately precede the `cleanupTestTrips` function declaration.
+
+**Steps**:
+1. Read `tests/e2e-dynamic-soc/trips-helpers.ts` lines 340-350, change `locator('..')` → `locator('xpath=..')`
+2. Read same file lines 233-240, 337-352, replace all `page.waitForTimeout(ms)` with `await new Promise(r => setTimeout(r, ms))`
+3. Read lines 263-295, identify `cleanupTestTrips` function declaration, move its JSDoc comment immediately before it
+4. Run: `grep -n "waitForTimeout\|locator('.')" tests/e2e-dynamic-soc/trips-helpers.ts` → verify fixes applied
+
+- **Done when**: XPath selector used, waitForTimeout replaced, JSDoc attached to correct function
+- **Verify**: `grep -n "waitForTimeout" tests/e2e-dynamic-soc/trips-helpers.ts && echo "FAIL" || echo "PASS"` && `grep -n "xpath=.." tests/e2e-dynamic-soc/trips-helpers.ts && echo "SELECTOR_PASS"`
+- **Commit**: `fix(e2e): fix CSS parent selector, replace deprecated waitForTimeout, fix detached JSDoc`
+- **GITO Issues**: #13, #14, #15
+
+**Checkpoint**: Scripts and E2E fixes complete — T185-T186 complete.
+
+### Python Test Code Fixes
+
+- [ ] T187 [P] [GITO] Fix test_config_flow.py mismatched assertion (#17) + Missing SOH assertion (#18)
+
+**Issue #17** (`tests/test_config_flow.py:709`): Assertion value `t_base` default does not match the test name/intent. The test checks T_BASE default value but asserts wrong expected value. Fix: correct the assertion to match the actual `DEFAULT_T_BASE` constant value.
+
+**Issue #18** (`tests/test_config_flow.py:849`): Test validates SOH sensor in config flow but does NOT assert that the SOH sensor entity was persisted in the config entry. Fix: add `assert config_entry.data.get("soh_sensor") == "sensor.example_soh"` after the config entry is created.
+
+**Steps**:
+1. Read `tests/test_config_flow.py` lines 705-715, verify DEFAULT_T_BASE value, correct the assertion
+2. Read `tests/test_config_flow.py` lines 845-855, add assertion for SOH sensor persistence
+3. Run: `python3 -m pytest tests/test_config_flow.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Assertion values match actual defaults, SOH persistence verified
+- **Verify**: `python3 -m pytest tests/test_config_flow.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_config_flow): correct T_BASE assertion value, add SOH persistence assertion`
+- **GITO Issues**: #17, #18
+
+- [ ] T188 [GITO] Fix test_config_updates.py name/docstring/assertion mismatch (#19)
+
+**Issue #19** (`tests/test_config_updates.py:436-468`): Test name, docstring, and assertion do not align. The test name says "update T_BASE" but the docstring mentions something else, and the assertion checks the wrong key. Fix: align all three — rename test, correct docstring, fix assertion to verify the correct config entry key.
+
+**Steps**:
+1. Read `tests/test_config_updates.py` lines 430-475
+2. Read test name, docstring, and assertion — identify which is wrong
+3. Fix: align test name, docstring, and assertion to describe the same behavior
+4. Run: `python3 -m pytest tests/test_config_updates.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Test name, docstring, and assertion all describe the same verified behavior
+- **Verify**: `python3 -m pytest tests/test_config_updates.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_config_updates): align test name, docstring, and assertion`
+- **GITO Issue**: #19
+
+- [ ] T189 [GITO] Fix test_dynamic_soc_capping.py expected value (#20) + misleading docstring (#21)
+
+**Issue #20** (`tests/test_dynamic_soc_capping.py:474-475`): Test expects `22.5h idle` but the computed value should be `94.82` not `94.93`. The expected value in the assertion is wrong — it uses `94.93` but the correct calculation with the given inputs produces `94.82`. Fix: change expected from `94.93` to `94.82`.
+
+**Issue #21** (`tests/test_dynamic_soc_capping.py:463-465`): Docstring says "charging to ~61%" but the test parameters and assertion check for ~94.8% SOC limit. The docstring describes a completely different scenario. Fix: update docstring to match actual test behavior (checking SOC cap at ~94.8%).
+
+**Steps**:
+1. Read `tests/test_dynamic_soc_capping.py` lines 460-480
+2. Change expected value from `94.93` to `94.82` in assertion
+3. Fix docstring to accurately describe the test
+4. Run: `python3 -m pytest tests/test_dynamic_soc_capping.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Expected value matches computed result, docstring describes actual test
+- **Verify**: `python3 -m pytest tests/test_dynamic_soc_capping.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_dynamic_soc_capping): correct expected SOC value, fix misleading docstring`
+- **GITO Issues**: #20, #21
+
+**Checkpoint**: Test fixes batch 1 complete — T187-T189 complete.
+
+- [ ] T190 [P] [GITO] Fix test_emhass_integration.py trivial assertion (#22) + test_full_user_journey.py tautological assertions (#24)
+
+**Issue #22** (`tests/test_emhass_integration.py:615`): Assertion `assert len(cache) >= 0` is trivially always true. The test should verify that the cache was actually populated with meaningful data. Fix: change to `assert len(cache) > 0` and optionally verify specific keys exist in the cache.
+
+**Issue #24** (`tests/test_full_user_journey.py:349,388,426,455,478`): Five assertions are tautologies — `assert True`, `assert 1 == 1`, `assert len(x) >= 0`, etc. They validate nothing. Fix: replace each with a meaningful assertion that checks actual expected behavior at that point in the user journey.
+
+**Steps**:
+1. Read `tests/test_emhass_integration.py` line 610-620, replace trivial assertion with `assert len(cache) > 0` and key verification
+2. Read `tests/test_full_user_journey.py` lines 345-355, 384-392, 422-430, 450-460, 473-482, replace each tautological assertion with a meaningful check
+3. Run: `python3 -m pytest tests/test_emhass_integration.py tests/test_full_user_journey.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: All trivial/tautological assertions replaced with meaningful checks
+- **Verify**: `python3 -m pytest tests/test_emhass_integration.py tests/test_full_user_journey.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_emhass_integration,full_user_journey): replace trivial and tautological assertions`
+- **GITO Issues**: #22, #24
+
+- [ ] T191 [GITO] Fix test_panel_entity_id.py duplicate condition tautology (#25)
+
+**Issue #25** (`tests/test_panel_entity_id.py:153-156`): The condition checks the same value twice in an `or` clause (e.g., `if entity_id == expected or entity_id == expected`), making one branch a logical tautology. Fix: identify the duplicated condition, correct it to check the intended different value or remove the redundant branch.
+
+**Steps**:
+1. Read `tests/test_panel_entity_id.py` lines 150-160
+2. Identify the duplicated condition
+3. Fix: remove the redundant branch or correct to the intended different value
+4. Run: `python3 -m pytest tests/test_panel_entity_id.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: No duplicate conditions in test assertions
+- **Verify**: `python3 -m pytest tests/test_panel_entity_id.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_panel_entity_id): remove duplicate condition in test assertion`
+- **GITO Issue**: #25
+
+- [ ] T192 [GITO] Fix test_presence_monitor_soc.py incorrect mock type (#26) + non-English comments (#27)
+
+**Issue #26** (`tests/test_presence_monitor_soc.py:21`): Uses `MagicMock` where `AsyncMock` is required. The mocked method is called with `await`, so `MagicMock` will raise `TypeError: object MagicMock can't be used in 'await' expression`. Fix: change `MagicMock` → `AsyncMock` for the async mock.
+
+**Issue #27** (`tests/test_presence_monitor_soc.py:422-436`): Test file contains Chinese/Japanese comments that are not in English. Fix: translate all non-English comments to English.
+
+**Steps**:
+1. Read `tests/test_presence_monitor_soc.py` line 21, change `MagicMock()` → `AsyncMock()`
+2. Read lines 420-440, translate non-English comments to English
+3. Run: `python3 -m pytest tests/test_presence_monitor_soc.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: AsyncMock used correctly, all comments in English
+- **Verify**: `python3 -m pytest tests/test_presence_monitor_soc.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_presence_monitor_soc): use AsyncMock, translate comments to English`
+- **GITO Issues**: #26, #27
+
+- [ ] T193 [GITO] Fix test_propagate_charge_integration.py duplicated assertion block (#28)
+
+**Issue #28** (`tests/test_propagate_charge_integration.py:180-186`): Same assertion block appears twice consecutively with identical logic. Fix: remove the duplicate assertion block, keep only one instance.
+
+**Steps**:
+1. Read `tests/test_propagate_charge_integration.py` lines 175-195
+2. Identify and remove the duplicate assertion block
+3. Run: `python3 -m pytest tests/test_propagate_charge_integration.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Duplicate assertions removed
+- **Verify**: `python3 -m pytest tests/test_propagate_charge_integration.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_propagate_charge_integration): remove duplicated assertion block`
+- **GITO Issue**: #28
+
+**Checkpoint**: Test fixes batch 2 complete — T190-T193 complete.
+
+- [ ] T194 [P] [GITO] Fix test_sensor_coverage.py incorrect indentation assertion (#29) + duplicate assertions (#30)
+
+**Issue #29** (`tests/test_sensor_coverage.py:1532-1534`): The assertion for indentation level is incorrect — likely checking wrong column number or using wrong comparison. Fix: correct the indentation value being asserted.
+
+**Issue #30** (`tests/test_sensor_coverage.py:1487-1511`): Multiple assertions and comments appear in both this range and the adjacent range. Fix: remove the duplicate assertions and comments, consolidate into a single authoritative assertion block.
+
+**Steps**:
+1. Read `tests/test_sensor_coverage.py` lines 1530-1540, correct the indentation assertion value
+2. Read lines 1485-1515, identify and remove duplicate assertion/comment blocks
+3. Run: `python3 -m pytest tests/test_sensor_coverage.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Indentation assertion correct, no duplicate assertions
+- **Verify**: `python3 -m pytest tests/test_sensor_coverage.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_sensor_coverage): correct indentation assertion, remove duplicate blocks`
+- **GITO Issues**: #29, #30
+
+- [ ] T195 [GITO] Fix test_soc_100_p_deferrable_nom_bug.py spanglish failure message (#31) + dead code unused variables (#32)
+
+**Issue #31** (`tests/test_soc_100_p_deferrable_nom_bug.py:218`): Failure message contains Spanglish ("El SOC objetivo debe ser <= al limite dynamic"). Fix: translate to pure English.
+
+**Issue #32** (`tests/test_soc_100_p_deferrable_nom_bug.py:104-105,107`): Three unused variables defined at lines 104-105 and 107. They are assigned but never referenced. Fix: remove the unused variable assignments.
+
+**Steps**:
+1. Read `tests/test_soc_100_p_deferrable_nom_bug.py` lines 215-220, translate failure message to English
+2. Read lines 100-110, identify and remove unused variable assignments
+3. Run: `python3 -m pytest tests/test_soc_100_p_deferrable_nom_bug.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Failure message in English, no unused variables
+- **Verify**: `python3 -m pytest tests/test_soc_100_p_deferrable_nom_bug.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_soc_100): translate failure message, remove unused variables`
+- **GITO Issues**: #31, #32
+
+- [ ] T196 [GITO] Fix test_soc_100_propagation_bug_pending.py misleading name/contradictory docstring (#33)
+
+**Issue #33** (`tests/test_soc_100_propagation_bug_pending.py:16-17,42-53`): Test file name suggests "pending" (not yet implemented) but the test is fully implemented. The docstring at lines 42-53 contradicts the name. Fix: rename test file to remove "pending" if the test is complete, or update docstring to reflect that this is a known limitation waiting for a fix. The most likely fix is renaming the test to remove the misleading "pending" suffix and updating the docstring to accurately describe what the test verifies.
+
+**Steps**:
+1. Read `tests/test_soc_100_propagation_bug_pending.py` lines 1-60
+2. Identify the misleading name and contradictory docstring
+3. Rename test function/class to remove "pending" if complete, or fix docstring to be accurate
+4. Run: `python3 -m pytest tests/test_soc_100_propagation_bug_pending.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Test name and docstring accurately reflect what the test does
+- **Verify**: `python3 -m pytest tests/test_soc_100_propagation_bug_pending.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_soc_100): correct misleading test name and docstring`
+- **GITO Issue**: #33
+
+- [ ] T197 [P] [GITO] Fix test_trip_manager.py parameter name (#34) + test_trip_manager_datetime_tz.py mismatched name/docstring (#35)
+
+**Issue #34** (`tests/test_trip_manager.py:1565`): Test function calls use `datetime=` as parameter name but the function signature expects `datetime_str=`. Fix: change `datetime=` → `datetime_str=` in the function call.
+
+**Issue #35** (`tests/test_trip_manager_datetime_tz.py:21`): Test function name does not match its docstring. The name describes one behavior but the docstring describes another. Fix: align the function name with the docstring description.
+
+**Steps**:
+1. Read `tests/test_trip_manager.py` lines 1560-1570, change `datetime=` → `datetime_str=`
+2. Read `tests/test_trip_manager_datetime_tz.py` lines 18-28, align function name with docstring
+3. Run: `python3 -m pytest tests/test_trip_manager.py tests/test_trip_manager_datetime_tz.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Parameter names match function signatures, test names match docstrings
+- **Verify**: `python3 -m pytest tests/test_trip_manager.py tests/test_trip_manager_datetime_tz.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_trip_manager): correct parameter name, align test name with docstring`
+- **GITO Issues**: #34, #35
+
+- [ ] T198 [GITO] Fix test_trip_manager_fix_branches.py nested test functions (#36) + test_trip_manager_missing_coverage.py multi-line formatting (#37)
+
+**Issue #36** (`tests/test_trip_manager_fix_branches.py:83-84,120-121`): Test files contain nested `def test_...()` functions inside other test functions. Pytest discovers functions starting with `test_` at any nesting level, causing `test_notImplementedError_path` and `test_missing_route` to be discovered as standalone tests when they are actually helper functions. Fix: rename nested test functions to `_test_...` (leading underscore prevents pytest discovery) or extract them as regular helper functions without the `test_` prefix.
+
+**Issue #37** (`tests/test_trip_manager_missing_coverage.py:81-83`): Unnecessary multi-line string formatting — a simple single-line assertion is split across multiple lines with no benefit. Fix: consolidate into a single line.
+
+**Steps**:
+1. Read `tests/test_trip_manager_fix_branches.py` lines 80-90, 117-128, rename nested `test_` functions to `_test_`
+2. Read `tests/test_trip_manager_missing_coverage.py` lines 78-90, consolidate multi-line formatting
+3. Run: `python3 -m pytest tests/test_trip_manager_fix_branches.py tests/test_trip_manager_missing_coverage.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: No nested test functions discovered by pytest, assertions on single lines
+- **Verify**: `python3 -m pytest tests/test_trip_manager_fix_branches.py tests/test_trip_manager_missing_coverage.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_trip_manager): remove nested test discovery, simplify formatting`
+- **GITO Issues**: #36, #37
+
+- [ ] T199 [GITO] Fix test_vehicle_id_vs_entry_id_cleanup.py fixture name mismatch (#38) + test_vehicle_controller_event.py mock masks AttributeError (#39)
+
+**Issue #38** (`tests/test_vehicle_id_vs_entry_id_cleanup.py:24`): Fixture name does not match the name used in tests that depend on it. The fixture is defined with one name but tests request it with another. Fix: align the fixture name with the test's `request.fixturename` or update the test to use the correct fixture name.
+
+**Issue #39** (`tests/test_vehicle_controller_event.py:86-93`): Mock is configured to return a value instead of raising the intended `AttributeError`. The `side_effect` is set incorrectly, causing the test to never hit the expected error path. Fix: set `mock.side_effect = AttributeError("...")` to properly simulate the error.
+
+**Steps**:
+1. Read `tests/test_vehicle_id_vs_entry_id_cleanup.py` lines 20-35, align fixture name
+2. Read `tests/test_vehicle_controller_event.py` lines 83-100, fix mock side_effect to raise AttributeError
+3. Run: `python3 -m pytest tests/test_vehicle_id_vs_entry_id_cleanup.py tests/test_vehicle_controller_event.py -q --tb=short 2>&1 | tail -5` → verify 0 failed
+
+- **Done when**: Fixture name matches usage, mock correctly raises AttributeError
+- **Verify**: `python3 -m pytest tests/test_vehicle_id_vs_entry_id_cleanup.py tests/test_vehicle_controller_event.py -q --tb=no 2>&1 | tail -3` → verify 0 failed
+- **Commit**: `fix(test_vehicle): correct fixture name, fix mock side_effect for AttributeError`
+- **GITO Issues**: #38, #39
+
+**Checkpoint**: All 19 test code issues fixed — T187-T199 complete.
+
+### Final Quality Gate
+
+- [ ] T200 [VERIFY:QUALITY-GATE] Run party-mode quality gate on all Phase 7 cleanup changes
+
+Run the full quality gate using the quality-gate skill (party-mode with code-reviewer + comment-analyzer + silent-failure-hunter + type-design-analyzer).
+
+**CRITICAL**: This quality-gate evaluates the ENTIRE codebase on the current branch. Pre-existing issues that were already present on the `main` branch BEFORE this branch diverged MUST be reported by the quality-gate tool but DISCARDED from the quality-gate outcome. Only the 29 GITO-confirmed issues (fixed by T182-T199) must pass the quality gate.
+
+**Steps**:
+1. Before running quality gate, capture baseline: `git diff main --stat` to identify all changed files
+2. Activate the `quality-gate` skill and run the full 3-layer validation
+3. Review quality-gate output — any violations in files changed by T182-T199 that were NOT in the original 29 GITO issues must be assessed:
+   - If a new violation was INTRODUCED by the fix: it must be fixed
+   - If a pre-existing violation (not in the 29 GITO issues) is reported: DISCARD it from the quality-gate outcome
+4. All 29 fixed issues must pass: ruff lint, pyright types, no regressions
+5. Run: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → verify 0 failed
+6. Run: `python3 -m ruff check custom_components/ tests/ 2>&1 | tail -3` → verify 0 errors
+7. Run: `python3 -m pyright custom_components/ 2>&1 | tail -5` → verify 0 errors
+8. Run: `python3 -m ruff format --check custom_components/ tests/ 2>&1 | tail -3` → verify 0 files would be reformatted
+
+- **Done when**: Quality gate confirms all 29 fixes pass, pre-existing issues discarded
+- **Verify**: `python3 -m pytest tests/ -q --tb=no 2>&1 | tail -3` → `grep -q "failed" && echo "FAIL" || echo "PASS"` (must show 0 failed)
+- **Commit**: None

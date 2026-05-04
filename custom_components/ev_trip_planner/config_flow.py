@@ -425,19 +425,6 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                         },
                     )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
 
-            # Validate t_base (reasonable range: 6-48 hours)
-            t_base = user_input.get(CONF_T_BASE)
-            if t_base is not None:
-                if t_base < MIN_T_BASE or t_base > MAX_T_BASE:
-                    return self.async_show_form(
-                        step_id="sensors",
-                        data_schema=STEP_SENSORS_SCHEMA,
-                        errors={"base": "invalid_t_base"},
-                        description_placeholders={
-                            "description": f"T_base must be between {MIN_T_BASE} and {MAX_T_BASE} hours"
-                        },
-                    )  # type: ignore[return-value]
-
             # Store step 2 data in context
             vehicle_data = self._get_vehicle_data()
             vehicle_data.update(user_input)

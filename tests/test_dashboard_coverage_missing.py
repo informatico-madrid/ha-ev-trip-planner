@@ -12,11 +12,11 @@ async def test_import_dashboard_yaml_other_result(monkeypatch):
     async def fake_load(hass, vehicle_id, vehicle_name, use_charts):
         return {"title": "t", "views": [{"path": "v", "title": "T", "cards": []}]}
 
-    async def fake_save_lovelace(hass, dashboard_config, vehicle_id):
+    async def fake_save_lovelace(hass, dashboard_config, vehicle_id, vehicle_name=""):
         # Force storage helper to indicate failure and proceed to YAML fallback
         return False
 
-    async def fake_save_yaml(hass, dashboard_config, vehicle_id):
+    async def fake_save_yaml(hass, dashboard_config, vehicle_id, vehicle_name=""):
         # Return a non-bool, non-DashboardImportResult to exercise the
         # "Any other result is a failure" branch.
         return {}
