@@ -2019,7 +2019,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(test_trip_manager): correct parameter name, align test name with docstring`
 - **GITO Issues**: #34, #35
 
-- [ ] T198 [GITO] Fix test_trip_manager_fix_branches.py nested test functions (#36) + test_trip_manager_missing_coverage.py multi-line formatting (#37)
+- [x] T198 [GITO] Fix test_trip_manager_fix_branches.py nested test functions (#36) + test_trip_manager_missing_coverage.py multi-line formatting (#37)
 
 **Issue #36** (`tests/test_trip_manager_fix_branches.py:83-84,120-121`): Test files contain nested `def test_...()` functions inside other test functions. Pytest discovers functions starting with `test_` at any nesting level, causing `test_notImplementedError_path` and `test_missing_route` to be discovered as standalone tests when they are actually helper functions. Fix: rename nested test functions to `_test_...` (leading underscore prevents pytest discovery) or extract them as regular helper functions without the `test_` prefix.
 
