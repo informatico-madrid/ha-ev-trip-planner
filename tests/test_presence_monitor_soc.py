@@ -18,7 +18,7 @@ def mock_hass():
     hass = Mock(spec=HomeAssistant)
     hass.data = {}  # Required by ha_storage.Store
     hass.states = Mock()
-    hass.states.async_set = AsyncMock()
+    hass.states.async_set = Mock()
     hass.services = Mock()
     hass.services.async_call = AsyncMock()
     # Mock hass.bus for async_track_state_change_event
