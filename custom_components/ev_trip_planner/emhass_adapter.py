@@ -761,7 +761,11 @@ class EMHASSAdapter:
             # not the current system SOC. This respects SOC propagation between trips.
             if soc_current < 100.0:
                 needs_charging = True
-                power_watts = charging_power_kw * 1000
+                # Only override power_watts when no SOC cap was applied.
+                # When cap_ratio < 1.0, the SOC-capped power_watts from line 745
+                # must be preserved through deficit propagation.
+                if cap_ratio >= 1.0:
+                    power_watts = charging_power_kw * 1000
 
         # BUG FIX (continued): If def_start was already 0 and couldn't be
         # expanded backward, cap total_hours to the available window size.

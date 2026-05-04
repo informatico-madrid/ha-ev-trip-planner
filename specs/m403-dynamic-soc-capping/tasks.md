@@ -1781,7 +1781,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 - **Commit**: `fix(coordinator): remove dead h loop, downgrade E2E-DEBUG from warning to debug`
 - **GITO Issues**: #5, #6
 
-- [ ] T184 [GITO] Fix SOC-capped power_watts override in emhass_adapter.py (#8)
+- [x] T184 [GITO] Fix SOC-capped power_watts override in emhass_adapter.py (#8)
 
 **Issue #8** (`emhass_adapter.py:759-761`): During deficit propagation, when `adjusted_def_total_hours > 0`, the code sets `power_watts = charging_power_kw * 1000` unconditionally — this overwrites any SOC-capped power that may have been computed earlier. The SOC-cap logic should be preserved. Fix: only set `power_watts` if no SOC cap was already applied (check if `power_watts` is already at the SOC-capped value), or pass the SOC-capped power through the override block.
 
