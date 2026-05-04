@@ -1800,7 +1800,7 @@ Quality Gate QG19-FINAL-V2: After T180-T181, re-run the full Quality Gate:
 
 ### Script Fix
 
-- [ ] T185 [GITO] Fix run-e2e.sh fragile --suite parsing (#9) + Remove dead code (#10)
+- [x] T185 [GITO] Fix run-e2e.sh fragile --suite parsing (#9) + Remove dead code (#10)
 
 **Issue #9** (`scripts/run-e2e.sh:31-48`): The first `for arg in "$@"` loop has a `--suite` case that sets `TEST_SUITE` to a hardcoded value without consuming the next argument. The second loop then correctly parses `--suite <value>`, but the first loop's `--suite)` case sets `TEST_SUITE="tests/e2e/"` (same as default) and falls through — the real problem is the `;;` is missing so it falls into `*) ;;` causing `set -u` to trigger with unset variables if args contain spaces. Fix: remove the broken first loop entirely (lines 31-39), keep only the second loop which correctly handles `--suite <value>`.
 
