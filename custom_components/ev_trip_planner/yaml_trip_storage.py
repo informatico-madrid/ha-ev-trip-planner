@@ -1,8 +1,10 @@
 """YAML-based trip storage implementation."""
 
+from datetime import datetime
 from typing import Any, Dict
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import storage as ha_storage
 
 from .const import DOMAIN
 
@@ -25,7 +27,6 @@ class YamlTripStorage:
         self._hass = hass
         self._vehicle_id = vehicle_id
         storage_key = f"{DOMAIN}_{vehicle_id}"
-        from homeassistant.helpers import storage as ha_storage
 
         self._store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
             hass, version=1, key=storage_key
@@ -54,8 +55,6 @@ class YamlTripStorage:
         Args:
             data: Dictionary with trips data to save.
         """
-        from datetime import datetime
-
         save_data = {
             "trips": data.get("trips", {}),
             "recurring_trips": data.get("recurring_trips", {}),

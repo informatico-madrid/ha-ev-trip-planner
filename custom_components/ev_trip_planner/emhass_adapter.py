@@ -2471,6 +2471,17 @@ class EMHASSAdapter:
         if new_soh != self._stored_soh_sensor:
             changed_params.append("soh_sensor")
 
+        # T142: Log detected changes before updating baselines
+        _LOGGER.info(
+            "Config entry updated for vehicle %s, changed params: %s (t_base %s→%s, SOH %s→%s)",
+            self.vehicle_id,
+            changed_params,
+            self._stored_t_base,
+            new_t_base,
+            self._stored_soh_sensor,
+            new_soh,
+        )
+
         # T142: Update stored baseline values and active attribute after change detection
         if new_charging_power is not None:
             self._stored_charging_power_kw = new_charging_power
@@ -2486,16 +2497,6 @@ class EMHASSAdapter:
                 nominal_capacity_kwh=self._battery_capacity_kwh,
                 soh_sensor_entity_id=soh_entity,
             )
-
-        _LOGGER.info(
-            "Config entry updated for vehicle %s, changed params: %s (t_base %s→%s, SOH %s→%s)",
-            self.vehicle_id,
-            changed_params,
-            self._stored_t_base,
-            new_t_base,
-            self._stored_soh_sensor,
-            new_soh,
-        )
 
         # FR-3, AC-1.3: If no published trips, reload from trip_manager
         if not self._published_trips:

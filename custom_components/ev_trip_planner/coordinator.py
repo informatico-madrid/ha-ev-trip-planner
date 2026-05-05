@@ -11,6 +11,7 @@ params from trip data so sensors remain populated for E2E testing.
 """
 
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -251,7 +252,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
             # Parse trip datetime for timestep calculation
             start_timestep = 0
-            end_timestep = int(hours_needed * 4)  # 15-min timesteps = 4/hour
+            end_timestep = math.ceil(hours_needed * 4)  # 15-min timesteps = 4/hour
 
             if trip_datetime_str:
                 try:
@@ -261,7 +262,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                     delta = trip_dt - now
                     total_minutes = delta.total_seconds() / 60
                     start_timestep = max(0, int(total_minutes / 15))
-                    end_timestep = start_timestep + int(hours_needed * 4)
+                    end_timestep = start_timestep + math.ceil(hours_needed * 4)
                 except (ValueError, TypeError):
                     pass
 
