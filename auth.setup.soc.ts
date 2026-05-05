@@ -400,7 +400,10 @@ async function globalSetup(): Promise<void> {
   // HA 2026.3.x may redirect to "/" instead of "/lovelace" or "/home" — log for diagnosis
   try {
     console.log('[auth.setup] Waiting for /lovelace or /home (auth should redirect here)...');
-    await page.waitForURL(/\/(lovelace|home)?/, { timeout: 60_000 });
+    await page.waitForURL((url) => {
+      const path = url.pathname;
+      return path === '/' || path === '/lovelace' || path === '/home';
+    }, { timeout: 60_000 });
     console.log('[auth.setup] Auth successful, URL is:', page.url());
   } catch (err) {
     console.log('[auth.setup] waitForURL TIMEOUT. Final URL was:', page.url());
