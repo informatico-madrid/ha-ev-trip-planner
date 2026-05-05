@@ -227,10 +227,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
         per_trip_params: dict[str, Any] = {}
         matrix: list[list[float]] = []
-        def_total_hours_array: list[float] = []
-        p_deferrable_nom_array: list[float] = []
-        def_start_timestep_array: list[int] = []
-        def_end_timestep_array: list[int] = []
         index_counter = 0
 
         now = datetime.now(timezone.utc)
@@ -238,7 +234,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         for trip_id, trip in trips.items():
             # Skip completed/cancelled trips
             status = trip.get("status", "")
-            if status in ("completado", "cancelado"):
+            if status in ("completed", "cancelled"):
                 continue
 
             kwh_needed = float(trip.get("kwh", 0))
@@ -305,10 +301,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             per_trip_params[trip_id] = entry
 
             matrix.extend(trip_matrix)
-            def_total_hours_array.append(round(hours_needed, 2))
-            p_deferrable_nom_array.append(round(power_watts, 2))
-            def_start_timestep_array.append(start_timestep)
-            def_end_timestep_array.append(end_timestep)
             index_counter += 1
 
         # Build combined power profile (last 15 min of each charging window)

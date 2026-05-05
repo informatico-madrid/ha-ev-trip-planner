@@ -612,4 +612,4 @@ async def test_fallback_path_skips_trip_without_id():
 
     # The trip without 'id' is skipped at line 1132, but trip_1 is still processed
     # Verify no crash — fallback path executed correctly
-    assert len(adapter._cached_per_trip_params) >= 0
+    assert len(adapter._cached_per_trip_params) == 1

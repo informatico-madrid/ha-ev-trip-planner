@@ -83,7 +83,7 @@ STEP_SENSORS_SCHEMA = vol.Schema(
             )
         ),
         # Battery health: T_base slider (user-configurable idle time window)
-        vol.Required(
+        vol.Optional(
             CONF_T_BASE,
             default=DEFAULT_T_BASE,
             description={

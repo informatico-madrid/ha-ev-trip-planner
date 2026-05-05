@@ -81,11 +81,5 @@ class TestEventHandling:
             trip_manager=None,
         )
 
-        # Call the handler with mock event - should not raise
-        # If the code uses event.get() instead of event.data.get(), this will fail
-        try:
-            await monitor._async_handle_soc_change(mock_event)
-        except AttributeError:
-            pytest.fail(
-                "_async_handle_soc_change used event.get() instead of event.data.get()"
-            )
+        # Call the handler with mock event - verifies basic integration
+        await monitor._async_handle_soc_change(mock_event)

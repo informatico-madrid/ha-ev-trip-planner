@@ -704,13 +704,13 @@ async def test_generate_mock_emhass_params_skip_completed(mock_coordinator):
             "kwh": 30.0,
             "km": 100.0,
             "datetime": "2026-05-03T08:00:00+00:00",
-            "status": "completado",
+            "status": "completed",
         },
         "trip_002": {
             "kwh": 20.0,
             "km": 80.0,
             "datetime": "2026-05-03T12:00:00+00:00",
-            "status": "cancelado",
+            "status": "cancelled",
         },
         "trip_003": {
             "kwh": 10.0,

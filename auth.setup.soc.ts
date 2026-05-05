@@ -97,7 +97,8 @@ async function ensureOnboarded(): Promise<void> {
   const resp = await fetch(`${HA_URL}/api/onboarding`);
   if (!resp.ok) return; // If endpoint doesn't exist, already onboarded or not applicable
 
-  const steps = await resp.json() as Array<{ step: string; done: boolean }>;
+  const onboardingData = await resp.json() as { steps: Array<{ step: string; done: boolean }> };
+  const steps = onboardingData.steps;
   const undone = steps.filter((s) => !s.done);
   if (undone.length === 0) {
     console.log('[auth.setup] HA already onboarded');
@@ -197,8 +198,8 @@ async function isIntegrationSetUp(token: string): Promise<boolean> {
   const resp = await fetch(`${HA_URL}/api/config/config_entries`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  const entries = await resp.json() as Array<{ domain: string; title: string }>;
-  return entries.some((e) => e.domain === 'ev_trip_planner' && e.title === 'test_vehicle');
+  const data = await resp.json() as { entries: Array<{ domain: string; title: string }> };
+  return data.entries.some((e) => e.domain === 'ev_trip_planner' && e.title === 'test_vehicle');
 }
 
 /** Set up the EV Trip Planner integration via config flow API */

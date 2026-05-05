@@ -52,7 +52,7 @@ SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 @dataclass
 class BatteryCapacity:
-    """Frozen abstraction for real battery capacity with SOH-aware fallback.
+    """Abstraction for real battery capacity with SOH-aware fallback.
 
     Wraps nominal capacity and optional SOH sensor lookup to compute
     the effective (degraded) capacity used everywhere in the system.
@@ -66,7 +66,6 @@ class BatteryCapacity:
     soh_sensor_entity_id: Optional[str] = None
     _soh_value: Optional[float] = None
     _soh_cached_at: Optional[datetime] = None
-    fallback_capacity: float = 50.0
     SOH_CACHE_TTL_SECONDS: int = SOH_CACHE_TTL_SECONDS  # type: ignore[misc]
 
     def _compute_capacity(self) -> float:
@@ -951,7 +950,7 @@ def calculate_deficit_propagation(
         # Get data in ordered position
         soc_data_item = soc_data[ordered_idx]
         ventana = windows[ordered_idx]
-        trip = trips[ordered_idx]
+        trip = trips[original_idx]
 
         soc_inicio = soc_data_item["soc_inicio"]
         ventana_horas = ventana["ventana_horas"]

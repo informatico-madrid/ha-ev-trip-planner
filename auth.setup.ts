@@ -66,8 +66,8 @@ async function waitForEntity(entityId: string, timeoutMs = 30_000, token: string
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-        const states = await response.json() as Array<{ entity_id: string }>;
-        if (states.some((s) => s.entity_id === entityId)) {
+        const statesObj = await response.json() as Record<string, { entity_id: string }>;
+        if (entityId in statesObj) {
           console.log(`[auth.setup] Entity "${entityId}" is available in HA`);
           return;
         }
