@@ -304,7 +304,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             matrix.extend(trip_matrix)
             index_counter += 1
 
-        # Build combined power profile (last 15 min of each charging window)
+        # Build combined power profile (max power across all charging windows)
         power_profile = [0.0] * 96
         for row in matrix:
             for i, v in enumerate(row):
