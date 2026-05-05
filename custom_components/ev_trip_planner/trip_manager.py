@@ -2149,6 +2149,7 @@ class TripManager:
 
         # Pre-compute dynamic SOC caps per trip (for degradation-aware capping)
         soc_caps: Optional[List[float]] = None
+        results: List[dict[str, Any]] = []
         if trips:
             precomputed_trip_times = [self._get_trip_time(trip) for trip in trips]
             now_dt = datetime.now(timezone.utc)

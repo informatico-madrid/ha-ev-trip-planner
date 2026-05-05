@@ -597,7 +597,6 @@ class EMHASSAdapter:
         adjusted_def_total_hours: Optional[float] = None,
         soc_cap: Optional[float] = None,
     ) -> None:
-        t_base = self._t_base
         """Build and cache per-trip EMHASS parameters.
 
         T062/T063: Wire t_base for dynamic SOC capping.
@@ -616,6 +615,8 @@ class EMHASSAdapter:
             hora_regreso: Return time from presence_monitor or None.
             pre_computed_inicio_ventana: Pre-computed inicio_ventana from batch calculation.
         """
+        t_base = self._t_base
+
         # Assign index if not already assigned
         if trip_id not in self._index_map:
             await self.async_assign_index_to_trip(trip_id)

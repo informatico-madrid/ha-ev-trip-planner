@@ -321,8 +321,6 @@ class TestRecurringDatetimeTimezoneBug:
 
         # What "tomorrow" is in JS day format from each perspective
         js_tomorrow_local = local_ref.isoweekday() % 7  # tomorrow's weekday
-        js_today_utc = utc_ref.isoweekday() % 7  # today's weekday (UTC still today)
-
         # If the timezone offset makes the UTC date differ from local date
         if utc_ref.date() == local_ref.date():
             pytest.skip(
