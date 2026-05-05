@@ -3,11 +3,57 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _make_mock_datetime_fixture(default_dt: datetime):
+    """Factory that creates a fixture with a hardcoded default datetime."""
+    @pytest.fixture
+    def mock_dt_fixture(request):
+        """Mock datetime.now(timezone.utc) for deterministic deadline calculations.
+
+        Accepts an optional datetime parameter. When used without parameters,
+        defaults to the provided fixed datetime.
+
+        Example usage:
+            async def test_something(mock_datetime_2026_05_04_monday_0800_utc):
+                pass
+        """
+        if hasattr(request, "param") and request.param is not None:
+            fixed_now = request.param
+        else:
+            fixed_now = default_dt
+
+        # Save real datetime class for isinstance checks
+        real_datetime = datetime
+
+        class MockDatetime(real_datetime):
+            """Subclass of datetime that overrides .now() to return a fixed value."""
+            @classmethod
+            def now(cls, tz=None):
+                return fixed_now if tz else fixed_now.replace(tzinfo=tz or timezone.utc)
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.datetime", MockDatetime
+        ), patch(
+            "custom_components.ev_trip_planner.calculations.datetime", MockDatetime
+        ), patch(
+            "homeassistant.util.dt.utcnow", return_value=fixed_now
+        ), patch(
+            "homeassistant.util.dt.now", return_value=fixed_now
+        ):
+            yield fixed_now
+    return mock_dt_fixture
+
+
+mock_datetime_2026_05_04_monday_0800_utc = _make_mock_datetime_fixture(
+    datetime(2026, 5, 4, 8, 0, 0, tzinfo=timezone.utc)
+)
 
 
 @pytest.fixture

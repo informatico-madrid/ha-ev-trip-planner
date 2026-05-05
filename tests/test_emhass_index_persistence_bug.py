@@ -39,7 +39,7 @@ class TestEMHASSIndexPersistenceBug:
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     @pytest.mark.asyncio
-    async def test_persistent_indices_not_reassigned_on_republish(self):
+    async def test_persistent_indices_not_reassigned_on_republish(self, mock_datetime_2026_05_04_monday_0800_utc):
         """
         Reproduce el bug real: índices se asignan por orden de creación
         y NO se reasignan cuando se vuelven a publicar todos los viajes.
