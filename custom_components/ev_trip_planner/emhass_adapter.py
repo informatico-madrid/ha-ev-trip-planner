@@ -2471,9 +2471,10 @@ class EMHASSAdapter:
         if new_soh != self._stored_soh_sensor:
             changed_params.append("soh_sensor")
 
-        # T142: Update stored baseline values after change detection
+        # T142: Update stored baseline values and active attribute after change detection
         if new_charging_power is not None:
             self._stored_charging_power_kw = new_charging_power
+            self._charging_power_kw = new_charging_power
         self._stored_t_base = new_t_base
         self._stored_soh_sensor = new_soh
 

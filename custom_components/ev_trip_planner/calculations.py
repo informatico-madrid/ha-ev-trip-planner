@@ -1646,11 +1646,15 @@ def calculate_deferrable_parameters(
 
         # Calculate available time until deadline
         if deadline:
-            now = reference_dt if reference_dt is not None else datetime.now()
+            now = reference_dt if reference_dt is not None else datetime.now(timezone.utc)
             if isinstance(deadline, str):
                 deadline_dt = datetime.fromisoformat(deadline)
             else:
                 deadline_dt = deadline
+
+            # Ensure deadline is timezone-aware for consistent arithmetic
+            if deadline_dt.tzinfo is None and now.tzinfo is not None:
+                deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
 
             hours_available = (deadline_dt - now).total_seconds() / 3600
             end_timestep = max(1, min(int(hours_available), 168))  # Max 7 days
