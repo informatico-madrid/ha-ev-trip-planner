@@ -5,7 +5,7 @@
 #   ./scripts/run-e2e.sh            # Default (headless, main suite)
 #   ./scripts/run-e2e.sh --headed    # With visible browser
 #   ./scripts/run-e2e.sh --debug    # Debug mode
-#   ./scripts/run-e2e.sh -- --suite tests/e2e-dynamic-soc   # Run specific suite
+#   ./scripts/run-e2e.sh --suite tests/e2e-dynamic-soc   # Run specific suite
 #
 # This script ALWAYS does a clean setup following Option B from TESTING_E2E.md:
 # 1. Kill any existing HA instance (port 8123)

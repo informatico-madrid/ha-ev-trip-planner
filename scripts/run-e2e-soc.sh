@@ -9,7 +9,7 @@
 # This script uses INDEPENDENT setup from run-e2e.sh:
 # - Separate HA config directory (/tmp/ha-e2e-soc-config)
 # - Separate auth state file (user-soc.json)
-# - Separate Playwright config (playwright-soc.config.ts)
+# - Separate Playwright config (playwright.soc.config.ts)
 # - Configuration YAML with SOC and SOH sensors included
 
 set -euo pipefail
@@ -22,16 +22,16 @@ mkdir -p "$LOG_DIR"
 TS=$(date +%Y%m%d_%H%M%S)
 HA_LOG_FILE="$LOG_DIR/ha-e2e-soc-${TS}.log"
 HA_URL="${HA_URL:-http://localhost:8123}"
-HEADLESS="--workers=1"
+PLAYWRIGHT_ARGS="--workers=1"
 TEST_SUITE="tests/e2e-dynamic-soc"
 PLAYWRIGHT_CONFIG="playwright.soc.config.ts"
 
 # Parse args
 for arg in "$@"; do
   case "$arg" in
-    --headed) HEADLESS="--workers=1 --headed" ;;
-    --debug) HEADLESS="--workers=1 --debug" ;;
-    --ci) HEADLESS="--workers=1" ;;
+    --headed) PLAYWRIGHT_ARGS="--workers=1 --headed" ;;
+    --debug) PLAYWRIGHT_ARGS="--workers=1 --debug" ;;
+    --ci) PLAYWRIGHT_ARGS="--workers=1" ;;
     --suite) TEST_SUITE="tests/e2e-dynamic-soc" ;;
     *) ;;
   esac
@@ -136,11 +136,11 @@ fi
 # --- Step 6: Run Playwright tests ---
 echo ""
 echo "[6/6] Running Playwright E2E tests..."
-echo "Command: npx playwright test --config=${PLAYWRIGHT_CONFIG} ${HEADLESS}"
+echo "Command: npx playwright test --config=${PLAYWRIGHT_CONFIG} ${PLAYWRIGHT_ARGS}"
 echo "-------------------------------------------"
 
 set +e
-npx playwright test --config="${PLAYWRIGHT_CONFIG}" ${HEADLESS}
+npx playwright test --config="${PLAYWRIGHT_CONFIG}" ${PLAYWRIGHT_ARGS}
 EXIT_CODE=$?
 set -e
 
