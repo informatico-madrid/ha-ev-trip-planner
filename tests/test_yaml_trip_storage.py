@@ -26,9 +26,6 @@ class TestYamlTripStorageAsyncLoad:
             YamlTripStorage,
         )
 
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-
-        # Mock Store.async_load returning wrapped format
         mock_store = MagicMock()
         mock_store.async_load = AsyncMock(
             return_value={
@@ -44,6 +41,7 @@ class TestYamlTripStorageAsyncLoad:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             result = await storage.async_load()
 
         assert result == {
@@ -59,8 +57,6 @@ class TestYamlTripStorageAsyncLoad:
             YamlTripStorage,
         )
 
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-
         mock_store = MagicMock()
         mock_store.async_load = AsyncMock(return_value=None)
 
@@ -68,6 +64,7 @@ class TestYamlTripStorageAsyncLoad:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             result = await storage.async_load()
 
         assert result == {}
@@ -78,8 +75,6 @@ class TestYamlTripStorageAsyncLoad:
         from custom_components.ev_trip_planner.yaml_trip_storage import (
             YamlTripStorage,
         )
-
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
 
         mock_store = MagicMock()
         mock_store.async_load = AsyncMock(
@@ -94,6 +89,7 @@ class TestYamlTripStorageAsyncLoad:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             result = await storage.async_load()
 
         assert result == {
@@ -109,8 +105,6 @@ class TestYamlTripStorageAsyncLoad:
             YamlTripStorage,
         )
 
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-
         mock_store = MagicMock()
         # Store returns a string (corrupted data) instead of dict
         mock_store.async_load = AsyncMock(return_value="corrupted string")
@@ -119,6 +113,7 @@ class TestYamlTripStorageAsyncLoad:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             result = await storage.async_load()
 
         assert result == {}
@@ -142,8 +137,6 @@ class TestYamlTripStorageAsyncSave:
             YamlTripStorage,
         )
 
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-
         mock_store = MagicMock()
         mock_store.async_save = AsyncMock()
 
@@ -151,6 +144,7 @@ class TestYamlTripStorageAsyncSave:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             await storage.async_save(
                 {
                     "trips": {"trip_1": {"id": "trip_1"}},
@@ -174,8 +168,6 @@ class TestYamlTripStorageAsyncSave:
             YamlTripStorage,
         )
 
-        storage = YamlTripStorage(mock_hass, "test_vehicle")
-
         mock_store = MagicMock()
         mock_store.async_save = AsyncMock()
 
@@ -183,6 +175,7 @@ class TestYamlTripStorageAsyncSave:
             "homeassistant.helpers.storage.Store",
             return_value=mock_store,
         ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
             await storage.async_save(
                 {"trips": {}, "recurring_trips": {}, "punctual_trips": {}}
             )

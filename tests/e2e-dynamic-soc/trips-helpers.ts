@@ -310,37 +310,42 @@ export async function cleanupTestTrips(page: Page): Promise<void> {
     return; // Nothing to clean
   }
 
-  // Delete each trip card
-  for (let i = 0; i < count; i++) {
-    const cards = page.locator('.trip-card');
-    const currentCount = await cards.count();
-    if (currentCount === 0) break;
+  // Set up persistent dialog handler for all confirm dialogs in the loop
+  const handleDialog = async (dialog: import('@playwright/test').Dialog) => {
+    await dialog.accept();
+  };
+  page.on('dialog', handleDialog);
 
-    const tripCard = cards.first();
-    const isVisible = await tripCard.isVisible().catch(() => false);
-    if (!isVisible) break;
+  try {
+    // Delete each trip card
+    for (let i = 0; i < count; i++) {
+      const cards = page.locator('.trip-card');
+      const currentCount = await cards.count();
+      if (currentCount === 0) break;
 
-    // Set up dialog handler for confirm dialog
-    page.once('dialog', async (dialog) => {
-      await dialog.accept();
-    });
+      const tripCard = cards.first();
+      const isVisible = await tripCard.isVisible().catch(() => false);
+      if (!isVisible) break;
 
-    // Try to click delete button
-    const deleteBtn = tripCard.locator('.delete-btn').first();
-    const deleteBtnVisible = await deleteBtn.isVisible().catch(() => false);
-    if (deleteBtnVisible) {
-      await deleteBtn.click();
-      // Wait for deletion to process
-      await new Promise(r => setTimeout(r, 500));
-    } else {
-      // Fallback: find delete by text in parent
-      const parent = tripCard.locator('xpath=..');
-      const deleteInParent = parent.getByText('Eliminar').first();
-      const deleteVisible = await deleteInParent.isVisible().catch(() => false);
-      if (deleteVisible) {
-        await deleteInParent.click();
+      // Try to click delete button
+      const deleteBtn = tripCard.locator('.delete-btn').first();
+      const deleteBtnVisible = await deleteBtn.isVisible().catch(() => false);
+      if (deleteBtnVisible) {
+        await deleteBtn.click();
+        // Wait for deletion to process
         await new Promise(r => setTimeout(r, 500));
+      } else {
+        // Fallback: find delete by text in parent
+        const parent = tripCard.locator('xpath=..');
+        const deleteInParent = parent.getByText('Eliminar').first();
+        const deleteVisible = await deleteInParent.isVisible().catch(() => false);
+        if (deleteVisible) {
+          await deleteInParent.click();
+          await new Promise(r => setTimeout(r, 500));
+        }
       }
     }
+  } finally {
+    page.off('dialog', handleDialog);
   }
 }

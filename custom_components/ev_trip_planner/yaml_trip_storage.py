@@ -24,6 +24,12 @@ class YamlTripStorage:
         """
         self._hass = hass
         self._vehicle_id = vehicle_id
+        storage_key = f"{DOMAIN}_{vehicle_id}"
+        from homeassistant.helpers import storage as ha_storage
+
+        self._store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
+            hass, version=1, key=storage_key
+        )
 
     async def async_load(self) -> Dict[str, Any]:
         """Load trips from storage.
@@ -31,13 +37,7 @@ class YamlTripStorage:
         Returns:
             Dictionary with trips data or empty dict if no data.
         """
-        from homeassistant.helpers import storage as ha_storage
-
-        storage_key = f"{DOMAIN}_{self._vehicle_id}"
-        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
-            self._hass, version=1, key=storage_key
-        )
-        stored_data = await store.async_load()
+        stored_data = await self._store.async_load()
 
         if stored_data:
             if isinstance(stored_data, dict) and "data" in stored_data:
@@ -56,13 +56,6 @@ class YamlTripStorage:
         """
         from datetime import datetime
 
-        from homeassistant.helpers import storage as ha_storage
-
-        storage_key = f"{DOMAIN}_{self._vehicle_id}"
-        store: ha_storage.Store[dict[str, Any]] = ha_storage.Store(
-            self._hass, version=1, key=storage_key
-        )
-
         save_data = {
             "trips": data.get("trips", {}),
             "recurring_trips": data.get("recurring_trips", {}),
@@ -70,4 +63,4 @@ class YamlTripStorage:
             "last_update": datetime.now().isoformat(),
         }
 
-        await store.async_save(save_data)
+        await self._store.async_save(save_data)

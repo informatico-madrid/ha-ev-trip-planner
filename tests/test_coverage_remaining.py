@@ -68,7 +68,10 @@ class TestCalculateNextRecurringDatetimeExceptionPath:
                 # because calculate_next_recurring_datetime raises an exception
                 # The exception is logged as a warning and the adapter is NOT called
                 # because we haven't loaded trips yet (no async_entries call)
-                pass
+                await tm.publish_deferrable_loads()
+
+                # Verify the exception was handled and the adapter was NOT called
+                mock_adapter.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_weekly_trip_exception_in_day_index_calculation(self):

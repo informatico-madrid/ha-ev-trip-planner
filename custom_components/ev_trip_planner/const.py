@@ -72,7 +72,7 @@ DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Battery health / Dynamic SOC capping (always-on)
 CONF_T_BASE = "t_base"
-CONF_SOC_BASE = "soc_base"
+SOC_BASE = "soc_base"
 CONF_SOH_SENSOR = "soh_sensor"
 DEFAULT_T_BASE = 24.0  # hours (user-configurable via slider)
 DEFAULT_SOC_BASE = 35.0  # percent (NMC/NCA chemistry sweet spot, internal-only)

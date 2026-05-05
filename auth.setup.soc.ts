@@ -69,8 +69,9 @@ async function waitForEntity(entityId: string, token: string, timeoutMs = 30_000
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-        const states = await response.json() as Array<{ entity_id: string }>;
-        if (states.some((s) => s.entity_id === entityId)) {
+          const statesObj: Record<string, { entity_id: string }> = await response.json();
+        const entityIds = Object.keys(statesObj);
+        if (entityIds.some((id) => id === entityId)) {
           console.log(`[auth.setup] Entity "${entityId}" is available in HA`);
           return;
         }
@@ -193,7 +194,7 @@ async function getAccessToken(): Promise<string> {
 
 /** Check if ev_trip_planner integration is already configured */
 async function isIntegrationSetUp(token: string): Promise<boolean> {
-  const resp = await fetch(`${HA_URL}/api/config/config_entries/entry`, {
+  const resp = await fetch(`${HA_URL}/api/config/config_entries`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const entries = await resp.json() as Array<{ domain: string; title: string }>;

@@ -27,13 +27,22 @@ HA_URL="${HA_URL:-http://localhost:8123}"
 HEADLESS="--workers=1"
 TEST_SUITE="tests/e2e/"
 
-# Handle --suite argument (can appear anywhere in args)
+# Parse arguments
 for ((i=1; i<=$#; i++)); do
-  if [[ "${!i}" == "--suite" ]]; then
-    next=$((i+1))
-    TEST_SUITE="${!next}"
-    break
-  fi
+  case "${!i}" in
+    --headed) HEADLESS="--workers=1 --headed" ;;
+    --debug) HEADLESS="--workers=1 --debug" ;;
+    --ci) HEADLESS="--workers=1" ;;
+    --suite)
+      next=$((i+1))
+      if (( next <= $# )); then
+        TEST_SUITE="${!next}"
+      else
+        echo "Error: --suite requires a value" >&2
+        exit 1
+      fi
+      ;;
+  esac
 done
 
 echo "=========================================="
