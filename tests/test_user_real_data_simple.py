@@ -17,7 +17,7 @@ Este test usa DATOS REALES y muestra:
 
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import Mock, AsyncMock
 from homeassistant.core import HomeAssistant
 
 
@@ -39,7 +39,9 @@ def mock_trip_manager():
 
 
 @pytest.mark.asyncio
-async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_trip_manager):
+async def test_user_real_experience_12hora_slot_obsolete_bug(
+    mock_hass, mock_trip_manager
+):
     """
     ✅ TEST CONFIRMA TU BUG con DATOS REALES.
 
@@ -77,7 +79,6 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_tri
 
     ========================================================================
     """
-    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
     from custom_components.ev_trip_planner.calculations import (
         generate_deferrable_schedule_from_trips,
     )
@@ -87,13 +88,15 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_tri
     # DATOS REALES - ENTRADA
     # ============================================================
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("📅 DATOS REALES - TU EXPERIENCIA")
-    print("="*80)
+    print("=" * 80)
 
     # Tu hora actual
     current_time_utc = datetime(2026, 4, 30, 12, 58, 0, tzinfo=timezone.utc)
-    print(f"\n⏰ HORA ACTUAL (sistema): {current_time_utc.strftime('%H:%M')} UTC (14:58 CEST)")
+    print(
+        f"\n⏰ HORA ACTUAL (sistema): {current_time_utc.strftime('%H:%M')} UTC (14:58 CEST)"
+    )
 
     # Tu viaje a las 14:40
     trip_departure = datetime(2026, 4, 30, 14, 40, 0, tzinfo=timezone.utc)
@@ -104,7 +107,9 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_tri
     battery_capacity = 60.0  # kWh
     soc_actual = 50.0  # %
 
-    print(f"⚡ Potencia de carga: {charging_power_kw} kW ({charging_power_kw*1000} watts)")
+    print(
+        f"⚡ Potencia de carga: {charging_power_kw} kW ({charging_power_kw * 1000} watts)"
+    )
     print(f"🔋 Batería: {battery_capacity} kWh")
     print(f"📊 SOC actual: {soc_actual}%")
 
@@ -113,7 +118,9 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_tri
     # ============================================================
 
     # Mockear datetime.now() para que devuelva tu hora actual
-    with patch('custom_components.ev_trip_planner.calculations.datetime') as mock_datetime:
+    with patch(
+        "custom_components.ev_trip_planner.calculations.datetime"
+    ) as mock_datetime:
         mock_datetime.now.return_value = current_time_utc
 
         # Generar el schedule con la hora ACTUAL (12:58 UTC)
@@ -136,53 +143,59 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(mock_hass, mock_tri
         first_slot = schedule[0]
         first_slot_time = datetime.fromisoformat(first_slot["date"])
 
-        print(f"\n📊 SCHEDULE GENERADO (Datos que salen del sistema):")
+        print("\n📊 SCHEDULE GENERADO (Datos que salen del sistema):")
         print(f"   Slot 0 empieza: {first_slot_time.strftime('%H:%M')} UTC")
         print(f"   Hora actual: {current_time_utc.strftime('%H:%M')} UTC")
-        print(f"   Diferencia: {(current_time_utc - first_slot_time).total_seconds() / 60:.0f} minutos")
+        print(
+            f"   Diferencia: {(current_time_utc - first_slot_time).total_seconds() / 60:.0f} minutos"
+        )
 
         # ============================================================
         # ASSERT - VERIFICACIÓN DEL BUG
         # ============================================================
 
-        print(f"\n" + "="*80)
+        print("\n" + "=" * 80)
         print("❌ BUG CONFIRMADO")
-        print("="*80)
+        print("=" * 80)
 
         # TU EXPECTATIVA:
         # A las 12:58 UTC, el primer slot DEBERÍA ser 13:00 UTC (siguiente hora completa)
         expected_first_slot_hour = 13  # 13:00 UTC
         actual_first_slot_hour = first_slot_time.hour
 
-        print(f"\n📌 EXPECTATIVA:")
+        print("\n📌 EXPECTATIVA:")
         print(f"   Hora actual: {current_time_utc.strftime('%H:%M')} UTC")
         print(f"   Primer slot DEBERÍA ser: {expected_first_slot_hour}:00 UTC")
-        print(f"   (Redondear a la siguiente hora completa)")
+        print("   (Redondear a la siguiente hora completa)")
 
-        print(f"\n📌 REALIDAD:")
+        print("\n📌 REALIDAD:")
         print(f"   Primer slot ES: {actual_first_slot_hour}:00 UTC")
-        print(f"   ❌ El slot es la hora actual TRUNCADA, no la siguiente")
+        print("   ❌ El slot es la hora actual TRUNCADA, no la siguiente")
 
-        print(f"\n📌 RESULTADO:")
+        print("\n📌 RESULTADO:")
         time_passed = (current_time_utc - first_slot_time).total_seconds() / 60
         print(f"   El primer slot empezó hace {time_passed:.0f} minutos")
-        print(f"   ❌ ¡El slot ya pasó! Estás viendo datos obsoletos.")
+        print("   ❌ ¡El slot ya pasó! Estás viendo datos obsoletos.")
 
-        print(f"\n✅ TEST CONFIRMA TU BUG:")
-        print(f"   - El sensor muestra datos obsoletos (slot de hace {time_passed:.0f} minutos)")
-        print(f"   - Tú ves 'una ventana de aquí a dos horas'")
-        print(f"   - Pero el primer slot ya pasó")
-        print(f"   - El cache NO se regenera automáticamente")
+        print("\n✅ TEST CONFIRMA TU BUG:")
+        print(
+            f"   - El sensor muestra datos obsoletos (slot de hace {time_passed:.0f} minutos)"
+        )
+        print("   - Tú ves 'una ventana de aquí a dos horas'")
+        print("   - Pero el primer slot ya pasó")
+        print("   - El cache NO se regenera automáticamente")
 
         # ============================================================
         # ASSERT - CONFIRMACIÓN DEL BUG
         # ============================================================
 
         # El slot 0 es 12:00 UTC (hora actual truncada)
-        assert actual_first_slot_hour == 12, f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
+        assert actual_first_slot_hour == 12, (
+            f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
+        )
 
         # El slot ya pasó (hace 58 minutos)
-        assert time_passed == 58, f"El slot empezó hace 58 minutos"
+        assert time_passed == 58, "El slot empezó hace 58 minutos"
 
 
 if __name__ == "__main__":

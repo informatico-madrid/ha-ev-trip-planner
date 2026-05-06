@@ -18,7 +18,9 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypatch) -> None:
+async def test_async_calcular_energia_necesaria_handles_tz_aware_datetime(
+    monkeypatch,
+) -> None:
     """Calling async_calcular_energia_necesaria with a tz-aware datetime object
     must not raise a TypeError due to naive/aware subtraction.
     """
@@ -57,7 +59,9 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(monkeypatch) -> None:
+async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(
+    monkeypatch,
+) -> None:
     """Test that naive datetime OBJECT is handled successfully after the fix.
 
     When trip['datetime'] is a bare datetime object (naive, no tzinfo), the
@@ -84,9 +88,7 @@ async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(m
     from custom_components.ev_trip_planner import trip_manager
 
     fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
-    monkeypatch.setattr(
-        trip_manager.dt_util, "now", lambda: fixed_now
-    )
+    monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)
 
     # Should succeed after the fix
     res = await tm.async_calcular_energia_necesaria(trip, vehicle_config)
@@ -98,7 +100,9 @@ async def test_async_calcular_energia_necesaria_naive_datetime_object_succeeds(m
 
 
 @pytest.mark.asyncio
-async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds(monkeypatch) -> None:
+async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds(
+    monkeypatch,
+) -> None:
     """Test that string datetime is handled successfully after the fix.
 
     When trip['datetime'] is a string, dt_util.parse_datetime may return naive
@@ -124,9 +128,7 @@ async def test_async_calcular_energia_necesaria_strptime_naive_datetime_succeeds
     from custom_components.ev_trip_planner import trip_manager
 
     fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
-    monkeypatch.setattr(
-        trip_manager.dt_util, "now", lambda: fixed_now
-    )
+    monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)
 
     # Should succeed after the fix
     res = await tm.async_calcular_energia_necesaria(trip, vehicle_config)

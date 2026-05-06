@@ -48,7 +48,6 @@ CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 _LOGGER = logging.getLogger(__name__)
 
 
-
 @dataclass
 class EVTripRuntimeData:
     """Runtime data container for a single vehicle config entry."""
@@ -66,9 +65,11 @@ class EVTripRuntimeData:
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
-async def _hourly_refresh_callback(now: datetime, runtime_data: EVTripRuntimeData) -> None:
+async def _hourly_refresh_callback(
+    now: datetime, runtime_data: EVTripRuntimeData
+) -> None:
     """Hourly callback to refresh deferrable loads profile.
-    
+
     This callback is called every hour to trigger rotation of recurring trips.
     The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
     """
@@ -99,8 +100,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # OLD: "ev_trip_planner_kwh_today"
                 # NEW: "ev_trip_planner_{vehicle_id}_kwh_today"
                 old_uid = old_entry.unique_id
-                if old_uid.startswith(f"{DOMAIN}_") and f"{DOMAIN}_{vehicle_id}_" not in old_uid:
-                    new_uid = f"{DOMAIN}_{vehicle_id}_{old_uid[len(f"{DOMAIN}_"):]}"
+                if (
+                    old_uid.startswith(f"{DOMAIN}_")
+                    and f"{DOMAIN}_{vehicle_id}_" not in old_uid
+                ):
+                    new_uid = f"{DOMAIN}_{vehicle_id}_{old_uid[len(f'{DOMAIN}_') :]}"
                     return {"new_unique_id": new_uid}
                 return None
 
@@ -110,7 +114,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.config_entries.async_update_entry(entry, data=new_data, version=2)
     if changed:
         runtime_data = getattr(entry, "runtime_data", None)
-        emhass_adapter = getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+        emhass_adapter = (
+            getattr(runtime_data, "emhass_adapter", None) if runtime_data else None
+        )
         if emhass_adapter:
             await emhass_adapter.update_charging_power()
 
@@ -130,15 +136,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     presence_config = build_presence_config(entry)
     # Use YamlTripStorage for consistent storage mechanism
     storage = YamlTripStorage(hass, vehicle_id)
-    trip_manager = TripManager(hass, vehicle_id, entry.entry_id, presence_config, storage)
+    trip_manager = TripManager(
+        hass, vehicle_id, entry.entry_id, presence_config, storage
+    )
     await trip_manager.async_setup()
 
     soc_sensor = entry.data.get("soc_sensor")
-    if soc_sensor and hasattr(trip_manager, "vehicle_controller") and trip_manager.vehicle_controller._presence_monitor:
+    if (
+        soc_sensor
+        and hasattr(trip_manager, "vehicle_controller")
+        and trip_manager.vehicle_controller._presence_monitor
+    ):
         trip_manager.vehicle_controller._presence_monitor._async_setup_soc_listener()
 
     emhass_adapter = None
-    if entry.data.get("planning_horizon_days") or entry.data.get("max_deferrable_loads"):
+    if entry.data.get("planning_horizon_days") or entry.data.get(
+        "max_deferrable_loads"
+    ):
         emhass_adapter = EMHASSAdapter(hass, entry)
         await emhass_adapter.async_load()
         # FR-2, AC-1.2: Set up config entry listener for charging power updates
@@ -168,7 +182,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if emhass_adapter is not None:
         await trip_manager.publish_deferrable_loads()
     await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)
-    
+
     # T3.1: Setup hourly refresh timer OUTSIDE coordinator
     # This timer triggers every hour to rotate recurring trips
     # Timer is registered here to avoid infinite loop in coordinator
@@ -192,11 +206,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     # EC-001 FIX: Cancel hourly refresh timer BEFORE cleanup to prevent leak
     runtime_data = getattr(entry, "runtime_data", None)
-    if runtime_data and hasattr(runtime_data, "hourly_refresh_cancel") and runtime_data.hourly_refresh_cancel:
+    if (
+        runtime_data
+        and hasattr(runtime_data, "hourly_refresh_cancel")
+        and runtime_data.hourly_refresh_cancel
+    ):
         runtime_data.hourly_refresh_cancel()
         runtime_data.hourly_refresh_cancel = None
         _LOGGER.debug("Cancelled hourly refresh timer for vehicle %s", entry.entry_id)
-    
+
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
     vehicle_name = vehicle_name_raw or vehicle_id

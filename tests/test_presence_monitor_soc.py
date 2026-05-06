@@ -24,9 +24,11 @@ def mock_hass():
     # Mock hass.bus for async_track_state_change_event
     hass.bus = Mock()
     hass.bus.async_listen = Mock()
+
     # Mock async_run_hass_job for debounce
     async def mock_async_run_hass_job(job, *_args, **_kwargs):
         return None
+
     hass.async_run_hass_job = mock_async_run_hass_job
     return hass
 
@@ -50,7 +52,7 @@ def mock_store_class():
             self._storage["data"] = data
             return True
 
-    with patch.object(ha_storage, 'Store', MockStore):
+    with patch.object(ha_storage, "Store", MockStore):
         yield MockStore
 
 
@@ -65,6 +67,7 @@ def mock_trip_manager():
 # =============================================================================
 # AC-1, AC-2, AC-3: SOC change triggers recalculation when home+plugged
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_soc_change_triggers_recalculation_when_home_and_plugged(
@@ -119,6 +122,7 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(
 # =============================================================================
 # AC-2, AC-3: SOC change does NOT trigger when away or unplugged
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_soc_change_does_not_trigger_when_away(mock_hass, mock_trip_manager):
@@ -216,6 +220,7 @@ async def test_soc_change_does_not_trigger_when_unplugged(mock_hass, mock_trip_m
 # AC-4, AC-6: Return home detection (off->on transition)
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_return_home_detection_off_to_on_transition(mock_hass, mock_trip_manager):
     """Test return home detection (off->on transition) captures SOC and timestamp (AC-4, AC-6)."""
@@ -309,6 +314,7 @@ async def test_departure_invalidates_hora_regreso(mock_hass, mock_trip_manager):
 # =============================================================================
 # AC-2, AC-3: SOC debouncing (5% threshold blocks recalculation)
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_soc_debouncing_5_percent_threshold_blocks_recalculation(
@@ -413,27 +419,25 @@ async def test_soc_debouncing_5_percent_threshold_allows_recalculation(
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 55.0
 
-    # ❌ TEST FLOJO: Solo verifica que se llama a publish_deferrable_loads()
-    # ✅ TEST COMPLETO debería verificar:
-    # 1. Que el EMHASSAdapter actualiza su cache (_cached_power_profile, etc.)
-    # 2. Que el coordinator.async_refresh() se llama
-    # 3. Que el sensor EMHASS muestra los nuevos datos
+    # MINIMAL TEST: Only verifies that publish_deferrable_loads() is called
+    # COMPREHENSIVE TEST should also verify:
+    # 1. That EMHASSAdapter updates its cache (_cached_power_profile, etc.)
+    # 2. That coordinator.async_refresh() is called
+    # 3. That the EMHASS sensor shows the new data
     #
-    # Actualmente este test PASA pero NO detecta que el sensor NO se actualiza
+    # Currently this test PASSES but does NOT detect that the sensor is NOT updated
     #
-    # Para hacer este test completo, necesitaríamos:
-    # - Mockear el EMHASSAdapter y verificar que se actualiza el cache
-    # - Mockear el coordinator y verificar que async_refresh() se llama
-    # - Verificar que EmhassDeferrableLoadSensor.extra_state_attributes tiene nuevos datos
+    # To make this test comprehensive, we would need:
+    # - Mock the EMHASSAdapter and verify that the cache is updated
+    # - Mock the coordinator and verify that async_refresh() is called
+    # - Verify that EmhassDeferrableLoadSensor.extra_state_attributes has new data
     #
-    # Problema: El test actual no tiene acceso al coordinator ni al EMHASSAdapter
-    # Solución: Crear un test de integración completo en test_coordinator.py
+    # Problem: The current test has no access to the coordinator or EMHASSAdapter
+    # Solution: Create a full integration test in test_coordinator.py
 
 
 @pytest.mark.asyncio
-async def test_soc_debouncing_ignores_unavailable_state(
-    mock_hass, mock_trip_manager
-):
+async def test_soc_debouncing_ignores_unavailable_state(mock_hass, mock_trip_manager):
     """Test SOC change to unavailable/unknown state is skipped without updating _last_processed_soc."""
     config = {
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
@@ -476,7 +480,7 @@ async def test_soc_debouncing_ignores_unavailable_state(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered
-    mock_trip_manager.async_generate_power_profile.assert_not_called()
+    mock_trip_manager.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -484,6 +488,7 @@ async def test_soc_debouncing_ignores_unavailable_state(
 # =============================================================================
 # AC-4: hora_regreso/soc_en_regreso persistence via Store
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_hora_regreso_soc_en_regreso_persistence_via_store(
@@ -594,7 +599,10 @@ async def test_hora_regreso_persistence_across_monitor_lifecycle(
     # The Store mock returns whatever was saved, so verify persistence mechanism exists
     assert hasattr(monitor2, "_return_info_store")
     assert hasattr(monitor2, "_return_info_entity_id")
-    assert monitor2._return_info_entity_id == "sensor.ev_trip_planner_test_vehicle_return_info"
+    assert (
+        monitor2._return_info_entity_id
+        == "sensor.ev_trip_planner_test_vehicle_return_info"
+    )
 
 
 @pytest.mark.asyncio
@@ -602,7 +610,6 @@ async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_ma
     """Test _async_handle_soc_change calls trip_manager.publish_deferrable_loads().
 
     Task 1.12 test: expects SOC change to route through publish_deferrable_loads.
-    Currently the code calls async_generate_* instead which doesn't cache data.
     """
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 

@@ -34,6 +34,8 @@ from .const import (
     CONF_PLUGGED_SENSOR,
     CONF_SAFETY_MARGIN,
     CONF_SOC_SENSOR,
+    CONF_SOH_SENSOR,
+    CONF_T_BASE,
     CONF_VEHICLE_NAME,
     CONFIG_VERSION,
     DEFAULT_CONSUMPTION,
@@ -41,7 +43,11 @@ from .const import (
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
+    DEFAULT_SOH_SENSOR,
+    DEFAULT_T_BASE,
     DOMAIN,
+    MAX_T_BASE,
+    MIN_T_BASE,
 )
 from .dashboard import import_dashboard, is_lovelace_available
 
@@ -71,6 +77,26 @@ STEP_SENSORS_SCHEMA = vol.Schema(
             int
         ),
         vol.Optional(CONF_SOC_SENSOR): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="sensor",
+                multiple=False,
+            )
+        ),
+        # Battery health: T_base slider (user-configurable idle time window)
+        vol.Optional(
+            CONF_T_BASE,
+            default=DEFAULT_T_BASE,
+            description={
+                "suggested_value": DEFAULT_T_BASE,
+                "placeholder": f"{DEFAULT_T_BASE}",
+                "description": (
+                    "Ventana de tiempo base (horas). Cuanto mayor sea, más conservadora "
+                    "será la limitación dinámica de SOC. Rango: 6-48h."
+                ),
+            },
+        ): vol.All(vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE)),
+        # SOH sensor for real battery capacity
+        vol.Optional(CONF_SOH_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
                 domain="sensor",
                 multiple=False,
@@ -221,7 +247,9 @@ def _get_emhass_planning_horizon(
     end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
     if not end_timesteps or not isinstance(end_timesteps, list):
         return None
-    if len(end_timesteps) == 0:  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
+    if (
+        len(end_timesteps) == 0
+    ):  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
         return None
 
     # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days
@@ -261,6 +289,34 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
     VERSION = CONFIG_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
+
+    @staticmethod
+    async def async_migrate_entry(hass: Any, entry: config_entries.ConfigEntry) -> bool:
+        """Migrar entrada de configuración de versión anterior.
+
+        v2 -> v3: Add battery health config (t_base, soh_sensor).
+        """
+        _LOGGER.info(
+            "Migrating config entry from version %s to %s",
+            entry.version,
+            CONFIG_VERSION,
+        )
+
+        if entry.version == 2:
+            # Add new v3 fields with safe defaults
+            new_data = dict(entry.data)
+            new_data[CONF_T_BASE] = DEFAULT_T_BASE
+            new_data[CONF_SOH_SENSOR] = DEFAULT_SOH_SENSOR
+            await hass.config_entries.async_update_entry(
+                entry, data=new_data, version=CONFIG_VERSION
+            )
+            _LOGGER.info("Config entry migrated to version %d", CONFIG_VERSION)
+            return True
+
+        _LOGGER.warning(
+            "Unknown config entry version %s, cannot migrate", entry.version
+        )
+        return False
 
     def __init__(self) -> None:
         """Inicializa el flujo de configuración."""
@@ -374,11 +430,12 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             vehicle_data.update(user_input)
             _LOGGER.debug(
                 "Config flow step 2 (sensors): battery_capacity=%.1f, "
-                "charging_power=%.1f, consumption=%.2f, safety_margin=%d",
+                "charging_power=%.1f, consumption=%.2f, safety_margin=%d, t_base=%.1f",
                 user_input.get(CONF_BATTERY_CAPACITY, 0),
                 user_input.get(CONF_CHARGING_POWER, 0),
                 user_input.get(CONF_CONSUMPTION, 0),
                 user_input.get(CONF_SAFETY_MARGIN, 0),
+                user_input.get(CONF_T_BASE, 0),
             )
             return await self.async_step_emhass()
 
@@ -787,7 +844,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     async def _async_create_entry(self) -> FlowResult:
         """Crea la entrada de configuración."""
         # HA stub: Context TypedDict may have missing keys, .get() safe for object
-        vehicle_name_for_log = self.context.get("vehicle_data", {}).get("vehicle_name", "unknown")  # type: ignore[attr-defined,unused-ignore]
+        vehicle_name_for_log = self.context.get("vehicle_data", {}).get(
+            "vehicle_name", "unknown"
+        )  # type: ignore[attr-defined,unused-ignore]
         _LOGGER.info(
             "Starting _async_create_entry for vehicle: %s",
             vehicle_name_for_log,
@@ -890,11 +949,12 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             _LOGGER.debug(
                 "Options flow step init: battery=%.1f, charging=%.1f, "
-                "consumption=%.2f, safety=%d",
+                "consumption=%.2f, safety=%d, t_base=%.1f",
                 user_input.get(CONF_BATTERY_CAPACITY, 0),
                 user_input.get(CONF_CHARGING_POWER, 0),
                 user_input.get(CONF_CONSUMPTION, 0),
                 user_input.get(CONF_SAFETY_MARGIN, 0),
+                user_input.get(CONF_T_BASE, 0),
             )
 
             # Only include options that were actually provided
@@ -907,6 +967,10 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                 update_data[CONF_CONSUMPTION] = user_input[CONF_CONSUMPTION]
             if CONF_SAFETY_MARGIN in user_input:
                 update_data[CONF_SAFETY_MARGIN] = user_input[CONF_SAFETY_MARGIN]
+            if CONF_T_BASE in user_input:
+                update_data[CONF_T_BASE] = user_input[CONF_T_BASE]
+            if CONF_SOH_SENSOR in user_input:
+                update_data[CONF_SOH_SENSOR] = user_input[CONF_SOH_SENSOR]
 
             return self.async_create_entry(title="", data=update_data)  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
 
@@ -921,6 +985,8 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         current_charging = config_data.get(CONF_CHARGING_POWER, 11.0)
         current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
         current_safety = config_data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
+        current_t_base = config_data.get(CONF_T_BASE, DEFAULT_T_BASE)
+        current_soh = config_data.get(CONF_SOH_SENSOR, DEFAULT_SOH_SENSOR)
 
         return self.async_show_form(
             step_id="init",
@@ -940,6 +1006,29 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_SAFETY_MARGIN, default=current_safety
                     ): vol.Coerce(int),
+                    vol.Required(
+                        CONF_T_BASE,
+                        default=current_t_base,
+                        description={
+                            "suggested_value": current_t_base,
+                            "placeholder": f"{current_t_base}",
+                            "description": (
+                                "Ventana de tiempo base (horas). Cuanto mayor sea, "
+                                "más conservadora será la limitación dinámica de SOC. "
+                                "Rango: 6-48h."
+                            ),
+                        },
+                    ): vol.All(
+                        vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE)
+                    ),
+                    vol.Optional(
+                        CONF_SOH_SENSOR, default=current_soh
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor",
+                            multiple=False,
+                        )
+                    ),
                 }
             ),
         )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]

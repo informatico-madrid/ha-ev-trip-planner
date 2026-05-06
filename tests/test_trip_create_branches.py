@@ -29,7 +29,9 @@ async def test_trip_create_with_invalid_trip_type_logs_error():
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_123")
-    mock_trip_manager.async_add_punctual_trip = AsyncMock(return_value="pun_20251119_abc")
+    mock_trip_manager.async_add_punctual_trip = AsyncMock(
+        return_value="pun_20251119_abc"
+    )
 
     mock_runtime_data = MagicMock()
     mock_runtime_data.trip_manager = mock_trip_manager
@@ -89,14 +91,16 @@ async def test_trip_create_with_recurring_type_succeeds():
     mock_trip_manager.async_setup = AsyncMock()
     mock_trip_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_123")
     mock_trip_manager.async_get_recurring_trips = AsyncMock(
-        return_value=[{
-            "id": "rec_lun_123",
-            "dia_semana": "lunes",
-            "hora": "09:00",
-            "km": 24.0,
-            "kwh": 3.6,
-            "descripcion": "Trabajo",
-        }]
+        return_value=[
+            {
+                "id": "rec_lun_123",
+                "dia_semana": "lunes",
+                "hora": "09:00",
+                "km": 24.0,
+                "kwh": 3.6,
+                "descripcion": "Trabajo",
+            }
+        ]
     )
 
     mock_runtime_data = MagicMock()
@@ -161,15 +165,19 @@ async def test_trip_create_with_punctual_type_succeeds():
     mock_coordinator.async_refresh_trips = AsyncMock()
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_setup = AsyncMock()
-    mock_trip_manager.async_add_punctual_trip = AsyncMock(return_value="pun_20251119_abc")
+    mock_trip_manager.async_add_punctual_trip = AsyncMock(
+        return_value="pun_20251119_abc"
+    )
     mock_trip_manager.async_get_punctual_trips = AsyncMock(
-        return_value=[{
-            "id": "pun_20251119_abc",
-            "datetime": "2025-11-19T15:00:00",
-            "km": 110.0,
-            "kwh": 16.5,
-            "descripcion": "Viaje",
-        }]
+        return_value=[
+            {
+                "id": "pun_20251119_abc",
+                "datetime": "2025-11-19T15:00:00",
+                "km": 110.0,
+                "kwh": 16.5,
+                "descripcion": "Viaje",
+            }
+        ]
     )
 
     mock_runtime_data = MagicMock()

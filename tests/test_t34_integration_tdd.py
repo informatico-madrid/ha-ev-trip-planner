@@ -62,7 +62,7 @@ class TestT34_Integration:
         # Arrange - Create a recurring trip that should rotate (past Monday)
         # Use a dynamically computed past Monday
         past_monday = _past_datetime_for_weekday(1)  # 1=Monday
-        next_monday = _next_weekday_from_now(1)  # Next Monday from now
+        _next_monday = _next_weekday_from_now(1)  # noqa: F841 — next Monday reference
 
         recurring_trip = {
             "id": "rec_test_1",
@@ -80,7 +80,11 @@ class TestT34_Integration:
 
         # Assert - Trip datetime should be updated to a future Monday
         rotated_dt = recurring_trip["datetime"]
-        rotated_date = datetime.fromisoformat(rotated_dt.replace("Z", "+00:00")) if "T" in rotated_dt else datetime.fromisoformat(rotated_dt)
+        rotated_date = (
+            datetime.fromisoformat(rotated_dt.replace("Z", "+00:00"))
+            if "T" in rotated_dt
+            else datetime.fromisoformat(rotated_dt)
+        )
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
         assert rotated_date > now, (
             f"T3.4-01: Rotated datetime should be in the future, got {rotated_dt}"
@@ -148,7 +152,11 @@ class TestT34_Integration:
         }
         for trip in trips:
             rotated_dt = trip["datetime"]
-            rotated_date = datetime.fromisoformat(rotated_dt.replace("Z", "+00:00")) if "T" in rotated_dt else datetime.fromisoformat(rotated_dt)
+            rotated_date = (
+                datetime.fromisoformat(rotated_dt.replace("Z", "+00:00"))
+                if "T" in rotated_dt
+                else datetime.fromisoformat(rotated_dt)
+            )
             now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
             assert rotated_date > now, (
                 f"T3.4-03: {trip['id']} should be rotated to future, got {rotated_dt}"
@@ -189,7 +197,11 @@ class TestT34_Integration:
             f"T3.4-04: Rotation should work without emhass_adapter, got {recurring_trip['datetime']}"
         )
         rotated_dt = recurring_trip["datetime"]
-        rotated_date = datetime.fromisoformat(rotated_dt.replace("Z", "+00:00")) if "T" in rotated_dt else datetime.fromisoformat(rotated_dt)
+        rotated_date = (
+            datetime.fromisoformat(rotated_dt.replace("Z", "+00:00"))
+            if "T" in rotated_dt
+            else datetime.fromisoformat(rotated_dt)
+        )
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
         assert rotated_date > now, (
             f"T3.4-04: Rotated datetime should be future Monday, got {rotated_dt}"
@@ -199,7 +211,9 @@ class TestT34_Integration:
         )
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="T3.3 (auto-complete punctual trips) not implemented yet - pending Plan v3 scope extension")
+    @pytest.mark.skip(
+        reason="T3.3 (auto-complete punctual trips) not implemented yet - pending Plan v3 scope extension"
+    )
     async def test_t34_05_punctual_trip_auto_complete_past_deadline(
         self, trip_manager_with_entry_id
     ):
@@ -226,7 +240,9 @@ class TestT34_Integration:
         await trip_manager_with_entry_id.publish_deferrable_loads([past_trip])
 
         # Assert - Trip with past deadline should be marked inactive
-        assert past_trip.get("activo") is False or past_trip.get("estado") == "completado", (
+        assert (
+            past_trip.get("activo") is False or past_trip.get("estado") == "completado"
+        ), (
             f"T3.4-05: Past punctual trip should be marked inactive, got activo={past_trip.get('activo')}, estado={past_trip.get('estado')}"
         )
 

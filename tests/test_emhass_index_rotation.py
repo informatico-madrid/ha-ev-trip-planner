@@ -14,7 +14,6 @@ no por orden CRONOLÓGICO.
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -32,7 +31,7 @@ class TestEMHASSIndexRotation:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -69,8 +68,6 @@ class TestEMHASSIndexRotation:
         - Índice 1: Miércoles (segundo, incorrecto)
         ...
         """
-        now = datetime.now(timezone.utc)
-
         # Crear 5 viajes en orden CRONOLÓGICO (Miércoles → Domingo)
         trips_chronological = [
             {
@@ -144,11 +141,11 @@ class TestEMHASSIndexRotation:
 
         # Verificar que los índices están asignados en orden cronológico
         expected_indices = {
-            "trip_wednesday": 0,     # PRIMER viaje cronológico
+            "trip_wednesday": 0,  # PRIMER viaje cronológico
             "trip_thursday_1": 1,
             "trip_thursday_2": 2,
             "trip_friday": 3,
-            "trip_sunday": 4,        # ÚLTIMO viaje cronológico
+            "trip_sunday": 4,  # ÚLTIMO viaje cronológico
         }
 
         bugs_detectados = []
@@ -172,13 +169,15 @@ class TestEMHASSIndexRotation:
                     print(f"❌ BUG: Índice incorrecto para {trip_id}")
                     print(f"   Esperado índice {expected_index} (orden cronológico)")
                     print(f"   Actual índice {actual_index} (orden de creación)")
-                    bugs_detectados.append({
-                        'trip_id': trip_id,
-                        'expected_index': expected_index,
-                        'actual_index': actual_index,
-                        'def_start': def_start,
-                        'def_end': def_end,
-                    })
+                    bugs_detectados.append(
+                        {
+                            "trip_id": trip_id,
+                            "expected_index": expected_index,
+                            "actual_index": actual_index,
+                            "def_start": def_start,
+                            "def_end": def_end,
+                        }
+                    )
 
         # Verificar específicamente que el primer viaje cronológico tiene índice 0
         first_trip = "trip_wednesday"
@@ -189,24 +188,32 @@ class TestEMHASSIndexRotation:
 
             # El primer viaje debe tener índice 0
             if first_index != 0:
-                print(f"❌ BUG CRÍTICO: Primer viaje cronológico tiene índice {first_index} en lugar de 0")
-                bugs_detectados.append({
-                    'trip_id': first_trip,
-                    'bug': 'first_trip_not_index_0',
-                    'expected_index': 0,
-                    'actual_index': first_index,
-                })
+                print(
+                    f"❌ BUG CRÍTICO: Primer viaje cronológico tiene índice {first_index} en lugar de 0"
+                )
+                bugs_detectados.append(
+                    {
+                        "trip_id": first_trip,
+                        "bug": "first_trip_not_index_0",
+                        "expected_index": 0,
+                        "actual_index": first_index,
+                    }
+                )
 
             # El primer viaje debe tener def_start_timestep cercano a 71 (horas hasta Miércoles 16:40)
             # Si tiene def_start=120 (5 días), significa que está mal posicionado
             if first_def_start > 100:  # Más de 100 horas = más de 4 días
-                print(f"❌ BUG CRÍTICO: Primer viaje tiene def_start={first_def_start} (debería ser ~71)")
-                bugs_detectados.append({
-                    'trip_id': first_trip,
-                    'bug': 'first_trip_wrong_start',
-                    'expected_start': '< 100',
-                    'actual_start': first_def_start,
-                })
+                print(
+                    f"❌ BUG CRÍTICO: Primer viaje tiene def_start={first_def_start} (debería ser ~71)"
+                )
+                bugs_detectados.append(
+                    {
+                        "trip_id": first_trip,
+                        "bug": "first_trip_wrong_start",
+                        "expected_start": "< 100",
+                        "actual_start": first_def_start,
+                    }
+                )
 
         if bugs_detectados:
             print(f"\n=== BUGS CONFIRMADOS: {len(bugs_detectados)} ===")

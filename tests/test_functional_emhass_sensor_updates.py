@@ -10,7 +10,7 @@ Estos tests verifican ese requisito sin preocuparse por el flujo interno.
 """
 
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import Mock, AsyncMock, MagicMock
 from homeassistant.core import HomeAssistant, CoreState
 
@@ -61,7 +61,9 @@ def mock_emhass_adapter():
         def get_cached_optimization_results(self):
             return _state["cache"]
 
-        async def async_publish_all_deferrable_loads(self, trips, charging_power_kw=None):
+        async def async_publish_all_deferrable_loads(
+            self, trips, charging_power_kw=None, soc_caps_by_id=None
+        ):
             # Simulate real adapter behavior: recompute and update cache.
             new_cache = getattr(self, "_new_cache", None)
             if new_cache is not None:
@@ -110,6 +112,7 @@ def mock_trip_manager():
 # TEST 1: Cambio de SOC ≥5% → Sensor EMHASS debe actualizarse
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_soc_change_above_5_percent_updates_emhass_sensor(
     mock_hass, mock_config_entry, mock_emhass_adapter
@@ -143,9 +146,9 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
         CONF_SOC_SENSOR,
     )
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST FUNCIONAL: Cambio SOC ≥5% → Sensor EMHASS actualiza AUTOMÁTICAMENTE")
-    print("="*80)
+    print("=" * 80)
 
     # ============================================================
     # CONFIGURAR MOCK HASS CON config_entries PARA TRIPMANAGER REAL
@@ -160,8 +163,10 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
 
     # Setup inicial del coordinator con el adapter mock
     coordinator = TripPlannerCoordinator(
-        mock_hass, mock_config_entry, Mock(emhass_adapter=mock_emhass_adapter),
-        emhass_adapter=mock_emhass_adapter
+        mock_hass,
+        mock_config_entry,
+        Mock(emhass_adapter=mock_emhass_adapter),
+        emhass_adapter=mock_emhass_adapter,
     )
 
     runtime_data.coordinator = coordinator
@@ -191,8 +196,7 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
 
     # Recrear coordinator con el trip_manager real
     coordinator = TripPlannerCoordinator(
-        mock_hass, mock_config_entry, trip_manager,
-        emhass_adapter=mock_emhass_adapter
+        mock_hass, mock_config_entry, trip_manager, emhass_adapter=mock_emhass_adapter
     )
     runtime_data.coordinator = coordinator
 
@@ -231,11 +235,13 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
     # ============================================================
     print("\n📊 ESTADO INICIAL: SOC 50%")
     # Configurar cache inicial directamente (el mock usa dict mutable compartido)
-    mock_emhass_adapter._cache.update({
-        "emhass_power_profile": [3400, 0, 0, 0] * 42,  # 3.4 kW * 1000
-        "emhass_deferrables_schedule": [{"trip_id": "1", "power": 3400}],
-        "emhass_status": "ready",
-    })
+    mock_emhass_adapter._cache.update(
+        {
+            "emhass_power_profile": [3400, 0, 0, 0] * 42,  # 3.4 kW * 1000
+            "emhass_deferrables_schedule": [{"trip_id": "1", "power": 3400}],
+            "emhass_status": "ready",
+        }
+    )
 
     await coordinator.async_refresh()
     initial_attributes = sensor.extra_state_attributes
@@ -247,7 +253,9 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
     # 2. CAMBIO AUTOMÁTICO: SOC 60% (10% de cambio, ≥5%)
     # ============================================================
     print("\n📊 CAMBIO AUTOMÁTICO: SOC 60% (10% delta)")
-    print("   (Esto dispara PresenceMonitor → publish_deferrable_loads() → actualización automática)")
+    print(
+        "   (Esto dispara PresenceMonitor → publish_deferrable_loads() → actualización automática)"
+    )
 
     # Simular: el adapter recalcula y pone nuevos resultados en _new_cache
     # async_publish_all_deferrable_loads() los moverá al cache real
@@ -283,8 +291,12 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
     updated_attributes = sensor.extra_state_attributes
     updated_power = updated_attributes.get("power_profile_watts", [])
 
-    print(f"   power_profile_watts[0] después: {updated_power[0] if updated_power else 'N/A'}")
-    print(f"   ¿Cambió AUTOMÁTICAMENTE? {updated_power != initial_power if updated_power and initial_power else 'N/A'}")
+    print(
+        f"   power_profile_watts[0] después: {updated_power[0] if updated_power else 'N/A'}"
+    )
+    print(
+        f"   ¿Cambió AUTOMÁTICAMENTE? {updated_power != initial_power if updated_power and initial_power else 'N/A'}"
+    )
 
     # ❌ ASSERT: El sensor DEBERÍA mostrar los nuevos datos automáticamente
     # Si este test FALLA, confirma que el sensor NO se actualiza cuando cambia el SOC.
@@ -299,6 +311,7 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
 # TEST 2: Cambio de hora (30 segundos) → Sensor EMHASS debe actualizarse
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_time_change_30_seconds_refreshes_emhass_sensor(
     mock_hass, mock_config_entry, mock_trip_manager, mock_emhass_adapter
@@ -311,14 +324,16 @@ async def test_time_change_30_seconds_refreshes_emhass_sensor(
     ENTRADA: Pasan 30 segundos
     EXPECTATIVA: El coordinator hace refresh y el sensor muestra datos actualizados
     """
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST FUNCIONAL: Paso 30 segundos → Sensor EMHASS actualiza")
-    print("="*80)
+    print("=" * 80)
 
     # Setup: Crear coordinator y sensor
     coordinator = TripPlannerCoordinator(
-        mock_hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter
+        mock_hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
     )
 
     sensor = EmhassDeferrableLoadSensor(coordinator, "chispitas")
@@ -328,28 +343,36 @@ async def test_time_change_30_seconds_refreshes_emhass_sensor(
     initial_time = datetime(2026, 4, 30, 12, 0, 0, tzinfo=timezone.utc)
 
     # Usar el cache compartido del mock adapter (no return_value de MagicMock)
-    mock_emhass_adapter._cache.update({
-        "emhass_power_profile": [3400, 0, 0, 0] * 42,
-        "emhass_deferrables_schedule": [{"date": initial_time.isoformat()}],
-        "emhass_status": "ready",
-    })
+    mock_emhass_adapter._cache.update(
+        {
+            "emhass_power_profile": [3400, 0, 0, 0] * 42,
+            "emhass_deferrables_schedule": [{"date": initial_time.isoformat()}],
+            "emhass_status": "ready",
+        }
+    )
 
     await coordinator.async_refresh()
     initial_attributes = sensor.extra_state_attributes
     initial_schedule = initial_attributes.get("deferrables_schedule", [])
 
-    print(f"   deferrables_schedule[0]['date']: {initial_schedule[0]['date'] if initial_schedule else 'N/A'}")
+    print(
+        f"   deferrables_schedule[0]['date']: {initial_schedule[0]['date'] if initial_schedule else 'N/A'}"
+    )
 
     # 2. CAMBIO: Pasan 30 segundos
     print("\n📊 CAMBIO: Pasan 30 segundos")
     updated_time = datetime(2026, 4, 30, 12, 30, 0, tzinfo=timezone.utc)
 
     # Actualizar el cache compartido directamente
-    mock_emhass_adapter._cache.update({
-        "emhass_power_profile": [3400, 0, 0, 0] * 42,
-        "emhass_deferrables_schedule": [{"date": updated_time.isoformat()}],  # ¡Timestamp actualizado!
-        "emhass_status": "ready",
-    })
+    mock_emhass_adapter._cache.update(
+        {
+            "emhass_power_profile": [3400, 0, 0, 0] * 42,
+            "emhass_deferrables_schedule": [
+                {"date": updated_time.isoformat()}
+            ],  # ¡Timestamp actualizado!
+            "emhass_status": "ready",
+        }
+    )
 
     # SIMULAR: coordinator.async_refresh() se llama (cada 30 segundos automáticamente)
     await coordinator.async_refresh()
@@ -359,11 +382,15 @@ async def test_time_change_30_seconds_refreshes_emhass_sensor(
     updated_attributes = sensor.extra_state_attributes
     updated_schedule = updated_attributes.get("deferrables_schedule", [])
 
-    print(f"   deferrables_schedule[0]['date']: {updated_schedule[0]['date'] if updated_schedule else 'N/A'}")
-    print(f"   ¿Timestamp cambió? {updated_schedule[0]['date'] != initial_schedule[0]['date'] if updated_schedule and initial_schedule else 'N/A'}")
+    print(
+        f"   deferrables_schedule[0]['date']: {updated_schedule[0]['date'] if updated_schedule else 'N/A'}"
+    )
+    print(
+        f"   ¿Timestamp cambió? {updated_schedule[0]['date'] != initial_schedule[0]['date'] if updated_schedule and initial_schedule else 'N/A'}"
+    )
 
     # ASSERT: El sensor debería mostrar el timestamp actualizado
-    assert updated_schedule[0]['date'] == updated_time.isoformat(), (
+    assert updated_schedule[0]["date"] == updated_time.isoformat(), (
         f"El sensor DEBERÍA mostrar timestamp actualizado ({updated_time.isoformat()}), "
         f"pero muestra {updated_schedule[0]['date']}. "
         "Esto indica que el cache EMHASS no se regeneró automáticamente."
@@ -373,6 +400,7 @@ async def test_time_change_30_seconds_refreshes_emhass_sensor(
 # =============================================================================
 # TEST 3: Cambio de viaje → Sensor EMHASS debe actualizarse
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_trip_change_updates_emhass_sensor(
@@ -386,14 +414,16 @@ async def test_trip_change_updates_emhass_sensor(
     ENTRADA: Se modifica un viaje (hora o kWh)
     EXPECTATIVA: El sensor EMHASS muestra el perfil de carga actualizado
     """
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST FUNCIONAL: Cambio de viaje → Sensor EMHASS actualiza")
-    print("="*80)
+    print("=" * 80)
 
     # Setup: Crear coordinator y sensor
     coordinator = TripPlannerCoordinator(
-        mock_hass, mock_config_entry, mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter
+        mock_hass,
+        mock_config_entry,
+        mock_trip_manager,
+        emhass_adapter=mock_emhass_adapter,
     )
 
     sensor = EmhassDeferrableLoadSensor(coordinator, "chispitas")
@@ -402,37 +432,47 @@ async def test_trip_change_updates_emhass_sensor(
     print("\n📊 ESTADO INICIAL: Viaje a las 14:40, 7 kWh")
     initial_trip_time = datetime(2026, 4, 30, 14, 40, 0, tzinfo=timezone.utc)
 
-    mock_emhass_adapter._cache.update({
-        "emhass_power_profile": [3400, 0, 0, 0] * 42,
-        "emhass_deferrables_schedule": [{
-            "trip_id": "rec_test",
-            "datetime": initial_trip_time.isoformat(),
-            "kwh": 7.0,
-            "power": 3400,
-        }],
-        "emhass_status": "ready",
-    })
+    mock_emhass_adapter._cache.update(
+        {
+            "emhass_power_profile": [3400, 0, 0, 0] * 42,
+            "emhass_deferrables_schedule": [
+                {
+                    "trip_id": "rec_test",
+                    "datetime": initial_trip_time.isoformat(),
+                    "kwh": 7.0,
+                    "power": 3400,
+                }
+            ],
+            "emhass_status": "ready",
+        }
+    )
 
     await coordinator.async_refresh()
     initial_attributes = sensor.extra_state_attributes
     initial_schedule = initial_attributes.get("deferrables_schedule", [])
 
-    print(f"   Viaje en schedule: {initial_schedule[0]['datetime'] if initial_schedule else 'N/A'}")
+    print(
+        f"   Viaje en schedule: {initial_schedule[0]['datetime'] if initial_schedule else 'N/A'}"
+    )
 
     # 2. CAMBIO: Viaje modificado a las 15:00, 8 kWh
     print("\n📊 CAMBIO: Viaje modificado a las 15:00, 8 kWh")
     updated_trip_time = datetime(2026, 4, 30, 15, 0, 0, tzinfo=timezone.utc)
 
-    mock_emhass_adapter._cache.update({
-        "emhass_power_profile": [3400, 0, 0, 0] * 42,
-        "emhass_deferrables_schedule": [{
-            "trip_id": "rec_test",
-            "datetime": updated_trip_time.isoformat(),
-            "kwh": 8.0,
-            "power": 3400,
-        }],
-        "emhass_status": "ready",
-    })
+    mock_emhass_adapter._cache.update(
+        {
+            "emhass_power_profile": [3400, 0, 0, 0] * 42,
+            "emhass_deferrables_schedule": [
+                {
+                    "trip_id": "rec_test",
+                    "datetime": updated_trip_time.isoformat(),
+                    "kwh": 8.0,
+                    "power": 3400,
+                }
+            ],
+            "emhass_status": "ready",
+        }
+    )
 
     # SIMULAR: coordinator.async_refresh() se llama
     await coordinator.async_refresh()
@@ -442,11 +482,15 @@ async def test_trip_change_updates_emhass_sensor(
     updated_attributes = sensor.extra_state_attributes
     updated_schedule = updated_attributes.get("deferrables_schedule", [])
 
-    print(f"   Viaje en schedule: {updated_schedule[0]['datetime'] if updated_schedule else 'N/A'}")
-    print(f"   ¿El viaje cambió? {updated_schedule[0]['datetime'] != initial_schedule[0]['datetime'] if updated_schedule and initial_schedule else 'N/A'}")
+    print(
+        f"   Viaje en schedule: {updated_schedule[0]['datetime'] if updated_schedule else 'N/A'}"
+    )
+    print(
+        f"   ¿El viaje cambió? {updated_schedule[0]['datetime'] != initial_schedule[0]['datetime'] if updated_schedule and initial_schedule else 'N/A'}"
+    )
 
     # ASSERT: El sensor debería mostrar el viaje actualizado
-    assert updated_schedule[0]['datetime'] == updated_trip_time.isoformat(), (
+    assert updated_schedule[0]["datetime"] == updated_trip_time.isoformat(), (
         f"El sensor DEBERÍA mostrar el viaje actualizado ({updated_trip_time.isoformat()}), "
         f"pero muestra {updated_schedule[0]['datetime']}. "
         "Esto confirma que el sensor NO se actualiza cuando cambia un viaje."

@@ -50,15 +50,25 @@ JS_DAY_AFTER = (JS_TODAY + 2) % 7
 
 # Tomorrow at 00:30 local (for midnight boundary tests)
 TOMORROW_00_30_LOCAL = datetime(
-    LOCAL_NOW.year, LOCAL_NOW.month, LOCAL_NOW.day,
-    0, 30, 0, tzinfo=MADRID_TZ,
+    LOCAL_NOW.year,
+    LOCAL_NOW.month,
+    LOCAL_NOW.day,
+    0,
+    30,
+    0,
+    tzinfo=MADRID_TZ,
 ) + timedelta(days=1)
 TOMORROW_00_30_UTC = TOMORROW_00_30_LOCAL.astimezone(timezone.utc)
 
 # Early morning today: 01:00 local
 TODAY_01_00_LOCAL = datetime(
-    LOCAL_NOW.year, LOCAL_NOW.month, LOCAL_NOW.day,
-    1, 0, 0, tzinfo=MADRID_TZ,
+    LOCAL_NOW.year,
+    LOCAL_NOW.month,
+    LOCAL_NOW.day,
+    1,
+    0,
+    0,
+    tzinfo=MADRID_TZ,
 )
 
 
@@ -167,7 +177,9 @@ class TestScheduleTimezoneBug:
 
         first_date_str = schedule[0]["date"]
         local_offset_str = LOCAL_NOW.strftime("%z")  # e.g., "+0200"
-        local_offset_formatted = f"{local_offset_str[:3]}:{local_offset_str[3:]}"  # "+02:00"
+        local_offset_formatted = (
+            f"{local_offset_str[:3]}:{local_offset_str[3:]}"  # "+02:00"
+        )
         assert local_offset_formatted in first_date_str, (
             f"Schedule timezone should be local ({local_offset_formatted}), "
             f"got: {first_date_str}"
@@ -255,12 +267,8 @@ class TestPowerProfileTimezoneBug:
             trips, 3.6, reference_dt=UTC_NOW
         )
 
-        local_first = next(
-            (i for i, x in enumerate(profile_local) if x > 0), None
-        )
-        utc_first = next(
-            (i for i, x in enumerate(profile_utc) if x > 0), None
-        )
+        local_first = next((i for i, x in enumerate(profile_local) if x > 0), None)
+        utc_first = next((i for i, x in enumerate(profile_utc) if x > 0), None)
 
         # With aware datetimes, the delta is the same, so positions match.
         assert local_first is not None, "Local profile should have charging"
@@ -301,8 +309,7 @@ class TestRecurringDatetimeTimezoneBug:
 
         # With tz: result is tomorrow 08:00 local (correct)
         assert result_local_local.hour == 8, (
-            f"With tz, result should be 08:00 local, "
-            f"got {result_local_local.hour}:00"
+            f"With tz, result should be 08:00 local, got {result_local_local.hour}:00"
         )
 
     def test_recurring_trip_day_boundary_mismatch(self):
@@ -321,7 +328,7 @@ class TestRecurringDatetimeTimezoneBug:
 
         # What "tomorrow" is in JS day format from each perspective
         js_tomorrow_local = local_ref.isoweekday() % 7  # tomorrow's weekday
-        js_today_utc = utc_ref.isoweekday() % 7  # today's weekday (UTC still today)
+        _js_today_utc = utc_ref.isoweekday() % 7  # noqa: F841 — today's weekday in UTC
 
         # If the timezone offset makes the UTC date differ from local date
         if utc_ref.date() == local_ref.date():
@@ -432,8 +439,7 @@ class TestChargingWindowsTimezoneBug:
 
         # inicio should be between now_before and now_after
         assert now_before <= inicio <= now_after, (
-            f"inicio_ventana ({inicio}) should be between "
-            f"{now_before} and {now_after}"
+            f"inicio_ventana ({inicio}) should be between {now_before} and {now_after}"
         )
 
 
@@ -451,9 +457,7 @@ class TestDeferrableParametersTimezoneBug:
         }
 
         # With UTC reference
-        params_utc = calculate_deferrable_parameters(
-            trip, 3.6, reference_dt=UTC_NOW
-        )
+        params_utc = calculate_deferrable_parameters(trip, 3.6, reference_dt=UTC_NOW)
 
         # With local reference
         params_local = calculate_deferrable_parameters(
@@ -488,18 +492,14 @@ class TestDeferrableParametersTimezoneBug:
         )
 
         # With explicit UTC reference
-        params_utc = calculate_deferrable_parameters(
-            trip, 3.6, reference_dt=UTC_NOW
-        )
+        params_utc = calculate_deferrable_parameters(trip, 3.6, reference_dt=UTC_NOW)
 
         # Both should produce the same result for aware deadlines
         assert params_local["end_timestep"] == params_utc["end_timestep"], (
             "With aware deadline, both references should give same result"
         )
 
-        assert params_local["end_timestep"] > 0, (
-            "Should have positive end_timestep"
-        )
+        assert params_local["end_timestep"] > 0, "Should have positive end_timestep"
 
 
 # =============================================================================

@@ -22,7 +22,7 @@ async def test_switch_strategy_instantiation(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     assert strategy.hass_wrapper == wrapper
     assert strategy.switch_entity_id == "switch.test_charger"
 
@@ -33,17 +33,18 @@ async def test_switch_strategy_activate(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     # Mock the wrapper's service call
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Activate
     result = await strategy.async_activate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("switch", "turn_on", {"entity_id": "switch.test_charger"})
@@ -55,16 +56,17 @@ async def test_switch_strategy_deactivate(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Deactivate
     result = await strategy.async_deactivate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("switch", "turn_off", {"entity_id": "switch.test_charger"})
@@ -76,12 +78,14 @@ async def test_switch_strategy_get_status_on(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     # Mock state
     mock_state = Mock()
     mock_state.state = "on"
-    wrapper.get_state = lambda entity_id: mock_state if entity_id == "switch.test_charger" else None
-    
+    wrapper.get_state = lambda entity_id: (
+        mock_state if entity_id == "switch.test_charger" else None
+    )
+
     status = await strategy.async_get_status()
     assert status is True
 
@@ -92,12 +96,14 @@ async def test_switch_strategy_get_status_off(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     # Mock state
     mock_state = Mock()
     mock_state.state = "off"
-    wrapper.get_state = lambda entity_id: mock_state if entity_id == "switch.test_charger" else None
-    
+    wrapper.get_state = lambda entity_id: (
+        mock_state if entity_id == "switch.test_charger" else None
+    )
+
     status = await strategy.async_get_status()
     assert status is False
 
@@ -108,9 +114,9 @@ async def test_switch_strategy_get_status_unknown(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     wrapper.get_state = lambda entity_id: None
-    
+
     status = await strategy.async_get_status()
     assert status is False
 
@@ -126,7 +132,7 @@ async def test_service_strategy_instantiation(hass: HomeAssistant):
         "data_off": {"vehicle_id": "chispitas"},
     }
     strategy = ServiceStrategy(wrapper, config)
-    
+
     assert strategy.hass_wrapper == wrapper
     assert strategy.service_on == "ovms.start_charge"
     assert strategy.service_off == "ovms.stop_charge"
@@ -145,16 +151,17 @@ async def test_service_strategy_activate(hass: HomeAssistant):
         "data_off": {"vehicle_id": "chispitas"},
     }
     strategy = ServiceStrategy(wrapper, config)
-    
+
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Activate
     result = await strategy.async_activate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("ovms", "start_charge", {"vehicle_id": "chispitas"})
@@ -171,16 +178,17 @@ async def test_service_strategy_deactivate(hass: HomeAssistant):
         "data_off": {"vehicle_id": "chispitas"},
     }
     strategy = ServiceStrategy(wrapper, config)
-    
+
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Deactivate
     result = await strategy.async_deactivate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("ovms", "stop_charge", {"vehicle_id": "chispitas"})
@@ -195,7 +203,7 @@ async def test_service_strategy_get_status(hass: HomeAssistant):
         "service_off": "ovms.stop_charge",
     }
     strategy = ServiceStrategy(wrapper, config)
-    
+
     status = await strategy.async_get_status()
     assert status is False  # No status tracking by default
 
@@ -209,7 +217,7 @@ async def test_script_strategy_instantiation(hass: HomeAssistant):
         "script_off": "script.stop_ev_charging",
     }
     strategy = ScriptStrategy(wrapper, config)
-    
+
     assert strategy.hass_wrapper == wrapper
     assert strategy.script_on == "script.start_ev_charging"
     assert strategy.script_off == "script.stop_ev_charging"
@@ -224,16 +232,17 @@ async def test_script_strategy_activate(hass: HomeAssistant):
         "script_off": "script.stop_ev_charging",
     }
     strategy = ScriptStrategy(wrapper, config)
-    
+
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Activate
     result = await strategy.async_activate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("script", "start_ev_charging", {})
@@ -248,16 +257,17 @@ async def test_script_strategy_deactivate(hass: HomeAssistant):
         "script_off": "script.stop_ev_charging",
     }
     strategy = ScriptStrategy(wrapper, config)
-    
+
     calls = []
+
     async def mock_service_call(domain, service, data):
         calls.append((domain, service, data))
-    
+
     wrapper.async_call_service = mock_service_call
-    
+
     # Deactivate
     result = await strategy.async_deactivate()
-    
+
     assert result is True
     assert len(calls) == 1
     assert calls[0] == ("script", "stop_ev_charging", {})
@@ -272,7 +282,7 @@ async def test_script_strategy_get_status(hass: HomeAssistant):
         "script_off": "script.stop_ev_charging",
     }
     strategy = ScriptStrategy(wrapper, config)
-    
+
     status = await strategy.async_get_status()
     assert status is False
 
@@ -283,15 +293,15 @@ async def test_external_strategy(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {}
     strategy = ExternalStrategy(wrapper, config)
-    
+
     # Activate
     result = await strategy.async_activate()
     assert result is True
-    
+
     # Deactivate
     result = await strategy.async_deactivate()
     assert result is True
-    
+
     # Get status
     status = await strategy.async_get_status()
     assert status is False
@@ -305,7 +315,7 @@ async def test_create_control_strategy_switch(hass: HomeAssistant):
         "charge_control_entity": "switch.test_charger",
     }
     strategy = create_control_strategy(hass, config)
-    
+
     assert isinstance(strategy, SwitchStrategy)
     assert strategy.switch_entity_id == "switch.test_charger"
 
@@ -319,7 +329,7 @@ async def test_create_control_strategy_service(hass: HomeAssistant):
         "charge_service_off": "ovms.stop_charge",
     }
     strategy = create_control_strategy(hass, config)
-    
+
     assert isinstance(strategy, ServiceStrategy)
     assert strategy.service_on == "ovms.start_charge"
 
@@ -333,7 +343,7 @@ async def test_create_control_strategy_script(hass: HomeAssistant):
         "charge_script_off": "script.stop_charging",
     }
     strategy = create_control_strategy(hass, config)
-    
+
     assert isinstance(strategy, ScriptStrategy)
     assert strategy.script_on == "script.start_charging"
 
@@ -345,7 +355,7 @@ async def test_create_control_strategy_external(hass: HomeAssistant):
         "control_type": "unknown",
     }
     strategy = create_control_strategy(hass, config)
-    
+
     assert isinstance(strategy, ExternalStrategy)
 
 
@@ -354,7 +364,7 @@ async def test_create_control_strategy_default(hass: HomeAssistant):
     """Test factory creates ExternalStrategy by default."""
     config = {}
     strategy = create_control_strategy(hass, config)
-    
+
     assert isinstance(strategy, ExternalStrategy)
 
 
@@ -364,12 +374,12 @@ async def test_switch_strategy_error_handling(hass: HomeAssistant):
     wrapper = HomeAssistantWrapper(hass)
     config = {"entity_id": "switch.test_charger"}
     strategy = SwitchStrategy(wrapper, config)
-    
+
     async def mock_service_call_error(domain, service, data):
         raise Exception("Service call failed")
-    
+
     wrapper.async_call_service = mock_service_call_error
-    
+
     # Activate should return False on error
     result = await strategy.async_activate()
     assert result is False
@@ -384,12 +394,12 @@ async def test_service_strategy_error_handling(hass: HomeAssistant):
         "service_off": "ovms.stop_charge",
     }
     strategy = ServiceStrategy(wrapper, config)
-    
+
     async def mock_service_call_error(domain, service, data):
         raise Exception("Service call failed")
-    
+
     wrapper.async_call_service = mock_service_call_error
-    
+
     # Activate should return False on error
     result = await strategy.async_activate()
     assert result is False
@@ -404,15 +414,16 @@ async def test_script_strategy_error_handling(hass: HomeAssistant):
         "script_off": "script.stop_charging",
     }
     strategy = ScriptStrategy(wrapper, config)
-    
+
     async def mock_service_call_error(domain, service, data):
         raise Exception("Service call failed")
-    
+
     wrapper.async_call_service = mock_service_call_error
-    
+
     # Activate should return False on error
     result = await strategy.async_activate()
     assert result is False
+
 
 class TestVehicleController:
     """Tests for VehicleController class."""
@@ -472,28 +483,36 @@ class TestVehicleController:
         assert isinstance(controller._strategy, SwitchStrategy)
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_activate_charging_no_strategy(self, hass: HomeAssistant):
+    async def test_vehicle_controller_activate_charging_no_strategy(
+        self, hass: HomeAssistant
+    ):
         """Test activating charging with no strategy returns False."""
         controller = VehicleController(hass, "test_vehicle")
         result = await controller.async_activate_charging()
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_deactivate_charging_no_strategy(self, hass: HomeAssistant):
+    async def test_vehicle_controller_deactivate_charging_no_strategy(
+        self, hass: HomeAssistant
+    ):
         """Test deactivating charging with no strategy returns False."""
         controller = VehicleController(hass, "test_vehicle")
         result = await controller.async_deactivate_charging()
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_get_charging_status_no_strategy(self, hass: HomeAssistant):
+    async def test_vehicle_controller_get_charging_status_no_strategy(
+        self, hass: HomeAssistant
+    ):
         """Test getting charging status with no strategy returns False."""
         controller = VehicleController(hass, "test_vehicle")
         status = await controller.async_get_charging_status()
         assert status is False
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_activate_charging_success(self, hass: HomeAssistant):
+    async def test_vehicle_controller_activate_charging_success(
+        self, hass: HomeAssistant
+    ):
         """Test successful charging activation."""
         controller = VehicleController(hass, "test_vehicle")
 
@@ -504,8 +523,10 @@ class TestVehicleController:
 
         # Mock the service call
         calls = []
+
         async def mock_service_call(domain, service, data):
             calls.append((domain, service, data))
+
         wrapper.async_call_service = mock_service_call
 
         # Activate should succeed
@@ -513,7 +534,9 @@ class TestVehicleController:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_ready(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_ready(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when no presence config."""
         controller = VehicleController(hass, "test_vehicle")
         is_ready, reason = await controller.async_check_presence_status()
@@ -521,7 +544,9 @@ class TestVehicleController:
         assert reason is None
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_already_charging(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_already_charging(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when already charging."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -530,13 +555,17 @@ class TestVehicleController:
         # Mock the charging sensor to return "charging"
         mock_state = Mock()
         mock_state.state = "charging"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         is_ready, reason = await controller.async_check_presence_status()
         assert is_ready is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_charging_on(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_charging_on(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when charging sensor is 'on'."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -545,13 +574,17 @@ class TestVehicleController:
         # Mock the charging sensor to return "on"
         mock_state = Mock()
         mock_state.state = "on"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         is_ready, reason = await controller.async_check_presence_status()
         assert is_ready is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_charging_true(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_charging_true(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when charging sensor is 'true'."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -560,13 +593,17 @@ class TestVehicleController:
         # Mock the charging sensor to return "true"
         mock_state = Mock()
         mock_state.state = "true"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         is_ready, reason = await controller.async_check_presence_status()
         assert is_ready is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_charging_yes(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_charging_yes(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when charging sensor is 'yes'."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -575,13 +612,17 @@ class TestVehicleController:
         # Mock the charging sensor to return "yes"
         mock_state = Mock()
         mock_state.state = "yes"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         is_ready, reason = await controller.async_check_presence_status()
         assert is_ready is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_sensor_not_found(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_sensor_not_found(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when charging sensor not found."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -595,7 +636,9 @@ class TestVehicleController:
         assert is_ready is True
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_check_presence_status_sensor_off(self, hass: HomeAssistant):
+    async def test_vehicle_controller_check_presence_status_sensor_off(
+        self, hass: HomeAssistant
+    ):
         """Test presence check returns ready when charging sensor is 'off'."""
         # Use only charging_sensor (not full presence config) to skip presence monitor
         controller = VehicleController(hass, "test_vehicle")
@@ -604,7 +647,9 @@ class TestVehicleController:
         # Mock the charging sensor to return "off"
         mock_state = Mock()
         mock_state.state = "off"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         is_ready, reason = await controller.async_check_presence_status()
         # Should still be ready (not currently charging)
@@ -617,6 +662,7 @@ class TestRetryState:
     def test_retry_state_initially_allows_retry(self):
         """Test that new RetryState allows retry attempts."""
         from custom_components.ev_trip_planner.vehicle_controller import RetryState
+
         state = RetryState()
         assert state.should_retry() is True
         assert state.get_attempt_count() == 0
@@ -624,6 +670,7 @@ class TestRetryState:
     def test_retry_state_add_attempt(self):
         """Test adding an attempt increases count."""
         from custom_components.ev_trip_planner.vehicle_controller import RetryState
+
         state = RetryState()
         state.add_attempt()
         assert state.get_attempt_count() == 1
@@ -631,7 +678,11 @@ class TestRetryState:
 
     def test_retry_state_max_attempts(self):
         """Test that max attempts limit is enforced."""
-        from custom_components.ev_trip_planner.vehicle_controller import RetryState, MAX_RETRY_ATTEMPTS
+        from custom_components.ev_trip_planner.vehicle_controller import (
+            RetryState,
+            MAX_RETRY_ATTEMPTS,
+        )
+
         state = RetryState()
         for _ in range(MAX_RETRY_ATTEMPTS):
             state.add_attempt()
@@ -641,6 +692,7 @@ class TestRetryState:
     def test_retry_state_reset(self):
         """Test that reset clears all attempts."""
         from custom_components.ev_trip_planner.vehicle_controller import RetryState
+
         state = RetryState()
         state.add_attempt()
         state.add_attempt()
@@ -654,7 +706,9 @@ class TestVehicleControllerRetry:
     """Tests for VehicleController retry logic."""
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_activate_success_resets_retry(self, hass: HomeAssistant):
+    async def test_vehicle_controller_activate_success_resets_retry(
+        self, hass: HomeAssistant
+    ):
         """Test that successful activation resets retry counter."""
         controller = VehicleController(hass, "test_vehicle")
 
@@ -671,6 +725,7 @@ class TestVehicleControllerRetry:
         # Mock service call
         async def mock_service_call(domain, service, data):
             pass
+
         wrapper.async_call_service = mock_service_call
 
         # Activate should succeed and reset retry
@@ -679,7 +734,9 @@ class TestVehicleControllerRetry:
         assert controller._retry_state.get_attempt_count() == 0
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_activate_failure_increments_retry(self, hass: HomeAssistant):
+    async def test_vehicle_controller_activate_failure_increments_retry(
+        self, hass: HomeAssistant
+    ):
         """Test that failed activation increments retry counter."""
         controller = VehicleController(hass, "test_vehicle")
 
@@ -689,8 +746,10 @@ class TestVehicleControllerRetry:
         class FailingStrategy(VehicleControlStrategy):
             async def async_activate(self) -> bool:
                 return False
+
             async def async_deactivate(self) -> bool:
                 return True
+
             async def async_get_status(self) -> bool:
                 return False
 
@@ -710,7 +769,9 @@ class TestVehicleControllerRetry:
     @pytest.mark.asyncio
     async def test_vehicle_controller_max_retries_blocks(self, hass: HomeAssistant):
         """Test that max retries blocks further attempts."""
-        from custom_components.ev_trip_planner.vehicle_controller import MAX_RETRY_ATTEMPTS
+        from custom_components.ev_trip_planner.vehicle_controller import (
+            MAX_RETRY_ATTEMPTS,
+        )
 
         controller = VehicleController(hass, "test_vehicle")
 
@@ -720,8 +781,10 @@ class TestVehicleControllerRetry:
         class FailingStrategy(VehicleControlStrategy):
             async def async_activate(self) -> bool:
                 return False
+
             async def async_deactivate(self) -> bool:
                 return True
+
             async def async_get_status(self) -> bool:
                 return False
 
@@ -769,7 +832,9 @@ class TestVehicleControllerRetry:
         assert state["time_window_seconds"] == 300
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_disconnect_resets_retry(self, hass: HomeAssistant):
+    async def test_vehicle_controller_disconnect_resets_retry(
+        self, hass: HomeAssistant
+    ):
         """Test that disconnect/reconnect resets retry counter."""
         controller = VehicleController(hass, "test_vehicle")
         controller._charging_sensor = "binary_sensor.charging"
@@ -780,7 +845,9 @@ class TestVehicleControllerRetry:
         # Mock sensor now returns not charging (disconnect)
         mock_state = Mock()
         mock_state.state = "off"
-        hass.states.get = lambda entity_id: mock_state if entity_id == "binary_sensor.charging" else None
+        hass.states.get = lambda entity_id: (
+            mock_state if entity_id == "binary_sensor.charging" else None
+        )
 
         # Add some retry attempts
         controller._retry_state.add_attempt()
@@ -795,6 +862,7 @@ class TestVehicleControllerRetry:
 
         async def mock_service_call(domain, service, data):
             pass
+
         wrapper.async_call_service = mock_service_call
 
         # This should reset the retry state due to disconnect detection
@@ -804,13 +872,17 @@ class TestVehicleControllerRetry:
         assert controller._retry_state.get_attempt_count() == 0
 
     @pytest.mark.asyncio
-    async def test_vehicle_controller_presence_check_failure_no_retry(self, hass: HomeAssistant):
+    async def test_vehicle_controller_presence_check_failure_no_retry(
+        self, hass: HomeAssistant
+    ):
         """Test that presence check failure does not count as retry."""
         controller = VehicleController(hass, "test_vehicle")
 
         # Set up presence monitor that will fail
         controller._presence_monitor = Mock()
-        controller._presence_monitor.async_check_charging_readiness = AsyncMock(return_value=(False, "not at home"))
+        controller._presence_monitor.async_check_charging_readiness = AsyncMock(
+            return_value=(False, "not at home")
+        )
 
         # Create and set strategy
         wrapper = HomeAssistantWrapper(hass)

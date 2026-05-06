@@ -2,10 +2,10 @@
 
 ## 📊 Project Status
 
-**Current version**: 0.5.20
-**Development phase**: Milestone 4.0.1 hotfixes planned — M4 core features fully implemented
+**Current version**: 0.5.23
+**Development phase**: Milestone 4.0.3 completed — M4.1 next target
 **Target Release**: v1.0.0 (Q2 2026)
-**Tests**: 793+ Python (pytest) + 10 E2E (Playwright) passing
+**Tests**: 1822 Python (pytest) + 40 E2E (Playwright) passing
 **Quality Assurance**: Mutation testing (mutmut) configured for Milestone 4.0.1
 **Detected gaps**: [`doc/gaps/gaps.es.md`](doc/gaps/gaps.es.md)
 
@@ -175,12 +175,13 @@
 
 ---
 
-## 🔋 Immediately After M4.0.2: Milestone 4.0.3 — Dynamic SOC Capping
+## 🔋 Immediately After M4.0.2: Milestone 4.0.3 — Dynamic SOC Capping ✅ COMPLETED
 
-**Status**: 📋 PLANNED — not started
+**Status**: ✅ COMPLETED — 2026-05-03
 **Priority**: P1 - Battery Health & Cost Optimization
-**Target**: v0.5.23
-**Documentation**: [`docs/MILESTONE_4_1_PLANNING.md`](docs/MILESTONE_4_1_PLANNING.md#5-dynamic-soc-capping-for-battery-health-medium-priority-)
+**Target**: v0.5.23 (achieved)
+**Spec**: [`specs/m403-dynamic-soc-capping/`](specs/m403-dynamic-soc-capping/)
+**136 tasks completed**, 1822 tests passing, 100% coverage
 
 ### Planned Features
 
@@ -391,9 +392,7 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 4. **Dashboard charts require apexcharts-card**: The full dashboard with power profile charts (`ev-trip-planner-full.yaml`) requires installing the `apexcharts-card` custom card manually in Home Assistant. Without this dependency, users only see the simple dashboard.
 
-5. **⚠️ No Dynamic SOC Capping (Battery Health)**: Current implementation always targets 100% SOC or uses fixed caps. There is no algorithm to dynamically limit SOC based on time until trip (e.g., 80% for trips in 3 days, 90% for trips in 24h, 100% for imminent trips). This impacts battery longevity and charging cost optimization. **Planned for Milestone 4.0.3**.
-
-   **Compatibility**: The new algorithm is **fully compatible** with the existing deficit propagation system. It adds a `soc_limite = min(soc_objetivo_ajustado, dynamic_limit)` at [`calculations.py:~800`](custom_components/ev_trip_planner/calculations.py). Trip requirements always override battery health limits.
+5. **✅ Dynamic SOC Capping COMPLETED in M4.0.3**: The algorithm is now fully implemented. Users can configure `t_base` (6-48h), SOH sensor, and SOC base. The dynamic limit follows: `risk = t * (soc - 35) / 65`, `SOC_lim = 35 + 65 * [1 / (1 + risk/T)]`. Trips always succeed regardless of dynamic limits.
 
 6. **One EMHASS index per trip**: User must manually configure EMHASS snippet for each potential index up to `max_deferrable_loads`. No auto-discovery because EMHASS does not support it.
 
@@ -403,7 +402,7 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 9. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
 
-10. **⚠️ `ventana_horas` inflated by away time (BUG)**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + 6h`. This includes 6h when the car is away and cannot charge. The real deadline is `fin_ventana = trip_departure_time`. This inflates `def_total_hours` sent to EMHASS by `duration_hours` per trip. **Planned fix in Milestone 4.0.3** — short-term: use `departure - window_start`; mid-term: consolidate to single gap value; long-term: per-trip return time field.
+10. **⚠️ `ventana_horas` inflated by away time (BUG)**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + 6h`. This includes 6h when the car is away and cannot charge. The real deadline is `fin_ventana = trip_departure_time`. This inflates `def_total_hours` sent to EMHASS by `duration_hours` per trip. **Status: Pending implementation** — short-term: use `departure - window_start`; mid-term: consolidate to single gap value; long-term: per-trip return time field.
 
 ---
 
@@ -540,8 +539,31 @@ _ai/
 
 ---
 
-**Last updated**: April 25, 2026
-**Status review**: After merge of feat/solid-refactor-coverage + full codebase audit (2026-04-25)
+## 🔄 Next Steps — Code Quality & Technical Debt (Planned After M4.0.3)
+
+**Status**: 📋 PLANNED — not started
+**Triggered by**: M4.0.3 completion (2026-05-03)
+
+### Code Cleanup + Dead Code Elimination
+- Systematic removal of all dead code using .roo quality-gate scripts (antipattern_checker, solid_metrics, weak_test_detector)
+- Target: Zero unreachable code paths
+- Focus areas: deprecated dashboard.py code, unused vehicle_controller strategies, orphaned schedule_monitor references
+
+### Mutation Testing Integration
+- Configure mutation testing thresholds per-module (mutmut)
+- Integrate with quality-gate Layer 1
+- Establish mutation kill thresholds (target: ≥0.70 across all modules)
+- Initial baseline run on M4.0.3 codebase
+
+### Deterministic Quality Gates
+- Add ARNs (Architecture Requirement Notations) — formal constraints on module dependencies, API contracts, and test coverage minimums
+- Enable near-autonomous technical debt elimination using specs + quality-gate skills
+- Each PR validated against ARNs before merge
+
+---
+
+**Last updated**: May 3, 2026
+**Status review**: After M4.0.3 completion + full codebase audit (2026-05-03)
 
 ---
 

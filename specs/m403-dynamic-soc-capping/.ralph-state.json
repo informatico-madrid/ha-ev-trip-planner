@@ -1,0 +1,9 @@
+{
+  "spec": "m403-dynamic-soc-capping",
+  "phase": "tasks",
+  "totalTasks": 200,
+  "awaitingApproval": true,
+  "granularity": "fine",
+  "reopenedFor": "gito-review-fixes",
+  "realIssues": [1,2,3,4,5,6,8,9,10,14,16,17,18,20,21,23,28,30,31,32,33,35,36]
+}

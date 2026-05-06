@@ -30,6 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 # que permite pequeñas variaciones sin ser exagerado
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
 
+# Umbral de cambio de SOC para disparar recálculo (debouncing)
+SOC_CHANGE_DEBOUNCE_PERCENT = 5.0
+
 
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
@@ -74,6 +77,7 @@ class PresenceMonitor:
 
         # SOC listener registration guard - prevents duplicate listener registration
         from homeassistant.core import CALLBACK_TYPE
+
         self._soc_listener_unsub: Optional[CALLBACK_TYPE] = None
 
         # Persistence store for return info (ha_storage.Store API)
@@ -136,7 +140,10 @@ class PresenceMonitor:
                 if state:
                     try:
                         soc_value = float(state.state)
-                    except (ValueError, AttributeError):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed sensor states
+                    except (
+                        ValueError,
+                        AttributeError,
+                    ):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed sensor states
                         pass
             await self.async_handle_return_home(soc_value)
 
@@ -219,16 +226,22 @@ class PresenceMonitor:
         Returns:
             datetime object parsed from hora_regreso_iso attribute, or None if not available
         """
-        state = self.hass.states.get(self._return_info_entity_id)  # pragma: no cover  # HA sensor I/O - state lookup may return None during HA initialization
+        state = self.hass.states.get(
+            self._return_info_entity_id
+        )  # pragma: no cover  # HA sensor I/O - state lookup may return None during HA initialization
         if not state:  # pragma: no cover  # HA sensor I/O - entity not yet created during initial setup
             _LOGGER.debug(
                 "Return info entity %s not found for %s",
                 self._return_info_entity_id,
                 self.vehicle_id,
             )
-            return None  # pragma: no cover  # HA sensor I/O - entity not found return path
+            return (
+                None  # pragma: no cover  # HA sensor I/O - entity not found return path
+            )
 
-        hora_regreso_iso = state.attributes.get("hora_regreso_iso")  # pragma: no cover  # HA sensor I/O - attribute access may return None
+        hora_regreso_iso = state.attributes.get(
+            "hora_regreso_iso"
+        )  # pragma: no cover  # HA sensor I/O - attribute access may return None
         if not hora_regreso_iso:  # pragma: no cover  # HA sensor I/O - attribute not set until first return event
             _LOGGER.debug(
                 "hora_regreso_iso attribute not found in %s for %s",
@@ -238,15 +251,22 @@ class PresenceMonitor:
             return None  # pragma: no cover  # HA sensor I/O - attribute not found return path
 
         try:  # pragma: no cover  # HA sensor I/O - try block entered when hora_regreso_iso is present
-            return datetime.fromisoformat(hora_regreso_iso)  # pragma: no cover  # HA sensor I/O - datetime parsing from attribute
-        except (ValueError, AttributeError) as err:  # pragma: no cover  # HA sensor I/O - defensive handling for malformed datetime strings
+            return datetime.fromisoformat(
+                hora_regreso_iso
+            )  # pragma: no cover  # HA sensor I/O - datetime parsing from attribute
+        except (
+            ValueError,
+            AttributeError,
+        ) as err:  # pragma: no cover  # HA sensor I/O - defensive handling for malformed datetime strings
             _LOGGER.warning(  # pragma: no cover  # HA sensor I/O - warning logged for malformed datetime
                 "Failed to parse hora_regreso_iso '%s' for %s: %s",
                 hora_regreso_iso,
                 self.vehicle_id,
                 err,
             )
-            return None  # pragma: no cover  # HA sensor I/O - error handling return path
+            return (
+                None  # pragma: no cover  # HA sensor I/O - error handling return path
+            )
 
     async def _async_persist_return_info(self) -> None:
         """
@@ -328,7 +348,9 @@ class PresenceMonitor:
 
     async def _async_check_home_coordinates(self) -> bool:
         """Check home status using coordinates."""
-        if not self.home_coords:  # pragma: no cover  # HA configuration - home_coords must be set at init
+        if (
+            not self.home_coords
+        ):  # pragma: no cover  # HA configuration - home_coords must be set at init
             _LOGGER.error("Home coordinates not set for %s", self.vehicle_id)
             return False
 
@@ -397,12 +419,19 @@ class PresenceMonitor:
             lon = float(parts[1].strip())
 
             # Basic validation
-            if not (-90 <= lat <= 90 and -180 <= lon <= 180):  # pragma: no cover  # HA sensor I/O - defensive validation rejects out-of-range coordinates
+            if not (
+                -90 <= lat <= 90 and -180 <= lon <= 180
+            ):  # pragma: no cover  # HA sensor I/O - defensive validation rejects out-of-range coordinates
                 return None  # pragma: no cover  # HA sensor I/O - invalid coordinate rejection
 
             return (lat, lon)
-        except (ValueError, AttributeError):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
-            return None  # pragma: no cover  # HA sensor I/O - error handling return path
+        except (
+            ValueError,
+            AttributeError,
+        ):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
+            return (
+                None  # pragma: no cover  # HA sensor I/O - error handling return path
+            )
 
     def _calculate_distance(
         self, coords1: Tuple[float, float], coords2: Tuple[float, float]
@@ -468,12 +497,11 @@ class PresenceMonitor:
         Called when the SOC sensor state changes. If the vehicle is home
         and plugged in, triggers power profile and schedule recalculation.
 
-        Debouncing: Only triggers recalculation if SOC change >= 5% delta.
+        Debouncing: Only triggers recalculation if SOC change >= SOC_CHANGE_DEBOUNCE_PERCENT.
 
         Args:
             event: The state change event from Home Assistant
         """
-        _LOGGER.debug("SOC change event received for %s", self.vehicle_id)
         if not self._trip_manager:
             _LOGGER.debug(
                 "SOC change detected for %s but no trip_manager available, skipping",
@@ -501,7 +529,10 @@ class PresenceMonitor:
 
         try:
             new_soc = float(new_state.state)
-        except (ValueError, AttributeError):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed SOC values
+        except (
+            ValueError,
+            AttributeError,
+        ):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed SOC values
             _LOGGER.debug(
                 "Could not parse SOC value from %s for %s",
                 new_state.state,
@@ -513,21 +544,15 @@ class PresenceMonitor:
         last_soc = self._last_processed_soc
         if last_soc is not None:
             delta = abs(new_soc - last_soc)
-            if delta < 5.0:
+            if delta < SOC_CHANGE_DEBOUNCE_PERCENT:
                 _LOGGER.debug(
-                    "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below 5%% threshold, skipping",
+                    "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below threshold, skipping",
                     self.vehicle_id,
                     last_soc,
                     new_soc,
                     delta,
                 )
                 return
-
-        _LOGGER.debug(
-            "SOC change detected for %s: new SOC = %s",
-            self.vehicle_id,
-            new_soc,
-        )
 
         # Check if home and plugged
         is_home = await self.async_check_home_status()
