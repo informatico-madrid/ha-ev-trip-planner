@@ -227,13 +227,9 @@ class TestEC020_FailedTripRollback:
                 ):
                     await adapter.async_publish_all_deferrable_loads(trips)
 
-                    # Verify the mock was called
+                    # Verify the mock was called once with the correct trip
                     assert mock_publish.call_count == 1
                     assert "rollback_test" in published_calls
-
-                    # Verify rollback was triggered (failed_trip_ids not empty)
-                    # The warning should have been logged
-                    assert len(published_calls) == 1
 
     @pytest.mark.asyncio
     async def test_async_publish_all_deferrable_loads_rollback_executes_index_release_code(

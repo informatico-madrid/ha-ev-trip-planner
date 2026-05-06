@@ -197,6 +197,9 @@ class TestSOC100PDeferrableNomBug:
         print("  def_total_hours: [0, 0, 0, 0, 0]")
         print("  P_deferrable_nom: [0.0, 0.0, 0.0, 0.0, 0.0]")
 
+        # Re-fetch reference after potential cache clearing in the fallback loop
+        per_trip_params = getattr(adapter, "_cached_per_trip_params", {})
+
         # Mostrar valores reales
         real_values = []
         for trip in trips:

@@ -610,7 +610,6 @@ async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_ma
     """Test _async_handle_soc_change calls trip_manager.publish_deferrable_loads().
 
     Task 1.12 test: expects SOC change to route through publish_deferrable_loads.
-    Currently the code calls async_generate_* instead which doesn't cache data.
     """
     from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 

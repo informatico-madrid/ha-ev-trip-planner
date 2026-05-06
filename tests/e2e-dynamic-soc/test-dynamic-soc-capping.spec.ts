@@ -55,16 +55,13 @@ async function changeSOC(page: Page, newValue: number): Promise<void> {
   }, newValue);
 
   // Wait for state propagation (condition-based, numeric comparison)
-  await expect(async () => {
-    const state = await page.evaluate((_: number) => {
-      const ha = document.querySelector('home-assistant') as any;
-      if (ha?.hass?.states) {
-        return ha.hass.states['input_number.test_vehicle_soc']?.state;
-      }
-      return undefined;
-    }, newValue);
-    expect(Number(state)).toBe(newValue);
-  }).toPass({ timeout: 10_000 });
+  await expect.poll(() => {
+    const ha = document.querySelector('home-assistant') as any;
+    if (ha?.hass?.states) {
+      return ha.hass.states['input_number.test_vehicle_soc']?.state;
+    }
+    return undefined;
+  }, { timeout: 10_000 }).toBe(String(newValue));
 
   // Navigate back to panel so subsequent createTestTrip calls work
   await navigateToPanel(page);
@@ -87,16 +84,13 @@ async function changeSOH(page: Page, value: number): Promise<void> {
     });
   }, value);
   // Wait for SOH state propagation (condition-based, numeric comparison)
-  await expect(async () => {
-    const state = await page.evaluate((_: number) => {
-      const ha = document.querySelector('home-assistant') as any;
-      if (ha?.hass?.states) {
-        return ha.hass.states['input_number.test_vehicle_soh']?.state;
-      }
-      return undefined;
-    }, value);
-    expect(Number(state)).toBe(value);
-  }).toPass({ timeout: 10_000 });
+  await expect.poll(() => {
+    const ha = document.querySelector('home-assistant') as any;
+    if (ha?.hass?.states) {
+      return ha.hass.states['input_number.test_vehicle_soh']?.state;
+    }
+    return undefined;
+  }, { timeout: 10_000 }).toBe(String(value));
   // Navigate back to panel so subsequent createTestTrip calls work
   await navigateToPanel(page);
 }
@@ -135,19 +129,13 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
   await finishBtn.click();
   await expect(finishBtn).not.toBeVisible({ timeout: 5_000 });
   // Wait for config change to propagate (condition-based)
-  await expect(async () => {
-    const result = await page.evaluate(() => {
-      const ha = document.querySelector('home-assistant') as any;
-      if (ha?.hass?.states) {
-        const entry = Object.values(ha.hass.states).find((s: any) =>
-          s?.entity_id?.includes('ev_trip_planner'),
-        );
-        return entry !== undefined;
-      }
-      return false;
-    });
-    expect(result).toBe(true);
-  }).toPass({ timeout: 10_000 });
+  await expect.poll(() => {
+    const ha = document.querySelector('home-assistant') as any;
+    if (!ha?.hass?.states) return false;
+    return Object.values(ha.hass.states).some((s: any) =>
+      s?.entity_id?.includes('ev_trip_planner'),
+    );
+  }, { timeout: 10_000 }).toBe(true);
   await navigateToPanel(page);
 }
 
@@ -161,23 +149,19 @@ function getDefHoursTotal(attrs: Record<string, any>): number {
 
 /**
  * Wait for EMHASS sensor to exist and have 'ready' status via frontend state.
- * Pattern from working e2e suite: use toPass() with async polling.
+ * Pattern from working e2e suite: use expect.poll() with async polling.
  */
 async function waitForEmhassSensor(page: Page): Promise<void> {
-  await expect(async () => {
-    const result = await page.evaluate(() => {
-      const haMain = document.querySelector('home-assistant') as any;
-      if (!haMain?.hass?.states) return { found: false, status: undefined };
-      for (const [entityId, state] of Object.entries(haMain.hass.states)) {
-        if (!entityId.includes('emhass_perfil_diferible')) continue;
-        const attrs = (state as any).attributes;
-        return { found: true, status: attrs?.emhass_status };
-      }
-      return { found: false, status: undefined };
-    });
-    expect(result.found).toBe(true);
-    expect(result.status).toBe('ready');
-  }).toPass({ timeout: 60_000 });
+  await expect.poll(() => {
+    const haMain = document.querySelector('home-assistant') as any;
+    if (!haMain?.hass?.states) return { found: false, status: undefined };
+    for (const [entityId, state] of Object.entries(haMain.hass.states)) {
+      if (!entityId.includes('emhass_perfil_diferible')) continue;
+      const attrs = (state as any).attributes;
+      return { found: true, status: attrs?.emhass_status };
+    }
+    return { found: false, status: undefined };
+  }, { timeout: 60_000 }).toMatchObject({ found: true, status: 'ready' });
 }
 
 /**
@@ -222,10 +206,7 @@ async function verifyAttributesViaUI(page: Page, filter: string): Promise<void> 
   if (await searchInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await searchInput.fill(filter);
     // Wait for filtered results to appear (condition-based, not fixed timeout)
-    await expect(async () => {
-      const count = await page.getByText(filter).count();
-      expect(count).toBeGreaterThan(0);
-    }).toPass({ timeout: 10_000 });
+    await expect.poll(() => page.getByText(filter).count(), { timeout: 10_000 }).toBeGreaterThan(0);
   }
 
   const attributesLocator = page.getByText('power_profile_watts:').first();
@@ -236,12 +217,19 @@ async function verifyAttributesViaUI(page: Page, filter: string): Promise<void> 
  * Poll until sensor has non-zero power_profile values.
  */
 async function waitForNonZeroProfile(page: Page, entityId: string, timeoutMs = 15_000): Promise<void> {
-  await expect(async () => {
-    const attrs = await getSensorAttributes(page, entityId);
-    expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
-    expect(attrs.power_profile_watts.some((v: number) => v > 0)).toBe(true);
-    expect(attrs.emhass_status).toBe('ready');
-  }).toPass({ timeout: timeoutMs });
+  await expect.poll(() => {
+    try {
+      const haMain = document.querySelector('home-assistant') as any;
+      if (!haMain?.hass?.states?.[entityId]) return { ok: false };
+      const a = haMain.hass.states[entityId].attributes;
+      const profile = Array.isArray(a.power_profile_watts) ? a.power_profile_watts : [];
+      return {
+        ok: profile.some((v: number) => v > 0) && a.emhass_status === 'ready',
+      };
+    } catch {
+      return { ok: false };
+    }
+  }, { timeout: timeoutMs }).toEqual({ ok: true });
 }
 
 // ============================================================================

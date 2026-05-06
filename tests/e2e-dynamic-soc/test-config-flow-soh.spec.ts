@@ -114,9 +114,6 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     // Wait for form to process — should show validation error (dialog stays open)
     await expect(page.getByRole('button', { name: 'Submit' })).toBeVisible({ timeout: 10_000 });
 
-    // The dialog should still be open with the form (already verified by assertion on line 115)
-    await expect(page.getByRole('button', { name: 'Submit' })).toBeVisible({ timeout: 10_000 });
-
     // Close the error dialog to re-open for the max value test
     const closeBtn = page.getByRole('button', { name: 'Close' });
     if (await closeBtn.count().catch(() => 0) > 0) {

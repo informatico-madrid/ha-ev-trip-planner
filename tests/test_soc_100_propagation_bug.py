@@ -142,15 +142,8 @@ class TestSOC100PropagationBug:
         adapter._presence_monitor = None
 
         # Mock SOC AT 100% - MUST NOT CHANGE!
-        async def mock_get_current_soc():
-            return 100.0  # ALWAYS 100%!
-
-        adapter._get_current_soc = mock_get_current_soc
-
-        async def mock_get_hora_regreso():
-            return None
-
-        adapter._get_hora_regreso = mock_get_hora_regreso
+        adapter._get_current_soc = AsyncMock(return_value=100.0)
+        adapter._get_hora_regreso = AsyncMock(return_value=None)
 
         # Publish all together (this activates deficit propagation)
         logger.debug("=== PUBLISHING ALL TRIPS (activating deficit propagation) ===")

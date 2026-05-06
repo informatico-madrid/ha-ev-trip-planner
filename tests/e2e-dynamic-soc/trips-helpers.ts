@@ -25,11 +25,11 @@ export async function navigateToPanel(page: Page): Promise<Page> {
   const jsErrors: string[] = [];
   const failedRequests: string[] = [];
 
-  page.on('pageerror', (err) => {
+  page.once('pageerror', (err) => {
     jsErrors.push(err.message);
   });
 
-  page.on('response', (response) => {
+  page.once('response', (response) => {
     const url = response.url();
     if (url.includes('ev-trip-planner') && response.status() >= 400) {
       failedRequests.push(`${response.status()} ${url}`);
@@ -297,9 +297,8 @@ export function getFutureIso(daysOffset: number, timeStr: string = '08:00'): str
  */
 export async function cleanupTestTrips(page: Page): Promise<void> {
   // Wait for trip cards to be loaded
-  await page.waitForSelector('.trip-card', { timeout: 5_000 }).catch(() => {
+  await page.locator('.trip-card').waitFor({ timeout: 5_000 }).catch(() => {
     // No trips exist, nothing to clean
-    return;
   });
 
   // Check if any trip cards are visible

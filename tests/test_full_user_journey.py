@@ -424,10 +424,8 @@ class TestFullUserJourney:
 
         # Verify deletion was successful
         assert manager.async_delete_trip.called
-        assert (
-            (manager.async_delete_trip.call_args.kwargs or manager.async_delete_trip.call_args.args)[0]
-            == punctual_trip_id
-        )
+        args, kwargs = manager.async_delete_trip.call_args
+        assert (kwargs.get("trip_id") or args[0]) == punctual_trip_id
 
         # Verify the trip was deleted
         result = await mock_hass.services.async_call(
@@ -457,10 +455,8 @@ class TestFullUserJourney:
 
         # Verify deletion was successful
         assert manager.async_delete_trip.called
-        assert (
-            (manager.async_delete_trip.call_args.kwargs or manager.async_delete_trip.call_args.args)[0]
-            == trip_id
-        )
+        args, kwargs = manager.async_delete_trip.call_args
+        assert (kwargs.get("trip_id") or args[0]) == trip_id
 
         # =====================================================================
         # STEP 10: Verify all trips are deleted

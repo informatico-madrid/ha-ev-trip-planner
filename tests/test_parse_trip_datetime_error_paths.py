@@ -1,6 +1,6 @@
-"""Tests for _parse_trip_datetime error paths (T105).
+"""Tests for _parse_trip_datetime, covering both valid paths and error handling (T105).
 
-These exercise the previously pragma: no cover branches:
+Previously uncovered branches:
 - parse_datetime returns None for invalid strings
 - allow_none=True returns None on failure
 - allow_none=False returns datetime.now() on failure

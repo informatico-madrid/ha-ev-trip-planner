@@ -288,17 +288,17 @@ class TestGetVehicleSOC:
 
 
 class TestCalcularEnergiaKwh:
-    """Tests for the energy calculation utility function."""
+    """Pruebas para la función utilitaria de cálculo de energía."""
 
     def test_calcular_energia_kwh_basic(self):
-        """Test basic energy calculation: 100km * 0.15 kWh/km = 15kWh."""
+        """Cálculo básico de energía: 100km * 0.15 kWh/km = 15kWh."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         result = calcular_energia_kwh(100.0, 0.15)
         assert result == 15.0
 
     def test_calcular_energia_kwh_precision(self):
-        """Test precision to 3 decimal places."""
+        """Prueba precisión a 3 decimales."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         # 50km * 0.123 kWh/km = 6.15 kWh
@@ -306,35 +306,35 @@ class TestCalcularEnergiaKwh:
         assert result == 6.15
 
     def test_calcular_energia_kwh_zero_distance(self):
-        """Test zero distance returns 0 energy."""
+        """Distancia cero devuelve 0 energía."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         result = calcular_energia_kwh(0.0, 0.15)
         assert result == 0.0
 
     def test_calcular_energia_kwh_zero_consumption(self):
-        """Test zero consumption returns 0 energy."""
+        """Consumo cero devuelve 0 energía."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         result = calcular_energia_kwh(100.0, 0.0)
         assert result == 0.0
 
     def test_calcular_energia_kwh_negative_distance_raises(self):
-        """Test negative distance raises ValueError."""
+        """Distancia negativa genera ValueError."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         with pytest.raises(ValueError, match="Distance cannot be negative"):
             calcular_energia_kwh(-10.0, 0.15)
 
     def test_calcular_energia_kwh_negative_consumption_raises(self):
-        """Test negative consumption raises ValueError."""
+        """Consumo negativo genera ValueError."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         with pytest.raises(ValueError, match="Consumption cannot be negative"):
             calcular_energia_kwh(100.0, -0.15)
 
     def test_calcular_energia_kwh_with_trip_km(self):
-        """Test energy calculation using km from trip data."""
+        """Cálculo de energía usando km desde datos del viaje."""
         from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
         # 25km trip * 0.18 kWh/km = 4.5 kWh
