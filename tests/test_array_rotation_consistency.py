@@ -38,7 +38,9 @@ class TestArrayRotationConsistency:
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     @pytest.mark.asyncio
-    async def test_all_arrays_rotate_consistently(self, mock_datetime_2026_05_04_monday_0800_utc):
+    async def test_all_arrays_rotate_consistently(
+        self, mock_datetime_2026_05_04_monday_0800_utc
+    ):
         """
         Verifica que def_start_timestep_array y def_total_hours_array
         tienen el mismo orden (ambos rotados o ambos sin rotar).

@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def _make_mock_datetime_fixture(default_dt: datetime):
     """Factory that creates a fixture with a hardcoded default datetime."""
+
     @pytest.fixture
     def mock_dt_fixture(request):
         """Mock datetime.now(timezone.utc) for deterministic deadline calculations.
@@ -34,20 +35,24 @@ def _make_mock_datetime_fixture(default_dt: datetime):
 
         class MockDatetime(real_datetime):
             """Subclass of datetime that overrides .now() to return a fixed value."""
+
             @classmethod
             def now(cls, tz=None):
                 return fixed_now.replace(tzinfo=tz or timezone.utc)
 
-        with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.datetime", MockDatetime
-        ), patch(
-            "custom_components.ev_trip_planner.calculations.datetime", MockDatetime
-        ), patch(
-            "homeassistant.util.dt.utcnow", return_value=fixed_now
-        ), patch(
-            "homeassistant.util.dt.now", return_value=fixed_now
+        with (
+            patch(
+                "custom_components.ev_trip_planner.emhass_adapter.datetime",
+                MockDatetime,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.calculations.datetime", MockDatetime
+            ),
+            patch("homeassistant.util.dt.utcnow", return_value=fixed_now),
+            patch("homeassistant.util.dt.now", return_value=fixed_now),
         ):
             yield fixed_now
+
     return mock_dt_fixture
 
 

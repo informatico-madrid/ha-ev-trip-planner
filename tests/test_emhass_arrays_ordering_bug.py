@@ -42,7 +42,9 @@ class TestEMHASSArraysOrderingBug:
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     @pytest.mark.asyncio
-    async def test_all_emhass_arrays_ordered_by_creation_index_not_chronological(self, mock_datetime_2026_05_04_monday_0800_utc):
+    async def test_all_emhass_arrays_ordered_by_creation_index_not_chronological(
+        self, mock_datetime_2026_05_04_monday_0800_utc
+    ):
         """
         Test que TODOS los arrays EMHASS están ordenados por índice de creación,
         no por deadline cronológico.

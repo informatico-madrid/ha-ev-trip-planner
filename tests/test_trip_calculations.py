@@ -62,6 +62,8 @@ def mock_hass():
 
     # Guardar el original
     original_store_init = Store.__init__
+    original_async_load = Store.async_load
+    original_async_save = Store.async_save
 
     # Aplicar patches
     Store.__init__ = mock_init
@@ -72,6 +74,8 @@ def mock_hass():
 
     # Cleanup - restaurar original
     Store.__init__ = original_store_init
+    Store.async_load = original_async_load
+    Store.async_save = original_async_save
 
 
 @pytest.mark.asyncio
@@ -140,7 +144,11 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
 
         # Add two trips for today
         await mgr.async_add_recurring_trip(
-            dia_semana=today_spanish, hora="12:00", km=25, kwh=3.75, descripcion="Trabajo"
+            dia_semana=today_spanish,
+            hora="12:00",
+            km=25,
+            kwh=3.75,
+            descripcion="Trabajo",
         )
 
         await mgr.async_add_punctual_trip(
@@ -183,7 +191,11 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
     with freeze_time(frozen_time):
         # Add trip requiring 11.25 kWh for today
         await mgr.async_add_recurring_trip(
-            dia_semana=today_spanish, hora="08:00", km=25, kwh=11.25, descripcion="Trabajo"
+            dia_semana=today_spanish,
+            hora="08:00",
+            km=25,
+            kwh=11.25,
+            descripcion="Trabajo",
         )
 
         # Calculate hours needed (uses default charging power from mock config)

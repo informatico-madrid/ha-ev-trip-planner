@@ -71,7 +71,9 @@ class HomeAssistantWrapper:
 
     async def async_call_service(
         self, domain: str, service: str, data: Dict[str, Any]
-    ) -> None:  # pragma: no cover  # HA service I/O - direct service call delegation to HA
+    ) -> (
+        None
+    ):  # pragma: no cover  # HA service I/O - direct service call delegation to HA
         """Call a service."""
         await self._hass.services.async_call(domain, service, data)
 
@@ -353,7 +355,9 @@ class VehicleController:
         Returns:
             True if charging, False otherwise
         """
-        if not self._charging_sensor:  # pragma: no cover  # HA sensor I/O - charging sensor not configured
+        if (
+            not self._charging_sensor
+        ):  # pragma: no cover  # HA sensor I/O - charging sensor not configured
             return False  # pragma: no cover  # HA sensor I/O - early return when sensor not configured
 
         state = self.hass.states.get(self._charging_sensor)
@@ -492,21 +496,29 @@ class VehicleController:
 
     async def _update_charging_state_after_deactivation(
         self,
-    ) -> None:  # pragma: no cover  # HA control I/O - called only after successful deactivation
+    ) -> (
+        None
+    ):  # pragma: no cover  # HA control I/O - called only after successful deactivation
         """Update charging state after deactivation to track disconnect.
 
         This is called after successfully deactivating charging to ensure
         the retry counter is properly reset if the vehicle disconnects.
         """
-        if not self._charging_sensor:  # pragma: no cover  # HA sensor I/O - charging sensor may not be configured
+        if (
+            not self._charging_sensor
+        ):  # pragma: no cover  # HA sensor I/O - charging sensor may not be configured
             return  # pragma: no cover  # HA sensor I/O - early return when sensor not configured
 
-        current_charging = await self._async_check_charging_sensor()  # pragma: no cover  # HA sensor I/O - queries charging sensor state
+        current_charging = (
+            await self._async_check_charging_sensor()
+        )  # pragma: no cover  # HA sensor I/O - queries charging sensor state
         self._last_charging_state = current_charging  # pragma: no cover  # HA sensor I/O - updates state after deactivation
 
     async def async_get_charging_status(
         self,
-    ) -> bool:  # pragma: no cover  # HA control I/O - status depends on strategy implementation
+    ) -> (
+        bool
+    ):  # pragma: no cover  # HA control I/O - status depends on strategy implementation
         """Get current charging status."""
         if self._strategy is None:
             return False

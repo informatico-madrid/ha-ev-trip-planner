@@ -184,7 +184,6 @@ class TestSOC100PropagationBug:
                 "With proactive charging, the first trip must have charge hours > 0"
             )
 
-
         for i, trip in enumerate(trips):
             trip_id = trip["id"]
             if trip_id in per_trip_params:

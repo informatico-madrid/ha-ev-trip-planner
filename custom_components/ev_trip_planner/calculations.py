@@ -1129,8 +1129,8 @@ def calculate_next_recurring_datetime(
             hour=hour, minute=minute, second=0, microsecond=0
         )
         # Get current day of week (0=Sunday to match JavaScript getDay())
-        # isoweekday() returns 1=Monday, 7=Sunday, so we convert
-        current_day = reference_dt.isoweekday() % 7
+        # weekday() returns 0=Monday, 6=Sunday
+        current_day = (reference_dt.weekday() + 1) % 7
         # Calculate days ahead
         days_ahead = (day - current_day) % 7
         # If the time for today has passed, move to next week
@@ -1645,7 +1645,9 @@ def calculate_deferrable_parameters(
 
         # Calculate available time until deadline
         if deadline:
-            now = reference_dt if reference_dt is not None else datetime.now(timezone.utc)
+            now = (
+                reference_dt if reference_dt is not None else datetime.now(timezone.utc)
+            )
             if isinstance(deadline, str):
                 deadline_dt = datetime.fromisoformat(deadline)
             else:

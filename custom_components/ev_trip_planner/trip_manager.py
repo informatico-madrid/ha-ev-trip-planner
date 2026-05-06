@@ -455,9 +455,7 @@ class TripManager:
                     # Fallback: use stored_data directly if no "data" key
                     data = stored_data
                 _LOGGER.debug("=== data extracted: %s ===", data)
-                _LOGGER.debug(
-                    "=== data from stored_data.get('data', {}): %s ===", data
-                )
+                _LOGGER.debug("=== data from stored_data.get('data', {}): %s ===", data)
 
                 self._trips = data.get("trips", {})
                 self._recurring_trips = data.get("recurring_trips", {})
@@ -1325,7 +1323,8 @@ class TripManager:
             len(self._punctual_trips),
         )
         _LOGGER.debug(
-            "DEBUG _get_all_active_trips: CALLED FROM\n\nFROM\n\n%s", traceback.format_stack()[-3]
+            "DEBUG _get_all_active_trips: CALLED FROM\n\nFROM\n\n%s",
+            traceback.format_stack()[-3],
         )
 
         all_trips = []

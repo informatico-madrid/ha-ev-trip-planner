@@ -148,7 +148,6 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     from custom_components.ev_trip_planner.sensor import async_setup_entry
 
     # Store async_add_entities for later use (simulating HA behavior)
-    captured_async_add_entities = None
     created_entities = []
 
     def capture_async_add_entities(entities, update_before_add=True):
