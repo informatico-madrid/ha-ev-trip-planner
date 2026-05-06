@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug lint mypy format check clean htmlcov
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov
 
 help:
 	@echo "Comandos disponibles:"
@@ -34,7 +34,7 @@ test-dashboard:
 
 test-e2e:
 	@echo "Ejecutando tests E2E contra http://localhost:8123 ..."
-	@echo "Asegúrate de que Home Assistant está corriendo (docker compose up -d o hass manual)"
+	@echo "⚠️  E2E uses hass directly (no Docker). See docs/staging-vs-e2e-separation.md"
 	npx playwright test tests/e2e/ --workers=1
 
 test-e2e-headed:
@@ -79,3 +79,38 @@ clean:
 htmlcov:
 	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
 	@echo "Reporte HTML generado en htmlcov/index.html"
+
+# ============================================================================
+# Staging Environment Targets (Docker, localhost:8124)
+# ============================================================================
+staging-up:
+	@echo "Starting staging environment on localhost:8124 (Docker)..."
+	@echo "⚠️  STAGING is separate from E2E (localhost:8123, hass direct)."
+	@echo "   See docs/staging-vs-e2e-separation.md for separation rules."
+	@if [ ! -d "$$(eval echo ~/staging-ha-config)" ]; then \
+		echo "Staging config not initialized. Running init..."; \
+		bash scripts/staging-init.sh; \
+	fi
+	docker compose -f docker-compose.staging.yml up -d
+	@echo "Waiting for HA to be ready..."
+	@for i in $$(seq 1 30); do \
+		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8124/api/ 2>/dev/null || echo "000"); \
+		if [ "$$STATUS" = "200" ] || [ "$$STATUS" = "401" ]; then \
+			echo "  ✅ HA ready (HTTP $$STATUS)"; \
+			break; \
+		fi; \
+		echo "  Attempt $$i: status=$$STATUS (waiting 3s...)"; \
+		sleep 3; \
+	done
+	@echo ""
+	@echo "Staging ready at http://localhost:8124"
+	@echo "Logs: docker logs -f ha-staging"
+	@echo "Stop: make staging-down"
+
+staging-down:
+	@echo "Stopping staging container..."
+	docker compose -f docker-compose.staging.yml down
+
+staging-reset:
+	@echo "Resetting staging environment..."
+	bash scripts/staging-reset.sh
