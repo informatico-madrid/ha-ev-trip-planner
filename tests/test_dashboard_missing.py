@@ -19,7 +19,9 @@ class TestDashboardMissingCoverage:
 
         Covers line 100: return func(*args) (non-coroutine branch)
         """
-        from custom_components.ev_trip_planner.dashboard import _call_async_executor_sync
+        from custom_components.ev_trip_planner.dashboard import (
+            _call_async_executor_sync,
+        )
 
         hass = MagicMock()
 
@@ -282,7 +284,9 @@ class TestDashboardMissingCoverage:
 
         Covers lines 967-970 (exception returns False).
         """
-        from custom_components.ev_trip_planner.dashboard import _verify_storage_permissions
+        from custom_components.ev_trip_planner.dashboard import (
+            _verify_storage_permissions,
+        )
 
         mock_hass = MagicMock()
         mock_hass.config = MagicMock()
@@ -346,7 +350,9 @@ class TestDashboardMissingCoverage:
 
         Covers lines 1204-1206.
         """
-        from custom_components.ev_trip_planner.dashboard import _save_dashboard_yaml_fallback
+        from custom_components.ev_trip_planner.dashboard import (
+            _save_dashboard_yaml_fallback,
+        )
 
         config_dir = tmp_path / "test_config"
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -390,13 +396,7 @@ class TestDashboardMissingCoverage:
         mock_hass.config = MagicMock()
 
         mock_store = MagicMock()
-        mock_store.async_load = AsyncMock(
-            return_value={
-                "data": {
-                    "views": []
-                }
-            }
-        )
+        mock_store.async_load = AsyncMock(return_value={"data": {"views": []}})
         mock_store.async_save = AsyncMock()
 
         with patch(
@@ -478,13 +478,7 @@ class TestDashboardMissingCoverage:
 
         # Mock storage with empty views
         mock_store = MagicMock()
-        mock_store.async_load = AsyncMock(
-            return_value={
-                "data": {
-                    "views": []
-                }
-            }
-        )
+        mock_store.async_load = AsyncMock(return_value={"data": {"views": []}})
 
         with patch(
             "custom_components.ev_trip_planner.dashboard._verify_storage_permissions",
@@ -512,7 +506,9 @@ class TestDashboardMissingCoverage:
 
         Covers line 96: return async_add_executor_job(func, *args)
         """
-        from custom_components.ev_trip_planner.dashboard import _call_async_executor_sync
+        from custom_components.ev_trip_planner.dashboard import (
+            _call_async_executor_sync,
+        )
 
         hass = MagicMock()
 

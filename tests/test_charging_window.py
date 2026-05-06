@@ -24,11 +24,14 @@ from custom_components.ev_trip_planner.const import (
 )
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from custom_components.ev_trip_planner.calculations import calculate_multi_trip_charging_windows
+from custom_components.ev_trip_planner.calculations import (
+    calculate_multi_trip_charging_windows,
+)
 
 
 class MockConfigEntry:
     """Mock ConfigEntry for testing."""
+
     def __init__(self, vehicle_id="test_vehicle", data=None):
         self.entry_id = "test_entry_id"
         self.data = data or {
@@ -94,7 +97,9 @@ class TestChargingWindowCalculation:
         then the charging window is 4 hours.
         """
         # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
-        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=22, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -109,7 +114,9 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (aware UTC for proper datetime comparison)
-        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
 
         # Get the trip we just added
         trips = await trip_manager.async_get_punctual_trips()
@@ -124,19 +131,25 @@ class TestChargingWindowCalculation:
         )
 
         # Verify window is 4 hours (from 18:00 to 22:00)
-        assert result["ventana_horas"] == 4.0, f"Expected 4.0 hours, got {result['ventana_horas']}"
+        assert result["ventana_horas"] == 4.0, (
+            f"Expected 4.0 hours, got {result['ventana_horas']}"
+        )
 
         # Verify all expected fields are returned (AC-1 interface contract)
         assert "ventana_horas" in result, "Missing ventana_horas field"
         assert "kwh_necesarios" in result, "Missing kwh_necesarios field"
-        assert "horas_carga_necesarias" in result, "Missing horas_carga_necesarias field"
+        assert "horas_carga_necesarias" in result, (
+            "Missing horas_carga_necesarias field"
+        )
         assert "inicio_ventana" in result, "Missing inicio_ventana field"
         assert "fin_ventana" in result, "Missing fin_ventana field"
         assert "es_suficiente" in result, "Missing es_suficiente field"
 
         # Verify energy calculation
         assert result["kwh_necesarios"] == 10.0
-        assert result["horas_carga_necesarias"] == pytest.approx(1.35, rel=0.01)  # 10.0 / 7.4
+        assert result["horas_carga_necesarias"] == pytest.approx(
+            1.35, rel=0.01
+        )  # 10.0 / 7.4
 
         # Verify window start and end times
         assert result["inicio_ventana"] == hora_regreso
@@ -146,14 +159,18 @@ class TestChargingWindowCalculation:
         assert result["es_suficiente"] is True
 
     @pytest.mark.asyncio
-    async def test_hora_regreso_none_car_not_yet_returned_uses_estimate(self, trip_manager, caplog):
+    async def test_hora_regreso_none_car_not_yet_returned_uses_estimate(
+        self, trip_manager, caplog
+    ):
         """Test AC-3: hora_regreso is None (car not yet returned) - uses estimated window start.
 
         When hora_regreso is None (car has not yet returned, not detected),
         the window start should be estimated as departure_time - 6h.
         """
         # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
-        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=22, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -184,12 +201,14 @@ class TestChargingWindowCalculation:
         # Since trip is at 22:00, window start = 22:00 - 6h = 16:00
         expected_inicio_ventana = trip_datetime - timedelta(hours=6)
 
-        assert result["inicio_ventana"] == expected_inicio_ventana, \
+        assert result["inicio_ventana"] == expected_inicio_ventana, (
             f"Expected estimated window start at {expected_inicio_ventana}, got {result['inicio_ventana']}"
+        )
 
         # Window should be 6 hours (16:00 to 22:00)
-        assert result["ventana_horas"] == 6.0, \
+        assert result["ventana_horas"] == 6.0, (
             f"Expected 6.0 hours, got {result['ventana_horas']}"
+        )
 
     @pytest.mark.asyncio
     async def test_no_pending_trips_returns_zero_values(self, trip_manager, caplog):
@@ -206,7 +225,9 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (aware UTC for proper datetime comparison)
-        hora_regreso = datetime.now(timezone.utc).replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
 
         # Create a dummy trip to pass to the function
         # The function will check if there's a next trip after hora_regreso
@@ -228,13 +249,25 @@ class TestChargingWindowCalculation:
         )
 
         # Verify zero values are returned (AC-5)
-        assert result["ventana_horas"] == 0, f"Expected 0, got {result['ventana_horas']}"
-        assert result["kwh_necesarios"] == 0, f"Expected 0, got {result['kwh_necesarios']}"
-        assert result["horas_carga_necesarias"] == 0, f"Expected 0, got {result['horas_carga_necesarias']}"
-        assert result["inicio_ventana"] is None, f"Expected None, got {result['inicio_ventana']}"
-        assert result["fin_ventana"] is None, f"Expected None, got {result['fin_ventana']}"
+        assert result["ventana_horas"] == 0, (
+            f"Expected 0, got {result['ventana_horas']}"
+        )
+        assert result["kwh_necesarios"] == 0, (
+            f"Expected 0, got {result['kwh_necesarios']}"
+        )
+        assert result["horas_carga_necesarias"] == 0, (
+            f"Expected 0, got {result['horas_carga_necesarias']}"
+        )
+        assert result["inicio_ventana"] is None, (
+            f"Expected None, got {result['inicio_ventana']}"
+        )
+        assert result["fin_ventana"] is None, (
+            f"Expected None, got {result['fin_ventana']}"
+        )
         # es_suficiente is True when no charging needed (AC-5)
-        assert result["es_suficiente"] is True, "es_suficiente should be True when no trips pending"
+        assert result["es_suficiente"] is True, (
+            "es_suficiente should be True when no trips pending"
+        )
 
     @pytest.mark.asyncio
     async def test_multiple_trips_get_separate_windows(self, trip_manager, caplog):
@@ -287,34 +320,46 @@ class TestChargingWindowCalculation:
         # First trip: window from 18:00 to 02:00 next day = 8 hours
         # Note: Implementation uses trip_arrival (departure + 6h) for ventana_horas
         trip1_departure = datetime(2099, 4, 1, 20, 0, 0, tzinfo=timezone.utc)
-        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # departure + 6h
+        trip1_arrival = datetime(
+            2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc
+        )  # departure + 6h
         trip2_departure = datetime(2099, 4, 1, 22, 0, 0, tzinfo=timezone.utc)
-        assert results[0]["ventana_horas"] == 8.0, \
+        assert results[0]["ventana_horas"] == 8.0, (
             f"First trip: Expected 8.0 hours (18:00 to 02:00), got {results[0]['ventana_horas']}"
-        assert results[0]["inicio_ventana"] == hora_regreso, \
+        )
+        assert results[0]["inicio_ventana"] == hora_regreso, (
             "First trip should start at hora_regreso"
-        assert results[0]["fin_ventana"] == trip1_departure, \
+        )
+        assert results[0]["fin_ventana"] == trip1_departure, (
             f"First trip departure at {trip1_departure}"
+        )
 
         # Second trip: window from 02:00 to 04:00 next day = 2 hours
         # Window starts at first trip's arrival (departure + 6h)
         # Implementation uses trip_arrival for ventana_horas, not fin_ventana
-        assert results[1]["ventana_horas"] == 2.0, \
+        assert results[1]["ventana_horas"] == 2.0, (
             f"Second trip: Expected 2.0 hours, got {results[1]['ventana_horas']}"
-        assert results[1]["inicio_ventana"] == trip1_arrival, \
+        )
+        assert results[1]["inicio_ventana"] == trip1_arrival, (
             f"Second trip should start at first trip arrival {trip1_arrival}"
-        assert results[1]["fin_ventana"] == trip2_departure, \
+        )
+        assert results[1]["fin_ventana"] == trip2_departure, (
             f"Second trip departure at {trip2_departure}"
+        )
 
     @pytest.mark.asyncio
-    async def test_es_suficiente_true_when_window_sufficient(self, trip_manager, caplog):
+    async def test_es_suficiente_true_when_window_sufficient(
+        self, trip_manager, caplog
+    ):
         """Test es_suficiente is True when window >= charging time.
 
         When the charging window is large enough to fully charge the vehicle,
         es_suficiente should be True.
         """
         # Setup: Add a punctual trip at 22:00 today
-        trip_datetime = datetime.now().replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=22, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -329,7 +374,9 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (4 hour window)
-        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
 
         # With 7.4 kW charging: 10.0 / 7.4 = 1.35 hours needed
         # With 4 hour window: 4.0 >= 1.35 => es_suficiente = True
@@ -344,18 +391,23 @@ class TestChargingWindowCalculation:
             charging_power_kw=7.4,
         )
 
-        assert result["es_suficiente"] is True, \
+        assert result["es_suficiente"] is True, (
             "es_suficiente should be True when window (4h) >= charging time (1.35h)"
+        )
 
     @pytest.mark.asyncio
-    async def test_es_suficiente_false_when_window_insufficient(self, trip_manager, caplog):
+    async def test_es_suficiente_false_when_window_insufficient(
+        self, trip_manager, caplog
+    ):
         """Test es_suficiente is False when window < charging time.
 
         When the charging window is NOT large enough to fully charge the vehicle,
         es_suficiente should be False.
         """
         # Setup: Add a punctual trip at 19:00 today (only 1 hour window)
-        trip_datetime = datetime.now().replace(hour=19, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=19, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -370,7 +422,9 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (1 hour window: 18:00 to 19:00)
-        hora_regreso = datetime.now().replace(hour=18, minute=0, second=0, microsecond=0)
+        hora_regreso = datetime.now(timezone.utc).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
 
         # With 7.4 kW charging: 25.0 / 7.4 = 3.38 hours needed
         # With 1 hour window: 1.0 < 3.38 => es_suficiente = False
@@ -385,18 +439,23 @@ class TestChargingWindowCalculation:
             charging_power_kw=7.4,
         )
 
-        assert result["es_suficiente"] is False, \
+        assert result["es_suficiente"] is False, (
             "es_suficiente should be False when window (1h) < charging time (3.38h)"
+        )
 
     @pytest.mark.asyncio
-    async def test_invalid_hora_regreso_format_handled_gracefully(self, trip_manager, caplog):
+    async def test_invalid_hora_regreso_format_handled_gracefully(
+        self, trip_manager, caplog
+    ):
         """Test invalid hora_regreso format is handled gracefully.
 
         When hora_regreso is an invalid string that cannot be parsed,
         the function should handle it gracefully and fall back to estimation.
         """
         # Setup: Add a punctual trip at 22:00 today (aware UTC for proper datetime comparison)
-        trip_datetime = datetime.now(timezone.utc).replace(hour=22, minute=0, second=0, microsecond=0)
+        trip_datetime = datetime.now(timezone.utc).replace(
+            hour=22, minute=0, second=0, microsecond=0
+        )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
         await trip_manager.async_add_punctual_trip(
             datetime_str=datetime_str,
@@ -430,21 +489,26 @@ class TestChargingWindowCalculation:
         expected_inicio_ventana = trip_datetime - timedelta(hours=6)
 
         # Window should be 6 hours (from estimated return 16:00 to departure 22:00)
-        assert result["ventana_horas"] == 6.0, \
+        assert result["ventana_horas"] == 6.0, (
             f"Expected 6.0 hours with invalid hora_regreso, got {result['ventana_horas']}"
-        assert result["inicio_ventana"] == expected_inicio_ventana, \
+        )
+        assert result["inicio_ventana"] == expected_inicio_ventana, (
             f"Expected estimated window start at {expected_inicio_ventana}, got {result['inicio_ventana']}"
+        )
 
         # Verify warning was logged about parsing error
-        assert any("Error parsing hora_regreso" in str(record) for record in caplog.records), \
-            "Expected warning log about hora_regreso parsing error"
+        assert any(
+            "Error parsing hora_regreso" in str(record) for record in caplog.records
+        ), "Expected warning log about hora_regreso parsing error"
 
 
 class TestChargingWindowMultitrip:
     """Tests for multi-trip window chaining (AC-4)."""
 
     @pytest.mark.asyncio
-    async def test_two_trips_same_day_second_window_starts_at_first_departure(self, trip_manager, caplog):
+    async def test_two_trips_same_day_second_window_starts_at_first_departure(
+        self, trip_manager, caplog
+    ):
         """Test AC-4: Two trips same day - second trip window starts at first trip departure.
 
         When there are two trips on the same day:
@@ -496,24 +560,32 @@ class TestChargingWindowMultitrip:
         # Note: Implementation uses trip_arrival (departure + 6h) for ventana_horas calculation
         # This differs from AC-4 which says window should end at departure
         trip1_departure = datetime(2099, 4, 1, 20, 0, 0, tzinfo=timezone.utc)
-        trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # departure + 6h
+        trip1_arrival = datetime(
+            2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc
+        )  # departure + 6h
         trip2_departure = datetime(2099, 4, 1, 22, 0, 0, tzinfo=timezone.utc)
-        assert results[0]["ventana_horas"] == 8.0, \
+        assert results[0]["ventana_horas"] == 8.0, (
             f"First trip: Expected 8.0 hours (18:00 to 02:00), got {results[0]['ventana_horas']}"
-        assert results[0]["inicio_ventana"] == hora_regreso, \
+        )
+        assert results[0]["inicio_ventana"] == hora_regreso, (
             "First trip should start at hora_regreso"
-        assert results[0]["fin_ventana"] == trip1_departure, \
+        )
+        assert results[0]["fin_ventana"] == trip1_departure, (
             f"First trip departure at {trip1_departure}, got {results[0]['fin_ventana']}"
+        )
 
         # Second trip: window from 02:00 to 04:00 next day = 2 hours
         # Window starts at first trip's arrival (departure + 6h)
         # Implementation uses trip_arrival for ventana_horas, not fin_ventana
-        assert results[1]["ventana_horas"] == 2.0, \
+        assert results[1]["ventana_horas"] == 2.0, (
             f"Second trip: Expected 2.0 hours, got {results[1]['ventana_horas']}"
-        assert results[1]["inicio_ventana"] == trip1_arrival, \
+        )
+        assert results[1]["inicio_ventana"] == trip1_arrival, (
             f"Second trip should start at first trip arrival {trip1_arrival}"
-        assert results[1]["fin_ventana"] == trip2_departure, \
+        )
+        assert results[1]["fin_ventana"] == trip2_departure, (
             f"Second trip departure at {trip2_departure}, got {results[1]['fin_ventana']}"
+        )
 
     @pytest.mark.asyncio
     async def test_three_trips_same_day_sequential_windows(self, trip_manager, caplog):
@@ -578,22 +650,27 @@ class TestChargingWindowMultitrip:
         trip2_arrival = datetime(2099, 4, 2, 3, 0, 0, tzinfo=timezone.utc)  # 21:00 + 6h
 
         # First trip: window from 17:00 to 01:00 next day = 8 hours
-        assert results[0]["ventana_horas"] == 8.0, \
+        assert results[0]["ventana_horas"] == 8.0, (
             f"First trip: Expected 8.0 hours, got {results[0]['ventana_horas']}"
+        )
         assert results[0]["inicio_ventana"] == hora_regreso
 
         # Second trip: window from 01:00 to 03:00 = 2 hours
-        assert results[1]["ventana_horas"] == 2.0, \
+        assert results[1]["ventana_horas"] == 2.0, (
             f"Second trip: Expected 2.0 hours, got {results[1]['ventana_horas']}"
+        )
         assert results[1]["inicio_ventana"] == trip1_arrival
 
         # Third trip: window from 03:00 to 05:00 = 2 hours
-        assert results[2]["ventana_horas"] == 2.0, \
+        assert results[2]["ventana_horas"] == 2.0, (
             f"Third trip: Expected 2.0 hours, got {results[2]['ventana_horas']}"
+        )
         assert results[2]["inicio_ventana"] == trip2_arrival
 
     @pytest.mark.asyncio
-    async def test_first_trip_window_starts_at_hora_regreso_subsequent_at_previous_arrival(self, trip_manager, caplog):
+    async def test_first_trip_window_starts_at_hora_regreso_subsequent_at_previous_arrival(
+        self, trip_manager, caplog
+    ):
         """Test AC-4: First trip window starts at hora_regreso, subsequent at previous arrival.
 
         The key distinction:
@@ -639,19 +716,23 @@ class TestChargingWindowMultitrip:
 
         # First trip's window should start at hora_regreso (18:00)
         trip1_arrival = datetime(2099, 4, 2, 2, 0, 0, tzinfo=timezone.utc)  # 20:00 + 6h
-        assert results[0]["inicio_ventana"] == hora_regreso, \
+        assert results[0]["inicio_ventana"] == hora_regreso, (
             f"First trip should start at hora_regreso {hora_regreso}, got {results[0]['inicio_ventana']}"
+        )
         # ventana_horas = trip1_arrival - window_start = 02:00 - 18:00 = 8 hours
-        assert results[0]["ventana_horas"] == 8.0, \
+        assert results[0]["ventana_horas"] == 8.0, (
             f"First trip: Expected 8.0 hours, got {results[0]['ventana_horas']}"
+        )
 
         # First trip arrives at 20:00 + 6h = 02:00 next day (2099-04-02 02:00)
         # Second trip's window should start at first trip's ARRIVAL (02:00)
-        assert results[1]["inicio_ventana"] == trip1_arrival, \
+        assert results[1]["inicio_ventana"] == trip1_arrival, (
             f"Second trip should start at first trip arrival {trip1_arrival}, got {results[1]['inicio_ventana']}"
+        )
         # ventana_horas for trip2 = trip2_arrival - window_start = (23:00+6h=05:00) - 02:00 = 3 hours
-        assert results[1]["ventana_horas"] == 3.0, \
+        assert results[1]["ventana_horas"] == 3.0, (
             f"Second trip: Expected 3.0 hours, got {results[1]['ventana_horas']}"
+        )
 
 
 class TestSequentialTripDefStartBug:
@@ -708,8 +789,8 @@ class TestSequentialTripDefStartBug:
         # Create two trips with sequential deadlines
         # Trip 0: deadline 12 hours from now
         # Trip 1: deadline 48 hours from now
-        # Use naive datetimes to avoid timezone issues with datetime.now(timezone.utc)
-        now = datetime.utcnow()
+        # Use aware UTC datetimes for consistency with the rest of the test suite
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 
@@ -739,7 +820,9 @@ class TestSequentialTripDefStartBug:
                 (trip_1_deadline.replace(tzinfo=timezone.utc), trip_1),
             ],
             soc_actual=soc_current,
-            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc)
+            if hora_regreso
+            else None,
             charging_power_kw=charging_power_kw,
             battery_capacity_kwh=50.0,
             return_buffer_hours=RETURN_BUFFER_HOURS,
@@ -751,12 +834,24 @@ class TestSequentialTripDefStartBug:
 
         # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
         await adapter._populate_per_trip_cache_entry(
-            trip_0, "trip_0", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
-            pre_computed_inicio_ventana=trip_0_inicio_ventana
+            trip_0,
+            "trip_0",
+            charging_power_kw,
+            50.0,
+            10.0,
+            soc_current,
+            hora_regreso,
+            pre_computed_inicio_ventana=trip_0_inicio_ventana,
         )
         await adapter._populate_per_trip_cache_entry(
-            trip_1, "trip_1", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
-            pre_computed_inicio_ventana=trip_1_inicio_ventana
+            trip_1,
+            "trip_1",
+            charging_power_kw,
+            50.0,
+            10.0,
+            soc_current,
+            hora_regreso,
+            pre_computed_inicio_ventana=trip_1_inicio_ventana,
         )
 
         # Get the cached per-trip params
@@ -768,24 +863,30 @@ class TestSequentialTripDefStartBug:
         trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
 
         # Assert first trip starts at hora_regreso (def_start = 0)
-        assert len(trip_0_def_start_array) == 1, \
+        assert len(trip_0_def_start_array) == 1, (
             f"Trip 0 should have 1 def_start value, got {len(trip_0_def_start_array)}"
-        assert trip_0_def_start_array[0] == 0, \
+        )
+        assert trip_0_def_start_array[0] == 0, (
             f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
+        )
 
         # Assert second trip starts AFTER first trip (def_start > 0)
         # With batch computation via calculate_multi_trip_charging_windows(all_trips),
         # the second trip's window is correctly offset by return_buffer_hours
-        assert len(trip_1_def_start_array) == 1, \
+        assert len(trip_1_def_start_array) == 1, (
             f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
-        assert trip_1_def_start_array[0] > 0, \
+        )
+        assert trip_1_def_start_array[0] > 0, (
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
+        )
 
 
 class TestSingleTripBackwardCompatibility:
     """Test that single trip backward compatibility is maintained (AC-1.3)."""
 
-    def test_single_trip_backward_inicio_ventana_equals_now_when_hora_regreso_past(self):
+    def test_single_trip_backward_inicio_ventana_equals_now_when_hora_regreso_past(
+        self,
+    ):
         """Test that single trip with past hora_regreso starts charging from now.
 
         When hora_regreso is in the past (car already home), inicio_ventana should be
@@ -820,8 +921,9 @@ class TestSingleTripBackwardCompatibility:
         assert len(results) == 1
 
         # Car is already home: window starts from now, not from past hora_regreso
-        assert results[0]["inicio_ventana"] >= now, \
+        assert results[0]["inicio_ventana"] >= now, (
             "inicio_ventana should be >= now when car is home"
+        )
 
         # Verify def_start_timestep would be 0 after integer conversion.
         delta = (results[0]["inicio_ventana"] - now).total_seconds() / 3600
@@ -844,7 +946,7 @@ class TestSingleTripBackwardCompatibility:
 
         This verifies AC-1.2: cumulative offset chaining across 3 trips.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
 
         # Create 3 trips with sequential deadlines (24h apart)
@@ -875,22 +977,28 @@ class TestSingleTripBackwardCompatibility:
         # Trip 0: window starts at hora_regreso
         # Trip 0's arrival = deadline + duration_hours = (now + 12h) + 6h = now + 18h
         trip0_inicio = results[0]["inicio_ventana"]
-        trip0_arrival = trip0_deadline.replace(tzinfo=timezone.utc) + timedelta(hours=6.0)
+        trip0_arrival = trip0_deadline.replace(tzinfo=timezone.utc) + timedelta(
+            hours=6.0
+        )
 
         # Trip 1: window starts at trip0_arrival + 4h buffer
         trip1_inicio = results[1]["inicio_ventana"]
         expected_trip1_start = trip0_arrival + timedelta(hours=4.0)
-        assert trip1_inicio == expected_trip1_start, \
+        assert trip1_inicio == expected_trip1_start, (
             f"Trip 1 inicio_ventana should be trip0_arrival + 4h buffer = {expected_trip1_start}, got {trip1_inicio}"
+        )
 
         # Trip 1's arrival = trip1_deadline + 6h = (now + 36h) + 6h = now + 42h
-        trip1_arrival = trip1_deadline.replace(tzinfo=timezone.utc) + timedelta(hours=6.0)
+        trip1_arrival = trip1_deadline.replace(tzinfo=timezone.utc) + timedelta(
+            hours=6.0
+        )
 
         # Trip 2: window starts at trip1_arrival + 4h buffer
         trip2_inicio = results[2]["inicio_ventana"]
         expected_trip2_start = trip1_arrival + timedelta(hours=4.0)
-        assert trip2_inicio == expected_trip2_start, \
+        assert trip2_inicio == expected_trip2_start, (
             f"Trip 2 inicio_ventana should be trip1_arrival + 4h buffer = {expected_trip2_start}, got {trip2_inicio}"
+        )
 
         # Verify cumulative offset: trip2 > trip1 > trip0
         assert trip1_inicio > trip0_inicio, "Trip 1 should start after Trip 0"
@@ -918,7 +1026,7 @@ class TestWindowCappedAtDeadline:
         - inicio_ventana should be capped at or before fin_ventana (deadline)
         - Result should be a valid window (inicio_ventana <= fin_ventana)
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
 
         # Trip 0: deadline = now + 12h
@@ -949,8 +1057,9 @@ class TestWindowCappedAtDeadline:
         # Trip 0 should be normal
         assert results[0]["inicio_ventana"] is not None
         assert results[0]["fin_ventana"] is not None
-        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], \
+        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], (
             "Trip 0: inicio_ventana should not exceed fin_ventana"
+        )
 
         # Trip 1: The key assertion - inicio_ventana must NOT exceed fin_ventana
         # Even though buffer pushes window_start past deadline, function should handle it
@@ -958,12 +1067,15 @@ class TestWindowCappedAtDeadline:
         trip1_fin = results[1]["fin_ventana"]
         assert trip1_inicio is not None, "Trip 1 inicio_ventana should not be None"
         assert trip1_fin is not None, "Trip 1 fin_ventana should not be None"
-        assert trip1_inicio <= trip1_fin, \
+        assert trip1_inicio <= trip1_fin, (
             f"Trip 1: inicio_ventana ({trip1_inicio}) should not exceed fin_ventana ({trip1_fin})"
+        )
 
         # The window may be very small (or zero) but must be valid
         ventana_horas = results[1]["ventana_horas"]
-        assert ventana_horas >= 0, f"Trip 1 ventana_horas should be >= 0, got {ventana_horas}"
+        assert ventana_horas >= 0, (
+            f"Trip 1 ventana_horas should be >= 0, got {ventana_horas}"
+        )
 
 
 class TestDefEndTimestepUnchanged:
@@ -1014,7 +1126,7 @@ class TestDefEndTimestepUnchanged:
         # Setup index map
         adapter._index_map = {"trip_0": 0, "trip_1": 1}
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 
@@ -1042,7 +1154,9 @@ class TestDefEndTimestepUnchanged:
                 (trip_1_deadline.replace(tzinfo=timezone.utc), trip_1),
             ],
             soc_actual=soc_current,
-            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc) if hora_regreso else None,
+            hora_regreso=hora_regreso.replace(tzinfo=timezone.utc)
+            if hora_regreso
+            else None,
             charging_power_kw=charging_power_kw,
             battery_capacity_kwh=50.0,
             return_buffer_hours=RETURN_BUFFER_HOURS,
@@ -1054,12 +1168,24 @@ class TestDefEndTimestepUnchanged:
 
         # Now call _populate_per_trip_cache_entry with the pre_computed inicio_ventana
         await adapter._populate_per_trip_cache_entry(
-            trip_0, "trip_0", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
-            pre_computed_inicio_ventana=trip_0_inicio_ventana
+            trip_0,
+            "trip_0",
+            charging_power_kw,
+            50.0,
+            10.0,
+            soc_current,
+            hora_regreso,
+            pre_computed_inicio_ventana=trip_0_inicio_ventana,
         )
         await adapter._populate_per_trip_cache_entry(
-            trip_1, "trip_1", charging_power_kw, 50.0, 10.0, soc_current, hora_regreso,
-            pre_computed_inicio_ventana=trip_1_inicio_ventana
+            trip_1,
+            "trip_1",
+            charging_power_kw,
+            50.0,
+            10.0,
+            soc_current,
+            hora_regreso,
+            pre_computed_inicio_ventana=trip_1_inicio_ventana,
         )
 
         # Get the cached per-trip params
@@ -1074,28 +1200,56 @@ class TestDefEndTimestepUnchanged:
         # Trip 0: deadline = now + 12h, so hours_available ≈ 12
         # Trip 1: deadline = now + 48h, so hours_available ≈ 48
         now_aware = datetime.now(timezone.utc)
-        expected_trip_0_end = min(int(max(0, (trip_0_deadline.replace(tzinfo=timezone.utc) - now_aware).total_seconds() / 3600)), 168)
-        expected_trip_1_end = min(int(max(0, (trip_1_deadline.replace(tzinfo=timezone.utc) - now_aware).total_seconds() / 3600)), 168)
+        expected_trip_0_end = min(
+            int(
+                max(
+                    0,
+                    (
+                        trip_0_deadline.replace(tzinfo=timezone.utc) - now_aware
+                    ).total_seconds()
+                    / 3600,
+                )
+            ),
+            168,
+        )
+        expected_trip_1_end = min(
+            int(
+                max(
+                    0,
+                    (
+                        trip_1_deadline.replace(tzinfo=timezone.utc) - now_aware
+                    ).total_seconds()
+                    / 3600,
+                )
+            ),
+            168,
+        )
 
         # Assert def_end_timestep values are identical (fix only affects def_start_timestep)
-        assert len(trip_0_def_end_array) == 1, \
+        assert len(trip_0_def_end_array) == 1, (
             f"Trip 0 should have 1 def_end value, got {len(trip_0_def_end_array)}"
-        assert trip_0_def_end_array[0] == expected_trip_0_end, \
+        )
+        assert trip_0_def_end_array[0] == expected_trip_0_end, (
             f"Trip 0 def_end should be {expected_trip_0_end} (based on deadline), got {trip_0_def_end_array[0]}"
+        )
 
-        assert len(trip_1_def_end_array) == 1, \
+        assert len(trip_1_def_end_array) == 1, (
             f"Trip 1 should have 1 def_end value, got {len(trip_1_def_end_array)}"
-        assert trip_1_def_end_array[0] == expected_trip_1_end, \
+        )
+        assert trip_1_def_end_array[0] == expected_trip_1_end, (
             f"Trip 1 def_end should be {expected_trip_1_end} (based on deadline), got {trip_1_def_end_array[0]}"
+        )
 
         # Also verify def_start_timestep is affected by the fix (non-zero for trip 1)
         trip_0_def_start_array = trip_0_params.get("def_start_timestep_array", [])
         trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
 
-        assert trip_0_def_start_array[0] == 0, \
+        assert trip_0_def_start_array[0] == 0, (
             f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
-        assert trip_1_def_start_array[0] > 0, \
+        )
+        assert trip_1_def_start_array[0] > 0, (
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
+        )
 
 
 class TestZeroBufferConsecutiveTrips:
@@ -1146,14 +1300,17 @@ class TestZeroBufferConsecutiveTrips:
         # Trip 1 should start exactly at trip 0's arrival (no buffer gap)
         # trip_arrival = trip_departure + duration_hours (6h)
         trip0_arrival = trip0_deadline + timedelta(hours=6)
-        assert results[1]["inicio_ventana"] == trip0_arrival, \
+        assert results[1]["inicio_ventana"] == trip0_arrival, (
             f"Trip 1 should start at Trip 0 arrival (deadline + 6h, no buffer), got {results[1]['inicio_ventana']} vs expected {trip0_arrival}"
+        )
 
         # Verify the windows are valid (inicio <= fin)
-        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], \
+        assert results[0]["inicio_ventana"] <= results[0]["fin_ventana"], (
             "Trip 0: inicio_ventana should not exceed fin_ventana"
-        assert results[1]["inicio_ventana"] <= results[1]["fin_ventana"], \
+        )
+        assert results[1]["inicio_ventana"] <= results[1]["fin_ventana"], (
             "Trip 1: inicio_ventana should not exceed fin_ventana"
+        )
 
 
 class TestEmptyTripsEdgeCase:
@@ -1166,7 +1323,7 @@ class TestEmptyTripsEdgeCase:
         - Return an empty list
         - Not raise any exception or crash
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)
 
         # Should not raise any exception
@@ -1234,7 +1391,7 @@ class TestEMHASSAdapterBatchProcessing:
         adapter._index_map = {"trip_0": 0, "trip_1": 1}
 
         # Create two trips with sequential deadlines
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)
 
@@ -1257,16 +1414,22 @@ class TestEMHASSAdapterBatchProcessing:
         hora_regreso_stub = now - timedelta(hours=2)
 
         # Mock _get_current_soc to return 50.0
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 50.0
 
             # Mock _get_hora_regreso to return known datetime
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
 
                 # Mock presence_monitor to avoid None check
                 mock_pm = MagicMock()
-                mock_pm.async_get_hora_regreso = AsyncMock(return_value=hora_regreso_stub.replace(tzinfo=timezone.utc))
+                mock_pm.async_get_hora_regreso = AsyncMock(
+                    return_value=hora_regreso_stub.replace(tzinfo=timezone.utc)
+                )
                 adapter._presence_monitor = mock_pm
 
                 # Call async_publish_all_deferrable_loads with 2 trips
@@ -1284,14 +1447,18 @@ class TestEMHASSAdapterBatchProcessing:
         trip_1_def_start_array = trip_1_params.get("def_start_timestep_array", [])
 
         # Assert first trip starts at hora_regreso (def_start = 0)
-        assert len(trip_0_def_start_array) == 1, \
+        assert len(trip_0_def_start_array) == 1, (
             f"Trip 0 should have 1 def_start value, got {len(trip_0_def_start_array)}"
-        assert trip_0_def_start_array[0] == 0, \
+        )
+        assert trip_0_def_start_array[0] == 0, (
             f"Trip 0 def_start should be 0 (starts at hora_regreso), got {trip_0_def_start_array[0]}"
+        )
 
         # Assert second trip starts AFTER first trip completes + buffer (def_start > 0)
         # With batch computation, the second trip's window is correctly offset by return_buffer_hours
-        assert len(trip_1_def_start_array) == 1, \
+        assert len(trip_1_def_start_array) == 1, (
             f"Trip 1 should have 1 def_start value, got {len(trip_1_def_start_array)}"
-        assert trip_1_def_start_array[0] > 0, \
+        )
+        assert trip_1_def_start_array[0] > 0, (
             f"Trip 1 def_start should be > 0 (after trip 0 completes + buffer), got {trip_1_def_start_array[0]}"
+        )

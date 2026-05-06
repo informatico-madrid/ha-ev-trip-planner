@@ -15,10 +15,14 @@ def make_test_description(key: str):
         native_unit_of_measurement=None,
         state_class=None,
         value_fn=lambda data: data.get(key, 0) if data else 0,
-        attrs_fn=lambda data: {
-            "recurring_trips": list(data.get("recurring_trips", {}).values()),
-            "punctual_trips": list(data.get("punctual_trips", {}).values()),
-        } if data else {"recurring_trips": [], "punctual_trips": []},
+        attrs_fn=lambda data: (
+            {
+                "recurring_trips": list(data.get("recurring_trips", {}).values()),
+                "punctual_trips": list(data.get("punctual_trips", {}).values()),
+            }
+            if data
+            else {"recurring_trips": [], "punctual_trips": []}
+        ),
     )
 
 
@@ -34,7 +38,11 @@ class TestTripPlannerSensorAttributes:
                 "rec_1": {"id": "rec_1", "tipo": "recurrente", "dia_semana": "lunes"}
             },
             "punctual_trips": {
-                "pun_1": {"id": "pun_1", "tipo": "puntual", "datetime": "2025-11-25T10:00:00"}
+                "pun_1": {
+                    "id": "pun_1",
+                    "tipo": "puntual",
+                    "datetime": "2025-11-25T10:00:00",
+                }
             },
             "kwh_today": 0.0,
             "hours_today": 0.0,
@@ -58,12 +66,8 @@ class TestTripPlannerSensorAttributes:
         # Arrange
         mock_coordinator = MagicMock()
         mock_coordinator.data = {
-            "recurring_trips": {
-                "rec_1": {"id": "rec_1"}
-            },
-            "punctual_trips": {
-                "pun_1": {"id": "pun_1"}
-            },
+            "recurring_trips": {"rec_1": {"id": "rec_1"}},
+            "punctual_trips": {"pun_1": {"id": "pun_1"}},
             "kwh_today": 0.0,
             "hours_today": 0.0,
             "next_trip": None,

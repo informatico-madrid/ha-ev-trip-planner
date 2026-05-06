@@ -261,10 +261,10 @@ class TestDefStartTimestepWindowBug:
         # The key is load 3: inicio_ventana ~142.33h, fin_ventana ~143.0h
         trips_data = [
             # (trip_id, emhass_index, inicio_offset_h, fin_offset_h)
-            ("trip_0", 0, 36.2, 43.0),    # window ~7h, hours=2 ✓
-            ("trip_1", 1, 52.1, 122.0),   # window ~70h, hours=2 ✓
+            ("trip_0", 0, 36.2, 43.0),  # window ~7h, hours=2 ✓
+            ("trip_1", 1, 52.1, 122.0),  # window ~70h, hours=2 ✓
             ("trip_2", 2, 131.3, 139.0),  # window ~8h, hours=2 ✓
-            ("trip_3", 3, 142.33, 143.0), # window ~1h, hours=2 ✗ BUG!
+            ("trip_3", 3, 142.33, 143.0),  # window ~1h, hours=2 ✗ BUG!
             ("trip_4", 4, 152.1, 163.0),  # window ~11h, hours=2 ✓
         ]
 

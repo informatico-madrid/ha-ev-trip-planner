@@ -52,10 +52,12 @@ def mock_emhass_adapter():
     adapter.async_remove_deferrable_load = AsyncMock()
     adapter.async_publish_deferrable_load = AsyncMock()
     adapter.async_publish_all_deferrable_loads = AsyncMock(return_value=True)
-    adapter.async_get_deferrable_params = AsyncMock(return_value={
-        "treat_as_deferrable": 1,
-        "optimization_cost_fun": "cost",
-    })
+    adapter.async_get_deferrable_params = AsyncMock(
+        return_value={
+            "treat_as_deferrable": 1,
+            "optimization_cost_fun": "cost",
+        }
+    )
     adapter.get_all_assigned_indices = Mock(return_value={})
     adapter.vehicle_id = "test_vehicle"
     return adapter
@@ -65,7 +67,9 @@ class TestTripManagerEMHASSMethods:
     """Tests for TripManager EMHASS-related methods."""
 
     @pytest.mark.asyncio
-    async def test_get_charging_power_with_config(self, mock_hass_with_charging_power, vehicle_id):
+    async def test_get_charging_power_with_config(
+        self, mock_hass_with_charging_power, vehicle_id
+    ):
         """Test _get_charging_power returns configured value."""
         manager = TripManager(mock_hass_with_charging_power, vehicle_id)
 
@@ -192,9 +196,13 @@ class TestTripManagerEMHASSMethods:
             "activo": False,
         }
 
-        await manager._async_sync_trip_to_emhass("trip_1", {"activo": False}, {"descripcion": "test"})
+        await manager._async_sync_trip_to_emhass(
+            "trip_1", {"activo": False}, {"descripcion": "test"}
+        )
 
-        mock_emhass_adapter.async_remove_deferrable_load.assert_called_once_with("trip_1")
+        mock_emhass_adapter.async_remove_deferrable_load.assert_called_once_with(
+            "trip_1"
+        )
 
     @pytest.mark.asyncio
     async def test_sync_trip_to_emhass_updates_active(
@@ -216,7 +224,9 @@ class TestTripManagerEMHASSMethods:
 
         # Non-critical update (just description)
         await manager._async_sync_trip_to_emhass(
-            "trip_1", {"descripcion": "Active trip"}, {"descripcion": "Updated description"}
+            "trip_1",
+            {"descripcion": "Active trip"},
+            {"descripcion": "Updated description"},
         )
 
         mock_emhass_adapter.async_update_deferrable_load.assert_called()
@@ -263,7 +273,9 @@ class TestTripManagerEMHASSMethods:
 
         await manager._async_remove_trip_from_emhass("trip_1")
 
-        mock_emhass_adapter.async_remove_deferrable_load.assert_called_once_with("trip_1")
+        mock_emhass_adapter.async_remove_deferrable_load.assert_called_once_with(
+            "trip_1"
+        )
         mock_emhass_adapter.async_publish_all_deferrable_loads.assert_called()
 
     @pytest.mark.asyncio
@@ -317,4 +329,3 @@ class TestTripManagerHelperMethods:
         # Invalid day defaults to Monday (index 0 in DAYS_OF_WEEK)
         result = manager._get_day_index("invalid_day")
         assert result == 0  # Monday (index 0)
-

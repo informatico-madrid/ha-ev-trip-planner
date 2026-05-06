@@ -221,7 +221,9 @@ async def test_async_step_emhass_with_emhass_config(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_async_step_emhass_horizon_exceeds_emhass_config_warning(tmp_path, caplog):
+async def test_async_step_emhass_horizon_exceeds_emhass_config_warning(
+    tmp_path, caplog
+):
     """Test async_step_emhass warns when user horizon > EMHASS horizon (line 442-448)."""
     import logging
 
@@ -361,7 +363,9 @@ async def test_async_step_emhass_sensor_horizon_warning(tmp_path, caplog):
 
 
 @pytest.mark.asyncio
-async def test_async_step_emhass_max_loads_exceeds_emhass_config_warning(tmp_path, caplog):
+async def test_async_step_emhass_max_loads_exceeds_emhass_config_warning(
+    tmp_path, caplog
+):
     """Test async_step_emhass warns when user loads > EMHASS loads (line 501-507)."""
     import logging
 

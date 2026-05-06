@@ -15,7 +15,9 @@ from custom_components.ev_trip_planner.const import (
 
 
 @pytest.mark.asyncio
-async def test_released_index_not_immediately_available(hass: HomeAssistant, mock_store):
+async def test_released_index_not_immediately_available(
+    hass: HomeAssistant, mock_store
+):
     """Verify released index goes to _released_indices, not back to _available_indices."""
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -23,7 +25,10 @@ async def test_released_index_not_immediately_available(hass: HomeAssistant, moc
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
@@ -53,7 +58,10 @@ async def test_released_index_available_after_cooldown(hass: HomeAssistant, mock
         CONF_INDEX_COOLDOWN_HOURS: 1,  # 1 hour cooldown for faster test
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
@@ -91,7 +99,10 @@ async def test_new_trip_gets_next_available_index(hass: HomeAssistant, mock_stor
         CONF_INDEX_COOLDOWN_HOURS: 24,
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 
@@ -113,14 +124,18 @@ async def test_new_trip_gets_next_available_index(hass: HomeAssistant, mock_stor
 
         # Assign a new trip - should get index 3, NOT 1 (still in cooldown)
         new_idx = await adapter.async_assign_index_to_trip("trip_004")
-        assert new_idx == 3, "New trip should get next available index, not recently released one"
+        assert new_idx == 3, (
+            "New trip should get next available index, not recently released one"
+        )
 
         # Verify index 1 is still in released_indices
         assert 1 in adapter._released_indices
 
 
 @pytest.mark.asyncio
-async def test_multiple_indices_released_cooldown_handled_correctly(hass: HomeAssistant, mock_store):
+async def test_multiple_indices_released_cooldown_handled_correctly(
+    hass: HomeAssistant, mock_store
+):
     """Verify independent cooldown timers for multiple released indices."""
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -129,7 +144,10 @@ async def test_multiple_indices_released_cooldown_handled_correctly(hass: HomeAs
         CONF_INDEX_COOLDOWN_HOURS: 1,  # 1 hour cooldown
     }
 
-    with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
         adapter = EMHASSAdapter(hass, config)
         await adapter.async_load()
 

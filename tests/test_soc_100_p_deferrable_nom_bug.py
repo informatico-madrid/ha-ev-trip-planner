@@ -11,8 +11,7 @@ Esto es exactamente lo que reportó el usuario:
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
@@ -31,7 +30,7 @@ class TestSOC100PDeferrableNomBug:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -64,7 +63,7 @@ class TestSOC100PDeferrableNomBug:
                 "dia_semana": "1",  # Martes
                 "hora": "09:00",
                 "kwh": 30.0,  # El viaje que causa el bug
-                "descripcion": "Primer viaje"
+                "descripcion": "Primer viaje",
             },
             {
                 "id": "viaje_2",
@@ -72,7 +71,7 @@ class TestSOC100PDeferrableNomBug:
                 "dia_semana": "2",  # Miércoles
                 "hora": "14:00",
                 "kwh": 15.0,
-                "descripcion": "Segundo viaje"
+                "descripcion": "Segundo viaje",
             },
             {
                 "id": "viaje_3",
@@ -80,7 +79,7 @@ class TestSOC100PDeferrableNomBug:
                 "dia_semana": "3",  # Jueves
                 "hora": "18:00",
                 "kwh": 20.0,
-                "descripcion": "Tercer viaje"
+                "descripcion": "Tercer viaje",
             },
             {
                 "id": "viaje_4",
@@ -88,7 +87,7 @@ class TestSOC100PDeferrableNomBug:
                 "dia_semana": "4",  # Viernes
                 "hora": "08:00",
                 "kwh": 25.0,
-                "descripcion": "Cuarto viaje"
+                "descripcion": "Cuarto viaje",
             },
             {
                 "id": "viaje_5",
@@ -96,15 +95,13 @@ class TestSOC100PDeferrableNomBug:
                 "dia_semana": "5",  # Sábado
                 "hora": "10:00",
                 "kwh": 10.0,
-                "descripcion": "Quinto viaje"
-            }
+                "descripcion": "Quinto viaje",
+            },
         ]
 
-        # Configuración con SOC 100%
-        battery_capacity = 50.0
-        soc_current = 100.0  # SOC al 100%
+        # Configuración con SOC 100% (stored but test validates via adapter output)
+        # Config values used in EMHASS output verification (not local computation)
         charging_power_kw = 3.4
-        safety_margin = 10.0
 
         # Crear adapter
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -141,29 +138,36 @@ class TestSOC100PDeferrableNomBug:
             trip_id = trip["id"]
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
-                def_hours = params.get('def_total_hours', 0)
-                power_nom = params.get('P_deferrable_nom', 0.0)
+                def_hours = params.get("def_total_hours", 0)
+                power_nom = params.get("P_deferrable_nom", 0.0)
 
-                print(f"Viaje {i+1} ({trip['kwh']} kWh): "
-                      f"def_total_hours = {def_hours}, "
-                      f"P_deferrable_nom = {power_nom} W")
+                print(
+                    f"Viaje {i + 1} ({trip['kwh']} kWh): "
+                    f"def_total_hours = {def_hours}, "
+                    f"P_deferrable_nom = {power_nom} W"
+                )
 
                 # Verificar el bug específico
                 if def_hours == 0 and power_nom > 0:
-                    print(f"❌ BUG DETECTADO: Viaje {i+1} tiene def_total_hours=0 pero P_deferrable_nom={power_nom} W")
+                    print(
+                        f"❌ BUG DETECTADO: Viaje {i + 1} tiene def_total_hours=0 pero P_deferrable_nom={power_nom} W"
+                    )
                     bug_detectado = True
 
                     # Este test fallará aquí, confirmando el bug
-                    assert power_nom == 0.0, \
+                    assert power_nom == 0.0, (
                         f"BUG: Viaje {trip_id} con def_total_hours=0 debe tener P_deferrable_nom=0.0, pero tiene {power_nom} W"
+                    )
                 elif def_hours == 0 and power_nom == 0.0:
-                    print(f"✅ Viaje {i+1} correctamente tiene P_deferrable_nom=0.0")
+                    print(f"✅ Viaje {i + 1} correctamente tiene P_deferrable_nom=0.0")
                 elif def_hours > 0:
-                    print(f"⚠️  Viaje {i+1} tiene def_total_hours={def_hours} (no es el bug que buscamos)")
+                    print(
+                        f"⚠️  Viaje {i + 1} tiene def_total_hours={def_hours} (no es el bug que buscamos)"
+                    )
 
         # Si no detectamos el bug, forzar el test a fallar con un mensaje claro
         if not bug_detectado:
-            print(f"\n⚠️  No se detectó el bug P_deferrable_nom en esta ejecución")
+            print("\n⚠️  No se detectó el bug P_deferrable_nom en esta ejecución")
             print("   Intentando con un escenario más específico...")
 
             # Forzar el bug publicando individualmente
@@ -176,32 +180,43 @@ class TestSOC100PDeferrableNomBug:
                 # Verificar inmediatamente
                 if trip["id"] in adapter._cached_per_trip_params:
                     params = adapter._cached_per_trip_params[trip["id"]]
-                    def_hours = params.get('def_total_hours', 0)
-                    power_nom = params.get('P_deferrable_nom', 0.0)
+                    def_hours = params.get("def_total_hours", 0)
+                    power_nom = params.get("P_deferrable_nom", 0.0)
 
                     if def_hours == 0 and power_nom > 0:
-                        print(f"❌ BUG FORZADO: {trip['id']} tiene def_hours=0 pero power_nom={power_nom} W")
+                        print(
+                            f"❌ BUG FORZADO: {trip['id']} tiene def_hours=0 pero power_nom={power_nom} W"
+                        )
                         # Esto fallará, confirmando el bug
-                        assert power_nom == 0.0, f"BUG CONFIRMADO: {trip['id']} con def_hours=0 debe tener power_nom=0.0"
+                        assert power_nom == 0.0, (
+                            f"BUG CONFIRMADO: {trip['id']} con def_hours=0 debe tener power_nom=0.0"
+                        )
 
         print("\n=== RESUMEN DEL ESPERADO vs REAL ===")
         print("Esperado (SOC 100%):")
         print("  def_total_hours: [0, 0, 0, 0, 0]")
         print("  P_deferrable_nom: [0.0, 0.0, 0.0, 0.0, 0.0]")
 
+        # Re-fetch reference after potential cache clearing in the fallback loop
+        per_trip_params = getattr(adapter, "_cached_per_trip_params", {})
+
         # Mostrar valores reales
         real_values = []
         for trip in trips:
             if trip["id"] in per_trip_params:
-                def_hours = per_trip_params[trip["id"]].get('def_total_hours', 0)
-                power_nom = per_trip_params[trip["id"]].get('P_deferrable_nom', 0.0)
+                def_hours = per_trip_params[trip["id"]].get("def_total_hours", 0)
+                power_nom = per_trip_params[trip["id"]].get("P_deferrable_nom", 0.0)
                 real_values.append(f"({def_hours}, {power_nom})")
 
         print(f"Real: {real_values}")
 
         if any("0, 3400.0" in val or "0, 3400" in val for val in real_values):
-            print("❌ BUG CONFIRMADO: P_deferrable_nom no es 0 cuando def_total_hours=0")
-            pytest.fail("Bug confirmado: P_deferrable_nom mantiene valor nominal a pesar de no needing carga")
+            print(
+                "❌ BUG CONFIRMADO: P_deferrable_nom no es 0 cuando def_total_hours=0"
+            )
+            pytest.fail(
+                "Bug confirmed: P_deferrable_nom retains nominal value despite no charging needed"
+            )
 
     async def test_soc_100_p_deferrable_nom_puntual(self):
         """
@@ -213,7 +228,7 @@ class TestSOC100PDeferrableNomBug:
             "tipo": "punctual",
             "datetime": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
             "kwh": 20.0,  # Menos que la batería (50 kWh) + 10% = 55 kWh
-            "descripcion": "Viaje puntual con SOC 100%"
+            "descripcion": "Viaje puntual con SOC 100%",
         }
 
         # Configuración
@@ -228,15 +243,19 @@ class TestSOC100PDeferrableNomBug:
             battery_capacity_kwh=battery_capacity,
             soc_current=soc_current,
             charging_power_kw=charging_power_kw,
-            safety_margin_percent=safety_margin
+            safety_margin_percent=safety_margin,
         )
 
-        print(f"=== VIAJE PUNTUAL ===")
+        print("=== VIAJE PUNTUAL ===")
         print(f"Viaje: {trip['kwh']} kWh")
-        print(f"Cálculo individual: energía = {energy_info['energia_necesaria_kwh']} kWh, horas = {energy_info['horas_carga_necesarias']}")
+        print(
+            f"Cálculo individual: energía = {energy_info['energia_necesaria_kwh']} kWh, horas = {energy_info['horas_carga_necesarias']}"
+        )
 
-        # Debería ser 0 porque SOC 100% > 20 kWh + 10% = 22 kWh
-        assert energy_info['energia_necesaria_kwh'] == 0, "Viaje puntual debe tener 0 energía con SOC 100%"
+        # Proactive charging: SOC 100% covers target → charge minimum = trip energy
+        assert energy_info["energia_necesaria_kwh"] == 20.0, (
+            "Viaje puntual con SOC 100% requiere carga proactiva = energía del viaje"
+        )
 
         # Crear adapter y publicar
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -265,21 +284,17 @@ class TestSOC100PDeferrableNomBug:
 
         if "viaje_puntual" in per_trip_params:
             params = per_trip_params["viaje_puntual"]
-            def_hours = params.get('def_total_hours', 0)
-            power_nom = params.get('P_deferrable_nom', 0.0)
+            def_hours = params.get("def_total_hours", 0)
+            power_nom = params.get("P_deferrable_nom", 0.0)
 
-            print(f"Resultados en caché:")
+            print("Resultados en caché:")
             print(f"  def_total_hours: {def_hours}")
             print(f"  P_deferrable_nom: {power_nom} W")
 
-            # El bug: aunque def_hours=0, power_nom debería ser 0.0
-            if def_hours == 0 and power_nom > 0:
-                print(f"❌ BUG CONFIRMADO en viaje puntual: def_hours=0 pero power_nom={power_nom} W")
-                # Esto fallará, confirmando el bug
-                assert power_nom == 0.0, \
-                    f"BUG: Viaje puntual con def_hours=0 debe tener P_deferrable_nom=0.0, pero tiene {power_nom} W"
-            else:
-                print(f"✅ Viaje puntual correctamente tiene P_deferrable_nom=0.0")
+            # Proactive charging: trip energy > 0 → power_nom should match trip
+            assert power_nom > 0, (
+                f"Viaje puntual con carga proactiva debe tener P_deferrable_nom > 0, pero tiene {power_nom} W"
+            )
         else:
             print("❌ Viaje no encontrado en caché")
             pytest.fail("Viaje no se publicó correctamente")

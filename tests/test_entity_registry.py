@@ -22,12 +22,14 @@ class FakeEntry:
         self.data = data
         self.version = 1
         self.minor_version = 1
+
         # runtime_data with mock objects
         class FakeRuntimeData:
             def __init__(self):
                 self.trip_manager = None
                 self.coordinator = None
                 self.sensor_async_add_entities = None
+
         self.runtime_data = FakeRuntimeData()
 
     @property
@@ -56,7 +58,8 @@ def mock_hass(config_entry):
     class MockRegistry:
         """Mock entity registry that tracks entities."""
 
-        def __init__(self):
+        def __init__(self, hass_mock):
+            self.hass_mock = hass_mock
             self.entries = {}
             # Add entities attribute with get_entries_for_config_entry_id method
             self.entities = self
@@ -66,8 +69,8 @@ def mock_hass(config_entry):
 
         def async_get_or_create(self, *args, **kwargs):
             # Create a mock entry and store it
-            suggested_object_id = kwargs.get('suggested_object_id', 'unknown')
-            unique_id = kwargs.get('unique_id', '')
+            suggested_object_id = kwargs.get("suggested_object_id", "unknown")
+            unique_id = kwargs.get("unique_id", "")
             entity_id = f"sensor.{suggested_object_id}"
             entry = MockRegistryEntry(entity_id, unique_id, config_entry.entry_id)
             self.entries[entity_id] = entry
@@ -81,8 +84,7 @@ def mock_hass(config_entry):
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
         def async_remove(self, entity_id):
-            # EntityRegistry.async_remove is NOT async - returns None
-            # See: homeassistant/helpers/entity_registry.py
+            """EntityRegistry.async_remove is @callback, NOT async def."""
             if entity_id in self.entries:
                 del self.entries[entity_id]
 
@@ -93,7 +95,7 @@ def mock_hass(config_entry):
             self.config_entry_id = config_entry_id
 
     # Create mock registry
-    mock_registry = MockRegistry()
+    mock_registry = MockRegistry(hass)
     hass.entity_registry = mock_registry
 
     # Mock hass.data for runtime storage
@@ -146,19 +148,20 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     from custom_components.ev_trip_planner.sensor import async_setup_entry
 
     # Store async_add_entities for later use (simulating HA behavior)
-    captured_async_add_entities = None
     created_entities = []
 
     def capture_async_add_entities(entities, update_before_add=True):
-        nonlocal captured_async_add_entities
-        captured_async_add_entities = capture_async_add_entities
         created_entities.extend(entities)
         # Simulate HA's async_add_entities: register each entity in the registry
         registry = mock_hass.entity_registry
         for entity in entities:
             # Use the entity's unique_id and name to create a registry entry
-            unique_id = getattr(entity, '_attr_unique_id', None) or getattr(entity, 'unique_id', 'unknown')
-            suggested_object_id = getattr(entity, '_attr_name', None) or getattr(entity, 'name', 'unknown')
+            unique_id = getattr(entity, "_attr_unique_id", None) or getattr(
+                entity, "unique_id", "unknown"
+            )
+            suggested_object_id = getattr(entity, "_attr_name", None) or getattr(
+                entity, "name", "unknown"
+            )
             registry.async_get_or_create(
                 domain="sensor",
                 platform="ev_trip_planner",
@@ -168,7 +171,9 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
             )
 
     # Run the actual async_setup_entry
-    result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
+    result = await async_setup_entry(
+        mock_hass, config_entry, capture_async_add_entities
+    )
     assert result is True, "async_setup_entry should succeed"
 
     # Store callback in runtime_data for async_create_trip_sensor to use later
@@ -197,9 +202,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     entries = registry.async_entries_for_config_entry(config_entry.entry_id)
 
     # At least 8 registry entries should exist
-    assert len(entries) >= 8, (
-        f"Expected >= 8 registry entries, got {len(entries)}"
-    )
+    assert len(entries) >= 8, f"Expected >= 8 registry entries, got {len(entries)}"
 
     # Every registry entry must have a unique_id
     registry_missing_uid = []
@@ -245,10 +248,12 @@ async def test_two_vehicles_no_unique_id_collision():
             return self
 
         def async_get_or_create(self, *args, **kwargs):
-            suggested_object_id = kwargs.get('suggested_object_id', 'unknown')
-            unique_id = kwargs.get('unique_id', '')
+            suggested_object_id = kwargs.get("suggested_object_id", "unknown")
+            unique_id = kwargs.get("unique_id", "")
             entity_id = f"sensor.{suggested_object_id}"
-            config_entry_id = kwargs.get('config_entry', kwargs.get('config_entry_id', ''))
+            config_entry_id = kwargs.get(
+                "config_entry", kwargs.get("config_entry_id", "")
+            )
             entry = MockRegistryEntry(entity_id, unique_id, config_entry_id)
             self.entries[entity_id] = entry
             return entry
@@ -278,17 +283,19 @@ async def test_two_vehicles_no_unique_id_collision():
         tm = MagicMock()
         tm.async_get_recurring_trips = AsyncMock(return_value=[])
         # Both vehicles have a trip with id="1" - this is the collision
-        tm.async_get_punctual_trips = AsyncMock(return_value=[
-            {
-                "id": "1",
-                "tipo": "punctual",
-                "descripcion": "Trip to work",
-                "km": 25.0,
-                "kwh": 5.0,
-                "datetime": "2024-01-15T08:00:00",
-                "estado": "pendiente",
-            }
-        ])
+        tm.async_get_punctual_trips = AsyncMock(
+            return_value=[
+                {
+                    "id": "1",
+                    "tipo": "punctual",
+                    "descripcion": "Trip to work",
+                    "km": 25.0,
+                    "kwh": 5.0,
+                    "datetime": "2024-01-15T08:00:00",
+                    "estado": "pendiente",
+                }
+            ]
+        )
         tm.async_delete_all_trips = AsyncMock()
 
         coordinator = MagicMock()
@@ -312,34 +319,42 @@ async def test_two_vehicles_no_unique_id_collision():
 
     # Run async_setup_entry for vehicle A
     entities_a = []
+
     def capture_a(entities, update_before_add=True):
         entities_a.extend(entities)
+
     await async_setup_entry(hass_a, entry_a, capture_a)
 
     # Run async_setup_entry for vehicle B
     entities_b = []
+
     def capture_b(entities, update_before_add=True):
         entities_b.extend(entities)
+
     await async_setup_entry(hass_b, entry_b, capture_b)
 
     # Collect TripSensor unique_ids from both vehicles
     trip_sensor_unique_ids_a = [
-        getattr(e, '_attr_unique_id', None)
+        getattr(e, "_attr_unique_id", None)
         for e in entities_a
-        if type(e).__name__ == 'TripSensor'
+        if type(e).__name__ == "TripSensor"
     ]
     trip_sensor_unique_ids_b = [
-        getattr(e, '_attr_unique_id', None)
+        getattr(e, "_attr_unique_id", None)
         for e in entities_b
-        if type(e).__name__ == 'TripSensor'
+        if type(e).__name__ == "TripSensor"
     ]
 
     # Combine TripSensor unique_ids from both vehicles
     all_trip_sensor_unique_ids = trip_sensor_unique_ids_a + trip_sensor_unique_ids_b
 
     # Verify we have exactly 1 TripSensor from each vehicle
-    assert len(trip_sensor_unique_ids_a) == 1, f"Expected 1 TripSensor from vehicle A, got {len(trip_sensor_unique_ids_a)}"
-    assert len(trip_sensor_unique_ids_b) == 1, f"Expected 1 TripSensor from vehicle B, got {len(trip_sensor_unique_ids_b)}"
+    assert len(trip_sensor_unique_ids_a) == 1, (
+        f"Expected 1 TripSensor from vehicle A, got {len(trip_sensor_unique_ids_a)}"
+    )
+    assert len(trip_sensor_unique_ids_b) == 1, (
+        f"Expected 1 TripSensor from vehicle B, got {len(trip_sensor_unique_ids_b)}"
+    )
 
     # Now check for global uniqueness - all TripSensor unique_ids must be unique across vehicles
     # This FAILS because both vehicles create TripSensor with unique_id="trip_1"
@@ -432,8 +447,12 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
         registry = mock_hass.entity_registry
         for entity in entities:
             # Use the entity's unique_id and name to create a registry entry
-            unique_id = getattr(entity, '_attr_unique_id', None) or getattr(entity, 'unique_id', 'unknown')
-            suggested_object_id = getattr(entity, '_attr_name', None) or getattr(entity, 'name', 'unknown')
+            unique_id = getattr(entity, "_attr_unique_id", None) or getattr(
+                entity, "unique_id", "unknown"
+            )
+            suggested_object_id = getattr(entity, "_attr_name", None) or getattr(
+                entity, "name", "unknown"
+            )
             registry.async_get_or_create(
                 domain="sensor",
                 platform="ev_trip_planner",
@@ -443,7 +462,9 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
             )
 
     # Run async_setup_entry to set up the initial 8 sensors
-    result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
+    result = await async_setup_entry(
+        mock_hass, config_entry, capture_async_add_entities
+    )
     assert result is True, "async_setup_entry should succeed"
 
     # Store callback in runtime_data for async_create_trip_sensor to use later
@@ -479,8 +500,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
 
     # Find any registry entry whose unique_id contains our trip_id
     matching_entries = [
-        entry for entry in all_entries.values()
-        if "test_trip_001" in entry.unique_id
+        entry for entry in all_entries.values() if "test_trip_001" in entry.unique_id
     ]
 
     # This should now PASS: async_create_trip_sensor calls async_add_entities()
@@ -553,11 +573,14 @@ async def test_no_duplicate_sensors_after_reload(mock_hass, config_entry):
     from custom_components.ev_trip_planner.sensor import async_setup_entry
 
     created_entities = []
+
     def capture_async_add_entities(entities, update_before_add=True):
         created_entities.extend(entities)
 
     # Initial setup
-    result = await async_setup_entry(mock_hass, config_entry, capture_async_add_entities)
+    result = await async_setup_entry(
+        mock_hass, config_entry, capture_async_add_entities
+    )
     assert result is True, "async_setup_entry should succeed"
 
     # Verify we have 8 sensors

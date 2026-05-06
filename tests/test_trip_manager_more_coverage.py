@@ -74,7 +74,9 @@ async def test_async_generate_deferrables_schedule_basic_flow() -> None:
         "r1": {"id": "r1", "activo": True, "hora": "08:00"},
         "r2": {"id": "r2", "activo": True, "hora": "09:00"},
     }
-    tm._punctual_trips = {"p1": {"id": "p1", "estado": "pendiente", "hora": now.isoformat()}}
+    tm._punctual_trips = {
+        "p1": {"id": "p1", "estado": "pendiente", "hora": now.isoformat()}
+    }
 
     # Patch time-related and heavy calculation functions
     tm._get_trip_time = lambda trip: now + timedelta(hours=1)
@@ -83,10 +85,14 @@ async def test_async_generate_deferrables_schedule_basic_flow() -> None:
     async def fake_async_calcular_energia_necesaria(trip, vehicle_config):
         return {"energia_necesaria_kwh": 1.5, "horas_carga_necesarias": 2.5}
 
-    tm.async_calcular_energia_necesaria = AsyncMock(side_effect=fake_async_calcular_energia_necesaria)
+    tm.async_calcular_energia_necesaria = AsyncMock(
+        side_effect=fake_async_calcular_energia_necesaria
+    )
 
     # Run schedule generation; we don't assert deep correctness, only that path runs
-    schedule = await tm.async_generate_deferrables_schedule(charging_power_kw=3.6, planning_horizon_days=1)
+    schedule = await tm.async_generate_deferrables_schedule(
+        charging_power_kw=3.6, planning_horizon_days=1
+    )
     assert isinstance(schedule, list)
 
 
@@ -107,7 +113,13 @@ async def test_deferrables_schedule_handles_no_datetime_trip() -> None:
 
     # Add punctual trip WITHOUT datetime field - should be skipped at line 1950-1951
     tm._punctual_trips = {
-        "p1": {"id": "p1", "tipo": "puntual", "km": 50.0, "kwh": 15.0, "estado": "pendiente"}
+        "p1": {
+            "id": "p1",
+            "tipo": "puntual",
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
     }
     tm._recurring_trips = {}
 
@@ -116,9 +128,13 @@ async def test_deferrables_schedule_handles_no_datetime_trip() -> None:
     async def fake_async_calcular_energia_necesaria(trip, vehicle_config):
         return {"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
 
-    tm.async_calcular_energia_necesaria = AsyncMock(side_effect=fake_async_calcular_energia_necesaria)
+    tm.async_calcular_energia_necesaria = AsyncMock(
+        side_effect=fake_async_calcular_energia_necesaria
+    )
 
-    schedule = await tm.async_generate_deferrables_schedule(charging_power_kw=3.6, planning_horizon_days=1)
+    schedule = await tm.async_generate_deferrables_schedule(
+        charging_power_kw=3.6, planning_horizon_days=1
+    )
     assert isinstance(schedule, list)
 
 
@@ -138,9 +154,18 @@ async def test_deferrables_schedule_handles_past_trip() -> None:
     tm = TripManager(hass, "veh", entry_id="e1")
 
     # Add punctual trip with PAST datetime - should be skipped at line 1957-1958
-    past_date = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
+    past_date = (datetime.now(timezone.utc) - timedelta(days=2)).strftime(
+        "%Y-%m-%dT%H:%M"
+    )
     tm._punctual_trips = {
-        "p1": {"id": "p1", "tipo": "puntual", "datetime": past_date, "km": 50.0, "kwh": 15.0, "estado": "pendiente"}
+        "p1": {
+            "id": "p1",
+            "tipo": "puntual",
+            "datetime": past_date,
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
     }
     tm._recurring_trips = {}
 
@@ -149,9 +174,13 @@ async def test_deferrables_schedule_handles_past_trip() -> None:
     async def fake_async_calcular_energia_necesaria(trip, vehicle_config):
         return {"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
 
-    tm.async_calcular_energia_necesaria = AsyncMock(side_effect=fake_async_calcular_energia_necesaria)
+    tm.async_calcular_energia_necesaria = AsyncMock(
+        side_effect=fake_async_calcular_energia_necesaria
+    )
 
-    schedule = await tm.async_generate_deferrables_schedule(charging_power_kw=3.6, planning_horizon_days=1)
+    schedule = await tm.async_generate_deferrables_schedule(
+        charging_power_kw=3.6, planning_horizon_days=1
+    )
     assert isinstance(schedule, list)
 
 
@@ -179,8 +208,14 @@ async def test_deferrables_schedule_loop_executes_power_assignment() -> None:
     # Trip 10 hours in future, needs 3 hours charging -> loop runs at h=7,8,9
     future_time = datetime.now(timezone.utc) + timedelta(hours=10)
     tm._punctual_trips = {
-        "p1": {"id": "p1", "tipo": "puntual", "datetime": future_time.strftime("%Y-%m-%dT%H:%M"),
-               "km": 50.0, "kwh": 15.0, "estado": "pendiente"}
+        "p1": {
+            "id": "p1",
+            "tipo": "puntual",
+            "datetime": future_time.strftime("%Y-%m-%dT%H:%M"),
+            "km": 50.0,
+            "kwh": 15.0,
+            "estado": "pendiente",
+        }
     }
     tm._recurring_trips = {}
 
@@ -190,9 +225,13 @@ async def test_deferrables_schedule_loop_executes_power_assignment() -> None:
     async def fake_async_calcular_energia_necesaria(trip, vehicle_config):
         return {"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
 
-    tm.async_calcular_energia_necesaria = AsyncMock(side_effect=fake_async_calcular_energia_necesaria)
+    tm.async_calcular_energia_necesaria = AsyncMock(
+        side_effect=fake_async_calcular_energia_necesaria
+    )
 
-    schedule = await tm.async_generate_deferrables_schedule(charging_power_kw=3.6, planning_horizon_days=1)
+    schedule = await tm.async_generate_deferrables_schedule(
+        charging_power_kw=3.6, planning_horizon_days=1
+    )
     assert isinstance(schedule, list)
 
 
@@ -214,16 +253,19 @@ async def test_async_update_trip_filters_fields_by_type() -> None:
     )
 
     # Update punctual trip WITH dia_semana and hora - these should be FILTERED OUT
-    await tm.async_update_trip("pun_test", {
-        "km": 50.0,
-        "dia_semana": "3",  # Should be filtered - not relevant for punctual
-        "hora": "10:00",    # Should be filtered - not relevant for punctual
-    })
+    await tm.async_update_trip(
+        "pun_test",
+        {
+            "km": 50.0,
+            "dia_semana": "3",  # Should be filtered - not relevant for punctual
+            "hora": "10:00",  # Should be filtered - not relevant for punctual
+        },
+    )
 
     updated = tm._punctual_trips["pun_test"]
     assert updated["km"] == 50.0
     assert "dia_semana" not in updated  # Filtered out
-    assert "hora" not in updated        # Filtered out
+    assert "hora" not in updated  # Filtered out
     assert updated["datetime"] == "2026-04-20T14:00"  # Original preserved
 
     # Add a recurring trip
@@ -236,16 +278,19 @@ async def test_async_update_trip_filters_fields_by_type() -> None:
     )
 
     # Update recurring trip WITH datetime - should be FILTERED OUT
-    await tm.async_update_trip("rec_test", {
-        "km": 40.0,
-        "datetime": "2026-04-25T16:00",  # Should be filtered - not relevant for recurring
-    })
+    await tm.async_update_trip(
+        "rec_test",
+        {
+            "km": 40.0,
+            "datetime": "2026-04-25T16:00",  # Should be filtered - not relevant for recurring
+        },
+    )
 
     updated_rec = tm._recurring_trips["rec_test"]
     assert updated_rec["km"] == 40.0
     assert "datetime" not in updated_rec  # Filtered out
-    assert updated_rec["dia_semana"] == "2"   # Original preserved
-    assert updated_rec["hora"] == "09:00"       # Original preserved
+    assert updated_rec["dia_semana"] == "2"  # Original preserved
+    assert updated_rec["hora"] == "09:00"  # Original preserved
 
 
 async def test_async_calcular_energia_necesaria_safety_margin_default() -> None:

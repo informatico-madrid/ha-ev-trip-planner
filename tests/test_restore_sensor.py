@@ -96,7 +96,7 @@ def test_trip_planner_sensor_calls_async_get_last_sensor_data(mock_coordinator):
 
     # EXPECTED: sensor should have async_get_last_sensor_data method from RestoreSensor
     # ACTUAL (RED): sensor does NOT have this method
-    assert hasattr(sensor, 'async_get_last_sensor_data'), (
+    assert hasattr(sensor, "async_get_last_sensor_data"), (
         "TripPlannerSensor with restore=True should have async_get_last_sensor_data() "
         "inherited from RestoreSensor. Method not found."
     )
@@ -131,7 +131,9 @@ def test_trip_planner_sensor_without_restore_not_restore_sensor(mock_coordinator
 
     # restore=False sensors don't need RestoreSensor behavior
     # (they just won't restore - this is expected behavior)
-    assert isinstance(sensor, RestoreSensor) or not hasattr(sensor, 'async_get_last_sensor_data'), (
+    assert isinstance(sensor, RestoreSensor) or not hasattr(
+        sensor, "async_get_last_sensor_data"
+    ), (
         "TripPlannerSensor with restore=False may or may not be RestoreSensor - "
         "this is not strictly required."
     )

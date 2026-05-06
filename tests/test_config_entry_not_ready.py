@@ -31,6 +31,7 @@ class FakeEntry:
                 self.trip_manager = None
                 self.coordinator = None
                 self.sensor_async_add_entities = None
+
         self.runtime_data = FakeRuntimeData()
 
     @property
@@ -76,8 +77,8 @@ async def test_config_entry_not_ready_propagates_from_async_setup_entry():
 
     # Patch TripPlannerCoordinator class to return our mock coordinator
     with patch(
-        'custom_components.ev_trip_planner.TripPlannerCoordinator',
-        return_value=mock_coordinator
+        "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        return_value=mock_coordinator,
     ):
         # Set up runtime_data with the failing coordinator
         entry.runtime_data.coordinator = mock_coordinator

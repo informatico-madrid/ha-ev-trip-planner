@@ -3,7 +3,7 @@
 **Plan electric trips and optimize your vehicle's energy consumption**
 
 [![HACS](https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Version](https://img.shields.io/badge/version-0.5.20-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
+[![Version](https://img.shields.io/badge/version-0.5.23-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
 

@@ -336,7 +336,9 @@ async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
     # Patch async_get_entry to return None (entry not found)
     with patch.object(hass.config_entries, "async_get_entry", return_value=None):
         # Import and call the function
-        from custom_components.ev_trip_planner.sensor import async_create_trip_emhass_sensor
+        from custom_components.ev_trip_planner.sensor import (
+            async_create_trip_emhass_sensor,
+        )
 
         result = await async_create_trip_emhass_sensor(
             hass, "nonexistent_entry", mock_coordinator, "test_vehicle", "trip_001"
@@ -395,7 +397,9 @@ async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
     # Patch the config_entries.async_get_entry method on the hass object
     with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry):
         # Import and call the function
-        from custom_components.ev_trip_planner.sensor import async_create_trip_emhass_sensor
+        from custom_components.ev_trip_planner.sensor import (
+            async_create_trip_emhass_sensor,
+        )
 
         result = await async_create_trip_emhass_sensor(
             hass, mock_entry.entry_id, mock_coordinator, "test_vehicle", "trip_001"
@@ -462,11 +466,18 @@ async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry), \
-         patch.object(hass, "entity_registry", mock_registry), \
-         patch("custom_components.ev_trip_planner.sensor.async_entries_for_config_entry", return_value=[mock_reg_entry]):
+    with (
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+        patch.object(hass, "entity_registry", mock_registry),
+        patch(
+            "custom_components.ev_trip_planner.sensor.async_entries_for_config_entry",
+            return_value=[mock_reg_entry],
+        ),
+    ):
         # Import and call the function
-        from custom_components.ev_trip_planner.sensor import async_remove_trip_emhass_sensor
+        from custom_components.ev_trip_planner.sensor import (
+            async_remove_trip_emhass_sensor,
+        )
 
         result = await async_remove_trip_emhass_sensor(
             hass, mock_entry.entry_id, "test_vehicle", "trip_001"
@@ -513,11 +524,18 @@ async def test_remove_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
         CONF_CHARGING_POWER: 7.4,
     }
 
-    with patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry), \
-         patch.object(hass, "entity_registry", mock_registry), \
-         patch("custom_components.ev_trip_planner.sensor.async_entries_for_config_entry", return_value=[]):
+    with (
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+        patch.object(hass, "entity_registry", mock_registry),
+        patch(
+            "custom_components.ev_trip_planner.sensor.async_entries_for_config_entry",
+            return_value=[],
+        ),
+    ):
         # Import and call the function
-        from custom_components.ev_trip_planner.sensor import async_remove_trip_emhass_sensor
+        from custom_components.ev_trip_planner.sensor import (
+            async_remove_trip_emhass_sensor,
+        )
 
         result = await async_remove_trip_emhass_sensor(
             hass, mock_entry.entry_id, "test_vehicle", "nonexistent_trip"

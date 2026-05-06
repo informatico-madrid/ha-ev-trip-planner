@@ -22,13 +22,15 @@ class TestTripPlannerSensorBasics:
 
     def test_trip_planner_sensor_creation(self):
         """Test TripPlannerSensor can be created with coordinator."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {},
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         desc = TRIP_SENSORS[0]  # Use first sensor description
         sensor = TripPlannerSensor(coordinator, "test_vehicle", desc)
         assert sensor._vehicle_id == "test_vehicle"
@@ -36,13 +38,15 @@ class TestTripPlannerSensorBasics:
 
     def test_trip_planner_sensor_native_value(self):
         """Test TripPlannerSensor returns value from coordinator.data."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {},
-            "kwh_today": 12.5,
-            "hours_today": 2.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {},
+                "kwh_today": 12.5,
+                "hours_today": 2.0,
+                "next_trip": None,
+            }
+        )
         # Find a description that reads kwh_today
         for desc in TRIP_SENSORS:
             if desc.key == "kwh_needed_today":
@@ -52,13 +56,15 @@ class TestTripPlannerSensorBasics:
 
     def test_trip_planner_sensor_extra_state_attributes(self):
         """Test TripPlannerSensor extra_state_attributes returns trips."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {"rec_1": {"id": "rec_1", "tipo": "recurrente"}},
-            "punctual_trips": {"pun_1": {"id": "pun_1", "tipo": "puntual"}},
-            "kwh_today": 5.0,
-            "hours_today": 1.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {"rec_1": {"id": "rec_1", "tipo": "recurrente"}},
+                "punctual_trips": {"pun_1": {"id": "pun_1", "tipo": "puntual"}},
+                "kwh_today": 5.0,
+                "hours_today": 1.0,
+                "next_trip": None,
+            }
+        )
         for desc in TRIP_SENSORS:
             if desc.key == "recurring_trips_count":
                 sensor = TripPlannerSensor(coordinator, "test_vehicle", desc)
@@ -73,22 +79,26 @@ class TestEmhassDeferrableLoadSensor:
 
     def test_emhass_sensor_creation(self):
         """Test EmhassDeferrableLoadSensor can be created."""
-        coordinator = make_test_coordinator({
-            "emhass_power_profile": None,
-            "emhass_deferrables_schedule": None,
-            "emhass_status": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "emhass_power_profile": None,
+                "emhass_deferrables_schedule": None,
+                "emhass_status": None,
+            }
+        )
         sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry")
         assert sensor._entry_id == "test_entry"
         assert sensor.coordinator == coordinator
 
     def test_emhass_sensor_native_value_with_status(self):
         """Test EmhassDeferrableLoadSensor returns status."""
-        coordinator = make_test_coordinator({
-            "emhass_power_profile": [100] * 168,
-            "emhass_deferrables_schedule": [],
-            "emhass_status": "ready",
-        })
+        coordinator = make_test_coordinator(
+            {
+                "emhass_power_profile": [100] * 168,
+                "emhass_deferrables_schedule": [],
+                "emhass_status": "ready",
+            }
+        )
         sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry")
         assert sensor.native_value == "ready"
 
@@ -100,11 +110,13 @@ class TestEmhassDeferrableLoadSensor:
 
     def test_emhass_sensor_extra_state_attributes(self):
         """Test EmhassDeferrableLoadSensor extra_state_attributes."""
-        coordinator = make_test_coordinator({
-            "emhass_power_profile": [1.0] * 168,
-            "emhass_deferrables_schedule": [{"id": "trip_1"}],
-            "emhass_status": "computing",
-        })
+        coordinator = make_test_coordinator(
+            {
+                "emhass_power_profile": [1.0] * 168,
+                "emhass_deferrables_schedule": [{"id": "trip_1"}],
+                "emhass_status": "computing",
+            }
+        )
         sensor = EmhassDeferrableLoadSensor(coordinator, "test_entry")
         attrs = sensor.extra_state_attributes
         assert "emhass_status" in attrs
@@ -118,59 +130,77 @@ class TestTripSensor:
 
     def test_trip_sensor_creation(self):
         """Test TripSensor can be created."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {},
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         sensor = TripSensor(coordinator, "test_vehicle", "trip_123")
         assert sensor._vehicle_id == "test_vehicle"
         assert sensor._trip_id == "trip_123"
 
     def test_trip_sensor_native_value_recurring(self):
         """Test TripSensor returns 'recurrente' for recurring trips."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {"trip_123": {"id": "trip_123", "tipo": "recurrente"}},
-            "punctual_trips": {},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {
+                    "trip_123": {"id": "trip_123", "tipo": "recurrente"}
+                },
+                "punctual_trips": {},
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         sensor = TripSensor(coordinator, "test_vehicle", "trip_123")
         assert sensor.native_value == "recurrente"
 
     def test_trip_sensor_native_value_punctual(self):
         """Test TripSensor returns estado for punctual trips."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {"trip_456": {"id": "trip_456", "tipo": "puntual", "estado": "pendiente"}},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {
+                    "trip_456": {
+                        "id": "trip_456",
+                        "tipo": "puntual",
+                        "estado": "pendiente",
+                    }
+                },
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         sensor = TripSensor(coordinator, "test_vehicle", "trip_456")
         assert sensor.native_value == "pendiente"
 
     def test_trip_sensor_extra_state_attributes(self):
         """Test TripSensor extra_state_attributes returns trip data."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {"trip_789": {
-                "id": "trip_789",
-                "tipo": "punctual",
-                "descripcion": "Work commute",
-                "km": 25.0,
-                "kwh": 3.75,
-                "datetime": "2025-11-25T08:00:00",
-                "activo": True,
-                "estado": "pendiente",
-            }},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {
+                    "trip_789": {
+                        "id": "trip_789",
+                        "tipo": "punctual",
+                        "descripcion": "Work commute",
+                        "km": 25.0,
+                        "kwh": 3.75,
+                        "datetime": "2025-11-25T08:00:00",
+                        "activo": True,
+                        "estado": "pendiente",
+                    }
+                },
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         sensor = TripSensor(coordinator, "test_vehicle", "trip_789")
         attrs = sensor.extra_state_attributes
         assert attrs["trip_id"] == "trip_789"
@@ -180,13 +210,15 @@ class TestTripSensor:
 
     def test_trip_sensor_returns_empty_dict_when_no_data(self):
         """Test TripSensor returns empty dict when trip not found."""
-        coordinator = make_test_coordinator({
-            "recurring_trips": {},
-            "punctual_trips": {},
-            "kwh_today": 0.0,
-            "hours_today": 0.0,
-            "next_trip": None,
-        })
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {},
+                "punctual_trips": {},
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
         sensor = TripSensor(coordinator, "test_vehicle", "nonexistent")
         attrs = sensor.extra_state_attributes
         assert attrs == {}

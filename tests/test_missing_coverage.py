@@ -4,13 +4,16 @@ Cubre:
 - EC-001: Timer cancel en async_unload_entry (__init__.py:190-192)
 - EC-020: Rollback de trips fallidos (emhass_adapter.py:796-802)
 """
+
 from typing import Any, Dict
 from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME, CONF_MAX_DEFERRABLE_LOADS, CONF_CHARGING_POWER,
+    CONF_VEHICLE_NAME,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_CHARGING_POWER,
 )
 
 
@@ -58,7 +61,9 @@ class TestEC001_TimerCancelUnload:
     """Test EC-001: Timer cancel en async_unload_entry."""
 
     @pytest.mark.asyncio
-    async def test_async_unload_entry_cancels_timer(self, hass, mock_store, mock_coordinator):
+    async def test_async_unload_entry_cancels_timer(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that async_unload_entry cancels the hourly refresh timer."""
         from custom_components.ev_trip_planner import async_unload_entry
 
@@ -69,22 +74,30 @@ class TestEC001_TimerCancelUnload:
         }
 
         entry = MockConfigEntry("test_vehicle", config)
-        
+
         cancel_callback = MagicMock()
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
         entry.runtime_data.hourly_refresh_cancel = cancel_callback
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
-            with patch('custom_components.ev_trip_planner.async_unload_entry_cleanup', return_value=True) as mock_cleanup:
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+                return_value=True,
+            ) as mock_cleanup:
                 result = await async_unload_entry(hass, entry)
-                
+
                 cancel_callback.assert_called_once()
                 assert entry.runtime_data.hourly_refresh_cancel is None
                 mock_cleanup.assert_called_once()
                 assert result is True
 
     @pytest.mark.asyncio
-    async def test_async_unload_entry_without_timer_cancel(self, hass, mock_store, mock_coordinator):
+    async def test_async_unload_entry_without_timer_cancel(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that async_unload_entry works when hourly_refresh_cancel is None."""
         from custom_components.ev_trip_planner import async_unload_entry
 
@@ -98,14 +111,22 @@ class TestEC001_TimerCancelUnload:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
         entry.runtime_data.hourly_refresh_cancel = None
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
-            with patch('custom_components.ev_trip_planner.async_unload_entry_cleanup', return_value=True) as mock_cleanup:
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+                return_value=True,
+            ) as mock_cleanup:
                 result = await async_unload_entry(hass, entry)
                 mock_cleanup.assert_called_once()
                 assert result is True
 
     @pytest.mark.asyncio
-    async def test_async_unload_entry_without_runtime_data(self, hass, mock_store, mock_coordinator):
+    async def test_async_unload_entry_without_runtime_data(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that async_unload_entry works when runtime_data is missing."""
         from custom_components.ev_trip_planner import async_unload_entry
 
@@ -118,8 +139,14 @@ class TestEC001_TimerCancelUnload:
         entry = MockConfigEntry("test_vehicle3", config)
         entry.runtime_data = None
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
-            with patch('custom_components.ev_trip_planner.async_unload_entry_cleanup', return_value=True) as mock_cleanup:
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+                return_value=True,
+            ) as mock_cleanup:
                 result = await async_unload_entry(hass, entry)
                 mock_cleanup.assert_called_once()
                 assert result is True
@@ -127,7 +154,7 @@ class TestEC001_TimerCancelUnload:
 
 class TestEC020_FailedTripRollback:
     """Test EC-020: Rollback de trips fallidos en async_publish_all_deferrable_loads.
-    
+
     These tests verify that:
     1. The EC-020 rollback warning is logged when trips fail
     2. The _cached_per_trip_params is cleared for failed trips
@@ -136,7 +163,9 @@ class TestEC020_FailedTripRollback:
     """
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_releases_index(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_releases_index(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that rollback releases the index back to available pool."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -147,7 +176,10 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
@@ -155,10 +187,15 @@ class TestEC020_FailedTripRollback:
             adapter._available_indices = [0, 1, 2, 3, 4]
 
             trips = [
-                {"id": "rollback_test", "descripcion": "Rollback test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "rollback_test",
+                    "descripcion": "Rollback test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             # Track calls
@@ -175,26 +212,29 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 # Mock the methods that cause timezone issues
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
                     await adapter.async_publish_all_deferrable_loads(trips)
-                    
-                    # Verify the mock was called
+
+                    # Verify the mock was called once with the correct trip
                     assert mock_publish.call_count == 1
                     assert "rollback_test" in published_calls
-                    
-                    # Verify rollback was triggered (failed_trip_ids not empty)
-                    # The warning should have been logged
-                    assert len(published_calls) == 1
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_executes_index_release_code(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_executes_index_release_code(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that specifically exercises the index release code in rollback (lines 796-798)."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -205,7 +245,10 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
@@ -213,10 +256,15 @@ class TestEC020_FailedTripRollback:
             adapter._available_indices = [5, 10, 15]
 
             trips = [
-                {"id": "rollback_index_test", "descripcion": "Rollback index test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "rollback_index_test",
+                    "descripcion": "Rollback index test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -229,20 +277,27 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
                     await adapter.async_publish_all_deferrable_loads(trips)
 
                     # Verify the mock was called and returned False (triggering rollback)
                     assert mock_publish.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_value_error_handled(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_value_error_handled(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that ValueError when removing from _published_trips is handled gracefully."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -253,7 +308,10 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
@@ -261,10 +319,15 @@ class TestEC020_FailedTripRollback:
             assert adapter._published_trips == []
 
             trips = [
-                {"id": "value_error_test", "descripcion": "ValueError test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "value_error_test",
+                    "descripcion": "ValueError test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -277,18 +340,25 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
                     await adapter.async_publish_all_deferrable_loads(trips)
                     # If we get here without exception, the ValueError handler worked
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_logs_warning(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_logs_warning(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that rollback logs EC-020 warning message."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -299,17 +369,25 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
             adapter._charging_power_kw = 7.4
 
             trips = [
-                {"id": "rollback_log_test", "descripcion": "Rollback log test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "rollback_log_test",
+                    "descripcion": "Rollback log test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -322,24 +400,37 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
-                    with patch('custom_components.ev_trip_planner.emhass_adapter._LOGGER') as mock_logger:
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
+                    with patch(
+                        "custom_components.ev_trip_planner.emhass_adapter._LOGGER"
+                    ) as mock_logger:
                         await adapter.async_publish_all_deferrable_loads(trips)
-                        
-                        warning_calls = [call for call in mock_logger.warning.call_args_list]
-                        ec20_warnings = [call for call in warning_calls if 'EC-020' in str(call)]
+
+                        warning_calls = [
+                            call for call in mock_logger.warning.call_args_list
+                        ]
+                        ec20_warnings = [
+                            call for call in warning_calls if "EC-020" in str(call)
+                        ]
                         assert len(ec20_warnings) >= 1
-                        assert 'Rolling back' in str(ec20_warnings[0])
-                        assert 'rollback_log_test' in str(ec20_warnings[0])
+                        assert "Rolling back" in str(ec20_warnings[0])
+                        assert "rollback_log_test" in str(ec20_warnings[0])
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_clears_cache(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_clears_cache(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that rollback clears per-trip cache entry."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -350,17 +441,25 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
             adapter._charging_power_kw = 7.4
 
             trips = [
-                {"id": "cache_clear_test", "descripcion": "Cache clear test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "cache_clear_test",
+                    "descripcion": "Cache clear test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -373,18 +472,25 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
                     await adapter.async_publish_all_deferrable_loads(trips)
                     # If we get here without exception, the cache cleanup worked
 
     @pytest.mark.asyncio
-    async def test_async_publish_all_deferrable_loads_rollback_no_exception_on_value_error(self, hass, mock_store, mock_coordinator):
+    async def test_async_publish_all_deferrable_loads_rollback_no_exception_on_value_error(
+        self, hass, mock_store, mock_coordinator
+    ):
         """Test that the ValueError exception handler (lines 801-802) is executed."""
         config = {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -395,7 +501,10 @@ class TestEC020_FailedTripRollback:
         entry = MockConfigEntry("test_vehicle", config)
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
-        with patch('custom_components.ev_trip_planner.emhass_adapter.Store', return_value=mock_store):
+        with patch(
+            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            return_value=mock_store,
+        ):
             adapter = EMHASSAdapter(hass, entry)
             await adapter.async_load()
 
@@ -403,10 +512,15 @@ class TestEC020_FailedTripRollback:
             assert adapter._published_trips == []
 
             trips = [
-                {"id": "no_value_error_test", "descripcion": "No ValueError test", "kwh": 5.0, "datetime": "2030-01-01T00:00:00+00:00"},
+                {
+                    "id": "no_value_error_test",
+                    "descripcion": "No ValueError test",
+                    "kwh": 5.0,
+                    "datetime": "2030-01-01T00:00:00+00:00",
+                },
             ]
 
-            hass.states.async_set = AsyncMock()
+            hass.states.async_set = MagicMock()
             hass.states.async_get = MagicMock(return_value=MagicMock(state="50"))
 
             async def side_effect(trip):
@@ -419,13 +533,18 @@ class TestEC020_FailedTripRollback:
 
             mock_publish = AsyncMock(side_effect=side_effect)
 
-            with patch.object(type(adapter), 'async_publish_deferrable_load', mock_publish):
+            with patch.object(
+                type(adapter), "async_publish_deferrable_load", mock_publish
+            ):
                 adapter._calculate_power_profile_from_trips = MagicMock(return_value=[])
                 adapter._generate_schedule_from_trips = MagicMock(return_value=[])
                 adapter._get_current_soc = AsyncMock(return_value=50.0)
                 adapter._presence_monitor = None
-                
-                with patch('custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows', return_value=[]):
+
+                with patch(
+                    "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows",
+                    return_value=[],
+                ):
                     try:
                         await adapter.async_publish_all_deferrable_loads(trips)
                         assert True

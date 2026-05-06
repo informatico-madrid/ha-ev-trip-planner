@@ -31,9 +31,6 @@ coverage.json
 mcp-shell.log
 progress.txt
 .venv/
-progress.txt
-.ralph/memory.log
-progress.txt
 .ralph/*.json
 
 # Playwright
@@ -74,7 +71,6 @@ tests/e2e/playwright-report/*.png
 tests/e2e/playwright-report/data/*
 .ralph/.claude_env
 claude.log
-.gitignore
 claude.log.positions
 .claude/settings.json
 .claude/settings.local.json
@@ -92,23 +88,32 @@ playwright-results.xml
 ui-map.local.md
 .claude/playwright-env.local.md
 playwright-env.local.md
-doc/## Test Failure Review Protocol (MANDATO.md
 .qwen/settings.json
 .qwen/settings.json.orig
 .claude/settings copy.json
 specs/.current-spec
-**/.progress.md
-.claude/settingsbackl.jsonbacka
 .claude/
 .cursor/
 .qwen/
 .agents/
+!.agents/skills/
 .github/skills/
 .ralph/logs/
 _bmad-output/
 .ralph/
 .bmad/
 .bmad
-**/.progress.md
 .cline/
 .gemini/
+.roomodes
+mutants/
+plans
+gito-classification-final.md
+code-review-report.md
+code-review-report.json
+gito-classification-results.json
+gito-classification-final-v2.md
+.serena/project.yml
+.gito/context.md
+quality-gate-checkpoint.json
+.progress.md

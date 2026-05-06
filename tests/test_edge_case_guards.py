@@ -80,7 +80,9 @@ async def test_empty_charging_windows_list_does_not_crash():
     hora_regreso = now - timedelta(hours=10)
 
     # Mock empty charging_windows
-    with patch("custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows") as mock_calc:
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.calculate_multi_trip_charging_windows"
+    ) as mock_calc:
         mock_calc.return_value = []  # Empty list!
 
         await adapter._populate_per_trip_cache_entry(
@@ -107,7 +109,9 @@ async def test_null_response_from_get_trips_list_returns_empty():
     """
     # This would be tested in panel.js tests, which use Jest
     # Python test verifies backend doesn't return null unexpectedly
-    from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips
+    from custom_components.ev_trip_planner.calculations import (
+        calculate_power_profile_from_trips,
+    )
 
     # Empty trips list should not crash
     result = calculate_power_profile_from_trips(

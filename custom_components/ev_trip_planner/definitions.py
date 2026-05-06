@@ -24,7 +24,9 @@ def default_attrs_fn(data: dict[str, Any]) -> dict[str, Any]:
     This is the default behavior for most sensors.
     """
     return {
-        "recurring_trips": list(data.get("recurring_trips", {}).values()) if data else [],
+        "recurring_trips": list(data.get("recurring_trips", {}).values())
+        if data
+        else [],
         "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
     }
 
@@ -37,10 +39,16 @@ class TripSensorEntityDescription(SensorEntityDescription):
     custom fields for trip data processing.
     """
 
-    value_fn: Callable[[dict[str, Any]], Any] = field(default_factory=lambda: lambda data: None)
-    attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] = field(default_factory=lambda: default_attrs_fn)
+    value_fn: Callable[[dict[str, Any]], Any] = field(
+        default_factory=lambda: lambda data: None
+    )
+    attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] = field(
+        default_factory=lambda: default_attrs_fn
+    )
     restore: bool = False
-    exists_fn: Callable[[dict[str, Any]], bool] = field(default_factory=lambda: lambda _: True)
+    exists_fn: Callable[[dict[str, Any]], bool] = field(
+        default_factory=lambda: lambda _: True
+    )
 
 
 TRIP_SENSORS = (
@@ -56,7 +64,9 @@ TRIP_SENSORS = (
     ),
     TripSensorEntityDescription(
         key="trips_list",
-        value_fn=lambda data: str(list(data.get("recurring_trips", {}).keys())) if data else "[]",
+        value_fn=lambda data: (
+            str(list(data.get("recurring_trips", {}).keys())) if data else "[]"
+        ),
     ),
     TripSensorEntityDescription(
         key="kwh_needed_today",
@@ -79,7 +89,9 @@ TRIP_SENSORS = (
     ),
     TripSensorEntityDescription(
         key="next_deadline",
-        value_fn=lambda data: (data.get("next_trip") or {}).get("_deadline") if data else None,
+        value_fn=lambda data: (
+            (data.get("next_trip") or {}).get("_deadline") if data else None
+        ),
         restore=True,
     ),
 )

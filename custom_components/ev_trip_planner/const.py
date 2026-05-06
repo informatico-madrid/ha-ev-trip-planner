@@ -15,7 +15,7 @@ from typing import Literal
 DOMAIN = "ev_trip_planner"
 
 # Config entry version for migrations
-CONFIG_VERSION = 2
+CONFIG_VERSION = 3
 
 # Dispatcher signal for reactive updates
 SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
@@ -61,12 +61,24 @@ CONTROL_TYPE_EXTERNAL = "external"
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
-DEFAULT_SOC_BUFFER_PERCENT = 10  # percent (minimum SOC buffer for backward deficit propagation)
+DEFAULT_SOC_BUFFER_PERCENT = (
+    10  # percent (minimum SOC buffer for backward deficit propagation)
+)
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
+
+# Battery health / Dynamic SOC capping (always-on)
+CONF_T_BASE = "t_base"
+CONF_SOC_BASE = "soc_base"
+CONF_SOH_SENSOR = "soh_sensor"
+DEFAULT_T_BASE = 24.0  # hours (user-configurable via slider)
+DEFAULT_SOC_BASE = 35.0  # percent (NMC/NCA chemistry sweet spot, internal-only)
+MIN_T_BASE = 6.0  # hours (minimum slider value)
+MAX_T_BASE = 48.0  # hours (maximum slider value)
+DEFAULT_SOH_SENSOR = ""  # empty = use nominal capacity
 
 # Fixed buffer between sequential trip charging windows (hours)
 RETURN_BUFFER_HOURS = 4.0

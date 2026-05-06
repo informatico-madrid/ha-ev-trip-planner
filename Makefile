@@ -12,6 +12,7 @@ help:
 	@echo "  make e2e             - Arrancar HA si es necesario y ejecutar E2E (automático)"
 	@echo "  make e2e-headed      - Igual que e2e pero con navegador visible"
 	@echo "  make e2e-debug       - Igual que e2e pero en modo debug"
+	@echo "  make e2e-soc         - Tests E2E dynamic SOC (suite separada)"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
 	@echo "  make format          - Formatear código con black e isort"
@@ -52,6 +53,17 @@ e2e-headed:
 
 e2e-debug:
 	./scripts/run-e2e.sh --debug
+
+# e2e-soc: dynamic SOC capping suite (requires HA with SOH sensor configured)
+# Uses INDEPENDENT setup: separate HA config dir, separate auth state (user-soc.json), separate Playwright config
+e2e-soc:
+	./scripts/run-e2e-soc.sh
+
+e2e-soc-headed:
+	./scripts/run-e2e-soc.sh --headed
+
+e2e-soc-debug:
+	./scripts/run-e2e-soc.sh --debug
 
 lint:
 	ruff check .
