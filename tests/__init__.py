@@ -169,7 +169,7 @@ def create_mock_ev_config_entry(
     config_entry = MockConfigEntry(
         entry_id=entry_id,
         domain="ev_trip_planner",
-        data=data or TEST_CONFIG,
+        data=data if data is not None else TEST_CONFIG,
         version=1,
     )
     if hass:

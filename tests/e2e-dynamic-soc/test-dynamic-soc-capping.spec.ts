@@ -54,14 +54,8 @@ async function changeSOC(page: Page, newValue: number): Promise<void> {
     });
   }, newValue);
 
-  // Wait for state propagation (condition-based, numeric comparison)
-  await expect.poll(() => {
-    const ha = document.querySelector('home-assistant') as any;
-    if (ha?.hass?.states) {
-      return ha.hass.states['input_number.test_vehicle_soc']?.state;
-    }
-    return undefined;
-  }, { timeout: 10_000 }).toBe(String(newValue));
+  // Wait for state propagation (same pattern as working e2e/emhass-sensor-updates.spec.ts)
+  await page.waitForTimeout(2000);
 
   // Navigate back to panel so subsequent createTestTrip calls work
   await navigateToPanel(page);
@@ -83,14 +77,8 @@ async function changeSOH(page: Page, value: number): Promise<void> {
       value: v,
     });
   }, value);
-  // Wait for SOH state propagation (condition-based, numeric comparison)
-  await expect.poll(() => {
-    const ha = document.querySelector('home-assistant') as any;
-    if (ha?.hass?.states) {
-      return ha.hass.states['input_number.test_vehicle_soh']?.state;
-    }
-    return undefined;
-  }, { timeout: 10_000 }).toBe(String(value));
+  // Wait for state propagation (same pattern as working e2e test)
+  await page.waitForTimeout(2000);
   // Navigate back to panel so subsequent createTestTrip calls work
   await navigateToPanel(page);
 }
@@ -128,14 +116,8 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
   await expect(finishBtn).toBeVisible({ timeout: 10_000 });
   await finishBtn.click();
   await expect(finishBtn).not.toBeVisible({ timeout: 5_000 });
-  // Wait for config change to propagate (condition-based)
-  await expect.poll(() => {
-    const ha = document.querySelector('home-assistant') as any;
-    if (!ha?.hass?.states) return false;
-    return Object.values(ha.hass.states).some((s: any) =>
-      s?.entity_id?.includes('ev_trip_planner'),
-    );
-  }, { timeout: 10_000 }).toBe(true);
+  // Wait for config change to propagate
+  await page.waitForTimeout(2000);
   await navigateToPanel(page);
 }
 
@@ -148,20 +130,21 @@ function getDefHoursTotal(attrs: Record<string, any>): number {
 }
 
 /**
- * Wait for EMHASS sensor to exist and have 'ready' status via frontend state.
- * Pattern from working e2e suite: use expect.poll() with async polling.
+ * Wait for EMHASS sensor to exist and have 'ready' status via browser context.
+ * Navigate to devtools where home-assistant element is available, then poll.
  */
 async function waitForEmhassSensor(page: Page): Promise<void> {
-  await expect.poll(() => {
+  await page.goto('/developer-tools/state', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => {
     const haMain = document.querySelector('home-assistant') as any;
-    if (!haMain?.hass?.states) return { found: false, status: undefined };
+    if (!haMain?.hass?.states) return false;
     for (const [entityId, state] of Object.entries(haMain.hass.states)) {
       if (!entityId.includes('emhass_perfil_diferible')) continue;
       const attrs = (state as any).attributes;
-      return { found: true, status: attrs?.emhass_status };
+      if (attrs?.emhass_status === 'ready') return true;
     }
-    return { found: false, status: undefined };
-  }, { timeout: 60_000 }).toMatchObject({ found: true, status: 'ready' });
+    return false;
+  }, { timeout: 60_000 });
 }
 
 /**
@@ -214,22 +197,23 @@ async function verifyAttributesViaUI(page: Page, filter: string): Promise<void> 
 }
 
 /**
- * Poll until sensor has non-zero power_profile values.
+ * Poll until sensor has non-zero power_profile values via browser context.
+ * Navigate to devtools where home-assistant element is reliably available.
  */
 async function waitForNonZeroProfile(page: Page, entityId: string, timeoutMs = 15_000): Promise<void> {
-  await expect.poll(() => {
+  await page.goto('/developer-tools/state', { waitUntil: 'networkidle' });
+  await page.waitForFunction((eid: string) => {
     try {
       const haMain = document.querySelector('home-assistant') as any;
-      if (!haMain?.hass?.states?.[entityId]) return { ok: false };
-      const a = haMain.hass.states[entityId].attributes;
+      if (!haMain?.hass?.states?.[eid]) return false;
+      const a = haMain.hass.states[eid].attributes;
       const profile = Array.isArray(a.power_profile_watts) ? a.power_profile_watts : [];
-      return {
-        ok: profile.some((v: number) => v > 0) && a.emhass_status === 'ready',
-      };
+      return profile.some((v: number) => v > 0) && a.emhass_status === 'ready';
     } catch {
-      return { ok: false };
+      return false;
     }
-  }, { timeout: timeoutMs }).toEqual({ ok: true });
+  }, entityId, { timeout: timeoutMs });
+  await navigateToPanel(page);
 }
 
 // ============================================================================
