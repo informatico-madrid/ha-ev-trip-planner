@@ -152,8 +152,6 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     created_entities = []
 
     def capture_async_add_entities(entities, update_before_add=True):
-        nonlocal captured_async_add_entities
-        captured_async_add_entities = capture_async_add_entities
         created_entities.extend(entities)
         # Simulate HA's async_add_entities: register each entity in the registry
         registry = mock_hass.entity_registry

@@ -3,6 +3,7 @@
 import pytest
 import asyncio
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 from unittest.mock import MagicMock
 
 
@@ -132,25 +133,27 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
 
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-    today_weekday = datetime.now().weekday()
-    today_spanish = day_map[today_weekday]
+    frozen_time = datetime(2025, 5, 5, 10, 0, 0)  # Monday = "lunes"
+    with freeze_time(frozen_time):
+        today_weekday = frozen_time.weekday()
+        today_spanish = day_map[today_weekday]
 
-    # Add two trips for today
-    await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish, hora="08:00", km=25, kwh=3.75, descripcion="Trabajo"
-    )
+        # Add two trips for today
+        await mgr.async_add_recurring_trip(
+            dia_semana=today_spanish, hora="12:00", km=25, kwh=3.75, descripcion="Trabajo"
+        )
 
-    await mgr.async_add_punctual_trip(
-        datetime_str=datetime.now().strftime("%Y-%m-%dT14:00"),
-        km=50,
-        kwh=7.5,
-        descripcion="Compras",
-    )
+        await mgr.async_add_punctual_trip(
+            datetime_str=frozen_time.strftime("%Y-%m-%dT14:00"),
+            km=50,
+            kwh=7.5,
+            descripcion="Compras",
+        )
 
-    # Get kWh needed today
-    kwh_today = await mgr.async_get_kwh_needed_today()
+        # Get kWh needed today (must be inside freeze_time so datetime.now() matches)
+        kwh_today = await mgr.async_get_kwh_needed_today()
 
-    assert kwh_today == 11.25  # 3.75 + 7.5
+        assert kwh_today == 11.25  # 3.75 + 7.5
 
 
 @pytest.mark.asyncio
@@ -173,16 +176,18 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
 
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-    today_weekday = datetime.now().weekday()
+    frozen_time = datetime(2025, 5, 5, 10, 0, 0)  # Monday = "lunes"
+    today_weekday = frozen_time.weekday()
     today_spanish = day_map[today_weekday]
 
-    # Add trip requiring 11.25 kWh for today
-    await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish, hora="08:00", km=25, kwh=11.25, descripcion="Trabajo"
-    )
+    with freeze_time(frozen_time):
+        # Add trip requiring 11.25 kWh for today
+        await mgr.async_add_recurring_trip(
+            dia_semana=today_spanish, hora="08:00", km=25, kwh=11.25, descripcion="Trabajo"
+        )
 
-    # Calculate hours needed (uses default charging power from mock config)
-    hours = await mgr.async_get_hours_needed_today()
+        # Calculate hours needed (uses default charging power from mock config)
+        hours = await mgr.async_get_hours_needed_today()
 
-    # ceil(11.25 / 3.6) = ceil(3.125) = 4
-    assert hours == 4
+        # ceil(11.25 / 3.6) = ceil(3.125) = 4
+        assert hours == 4

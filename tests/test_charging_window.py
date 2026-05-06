@@ -357,7 +357,7 @@ class TestChargingWindowCalculation:
         es_suficiente should be True.
         """
         # Setup: Add a punctual trip at 22:00 today
-        trip_datetime = datetime.now().replace(
+        trip_datetime = datetime.now(timezone.utc).replace(
             hour=22, minute=0, second=0, microsecond=0
         )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
@@ -374,7 +374,7 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (4 hour window)
-        hora_regreso = datetime.now().replace(
+        hora_regreso = datetime.now(timezone.utc).replace(
             hour=18, minute=0, second=0, microsecond=0
         )
 
@@ -405,7 +405,7 @@ class TestChargingWindowCalculation:
         es_suficiente should be False.
         """
         # Setup: Add a punctual trip at 19:00 today (only 1 hour window)
-        trip_datetime = datetime.now().replace(
+        trip_datetime = datetime.now(timezone.utc).replace(
             hour=19, minute=0, second=0, microsecond=0
         )
         datetime_str = trip_datetime.strftime("%Y-%m-%dT%H:%M")
@@ -422,7 +422,7 @@ class TestChargingWindowCalculation:
         )
 
         # Set hora_regreso at 18:00 today (1 hour window: 18:00 to 19:00)
-        hora_regreso = datetime.now().replace(
+        hora_regreso = datetime.now(timezone.utc).replace(
             hour=18, minute=0, second=0, microsecond=0
         )
 
@@ -789,7 +789,7 @@ class TestSequentialTripDefStartBug:
         # Create two trips with sequential deadlines
         # Trip 0: deadline 12 hours from now
         # Trip 1: deadline 48 hours from now
-        # Use naive datetimes to avoid timezone issues with datetime.now(timezone.utc)
+        # Use aware UTC datetimes for consistency with the rest of the test suite
         now = datetime.now(timezone.utc)
         trip_0_deadline = now + timedelta(hours=12)
         trip_1_deadline = now + timedelta(hours=48)

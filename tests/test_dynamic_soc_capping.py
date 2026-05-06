@@ -544,7 +544,7 @@ class TestScenarioValidation:
         """T070: Verify week total at >80% SOC drops with capping.
 
         Without capping: 4 trips * 22.5h idle at 100% SOC = 90h at >80%
-        With capping: SOC capped to ~61%, so time at >80% drops to ~0h
+        With capping: SOC capped to ~94.8%, so time at >80% drops to ~0h
         """
         from custom_components.ev_trip_planner.calculations import (
             calculate_dynamic_soc_limit,

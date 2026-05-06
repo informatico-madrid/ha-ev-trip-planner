@@ -46,9 +46,11 @@ def test_planning_sensor_entity_translation_clear():
         translations = json.load(f)
 
     # Assert - Should have specific translation, not generic
-    planning_key = "entity.planning_sensor_entity.name"
-    if planning_key in translations:
-        translation = translations[planning_key]
+    entity_translations = translations.get("entity", {})
+    planning_entity = entity_translations.get("planning_sensor_entity", {})
+    translation = planning_entity.get("name", "")
+
+    if translation:
         # Should not be just "Sensor de Planificación" or "Planning Sensor"
         assert (
             "planificación" not in translation.lower()

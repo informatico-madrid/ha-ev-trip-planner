@@ -292,7 +292,7 @@ async def test_soc_caps_applied_to_kwh_calculation():
     # At SOC 40%, real capacity 60kWh: each trip needs 6kWh.
     # Uncapped: 24kWh total → ~24000 Wh. With cap ~85%: ~20400 Wh.
     # The profile is in 1-hour blocks, so total should be < 24000 if cap is applied.
-    assert total_energy < 25000, (
+    assert total_energy < 24000, (
         f"Total profile energy ({total_energy:.0f} Wh) should be less than uncapped "
         f"(~24000 Wh) when SOC cap is applied. Cap may not be affecting power profile."
     )

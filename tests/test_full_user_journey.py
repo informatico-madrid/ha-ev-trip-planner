@@ -290,10 +290,10 @@ class TestFullUserJourney:
         # Verify trip was created — trip_create handler returns None,
         # so verify via the manager's async_add_recurring_trip call
         assert manager.async_add_recurring_trip.called
-        call_kwargs = manager.async_add_recurring_trip.call_args.kwargs
-        assert call_kwargs["dia_semana"] == "lunes"
-        assert call_kwargs["hora"] == "08:00"
-        assert call_kwargs["km"] == 50.0
+        call_kwargs = manager.async_add_recurring_trip.call_args.kwargs or {}
+        assert call_kwargs.get("dia_semana") == "lunes"
+        assert call_kwargs.get("hora") == "08:00"
+        assert call_kwargs.get("km") == 50.0
 
         # =====================================================================
         # STEP 4: View trips
@@ -424,7 +424,10 @@ class TestFullUserJourney:
 
         # Verify deletion was successful
         assert manager.async_delete_trip.called
-        assert manager.async_delete_trip.call_args.args[0] == punctual_trip_id
+        assert (
+            (manager.async_delete_trip.call_args.kwargs or manager.async_delete_trip.call_args.args)[0]
+            == punctual_trip_id
+        )
 
         # Verify the trip was deleted
         result = await mock_hass.services.async_call(
@@ -454,7 +457,10 @@ class TestFullUserJourney:
 
         # Verify deletion was successful
         assert manager.async_delete_trip.called
-        assert manager.async_delete_trip.call_args.args[0] == trip_id
+        assert (
+            (manager.async_delete_trip.call_args.kwargs or manager.async_delete_trip.call_args.args)[0]
+            == trip_id
+        )
 
         # =====================================================================
         # STEP 10: Verify all trips are deleted

@@ -308,22 +308,6 @@ class TestEmhassDeferrableLoadSensor:
         assert device_info["manufacturer"] == "Home Assistant"
         assert device_info["model"] == "EV Trip Planner"
 
-    async def test_sensor_includes_last_update_attribute(
-        self, mock_coordinator, sensor
-    ):
-        """Test that emhass_status attribute is present and correct after coordinator update."""
-        # When coordinator.data is updated, the sensor should reflect it
-        mock_coordinator.data = {
-            **mock_coordinator.data,
-            "emhass_power_profile": [0.0] * 168,
-            "emhass_deferrables_schedule": [],
-            "emhass_status": "ready",
-        }
-
-        attrs = sensor.extra_state_attributes
-        assert "emhass_status" in attrs
-        assert attrs["emhass_status"] == "ready"
-
     async def test_sensor_includes_emhass_status_attribute(
         self, mock_coordinator, sensor
     ):

@@ -546,7 +546,7 @@ class PresenceMonitor:
             delta = abs(new_soc - last_soc)
             if delta < SOC_CHANGE_DEBOUNCE_PERCENT:
                 _LOGGER.debug(
-                    "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below 5%% threshold, skipping",
+                    "SOC change for %s (%.1f%% -> %.1f%%, delta=%.2f%%) below threshold, skipping",
                     self.vehicle_id,
                     last_soc,
                     new_soc,

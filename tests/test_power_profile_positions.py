@@ -31,8 +31,9 @@ async def test_power_profile_positions_at_end_of_charging_window(mock_hass, mock
     - But only need 2 hours of charging
     - Expected: 3600W at positions 94 and 95 (last 2 positions)
 
-    NOTE: This test is SKIPPED because SOC-aware charging changes how kwh_needed
-    is calculated, making the expected def_total_hours=2 no longer valid.
+    NOTE: SOC-aware charging recalculates kwh_needed using battery state of charge.
+    The trip kwh value (13.2) is set so that after subtracting current battery energy,
+    the result requires exactly 2 hours of charging at 3.6 kW.
     """
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",

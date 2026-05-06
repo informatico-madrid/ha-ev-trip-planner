@@ -773,7 +773,7 @@ async def async_remove_trip_sensor(
     ) or er_async_get(hass)
     removed = False
     for entry in async_entries_for_config_entry(entity_registry, entry_id):
-        if trip_id in entry.unique_id:
+        if isinstance(entry.unique_id, str) and trip_id in entry.unique_id:
             entity_registry.async_remove(entry.entity_id)
             removed = True
             _LOGGER.debug(

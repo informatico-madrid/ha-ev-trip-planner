@@ -876,7 +876,6 @@ def calculate_deficit_propagation(
     reference_dt: datetime,
     trip_times: Optional[List[Optional[datetime]]] = None,
     soc_targets: Optional[List[float]] = None,
-    t_base: float = DEFAULT_T_BASE,
     soc_caps: Optional[List[float]] = None,
 ) -> List[Dict[str, Any]]:
     """Calculate SOC milestones with backward deficit propagation.
@@ -947,7 +946,7 @@ def calculate_deficit_propagation(
             continue
         original_idx = _orig_idx
 
-        # Get data in ordered position
+        # Get data aligned with the trip's original index
         soc_data_item = soc_data[ordered_idx]
         ventana = windows[ordered_idx]
         trip = trips[original_idx]
@@ -1178,13 +1177,13 @@ def calculate_power_profile_from_trips(
     now = _ensure_aware(reference_dt)
     charging_power_watts = power_kw * 1000
 
-    logger.warning(
+    logger.debug(
         "DEBUG calculate_power_profile: trips=%d, power_kw=%.2f", len(trips), power_kw
     )
-    logger.warning("DEBUG calculate_power_profile: now=%s", now.isoformat())
+    logger.debug("DEBUG calculate_power_profile: now=%s", now.isoformat())
 
     for trip in trips:
-        logger.warning(
+        logger.debug(
             "DEBUG calculate_power_profile: Processing trip id=%s, trip=%s",
             trip.get("id"),
             trip,
@@ -1204,12 +1203,12 @@ def calculate_power_profile_from_trips(
                     day, time_str, now, tz=tz
                 )
                 if deadline_dt is None:
-                    logger.warning(
+                    logger.debug(
                         "DEBUG calculate_power_profile: trip %s has invalid day/time, skipping",
                         trip.get("id"),
                     )
                     continue
-                logger.warning(
+                logger.debug(
                     "DEBUG calculate_power_profile: trip %s is recurring (day=%s, time=%s), calculated deadline=%s",
                     trip.get("id"),
                     day,
@@ -1217,7 +1216,7 @@ def calculate_power_profile_from_trips(
                     deadline_dt.isoformat(),
                 )
             else:
-                logger.warning(
+                logger.debug(
                     "DEBUG calculate_power_profile: trip %s has no datetime or day/time fields, skipping",
                     trip.get("id"),
                 )
@@ -1228,7 +1227,7 @@ def calculate_power_profile_from_trips(
                 try:
                     deadline_dt = datetime.fromisoformat(deadline)
                 except ValueError:
-                    logger.warning(
+                    logger.debug(
                         "DEBUG calculate_power_profile: trip %s has invalid datetime, skipping",
                         trip.get("id"),
                     )
@@ -1239,7 +1238,7 @@ def calculate_power_profile_from_trips(
             # Ensure deadline_dt is timezone-aware for datetime arithmetic
             deadline_dt = _ensure_aware(deadline_dt)
 
-        logger.warning(
+        logger.debug(
             "DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s",
             trip.get("id"),
             deadline,
@@ -1257,7 +1256,7 @@ def calculate_power_profile_from_trips(
                 safety_margin_percent,
             )
             kwh = decision.kwh_needed
-            logger.warning(
+            logger.debug(
                 "DEBUG calculate_power_profile: trip %s kwh=%.2f (SOC-aware)",
                 trip.get("id"),
                 kwh,
@@ -1270,14 +1269,14 @@ def calculate_power_profile_from_trips(
                 distance_km = float(trip.get("km", 0))
                 kwh = calcular_energia_kwh(distance_km, 0.15)
 
-            logger.warning(
+            logger.debug(
                 "DEBUG calculate_power_profile: trip %s kwh=%.2f (no SOC)",
                 trip.get("id"),
                 kwh,
             )
 
         if kwh <= 0:
-            logger.warning(
+            logger.debug(
                 "DEBUG calculate_power_profile: trip %s kwh <= 0, skipping",
                 trip.get("id"),
             )
@@ -1289,7 +1288,7 @@ def calculate_power_profile_from_trips(
         if horas_necesarias == 0:
             horas_necesarias = 1
 
-        logger.warning(
+        logger.debug(
             "DEBUG calculate_power_profile: trip %s total_hours=%.2f, horas_necesarias=%d",
             trip.get("id"),
             total_hours,
@@ -1300,7 +1299,7 @@ def calculate_power_profile_from_trips(
         delta = deadline_dt - now
         horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
-        logger.warning(
+        logger.debug(
             "DEBUG calculate_power_profile: trip %s delta_seconds=%d, horas_hasta_viaje=%d, now=%s, deadline=%s",
             trip.get("id"),
             delta.total_seconds(),
@@ -1310,7 +1309,7 @@ def calculate_power_profile_from_trips(
         )
 
         if horas_hasta_viaje < 0:
-            logger.warning(
+            logger.debug(
                 "DEBUG calculate_power_profile: trip %s is in the past, skipping",
                 trip.get("id"),
             )
@@ -1320,7 +1319,7 @@ def calculate_power_profile_from_trips(
         hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
         hora_fin = min(horas_hasta_viaje, horizon)
 
-        logger.warning(
+        logger.debug(
             "DEBUG calculate_power_profile: trip %s charging_window=[%d, %d), horizon=%d",
             trip.get("id"),
             hora_inicio_carga,
@@ -1331,7 +1330,7 @@ def calculate_power_profile_from_trips(
         for h in range(int(hora_inicio_carga), int(hora_fin)):
             if 0 <= h < horizon:
                 power_profile[h] = charging_power_watts
-                logger.warning(
+                logger.debug(
                     "DEBUG calculate_power_profile: trip %s setting power_profile[%d]=%d (total non_zero=%d)",
                     trip.get("id"),
                     h,
@@ -1339,7 +1338,7 @@ def calculate_power_profile_from_trips(
                     sum(1 for x in power_profile if x > 0),
                 )
 
-    logger.warning(
+    logger.debug(
         "DEBUG calculate_power_profile: final profile non_zero=%d",
         sum(1 for x in power_profile if x > 0),
     )

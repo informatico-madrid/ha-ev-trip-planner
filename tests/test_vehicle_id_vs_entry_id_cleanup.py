@@ -113,13 +113,10 @@ class TestVehicleIdVsEntryIdCleanup:
             ):
                 await adapter.async_cleanup_vehicle_indices()
 
-            # BUG: async_remove was NOT called because cleanup searched for vehicle_id in entity_id
-            # but entity_id contains entry_id, not vehicle_id
-            # This assertion demonstrates the bug - it should FAIL with current code
+            # Cleanup should now succeed: it checks both vehicle_id and entry_id
             assert hass.states.async_remove.called, (
-                f"BUG: Cleanup failed to remove sensor {sensor_entity_id} "
-                f"because vehicle_id='{vehicle_id}' not found in entity_id. "
-                f"Expected cleanup to also check entry_id='{entry_id}'."
+                f"Cleanup should have removed sensor {sensor_entity_id} "
+                f"by matching entry_id='{entry_id}' against the entity's stored entry_id."
             )
 
     @pytest.mark.asyncio

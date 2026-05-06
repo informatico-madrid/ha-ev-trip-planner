@@ -1243,15 +1243,6 @@ class EMHASSAdapter:
                 projected_soc,
             )
 
-        # Calculate aggregated power profile and schedule for all trips
-        power_profile = self._calculate_power_profile_from_trips(
-            trips,
-            charging_power_kw,
-            soc_current=soc_current,
-            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
-            safety_margin_percent=self._safety_margin_percent,
-        )
-
         # T062/T063: Aggregate capped per-trip power profiles to reflect SOC caps
         # Each trip's cached power_profile_watts already accounts for the SOC cap.
         # Sum them element-wise to get the final aggregated profile.
@@ -1270,8 +1261,19 @@ class EMHASSAdapter:
                     ]
                     profile_trip_count += 1
 
+        # Only compute the base profile when there are no cached per-trip params.
+        # When cached profiles exist (profile_trip_count > 0), use the aggregated
+        # capped profile directly -- the base calculation would be overwritten.
         if profile_trip_count > 0:
             power_profile = capped_profile
+        else:
+            power_profile = self._calculate_power_profile_from_trips(
+                trips,
+                charging_power_kw,
+                soc_current=soc_current,
+                battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
+                safety_margin_percent=self._safety_margin_percent,
+            )
 
         deferrables_schedule = self._generate_schedule_from_trips(
             trips, charging_power_kw

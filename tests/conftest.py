@@ -36,7 +36,7 @@ def _make_mock_datetime_fixture(default_dt: datetime):
             """Subclass of datetime that overrides .now() to return a fixed value."""
             @classmethod
             def now(cls, tz=None):
-                return fixed_now if tz else fixed_now.replace(tzinfo=tz or timezone.utc)
+                return fixed_now.replace(tzinfo=tz or timezone.utc)
 
         with patch(
             "custom_components.ev_trip_planner.emhass_adapter.datetime", MockDatetime

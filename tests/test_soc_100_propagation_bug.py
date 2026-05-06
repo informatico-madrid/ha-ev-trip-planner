@@ -191,7 +191,6 @@ class TestSOC100PropagationBug:
                 "With proactive charging, the first trip must have charge hours > 0"
             )
 
-        _bug2_detected = False  # noqa: F841 — flag for bug detection in debug log
 
         for i, trip in enumerate(trips):
             trip_id = trip["id"]

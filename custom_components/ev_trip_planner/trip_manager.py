@@ -107,7 +107,7 @@ class TripManager:
         global _trip_manager_instance_count
         _trip_manager_instance_count += 1
         self._instance_id = _trip_manager_instance_count
-        _LOGGER.warning(
+        _LOGGER.debug(
             "=== TripManager instance created: id=%d, vehicle=%s ===",
             self._instance_id,
             vehicle_id,
@@ -411,31 +411,31 @@ class TripManager:
         # DEBUG: Add stack trace to see who is calling _load_trips()
         import traceback
 
-        _LOGGER.warning("=== _load_trips START === vehicle=%s", self.vehicle_id)
-        _LOGGER.warning(
+        _LOGGER.debug("=== _load_trips START === vehicle=%s", self.vehicle_id)
+        _LOGGER.debug(
             "=== _load_trips CALLED FROM ===\n%s", traceback.format_stack()[-3]
         )
         try:
             # DI: use injected storage if available, otherwise fallback to direct Store
             stored_data: Optional[Dict[str, Any]] = None
             if self._storage is not None:
-                _LOGGER.warning("=== Using injected storage ===")
+                _LOGGER.debug("=== Using injected storage ===")
                 stored_data = await self._storage.async_load()
             else:
-                _LOGGER.warning("=== Using fallback HA Store ===")
+                _LOGGER.debug("=== Using fallback HA Store ===")
                 storage_key = f"{DOMAIN}_{self.vehicle_id}"
-                _LOGGER.warning("=== Loading from store with key: %s ===", storage_key)
+                _LOGGER.debug("=== Loading from store with key: %s ===", storage_key)
                 store: Store[Dict[str, Any]] = ha_storage.Store(
                     self.hass,
                     version=1,
                     key=storage_key,
                 )
                 stored_data = await store.async_load()
-            _LOGGER.warning("=== async_load returned: %s ===", stored_data is not None)
-            _LOGGER.warning("=== stored_data type: %s ===", type(stored_data).__name__)
-            _LOGGER.warning("=== stored_data value: %s ===", stored_data)
+            _LOGGER.debug("=== async_load returned: %s ===", stored_data is not None)
+            _LOGGER.debug("=== stored_data type: %s ===", type(stored_data).__name__)
+            _LOGGER.debug("=== stored_data value: %s ===", stored_data)
             if stored_data:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "=== stored_data structure: %s ===",
                     (
                         list(stored_data.keys())
@@ -443,7 +443,7 @@ class TripManager:
                         else "not a dict"
                     ),
                 )
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "=== stored_data['data'] exists: %s ===",
                     "data" in stored_data if isinstance(stored_data, dict) else False,
                 )
@@ -454,8 +454,8 @@ class TripManager:
                 else:
                     # Fallback: use stored_data directly if no "data" key
                     data = stored_data
-                _LOGGER.warning("=== data extracted: %s ===", data)
-                _LOGGER.warning(
+                _LOGGER.debug("=== data extracted: %s ===", data)
+                _LOGGER.debug(
                     "=== data from stored_data.get('data', {}): %s ===", data
                 )
 
@@ -469,30 +469,30 @@ class TripManager:
                     self._recurring_trips
                 )
 
-                _LOGGER.warning("=== AFTER LOAD ===")
-                _LOGGER.warning("=== self._trips: %d trips ===", len(self._trips))
-                _LOGGER.warning(
+                _LOGGER.debug("=== AFTER LOAD ===")
+                _LOGGER.debug("=== self._trips: %d trips ===", len(self._trips))
+                _LOGGER.debug(
                     "=== self._recurring_trips: %d recurrentes ===",
                     len(self._recurring_trips),
                 )
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "=== self._punctual_trips: %d puntuales ===",
                     len(self._punctual_trips),
                 )
 
                 # Log detailed trip info
                 if self._recurring_trips:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "=== Recurring trips IDs: %s ===",
                         list(self._recurring_trips.keys())[:5],
                     )
                 if self._punctual_trips:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "=== Punctual trips IDs: %s ===",
                         list(self._punctual_trips.keys())[:5],
                     )
             else:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "No se encontraron viajes almacenados para %s",
                     self.vehicle_id,
                 )
@@ -945,7 +945,7 @@ class TripManager:
 
     async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG async_delete_all_trips: START for vehicle %s", self.vehicle_id
         )
 
@@ -978,7 +978,7 @@ class TripManager:
         # in async_publish_all_deferrable_loads clears _cached_per_trip_params and
         # _cached_power_profile and returns without republishing.
         if self._emhass_adapter:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "DEBUG async_delete_all_trips: Calling publish_deferrable_loads([])"
             )
             await self.publish_deferrable_loads([])
@@ -989,7 +989,7 @@ class TripManager:
             self._emhass_adapter._published_trips = []
             self._emhass_adapter._cached_power_profile = []
             self._emhass_adapter._cached_deferrables_schedule = []
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "DEBUG async_delete_all_trips: Directly cleared adapter cache as safeguard"
             )
 
@@ -1002,7 +1002,7 @@ class TripManager:
             if entry and hasattr(entry, "runtime_data") and entry.runtime_data:
                 coordinator = getattr(entry.runtime_data, "coordinator", None)
                 if coordinator is not None:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "DEBUG async_delete_all_trips: Directly clearing coordinator.data"
                     )
                     # Handle case where coordinator.data might be None before first refresh
@@ -1014,15 +1014,15 @@ class TripManager:
                         "emhass_deferrables_schedule": [],
                     }
                     await coordinator.async_refresh()
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "DEBUG async_delete_all_trips: Coordinator data cleared and refreshed"
                     )
                 else:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "DEBUG async_delete_all_trips: coordinator is None in runtime_data"
                     )
             else:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "DEBUG async_delete_all_trips: entry or runtime_data is None/empty"
                 )
         except Exception as err:
@@ -1316,22 +1316,22 @@ class TripManager:
         """Get all active trips for EMHASS publishing."""
         import traceback
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG _get_all_active_trips: _recurring_trips count=%d",
             len(self._recurring_trips),
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG _get_all_active_trips: _punctual_trips count=%d",
             len(self._punctual_trips),
         )
-        _LOGGER.warning(
-            "DEBUG _get_all_active_trips: CALLED FROM\n%s", traceback.format_stack()[-3]
+        _LOGGER.debug(
+            "DEBUG _get_all_active_trips: CALLED FROM\n\nFROM\n\n%s", traceback.format_stack()[-3]
         )
 
         all_trips = []
         for trip in self._recurring_trips.values():
             if trip.get("activo", True):
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "DEBUG _get_all_active_trips: adding recurring trip id=%s, trip=%s",
                     trip.get("id"),
                     trip,
@@ -1340,7 +1340,7 @@ class TripManager:
 
         for trip_id, trip in self._punctual_trips.items():
             estado = trip.get("estado")
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "DEBUG _get_all_active_trips: punctual trip %s estado=%s, trip=%s",
                 trip_id,
                 estado,
@@ -2195,7 +2195,6 @@ class TripManager:
                 reference_dt=datetime.now(timezone.utc),
                 trip_times=precomputed_trip_times,
                 soc_targets=precomputed_soc_targets,
-                t_base=t_base,
                 soc_caps=soc_caps,
             )
 

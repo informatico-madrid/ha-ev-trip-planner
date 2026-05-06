@@ -69,9 +69,8 @@ async function waitForEntity(entityId: string, token: string, timeoutMs = 30_000
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-          const statesObj: Record<string, { entity_id: string }> = await response.json();
-        const entityIds = Object.keys(statesObj);
-        if (entityIds.some((id) => id === entityId)) {
+          const states = await response.json() as Array<{ entity_id: string }>;
+        if (states.some((s) => s.entity_id === entityId)) {
           console.log(`[auth.setup] Entity "${entityId}" is available in HA`);
           return;
         }
@@ -136,6 +135,12 @@ async function ensureOnboarded(): Promise<void> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
   });
+  if (!tokenResp.ok) {
+    console.error(
+      `[auth.setup] Token exchange failed (onboarding): HTTP ${tokenResp.status} ${tokenResp.statusText}`,
+    );
+    return;
+  }
   const tokenData = await tokenResp.json() as { access_token?: string };
   if (!tokenData.access_token) return;
 
@@ -189,6 +194,11 @@ async function getAccessToken(): Promise<string> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
   });
+  if (!tokenResp.ok) {
+    throw new Error(
+      `[auth.setup] Token exchange failed (getAccessToken): HTTP ${tokenResp.status} ${tokenResp.statusText}`,
+    );
+  }
   const tokenData = await tokenResp.json() as { access_token: string };
   return tokenData.access_token;
 }
