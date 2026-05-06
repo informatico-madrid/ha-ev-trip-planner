@@ -1255,10 +1255,8 @@ class EMHASSAdapter:
                     "power_profile_watts"
                 )
                 if trip_profile:
-                    capped_profile = [
-                        capped_profile[i] + trip_profile[i]
-                        for i in range(min(168, len(capped_profile), len(trip_profile)))
-                    ]
+                    for i in range(min(len(capped_profile), len(trip_profile))):
+                        capped_profile[i] += trip_profile[i]
                     profile_trip_count += 1
 
         # Only compute the base profile when there are no cached per-trip params.

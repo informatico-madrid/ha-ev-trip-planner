@@ -200,11 +200,12 @@ class TestSOC100PropagationBug:
                 )
 
                 # With proactive charging, def_hours and power_nom should both be > 0
-                if def_hours > 0 and power_nom > 0:
-                    logger.debug("  (proactive charging active)")
-                elif def_hours == 0 and power_nom == 0:
-                    # This shouldn't happen with proactive charging
-                    logger.debug("  (no charging - unexpected)")
+                assert def_hours > 0, (
+                    f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours}"
+                )
+                assert power_nom > 0, (
+                    f"Trip {trip_id} failed proactive charging: P_deferrable_nom is {power_nom}"
+                )
 
     def test_soc_100_impossible_physics(self):
         """
