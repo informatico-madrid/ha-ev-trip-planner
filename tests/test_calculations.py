@@ -1086,7 +1086,8 @@ class TestCalculateDeficitPropagation:
         from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
 
         # Two trips: trip1 at 8am, trip2 at 6pm
-        # trip2 needs 50% SOC but window only gives 10% -> deficit 40% propagates to trip1
+        # Both windows are sufficient (6h > needed), verifying propagation handles
+        # the case where no deficit exists and soc_data drives the calculation
         trips = [
             {
                 "id": "trip1",
@@ -1105,7 +1106,7 @@ class TestCalculateDeficitPropagation:
             {"soc_inicio": 80.0, "trip": trips[0], "arrival_soc": 80.0},
             {"soc_inicio": 80.0, "trip": trips[1], "arrival_soc": 80.0},
         ]
-        # trip2 window: 6h at 14.8%/h = 88.8% capacity, but trip2 deficit is large
+        # trip2 window: 6h available vs 2.7h needed (sufficient)
         windows = [
             {
                 "ventana_horas": 6.0,

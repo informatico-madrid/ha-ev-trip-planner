@@ -74,7 +74,7 @@ All documentation is being translated to English to maximize accessibility. Cont
 
 ```mermaid
 timeline
-    title 3 Evolutionary Arcs
+    title 5 Evolutionary Arcs
     section Exploration
         2025 Q3 : Vibe Coding : No specs, no tests, maximum debt
         2025 Q4 : Prompt Engineering : Structured prompts, first templates
@@ -140,8 +140,10 @@ flowchart TB
 
 **Arc 4 innovation:** A parallel quality system operates alongside Ralph: the `.roo` agent with 117 skills (17 review/quality + 100 BMAD), including a 4-layer quality gate (deterministic AST + BMAD consensus), mutation testing, weak test detection, and spec integrity protection. Its checkpoint JSON outputs are consumed by Ralph's VERIFY steps, creating a dual-layer quality assurance architecture.
 
-**Arc 5: Multi-Layer Code Review** — The lifecycle includes three independent review layers:
-- **Gito** (local): Static analysis with a local LLM model before every commit — the first line of defense
+### Arc 5: Multi-Layer Code Review
+
+The lifecycle includes three independent review layers:
+- **Gito**: Static analysis with a local LLM model before every commit — the first line of defense
 - **Ralph + .roo** (parallel): 4-layer quality gate (L3A→L1→L2→L3B) during task execution
 - **CodeRabbit** (external): PR review on every push — provides an independent final gate before merge
 
@@ -182,7 +184,7 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 **What this demonstrates:**
 
 1. **System Architecture Without Code** — Designing and directing complex systems through specifications, not manual coding
-2. **Methodology Evolution** — 4 arcs (7 phases) of documented growth from chaos to dual-agent quality orchestration
+2. **Methodology Evolution** — 5 arcs (7 phases) of documented growth from chaos to dual-agent quality orchestration
 3. **Dual-Agent Quality Assurance** — A 4-layer quality gate (deterministic AST + BMAD consensus) running parallel to Ralph, with 17 review/quality skills, mutation testing, and spec integrity protection
 4. **Technical Debt Management** — Transparent tracking and systematic correction of inherited flaws
 5. **Open Source Contribution** — Original Phase 5 Verification Loop contributed back to Smart Ralph ecosystem

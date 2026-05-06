@@ -215,7 +215,7 @@ class EmhassDeferrableLoadSensor(
         - def_end_timestep_array: list of end timesteps per load
         """
         if self.coordinator.data is None:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes called - coordinator.data is None! vehicle_id=%s",
                 getattr(self.coordinator, "vehicle_id", "unknown"),
             )
@@ -224,19 +224,19 @@ class EmhassDeferrableLoadSensor(
         vehicle_id = getattr(self.coordinator, "vehicle_id", self._entry_id)
 
         # E2E-DEBUG-CRITICAL: Log entire coordinator.data structure
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes START - vehicle_id=%s",
             vehicle_id,
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: coordinator.data keys=%s",
             list(self.coordinator.data.keys()),
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_emhass_params raw=%s",
             self.coordinator.data.get("per_trip_emhass_params"),
         )
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: emhass_power_profile length=%d, non_zero=%d",
             len(self.coordinator.data.get("emhass_power_profile") or []),
             sum(
@@ -263,7 +263,7 @@ class EmhassDeferrableLoadSensor(
         number_of_deferrable_loads = 0
 
         # DEBUG: Log per_trip_params for debugging
-        _LOGGER.warning(
+        _LOGGER.debug(
             "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_params count=%d, entries=%s",
             len(per_trip_params),
             list(per_trip_params.keys())[:10] if per_trip_params else [],
@@ -271,7 +271,7 @@ class EmhassDeferrableLoadSensor(
 
         # CRITICAL: Log individual trip params structure
         for trip_id, params in per_trip_params.items():
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "E2E-DEBUG EMHASS-TRIP-PARAMS: trip_id=%s, activo=%s, keys=%s, def_total_hours_array=%s",
                 trip_id,
                 params.get("activo"),
@@ -303,11 +303,11 @@ class EmhassDeferrableLoadSensor(
 
             for params in active_trips_sorted:
                 # p_deferrable_matrix: list of lists (power profile per deferrable load)
-                p_matrix = params.get("p_deferrable_matrix", [])
+                p_matrix = params.get("p_deferrable_matrix")
                 if p_matrix:
                     matrix.extend(p_matrix)
                     number_of_deferrable_loads += len(p_matrix)
-                else:
+                elif "p_deferrable_matrix" not in params:
                     # P1.1: Count trip as 1 deferrable load if it has no p_deferrable_matrix
                     # This handles the case where trips have other EMHASS params but no power profile
                     number_of_deferrable_loads += 1
@@ -421,11 +421,10 @@ class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity):
             return {}
         recurring_trips = self.coordinator.data.get("recurring_trips", {})
         punctual_trips = self.coordinator.data.get("punctual_trips", {})
-        return (
-            recurring_trips.get(self._trip_id)
-            or punctual_trips.get(self._trip_id)
-            or {}
-        )
+        trip_data = recurring_trips.get(self._trip_id)
+        if trip_data is None:
+            trip_data = punctual_trips.get(self._trip_id)
+        return trip_data if trip_data is not None else {}
 
     @property
     def native_value(self) -> Any:

@@ -63,3 +63,9 @@ exclude_files = [
 
 retries = 1
 collapse_previous_code_review_comments = true
+
+# ============================================
+# AUX FILES - Context for the review
+# ============================================
+
+aux_files = [".gito/context.md"]

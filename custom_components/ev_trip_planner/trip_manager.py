@@ -1349,7 +1349,7 @@ class TripManager:
             if estado == "pendiente":
                 all_trips.append(trip)
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "DEBUG _get_all_active_trips: returning %d trips: %s",
             len(all_trips),
             [t.get("id") for t in all_trips],

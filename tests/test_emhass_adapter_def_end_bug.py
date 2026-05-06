@@ -132,7 +132,9 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana_not_hours_available
     # not just hours_available
     # When car has returned, charging can start immediately (def_start=0)
     # and should continue until deadline (def_end=48)
-    assert def_end >= 48, f"def_end ({def_end}) should be >= 48 (hours to deadline)"
+    assert def_end >= 48, (
+        f"def_end ({def_end}) should be >= 48 (hours to deadline)"
+    )
 
     assert def_end > def_start, (
         f"def_end ({def_end}) should be > def_start ({def_start})"

@@ -105,6 +105,9 @@ HA_PID=$!
 echo "$HA_PID" > "$HA_PID_FILE"
 echo "  HA started with PID $HA_PID"
 
+# Ensure HA is cleaned up on any exit (EXIT, INT, TERM)
+trap 'echo "Cleaning up HA..."; kill "$HA_PID" 2>/dev/null; pkill -f "hass -c ${HA_CONFIG_DIR}" 2>/dev/null; rm -f "$HA_PID_FILE"' EXIT INT TERM
+
 # --- Step 4: Wait for HA to be ready ---
 echo ""
 echo "[4/5] Waiting for Home Assistant to be ready..."

@@ -210,9 +210,9 @@ def hass():
             job_target = job.target
             # Si el job ya tiene args/kwargs incorporados
             if hasattr(job, "args"):
-                job_args = job.args
+                job_args = job.args or ()
             if hasattr(job, "kwargs"):
-                job_kwargs = job.kwargs
+                job_kwargs = job.kwargs or {}
         else:
             # Si es una función directa
             job_target = job

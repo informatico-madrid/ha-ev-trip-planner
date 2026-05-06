@@ -402,7 +402,7 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 9. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
 
-10. **⚠️ `ventana_horas` inflated by away time (BUG)**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + 6h`. This includes 6h when the car is away and cannot charge. The real deadline is `fin_ventana = trip_departure_time`. This inflates `def_total_hours` sent to EMHASS by `duration_hours` per trip. **Planned fix in Milestone 4.0.3** — short-term: use `departure - window_start`; mid-term: consolidate to single gap value; long-term: per-trip return time field.
+10. **⚠️ `ventana_horas` inflated by away time (BUG)**: In [`calculate_multi_trip_charging_windows()`](custom_components/ev_trip_planner/calculations.py:545), `ventana_horas` is calculated as `trip_arrival - window_start` where `trip_arrival = departure + 6h`. This includes 6h when the car is away and cannot charge. The real deadline is `fin_ventana = trip_departure_time`. This inflates `def_total_hours` sent to EMHASS by `duration_hours` per trip. **Status: Pending implementation** — short-term: use `departure - window_start`; mid-term: consolidate to single gap value; long-term: per-trip return time field.
 
 ---
 
