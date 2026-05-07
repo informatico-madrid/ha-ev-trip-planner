@@ -25,6 +25,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 class MockConfigEntry:
     """Mock ConfigEntry for testing."""
+
     def __init__(self, vehicle_id="test_vehicle", data=None):
         self.entry_id = "test_entry_id"
         self.data = data or {
@@ -72,7 +73,10 @@ class TestPropagateChargeIntegration:
 
     @pytest.mark.asyncio
     async def test_multi_trip_propagation_reaches_cache(
-        self, mock_hass, mock_store, config,
+        self,
+        mock_hass,
+        mock_store,
+        config,
     ):
         """
         E2E: Propagation flows through async_publish_all_deferrable_loads
@@ -115,9 +119,13 @@ class TestPropagateChargeIntegration:
         trips = [trip1, trip2]
         hora_regreso_stub = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 15.0  # Low SOC to ensure charging needed
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -125,7 +133,9 @@ class TestPropagateChargeIntegration:
                 )
                 adapter._presence_monitor = mock_pm
 
-                result = await adapter.async_publish_all_deferrable_loads(trips, charging_power_kw=3.6)
+                result = await adapter.async_publish_all_deferrable_loads(
+                    trips, charging_power_kw=3.6
+                )
 
         assert result is True
 
@@ -137,8 +147,12 @@ class TestPropagateChargeIntegration:
         cache2 = adapter._cached_per_trip_params["trip_2"]
 
         # Both trips should have charging (def_total_hours > 0)
-        assert cache1["def_total_hours"] > 0, f"trip_1 def_total_hours={cache1['def_total_hours']}"
-        assert cache2["def_total_hours"] > 0, f"trip_2 def_total_hours={cache2['def_total_hours']}"
+        assert cache1["def_total_hours"] > 0, (
+            f"trip_1 def_total_hours={cache1['def_total_hours']}"
+        )
+        assert cache2["def_total_hours"] > 0, (
+            f"trip_2 def_total_hours={cache2['def_total_hours']}"
+        )
 
         # Propagation verification: trip_1 absorbed deficit from trip_2.
         # Trip_1 has a 10h window for 12kWh (~2.6h charging), leaving ~7.4h spare.
@@ -147,8 +161,11 @@ class TestPropagateChargeIntegration:
         # Compute trip_1's base def_total_hours (without propagation).
         adapter_battery = adapter._battery_capacity_kwh
         trip1_decision = determine_charging_need(
-            trip1, 15.0, adapter_battery,
-            3.6, 10.0,
+            trip1,
+            15.0,
+            adapter_battery,
+            3.6,
+            10.0,
         )
         trip1_base_hours = math.ceil(trip1_decision.def_total_hours)
 
@@ -164,13 +181,12 @@ class TestPropagateChargeIntegration:
         assert "power_profile_watts" in cache1
         assert "power_profile_watts" in cache2
 
-        # Power profiles should be set (indicates full flow completed)
-        assert "power_profile_watts" in cache1
-        assert "power_profile_watts" in cache2
-
     @pytest.mark.asyncio
     async def test_single_trip_unchanged_regression(
-        self, mock_hass, mock_store, config,
+        self,
+        mock_hass,
+        mock_store,
+        config,
     ):
         """
         Regression: single-trip behavior is unchanged.
@@ -197,9 +213,13 @@ class TestPropagateChargeIntegration:
         }
         hora_regreso_stub = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 15.0  # Low SOC to ensure charging needed
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -207,19 +227,25 @@ class TestPropagateChargeIntegration:
                 )
                 adapter._presence_monitor = mock_pm
 
-                result = await adapter.async_publish_all_deferrable_loads([trip], charging_power_kw=3.6)
+                result = await adapter.async_publish_all_deferrable_loads(
+                    [trip], charging_power_kw=3.6
+                )
 
         assert result is True
         assert "single_trip" in adapter._cached_per_trip_params
 
         cache = adapter._cached_per_trip_params["single_trip"]
-        assert cache["def_total_hours"] > 0, f"def_total_hours={cache['def_total_hours']}"
+        assert cache["def_total_hours"] > 0, (
+            f"def_total_hours={cache['def_total_hours']}"
+        )
         assert "def_start_timestep" in cache
         assert "def_end_timestep" in cache
 
     @pytest.mark.asyncio
     async def test_no_deficit_all_sufficient(
-        self, mock_hass, mock_store,
+        self,
+        mock_hass,
+        mock_store,
     ):
         """
         When all trips have sufficient windows, no propagation occurs.
@@ -243,18 +269,24 @@ class TestPropagateChargeIntegration:
 
         trips = []
         for i in range(3):
-            trips.append({
-                "id": f"trip_{i}",
-                "tipo": "puntual",
-                "datetime": (now + timedelta(hours=4 + i * 3)).isoformat(),
-                "kwh": 2.0,  # Very small needs
-            })
+            trips.append(
+                {
+                    "id": f"trip_{i}",
+                    "tipo": "puntual",
+                    "datetime": (now + timedelta(hours=4 + i * 3)).isoformat(),
+                    "kwh": 2.0,  # Very small needs
+                }
+            )
 
         hora_regreso_stub = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 10.0  # Low SOC to ensure small trips need charging
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -262,7 +294,9 @@ class TestPropagateChargeIntegration:
                 )
                 adapter._presence_monitor = mock_pm
 
-                result = await adapter.async_publish_all_deferrable_loads(trips, charging_power_kw=7.4)
+                result = await adapter.async_publish_all_deferrable_loads(
+                    trips, charging_power_kw=7.4
+                )
 
         assert result is True
 
@@ -276,7 +310,10 @@ class TestPropagateChargeIntegration:
 
     @pytest.mark.asyncio
     async def test_empty_trips_returns_success(
-        self, mock_hass, mock_store, config,
+        self,
+        mock_hass,
+        mock_store,
+        config,
     ):
         """Empty trip list should not fail."""
         entry = MockConfigEntry("test_vehicle", config)
@@ -293,7 +330,10 @@ class TestPropagateChargeIntegration:
 
     @pytest.mark.asyncio
     async def test_enriched_windows_map_keyed_by_trip_id(
-        self, mock_hass, mock_store, config,
+        self,
+        mock_hass,
+        mock_store,
+        config,
     ):
         """
         Verify the enriched_windows_map is properly keyed by trip_id
@@ -326,9 +366,13 @@ class TestPropagateChargeIntegration:
 
         hora_regreso_stub = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 10.0  # Low SOC to ensure both trips need charging
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -337,7 +381,8 @@ class TestPropagateChargeIntegration:
                 adapter._presence_monitor = mock_pm
 
                 result = await adapter.async_publish_all_deferrable_loads(
-                    [trip1, trip2], charging_power_kw=3.6,
+                    [trip1, trip2],
+                    charging_power_kw=3.6,
                 )
 
         assert result is True
@@ -345,8 +390,12 @@ class TestPropagateChargeIntegration:
         cache1 = adapter._cached_per_trip_params["early_trip"]
         cache2 = adapter._cached_per_trip_params["late_trip"]
 
-        assert cache1["def_total_hours"] > 0, f"early_trip def_total_hours should be > 0, got {cache1['def_total_hours']}"
-        assert cache2["def_total_hours"] > 0, f"late_trip def_total_hours should be > 0, got {cache2['def_total_hours']}"
+        assert cache1["def_total_hours"] > 0, (
+            f"early_trip def_total_hours should be > 0, got {cache1['def_total_hours']}"
+        )
+        assert cache2["def_total_hours"] > 0, (
+            f"late_trip def_total_hours should be > 0, got {cache2['def_total_hours']}"
+        )
 
         # Power profiles should be set
         assert "power_profile_watts" in cache1
@@ -354,7 +403,10 @@ class TestPropagateChargeIntegration:
 
     @pytest.mark.asyncio
     async def test_batch_path_defensive_skip_missing_window(
-        self, mock_hass, mock_store, config,
+        self,
+        mock_hass,
+        mock_store,
+        config,
     ):
         """
         Verify that when calculate_multi_trip_charging_windows returns fewer
@@ -394,13 +446,18 @@ class TestPropagateChargeIntegration:
             from custom_components.ev_trip_planner.calculations import (
                 calculate_multi_trip_charging_windows as original,
             )
+
             # Call original then strip the last window
             all_windows = original(*args, **kwargs)
             return all_windows[:1]
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 10.0
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -414,7 +471,8 @@ class TestPropagateChargeIntegration:
                     side_effect=partial_windows,
                 ):
                     result = await adapter.async_publish_all_deferrable_loads(
-                        trips, charging_power_kw=3.6,
+                        trips,
+                        charging_power_kw=3.6,
                     )
 
         # Should not crash even when a trip has no window

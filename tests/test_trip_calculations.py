@@ -3,6 +3,7 @@
 import pytest
 import asyncio
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 from unittest.mock import MagicMock
 
 
@@ -18,14 +19,11 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {}
     hass.config_entries = MagicMock()
-    
+
     # Mock config entry con vehicle_name y charging_power_kw (para que async_entries lo encuentre)
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 3.6
-    }
+    mock_entry.data = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
     hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
@@ -46,14 +44,14 @@ def mock_hass():
     from homeassistant.helpers.storage import Store
 
     async def mock_async_load(self):
-        key = getattr(self, '_mock_key', None)
+        key = getattr(self, "_mock_key", None)
         if key is None:
             return []
         await asyncio.sleep(0)  # Simula async
         return _storage_data.get(key, [])
 
     async def mock_async_save(self, data):
-        key = getattr(self, '_mock_key', None)
+        key = getattr(self, "_mock_key", None)
         if key is not None:
             await asyncio.sleep(0)  # Simula async
             _storage_data[key] = data
@@ -64,6 +62,8 @@ def mock_hass():
 
     # Guardar el original
     original_store_init = Store.__init__
+    original_async_load = Store.async_load
+    original_async_save = Store.async_save
 
     # Aplicar patches
     Store.__init__ = mock_init
@@ -74,6 +74,8 @@ def mock_hass():
 
     # Cleanup - restaurar original
     Store.__init__ = original_store_init
+    Store.async_load = original_async_load
+    Store.async_save = original_async_save
 
 
 @pytest.mark.asyncio
@@ -96,7 +98,7 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         hora="14:00",
         km=25,
         kwh=3.75,
-        descripcion="Trabajo"
+        descripcion="Trabajo",
     )
 
     # Add punctual trip for tomorrow at 14:00 (closer than recurring trip)
@@ -105,7 +107,7 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
         datetime_str=tomorrow.strftime("%Y-%m-%dT14:00"),
         km=50,
         kwh=7.5,
-        descripcion="Viaje largo"
+        descripcion="Viaje largo",
     )
 
     # Get next trip - should be tomorrow's punctual trip (closer in time)
@@ -118,12 +120,12 @@ async def test_get_next_trip_with_mixed_trips(mock_hass):
 @pytest.mark.asyncio
 async def test_get_next_trip_empty_returns_none(mock_hass):
     """Test that next trip returns None when no trips exist."""
-    
+
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # No trips added
     next_trip = await mgr.async_get_next_trip()
-    
+
     assert next_trip is None
 
 
@@ -135,29 +137,31 @@ async def test_get_kwh_needed_today_multiple_trips(mock_hass):
 
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-    today_weekday = datetime.now().weekday()
-    today_spanish = day_map[today_weekday]
+    frozen_time = datetime(2025, 5, 5, 10, 0, 0)  # Monday = "lunes"
+    with freeze_time(frozen_time):
+        today_weekday = frozen_time.weekday()
+        today_spanish = day_map[today_weekday]
 
-    # Add two trips for today
-    await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish,
-        hora="08:00",
-        km=25,
-        kwh=3.75,
-        descripcion="Trabajo"
-    )
+        # Add two trips for today
+        await mgr.async_add_recurring_trip(
+            dia_semana=today_spanish,
+            hora="12:00",
+            km=25,
+            kwh=3.75,
+            descripcion="Trabajo",
+        )
 
-    await mgr.async_add_punctual_trip(
-        datetime_str=datetime.now().strftime("%Y-%m-%dT14:00"),
-        km=50,
-        kwh=7.5,
-        descripcion="Compras"
-    )
+        await mgr.async_add_punctual_trip(
+            datetime_str=frozen_time.strftime("%Y-%m-%dT14:00"),
+            km=50,
+            kwh=7.5,
+            descripcion="Compras",
+        )
 
-    # Get kWh needed today
-    kwh_today = await mgr.async_get_kwh_needed_today()
+        # Get kWh needed today (must be inside freeze_time so datetime.now() matches)
+        kwh_today = await mgr.async_get_kwh_needed_today()
 
-    assert kwh_today == 11.25  # 3.75 + 7.5
+        assert kwh_today == 11.25  # 3.75 + 7.5
 
 
 @pytest.mark.asyncio
@@ -165,10 +169,10 @@ async def test_get_kwh_needed_today_no_trips_returns_zero(mock_hass):
     """Test that kWh needed today returns 0 when no trips exist."""
 
     mgr = TripManager(mock_hass, vehicle_id="test_vehicle")
-    
+
     # No trips added
     kwh_today = await mgr.async_get_kwh_needed_today()
-    
+
     assert kwh_today == 0.0
 
 
@@ -180,22 +184,22 @@ async def test_get_hours_needed_today_rounds_up(mock_hass):
 
     # Get current day of week in Spanish
     day_map = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
-    today_weekday = datetime.now().weekday()
+    frozen_time = datetime(2025, 5, 5, 10, 0, 0)  # Monday = "lunes"
+    today_weekday = frozen_time.weekday()
     today_spanish = day_map[today_weekday]
 
-    # Add trip requiring 11.25 kWh for today
-    await mgr.async_add_recurring_trip(
-        dia_semana=today_spanish,
-        hora="08:00",
-        km=25,
-        kwh=11.25,
-        descripcion="Trabajo"
-    )
+    with freeze_time(frozen_time):
+        # Add trip requiring 11.25 kWh for today
+        await mgr.async_add_recurring_trip(
+            dia_semana=today_spanish,
+            hora="08:00",
+            km=25,
+            kwh=11.25,
+            descripcion="Trabajo",
+        )
 
-    # Calculate hours needed (uses default charging power from mock config)
-    hours = await mgr.async_get_hours_needed_today()
+        # Calculate hours needed (uses default charging power from mock config)
+        hours = await mgr.async_get_hours_needed_today()
 
-    # ceil(11.25 / 3.6) = ceil(3.125) = 4
-    assert hours == 4
-
-
+        # ceil(11.25 / 3.6) = ceil(3.125) = 4
+        assert hours == 4

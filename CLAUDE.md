@@ -39,3 +39,9 @@ Use `/bmalph` to navigate phases. Use `/bmad-help` to discover all commands. Use
 | `/dev` | Developer | Implementation, coding |
 | `/ux-designer` | UX Designer | User experience, wireframes |
 | `/qa` | QA Engineer | Test automation, quality assurance |
+
+## E2E TESTS
+
+- Always run them via the Makefile
+- API calls are strictly prohibited
+- Must replicate real user behavior. If the test cannot replicate real user behavior, it is invalid, indicating either a flaw in the test design or an error in the application code.

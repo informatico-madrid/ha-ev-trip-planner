@@ -56,8 +56,9 @@ async def test_notifications_step_skip_empty_input():
         }
     }
 
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
     ):
         result = await flow.async_step_notifications({})
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -83,8 +84,9 @@ async def test_notifications_step_with_valid_service():
     # Mock has_service to return True for valid service
     flow.hass.services.has_service = MagicMock(return_value=True)
 
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
     ):
         result = await flow.async_step_notifications(
             {
@@ -116,8 +118,9 @@ async def test_notifications_step_with_devices():
     }
     flow.hass.services.has_service = MagicMock(return_value=True)
 
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
     ):
         result = await flow.async_step_notifications(
             {
@@ -151,7 +154,9 @@ async def test_notifications_step_invalid_service_shows_error():
     # Mock entity registry to return empty list
     flow.hass.helpers = MagicMock()
     flow.hass.helpers.entity_registry = MagicMock()
-    flow.hass.helpers.entity_registry.async_get_registry = AsyncMock(return_value=MagicMock(entities={}))
+    flow.hass.helpers.entity_registry.async_get_registry = AsyncMock(
+        return_value=MagicMock(entities={})
+    )
 
     # Test 1: notify domain services are accepted because EntitySelector handles validation
     result = await flow.async_step_notifications(
@@ -223,8 +228,9 @@ async def test_notifications_multiple_devices():
     }
     flow.hass.services.has_service = MagicMock(return_value=True)
 
-    with patch.object(flow, "async_set_unique_id", new=AsyncMock()), patch.object(
-        flow, "_abort_if_unique_id_configured", return_value=None
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
     ):
         result = await flow.async_step_notifications(
             {

@@ -1,6 +1,6 @@
 """Tests for SOC Milestone Algorithm - Task 1.13: Consecutive Deficit Handling."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -94,7 +94,9 @@ class TestConsecutiveDeficits:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -115,13 +117,19 @@ class TestConsecutiveDeficits:
         result_b = next(r for r in results if r["trip_id"] == "trip_b")
 
         # B has its own deficit of 10
-        assert result_b["deficit_acumulado"] == 10.0, f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
+        assert result_b["deficit_acumulado"] == 10.0, (
+            f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
+        )
 
         # A has B's deficit propagated
-        assert result_a["deficit_acumulado"] == 10.0, f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        assert result_a["deficit_acumulado"] == 10.0, (
+            f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        )
 
         # A's target = base 30 + deficit 10 = 40
-        assert result_a["soc_objetivo"] == 40.0, f"A target: expected 40.0, got {result_a['soc_objetivo']}"
+        assert result_a["soc_objetivo"] == 40.0, (
+            f"A target: expected 40.0, got {result_a['soc_objetivo']}"
+        )
 
     @pytest.mark.asyncio
     async def test_single_trip_no_deficit(self, trip_manager):
@@ -165,7 +173,9 @@ class TestConsecutiveDeficits:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -184,9 +194,13 @@ class TestConsecutiveDeficits:
         result_a = results[0]
 
         # A has no deficit
-        assert result_a["deficit_acumulado"] == 0.0, f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
+        assert result_a["deficit_acumulado"] == 0.0, (
+            f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
+        )
         # A's target is just base target (no deficit propagated)
-        assert result_a["soc_objetivo"] == 30.0, f"A target: expected 30.0, got {result_a['soc_objetivo']}"
+        assert result_a["soc_objetivo"] == 30.0, (
+            f"A target: expected 30.0, got {result_a['soc_objetivo']}"
+        )
 
 
 class TestAC1:
@@ -265,7 +279,9 @@ class TestAC1:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -286,16 +302,19 @@ class TestAC1:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has deficit of 20
-        assert result_night["deficit_acumulado"] == 20.0, \
+        assert result_night["deficit_acumulado"] == 20.0, (
             f"Night deficit: expected 20.0, got {result_night['deficit_acumulado']}"
+        )
 
         # Morning has deficit propagated from night: 20
-        assert result_morning["deficit_acumulado"] == 20.0, \
+        assert result_morning["deficit_acumulado"] == 20.0, (
             f"Morning deficit: expected 20.0, got {result_morning['deficit_acumulado']}"
+        )
 
         # Morning target = 30% base + 10% buffer + 20% deficit = 60%
-        assert result_morning["soc_objetivo"] == 60.0, \
+        assert result_morning["soc_objetivo"] == 60.0, (
             f"Morning target: expected 60.0, got {result_morning['soc_objetivo']}"
+        )
 
 
 class TestAC2:
@@ -387,7 +406,9 @@ class TestAC2:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -408,23 +429,28 @@ class TestAC2:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Verify no deficit propagation (night has no deficit)
-        assert result_night["deficit_acumulado"] == 0.0, \
+        assert result_night["deficit_acumulado"] == 0.0, (
             f"Night deficit should be 0 (no deficit), got {result_night['deficit_acumulado']}"
-        assert result_morning["deficit_acumulado"] == 0.0, \
+        )
+        assert result_morning["deficit_acumulado"] == 0.0, (
             f"Morning deficit should be 0 (no propagation), got {result_morning['deficit_acumulado']}"
+        )
 
         # Key AC-2 assertion: morning kwh_necesarios > night kwh_necesarios
         # Morning: (40-0)=40% gap → 20 kWh
         # Night: (80-45)=35% gap → 17.5 kWh
-        assert result_morning["kwh_necesarios"] > result_night["kwh_necesarios"], \
-            f"AC-2 FAILED: morning kwh_necesarios ({result_morning['kwh_necesarios']}) " \
+        assert result_morning["kwh_necesarios"] > result_night["kwh_necesarios"], (
+            f"AC-2 FAILED: morning kwh_necesarios ({result_morning['kwh_necesarios']}) "
             f"should be > night kwh_necesarios ({result_night['kwh_necesarios']})"
+        )
 
         # Verify specific values
-        assert result_morning["kwh_necesarios"] == 20.0, \
+        assert result_morning["kwh_necesarios"] == 20.0, (
             f"Morning kwh_necesarios: expected 20.0, got {result_morning['kwh_necesarios']}"
-        assert result_night["kwh_necesarios"] == 17.5, \
+        )
+        assert result_night["kwh_necesarios"] == 17.5, (
             f"Night kwh_necesarios: expected 17.5, got {result_night['kwh_necesarios']}"
+        )
 
 
 class TestAC3:
@@ -507,7 +533,9 @@ class TestAC3:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -528,16 +556,19 @@ class TestAC3:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has NO deficit (20% + 80% capacity = 100% > 80% target)
-        assert result_night["deficit_acumulado"] == 0.0, \
+        assert result_night["deficit_acumulado"] == 0.0, (
             f"Night deficit: expected 0.0, got {result_night['deficit_acumulado']}"
+        )
 
         # Morning has NO deficit propagated (night had no deficit to propagate)
-        assert result_morning["deficit_acumulado"] == 0.0, \
+        assert result_morning["deficit_acumulado"] == 0.0, (
             f"Morning deficit: expected 0.0, got {result_morning['deficit_acumulado']}"
+        )
 
         # Morning target = 30% base + 10% buffer = 40% (no deficit added)
-        assert result_morning["soc_objetivo"] == 40.0, \
+        assert result_morning["soc_objetivo"] == 40.0, (
             f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
+        )
 
 
 class TestAC4:
@@ -595,7 +626,9 @@ class TestAC4:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -614,12 +647,14 @@ class TestAC4:
         result = results[0]
 
         # No accumulated deficit (single trip, no previous trips)
-        assert result["deficit_acumulado"] == 0.0, \
+        assert result["deficit_acumulado"] == 0.0, (
             f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
         # SOC target = 30% energy + 10% buffer = 40%
-        assert result["soc_objetivo"] == 40.0, \
+        assert result["soc_objetivo"] == 40.0, (
             f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
+        )
 
 
 class TestEmptyAndSingleTrip:
@@ -702,7 +737,9 @@ class TestEdgeShortWindow:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -723,8 +760,9 @@ class TestEdgeShortWindow:
         # Capacity = 10% * 0.5h = 5%
         # Achieveable = 20% + 5% = 25%
         # Deficit = 80% - 25% = 55%
-        assert result["deficit_acumulado"] == 55.0, \
+        assert result["deficit_acumulado"] == 55.0, (
             f"Short window deficit: expected 55.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestEdgeExact:
@@ -781,7 +819,9 @@ class TestEdgeExact:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -801,8 +841,9 @@ class TestEdgeExact:
 
         # 20% + (10% * 6h) = 80% achievable = 80% target
         # Deficit = 0
-        assert result["deficit_acumulado"] == 0.0, \
+        assert result["deficit_acumulado"] == 0.0, (
             f"Exact charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestEdgeSurplus:
@@ -858,7 +899,9 @@ class TestEdgeSurplus:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -878,8 +921,9 @@ class TestEdgeSurplus:
 
         # 50% + (10% * 4h) = 90% achievable > 70% target
         # Deficit = 0
-        assert result["deficit_acumulado"] == 0.0, \
+        assert result["deficit_acumulado"] == 0.0, (
             f"Surplus charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestThreeTripChain:
@@ -893,7 +937,9 @@ class TestThreeTripChain:
     """
 
     @pytest.mark.asyncio
-    async def test_three_trip_consecutive_deficit_backward_propagation(self, trip_manager):
+    async def test_three_trip_consecutive_deficit_backward_propagation(
+        self, trip_manager
+    ):
         """Test that deficit propagates backward through three consecutive trips.
 
         Scenario (chronological order):
@@ -998,7 +1044,9 @@ class TestThreeTripChain:
                 },
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1020,23 +1068,27 @@ class TestThreeTripChain:
         result_c = next(r for r in results if r["trip_id"] == "trip_c")
 
         # Trip C: 20% + 20% = 40% < 50% target → deficit = 10%
-        assert result_c["deficit_acumulado"] == 10.0, \
+        assert result_c["deficit_acumulado"] == 10.0, (
             f"Trip C deficit: expected 10.0, got {result_c['deficit_acumulado']}"
+        )
 
         # Trip B: receives C's 10%, target = 50% + 10% = 60%
         # 20% + 30% = 50% < 60% target → B's own deficit = 10%, total = 20%
-        assert result_b["deficit_acumulado"] == 20.0, \
+        assert result_b["deficit_acumulado"] == 20.0, (
             f"Trip B deficit: expected 20.0, got {result_b['deficit_acumulado']}"
+        )
 
         # Trip A: receives B's deficit (B generated 10% own deficit to propagate)
         # A's deficit_acumulado = B's propagated deficit = 10%
         # Note: B's propagated deficit is B's own deficit, not the total (20%)
-        assert result_a["deficit_acumulado"] == 10.0, \
+        assert result_a["deficit_acumulado"] == 10.0, (
             f"Trip A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        )
 
         # Trip A target = 30% base + 10% deficit = 40%
-        assert result_a["soc_objetivo"] == 40.0, \
+        assert result_a["soc_objetivo"] == 40.0, (
             f"Trip A target: expected 40.0, got {result_a['soc_objetivo']}"
+        )
 
 
 class TestBatteryFallback:
@@ -1087,7 +1139,9 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1108,8 +1162,9 @@ class TestBatteryFallback:
         # kwh_necesarios = (30% - 50%) * 75.0 / 100 = -15 kWh (clamped to 0)
         # But since soc_objetivo > soc_inicio is false, it should be 0
         # Actually: target 30%, start 50%, so gap is negative -> 0 kWh needed
-        assert result["kwh_necesarios"] == 0.0, \
+        assert result["kwh_necesarios"] == 0.0, (
             f"kwh_necesarios with explicit battery: expected 0.0, got {result['kwh_necesarios']}"
+        )
 
     @pytest.mark.asyncio
     async def test_battery_capacity_none_fallback(self, trip_manager):
@@ -1152,7 +1207,9 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1172,8 +1229,9 @@ class TestBatteryFallback:
         result = results[0]
 
         # kwh_necesarios = (30% - 30%) * 50.0 / 100 = 0 kWh
-        assert result["kwh_necesarios"] == 0.0, \
+        assert result["kwh_necesarios"] == 0.0, (
             f"kwh_necesarios with None config: expected 0.0, got {result['kwh_necesarios']}"
+        )
 
     @pytest.mark.asyncio
     async def test_battery_capacity_missing_key(self, trip_manager):
@@ -1215,7 +1273,9 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1236,8 +1296,9 @@ class TestBatteryFallback:
 
         # With 50% start, 30% target, gap = 10%
         # kwh_necesarios = 10% * 50.0 / 100 = 5.0 kWh
-        assert result["kwh_necesarios"] == 5.0, \
+        assert result["kwh_necesarios"] == 5.0, (
             f"kwh_necesarios with missing key: expected 5.0, got {result['kwh_necesarios']}"
+        )
 
 
 class TestChargingPowerAffectsRate:
@@ -1289,7 +1350,9 @@ class TestChargingPowerAffectsRate:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1309,8 +1372,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (7.2% * 4h) = 48.8% achievable < 80% target
         # Deficit = 80% - 48.8% = 31.2%
-        assert result["deficit_acumulado"] == 31.2, \
+        assert result["deficit_acumulado"] == 31.2, (
             f"Low power deficit: expected 31.2, got {result['deficit_acumulado']}"
+        )
 
     @pytest.mark.asyncio
     async def test_high_charging_power_11kw(self, trip_manager):
@@ -1355,7 +1419,9 @@ class TestChargingPowerAffectsRate:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1375,8 +1441,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (22% * 4h) = 108% > 80% target
         # NO deficit
-        assert result["deficit_acumulado"] == 0.0, \
+        assert result["deficit_acumulado"] == 0.0, (
             f"High power deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestResultStructure:
@@ -1442,7 +1509,9 @@ class TestResultStructure:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = mock_calcular_ventana_carga_multitrip
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
 
         def mock_get_trip_time(trip):
             dt_str = trip.get("datetime")
@@ -1469,24 +1538,34 @@ class TestResultStructure:
 
         # Verify field types
         assert isinstance(result["trip_id"], str), "trip_id should be str"
-        assert isinstance(result["soc_objetivo"], (int, float)), "soc_objetivo should be numeric"
-        assert isinstance(result["kwh_necesarios"], (int, float)), "kwh_necesarios should be numeric"
-        assert isinstance(result["deficit_acumulado"], (int, float)), "deficit_acumulado should be numeric"
+        assert isinstance(result["soc_objetivo"], (int, float)), (
+            "soc_objetivo should be numeric"
+        )
+        assert isinstance(result["kwh_necesarios"], (int, float)), (
+            "kwh_necesarios should be numeric"
+        )
+        assert isinstance(result["deficit_acumulado"], (int, float)), (
+            "deficit_acumulado should be numeric"
+        )
 
         # Verify ventana_carga structure
         ventana = result["ventana_carga"]
         assert "ventana_horas" in ventana, "Missing ventana_carga.ventana_horas"
         assert "kwh_necesarios" in ventana, "Missing ventana_carga.kwh_necesarios"
-        assert "horas_carga_necesarias" in ventana, "Missing ventana_carga.horas_carga_necesarias"
+        assert "horas_carga_necesarias" in ventana, (
+            "Missing ventana_carga.horas_carga_necesarias"
+        )
         assert "inicio_ventana" in ventana, "Missing ventana_carga.inicio_ventana"
         assert "fin_ventana" in ventana, "Missing ventana_carga.fin_ventana"
         assert "es_suficiente" in ventana, "Missing ventana_carga.es_suficiente"
 
         # Verify datetime fields (can be None or datetime)
-        assert ventana["inicio_ventana"] is None or isinstance(ventana["inicio_ventana"], datetime), \
-            "inicio_ventana should be None or datetime"
-        assert ventana["fin_ventana"] is None or isinstance(ventana["fin_ventana"], datetime), \
-            "fin_ventana should be None or datetime"
+        assert ventana["inicio_ventana"] is None or isinstance(
+            ventana["inicio_ventana"], datetime
+        ), "inicio_ventana should be None or datetime"
+        assert ventana["fin_ventana"] is None or isinstance(
+            ventana["fin_ventana"], datetime
+        ), "fin_ventana should be None or datetime"
 
         # Verify specific values
         assert result["trip_id"] == "structure_test_trip"
@@ -1497,3 +1576,163 @@ class TestResultStructure:
         assert result["deficit_acumulado"] == 0.0
         assert ventana["ventana_horas"] == 4.0
         assert ventana["es_suficiente"] is True
+
+
+class TestDynamicSOCCappingIntegration:
+    """Tests for dynamic SOC capping integration in calcular_hitos_soc."""
+
+    @pytest.mark.asyncio
+    async def test_calcular_hitos_soc_with_none_trip_time(
+        self, trip_manager, mock_hass
+    ):
+        """Test None trip_time triggers fallback to t_hours=0.0 (trip_manager.py:1984-1985).
+
+        When _get_trip_time returns None for a trip, the code falls back to t_hours=0.0
+        which means the cap is computed with zero idle time risk.
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "puntual",
+            "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+        trip_b = {
+            "id": "trip_b",
+            "tipo": "puntual",
+            "datetime": (now + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+
+        trips = [trip_a, trip_b]
+
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [
+                {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a},
+                {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_b},
+            ]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_a,
+                },
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_b,
+                },
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
+
+        # Mock _get_trip_time to return None for the second trip
+        call_count = [0]
+
+        def mock_get_trip_time(trip):
+            call_count[0] += 1
+            if call_count[0] == 2:
+                return None  # second trip has no valid time
+            dt_str = trip.get("datetime")
+            return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M").replace(
+                tzinfo=timezone.utc
+            )
+
+        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager.hass = mock_hass
+
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            vehicle_config={"battery_capacity_kwh": 50.0},
+        )
+
+        assert len(results) == 2
+        # Both trips should have valid results despite one None trip_time
+        assert results[0]["soc_objetivo"] >= 0.0
+        assert results[1]["soc_objetivo"] >= 0.0
+
+    @pytest.mark.asyncio
+    async def test_calcular_hitos_soc_with_naive_aware_datetime_mismatch(
+        self, trip_manager, mock_hass
+    ):
+        """Test naive datetime mismatch triggers exception handler (trip_manager.py:1982).
+
+        When _get_trip_time returns a naive datetime but now_dt is UTC-aware,
+        the subtraction raises TypeError, triggering the except branch.
+        """
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+
+        trip_a = {
+            "id": "trip_a",
+            "tipo": "puntual",
+            "datetime": (now + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M"),
+            "km": 30.0,
+            "kwh": 10.0,
+        }
+
+        trips = [trip_a]
+
+        async def mock_calcular_soc_inicio_trips(*args, **kwargs):
+            return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a}]
+
+        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+
+        async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
+            return [
+                {
+                    "ventana_horas": 2.0,
+                    "kwh_necesarios": 5.0,
+                    "horas_carga_necesarias": 0.5,
+                    "inicio_ventana": None,
+                    "fin_ventana": None,
+                    "es_suficiente": True,
+                    "trip": trip_a,
+                },
+            ]
+
+        trip_manager.calcular_ventana_carga_multitrip = (
+            mock_calcular_ventana_carga_multitrip
+        )
+
+        # Mock _get_trip_time to return a string instead of datetime.
+        # This causes (trip_time - now_dt) to raise TypeError, triggering
+        # the except Exception branch at line 1982.
+        def mock_get_trip_time(trip):
+            return "not_a_datetime"  # type: ignore[return-value]
+
+        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager.hass = mock_hass
+
+        # This should NOT raise — the except branch handles the exception
+        results = await trip_manager.calcular_hitos_soc(
+            trips=trips,
+            soc_inicial=50.0,
+            charging_power_kw=7.4,
+            vehicle_config={"battery_capacity_kwh": 50.0},
+        )
+
+        assert len(results) == 1
+        assert results[0]["soc_objetivo"] >= 0.0

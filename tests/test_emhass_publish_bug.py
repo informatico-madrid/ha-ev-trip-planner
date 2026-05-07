@@ -83,10 +83,12 @@ async def test_publish_deferrable_loads_called_after_setup(mock_hass):
     await trip_manager.async_setup()
 
     # Verify trips were loaded from storage
-    assert len(trip_manager._recurring_trips) == 1, \
+    assert len(trip_manager._recurring_trips) == 1, (
         "TripManager should load 1 recurring trip from storage"
-    assert len(trip_manager._punctual_trips) == 1, \
+    )
+    assert len(trip_manager._punctual_trips) == 1, (
         "TripManager should load 1 punctual trip from storage"
+    )
     print("✓ Trips loaded from storage successfully")
 
     # Step 2: Set EMHASS adapter (simulates __init__.py line 126)
@@ -161,23 +163,29 @@ async def test_emhass_sensors_populated_after_publish(mock_hass):
     # Mock EMHASS adapter with cache that gets populated after publish
     emhass_adapter = MagicMock()
 
-    async def mock_async_publish_all_deferrable_loads(trips, charging_power_kw=None):
+    async def mock_async_publish_all_deferrable_loads(
+        trips, charging_power_kw=None, soc_caps_by_id=None
+    ):
         """Simulate async_publish_all_deferrable_loads populating the cache."""
         # Simulate cache population as the real method does
         cache_data["def_total_hours_array"] = [8.5]  # Example: 8.5 hours
         cache_data["p_deferrable_nom_array"] = [3.6]  # Example: 3.6 kW
         cache_data["def_start_timestep_array"] = [22]  # 10 PM
-        cache_data["def_end_timestep_array"] = [24]    # 12 AM (next day)
+        cache_data["def_end_timestep_array"] = [24]  # 12 AM (next day)
         cache_data["number_of_deferrable_loads"] = 1
         return True
 
     # Use AsyncMock to support .called attribute
-    emhass_adapter.async_publish_all_deferrable_loads = AsyncMock(side_effect=mock_async_publish_all_deferrable_loads)
+    emhass_adapter.async_publish_all_deferrable_loads = AsyncMock(
+        side_effect=mock_async_publish_all_deferrable_loads
+    )
 
     def mock_get_cache():
         return cache_data
 
-    emhass_adapter.get_cached_optimization_results = MagicMock(side_effect=mock_get_cache)
+    emhass_adapter.get_cached_optimization_results = MagicMock(
+        side_effect=mock_get_cache
+    )
 
     entry = MagicMock()
     entry.entry_id = "test_entry"
@@ -212,16 +220,21 @@ async def test_emhass_sensors_populated_after_publish(mock_hass):
     # Verify EMHASS cache was populated with deferrable load data
     # This addresses the PR comment: the test now verifies actual cache population
     cached = emhass_adapter.get_cached_optimization_results()
-    assert cached["def_total_hours_array"] == [8.5], \
+    assert cached["def_total_hours_array"] == [8.5], (
         "def_total_hours_array should be populated after publish"
-    assert cached["p_deferrable_nom_array"] == [3.6], \
+    )
+    assert cached["p_deferrable_nom_array"] == [3.6], (
         "p_deferrable_nom_array should be populated after publish"
-    assert cached["def_start_timestep_array"] == [22], \
+    )
+    assert cached["def_start_timestep_array"] == [22], (
         "def_start_timestep_array should be populated after publish"
-    assert cached["def_end_timestep_array"] == [24], \
+    )
+    assert cached["def_end_timestep_array"] == [24], (
         "def_end_timestep_array should be populated after publish"
-    assert cached["number_of_deferrable_loads"] == 1, \
+    )
+    assert cached["number_of_deferrable_loads"] == 1, (
         "number_of_deferrable_loads should be 1 after publish"
+    )
 
     print("✓ FIX VERIFIED:")
     print("  EMHASS publish_deferrable_loads is called after HA restart")

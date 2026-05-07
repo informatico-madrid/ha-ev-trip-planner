@@ -2,9 +2,10 @@
 # run-e2e.sh — Clean setup and run E2E tests for EV Trip Planner
 #
 # Usage:
-#   ./scripts/run-e2e.sh            # Default (headless)
+#   ./scripts/run-e2e.sh            # Default (headless, main suite)
 #   ./scripts/run-e2e.sh --headed    # With visible browser
 #   ./scripts/run-e2e.sh --debug    # Debug mode
+#   ./scripts/run-e2e.sh --suite tests/e2e-dynamic-soc   # Run specific suite
 #
 # This script ALWAYS does a clean setup following Option B from TESTING_E2E.md:
 # 1. Kill any existing HA instance (port 8123)
@@ -24,14 +25,23 @@ TS=$(date +%Y%m%d_%H%M%S)
 HA_LOG_FILE="$LOG_DIR/ha-e2e-${TS}.log"
 HA_URL="${HA_URL:-http://localhost:8123}"
 HEADLESS="--workers=1"
+TEST_SUITE="tests/e2e/"
 
-# Parse args
-for arg in "$@"; do
-  case "$arg" in
+# Parse arguments
+for ((i=1; i<=$#; i++)); do
+  case "${!i}" in
     --headed) HEADLESS="--workers=1 --headed" ;;
     --debug) HEADLESS="--workers=1 --debug" ;;
     --ci) HEADLESS="--workers=1" ;;
-    *) ;;
+    --suite)
+      next=$((i+1))
+      if (( next <= $# )); then
+        TEST_SUITE="${!next}"
+      else
+        echo "Error: --suite requires a value" >&2
+        exit 1
+      fi
+      ;;
   esac
 done
 
@@ -41,7 +51,7 @@ echo "=========================================="
 
 # --- Step 1: ALWAYS kill any existing HA instance ---
 echo ""
-echo "[1/5] Killing any existing Home Assistant instances..."
+echo "[1/6] Killing any existing Home Assistant instances..."
 
 # Kill by PID file
 if [ -f "$HA_PID_FILE" ]; then
@@ -71,7 +81,7 @@ rm -f playwright/.auth/user.json
 
 # --- Step 2: Clean and recreate HA config directory ---
 echo ""
-echo "[2/5] Setting up fresh HA config directory at ${HA_CONFIG_DIR}..."
+echo "[2/6] Setting up fresh HA config directory at ${HA_CONFIG_DIR}..."
 
 # Remove old config entirely for clean slate
 rm -rf "${HA_CONFIG_DIR}"
@@ -92,7 +102,7 @@ echo "✅ Config setup complete"
 
 # --- Step 3: Start Home Assistant ---
 echo ""
-echo "[3/5] Starting Home Assistant..."
+echo "[3/6] Starting Home Assistant..."
 
 echo "  Starting hass -c ${HA_CONFIG_DIR} ... (logs -> $HA_LOG_FILE)"
 
@@ -105,7 +115,7 @@ echo "  HA started with PID $HA_PID"
 
 # --- Step 4: Wait for HA to be ready ---
 echo ""
-echo "[4/5] Waiting for Home Assistant to be ready..."
+echo "[4/6] Waiting for Home Assistant to be ready..."
 
 for i in $(seq 1 40); do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${HA_URL}/api/" 2>/dev/null || echo "000")
@@ -124,7 +134,7 @@ done
 
 # --- Step 5: Run onboarding ---
 echo ""
-echo "[5/5] Running onboarding..."
+echo "[5/6] Running onboarding..."
 if ./scripts/ha-onboard.sh "$HA_URL"; then
   echo "✅ Onboarding complete"
 else
@@ -133,12 +143,12 @@ fi
 
 # --- Step 6: Run Playwright tests ---
 echo ""
-echo "[6/5] Running Playwright E2E tests..."
-echo "Command: npx playwright test tests/e2e/ ${HEADLESS}"
+echo "[6/6] Running Playwright E2E tests..."
+echo "Command: npx playwright test ${TEST_SUITE} ${HEADLESS}"
 echo "-------------------------------------------"
 
 set +e
-npx playwright test tests/e2e/ ${HEADLESS}
+npx playwright test "${TEST_SUITE}" ${HEADLESS}
 EXIT_CODE=$?
 set -e
 
@@ -164,9 +174,9 @@ else
   echo "E2E tests passed. HA log: $HA_LOG_FILE"
 fi
 
-exit $EXIT_CODE
-
 echo ""
 echo "=========================================="
 echo "✅ E2E tests complete!"
 echo "=========================================="
+
+exit $EXIT_CODE

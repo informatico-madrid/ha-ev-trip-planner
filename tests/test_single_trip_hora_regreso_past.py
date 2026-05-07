@@ -46,13 +46,15 @@ class TestSingleTripHoraRegresoPast:
 
         result = results[0]
 
-        assert result["inicio_ventana"] >= now, \
-            f"Charging window should start from now (car is home), " \
-            f"not from past hora_regreso. inicio_ventana={result['inicio_ventana']}, " \
+        assert result["inicio_ventana"] >= now, (
+            f"Charging window should start from now (car is home), "
+            f"not from past hora_regreso. inicio_ventana={result['inicio_ventana']}, "
             f"now={now}, hora_regreso={hora_regreso}"
+        )
 
-        assert result["ventana_horas"] == pytest.approx(102.0, abs=0.02), \
+        assert result["ventana_horas"] == pytest.approx(102.0, abs=0.02), (
             f"ventana_horas={result['ventana_horas']:.2f}h should be close to 102h"
+        )
 
     def test_single_trip_hora_regreso_none_starts_charging_from_now(self):
         """Car was always home -> hora_regreso is None -> should start from now.
@@ -84,14 +86,16 @@ class TestSingleTripHoraRegresoPast:
         result = results[0]
 
         # Key assertion: window should start from now, not from departure - 6h
-        assert result["inicio_ventana"] >= now, \
-            f"Charging window should start from now when hora_regreso is None. " \
-            f"got inicio_ventana={result['inicio_ventana']} " \
+        assert result["inicio_ventana"] >= now, (
+            f"Charging window should start from now when hora_regreso is None. "
+            f"got inicio_ventana={result['inicio_ventana']} "
             f"(now={now}, departure={trip_deadline})"
+        )
 
-        assert result["ventana_horas"] == pytest.approx(102.0, abs=0.02), \
-            f"ventana_horas={result['ventana_horas']:.2f}h should be ~102h " \
+        assert result["ventana_horas"] == pytest.approx(102.0, abs=0.02), (
+            f"ventana_horas={result['ventana_horas']:.2f}h should be ~102h "
             f"(96h to departure + 6h duration, start from now)"
+        )
 
     def test_single_trip_hora_regreso_future_doesnt_charge_yet(self):
         """Car hasn't returned yet -> charging starts when car returns."""
@@ -116,10 +120,12 @@ class TestSingleTripHoraRegresoPast:
 
         result = results[0]
 
-        assert result["inicio_ventana"] >= hora_regreso, \
-            f"Window should start from hora_regreso (car not home yet). " \
+        assert result["inicio_ventana"] >= hora_regreso, (
+            f"Window should start from hora_regreso (car not home yet). "
             f"inicio_ventana={result['inicio_ventana']}, hora_regreso={hora_regreso}"
+        )
 
-        assert result["ventana_horas"] == 98.0, \
-            f"ventana_horas={result['ventana_horas']:.1f}h should be 98h " \
+        assert result["ventana_horas"] == 98.0, (
+            f"ventana_horas={result['ventana_horas']:.1f}h should be 98h "
             f"((96h + 6h duration) - 4h waiting for return)"
+        )

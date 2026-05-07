@@ -19,7 +19,13 @@ from homeassistant.helpers.entity_registry import callback
 class MockRegistryEntry:
     """Minimal mock entity registry entry."""
 
-    def __init__(self, entity_id: str, unique_id: str, config_entry_id: str, id: str | None = None):
+    def __init__(
+        self,
+        entity_id: str,
+        unique_id: str,
+        config_entry_id: str,
+        id: str | None = None,
+    ):
         self.entity_id = entity_id
         self.unique_id = unique_id
         self.config_entry_id = config_entry_id
@@ -36,10 +42,13 @@ class MockEntities:
         """Return entry by internal id."""
         return self._registry._entities.get(entry_id)
 
-    def get_entries_for_config_entry_id(self, config_entry_id: str) -> list[MockRegistryEntry]:
+    def get_entries_for_config_entry_id(
+        self, config_entry_id: str
+    ) -> list[MockRegistryEntry]:
         """Return entries for a config entry."""
         return [
-            entry for entry in self._registry._entities.values()
+            entry
+            for entry in self._registry._entities.values()
             if entry.config_entry_id == config_entry_id
         ]
 
@@ -55,10 +64,13 @@ class MockRegistry:
     def async_get(self, hass_instance=None):
         return self
 
-    def async_entries_for_config_entry(self, config_entry_id: str) -> list[MockRegistryEntry]:
+    def async_entries_for_config_entry(
+        self, config_entry_id: str
+    ) -> list[MockRegistryEntry]:
         """Return entries for a config entry (legacy method)."""
         return [
-            entry for entry in self._entities.values()
+            entry
+            for entry in self._entities.values()
             if entry.config_entry_id == config_entry_id
         ]
 
@@ -68,7 +80,9 @@ class MockRegistry:
         config_entry_id = kwargs.get("config_entry", "")
         # Generate a unique internal id based on entity_id
         internal_id = f"{config_entry_id}_{entity_id}"
-        entry = MockRegistryEntry(f"sensor.{entity_id}", unique_id, config_entry_id, id=internal_id)
+        entry = MockRegistryEntry(
+            f"sensor.{entity_id}", unique_id, config_entry_id, id=internal_id
+        )
         self.entries[f"sensor.{entity_id}"] = entry
         self._entities[internal_id] = entry
         return entry
@@ -175,7 +189,9 @@ async def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
     registered = mock_registry.async_entries_for_config_entry(entry.entry_id)
     assert len(registered) == 3
     for entity in registered:
-        assert entity.unique_id in old_unique_ids, f"Expected old format, got {entity.unique_id}"
+        assert entity.unique_id in old_unique_ids, (
+            f"Expected old format, got {entity.unique_id}"
+        )
 
     # Migrate
     await async_migrate_entry(mock_hass, entry)

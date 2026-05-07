@@ -20,10 +20,10 @@ This is not a demo. This is not a toy. This is a **documented journey from chaos
 |--------|---------------|------|
 | **Lines of Code** | ~12,432 (Python backend) | 2026-04-23 |
 | **Python Modules** | **18** production modules | 2026-04-23 |
-| **Domain Skills** | **23** specialized AI skills (12 domain + 11 framework) | 2026-04-23 |
-| **Unit Tests** | **85** Python test files | 2026-04-23 |
-| **E2E Tests** | **8** Playwright specifications | 2026-04-23 |
-| **Specifications Generated** | **29** across 6 methodology phases | 2026-04-23 |
+| **Domain Skills** | **12** domain skills + **11** framework skills + **117** .roo agent skills (17 review/quality + 100 BMAD/game dev/LangChain) | 2026-05-03 |
+| **Unit Tests** | **1822** Python tests (100% coverage) | 2026-05-03 |
+| **E2E Tests** | **40** Playwright specifications (30 main + 10 SOC) | 2026-05-03 |
+| **Specifications Executed** | **30** across 4 methodology arcs (1 spec fully executed) | 2026-05-03 |
 | **Technical Documents** | **23** structured docs | 2026-04-23 |
 | **Fork Contribution** | Phase 5: Agentic Verification Loop (contributed to Smart Ralph upstream) | — |
 
@@ -74,7 +74,7 @@ All documentation is being translated to English to maximize accessibility. Cont
 
 ```mermaid
 timeline
-    title 3 Evolutionary Arcs
+    title 5 Evolutionary Arcs
     section Exploration
         2025 Q3 : Vibe Coding : No specs, no tests, maximum debt
         2025 Q4 : Prompt Engineering : Structured prompts, first templates
@@ -83,6 +83,7 @@ timeline
         2026 Q1 : Smart Ralph Fork : Phase 5 Verification Loop
     section Orchestration
         2026 Q2 : BMad + Ralph : Multi-agent orchestration
+        2026 Q2 : Dual-Agent Quality : .roo external-reviewer + 4-layer quality gates
 ```
 
 ### Arc 1: Exploration — "I discovered that without specifications, debt grows exponentially"
@@ -96,6 +97,12 @@ The Smart Ralph fork introduced **Phase 5: Agentic Verification Loop** — a uni
 ### Arc 3: Orchestration — "Multi-agent orchestration with agentic verification is the future"
 
 BMad Method provides the orchestration layer: specialized agents for analysis, architecture, product management, development, and QA — all coordinated through structured workflows.
+
+### Arc 4: Dual-Agent Quality — "Deterministic + consensus quality gates are the next frontier"
+
+During M403-Dynamic-SOC-Capping (136 tasks), a **second quality system** emerged: the `.roo` agent with **117 skills** (17 review/quality + 100 BMAD/game dev/LangChain), including a **4-layer quality gate** that bridges deterministic AST analysis with BMAD multi-agent consensus. This system was NOT in git — it lived in `.roo/skills/` — but its artifacts (checkpoint JSON files) were consumed by Ralph's VERIFY steps, creating a dual-layer quality assurance architecture.
+
+**Key discovery:** The `.roo` external-reviewer evolved beyond a simple QA reviewer into a **spec integrity guardian** with anti-evasion policies, mutation testing integration, and spec integrity protection. It caught spec modification attempts (deletion of pending tasks) that even the Ralph coordinator didn't detect.
 
 ---
 
@@ -131,6 +138,17 @@ flowchart TB
 
 **Key innovation:** The QA Engineer operates in **parallel** with the Spec Executor — reviewing implementation as it happens, not after. When a violation is detected, it is corrected before the next task begins.
 
+**Arc 4 innovation:** A parallel quality system operates alongside Ralph: the `.roo` agent with 117 skills (17 review/quality + 100 BMAD), including a 4-layer quality gate (deterministic AST + BMAD consensus), mutation testing, weak test detection, and spec integrity protection. Its checkpoint JSON outputs are consumed by Ralph's VERIFY steps, creating a dual-layer quality assurance architecture.
+
+### Arc 5: Multi-Layer Code Review
+
+The lifecycle includes three independent review layers:
+- **Gito**: Static analysis with a local LLM model before every commit — the first line of defense
+- **Ralph + .roo** (parallel): 4-layer quality gate (L3A→L1→L2→L3B) during task execution
+- **CodeRabbit** (external): PR review on every push — provides an independent final gate before merge
+
+Together, these layers create a comprehensive safety net: Gito catches local issues before commit, Ralph/.roo catches implementation defects during development, and CodeRabbit provides an independent external perspective.
+
 ---
 
 ## Unique Contribution: Phase 5 Verification Loop
@@ -159,23 +177,26 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 | Power profile not propagating | High | Low | 🔴 High | Hypothesis documented |
 | Dashboard hardcoded gradients | Low | Low | 🟢 Low | Hypothesis documented |
 
-**Debt Management Score: 88%** — All gaps inherited from Phase 1 (Vive Coding). Their transparent documentation demonstrates mature engineering practice, not negligence.
+**Debt Management Score: 88%** — All gaps inherited from Phase 1 (Vibe Coding). Their transparent documentation demonstrates mature engineering practice, not negligence.
 
 ---
 
 **What this demonstrates:**
 
 1. **System Architecture Without Code** — Designing and directing complex systems through specifications, not manual coding
-2. **Methodology Evolution** — 6 phases of documented growth from chaos to structured multi-agent orchestration
-3. **Technical Debt Management** — Transparent tracking and systematic correction of inherited flaws
-4. **Open Source Contribution** — Original Phase 5 Verification Loop contributed back to Smart Ralph ecosystem
-5. **Production Quality** — Functional plugin with real users, HACS distribution, and comprehensive test coverage
+2. **Methodology Evolution** — 5 arcs (7 phases) of documented growth from chaos to dual-agent quality orchestration
+3. **Dual-Agent Quality Assurance** — A 4-layer quality gate (deterministic AST + BMAD consensus) running parallel to Ralph, with 17 review/quality skills, mutation testing, and spec integrity protection
+4. **Technical Debt Management** — Transparent tracking and systematic correction of inherited flaws
+5. **Open Source Contribution** — Original Phase 5 Verification Loop contributed back to Smart Ralph ecosystem
+6. **Production Quality** — Functional plugin with real users, HACS distribution, 1822 tests, 100% coverage
 
 **What to look at first:**
 1. This document (you are here) — 2-minute overview
-2. [`_ai/ai-development-lab.md`](./ai-development-lab.md) — Full experiment documentation
+2. [`_ai/ai-development-lab.md`](./ai-development-lab.md) — Full experiment documentation (now includes Phase 7)
 3. [`docs/RALPH_METHODOLOGY.md`](./RALPH_METHODOLOGY.md) — Smart Ralph fork methodology
-4. [`doc/gaps/EXECUTIVE_SUMMARY.md`](../doc/gaps/EXECUTIVE_SUMMARY.md) — Debt management summary
+4. [`specs/m403-dynamic-soc-capping/chat.md`](../specs/m403-dynamic-soc-capping/chat.md) — 2300+ lines of dual-agent quality coordination
+5. [`specs/m403-dynamic-soc-capping/task_review.md`](../specs/m403-dynamic-soc-capping/task_review.md) — 1100+ lines of external review decisions
+6. [`doc/gaps/EXECUTIVE_SUMMARY.md`](../doc/gaps/EXECUTIVE_SUMMARY.md) — Debt management summary
 
 ---
 
@@ -206,7 +227,7 @@ This project welcomes contributions of all kinds:
 | Testing | pytest + Playwright | Unit tests + E2E browser tests |
 | Quality | ruff + pylint + mypy (strict) | Linting, formatting, type checking |
 | Distribution | HACS + Docker | Home Assistant app store + containerized testing |
-| AI Development | BMad + Smart Ralph Fork | Multi-agent orchestration + verification |
+| AI Development | BMad + Smart Ralph + .roo | Multi-agent orchestration + dual-layer quality gates |
 
 ---
 

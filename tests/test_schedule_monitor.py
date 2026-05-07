@@ -22,11 +22,11 @@ def mock_hass():
     hass.services = Mock()
     hass.async_create_task = Mock()
     hass.data = {}  # Add data attribute needed by async_track_state_change_event
-    
+
     # Add bus attribute needed by async_track_state_change_event
     hass.bus = Mock()
     hass.bus.async_listen = Mock(return_value=Mock())
-    
+
     return hass
 
 
@@ -53,10 +53,12 @@ def mock_presence_monitor():
 def mock_emhass_adapter():
     """Create mock EMHASS adapter."""
     adapter = Mock()
-    adapter.get_all_assigned_indices = Mock(return_value={
-        "trip_001": 0,
-        "trip_002": 1,
-    })
+    adapter.get_all_assigned_indices = Mock(
+        return_value={
+            "trip_001": 0,
+            "trip_002": 1,
+        }
+    )
     adapter.vehicle_id = "test_vehicle"
     return adapter
 
@@ -65,7 +67,7 @@ def mock_emhass_adapter():
 async def test_schedule_monitor_instantiation(mock_hass):
     """Test ScheduleMonitor can be created."""
     monitor = ScheduleMonitor(mock_hass)
-    
+
     assert monitor.hass == mock_hass
     assert monitor._vehicle_monitors == {}
     assert monitor._unsub_handlers == []
@@ -77,7 +79,7 @@ async def test_schedule_monitor_setup_single_vehicle(
 ):
     """Test ScheduleMonitor setup for single vehicle."""
     monitor = ScheduleMonitor(mock_hass)
-    
+
     vehicle_configs = {
         "entry_001": {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -87,12 +89,12 @@ async def test_schedule_monitor_setup_single_vehicle(
             "emhass_adapter": mock_emhass_adapter,
         }
     }
-    
+
     await monitor.async_setup(vehicle_configs)
-    
+
     assert "test_vehicle" in monitor._vehicle_monitors
     assert len(monitor._vehicle_monitors) == 1
-    
+
     vehicle_monitor = monitor._vehicle_monitors["test_vehicle"]
     assert isinstance(vehicle_monitor, VehicleScheduleMonitor)
     assert vehicle_monitor.vehicle_id == "test_vehicle"
@@ -104,7 +106,7 @@ async def test_schedule_monitor_setup_multiple_vehicles(
 ):
     """Test ScheduleMonitor setup for multiple vehicles."""
     monitor = ScheduleMonitor(mock_hass)
-    
+
     vehicle_configs = {
         "entry_001": {
             CONF_VEHICLE_NAME: "vehicle_1",
@@ -121,19 +123,21 @@ async def test_schedule_monitor_setup_multiple_vehicles(
             "emhass_adapter": mock_emhass_adapter,
         },
     }
-    
+
     await monitor.async_setup(vehicle_configs)
-    
+
     assert "vehicle_1" in monitor._vehicle_monitors
     assert "vehicle_2" in monitor._vehicle_monitors
     assert len(monitor._vehicle_monitors) == 2
 
 
 @pytest.mark.asyncio
-async def test_schedule_monitor_stop(mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter):
+async def test_schedule_monitor_stop(
+    mock_hass, mock_control_strategy, mock_presence_monitor, mock_emhass_adapter
+):
     """Test ScheduleMonitor stops all vehicle monitors."""
     monitor = ScheduleMonitor(mock_hass)
-    
+
     vehicle_configs = {
         "entry_001": {
             CONF_VEHICLE_NAME: "test_vehicle",
@@ -143,12 +147,12 @@ async def test_schedule_monitor_stop(mock_hass, mock_control_strategy, mock_pres
             "emhass_adapter": mock_emhass_adapter,
         }
     }
-    
+
     await monitor.async_setup(vehicle_configs)
-    
+
     # Stop monitoring
     await monitor.async_stop()
-    
+
     assert len(monitor._vehicle_monitors) == 0
 
 
@@ -165,7 +169,7 @@ async def test_vehicle_schedule_monitor_instantiation(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     assert monitor.hass == mock_hass
     assert monitor.vehicle_id == "test_vehicle"
     assert monitor.control_strategy == mock_control_strategy
@@ -189,13 +193,19 @@ async def test_vehicle_monitor_start_with_trips(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Mock schedule entity exists
-    mock_hass.states.get = Mock(side_effect=lambda entity_id: Mock(state="idle") if "schedule" in entity_id else None)
-    
-    with patch.object(monitor, '_async_monitor_schedule', new_callable=AsyncMock) as mock_monitor:
+    mock_hass.states.get = Mock(
+        side_effect=lambda entity_id: (
+            Mock(state="idle") if "schedule" in entity_id else None
+        )
+    )
+
+    with patch.object(
+        monitor, "_async_monitor_schedule", new_callable=AsyncMock
+    ) as mock_monitor:
         await monitor.async_start()
-        
+
         # Should monitor both indices (0 and 1)
         assert mock_monitor.call_count == 2
         mock_monitor.assert_any_call(0)
@@ -209,7 +219,7 @@ async def test_vehicle_monitor_start_no_trips(
     """Test VehicleScheduleMonitor handles no trips gracefully."""
     # Adapter with no assigned indices
     mock_emhass_adapter.get_all_assigned_indices = Mock(return_value={})
-    
+
     monitor = VehicleScheduleMonitor(
         hass=mock_hass,
         vehicle_id="test_vehicle",
@@ -218,9 +228,9 @@ async def test_vehicle_monitor_start_no_trips(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     await monitor.async_start()
-    
+
     # Should not crash
     assert monitor._unsub_handlers == {}
 
@@ -238,9 +248,9 @@ async def test_vehicle_monitor_start_no_adapter(
         notification_service="persistent_notification.create",
         emhass_adapter=None,  # No adapter
     )
-    
+
     await monitor.async_start()
-    
+
     # Should log warning and not crash
     assert monitor._unsub_handlers == {}
 
@@ -258,19 +268,19 @@ async def test_vehicle_monitor_stop(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Add some mock unsub handlers
     mock_unsub1 = Mock()
     mock_unsub2 = Mock()
     monitor._unsub_handlers = {0: mock_unsub1, 1: mock_unsub2}
     monitor._last_actions = {0: "start", 1: "stop"}
-    
+
     await monitor.async_stop()
-    
+
     # Verify unsub functions called
     mock_unsub1.assert_called_once()
     mock_unsub2.assert_called_once()
-    
+
     # Verify handlers cleared
     assert monitor._unsub_handlers == {}
     assert monitor._last_actions == {}
@@ -289,13 +299,15 @@ async def test_add_trip_monitor(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Mock schedule entity exists
     mock_hass.states.get = Mock(return_value=Mock(state="idle"))
-    
-    with patch.object(monitor, '_async_monitor_schedule', new_callable=AsyncMock) as mock_monitor:
+
+    with patch.object(
+        monitor, "_async_monitor_schedule", new_callable=AsyncMock
+    ) as mock_monitor:
         await monitor.async_add_trip_monitor("trip_003", 2)
-        
+
         # Should monitor index 2
         mock_monitor.assert_called_once_with(2)
 
@@ -313,13 +325,15 @@ async def test_add_trip_monitor_already_exists(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Already monitoring index 0
     monitor._unsub_handlers[0] = Mock()
-    
-    with patch.object(monitor, '_async_monitor_schedule', new_callable=AsyncMock) as mock_monitor:
+
+    with patch.object(
+        monitor, "_async_monitor_schedule", new_callable=AsyncMock
+    ) as mock_monitor:
         await monitor.async_add_trip_monitor("trip_001", 0)
-        
+
         # Should not call monitor again
         mock_monitor.assert_not_called()
 
@@ -337,14 +351,14 @@ async def test_remove_trip_monitor(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Add mock unsub handler
     mock_unsub = Mock()
     monitor._unsub_handlers[0] = mock_unsub
     monitor._last_actions[0] = "start"
-    
+
     await monitor.async_remove_trip_monitor(0)
-    
+
     # Verify unsub called and handlers cleared
     mock_unsub.assert_called_once()
     assert 0 not in monitor._unsub_handlers
@@ -364,7 +378,7 @@ async def test_remove_trip_monitor_not_exists(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     # Should not crash
     await monitor.async_remove_trip_monitor(99)
 
@@ -380,7 +394,7 @@ async def test_parse_schedule_simple_on():
         notification_service="persistent_notification.create",
         emhass_adapter=Mock(),
     )
-    
+
     # Test various "on" states
     assert monitor._parse_schedule("on") is True
     assert monitor._parse_schedule("ON") is True
@@ -400,7 +414,7 @@ async def test_parse_schedule_off():
         notification_service="persistent_notification.create",
         emhass_adapter=Mock(),
     )
-    
+
     # Test various "off" states
     assert monitor._parse_schedule("off") is False
     assert monitor._parse_schedule("unknown") is False
@@ -422,11 +436,11 @@ async def test_async_notify_success(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     mock_hass.services.async_call = AsyncMock()
-    
+
     await monitor._async_notify("Test Title", "Test Message")
-    
+
     # Verify service call
     mock_hass.services.async_call.assert_called_once()
     call_args = mock_hass.services.async_call.call_args
@@ -449,9 +463,9 @@ async def test_async_notify_failure(
         notification_service="persistent_notification.create",
         emhass_adapter=mock_emhass_adapter,
     )
-    
+
     mock_hass.services.async_call = AsyncMock(side_effect=Exception("Service error"))
-    
+
     # Should not raise exception
     await monitor._async_notify("Test Title", "Test Message")
 
@@ -495,10 +509,12 @@ async def test_async_handle_schedule_change_entity_disappears(
     )
 
     # First call returns a state, second call returns None (entity disappeared)
-    mock_hass.states.get = Mock(side_effect=[
-        Mock(state="on"),  # First call in _async_monitor_schedule
-        None,  # Second call in _async_handle_schedule_change
-    ])
+    mock_hass.states.get = Mock(
+        side_effect=[
+            Mock(state="on"),  # First call in _async_monitor_schedule
+            None,  # Second call in _async_handle_schedule_change
+        ]
+    )
 
     # Mock async_create_task to avoid actual task creation
     mock_hass.async_create_task = AsyncMock()
@@ -852,5 +868,3 @@ async def test_async_notify(
 
     # Verify notification was sent via service
     mock_hass.services.async_call.assert_called_once()
-
-

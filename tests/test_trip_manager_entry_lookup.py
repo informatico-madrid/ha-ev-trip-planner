@@ -17,7 +17,9 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.mark.asyncio
-async def test_async_generate_power_profile_respects_config_entry_battery_capacity() -> None:
+async def test_async_generate_power_profile_respects_config_entry_battery_capacity() -> (
+    None
+):
     """The power profile calculation should use the config entry's battery capacity.
 
     This test sets up a `ConfigEntry` whose `entry_id` is different from the
@@ -40,12 +42,16 @@ async def test_async_generate_power_profile_respects_config_entry_battery_capaci
     mock_entry.entry_id = "entry_1"
     # Provide a .data that supports .get(key, default)
     mock_entry.data = MagicMock()
-    mock_entry.data.get = MagicMock(side_effect=lambda key, default=None: entry_data.get(key, default))
+    mock_entry.data.get = MagicMock(
+        side_effect=lambda key, default=None: entry_data.get(key, default)
+    )
 
     # Make async_entries return the entry so TripManager can find it by vehicle_name
     hass.config_entries = MagicMock()
     hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-    hass.config_entries.async_get_entry = MagicMock(side_effect=lambda x: mock_entry if x == "entry_1" else None)
+    hass.config_entries.async_get_entry = MagicMock(
+        side_effect=lambda x: mock_entry if x == "entry_1" else None
+    )
 
     # Minimal hass pieces used by TripManager
     hass.async_add_executor_job = AsyncMock(return_value=None)
@@ -68,8 +74,14 @@ async def test_async_generate_power_profile_respects_config_entry_battery_capaci
         return [0.0]
 
     # Patch Store.async_load to avoid HA storage filesystem interaction in this unit test
-    with patch("homeassistant.helpers.storage.Store.async_load", new_callable=lambda: AsyncMock(return_value=None)):
-        with patch("custom_components.ev_trip_planner.calculations.calculate_power_profile", side_effect=fake_calculate_power_profile):
+    with patch(
+        "homeassistant.helpers.storage.Store.async_load",
+        new_callable=lambda: AsyncMock(return_value=None),
+    ):
+        with patch(
+            "custom_components.ev_trip_planner.calculations.calculate_power_profile",
+            side_effect=fake_calculate_power_profile,
+        ):
             await tm.async_generate_power_profile()
 
     # We expect the test to fail with the current buggy code because

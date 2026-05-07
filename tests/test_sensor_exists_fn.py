@@ -29,6 +29,7 @@ class FakeEntry:
                 self.trip_manager = MagicMock()
                 self.coordinator = MagicMock()
                 self.sensor_async_add_entities = None
+
         self.runtime_data = FakeRuntimeData()
 
     @property
@@ -103,14 +104,16 @@ async def test_sensor_with_exists_fn_false_not_added_by_setup_entry(
         ),
     ]
 
-    with patch.object(sensor, 'TRIP_SENSORS', custom_sensors):
-        with patch.object(sensor, '_async_create_trip_sensors', AsyncMock(return_value=[])):
+    with patch.object(sensor, "TRIP_SENSORS", custom_sensors):
+        with patch.object(
+            sensor, "_async_create_trip_sensors", AsyncMock(return_value=[])
+        ):
             await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 
     # EXPECTED: "conditional_sensor" should NOT be in created entities
     # ACTUAL (RED): "conditional_sensor" IS in created entities because exists_fn is not checked
     created_keys = [
-        getattr(e, 'entity_description', None) and e.entity_description.key
+        getattr(e, "entity_description", None) and e.entity_description.key
         for e in created_entities
     ]
 
@@ -158,13 +161,15 @@ async def test_sensor_with_exists_fn_true_is_added_by_setup_entry(
         ),
     ]
 
-    with patch.object(sensor, 'TRIP_SENSORS', custom_sensors):
-        with patch.object(sensor, '_async_create_trip_sensors', AsyncMock(return_value=[])):
+    with patch.object(sensor, "TRIP_SENSORS", custom_sensors):
+        with patch.object(
+            sensor, "_async_create_trip_sensors", AsyncMock(return_value=[])
+        ):
             await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 
     # EXPECTED: "unconditional_sensor" SHOULD be in created entities
     created_keys = [
-        getattr(e, 'entity_description', None) and e.entity_description.key
+        getattr(e, "entity_description", None) and e.entity_description.key
         for e in created_entities
     ]
 

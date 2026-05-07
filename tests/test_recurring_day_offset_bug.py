@@ -33,7 +33,7 @@ FRIDAY_TRIP_JS_FORMAT = {
     "id": "rec_vie_test",
     "tipo": "recurrente",
     "dia_semana": "5",  # Friday in JS getDay() format (panel.js stores this)
-    "hora": "13:30",    # Local time
+    "hora": "13:30",  # Local time
     "kwh": 7.0,
     "km": 30,
     "activo": True,
@@ -76,15 +76,18 @@ class TestBug1DayFormatMismatch:
             f"JS getDay Friday=5 is being interpreted as Saturday=5 in DAYS_OF_WEEK!"
         )
 
-    @pytest.mark.parametrize("js_day,expected_day_name,expected_monday0_index", [
-        ("0", "domingo", 6),   # JS Sunday=0 → Monday=0 index 6
-        ("1", "lunes", 0),     # JS Monday=1 → Monday=0 index 0
-        ("2", "martes", 1),    # JS Tuesday=2 → Monday=0 index 1
-        ("3", "miercoles", 2), # JS Wednesday=3 → Monday=0 index 2
-        ("4", "jueves", 3),    # JS Thursday=4 → Monday=0 index 3
-        ("5", "viernes", 4),   # JS Friday=5 → Monday=0 index 4
-        ("6", "sabado", 5),    # JS Saturday=6 → Monday=0 index 5
-    ])
+    @pytest.mark.parametrize(
+        "js_day,expected_day_name,expected_monday0_index",
+        [
+            ("0", "domingo", 6),  # JS Sunday=0 → Monday=0 index 6
+            ("1", "lunes", 0),  # JS Monday=1 → Monday=0 index 0
+            ("2", "martes", 1),  # JS Tuesday=2 → Monday=0 index 1
+            ("3", "miercoles", 2),  # JS Wednesday=3 → Monday=0 index 2
+            ("4", "jueves", 3),  # JS Thursday=4 → Monday=0 index 3
+            ("5", "viernes", 4),  # JS Friday=5 → Monday=0 index 4
+            ("6", "sabado", 5),  # JS Saturday=6 → Monday=0 index 5
+        ],
+    )
     def test_calculate_day_index_all_js_getday_values(
         self, js_day: str, expected_day_name: str, expected_monday0_index: int
     ):
@@ -119,7 +122,9 @@ class TestBug1DayFormatMismatch:
             reference_dt=FRIDAY_09_15_UTC,
         )
 
-        assert result is not None, "calculate_trip_time returned None for valid recurring trip"
+        assert result is not None, (
+            "calculate_trip_time returned None for valid recurring trip"
+        )
 
         hours_until = (result - FRIDAY_09_15_UTC).total_seconds() / 3600
 
@@ -355,7 +360,9 @@ class TestCalculateNextRecurringDatetimeTz:
         Expected: Next Friday (7 days ahead).
         """
         from datetime import datetime, timedelta, timezone
-        from custom_components.ev_trip_planner.calculations import calculate_next_recurring_datetime
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_next_recurring_datetime,
+        )
 
         TZ_UTC_PLUS_2 = timezone(timedelta(hours=2))
         # Friday April 24, 2026 at 23:00 local = 21:00 UTC
@@ -372,7 +379,9 @@ class TestCalculateNextRecurringDatetimeTz:
 
         assert result is not None
         # Should be next Friday (7 days) since 22:00 local already passed
-        expected = datetime(2026, 5, 1, 20, 0, 0, tzinfo=timezone.utc)  # May 1 20:00 UTC
+        expected = datetime(
+            2026, 5, 1, 20, 0, 0, tzinfo=timezone.utc
+        )  # May 1 20:00 UTC
         assert result == expected, (
             f"Expected next Friday 20:00 UTC, got {result}. "
             f"days_ahead should be 7 when trip time already passed."
@@ -513,16 +522,12 @@ class TestIntegrationBothBugs:
         charging_power_w = CHARGING_POWER_KW * 1000  # 3300W
 
         # def_end_timestep must be 2 (not 29 from Bug 1, not 4-5 from Bug 2)
-        assert def_end_timestep == 2, (
-            f"def_end_timestep={def_end_timestep}, expected 2"
-        )
+        assert def_end_timestep == 2, f"def_end_timestep={def_end_timestep}, expected 2"
 
         # P_deferrable must have exactly 2 non-zero values at positions 0 and 1
         # (horas_hasta_viaje=2, horas_necesarias=2, charging fills [0, 2))
         non_zero = [i for i, v in enumerate(profile) if v > 0]
-        assert non_zero == [0, 1], (
-            f"Expected non-zero at [0, 1], got {non_zero}"
-        )
+        assert non_zero == [0, 1], f"Expected non-zero at [0, 1], got {non_zero}"
 
         # All non-zero values must equal charging power
         for idx in non_zero:

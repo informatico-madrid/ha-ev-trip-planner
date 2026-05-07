@@ -22,6 +22,7 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def vehicle_id() -> str:
     """Return a test vehicle ID."""
@@ -85,6 +86,7 @@ def trip_manager(mock_hass_storage, vehicle_id):
 # =============================================================================
 # CRUD - CREATE Operations
 # =============================================================================
+
 
 class TestTripCreate:
     """Tests for Create operations (CRUD - Create)."""
@@ -211,10 +213,10 @@ class TestTripCreate:
         """Test creating multiple punctual trips (CRUD Create bulk)."""
         for i in range(5):
             await trip_manager.async_add_punctual_trip(
-                datetime_str=f"2026-03-{20+i:02d}T10:00",
+                datetime_str=f"2026-03-{20 + i:02d}T10:00",
                 km=50.0 * (i + 1),
                 kwh=10.0 * (i + 1),
-                descripcion=f"Trip {i+1}",
+                descripcion=f"Trip {i + 1}",
             )
 
         trips = await trip_manager.async_get_punctual_trips()
@@ -301,12 +303,15 @@ class TestTripCreate:
         )
 
         # Verify debug log was written
-        assert any("Adding recurring trip" in record.message for record in caplog.records)
+        assert any(
+            "Adding recurring trip" in record.message for record in caplog.records
+        )
 
 
 # =============================================================================
 # CRUD - READ Operations
 # =============================================================================
+
 
 class TestTripRead:
     """Tests for Read operations (CRUD - Read)."""
@@ -422,6 +427,7 @@ class TestTripRead:
 # CRUD - UPDATE Operations
 # =============================================================================
 
+
 class TestTripUpdate:
     """Tests for Update operations (CRUD - Update)."""
 
@@ -517,8 +523,9 @@ class TestTripUpdate:
         # Verify datetime was actually updated
         trips = await trip_manager.async_get_punctual_trips()
         assert len(trips) == 1
-        assert trips[0]["datetime"] == "2026-03-28T15:30", \
+        assert trips[0]["datetime"] == "2026-03-28T15:30", (
             f"Expected datetime '2026-03-28T15:30', got '{trips[0].get('datetime')}'"
+        )
         # Verify other fields were NOT changed
         assert trips[0]["km"] == 50.0
         assert trips[0]["kwh"] == 10.0
@@ -534,7 +541,9 @@ class TestTripUpdate:
         )
 
         # Verify warning was logged
-        assert any("not found for update" in record.message for record in caplog.records)
+        assert any(
+            "not found for update" in record.message for record in caplog.records
+        )
 
         # Verify no trips were created
         trips = await trip_manager.async_get_punctual_trips()
@@ -551,7 +560,9 @@ class TestTripUpdate:
         )
 
         # Verify warning was logged
-        assert any("not found for update" in record.message for record in caplog.records)
+        assert any(
+            "not found for update" in record.message for record in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_pause_recurring_trip(self, trip_manager, caplog):
@@ -703,6 +714,7 @@ class TestTripUpdate:
 # CRUD - DELETE Operations
 # =============================================================================
 
+
 class TestTripDelete:
     """Tests for Delete operations (CRUD - Delete)."""
 
@@ -761,7 +773,9 @@ class TestTripDelete:
         await trip_manager.async_delete_trip("nonexistent_trip")
 
         # Verify warning was logged
-        assert any("not found for deletion" in record.message for record in caplog.records)
+        assert any(
+            "not found for deletion" in record.message for record in caplog.records
+        )
 
         # Verify trips list is empty
         trips = await trip_manager.async_get_punctual_trips()
@@ -901,6 +915,7 @@ class TestTripDelete:
 # CRUD - Complete Workflows
 # =============================================================================
 
+
 class TestCompleteCRUDWorkflow:
     """Tests for complete CRUD workflows."""
 
@@ -1007,6 +1022,7 @@ class TestCompleteCRUDWorkflow:
 # CRUD - Edge Cases and Error Handling
 # =============================================================================
 
+
 class TestCRUDEdgeCases:
     """Tests for CRUD edge cases and error handling."""
 
@@ -1066,6 +1082,7 @@ class TestCRUDEdgeCases:
 # =============================================================================
 # CRUD - Data Integrity Tests
 # =============================================================================
+
 
 class TestCRUDDataIntegrity:
     """Tests for data integrity during CRUD operations."""
@@ -1143,6 +1160,7 @@ class TestCRUDDataIntegrity:
 # =============================================================================
 # CRUD - Storage Tests
 # =============================================================================
+
 
 class TestCRUDStorage:
     """Tests for CRUD storage persistence."""

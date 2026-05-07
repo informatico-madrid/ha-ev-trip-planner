@@ -23,12 +23,16 @@ from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
 )
 from custom_components.ev_trip_planner import DOMAIN
-from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData, register_services
+from custom_components.ev_trip_planner.__init__ import (
+    EVTripRuntimeData,
+    register_services,
+)
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_hass():
@@ -73,11 +77,15 @@ def mock_hass():
     hass._services_registry = services_registry
 
     class Services:
-        def async_register(self, domain, name, handler, schema=None, supports_response=None):
+        def async_register(
+            self, domain, name, handler, schema=None, supports_response=None
+        ):
             if domain == DOMAIN:
                 services_registry[name] = handler
 
-        async def async_call(self, domain, service, data=None, blocking=True, return_response=False):
+        async def async_call(
+            self, domain, service, data=None, blocking=True, return_response=False
+        ):
             if domain == DOMAIN and service in services_registry:
                 handler = services_registry[service]
                 call = MagicMock()
@@ -112,8 +120,10 @@ def mock_hass():
         if asyncio.iscoroutinefunction(job_target):
             return job_target(*args, **kwargs)
         else:
+
             async def _wrapper():
                 return job_target(*args, **kwargs)
+
             return _wrapper()
 
     hass.async_run_hass_job = _mock_async_run_hass_job
@@ -124,6 +134,7 @@ def mock_hass():
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def _create_mock_manager():
     """Create a mock TripManager with all CRUD methods."""
@@ -204,6 +215,7 @@ def _create_mock_manager():
 # Test: Full User Journey
 # =============================================================================
 
+
 class TestFullUserJourney:
     """Tests for complete user journey from vehicle setup to CRUD operations."""
 
@@ -259,7 +271,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 3: Create a recurring trip
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        await mock_hass.services.async_call(
             DOMAIN,
             "trip_create",
             {
@@ -272,11 +284,16 @@ class TestFullUserJourney:
                 "descripcion": "Commute to work",
             },
             blocking=True,
-            return_response=True,
+            return_response=False,
         )
 
-        # Verify trip was created
-        assert result is not None or result is None
+        # Verify trip was created — trip_create handler returns None,
+        # so verify via the manager's async_add_recurring_trip call
+        assert manager.async_add_recurring_trip.called
+        call_kwargs = manager.async_add_recurring_trip.call_args.kwargs or {}
+        assert call_kwargs.get("dia_semana") == "lunes"
+        assert call_kwargs.get("hora") == "08:00"
+        assert call_kwargs.get("km") == 50.0
 
         # =====================================================================
         # STEP 4: View trips
@@ -329,7 +346,7 @@ class TestFullUserJourney:
         )
 
         # Verify update was successful
-        assert result is not None or result is None
+        assert manager.async_update_trip.called
 
         # Verify the trip was updated by listing trips again
         result = await mock_hass.services.async_call(
@@ -368,7 +385,7 @@ class TestFullUserJourney:
         )
 
         # Verify punctual trip was created
-        assert result is not None or result is None
+        assert manager.async_add_punctual_trip.called
 
         # =====================================================================
         # STEP 7: Verify both trips exist
@@ -406,7 +423,9 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert result is not None or result is None
+        assert manager.async_delete_trip.called
+        args, kwargs = manager.async_delete_trip.call_args
+        assert (kwargs.get("trip_id") or args[0]) == punctual_trip_id
 
         # Verify the trip was deleted
         result = await mock_hass.services.async_call(
@@ -435,7 +454,9 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert result is not None or result is None
+        assert manager.async_delete_trip.called
+        args, kwargs = manager.async_delete_trip.call_args
+        assert (kwargs.get("trip_id") or args[0]) == trip_id
 
         # =====================================================================
         # STEP 10: Verify all trips are deleted
@@ -458,4 +479,6 @@ class TestFullUserJourney:
         # =====================================================================
         # All steps completed successfully!
         # =====================================================================
-        assert True  # If we got here, all steps passed
+        # Verify manager state: all trips should be empty after full CRUD cycle
+        assert len(manager._recurring_trips) == 0
+        assert len(manager._punctual_trips) == 0

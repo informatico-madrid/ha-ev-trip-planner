@@ -10,7 +10,6 @@ Bug real:
 """
 
 import pytest
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -28,7 +27,7 @@ class TestEMHASSIndexPersistenceBug:
             "battery_capacity_kwh": 50.0,
             "planning_horizon_days": 7,
             "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0
+            "safety_margin_percent": 10.0,
         }
         self.mock_entry.entry_id = "test_entry"
 
@@ -40,7 +39,9 @@ class TestEMHASSIndexPersistenceBug:
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     @pytest.mark.asyncio
-    async def test_persistent_indices_not_reassigned_on_republish(self):
+    async def test_persistent_indices_not_reassigned_on_republish(
+        self, mock_datetime_2026_05_04_monday_0800_utc
+    ):
         """
         Reproduce el bug real: índices se asignan por orden de creación
         y NO se reasignan cuando se vuelven a publicar todos los viajes.
@@ -131,17 +132,20 @@ class TestEMHASSIndexPersistenceBug:
 
         print("\n=== PASO 2: PUBLICAR TODOS LOS VIAJES ===")
 
-        # Orden cronológico REAL (Miércoles primero, Domingo último)
+        # Orden de publicación por índice de creation_order (no es estrictamente cronológico)
         trips_chronological = [
-            "trip_wednesday",   # PRIMER viaje cronológico (71 horas)
-            "trip_thursday_1",   # Segundo
-            "trip_thursday_2",   # Tercero
-            "trip_friday",       # Cuarto
-            "trip_sunday",       # ÚLTIMO viaje cronológico (>160 horas)
+            "trip_thursday_2",  # Chronological position 0
+            "trip_friday",  # Chronological position 1
+            "trip_sunday",  # Chronological position 2
+            "trip_wednesday",  # Chronological position 3
+            "trip_thursday_1",  # Chronological position 4
         ]
 
-        # Convertir IDs a objetos trip completos
-        trips_to_publish = [t for t in trips_creation_order if t["id"] in trips_chronological]
+        # Convertir IDs a objetos trip completos (en orden cronológico)
+        trips_to_publish = [
+            next(t for t in trips_creation_order if t["id"] == tid)
+            for tid in trips_chronological
+        ]
 
         # Publicar todos los viajes (en orden cronológico)
         result = await adapter.async_publish_all_deferrable_loads(trips_to_publish)
@@ -163,7 +167,9 @@ class TestEMHASSIndexPersistenceBug:
                 def_end = params.get("def_end_timestep", -1)
 
                 print(f"{trip_id} (crónológicamente #{i}):")
-                print(f"  Índice EMHASS: {actual_index} (asignado por orden de creación)")
+                print(
+                    f"  Índice EMHASS: {actual_index} (asignado por orden de creación)"
+                )
                 print(f"  def_start_timestep: {def_start}")
                 print(f"  def_end_timestep: {def_end}")
                 print("")
@@ -179,7 +185,9 @@ class TestEMHASSIndexPersistenceBug:
         # Arrays construidos en orden CRONOLÓGICO (después del fix)
         # El fix cambió la iteración en emhass_adapter.py para usar trip_deadlines ordenado
         def_start_array = []
-        for trip_id, params in sorted(per_trip_params.items(), key=lambda x: x[1].get("def_start_timestep", 0)):
+        for trip_id, params in sorted(
+            per_trip_params.items(), key=lambda x: x[1].get("def_start_timestep", 0)
+        ):
             def_start = params.get("def_start_timestep", -1)
             def_start_array.append(def_start)
 
@@ -189,30 +197,33 @@ class TestEMHASSIndexPersistenceBug:
         # El primer valor (índice 0) debería ser ~70 (Miércoles)
         if def_start_array[0] > 100:  # Más de 100 horas = más de 4 días
             print(f"❌ BUG: def_start[0]={def_start_array[0]} (índice 0)")
-            print(f"   El primer viaje debería ser Miércoles con def_start ~70")
-            bugs_detectados.append({
-                'bug': 'first_trip_wrong',
-                'def_start_array': def_start_array,
-                'expected_first_start': '< 100',  # Miércoles
-                'actual_first_start': def_start_array[0],
-            })
+            print("   El primer viaje debería ser Miércoles con def_start ~70")
+            bugs_detectados.append(
+                {
+                    "bug": "first_trip_wrong",
+                    "def_start_array": def_start_array,
+                    "expected_first_start": "< 100",  # Miércoles
+                    "actual_first_start": def_start_array[0],
+                }
+            )
 
         # Verificar que el último valor es el Domingo (>100 horas)
         if def_start_array[-1] < 100:
             print(f"❌ BUG: El último viaje tiene def_start={def_start_array[-1]}")
-            print(f"   Debería ser Domingo con def_start > 100")
-            bugs_detectados.append({
-                'bug': 'last_trip_wrong',
-                'def_start_array': def_start_array,
-                'expected_last_start': '> 100',  # Domingo
-                'actual_last_start': def_start_array[-1],
-            })
+            print("   Debería ser Domingo con def_start > 100")
+            bugs_detectados.append(
+                {
+                    "bug": "last_trip_wrong",
+                    "def_start_array": def_start_array,
+                    "expected_last_start": "> 100",  # Domingo
+                    "actual_last_start": def_start_array[-1],
+                }
+            )
 
         if bugs_detectados:
             print(f"\n=== BUGS CONFIRMADOS: {len(bugs_detectados)} ===")
             pytest.fail(
-                f"Bugs detectados después del fix. "
-                f"Total bugs: {len(bugs_detectados)}"
+                f"Bugs detectados después del fix. Total bugs: {len(bugs_detectados)}"
             )
         else:
             print("\n✅ FIX VERIFICADO: Los viajes están en orden cronológico correcto")
