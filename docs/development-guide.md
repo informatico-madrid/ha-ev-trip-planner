@@ -10,7 +10,6 @@
 | Node.js | 18+ | Frontend tooling, E2E tests |
 | Docker | Latest | HA Container test environment |
 | Git | Latest | Version control |
-| pip | Latest | Python package management |
 | npm | Latest | Node package management |
 
 ## Installation
@@ -36,15 +35,13 @@ pip install -r requirements_dev.txt
 npm install
 ```
 
-### 4. Docker Test Environment
+### 4. E2E Test Environment
 
-```bash
-docker compose up -d
-# Wait for HA to be healthy (~30-60 seconds)
-docker compose logs -f  # Monitor startup
-```
+E2E tests run against `hass` directly (not Docker). The `run-e2e.sh` script manages the lifecycle automatically via `make e2e`.
 
-HA will be available at `http://localhost:8123`
+For a persistent HA instance for agent navigation and real-user verification, use the staging environment: `make staging-up` (Docker on port 8124).
+
+See [`docs/staging-vs-e2e-separation.md`](docs/staging-vs-e2e-separation.md) for full separation rules.
 
 ## Development Commands
 
