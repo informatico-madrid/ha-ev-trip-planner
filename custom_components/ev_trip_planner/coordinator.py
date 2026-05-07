@@ -141,9 +141,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 else 0,
                 self._vehicle_id,
             )
-            # FALLBACK: When EMHASS is not installed/running, the adapter returns
-            # empty per_trip_params. Generate mock params from trip data so sensors
-            # remain populated and E2E tests can verify dynamic SOC capping.
+            # FALLBACK: The adapter's cache is empty (no trips published yet).
+            # Generate mock params from trip data so sensors remain populated.
+            # NOTE: This path does NOT apply dynamic SOC capping. The real SOC caps
+            # are computed in trip_manager.publish_deferrable_loads() via
+            # calcular_hitos_soc() -> emhass_adapter.async_publish_all_deferrable_loads().
+            # Mock params use raw trip data (kwh, km) without capping.
+            # TODO: Apply SOC capping in mock path to match real path behavior.
             if not per_trip_params and all_trips:
                 emhass_data = self._generate_mock_emhass_params(all_trips)
                 generated_params = emhass_data.get("per_trip_emhass_params", {})
@@ -208,14 +212,19 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     def _generate_mock_emhass_params(
         self, trips: dict[str, dict[str, Any]]
     ) -> dict[str, Any]:
-        """Generate mock EMHASS params from trip data when real EMHASS is unavailable.
+        """Generate fallback EMHASS params from trip data when adapter cache is empty.
 
-        This provides fallback data so the EMHASS sensor remains populated for
-        E2E testing of dynamic SOC capping and other features that depend on
-        sensor attributes (def_total_hours_array, power_profile_watts, etc.).
+        This is a fallback path triggered when the EMHASS adapter has no cached
+        results (e.g., before publish_deferrable_loads() runs for the first time).
 
-        The mock data is computed from trip kwh, km, and datetime values using
-        the vehicle's charging power and battery configuration.
+        IMPORTANT: This path does NOT apply dynamic SOC capping. The real SOC caps
+        are computed in trip_manager.publish_deferrable_loads() via:
+          calcular_hitos_soc() -> emhass_adapter.async_publish_all_deferrable_loads(soc_caps_by_id)
+
+        The mock path uses raw trip data (kwh, km, datetime) without SOC capping.
+        This means sensor attributes will show uncapped values in the mock path.
+
+        TODO: Apply SOC capping in mock path to match real path behavior.
 
         Returns:
             Dict with emhass_power_profile, emhass_deferrables_schedule,

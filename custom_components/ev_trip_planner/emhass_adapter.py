@@ -732,18 +732,12 @@ class EMHASSAdapter:
                 def_start_timestep = max(0, def_end_timestep - 1)
 
         # T1.1: Usar decisión para poblar cache (kwh_needed, total_hours, power_watts)
+        # The charging decision already uses the SOC-capped target from determine_charging_need(),
+        # so kwh_needed and total_hours already account for the dynamic SOC cap.
+        # power_watts is ALWAYS the fixed charger hardware power — it never varies.
         kwh_needed = decision.kwh_needed
         total_hours = decision.def_total_hours
         power_watts = decision.power_watts
-
-        # T062/T063: Apply dynamic SOC cap to reduce kwh_needed
-        # If a soc_cap < 100% is provided, proportionally reduce energy needed
-        cap_ratio: float = 1.0
-        if soc_cap is not None and soc_cap < 100.0:
-            cap_ratio = soc_cap / 100.0
-            kwh_needed = kwh_needed * cap_ratio
-            total_hours = total_hours * cap_ratio
-            power_watts = power_watts * cap_ratio
 
         # Use adjusted hours from backward deficit propagation.
         # When a trip's charging needs exceed its window, excess hours are propagated
@@ -762,11 +756,8 @@ class EMHASSAdapter:
             # not the current system SOC. This respects SOC propagation between trips.
             if soc_current < 100.0:
                 needs_charging = True
-                # Only override power_watts when no SOC cap was applied.
-                # When cap_ratio < 1.0, the SOC-capped power_watts from line 745
-                # must be preserved through deficit propagation.
-                if cap_ratio >= 1.0:
-                    power_watts = charging_power_kw * 1000
+                # power_watts is ALWAYS the fixed charger hardware power
+                power_watts = charging_power_kw * 1000
 
         # BUG FIX (continued): If def_start was already 0 and couldn't be
         # expanded backward, cap total_hours to the available window size.
@@ -795,9 +786,9 @@ class EMHASSAdapter:
                 safety_margin_percent=safety_margin_percent,
             )
 
-        # T062/T063: Cap per-trip power profile by SOC cap ratio
-        if soc_cap is not None and soc_cap < 100.0:
-            power_profile = [v * cap_ratio for v in power_profile]
+        # T062/T063: power_profile is already computed with fixed charger power
+        # (power_watts = charging_power_kw * 1000) from calculate_power_profile_from_trips().
+        # The SOC cap only affects def_total_hours (duration), not power levels.
 
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.

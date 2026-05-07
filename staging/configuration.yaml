@@ -1,0 +1,140 @@
+# ============================================================================
+# Staging Environment Configuration
+# ============================================================================
+# This is the base configuration for the STAGING environment.
+# STAGING is a REAL Home Assistant instance with realistic data.
+#
+# STAGING (this config) vs E2E (tests/ha-manual/configuration.yaml):
+#   STAGING: Realistic data, multiple vehicles, real automations
+#   E2E:     Minimal data, single input_boolean, no automations
+#
+# See docs/staging-vs-e2e-separation.md for full separation rules
+# ============================================================================
+
+homeassistant:
+  name: EV Trip Planner Staging
+  time_zone: Europe/Madrid
+  unit_system: metric
+
+# Loads default set of integrations.
+default_config:
+
+http:
+  server_host: 0.0.0.0
+  server_port: 8123
+
+# ============================================================================
+# Input helpers for realistic data
+# ============================================================================
+
+input_number:
+  main_vehicle_soc:
+    name: "Main Vehicle SOC"
+    initial: 75
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  home_soc:
+    name: "Home Battery SOC"
+    initial: 50
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  secondary_vehicle_soc:
+    name: "Secondary Vehicle SOC"
+    initial: 40
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  solar_production_w:
+    name: "Solar Production (W)"
+    initial: 2000
+    min: 0
+    max: 10000
+    step: 100
+    mode: slider
+  home_consumption_w:
+    name: "Home Consumption (W)"
+    initial: 1500
+    min: 0
+    max: 10000
+    step: 100
+    mode: slider
+
+input_boolean:
+  ev_charging_active:
+    name: "EV Charging Active"
+  charging_scheduled:
+    name: "Charging Scheduled"
+  presence_home:
+    name: "Home Presence"
+  presence_ev_plugged:
+    name: "EV Plugged In"
+
+# ============================================================================
+# Template sensor that mirrors the input_number as a real sensor entity
+# ============================================================================
+
+template:
+  - sensor:
+      - name: "Main Vehicle SOC Sensor"
+        unique_id: "main_vehicle_soc_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.main_vehicle_soc') | float(0) | round(0) }}"
+      - name: "Home Battery SOC Sensor"
+        unique_id: "home_battery_soc_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.home_soc') | float(0) | round(0) }}"
+      - name: "Secondary Vehicle SOC Sensor"
+        unique_id: "secondary_vehicle_soc_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.secondary_vehicle_soc') | float(0) | round(0) }}"
+      - name: "Solar Production Sensor"
+        unique_id: "solar_production_sensor"
+        unit_of_measurement: "W"
+        device_class: power
+        state: "{{ states('input_number.solar_production_w') | float(0) }}"
+      - name: "Home Consumption Sensor"
+        unique_id: "home_consumption_sensor"
+        unit_of_measurement: "W"
+        device_class: power
+        state: "{{ states('input_number.home_consumption_w') | float(0) }}"
+
+# ============================================================================
+# Automations for realistic behavior
+# ============================================================================
+
+automation:
+  # Simulate presence changes
+  - alias: "Simulate morning presence"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.presence_home
+
+  # Simulate charging cycles
+  - alias: "Simulate EV charging cycle"
+    trigger:
+      - platform: time_pattern
+        hours: "/2"
+    action:
+      - service: input_boolean.toggle
+        target:
+          entity_id: input_boolean.ev_charging_active
+
+logger:
+  default: warning
+  logs:
+    custom_components.ev_trip_planner: debug

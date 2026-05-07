@@ -10,9 +10,11 @@ help:
 	@echo "  make test-e2e-headed - Ejecutar tests E2E con navegador visible"
 	@echo "  make test-e2e-debug  - Ejecutar tests E2E en modo debug (inspector Playwright)"
 	@echo "  make e2e             - Arrancar HA si es necesario y ejecutar E2E (automático)"
-	@echo "  make e2e-headed      - Igual que e2e pero con navegador visible"
 	@echo "  make e2e-debug       - Igual que e2e pero en modo debug"
 	@echo "  make e2e-soc         - Tests E2E dynamic SOC (suite separada)"
+	@echo "  make staging-up          - Arrancar HA staging (Docker, localhost:8124)"
+	@echo "  make staging-down        - Detener HA staging"
+	@echo "  make staging-reset       - Resetear HA staging"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
 	@echo "  make format          - Formatear código con black e isort"
@@ -37,9 +39,6 @@ test-e2e:
 	@echo "Ejecutando tests E2E contra http://localhost:8123 ..."
 	@echo "⚠️  E2E uses hass directly (no Docker). See docs/staging-vs-e2e-separation.md"
 	npx playwright test tests/e2e/ --workers=1
-
-test-e2e-headed:
-	npx playwright test tests/e2e/ --workers=1 --headed
 
 test-e2e-debug:
 	npx playwright test tests/e2e/ --workers=1 --debug
@@ -95,15 +94,17 @@ htmlcov:
 # ============================================================================
 # Staging Environment Targets (Docker, localhost:8124)
 # ============================================================================
+STAGING_MAKE_DIR := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+
 staging-up:
 	@echo "Starting staging environment on localhost:8124 (Docker)..."
 	@echo "⚠️  STAGING is separate from E2E (localhost:8123, hass direct)."
 	@echo "   See docs/staging-vs-e2e-separation.md for separation rules."
 	@if [ ! -d "$$(eval echo ~/staging-ha-config)" ]; then \
 		echo "Staging config not initialized. Running init..."; \
-		bash scripts/staging-init.sh; \
+		bash "$(STAGING_MAKE_DIR)/scripts/staging-init.sh"; \
 	fi
-	docker compose -f docker-compose.staging.yml up -d
+	cd "$(STAGING_MAKE_DIR)" && docker compose -f docker-compose.staging.yml up -d
 	@echo "Waiting for HA to be ready..."
 	@for i in $$(seq 1 30); do \
 		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8124/api/ 2>/dev/null || echo "000"); \
@@ -121,7 +122,7 @@ staging-up:
 
 staging-down:
 	@echo "Stopping staging container..."
-	docker compose -f docker-compose.staging.yml down
+	cd "$(STAGING_MAKE_DIR)" && docker compose -f docker-compose.staging.yml down
 
 staging-reset:
 	@echo "Resetting staging environment..."

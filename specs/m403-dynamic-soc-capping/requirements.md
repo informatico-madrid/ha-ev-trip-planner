@@ -68,8 +68,8 @@ Limit battery charging to a degradation-aware upper bound calculated from idle t
 
 **Acceptance Criteria:**
 - [ ] AC-5.1: EMHASS adapter uses the capped SOC target when building per-trip cache entries
-- [ ] AC-5.2: `P_deferrable_nom = (capped_soc - soc_current) / 100 * real_capacity_kWh / charging_hours` (numerically different from uncapped by exactly `(soc_objetivo - capped_soc) / 100 * real_capacity_kWh / charging_hours`); charging window hours reflect capped SOC delta
-- [ ] AC-5.3: Power profile positions (168-element array) are computed from capped targets
+- [ ] AC-5.2: `P_deferrable_nom` is always the fixed charger power from config flow (e.g., `charging_power_kw * 1000`). It MUST NOT be modified by SOC capping. The SOC cap reduces `kwh_needed` and therefore `def_total_hours = kwh_needed / P_deferrable_nom`, not the power. Charging window hours reflect capped SOC delta.
+- [ ] AC-5.3: Power profile positions (168-element array) use fixed charger power during charging windows, 0W outside. The SOC cap affects WHICH windows are active (via reduced `def_start_timestep`/`def_end_timestep`), not the power values within windows.
 - [ ] AC-5.4: Existing EMHASS integration behavior is preserved when dynamic limit is 100% (no capping active)
 
 ### US-6: Handle critical Scenario C (daily commute without capping hit)
