@@ -139,18 +139,14 @@ This project introduces a **Multi-Dimensional Charging Algorithm** that solves t
 │  1. Backward Deficit Propagation Algorithm                     │
 │     - Calculates optimal charge distribution across trips      │
 │     - Ensures all trips meet SOC targets even when time is     │
-│       insufficient for all                                   │
+│       insufficient for all                                     │
 │                                                                │
 │  2. Multi-Trip Chaining with Window Calculation                │
-│     - Coordinated charging windows across multiple journeys     │
+│     - Coordinated charging windows across multiple journeys    │
 │     - Considers return times, departure times, and deadlines   │
 │                                                                │
-│  3. EMHASS Integration for Dynamic Tariff Optimization        │
-│     - Uses variable electricity pricing to minimize cost       │
-│     - Generates 168-hour power profiles for week-ahead        │
-│                                                                │
-│  4. Presence-Aware Smart Charging                              │
-│     - Vehicle presence detection for safe charging              │
+│  3. Presence-Aware Smart Charging                              │
+│     - Vehicle presence detection for safe charging             │
 │     - Coordinated with home/away states                        │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -175,7 +171,7 @@ This project demonstrates a **new paradigm in software development** — archite
 
 ```
 Vibe Coding → SpecKit SDD → Smart Ralph Fork → BMad Multi-Agent
-(No specs, no tests)    (Formal specs)    (Phase 5 verification) (Orchestration)
+(No specs,)    (Formal specs)    (Phase 5 verification) (Orchestration)
 ```
 
 | Era | Approach | Impact |
@@ -186,7 +182,6 @@ Vibe Coding → SpecKit SDD → Smart Ralph Fork → BMad Multi-Agent
 | **2026 Q2** | BMad + Ralph | Multi-agent orchestration with parallel verification |
 
 #### Unique Contribution: Phase 5 Verification Loop
-
 The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph) adds a verification layer that catches implementation errors BEFORE they propagate:
 
 | Feature | Description |
@@ -202,11 +197,10 @@ Started with "vibe coding" → accumulated debt → now systematically eliminate
 
 | Gap | Status |
 |-----|--------|
-| Sidebar panel not removed on delete | 🔴 Tracked, fix in progress |
-| Vehicle Status section empty | 🔴 Tracked, fix in progress |
 | Options flow incomplete | 🟡 Tracked, planned |
+| Tech deb                | 🟡 Tracked, planned |
 
-**Debt Management Score: 88%** — Gaps are documented, not hidden. This demonstrates mature engineering practice.
+**Debt Management Score: 88%** — Gaps are documented, not hidden. This demonstrates mature engineering practice. Next step enforce all quality gate layers in new spec
 
 ---
 

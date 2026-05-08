@@ -9,7 +9,6 @@
 | Python | 3.11+ (3.14 target) | Backend, `pip install homeassistant` para E2E |
 | Node.js | 18+ | Frontend tooling, E2E tests |
 | Git | Latest | Version control |
-| pip | Latest | Python package management |
 | npm | Latest | Node package management |
 
 ## Installation

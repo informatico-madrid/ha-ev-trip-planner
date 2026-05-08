@@ -97,6 +97,7 @@ specs/.current-spec
 .qwen/
 .agents/
 !.agents/skills/
+!.agents/skills/
 .github/skills/
 .ralph/logs/
 _bmad-output/
