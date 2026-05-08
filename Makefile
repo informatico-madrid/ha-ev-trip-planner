@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov
 
 help:
 	@echo "Comandos disponibles:"
@@ -106,15 +106,21 @@ staging-up:
 	fi
 	cd "$(STAGING_MAKE_DIR)" && docker compose -f docker-compose.staging.yml up -d
 	@echo "Waiting for HA to be ready..."
-	@for i in $$(seq 1 30); do \
+	@READY=0; \
+	for i in $$(seq 1 30); do \
 		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8124/api/ 2>/dev/null || echo "000"); \
 		if [ "$$STATUS" = "200" ] || [ "$$STATUS" = "401" ]; then \
 			echo "  ✅ HA ready (HTTP $$STATUS)"; \
+			READY=1; \
 			break; \
 		fi; \
 		echo "  Attempt $$i: status=$$STATUS (waiting 3s...)"; \
 		sleep 3; \
-	done
+	done; \
+	if [ "$$READY" = "0" ]; then \
+		echo "  ❌ HA failed to become ready after 30 attempts"; \
+		exit 1; \
+	fi
 	@echo ""
 	@echo "Staging ready at http://localhost:8124"
 	@echo "Logs: docker logs -f ha-staging"

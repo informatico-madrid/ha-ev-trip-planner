@@ -8,8 +8,8 @@ This guide explains how to run End-to-End tests (Playwright) both **locally** an
 
 1. [How Tests Work](#how-tests-work)
 2. [Prerequisites](#prerequisites)
-3. [Local Execution — Option A (DEPRECATED — Docker Compose)](#option-a-deprecated-docker-compose)
-4. [Local Execution — Option B (manual hass, ACTUAL METHOD)](#option-b-manual-hass-actual-method)
+3. [Local Execution — Option A (DEPRECATED — Docker Compose)](#option-a-deprecated--docker-compose-not-used)
+4. [Local Execution — Option B (manual hass, ACTUAL METHOD — DOCKER NOT NEEDED)](#option-b-manual-hass-actual-method--docker-not-needed)
 5. [CI Execution (GitHub Actions)](#ci-execution-github-actions)
 6. [Test Structure](#test-structure)
 7. [Users and Authentication](#users-and-authentication)

@@ -7,6 +7,16 @@ HA_CONFIG_DIR="/tmp/ha-quick-check-config"
 HA_PID_FILE="/tmp/ha-quick-pid.txt"
 HA_URL="http://localhost:8123"
 
+# Cleanup on exit
+cleanup() {
+  if [ -f "$HA_PID_FILE" ]; then
+    kill "$(cat "$HA_PID_FILE")" 2>/dev/null || true
+    rm -f "$HA_PID_FILE"
+  fi
+  rm -rf "$HA_CONFIG_DIR"
+}
+trap cleanup EXIT ERR
+
 # Kill any existing HA
 if [ -f "$HA_PID_FILE" ]; then
   kill "$(cat "$HA_PID_FILE")" 2>/dev/null || true
@@ -45,7 +55,10 @@ for i in $(seq 1 40); do
 done
 
 # Run onboarding
-./scripts/ha-onboard.sh "$HA_URL" 2>/dev/null || true
+if ! ./scripts/ha-onboard.sh "$HA_URL" 2>/dev/null; then
+  echo "FAIL: Onboarding failed for HA_URL=$HA_URL (exit code: $?)"
+  exit 1
+fi
 sleep 5
 
 # Try to get a token

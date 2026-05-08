@@ -17,8 +17,6 @@ Tests end-to-end con Playwright que verifican el flujo completo de CRUD de viaje
 ```bash
 # 1. Arrancar HA + ejecutar E2E (todo automático — método actual):
 make e2e
-# o
-./scripts/run-e2e.sh
 
 # 2. Debug mode:
 make e2e-debug

@@ -42,7 +42,7 @@ Debe devolver `200`.
 
 ### 4. Navegar a staging con Playwright MCP
 
-```
+```text
 browser_navigate → http://localhost:8124/
 ```
 
@@ -75,13 +75,13 @@ async (page) => {
 
 Primero tomar snapshot para identificar el textbox de búsqueda:
 
-```
+```text
 browser_snapshot → buscar 'textbox "Entidades de filtro" [ref=...' en el resultado
 ```
 
 Luego escribir el nombre de la entidad:
 
-```
+```text
 browser_type → target: textbox ref (ej: e161), text: emhass_perfil_diferible_mi_ev
 ```
 
@@ -102,7 +102,7 @@ En el snapshot, buscar los atributos clave en la columna "Atributos":
 
 Si la tabla está truncada o no se ven todos los atributos:
 
-```
+```text
 browser_take_screenshot → filename: staging-sensor-check.png
 ```
 
@@ -131,7 +131,7 @@ Los web components de Home Assistant están en Shadow DOM y no aparecen correcta
 
 ### Hacer screenshot para ver la UI
 
-```
+```text
 browser_take_screenshot → filename: staging-check.png
 ```
 
@@ -139,7 +139,7 @@ browser_take_screenshot → filename: staging-check.png
 
 Los items del sidebar aparecen en el snapshot con el atributo `nav-label`:
 
-```
+```text
 browser_snapshot → buscar ref del elemento nav-label
 browser_click → target: ref found in snapshot
 ```

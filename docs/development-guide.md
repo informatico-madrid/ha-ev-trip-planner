@@ -6,9 +6,8 @@
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Python | 3.11+ (3.14 target) | Backend code |
+| Python | 3.11+ (3.14 target) | Backend, `pip install homeassistant` para E2E |
 | Node.js | 18+ | Frontend tooling, E2E tests |
-| Python 3.11+ | 3.11 | Backend, `pip install homeassistant` para E2E |
 | Git | Latest | Version control |
 | pip | Latest | Python package management |
 | npm | Latest | Node package management |
@@ -217,7 +216,7 @@ make check
 > ⚠️ `docker-compose.yml` exists as a historical residue. It is NOT referenced by the E2E test runner.
 > E2E tests use `hass` directly via `scripts/run-e2e.sh`.
 
-This file may be repurposed in the future for a STAGING environment (HA in Docker on port 8124).
+Staging is already implemented via `docker-compose.staging.yml` and runs HA in Docker on port 8124 (see the Entornos section above).
 
 ### E2E Test Configuration
 

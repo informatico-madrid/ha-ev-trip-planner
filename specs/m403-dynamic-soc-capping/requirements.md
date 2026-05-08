@@ -250,8 +250,8 @@ Limit battery charging to a degradation-aware upper bound calculated from idle t
 - `tests/test_dynamic_soc_capping.py` — new test file
 
 **Observable signals**:
-- PASS looks like: `soc_objetivo` in deficit propagation results <= `dynamic_limit`; EMHASS receives capped `P_deferrable_nom` and `def_total_hours` using real capacity; forward-propagated SOC matches capped targets; config flow persists T_base and SOH sensor; ALL tests pass
-- FAIL looks like: `soc_objetivo` > `dynamic_limit` when trip needs are below limit (capping should not apply); trips fail to charge when required SOC > available charging window; any existing test regression failure; nominal capacity used when SOH sensor configured; forward SOC inconsistent with cap
+- PASS looks like: `soc_objetivo` in deficit propagation results <= `dynamic_limit`; EMHASS receives fixed `P_deferrable_nom` (charger power, e.g., `charging_power_kw * 1000`) with `kwh_needed` reduced by SOC cap and `def_total_hours` recomputed accordingly; power profile uses fixed power in active windows, 0 outside; forward-propagated SOC matches capped targets; config flow persists T_base and SOH sensor; ALL tests pass
+- FAIL looks like: `soc_objetivo` > `dynamic_limit` when trip needs are below limit (capping should not apply); `P_deferrable_nom` varies per trip (should be fixed charger power); trips fail to charge when required SOC > available charging window; any existing test regression failure; nominal capacity used when SOH sensor configured; forward SOC inconsistent with cap
 
 **Hard invariants**:
 - Trip energy needs always met: `min(required_soc, dynamic_limit)` never reduces SOC below trip minimum
