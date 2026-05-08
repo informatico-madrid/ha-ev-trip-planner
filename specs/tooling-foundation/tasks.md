@@ -113,7 +113,7 @@
   - _Requirements: FR-7, FR-8, FR-9, FR-10, FR-11, FR-17, FR-19, FR-20, FR-26, FR-27, FR-28, FR-29_
   - _Design: Makefile Orchestration Layer, E2E Suite Auto-Discovery_
 
-- [ ] 2.2 Create scripts and directory structure
+- [x] 2.2 Create scripts and directory structure
   - **Do**: Create scripts/install-tools.sh (pip installs + gitleaks download), scripts/quality-baseline.sh (snapshot all metrics), _bmad-output/quality-gate/baseline/ directory
   - **Files**: scripts/install-tools.sh, scripts/quality-baseline.sh, _bmad-output/quality-gate/baseline/
   - **Done when**: Scripts executable, directory exists
