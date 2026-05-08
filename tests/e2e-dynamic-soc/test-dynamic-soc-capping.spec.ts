@@ -119,7 +119,12 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
     }
   }
 
-  await page.waitForSelector('dialog', { state: 'visible', timeout: 10_000 });
+  // Wait for the t_base spinbutton to become visible inside the dialog.
+  // We wait for a specific element *inside* the dialog rather than 'ha-dialog' itself
+  // because <ha-dialog> lives in Home Assistant's Shadow DOM and cannot be found by
+  // a plain CSS selector via page.waitForSelector(). The spinbutton appears in the
+  // accessibility tree and is reliably visible when the dialog is open.
+  await page.getByRole('spinbutton', { name: /t_base/ }).waitFor({ state: 'visible', timeout: 10_000 });
   const tBaseSpinbutton = page.getByRole('spinbutton', { name: /t_base/ });
   await tBaseSpinbutton.fill(String(newTBase));
   await page.getByRole('button', { name: 'Submit' }).click();
@@ -169,6 +174,13 @@ function validatePDeferrableNomFixed(
   const nonZeroValues = values.filter((v) => v > 0);
 
   // Must have at most one non-zero value, and it must equal the charger power
+  if (nonZeroValues.length === 0) {
+    return {
+      valid: false,
+      values,
+      message: 'p_deferrable_nom_array has no non-zero values',
+    };
+  }
   if (nonZeroValues.length > 1) {
     return {
       valid: false,
