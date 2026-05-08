@@ -130,11 +130,8 @@ typecheck:
 # Layer 1: Test execution (unit tests + E2E auto-discovery)
 layer1:
 	$(MAKE) test
-	@echo "Auto-discovering E2E suites..."
-	@$(MAKE) -n $(filter-out e2e-headed e2e-debug e2e-soc-headed e2e-soc-debug,$(filter e2e-%,$(.PHONY))) 2>/dev/null | \
-		grep -q "^make e2e-" && \
-		$(MAKE) $(filter-out e2e-headed e2e-debug e2e-soc-headed e2e-soc-debug,$(filter e2e-%,$(.PHONY))) || \
-		echo "No E2E suites found (e2e-% targets)"
+	@echo "Running E2E suites..."
+	@$(MAKE) $(filter-out e2e-headed e2e-debug e2e-soc-headed e2e-soc-debug,$(filter e2e-%,$(.PHONY))) 2>/dev/null || echo "No E2E suites found (e2e-% targets)"
 
 # Layer 1 CI: Unit tests only (no E2E for CI speed)
 layer1-ci:
@@ -256,7 +253,7 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".coverage" -delete 2>/dev/null || true
+	find . -type f -name ".coverage" -delete 2>/dev/null || true
 	rm -rf .hypothesis
 
 htmlcov:
@@ -272,7 +269,7 @@ staging-up:
 	@echo "Starting staging environment on localhost:8124 (Docker)..."
 	@echo "⚠️  STAGING is separate from E2E (localhost:8123, hass direct)."
 	@echo "   See docs/staging-vs-e2e-separation.md for separation rules."
-	@if [ ! -d "$$(eval echo ~/staging-ha-config)" ]; then \
+	@if [ ! -d "$$HOME/staging-ha-config" ]; then \
 		echo "Staging config not initialized. Running init..."; \
 		bash "$(STAGING_MAKE_DIR)/scripts/staging-init.sh"; \
 	fi

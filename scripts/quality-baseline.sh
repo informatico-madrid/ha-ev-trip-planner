@@ -108,7 +108,7 @@ update_json() {
     # Using jq if available, otherwise sed
     if command -v jq >/dev/null 2>&1; then
         jq ".$key = $value" "$BASELINE_RUN_DIR/baseline.json" > "$temp_file"
-        mv "$temp_file"" "$BASELINE_RUN_DIR/baseline.json"
+        mv "$temp_file" "$BASELINE_RUN_DIR/baseline.json"
     fi
 }
 

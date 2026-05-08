@@ -31,7 +31,7 @@ rules:
       and is a major security risk. In Home Assistant components, use
       alternative approaches like:
       - Template rendering (hass.templates.render())
-      - Configuration validation (voluntary schema)
+      - Configuration validation (voluptuous schema)
       - Safe Python evaluation (ast.literal_eval for literals only)
     metadata:
       category: security
