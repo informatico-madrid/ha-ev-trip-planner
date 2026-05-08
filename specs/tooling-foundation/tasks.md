@@ -60,7 +60,7 @@
   - _Requirements: FR-3_
   - _Design: Secret Detection Configuration_
 
-- [ ] 1.5 [P] Create .semgrep.yml configuration
+- [x] 1.5 [P] Create .semgrep.yml configuration
   - **Do**: Create rules for HA-specific anti-patterns (yaml.load, eval)
   - **Files**: .semgrep.yml
   - **Done when**: File exists with ha-unsafe-yaml-load and ha-dangerous-eval rules
