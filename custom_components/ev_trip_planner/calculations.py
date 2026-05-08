@@ -1196,8 +1196,12 @@ def calculate_power_profile_from_trips(
         # Support both English (day/time) and Spanish (dia_semana/hora) field names
         if not deadline:
             # Try English field names first, then Spanish
-            day = trip.get("day") or trip.get("dia_semana")
-            time_str = trip.get("time") or trip.get("hora")
+            day = trip.get("day")
+            if day is None:
+                day = trip.get("dia_semana")
+            time_str = trip.get("time")
+            if time_str is None:
+                time_str = trip.get("hora")
             if day is not None and time_str is not None:
                 deadline_dt = calculate_next_recurring_datetime(
                     day, time_str, now, tz=tz

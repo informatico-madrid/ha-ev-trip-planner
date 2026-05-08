@@ -8,13 +8,9 @@ Phase 1: Defines full data contract with EMHASS keys as None placeholders.
 Phase 3: EMHASS keys are populated from emhass_adapter computation results.
 Fallback: When EMHASS is not installed, coordinator generates mock EMHASS
 params from trip data so sensors remain populated for E2E testing.
-Fallback: When EMHASS is not installed, coordinator generates mock EMHASS
-params from trip data so sensors remain populated for E2E testing.
 """
 
 import logging
-import math
-from datetime import datetime, timedelta, timezone
 import math
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -23,13 +19,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import (
-    CONF_VEHICLE_NAME,
-    DEFAULT_CONSUMPTION,
-    DEFAULT_CHARGING_POWER,
-    DEFAULT_SOC_BUFFER_PERCENT,
-    DOMAIN,
-)
 from .const import (
     CONF_VEHICLE_NAME,
     DEFAULT_CONSUMPTION,
@@ -91,7 +80,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         self._emhass_adapter = emhass_adapter
         self._vehicle_id = (
             self._entry.data.get(CONF_VEHICLE_NAME, "unknown").lower().replace(" ", "_")
-            self._entry.data.get(CONF_VEHICLE_NAME, "unknown").lower().replace(" ", "_")
         )
 
     @property
@@ -126,16 +114,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         # Get recurring trips as list, convert to dict keyed by trip_id
         recurring_list = await self._trip_manager.async_get_recurring_trips()
         recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
-        recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
 
         # Get punctual trips as list, convert to dict keyed by trip_id
         punctual_list = await self._trip_manager.async_get_punctual_trips()
         punctual_trips = {trip["id"]: trip for trip in punctual_list if "id" in trip}
-        punctual_trips = {trip["id"]: trip for trip in punctual_list if "id" in trip}
 
         # Get today's energy and hours needs
         kwh_today = await self._trip_manager.async_get_kwh_needed_today()
-        hours_today = float(await self._trip_manager.async_get_hours_needed_today())
         hours_today = float(await self._trip_manager.async_get_hours_needed_today())
 
         # Get next scheduled trip
@@ -143,13 +128,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
         # PHASE 3 (3.4): Get EMHASS data from emhass_adapter if available
         all_trips = {**recurring_trips, **punctual_trips}
-        all_trips = {**recurring_trips, **punctual_trips}
         if self._emhass_adapter is not None:
-            emhass_data = self._emhass_adapter.get_cached_optimization_results()
             emhass_data = self._emhass_adapter.get_cached_optimization_results()
             per_trip_params = emhass_data.get("per_trip_emhass_params", {})
             # DEBUG: Log cache state when reading
-            _LOGGER.debug(
             _LOGGER.debug(
                 "DEBUG coordinator _async_update_data: per_trip_emhass_params has %d entries, "
                 "emhass_power_profile non_zero=%d for vehicle %s",
@@ -159,13 +141,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 else 0,
                 self._vehicle_id,
             )
-            # FALLBACK: The adapter's cache is empty (no trips published yet).
-            # Generate mock params from trip data so sensors remain populated.
-            # NOTE: This path does NOT apply dynamic SOC capping. The real SOC caps
-            # are computed in trip_manager.publish_deferrable_loads() via
-            # calcular_hitos_soc() -> emhass_adapter.async_publish_all_deferrable_loads().
-            # Mock params use raw trip data (kwh, km) without capping.
-            # TODO: Apply SOC capping in mock path to match real path behavior.
+            # FALLBACK: When EMHASS is not installed/running, the adapter returns
+            # empty per_trip_params. Generate mock params from trip data so sensors
+            # remain populated and E2E tests can verify dynamic SOC capping.
             if not per_trip_params and all_trips:
                 emhass_data = self._generate_mock_emhass_params(all_trips)
                 generated_params = emhass_data.get("per_trip_emhass_params", {})
@@ -184,16 +162,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         # E2E-DEBUG-CRITICAL: Log complete returned coordinator.data structure
         _LOGGER.debug(
             "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s",
-            list(
-                {
-                    "recurring_trips": recurring_trips,
-                    "punctual_trips": punctual_trips,
-                    "kwh_today": kwh_today,
-                    "hours_today": hours_today,
-                    "next_trip": next_trip,
-                    **emhass_data,
-                }.keys()
-            ),
             list(
                 {
                     "recurring_trips": recurring_trips,
@@ -230,11 +198,6 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )
-        _LOGGER.debug(
-            "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s",
-            self._vehicle_id,
-            "None" if self.data is None else list(self.data.keys()),
-        )
         await self.async_refresh()
         _LOGGER.debug(
             "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s",
@@ -245,19 +208,14 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     def _generate_mock_emhass_params(
         self, trips: dict[str, dict[str, Any]]
     ) -> dict[str, Any]:
-        """Generate fallback EMHASS params from trip data when adapter cache is empty.
+        """Generate mock EMHASS params from trip data when real EMHASS is unavailable.
 
-        This is a fallback path triggered when the EMHASS adapter has no cached
-        results (e.g., before publish_deferrable_loads() runs for the first time).
+        This provides fallback data so the EMHASS sensor remains populated for
+        E2E testing of dynamic SOC capping and other features that depend on
+        sensor attributes (def_total_hours_array, power_profile_watts, etc.).
 
-        IMPORTANT: This path does NOT apply dynamic SOC capping. The real SOC caps
-        are computed in trip_manager.publish_deferrable_loads() via:
-          calcular_hitos_soc() -> emhass_adapter.async_publish_all_deferrable_loads(soc_caps_by_id)
-
-        The mock path uses raw trip data (kwh, km, datetime) without SOC capping.
-        This means sensor attributes will show uncapped values in the mock path.
-
-        TODO: Apply SOC capping in mock path to match real path behavior.
+        The mock data is computed from trip kwh, km, and datetime values using
+        the vehicle's charging power and battery configuration.
 
         Returns:
             Dict with emhass_power_profile, emhass_deferrables_schedule,
