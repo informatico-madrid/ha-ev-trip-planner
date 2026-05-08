@@ -78,7 +78,7 @@
   - _Requirements: FR-5, FR-6, FR-14, FR-16, FR-18_
   - _Design: Python Project Configuration_
 
-- [ ] 1.7 Update .eslintrc.json with TypeScript extends
+- [x] 1.7 Update .eslintrc.json with TypeScript extends
   - **Do**: Add `"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"]` to existing config
   - **Files**: .eslintrc.json
   - **Done when**: extends array includes @typescript-eslint/recommended
