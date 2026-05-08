@@ -9,90 +9,95 @@ Install missing tools, fix broken tooling, add Makefile targets, establish basel
 
 **Feasibility**: High | **Risk**: Low | **Effort**: Medium (8-12 Story Points)
 
-All tools are well-documented, actively maintained, and compatible with Home Assistant custom components. This research covers security tools (bandit, pip-audit, gitleaks, semgrep), type checker migration (mypy → pyright), quality gate orchestration, and CI/CD + TypeScript tooling.
+All tools are well-documented, actively maintained, and compatible with Home Assistant custom components.
+
+**Current State Analysis:**
+- AC-0.15 (_bmad-output/ in .gitignore): **ALREADY COMPLETE** (line 103)
+- AC-0.14 (TS tooling): **PARTIALLY COMPLETE** (.eslintrc.json, tsconfig.e2e.json exist)
+- AC-0.9 (existing targets): Must verify before making changes
+
+**Implementation Order (CRITICAL - do not change):**
+1. Install tools (pip + binary)
+2. Create config files (pyproject.toml, .gitleaks.toml, .semgrep.yml)
+3. Create/update Makefile targets
+4. Verify existing targets still work (AC-0.9)
+5. Update documentation files
+6. Create _bmad-output/ directory structure
+7. Run quality-baseline
+8. Update CI workflow
 
 ---
 
-## 1. Security Tools
+## 1. Tools to Install
 
-### 1.1 Bandit - Python Code Security Linter
+### 1.1 Python Tools (via pip)
 
-**Installation:**
 ```bash
-pip install bandit[toml]
+.venv/bin/pip install bandit[toml]
+.venv/bin/pip install pip-audit
+.venv/bin/pip install semgrep
+.venv/bin/pip install deptry
+.venv/bin/pip install vulture
+.venv/bin/pip install pyright
 ```
 
-**Makefile Target:**
-```makefile
-security-bandit:
-	@echo "Running Bandit security scan..."
-	.venv/bin/bandit -r custom_components/ -f screen -ll
-```
+### 1.2 Binary Tool (gitleaks)
 
-**Configuration (pyproject.toml):**
-```toml
-[tool.bandit]
-exclude_dirs = ["tests", "tests/ha-manual", "tests/e2e", ".venv"]
-skips = ["B101"]  # assert_used - HA uses asserts in config flow
-```
-
-**Required Exclusions for HA:**
-- `tests/`, `tests/ha-manual/`, `tests/e2e/` - test fixtures contain sample code
-- `.venv/` - virtual environment
-- B101 (assert_used) - HA uses asserts in config flow validation, not security-critical
-
----
-
-### 1.2 pip-audit - Dependency Vulnerability Scanner
-
-**Choice:** pip-audit over safety.
-
-**Rationale:**
-- PyPA-backed (official Python Packaging Authority)
-- No API key required
-- Offline-capable with cached database
-- OSV support (Google's Open Source Vulnerabilities database)
-
-**Installation:**
 ```bash
-pip install pip-audit
-```
-
-**Makefile Target:**
-```makefile
-security-audit:
-	@echo "Running pip-audit..."
-	.venv/bin/python -m pip-audit --desc
-```
-
----
-
-### 1.3 Gitleaks - Secret Detection
-
-**Installation:**
-```bash
-# Linux (binary download)
+# Linux
 wget https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.18.4_linux_x64.tar.gz
 tar -xvf gitleaks_8.18.4_linux_x64.tar.gz
 sudo mv gitleaks /usr/local/bin/
 
-# macOS
-brew install gitleaks
+# Verify
+gitleaks --version
 ```
 
-**Makefile Target:**
-```makefile
-security-gitleaks:
-	@echo "Running Gitleaks secret detection..."
-	@if command -v gitleaks >/dev/null 2>&1; then \
-		gitleaks git --verbose --report-format=screen; \
-	else \
-		echo "ERROR: gitleaks not found. Install with: brew install gitleaks (macOS) or download from https://github.com/gitleaks/gitleaks/releases"; \
-		exit 1; \
-	fi
+---
+
+## 2. Configuration Files to Create/Update
+
+### 2.1 pyproject.toml - Add New Sections
+
+**REMOVE this section:**
+```toml
+[tool.mypy]
+# ... entire section to be removed
 ```
 
-**Configuration (.gitleaks.toml):**
+**ADD these sections:**
+```toml
+[tool.bandit]
+exclude_dirs = ["tests", "tests/ha-manual", "tests/e2e", ".venv"]
+skips = ["B101"]  # assert_used - HA uses asserts in config flow
+
+[tool.pyright]
+include = ["custom_components", "tests"]
+exclude = ["**/tests/ha-manual"]
+typeCheckingMode = "standard"
+pythonVersion = "3.14"  # Match CI
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+reportPrivateUsage = "none"
+reportUnknownMemberType = "warning"
+
+[tool.deptry]
+exclude = ["tests", "tests/ha-manual", "tests/e2e"]
+ignore = ["DEP003"]  # Transitive dependencies
+
+[tool.vulture]
+exclude = ["tests/*", "tests/ha-manual/*", "tests/e2e/*"]
+min_confidence = 80
+```
+
+**UPDATE existing section:**
+```toml
+[tool.pylint.MASTER]
+py-version = "3.14"  # Change from 3.11
+```
+
+### 2.2 .gitleaks.toml - CREATE
+
 ```toml
 title = "Gitleaks Configuration"
 extendDefault = true
@@ -104,26 +109,12 @@ paths = [
     '''tests/e2e/''',
     '''\.venv/''',
     '''node_modules/''',
+    '''_bmad-output/''',
 ]
 ```
 
----
+### 2.3 .semgrep.yml - CREATE
 
-### 1.4 Semgrep - Multi-language Static Analysis
-
-**Installation:**
-```bash
-pip install semgrep
-```
-
-**Makefile Target:**
-```makefile
-security-semgrep:
-	@echo "Running Semgrep scan..."
-	.venv/bin/semgrep scan --config auto --error --strict custom_components/
-```
-
-**HA-Specific Rules (.semgrep.yml):**
 ```yaml
 rules:
   - id: ha-unsafe-yaml-load
@@ -140,225 +131,266 @@ rules:
     pattern: eval(...)
 ```
 
----
+### 2.4 .eslintrc.json - UPDATE (file exists)
 
-## 2. Type Checker Migration (mypy → pyright)
-
-### 2.1 Why pyright over mypy?
-
-| Aspect | mypy | pyright |
-|--------|------|---------|
-| Performance | Slower on large codebases | Faster |
-| Type narrowing | Less consistent | Follows PEP 484 spec |
-| `Any` narrowing | Inconsistent | Never narrows `Any` |
-| Python 3.12+ | May have false positives | Better support |
-
-### 2.2 Installation
-
-```bash
-pip install pyright
-```
-
-### 2.3 Configuration (pyproject.toml)
-
-Replace `[tool.mypy]` section with:
-
-```toml
-[tool.pyright]
-include = ["custom_components", "tests"]
-exclude = ["**/tests/ha-manual"]
-typeCheckingMode = "standard"
-pythonVersion = "3.12"
-reportMissingImports = "error"
-reportMissingTypeStubs = "warning"  # HA libs lack stubs
-reportPrivateUsage = "none"  # HA uses private members
-reportUnknownMemberType = "warning"
-```
-
-### 2.4 Makefile Changes
-
-**Remove:**
-```makefile
-mypy:
-	mypy custom_components/ tests/ --exclude tests/ha-manual --no-namespace-packages
-```
-
-**Add:**
-```makefile
-typecheck:
-	pyright custom_components/ tests/
-```
-
-**Update check target:**
-```makefile
-# Old: check: test lint mypy
-# New:
-check: test lint typecheck
-```
-
----
-
-## 3. Quality Gate Orchestration
-
-### 3.1 Sequential Layer Execution
-
-Use `&&` operator for fail-fast execution - if any layer fails, subsequent layers don't run.
-
-```makefile
-quality-gate:
-	@echo "=== Layer 1: Test Execution ==="
-	pytest --cov=custom_components tests/ && \
-	echo "=== Layer 2: Test Quality ===" && \
-	python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate && \
-	echo "=== Layer 3: Code Quality ===" && \
-	ruff check custom_components/ && \
-	pyright custom_components/ && \
-	echo "=== Layer 4: Security ===" && \
-	bandit -r custom_components/ && \
-	echo "=== Quality Gate PASSED ==="
-```
-
-### 3.2 Exit Codes
-
-Each tool returns specific exit codes that Make propagates:
-
-| Tool | 0=Success | 1=Errors Found |
-|------|-----------|----------------|
-| pytest | ✓ | Tests failed |
-| pyright | ✓ | Type errors |
-| ruff | ✓ | Lint errors |
-| bandit | ✓ | Issues found |
-
-### 3.3 Baseline Snapshot
-
-**Purpose:** Capture initial state before improvements begin.
-
-```makefile
-BASELINE_DIR := _bmad-output/quality-gate
-
-quality-baseline:
-	@mkdir -p $(BASELINE_DIR)
-	pytest --cov=custom_components > $(BASELINE_DIR)/pytest.txt 2>&1
-	ruff check custom_components/ > $(BASELINE_DIR)/ruff.txt 2>&1
-	pyright custom_components/ > $(BASELINE_DIR)/pyright.txt 2>&1
-	bandit -r custom_components/ > $(BASELINE_DIR)/bandit.txt 2>&1
-	@echo "Baseline saved to $(BASELINE_DIR)/"
-```
-
----
-
-## 4. Additional Quality Tools
-
-### 4.1 deptry - Import Consistency
-
-**Purpose:** Verify imports match dependencies (critical for post-Spec 3 validation).
-
-**Installation:**
-```bash
-pip install deptry
-```
-
-**Makefile Target:**
-```makefile
-quality-deptry:
-	deptry . --ignore "DEP003"  # DEP003 = transitive deps (acceptable)
-```
-
-**Error Codes:**
-- DEP001: Missing dependency
-- DEP002: Unused dependency
-- DEP003: Transitive dependency
-
-### 4.2 vulture - Dead Code Detection
-
-**Purpose:** Detect unused code (complements Spec 1 dead-code-elimination).
-
-**Installation:**
-```bash
-pip install vulture
-```
-
-**Makefile Target:**
-```makefile
-quality-vulture:
-	vulture custom_components/ --min-confidence 80 --exclude "*/tests/*"
-```
-
----
-
-## 5. TypeScript Tooling (E2E Tests)
-
-### 5.1 TypeScript Compiler (tsc)
-
-**tsconfig.json:**
+Add extends for TypeScript rules:
 ```json
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true
   },
-  "include": ["tests/e2e/**/*.ts"],
-  "exclude": ["node_modules/**", ".venv/**"]
-}
-```
-
-**package.json script:**
-```json
-{
-  "scripts": {
-    "typecheck": "tsc --noEmit"
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-console": "warn",
+    "prefer-const": "error",
+    "no-var": "error",
+    "semi": ["error", "always"],
+    "quotes": ["error", "single"]
   }
 }
 ```
 
-**Makefile:**
+---
+
+## 3. Makefile Targets - CREATE/UPDATE
+
+### 3.1 New Targets to ADD
+
 ```makefile
-typecheck-ts:
-	npm run typecheck
+# Security targets
+.PHONY: security security-bandit security-audit security-gitleaks security-semgrep
+
+security-bandit:
+	@echo "Running Bandit security scan..."
+	.venv/bin/bandit -r custom_components/ -f screen -ll
+
+security-audit:
+	@echo "Running pip-audit..."
+	.venv/bin/python -m pip-audit --desc
+
+security-gitleaks:
+	@echo "Running Gitleaks secret detection..."
+	@if command -v gitleaks >/dev/null 2>&1; then \
+		gitleaks git --verbose --report-format=screen; \
+	else \
+		echo "ERROR: gitleaks not found. Install from https://github.com/gitleaks/gitleaks/releases"; \
+		exit 1; \
+	fi
+
+security-semgrep:
+	@echo "Running Semgrep scan..."
+	.venv/bin/semgrep scan --config auto --error --strict custom_components/
+
+security: security-bandit security-audit
+	@echo "Security scan complete"
+
+# Type checking - REPLACES mypy
+.PHONY: typecheck
+
+typecheck:
+	pyright custom_components/ tests/
+
+# Mutation testing shortcut
+.PHONY: mutation
+
+mutation:
+	.venv/bin/mutmut run --until=100
+
+# Quality gate - orchestrates ALL layers
+.PHONY: quality-gate quality-baseline
+
+quality-gate:
+	@echo "=== Layer 1: Test Execution ==="
+	$(MAKE) test
+	@echo "=== Layer 2: Test Quality ==="
+	python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	@echo "=== Layer 3: Code Quality ==="
+	$(MAKE) lint
+	$(MAKE) typecheck
+	.venv/bin/deptry . --ignore "DEP003"
+	.venv/bin/vulture custom_components/ --min-confidence 80
+	@echo "=== Layer 4: Security ==="
+	$(MAKE) security-bandit
+	.venv/bin/semgrep scan --config auto custom_components/
+	@echo "=== Quality Gate PASSED ==="
+
+quality-baseline:
+	@mkdir -p _bmad-output/quality-gate
+	@echo "Creating quality baseline..."
+	$(MAKE) test > _bmad-output/quality-gate/pytest.txt 2>&1 || true
+	$(MAKE) lint > _bmad-output/quality-gate/ruff.txt 2>&1 || true
+	$(MAKE) typecheck > _bmad-output/quality-gate/pyright.txt 2>&1 || true
+	$(MAKE) security-bandit > _bmad-output/quality-gate/bandit.txt 2>&1 || true
+	.venv/bin/deptry . > _bmad-output/quality-gate/deptry.txt 2>&1 || true
+	.venv/bin/vulture custom_components/ > _bmad-output/quality-gate/vulture.txt 2>&1 || true
+	@echo "Baseline saved to _bmad-output/quality-gate/"
 ```
 
-### 5.2 ESLint for TypeScript
+### 3.2 Existing Targets to UPDATE
 
-**Installation:**
-```bash
-npm install --save-dev @typescript-eslint/parser @typescript-eslint/eslint-plugin
+**UPDATE .PHONY line:**
+```makefile
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug \
+        e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug \
+        staging-up staging-down staging-reset \
+        lint typecheck format check clean htmlcov \
+        security security-bandit security-audit security-gitleaks security-semgrep \
+        mutation quality-gate quality-baseline
 ```
 
-**.eslintrc.js:**
-```javascript
-module.exports = {
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended'
-  ]
-};
+**UPDATE help target:**
+```makefile
+help:
+	@echo "Comandos disponibles:"
+	@echo "  make test            - Ejecutar todos los tests Python"
+	@echo "  make test-cover      - Ejecutar tests Python con reporte de cobertura"
+	@echo "  make lint           - Ejecutar linting (ruff, pylint)"
+	@echo "  make typecheck      - Ejecutar type checking (pyright)"
+	@echo "  make format         - Formatear código con black e isort"
+	@echo "  make check          - Ejecutar todos los checks (test, lint, typecheck)"
+	@echo "  make mutation       - Ejecutar mutation testing (mutmut)"
+	@echo "  make quality-gate   - Ejecutar quality gate completo (layers 1-4)"
+	@echo "  make quality-baseline - Crear snapshot baseline de calidad"
+	@echo "  make security       - Ejecutar security scans (bandit, pip-audit)"
+	@echo "  make e2e            - Ejecutar tests E2E (requiere HA en localhost:8123)"
+	@echo "  make clean          - Limpiar archivos generados"
 ```
 
-### 5.3 Prettier
+**UPDATE check target:**
+```makefile
+check: test lint typecheck
+```
 
-**.prettierrc.json:**
+**DEPRECATE mypy target (keep for compatibility but warn):**
+```makefile
+mypy:
+	@echo "WARNING: mypy is deprecated. Use 'make typecheck' for pyright."
+	pyright custom_components/ tests/
+```
+
+### 3.3 Clean Target - ADD
+
+Add to existing clean target:
+```makefile
+clean:
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	# ... existing lines ...
+	rm -rf _bmad-output
+```
+
+---
+
+## 4. Files to Update Beyond Makefile
+
+### 4.1 Documentation Files
+
+**File: `.github/copilot-instructions.md`**
+- Search for "mypy" references, replace with "pyright"
+- Update type checking instructions
+
+**File: `docs/development-guide.md`**
+- Update any mypy references to pyright
+- Add new quality-gate and security targets
+
+### 4.2 VSCode Settings
+
+**File: `.vscode/settings.json` (create if doesn't exist)**
 ```json
 {
-  "semi": true,
-  "trailingComma": "all",
-  "singleQuote": true,
-  "printWidth": 100
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "python.linting.mypyEnabled": false,
+  "typescript.preferences.importModuleSpecifier": "relative"
+}
+```
+
+### 4.3 Package.json - Add Scripts (if not present)
+
+```json
+{
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint:ts": "eslint tests/e2e/**/*.ts",
+    "lint:ts:fix": "eslint tests/e2e/**/*.ts --fix"
+  }
 }
 ```
 
 ---
 
-## 6. CI/CD Integration
+## 5. Quality Gate Layers - EXPLICIT Commands
 
-### 6.1 GitHub Actions Quality Gate Workflow
+| Layer | Purpose | Commands (MUST ALL PASS) |
+|-------|---------|--------------------------|
+| **L1: Test Execution** | Unit tests pass | `make test` |
+| **L2: Test Quality** | Mutation score OK | `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate` |
+| **L3: Code Quality** | Lint + Type + Dead code | `make lint`, `make typecheck`, `deptry .`, `vulture custom_components/` |
+| **L4: Security** | No vulnerabilities | `make security-bandit`, `semgrep scan --config auto` |
 
-**File:** `.github/workflows/quality-gate.yml`
+**Gate fails if ANY layer fails.** No partial passes.
 
+---
+
+## 6. AC Status Tracking
+
+| AC | Status | Notes |
+|----|--------|-------|
+| AC-0.1: bandit | READY | Config defined, Makefile target defined |
+| AC-0.2: pip-audit | READY | Chosen over safety, Makefile target defined |
+| AC-0.3: gitleaks | READY | Binary install documented, Makefile target defined |
+| AC-0.4: semgrep | READY | Config defined, Makefile target defined |
+| AC-0.5: pyright | READY | Replaces mypy, config in pyproject.toml |
+| AC-0.6: quality-gate | READY | All 4 layers explicitly defined |
+| AC-0.7: mutation shortcut | READY | Target: `mutmut run --until=100` |
+| AC-0.8: typecheck | READY | Replaces mypy in `check` target |
+| AC-0.9: existing targets | VERIFY | Must test after changes: test, lint, format, e2e, check |
+| AC-0.10: CI workflow | READY | Update python-tests.yml or create quality-gate.yml |
+| AC-0.11: baseline snapshot | READY | `make quality-baseline` saves to _bmad-output/quality-gate/ |
+| AC-0.12: deptry | READY | Config in pyproject.toml |
+| AC-0.13: vulture | READY | Config in pyproject.toml |
+| AC-0.14: TS tooling | PARTIAL | .eslintrc.json exists, update required |
+| AC-0.15: _bmad-output/ gitignore | **DONE** | Already in .gitignore line 103 |
+| AC-0.16: antipattern_checker | READY | Run `.claude/skills/quality-gate/scripts/antipattern_checker.py` |
+
+---
+
+## 7. CI/CD Integration
+
+### 7.1 Update .github/workflows/python-tests.yml
+
+**Add to existing job:**
+```yaml
+- name: Type checking
+  run: pyright custom_components/ tests/
+
+- name: Security scan
+  run: |
+    pip install bandit semgrep
+    bandit -r custom_components/
+    semgrep scan --config auto custom_components/
+
+- name: Import consistency
+  run: |
+    pip install deptry
+    deptry . --ignore "DEP003"
+```
+
+### 7.2 OR Create .github/workflows/quality-gate.yml
+
+Separate workflow for full quality gate on PRs:
 ```yaml
 name: Quality Gate
 
@@ -367,7 +399,7 @@ on:
     branches: [main]
 
 jobs:
-  test-python:
+  quality-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -375,51 +407,36 @@ jobs:
         with:
           python-version: '3.14'
       - run: pip install -r requirements_dev.txt
-      - run: pytest --cov=custom_components --cov-report=xml
-
-  mutation-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-      - run: pip install -r requirements_dev.txt
-      - run: mutmut run --until=100
-      - run: python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
-
-  quality-gate:
-    runs-on: ubuntu-latest
-    needs: [test-python, mutation-test]
-    if: always()
-    steps:
-      - name: Check all jobs passed
-        run: |
-          if [ "${{ needs.test-python.result }}" != "success" ] || \
-             [ "${{ needs.mutation-test.result }}" != "success" ]; then
-            echo "Quality gate failed"
-            exit 1
-          fi
+      - run: pip install bandit semgrep deptry vulture pyright
+      - name: Run quality gate
+        run: make quality-gate
 ```
 
-### 6.2 Parallel Execution
+---
 
-Jobs without `needs:` run in parallel. Jobs with `needs:` wait for dependencies.
+## 8. Implementation Checklist (ORDER MATTERS)
+
+- [ ] 1. Install Python tools (bandit, pip-audit, semgrep, deptry, vulture, pyright)
+- [ ] 2. Install gitleaks binary
+- [ ] 3. Update pyproject.toml (remove mypy, add bandit/pyright/deptry/vulture, update pylint version)
+- [ ] 4. Create .gitleaks.toml
+- [ ] 5. Create .semgrep.yml
+- [ ] 6. Update .eslintrc.json (add extends)
+- [ ] 7. Update Makefile (.PHONY, help, new targets, updated check target)
+- [ ] 8. Verify existing targets work (AC-0.9): `make test`, `make lint`, `make format`, `make e2e`
+- [ ] 9. Create _bmad-output/quality-gate/ directory
+- [ ] 10. Update .github/copilot-instructions.md (mypy → pyright)
+- [ ] 11. Update docs/development-guide.md if needed
+- [ ] 12. Create/update .vscode/settings.json
+- [ ] 13. Run quality-baseline: `make quality-baseline`
+- [ ] 14. Verify baseline saved to _bmad-output/quality-gate/
+- [ ] 15. Run antipattern_checker.py and document findings
+- [ ] 16. Update CI workflow (python-tests.yml or create quality-gate.yml)
+- [ ] 17. Commit all changes
 
 ---
 
-## 7. Implementation Order
-
-1. Install Python tools (bandit, pip-audit, semgrep, deptry, vulture, pyright)
-2. Create/update pyproject.toml configurations
-3. Create Makefile targets (security-bandit, security-audit, security-gitleaks, security-semgrep, typecheck, quality-gate, quality-baseline)
-4. Install gitleaks binary
-5. Set up TypeScript tooling (tsconfig.json, .eslintrc.js, .prettierrc.json)
-6. Update CI workflow
-7. Run quality-baseline and save results
-8. Update .gitignore for _bmad-output/
-
----
-
-## 8. Sources
+## 9. Sources
 
 - [Bandit Documentation](https://github.com/pycqa/bandit)
 - [pip-audit Documentation](https://github.com/pypa/pip-audit)
@@ -428,4 +445,4 @@ Jobs without `needs:` run in parallel. Jobs with `needs:` wait for dependencies.
 - [Pyright Documentation](https://github.com/microsoft/pyright)
 - [Deptry Documentation](https://github.com/fpgmaas/deptry)
 - [Vulture Documentation](https://github.com/jendrikseipp/vulture)
-- [GNU Make Manual](https://www.gnu.com/software/make/manual/html_node/Parallel.html)
+- [GNU Make Manual](https://www.gnu.org/software/make/manual/html_node/Parallel.html)
