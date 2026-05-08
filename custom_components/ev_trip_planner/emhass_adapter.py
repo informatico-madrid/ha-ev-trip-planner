@@ -736,14 +736,14 @@ class EMHASSAdapter:
         total_hours = decision.def_total_hours
         power_watts = decision.power_watts
 
-        # T062/T063: Apply dynamic SOC cap to reduce kwh_needed and total_hours.
-        # The SOC cap MUST NOT affect power_watts — that is always the charger
-        # hardware power. Cap only reduces the TARGET SOC (hours/kWh).
+        # T062/T063: Apply dynamic SOC cap to reduce kwh_needed.
+        # The SOC cap MUST NOT affect power_watts (P_deferrable_nom) — that is always
+        # the charger hardware power. Cap only reduces the energy target (hours/kWh).
+        # NOTE: total_hours will be overridden by deficit propagation below.
         cap_ratio: float = 1.0
         if soc_cap is not None and soc_cap < 100.0:
             cap_ratio = soc_cap / 100.0
             kwh_needed = kwh_needed * cap_ratio
-            total_hours = total_hours * cap_ratio
 
         # Use adjusted hours from backward deficit propagation.
         # When a trip's charging needs exceed its window, excess hours are propagated
@@ -792,6 +792,14 @@ class EMHASSAdapter:
                 battery_capacity_kwh=battery_capacity_kwh,
                 safety_margin_percent=safety_margin_percent,
             )
+
+        # T062/T063: Apply SOC cap to power_profile by scaling watts.
+        # The SOC cap reduces total charging energy. This is done by scaling
+        # each slot in the power_profile by cap_ratio. P_deferrable_nom is
+        # set separately to the fixed charger hardware power — it does NOT
+        # get scaled by the SOC cap.
+        if cap_ratio < 1.0 and cap_ratio > 0:
+            power_profile = [v * cap_ratio for v in power_profile]
 
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
