@@ -163,7 +163,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-1.9: No new import errors introduced
   - AC-1.10: `[tool.quality-gate.mutation.modules.schedule_monitor]` removed from `pyproject.toml`
   - AC-1.11: `protocols.py,cover` removed (references non-existent file)
-  - AC-1.12: `tests/ha-manual/` is a full HA test instance for E2E testing (NOT browser cache) — keep directory but clean up 63+ stale dashboard YAML versions (`ev-trip-planner-chispitas.yaml.{2..63}`)
+  - AC-1.12: ~~`tests/ha-manual/` is a full HA test instance for E2E testing (NOT browser cache) — keep directory but clean up 63+ stale dashboard YAML versions (`ev-trip-planner-chispitas.yaml.{2..63}`)~~ **OBSOLETE (2026-05-08)**: `tests/ha-manual/` confirmed unused, unreliable, not part of any quality gate. Directory and all contents should be DELETED. Use `make e2e` and `make e2e-soc` for E2E testing instead.
   - AC-1.13: Deprecated Lovelace auto-import gated behind feature flag or removed (`async_import_dashboard_for_entry` call in `__init__.py:187`)
 - **Interface Contracts**: No public APIs affected. `schedule_monitor.py` is never imported from production code.
 - **Estimated Size**: **0.25 story points**
