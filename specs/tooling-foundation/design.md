@@ -2,7 +2,11 @@
 
 ## Overview
 
-Install missing security and quality tools (bandit, pip-audit, gitleaks, semgrep, deptry, vulture, import-linter, refurb), migrate from mypy to pyright, create a 4-layer quality gate Makefile target with fail-fast semantics, establish baseline metrics, and update CI—all while maintaining 100% backward compatibility of existing Makefile targets.
+Install missing security and quality tools (bandit, pip-audit, gitleaks, semgrep, deptry, vulture, import-linter, refurb), migrate from mypy to pyright, create a **6-layer** quality gate with fail-fast semantics, establish baseline metrics, and update CI—all while maintaining 100% backward compatibility of existing Makefile targets.
+
+**6-Layer Architecture**: `L3A (smoke test) → L1 (test execution) → L2 (test quality) → L3B (deep quality) → L4 (security & defense) → checkpoint`
+
+**Fail-fast at each layer**: If L3A fails (ruff/pyright/SOLID-TA/principles/anti-TA), stop immediately — don't waste time on mutation testing (~15 min), BMAD Party Mode (~15 min), or security scanning (~2-5 min).
 
 ## Architecture
 
@@ -17,63 +21,103 @@ graph TB
         F --> G[make quality-baseline]
     end
 
-    subgraph Layer4["Layer 4: Security"]
-        S1[security-bandit]
-        S2[security-semgrep]
-        S3[security-pip-audit]
-        S4[security-gitleaks]
+    subgraph L4["Layer 4: Security & Defense"]
+        direction TB
+        S1[bandit - Python vulns]
+        S2[semgrep - SAST]
+        S3[pip-audit/safety - CVE]
+        S4[gitleaks - secrets]
+        S5[checkov - YAML]
+        S6[deptry - imports]
+        S7[vulture - dead code]
+        S8[trivy - Docker]
     end
 
-    subgraph Layer3["Layer 3: Code Quality"]
-        Q1[lint: ruff, pylint]
-        Q2[typecheck: pyright]
-        Q3[deptry: unused deps]
-        Q4[vulture: dead code]
-        Q5[import-linter]
+    subgraph L3B["Layer 3B: Deep Quality (BMAD)"]
+        Q3B[SOLID Tier B: llm_solid_judge.py + BMAD]
+        Q5B[Antipatterns Tier B: antipattern_judge.py + BMAD]
     end
 
-    subgraph Layer2["Layer 2: Test Quality"]
+    subgraph L3A["Layer 3A: Smoke Test (AST)"]
+        Q1[ruff check + format]
+        Q2[pyright typecheck]
+        Q3A[SOLID Tier A: solid_metrics.py]
+        Q4A[Principles: DRY/KISS/YAGNI/LoD/CoI]
+        Q5A[Antipatterns Tier A: 25 AST patterns]
+    end
+
+    subgraph L2["Layer 2: Test Quality"]
         T1[mutation_analyzer.py --gate]
         T2[weak_test_detector.py]
+        T3[diversity_metric.py]
     end
 
-    subgraph Layer1["Layer 1: Test Execution (Local)"]
+    subgraph L1["Layer 1: Test Execution"]
         X1[pytest]
         X2[coverage 100%]
-        X3[mutmut --runner=pytest]
+        X3[migration gate]
         X4[E2E Suites]
         XS1[e2e suite]
         XS2[e2e-soc suite]
         XFN[future suites...]
     end
 
-    subgraph Layer1CI["Layer 1-CI: Test Execution (CI)"]
+    subgraph L1CI["Layer 1-CI"]
         X1CI[pytest]
         X2CI[coverage 100%]
-        X3CI[mutmut --runner=pytest]
     end
 
-    F --> L1[Layer 1 (local)]
+    F --> L3A[Layer 3A: Smoke Test]
+    L3A -->|FAIL| FAIL3A[STOP: fix code quality]
+    L3A -->|pass| L1[Layer 1 (local)]
     L1 -->|pass| L2[Layer 2]
+    L2 -->|pass| L3B[Layer 3B: BMAD]
+    L3B -->|pass| L4[Layer 4: Security]
 
-    FCI[quality-gate-ci] --> L1CI[Layer 1-CI (CI only)]
+    FCI[quality-gate-ci] --> L3A
+    L3A -->|pass| L1CI[Layer 1-CI (CI, NO E2E)]
     L1CI -->|pass| L2[Layer 2]
-    L2 -->|pass| L3[Layer 3]
-    L3 -->|pass| L4[Layer 4]
+    L2 -->|pass| L4[Layer 4: Security]
 
+    L3A -->|fail| FAIL3A[STOP: fix code quality]
     L1 -->|fail| FAIL1[STOP: fix tests]
     L2 -->|fail| FAIL2[STOP: improve tests]
-    L3 -->|fail| FAIL3[STOP: fix code quality]
+    L3B -->|fail| FAIL3B[STOP: refactor → L3A]
     L4 -->|fail| FAIL4[STOP: fix security]
 
     style FAIL1 fill:#f66,stroke:#333,stroke-width:2px
     style FAIL2 fill:#f66,stroke:#333,stroke-width:2px
-    style FAIL3 fill:#f66,stroke:#333,stroke-width:2px
+    style FAIL3A fill:#f66,stroke:#333,stroke-width:2px
+    style FAIL3B fill:#f66,stroke:#333,stroke-width:2px
     style FAIL4 fill:#f66,stroke:#333,stroke-width:2px
     style L4 fill:#bfa,stroke:#333,stroke-width:2px
 ```
 
 ## Components
+
+### Two-Tier Validation System
+
+**Tier A: Deterministic (AST-based)** - Always runs, fast
+- `solid_metrics.py`: SOLID principles via static AST analysis (SRP, OCP, LSP, ISP, DIP)
+- `antipattern_checker.py`: 25 antipatterns via AST (God Class, Feature Envy, Long Method, etc.)
+- `principles_checker.py`: DRY, KISS, YAGNI, Law of Demeter, Composition over Inheritance
+
+**Tier B: Probabilistic (LLM consensus)** - Manual execution via BMAD
+- `llm_solid_judge.py`: Generates context JSON for SOLID semantic analysis
+- `antipattern_judge.py`: Generates context JSON for 25 semantic antipatterns
+- **Execution**: BMAD Party Mode (Winston + Murat agents) + Adversarial Review
+- **Consensus**: 2/3 agents must agree for violation confirmation
+- **Fallback**: If BMAD unavailable, Tier B marked SKIPPED (doesn't affect PASS/FAIL)
+
+**Quality-Gate Skill Scripts** (located in `.claude/skills/quality-gate/scripts/`):
+- `mutation_analyzer.py`: Kill-map analysis + per-module gate (thresholds in pyproject.toml)
+- `weak_test_detector.py`: A1-A8 weak test rules (no assertions, no setup, hard-coded inputs)
+- `diversity_metric.py`: Test diversity via Levenshtein edit distance
+- `solid_metrics.py`: Tier A SOLID (deterministic AST)
+- `llm_solid_judge.py`: Tier B SOLID (LLM context generator)
+- `principles_checker.py`: DRY, KISS, YAGNI, LoD, CoI (deterministic)
+- `antipattern_checker.py`: Tier A antipatterns (25 patterns, deterministic AST)
+- `antipattern_judge.py`: Tier B antipatterns (25 patterns, LLM context generator)
 
 ### Makefile Target Structure
 
@@ -99,17 +143,19 @@ graph TB
 - `make pre-commit-run` — run pre-commit hooks on all files
 - `make pre-commit-update` — update pre-commit hooks to latest versions
 
-**Layer Targets** (run all tools in a layer):
-- `make layer1` — test execution (pytest, coverage, mutmut, **all E2E suites**)
+**Layer Targets** (run all tools in a layer, **6-layer architecture**):
+- `make layer3a` — **Smoke Test** (ruff check + format, pyright, SOLID Tier A, Principles, Antipatterns Tier A) — **fail-fast**: if this fails, stop immediately
+- `make layer1` — test execution (pytest, coverage, mutation gate, **all E2E suites**)
   - E2E suites: `make e2e`, `make e2e-soc` (extensible for future suites)
-- `make layer1-ci` — test execution (pytest, coverage, mutmut) — **NO E2E, for CI**
-- `make layer2` — test quality (mutation-gate, weak_test_detector)
-- `make layer3` — code quality (lint, typecheck, deptry, vulture, import-linter, e2e-lint)
-- `make layer4` — security (bandit, semgrep, pip-audit, gitleaks)
+- `make layer1-ci` — test execution (pytest, coverage) — **NO E2E, for CI**
+- `make layer2` — test quality (mutation gate, weak_test_detector, diversity)
+- `make layer3b` — **Deep Quality** (SOLID Tier B + Antipatterns Tier B via BMAD Party Mode consensus)
+- `make layer3` — code quality (alias for `layer3a`, for backward compat)
+- `make layer4` — **Security & Defense** (unified scanner: 8 tools — bandit, pip-audit/safety, gitleaks, semgrep, checkov, deptry, vulture, trivy)
 
 **Orchestrator Targets**:
-- `make quality-gate` — run layer1 → layer2 → layer3 → layer4 (fail-fast) — **includes all E2E suites**
-- `make quality-gate-ci` — run layer1-ci → layer2 → layer3 → layer4 (fail-fast) — **NO E2E, for CI/CD**
+- `make quality-gate` — **6-layer**: L3A → L1 → L2 → L3B → L4 (fail-fast) — **includes all E2E suites**
+- `make quality-gate-ci` — **CI**: L3A → L1-CI → L2 → L4 (NO E2E, NO BMAD) — for CI/CD
 - `make quality-baseline` — snapshot all metrics to _bmad-output/quality-gate/baseline/
 
 **Backward Compatibility** (existing targets unchanged behavior):
@@ -244,54 +290,65 @@ sequenceDiagram
     participant Dev as Developer
     participant CI as CI/CD
     participant Make as Makefile
+    participant L3A as Layer 3A (Smoke Test)
     participant L1 as Layer 1
     participant L1CI as Layer 1-CI
     participant L2 as Layer 2
-    participant L3 as Layer 3
+    participant L3B as Layer 3B (BMAD)
     participant L4 as Layer 4
     participant Out as _bmad-output/
 
     Dev->>Make: make quality-gate (local)
-    Make->>L1: pytest + coverage + mutmut + all E2E suites
-    Note over L1: E2E suites: e2e, e2e-soc, (future: e2e-*)
-    L1-->>Make: exit code
+    Make->>L3A: ruff + pyright + SOLID-TA + Principles + Anti-TA
+    Note over L3A: **FAIL-FAST** — if this fails, STOP
 
-    alt L1 fails
-        Make-->>Dev: FAIL: fix tests first
-    else L1 passes
-        Make->>L2: mutation_analyzer --gate
-        L2-->>Make: exit code
+    alt L3A fails
+        Make-->>Dev: FAIL: fix code quality first
+    else L3A passes
+        Make->>L1: pytest + coverage + mutation gate + all E2E suites
+        Note over L1: E2E suites: e2e, e2e-soc, (future: e2e-*)
+        L1-->>Make: exit code
 
-        alt L2 fails
-            Make-->>Dev: FAIL: improve test coverage
-        else L2 passes
-            Make->>L3: lint + typecheck + deptry + vulture
-            L3-->>Make: exit code
+        alt L1 fails
+            Make-->>Dev: FAIL: fix tests first
+        else L1 passes
+            Make->>L2: mutation gate + weak test detector + diversity
+            L2-->>Make: exit code
 
-            alt L3 fails
-                Make-->>Dev: FAIL: fix code quality
-            else L3 passes
-                Make->>L4: bandit + semgrep + pip-audit + gitleaks
-                L4-->>Make: exit code
+            alt L2 fails
+                Make-->>Dev: FAIL: improve test quality
+            else L2 passes
+                Make->>L3B: SOLID Tier B + Antipatterns Tier B (BMAD)
+                Note over L3B: LLM consensus (Winston + Murat + Amelia)
+                L3B-->>Make: exit code
 
-                alt L4 fails
-                    Make-->>Dev: FAIL: security issues
-                else L4 passes
-                    Make-->>Dev: SUCCESS: quality gate passed
+                alt L3B fails
+                    Make-->>Dev: FAIL: refactor → retry L3A
+                else L3B passes
+                    Make->>L4: Unified scanner (8 tools)
+                    Note over L4: bandit, safety, gitleaks, semgrep, checkov, deptry, vulture, trivy
+                    L4-->>Make: exit code
+
+                    alt L4 fails
+                        Make-->>Dev: FAIL: security issues
+                    else L4 passes
+                        Make-->>Dev: SUCCESS: 6-layer quality gate passed
+                    end
                 end
             end
         end
     end
 
-    CI->>Make: make quality-gate-ci (CI, NO E2E)
-    Make->>L1CI: pytest + coverage + mutmut
+    CI->>Make: make quality-gate-ci (CI, NO E2E, NO BMAD)
+    Make->>L3A: ruff + pyright + SOLID-TA + Principles + Anti-TA
+    Make->>L1CI: pytest + coverage
+    Note over L1CI,L3A: Parallel: smoke test runs first, then L1CI
     L1CI-->>Make: exit code
-
     alt L1CI fails
         Make-->>CI: FAIL: fix tests first
     else L1CI passes
-        Make->>L2: mutation_analyzer --gate
-        Note over L2: Same L2-L4 flow as above
+        Make->>L2: mutation gate + weak test detector + diversity
+        Note over L2: Same L2-L4 flow as local
     end
 
     Dev->>Make: make quality-baseline
@@ -322,6 +379,7 @@ sequenceDiagram
 | Dependency analysis | pip-check, pipdeptree, deptry | deptry | Static analysis (no install needed), DEP001-004 codes clear, finds unused imports |
 | Secret detection | trufflehog, gitleaks, git-secrets | gitleaks | Fast, binary install, TOML config, good default rules |
 | SAST tool | pylint, semgrep, codeql | semgrep | Configurable rules, cross-language, fast, good HA rule sets |
+| Quality validation tier | Single-tier (all rules), Two-tier (AST + LLM) | Two-tier | Tier A = fast deterministic AST, Tier B = LLM consensus for semantic patterns |
 
 ## File Structure
 
@@ -342,18 +400,24 @@ sequenceDiagram
 
 | Error Scenario | Handling Strategy | User Impact |
 |----------------|-------------------|-------------|
+| ruff/pyright/SOLID-TA fail (Layer 3A) | **STOP immediately** (fail-fast smoke test) | Fix code quality before running mutation/BMAD/security |
 | pytest fails (Layer 1) | Stop immediately, show failing test | Developer must fix test before quality gate proceeds |
 | coverage < 100% (Layer 1) | Fail with uncovered lines report | Add tests or update exclusions |
-| mutmut score below threshold (Layer 2) | Fail with per-module kill map | Improve test coverage for weak modules |
-| pyright type error (Layer 3) | Fail with file:line:error details | Fix type annotations or add ignores |
-| deptry finds unused dep (Layer 3) | Fail with DEP001-004 codes | Remove unused imports or add to requirements |
-| vulture finds dead code (Layer 3) | Fail with function/class names | Remove dead code or add to whitelist |
+| mutation gate fails (Layer 2) | Fail with per-module kill map | Improve test coverage for weak modules |
+| pyright type error (Layer 3A) | Fail with file:line:error details | Fix type annotations or add ignores |
+| deptry finds unused dep (Layer 3A) | Fail with DEP001-004 codes | Remove unused imports or add to requirements |
+| vulture finds dead code (Layer 3A) | Fail with function/class names | Remove dead code or add to whitelist |
 | bandit finds issue (Layer 4) | Fail with severity + CWE | Fix security issue or add justified ignore |
 | semgrep finds issue (Layer 4) | Fail with rule ID + location | Fix or add ignore with justification |
 | pip-audit finds vuln (Layer 4) | Fail with CVE + upgrade path | Update dependency or accept risk |
 | gitleaks finds secret (Layer 4) | Fail with file:line + secret type | Rotate secret, remove from git |
 | Tool not installed | Clear error: "run make install-tools" | Run install-tools.sh |
 | mypy target invoked | Warning: "DEPRECATED: use make typecheck" | Runs pyright for compatibility |
+| Tier A SOLID violation | Fail with principle + class:line | Refactor class to satisfy principle |
+| Tier A antipattern violation | Fail with pattern + class:line | Refactor to eliminate antipattern |
+| Tier B BMAD unavailable | SKIPPED (doesn't affect PASS/FAIL) | Tier A results only, no LLM consensus |
+| Tier B consensus not reached | SKIPPED (agents disagreed) | Treat as warning, not failure |
+| L4 scanner finds high/critical finding | Block gate — must fix before commit | Fix vulnerability or add justified skip |
 
 ## Edge Cases
 
@@ -366,6 +430,9 @@ sequenceDiagram
 - **Edge case 7**: Deptry flags HA dependencies as unused — ignore HA imports in config
 - **Edge case 8**: Pyright finds issues in tests/ — strict mode on custom_components/ only
 - **Edge case 9**: New E2E suite added — Layer 1 automatically includes new `e2e-*` targets via Makefile pattern
+- **Edge case 10**: Tier B LLM agents disagree (Winston says violation, Murat says OK) — Treat as SKIPPED, not a failure
+- **Edge case 11**: BMAD Party Mode not available — Tier B scripts generate context JSON, baseline script marks Tier B as manual execution required
+- **Edge case 12**: Tier B context JSON is large (>40KB) — Use for BMAD context only, don't embed in baseline summary
 
 ### E2E Suite Extensibility
 
@@ -517,9 +584,10 @@ Based on codebase analysis:
 10. Create `scripts/quality-baseline.sh` for metric snapshots
 11. Create `_bmad-output/quality-gate/baseline/` directory
 12. Verify backward compatibility: run all existing targets (test, lint, mypy, format, check, e2e*, staging-*)
-13. Run `make quality-baseline` to establish initial metrics
-14. Update `.github/workflows/python-tests.yml`: add layer4 step, add quality-gate step
-15. Document tool outputs and exit codes in project README or docs/
+17. Run `make quality-baseline` to establish initial metrics (15 files: 3 layers × Tier A/B)
+18. For Tier B LLM validations: Run BMAD Party Mode + Adversarial Review manually on generated context
+19. Update `.github/workflows/python-tests.yml`: add layer4 step, add quality-gate step
+20. Document tool outputs and exit codes in project README or docs/
 
 ## Unresolved Questions
 

@@ -5,7 +5,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 
 ## 🏛️ HOME ASSISTANT ARCHITECTURE - STRICT RULES
 
-4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`.
+4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`. Every `async` call **must** be `await`ed — never fire-and-forget, as unawaited coroutines are silently skipped.
 
 ## 🏠 HOME ASSISTANT INSTANCES - PRODUCTION VS TEST
 

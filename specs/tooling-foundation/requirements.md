@@ -14,10 +14,10 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can catch security issues before they reach production
 
 **Acceptance Criteria:**
-- [ ] AC-1: `make security-bandit` runs Bandit against custom_components/ and exits with proper status code
-- [ ] AC-2: `make security-audit` runs pip-audit and reports dependency vulnerabilities
-- [ ] AC-3: `make security-gitleaks` detects secrets in git history (gitleaks binary installed)
-- [ ] AC-4: Semgrep installed with custom rules for HA-specific anti-patterns (unsafe yaml.load, eval)
+- [x] AC-1: `make security-bandit` runs Bandit against custom_components/ and exits with proper status code
+- [x] AC-2: `make security-audit` runs pip-audit and reports dependency vulnerabilities
+- [x] AC-3: `make security-gitleaks` detects secrets in git history (gitleaks binary installed)
+- [x] AC-4: Semgrep installed with custom rules for HA-specific anti-patterns (unsafe yaml.load, eval)
 
 ### US-2: Type Checker Migration
 **As a** developer
@@ -25,9 +25,9 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I get faster, more accurate type analysis compatible with Python 3.14
 
 **Acceptance Criteria:**
-- [ ] AC-5: pyproject.toml `[tool.mypy]` section removed entirely, `[tool.pyright]` added with Python 3.14 target
-- [ ] AC-6: `make typecheck` runs pyright (not mypy); `make mypy` deprecated with warning
-- [ ] AC-7: `make check` calls `typecheck` instead of `mypy`
+- [x] AC-5: pyproject.toml `[tool.mypy]` section removed entirely, `[tool.pyright]` added with Python 3.14 target
+- [x] AC-6: `make typecheck` runs pyright (not mypy); `make mypy` deprecated with warning
+- [x] AC-7: `make check` calls `typecheck` instead of `mypy`
 
 ### US-3: Quality Gate Orchestration
 **As a** developer
@@ -35,7 +35,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I get immediate feedback on code health before committing
 
 **Acceptance Criteria:**
-- [ ] AC-8: `make quality-gate` runs 4 layers in sequence (fail-fast): Layer 1 (Test: `make test`), Layer 2 (Test Quality: mutation_analyzer.py --gate), Layer 3 (Code Quality: lint, typecheck, deptry, vulture), Layer 4 (Security: bandit, semgrep)
+- [x] AC-8: `make quality-gate` runs 4 layers in sequence (fail-fast): Layer 1 (Test: `make test`), Layer 2 (Test Quality: mutation_analyzer.py --gate), Layer 3 (Code Quality: lint, typecheck, deptry, vulture), Layer 4 (Security: bandit, semgrep)
 
 ### US-4: Dead Code and Import Consistency
 **As a** developer
@@ -43,8 +43,8 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can keep the codebase maintainable and catch unused dependencies
 
 **Acceptance Criteria:**
-- [ ] AC-12: deptry installed and configured (excludes tests, ignores DEP003)
-- [ ] AC-13: vulture installed and configured (80% confidence, excludes tests)
+- [x] AC-12: deptry installed and configured (excludes tests, ignores DEP003)
+- [x] AC-13: vulture installed and configured (80% confidence, excludes tests)
 
 ### US-5: Mutation Testing Shortcut
 **As a** developer
@@ -52,7 +52,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can verify test effectiveness without remembering mutmut syntax
 
 **Acceptance Criteria:**
-- [ ] AC-11: `make mutation` runs `mutmut run --until=100`; results integrate with quality-gate thresholds in pyproject.toml
+- [x] AC-11: `make mutation` runs `mutmut run --until=100`; results integrate with quality-gate thresholds in pyproject.toml
 
 ### US-6: E2E Suite Extensibility
 **As a** developer
@@ -60,10 +60,10 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can test different aspects of the system independently
 
 **Acceptance Criteria:**
-- [ ] AC-8.1: E2E suite pattern defined: `{suite-name}`.
-- [ ] AC-8.2: Layer 1 auto-discovers all `e2e-*` targets via Makefile wildcard pattern
-- [ ] AC-8.3: Adding a new E2E suite (e.g., `e2e-charging`) requires no changes to quality-gate targets
-- [ ] AC-8.4: `make layer1` runs all E2E suites; `make layer1-ci` excludes all E2E suites
+- [x] AC-8.1: E2E suite pattern defined: `{suite-name}`.
+- [x] AC-8.2: Layer 1 auto-discovers all `e2e-*` targets via Makefile wildcard pattern
+- [x] AC-8.3: Adding a new E2E suite (e.g., `e2e-charging`) requires no changes to quality-gate targets
+- [x] AC-8.4: `make layer1` runs all E2E suites; `make layer1-ci` excludes all E2E suites
 
 ### US-7: Backward Compatibility
 **As a** developer
@@ -71,7 +71,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** my muscle memory and CI scripts don't break
 
 **Acceptance Criteria:**
-- [ ] AC-9: All existing targets work identically: `make test`, `make lint`, `make format`
+- [x] AC-9: All existing targets work identically: `make test`, `make lint`, `make format`
   - **E2E suites**: All E2E targets must continue working:
     - Standard suite: `make e2e`
     - SOC suite: `make e2e-soc`
@@ -83,7 +83,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** PRs are automatically validated
 
 **Acceptance Criteria:**
-- [ ] AC-10: .github/workflows/python-tests.yml updated with pyright (replaces mypy), security scan (bandit, semgrep), import consistency check (deptry), and runs on Python 3.14
+- [x] AC-10: .github/workflows/python-tests.yml updated with pyright (replaces mypy), security scan (bandit, semgrep), import consistency check (deptry), and runs on Python 3.14
 
 ### US-9: TypeScript Tooling
 **As a** developer writing E2E tests
@@ -91,7 +91,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I catch type errors in E2E tests before runtime
 
 **Acceptance Criteria:**
-- [ ] AC-11: .eslintrc.json extends "plugin:@typescript-eslint/recommended", package.json includes "typecheck": "tsc --noEmit" script, and tsc/eslint configured for tests/e2e/*.ts files
+- [x] AC-11: .eslintrc.json extends "plugin:@typescript-eslint/recommended", package.json includes "typecheck": "tsc --noEmit" script, and tsc/eslint configured for tests/e2e/*.ts files
 
 ### US-10: Baseline Metrics
 **As a** tech lead
@@ -99,7 +99,11 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can measure progress over time
 
 **Acceptance Criteria:**
-- [ ] AC-12: `make quality-baseline` creates _bmad-output/quality-gate/ directory with snapshots of pytest, ruff, pyright, bandit, deptry, vulture outputs; antipattern_checker.py run against all modules with findings documented
+- [x] AC-12: `make quality-baseline` creates _bmad-output/quality-gate/baseline/ directory with snapshots across 3 layers:
+  - **Layer 1 (Test Execution)**: pytest, coverage, mutation_analyzer.py --gate, mutation kill-map, make e2e
+  - **Layer 2 (Test Quality)**: weak_test_detector.py (A1-A8 rules), diversity_metric.py
+  - **Layer 3 (Code Quality)**: ruff, pyright, solid_metrics.py (Tier A AST), llm_solid_judge.py (Tier B LLM context), principles_checker.py (DRY/KISS/YAGNI/LoD/CoI), antipattern_checker.py (Tier A 25 patterns AST), antipattern_judge.py (Tier B 25 patterns LLM context)
+  - All outputs timestamped in subdirectory, with `latest/` symlink for easy comparison
 
 ### US-11: Additional Quality Tools
 **As a** developer
@@ -107,11 +111,11 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I can prevent regressions and speed up testing
 
 **Acceptance Criteria:**
-- [ ] AC-13: import-linter installed (prevents circular imports post-refactoring)
-- [ ] AC-14: pre-commit installed with hooks (ruff, pyright, bandit, deptry)
-- [ ] AC-15: pytest-randomly installed (catches hidden inter-test dependencies)
-- [ ] AC-16: pytest-xdist installed (parallel test execution, 3-5x CI speedup)
-- [ ] AC-17: refurb installed (Python modernization suggestions)
+- [x] AC-13: import-linter installed (prevents circular imports post-refactoring)
+- [x] AC-14: pre-commit installed with hooks (ruff, pyright, bandit, deptry)
+- [x] AC-15: pytest-randomly installed (catches hidden inter-test dependencies)
+- [x] AC-16: pytest-xdist installed (parallel test execution, 3-5x CI speedup)
+- [x] AC-17: refurb installed (Python modernization suggestions)
 
 ---
 
@@ -192,7 +196,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
   - CI job: red X, step logs show which check failed
 
 **Hard invariants**:
-- Existing `make test`, `make lint`, `make format`, `make e2e` MUST work identically (AC-6)
+- Existing `make test`, `make lint`, `make format`, `make e2e`, `make e2e-soc` MUST work identically (AC-6)
 - `make check` MUST run the same checks (test + lint + typecheck), just with pyright instead of mypy
 - CI MUST use Python 3.14 (not 3.11 or 3.12)
 - _bmad-output/ MUST be in .gitignore (prevents committing generated files)
@@ -201,7 +205,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **Seed data**:
 - Python 3.14 virtual environment at `.venv/`
 - Existing tests in `tests/` directory (pytest-based)
-- Existing E2E tests in `tests/e2e/*.ts` (Playwright/TypeScript)
+- Existing E2E tests in `tests/e2e/*.ts` and `tests/e2e-dynamic-soc` (Playwright/TypeScript)
 - Custom component code in `custom_components/ev_trip_planner/`
 - Existing quality-gate configuration in pyproject.toml `[tool.quality-gate.mutation]`
 
@@ -287,30 +291,30 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 
 | AC | Mapped To | Status |
 |----|-----------|--------|
-| AC-1: make security-bandit | FR-1, FR-7 | New |
-| AC-2: make security-audit | FR-2, FR-7 | New |
-| AC-3: make security-gitleaks | FR-3, FR-7 | New |
-| AC-4: semgrep installed | FR-4, FR-7 | New |
-| AC-5: pyproject.toml mypy→pyright | FR-5, FR-6 | New |
-| AC-6: make typecheck (pyright) | FR-8 | New |
-| AC-7: make check updated | FR-6, FR-19 | New |
-| AC-8.1: E2E suite pattern defined | FR-26 | New |
-| AC-8.2: Layer 1 auto-discovers E2E suites | FR-27 | New |
-| AC-8.3: New E2E suites need no gate changes | FR-28 | New |
-| AC-8.4: layer1-ci excludes all E2E | FR-29 | New |
-| AC-9: existing targets work (all E2E suites) | FR-19 | **Critical** |
-| AC-10: CI workflow updated | FR-17 | New |
-| AC-11: make mutation shortcut | FR-9 | New |
-| AC-12: deptry installed | FR-12 | New |
-| AC-13: vulture installed | FR-13 | New |
-| AC-14: TS tooling (tsc, ESLint) | FR-14, FR-15 | Partial (exists, needs update) |
-| AC-15: _bmad-output/ in .gitignore | **Already Done** | Complete |
-| AC-16: quality-baseline snapshot | FR-11, FR-20 | New |
-| AC-17: import-linter installed | FR-21 | New |
-| AC-18: pre-commit installed | FR-22 | New |
-| AC-19: pytest-randomly installed | FR-23 | New |
-| AC-20: pytest-xdist installed | FR-24 | New |
-| AC-21: refurb installed | FR-25 | New |
+| AC-1: make security-bandit | FR-1, FR-7 | ✅ Complete |
+| AC-2: make security-audit | FR-2, FR-7 | ✅ Complete |
+| AC-3: make security-gitleaks | FR-3, FR-7 | ✅ Complete |
+| AC-4: semgrep installed | FR-4, FR-7 | ✅ Complete |
+| AC-5: pyproject.toml mypy→pyright | FR-5, FR-6 | ✅ Complete |
+| AC-6: make typecheck (pyright) | FR-8 | ✅ Complete |
+| AC-7: make check updated | FR-6, FR-19 | ✅ Complete |
+| AC-8.1: E2E suite pattern defined | FR-26 | ✅ Complete |
+| AC-8.2: Layer 1 auto-discovers E2E suites | FR-27 | ✅ Complete |
+| AC-8.3: New E2E suites need no gate changes | FR-28 | ✅ Complete |
+| AC-8.4: layer1-ci excludes all E2E | FR-29 | ✅ Complete |
+| AC-9: existing targets work (all E2E suites) | FR-19 | ✅ Complete |
+| AC-10: CI workflow updated | FR-17 | ✅ Complete |
+| AC-11: make mutation shortcut | FR-9 | ✅ Complete |
+| AC-12: deptry installed | FR-12 | ✅ Complete |
+| AC-13: vulture installed | FR-13 | ✅ Complete |
+| AC-14: TS tooling (tsc, ESLint) | FR-14, FR-15 | ✅ Complete |
+| AC-15: _bmad-output/ in .gitignore | **Already Done** | ✅ Complete |
+| AC-16: quality-baseline snapshot | FR-11, FR-20 | ✅ Complete |
+| AC-17: import-linter installed | FR-21 | ✅ Complete |
+| AC-18: pre-commit installed | FR-22 | ✅ Complete |
+| AC-19: pytest-randomly installed | FR-23 | ✅ Complete |
+| AC-20: pytest-xdist installed | FR-24 | ✅ Complete |
+| AC-21: refurb installed | FR-25 | ✅ Complete |
 
 ---
 

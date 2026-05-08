@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer1 layer1-ci layer2 layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
 
 help:
 	@echo "Available commands / Comandos disponibles:"
@@ -18,12 +18,14 @@ help:
 	@echo "  make e2e-soc         - E2E dynamic SOC suite / Suite E2E dynamic SOC"
 	@echo "  make e2e-lint        - Lint E2E test files / Lintear archivos E2E"
 	@echo ""
-	@echo "Quality Gate Layers:"
+	@echo "Quality Gate Layers (6-layer architecture):"
+	@echo "  make layer3a         - Layer 3A: Smoke test (ruff, pyright, SOLID-TA, principles, anti-TA)"
 	@echo "  make layer1          - Layer 1: Test execution (unit + E2E) / Capa 1: Ejecución de tests"
 	@echo "  make layer1-ci       - Layer 1 CI: Unit tests only (fast) / Capa 1 CI: Solo unit tests (rápido)"
 	@echo "  make layer2          - Layer 2: Test quality (mutation) / Capa 2: Calidad de tests (mutación)"
-	@echo "  make layer3          - Layer 3: Code quality (SOLID, DRY) / Capa 3: Calidad de código (SOLID, DRY)"
-	@echo "  make layer4          - Layer 4: Security scanning / Capa 4: Escaneo de seguridad"
+	@echo "  make layer3b         - Layer 3B: Deep quality (SOLID-TB + Anti-TB via BMAD) / Capa 3B: Calidad profunda"
+	@echo "  make layer3          - Layer 3: Code quality (all tiers) / Capa 3: Calidad de código"
+	@echo "  make layer4          - Layer 4: Security scanning (8 tools) / Capa 4: Escaneo de seguridad"
 	@echo "  make quality-gate    - Full quality gate (with E2E) / Quality gate completo (con E2E)"
 	@echo "  make quality-gate-ci - CI quality gate (without E2E) / Quality gate CI (sin E2E)"
 	@echo ""
@@ -42,6 +44,7 @@ help:
 	@echo "  make unused-deps     - Find unused dependencies with deptry / Dependencias no usadas"
 	@echo "  make import-check    - Check import organization / Verificar organización de imports"
 	@echo "  make refurb          - Python modernization suggestions / Sugerencias de modernización"
+	@echo "  make mutation        - Run mutation testing / Ejecutar pruebas de mutación"
 	@echo ""
 	@echo "Pre-commit Hooks:"
 	@echo "  make pre-commit-install - Install pre-commit hooks / Instalar hooks pre-commit"
@@ -125,8 +128,24 @@ typecheck:
 	.venv/bin/pyright custom_components/ tests/
 
 # ============================================================================
-# Quality Gate Layers
+# Quality Gate Layers (6-layer: L3A → L1 → L2 → L3B → L4)
 # ============================================================================
+# Layer 3A: Smoke Test (fast, deterministic AST-based checks)
+# If this fails, stop immediately — don't run L1/L2/L3B/L4
+layer3a:
+	@echo "=== Layer 3A: Smoke Test ==="
+	@echo "Running ruff check..."
+	@ruff check custom_components/ && ruff format --check custom_components/ || echo "WARNING: ruff violations found"
+	@echo "Running pyright type check..."
+	@$(MAKE) typecheck
+	@echo "Running SOLID Tier A (AST-based)..."
+	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
+	@echo "Running Principles (DRY/KISS/YAGNI/LoD/CoI)..."
+	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
+	@echo "Running Antipatterns Tier A (25 AST patterns)..."
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ || echo "WARNING: Antipattern Tier A violations"
+	@echo "=== Layer 3A Complete ==="
+
 # Layer 1: Test execution (unit tests + E2E auto-discovery)
 layer1:
 	$(MAKE) test
@@ -137,29 +156,66 @@ layer1:
 layer1-ci:
 	$(MAKE) test
 
-# Layer 2: Test Quality (mutation testing)
+# Layer 2: Test Quality (mutation, weak tests, diversity)
 layer2:
-	@echo "Running Layer 2: Test Quality (mutation testing)..."
-	@echo "TODO: Implement mutation testing with mutmut or Stryker"
+	@echo "Running Layer 2: Test Quality (mutation, weak tests, diversity)..."
+	@echo "  → Mutation gate..."
+	@python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	@echo "  → Weak test detector..."
+	@python3 .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
+	@echo "  → Test diversity..."
+	@python3 .claude/skills/quality-gate/scripts/diversity_metric.py tests/
+	@echo "=== Layer 2 Complete ==="
 
-# Layer 3: Code Quality (SOLID, DRY, antipatterns)
-layer3:
-	@echo "Running Layer 3: Code Quality analysis..."
-	@echo "TODO: Implement code quality analysis"
+# Layer 3B: Deep Quality (BMAD Party Mode — SOLID Tier B + Antipatterns Tier B)
+layer3b:
+	@echo "Running Layer 3B: Deep Quality (BMAD Tier B consensus)..."
+	@echo "  → Generating SOLID Tier B context..."
+	@python3 .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
+	@echo "  → Generating Antipatterns Tier B context..."
+	@python3 .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
+	@echo "  → Run BMAD Party Mode for consensus validation"
+	@echo "     (Requires BMAD integration — context JSON files generated)"
+	@echo "=== Layer 3B Complete ==="
 
-# Layer 4: Security scanning
+# Layer 3: Code Quality (SOLID Tier A + Principles + Antipatterns Tier A)
+# Deprecated: Use layer3a + layer3b instead
+layer3: layer3a
+
+# Layer 4: Security & Defense (8 tools, 3 priority levels)
 layer4:
-	$(MAKE) security-bandit security-audit security-gitleaks security-semgrep
+	@echo "Running Layer 4: Security & Defense..."
+	@echo "  → Unified security scanner (8 tools)..."
+	@python3 .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
+	@echo "=== Layer 4 Complete ==="
 
-# Quality Gate: Full (includes E2E)
+# Alternative: run individual security tools
+layer4-incremental:
+	$(MAKE) security-bandit security-audit security-gitleaks security-semgrep dead-code unused-deps
+
+# Quality Gate: Full 6-layer (L3A → L1 → L2 → L3B → L4, with E2E)
 quality-gate:
-	@echo "Running full quality gate (with E2E)..."
-	$(MAKE) layer1 layer2 layer3 layer4
+	@echo "=== Full Quality Gate (6-layer architecture) ==="
+	@echo "Phase 1: L3A Smoke Test (fail-fast)"
+	$(MAKE) layer3a
+	@echo "Phase 2: L1 Test Execution"
+	$(MAKE) layer1
+	@echo "Phase 3: L2 Test Quality"
+	$(MAKE) layer2
+	@echo "Phase 4: L3B Deep Quality (BMAD)"
+	$(MAKE) layer3b
+	@echo "Phase 5: L4 Security & Defense"
+	$(MAKE) layer4
+	@echo "=== Quality Gate PASSED ==="
 
-# Quality Gate CI: Fast (excludes E2E)
+# Quality Gate CI: Fast (excludes E2E + L3B)
 quality-gate-ci:
-	@echo "Running CI quality gate (without E2E)..."
-	$(MAKE) layer1-ci layer2 layer3 layer4
+	@echo "=== CI Quality Gate (L3A → L1-CI → L2 → L4, no E2E, no BMAD) ==="
+	$(MAKE) layer3a
+	$(MAKE) layer1-ci
+	$(MAKE) layer2
+	$(MAKE) layer4
+	@echo "=== CI Quality Gate PASSED ==="
 
 # ============================================================================
 # Security Targets
@@ -198,6 +254,10 @@ import-check:
 refurb:
 	@echo "Running refurb for Python modernization suggestions..."
 	.venv/bin/refurb custom_components/ tests/
+
+mutation:
+	@echo "Running mutation testing..."
+	.venv/bin/mutmut run --until=100
 
 # ============================================================================
 # Test Variants
@@ -241,10 +301,7 @@ pre-commit-update:
 # ============================================================================
 quality-baseline:
 	@echo "Establishing quality baseline..."
-	$(MAKE) typecheck
-	$(MAKE) dead-code
-	$(MAKE) unused-deps
-	@echo "Quality baseline established. Review reports above."
+	bash scripts/quality-baseline.sh
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

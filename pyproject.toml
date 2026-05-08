@@ -41,7 +41,13 @@ reportMissingTypeStubs = "warning"
 reportUnknownMemberType = "warning"
 reportUnknownVariableType = "warning"
 reportUnknownArgumentType = "warning"
-exclude = ["**/tests/**", ".venv/**", "**/node_modules/**"]
+exclude = [
+    "**/__pycache__",
+    "**/.*",
+    "**/tests/**",
+    ".venv/**",
+    "**/node_modules/**",
+]
 
 [tool.bandit]
 exclude_dirs = ["/tests"]

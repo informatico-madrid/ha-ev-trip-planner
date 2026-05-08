@@ -18,7 +18,7 @@ Every command in every spec assumes the venv is active. CI workflows must also h
 
 ### ⚠️ SOLID Threshold Phasing
 
-The [`quality-gate.yaml`](.agents/skills/quality-gate/config/quality-gate.yaml) defines stricter SOLID thresholds than this epic's ARNs:
+The [`quality-gate.yaml`](/.agents/skills/quality-gate/config/quality-gate.yaml) defines stricter SOLID thresholds than this epic's ARNs:
 
 | Metric | ARN Target (Phase 1) | quality-gate.yaml (Phase 2) |
 |--------|---------------------|---------------------------|
@@ -38,6 +38,7 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | Mutation modules passing | 17/17 | 17/17 |
 | Mutation kill rate | 48-49% | 100% |
 | E2E | 30 passed | 30+ passed |
+| E2E auto-discovery | e2e, e2e-soc | All `e2e-*` targets auto-discovered |
 
 ### Layer 2: Test Quality (currently FAIL)
 | Rule | Current | Target |
@@ -47,33 +48,49 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | Similar pairs | 299 | < 50 |
 | Diversity | borderline | edit distance >= 20 |
 
-### Layer 3: Code Quality (currently FAIL)
+### Layer 3A: Smoke Test (currently FAIL)
 | Metric | Current | Target |
 |--------|---------|--------|
 | pyright errors | 16 (sensor.py HA Entity overrides) | 0 |
-| SOLID Tier A violations | 9 SRP, 1 OCP, 1 ISP | 0 |
-| Antipatterns Tier A | 0 | 0 |
-| `pragma: no cover` | 273 | 0 |
+| SOLID Tier A violations (deterministic AST) | 9 SRP, 1 OCP, 1 ISP | 0 |
+| Antipatterns Tier A (25 patterns, AST) | TBD | 0 |
+| Principles (DRY/KISS/YAGNI/LoD/CoI) | TBD | 0 violations |
 | Format issues | 15 files | 0 |
 | Ruff errors | 0 (clean) | 0 |
-| mypy | BROKEN | Replaced by pyright; `make check` calls pyright instead |
 | Circular import cycles | 3 | 0 |
 
-### Layer 4: Security (currently 0 tools installed)
+### Layer 3B: Deep Quality (TBD)
+| Metric | Current | Target |
+|--------|---------|--------|
+| SOLID Tier B violations (LLM consensus) | TBD via BMAD Party Mode | 0 (after BMAD validation) |
+| Antipatterns Tier B (25 patterns, LLM) | TBD via BMAD Party Mode | 0 (after BMAD validation) |
+
+**Two-Tier Validation System**:
+- **Tier A** (deterministic, fast): AST-based rules via `solid_metrics.py`, `antipattern_checker.py`, `principles_checker.py`
+- **Tier B** (probabilistic, LLM consensus): BMAD Party Mode (Winston + Murat) + Adversarial Review on context from `llm_solid_judge.py`, `antipattern_judge.py`
+
+### Layer 4: Security & Defense (unified scanner, 8 tools)
 | Tool | Priority | Target |
 |------|----------|--------|
-| bandit | Required | Installed + CI gate |
-| gitleaks | Required | Installed + CI gate |
-| pip-audit / safety | Required | Installed + CI gate |
-| semgrep | Recommended | Installed (optional, no gate) |
-| checkov | Recommended | Installed (optional, no gate) |
-| deptry | Recommended | Installed — verifies import consistency after module splits |
-| vulture | Recommended | Installed — detects dead code (complements Spec 1) |
-| import-linter | Recommended | Installed — enforces dependency rules between modules, prevents new circular imports after Spec 3 splits |
-| pre-commit | Recommended | Installed — automates quality checks before each commit, prevents regressions between specs |
-| pytest-randomly | Recommended | Installed — randomizes test execution order, catches hidden inter-test dependencies after Spec 2 |
-| pytest-xdist | Recommended | Installed — parallel test execution, speeds up CI 3-5x (critical for mutmut in Spec 5) |
-| refurb | Optional | Installed — suggests Python modernizations during Spec 7 cleanup |
+| **bandit** | Required | Installed + CI gate — Python vulnerability scanning |
+| **safety/pip-audit** | Required | Installed + CI gate — Dependency CVE scanning |
+| **gitleaks** | Required | Installed + CI gate — Secret/API key detection |
+| **semgrep** | Recommended | Installed — Semantic security rules (OWASP + HA-specific) |
+| **checkov** | Recommended | Installed — YAML/HA config validation |
+| **deptry** | Recommended | Installed — Import consistency vs requirements |
+| **vulture** | Recommended | Installed — Dead code detection |
+| **trivy** | Optional | Installed — Docker image CVE scanning (if Dockerfile exists) |
+
+**Unified Scanner**: `security_scanner.py` orchestrates all 8 tools with JSON output, CWE mapping, deduplication, and confidence scoring. Runs in 5 phases: deterministic scan → CWE dedup → LLM triage → BMAD consensus → fix validation.
+
+### Additional Tools
+| Tool | Purpose |
+|------|---------|
+| import-linter | Enforces dependency rules between modules, prevents new circular imports |
+| pre-commit | Automates quality checks before each commit, prevents regressions |
+| pytest-randomly | Randomizes test execution order, catches hidden inter-test dependencies |
+| pytest-xdist | Parallel test execution, speeds up CI 3-5x (critical for mutmut) |
+| refurb | Suggests Python modernizations during cleanup |
 
 ### TypeScript Quality (10 TS test files, not yet measured)
 | Metric | Current | Target |
@@ -121,30 +138,33 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 ## 4. Epic Decomposition
 
 ### Spec 0: Tooling Foundation
-- **Goal**: Install missing tools, fix broken tooling, add Makefile targets, establish baseline metrics.
+- **Goal**: Install missing tools, fix broken tooling, add Makefile targets, establish baseline metrics. Establish **6-layer quality gate**: L3A (smoke test) → L1 (test execution) → L2 (test quality) → L3B (deep quality via BMAD) → L4 (security & defense).
 - **Prerequisites**: `.venv` exists and is activated for all commands.
 - **Acceptance Criteria**:
   - AC-0.1: `bandit` installed and `make security-bandit` target works
   - AC-0.2: `pip-audit` or `safety` installed and `make security-audit` target works
   - AC-0.3: `gitleaks` binary installed and `make security-gitleaks` target works
-  - AC-0.4: `semgrep` installed
+  - AC-0.4: `semgrep` installed with HA-specific rules
   - AC-0.5: `mypy` broken — replaced with `pyright` as primary type checker; `make typecheck` runs pyright
-  - AC-0.6: `make quality-gate` target added (orchestrates layers 1-4)
+  - AC-0.6: `make quality-gate` target added — **6-layer architecture** (L3A → L1 → L2 → L3B → L4, fail-fast at each layer)
   - AC-0.7: `make mutation` shortcut target added
   - AC-0.8: `make typecheck` replaces `make mypy` (pyright only, mypy skipped); `make check` updated to call pyright instead of mypy
   - AC-0.9: All existing targets (`test`, `lint`, `format`, `e2e`, `check`) still work
   - AC-0.10: CI workflow updated to include quality-gate, mutation, and coverage gates
-  - AC-0.11: Full quality-gate baseline snapshot saved to `_bmad-output/quality-gate/tech-debt-baseline.json`
+  - AC-0.11: Full quality-gate baseline snapshot saved to `_bmad-output/quality-gate/baseline/`
   - AC-0.12: `deptry` installed — verifies import consistency (critical for post-Spec 3 validation)
   - AC-0.13: `vulture` installed — detects dead code (complements Spec 1)
   - AC-0.14: TypeScript tooling installed: `tsc`, ESLint for TS, Prettier
   - AC-0.15: `_bmad-output/` directory added to `.gitignore`
-  - AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented
+  - AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented (Tier A + Tier B context generated)
   - AC-0.17: `import-linter` installed with layer configuration (prevents new circular imports post-Spec 3)
   - AC-0.18: `pre-commit` installed with hooks for ruff, pyright, bandit, deptry (prevents regressions between specs)
   - AC-0.19: `pytest-randomly` installed (catches hidden inter-test dependencies after Spec 2 reorganization)
   - AC-0.20: `pytest-xdist` installed (parallel test execution, speeds up CI 3-5x, critical for mutmut in Spec 5)
   - AC-0.21: `refurb` installed (suggests Python modernizations for Spec 7 cleanup)
+  - AC-0.22: `make layer3a` — smoke test target (ruff, pyright, SOLID-TA, principles, antipatterns-TA)
+  - AC-0.23: `make layer3b` — deep quality target (SOLID-TB + antipatterns-TB context generation for BMAD)
+  - AC-0.24: `security_scanner.py` — unified Layer 4 scanner with 8 tools (bandit, safety, gitleaks, semgrep, checkov, deptry, vulture, trivy), CWE mapping, and confidence scoring
 - **Interface Contracts**: Makefile targets must produce consistent exit codes (0 = pass, non-0 = fail) and machine-readable output for CI.
 - **Estimated Size**: **0.5 story points**
 - **Dependencies**: None (baseline, runs first)
@@ -467,12 +487,12 @@ This section is populated during implementation, not during planning.
 - **Spec 3 is the critical path**: This is the highest-risk, highest-effort spec. If it fails, the entire epic is blocked. Allocate the most experienced engineers to this spec.
 - **Phase 2 SOLID tightening**: After this epic achieves ARN thresholds (500 LOC, 20 methods), a future epic will tighten to quality-gate.yaml thresholds (200 LOC, 7 methods).
 - **mutation-testing skill**: Available as a global skill at `/home/malka/.roo/skills/mutation-testing/SKILL.md` — use for guidance when improving mutation scores in Spec 5.
-- **Quality-gate workflow mapping**: The quality-gate skill at `.roo/skills/quality-gate/` uses step-file architecture. Spec-to-step mapping:
-  - Spec 0 → `step-01-init.md` (initialize gate, install tools)
-  - Spec 5 + Spec 6 → `step-02-layer1.md` (test execution, coverage, mutation)
-  - Spec 2 + Spec 5 → `step-03-layer2.md` (test quality, weak tests, diversity)
-  - Spec 7 → `step-03a-layer3a.md` (Tier A smoke test: ruff, pyright, SOLID)
-  - Spec 3 → `step-04-layer3b.md` (Tier B BMAD Party Mode: SOLID Tier B, antipatterns)
+- **Quality-gate workflow mapping**: The quality-gate skill at `.claude/skills/quality-gate/` uses step-file architecture. Spec-to-step mapping:
+  - Spec 0 → `step-01-init.md` (initialize gate, install tools) + `step-02-layer1.md` (test execution baseline)
+  - Spec 5 + Spec 6 → `step-02-layer1.md` (pytest, coverage, mutation_analyzer.py --gate, make e2e, make e2e-soc)
+  - Spec 2 + Spec 5 → `step-03-layer2.md` (weak_test_detector.py, mutation kill-map, diversity_metric.py)
+  - Spec 7 → `step-04-layer3.md` Tier A: ruff, pyright, solid_metrics.py, principles_checker.py, antipattern_checker.py
+  - Spec 3 → `step-04-layer3.md` Tier B: llm_solid_judge.py, antipattern_judge.py → BMAD Party Mode + Adversarial Review
   - All specs → `step-05-checkpoint.md` (checkpoint JSON generation)
-  - Spec 8 → `step-06-layer4.md` (security and defense)
-- **Quality-gate execution order**: L3A → L1 → L2 → L3B → L4. Fail-fast: if L3A smoke test fails, don't waste time on mutation testing (~15 min).
+  - Spec 8 → Layer 4: security (bandit, semgrep, pip-audit, gitleaks)
+- **Quality-gate execution order**: L1 → L2 → L3A (deterministic) → L3B (LLM manual) → L4. Fail-fast at each layer. Tier B requires manual BMAD Party Mode execution after baseline context files are generated.
