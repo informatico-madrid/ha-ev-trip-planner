@@ -7,7 +7,8 @@ with # pragma: no cover in dashboard.py instead.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 
@@ -41,8 +42,8 @@ class TestDashboardMissingCoverage:
         Covers line 548.
         """
         from custom_components.ev_trip_planner.dashboard import (
-            _validate_dashboard_config,
             DashboardValidationError,
+            _validate_dashboard_config,
         )
 
         invalid_config = {

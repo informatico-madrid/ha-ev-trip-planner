@@ -8,11 +8,10 @@ a tz-aware datetime that bypasses strptime and then is compared to `dt_util.now(
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
-
-from datetime import datetime, timezone
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 

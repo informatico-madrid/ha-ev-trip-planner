@@ -9,8 +9,9 @@ but sensors are created with entity_id based on entry_id (e.g., sensor.emhass_pe
 When vehicle_id != entry_id, cleanup fails to find and remove sensors.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,

@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock
 
-from custom_components.ev_trip_planner.sensor import TripPlannerSensor
 from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
+from custom_components.ev_trip_planner.sensor import TripPlannerSensor
 
 
 def make_test_description(key: str):

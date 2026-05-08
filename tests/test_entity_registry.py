@@ -210,9 +210,9 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
         if entry.unique_id is None:
             registry_missing_uid.append(entry.entity_id)
 
-    assert not registry_missing_uid, (
-        f"The following registry entries lack unique_id: {registry_missing_uid}"
-    )
+    assert (
+        not registry_missing_uid
+    ), f"The following registry entries lack unique_id: {registry_missing_uid}"
 
 
 @pytest.mark.asyncio
@@ -349,12 +349,12 @@ async def test_two_vehicles_no_unique_id_collision():
     all_trip_sensor_unique_ids = trip_sensor_unique_ids_a + trip_sensor_unique_ids_b
 
     # Verify we have exactly 1 TripSensor from each vehicle
-    assert len(trip_sensor_unique_ids_a) == 1, (
-        f"Expected 1 TripSensor from vehicle A, got {len(trip_sensor_unique_ids_a)}"
-    )
-    assert len(trip_sensor_unique_ids_b) == 1, (
-        f"Expected 1 TripSensor from vehicle B, got {len(trip_sensor_unique_ids_b)}"
-    )
+    assert (
+        len(trip_sensor_unique_ids_a) == 1
+    ), f"Expected 1 TripSensor from vehicle A, got {len(trip_sensor_unique_ids_a)}"
+    assert (
+        len(trip_sensor_unique_ids_b) == 1
+    ), f"Expected 1 TripSensor from vehicle B, got {len(trip_sensor_unique_ids_b)}"
 
     # Now check for global uniqueness - all TripSensor unique_ids must be unique across vehicles
     # This FAILS because both vehicles create TripSensor with unique_id="trip_1"
@@ -401,9 +401,9 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
 
     # Verify 8 entities are registered before unload
     entries_before = registry.async_entries_for_config_entry(config_entry.entry_id)
-    assert len(entries_before) == 8, (
-        f"Expected 8 sensors registered before unload, got {len(entries_before)}"
-    )
+    assert (
+        len(entries_before) == 8
+    ), f"Expected 8 sensors registered before unload, got {len(entries_before)}"
 
     # Now unload the entry via the integration's unload function
     unload_ok = await async_unload_entry(mock_hass, config_entry)
@@ -435,8 +435,10 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
     After Phase 2 fix, calling the add_trip service should result in a TripSensor
     that appears in the entity registry (via async_add_entities callback).
     """
-    from custom_components.ev_trip_planner.sensor import async_create_trip_sensor
-    from custom_components.ev_trip_planner.sensor import async_setup_entry
+    from custom_components.ev_trip_planner.sensor import (
+        async_create_trip_sensor,
+        async_setup_entry,
+    )
 
     # Track entities created during async_setup_entry
     setup_entities = []
@@ -538,9 +540,9 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
     # Verify the sensor is in the entity registry
     entries_before = registry.async_entries_for_config_entry(config_entry.entry_id)
     trip_entries_before = [e for e in entries_before if "trip_001" in e.unique_id]
-    assert len(trip_entries_before) == 1, (
-        f"Expected 1 trip sensor in registry before delete, got {len(trip_entries_before)}"
-    )
+    assert (
+        len(trip_entries_before) == 1
+    ), f"Expected 1 trip sensor in registry before delete, got {len(trip_entries_before)}"
 
     # Now call async_remove_trip_sensor to delete the trip
     await async_remove_trip_sensor(

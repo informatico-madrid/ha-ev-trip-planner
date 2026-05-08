@@ -1,8 +1,9 @@
 """Tests for TripPlannerCoordinator."""
 
 import logging
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -241,10 +242,10 @@ class TestSensorAsyncAddedToHassRestore:
                 if last_state is not None:
                     self._attr_native_value = last_state.state
         """
-        from custom_components.ev_trip_planner.sensor import TripPlannerSensor
         from custom_components.ev_trip_planner.definitions import (
             TripSensorEntityDescription,
         )
+        from custom_components.ev_trip_planner.sensor import TripPlannerSensor
 
         # Create mock coordinator with None data (simulating HA restart before first refresh)
         mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
@@ -280,9 +281,9 @@ class TestSensorAsyncAddedToHassRestore:
             await sensor.async_added_to_hass()
 
             # After restore: _attr_native_value should be set to last_state.state
-            assert sensor._attr_native_value == "25.5", (
-                f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
-            )
+            assert (
+                sensor._attr_native_value == "25.5"
+            ), f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_no_restore_when_data_is_not_none(self):
@@ -291,10 +292,10 @@ class TestSensorAsyncAddedToHassRestore:
         Even with restore=True, if data is available, no restore should occur.
         This covers lines 94-95: if self.entity_description.restore and self.coordinator.data is None
         """
-        from custom_components.ev_trip_planner.sensor import TripPlannerSensor
         from custom_components.ev_trip_planner.definitions import (
             TripSensorEntityDescription,
         )
+        from custom_components.ev_trip_planner.sensor import TripPlannerSensor
 
         # Create mock coordinator WITH data (normal operation, no restore needed)
         mock_coordinator = MagicMock(spec=TripPlannerCoordinator)
@@ -432,12 +433,12 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
 
     NOTE: This test documents a known bug — step 4 does not currently occur.
     """
-    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
     from custom_components.ev_trip_planner.const import (
         CONF_HOME_SENSOR,
         CONF_PLUGGED_SENSOR,
         CONF_SOC_SENSOR,
     )
+    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
     # Setup: Create coordinator with EMHASS adapter
     coordinator = TripPlannerCoordinator(
@@ -774,9 +775,11 @@ async def test_generate_mock_emhass_params_charging_power_zero(
         "t_base": 24.0,
     }
     coordinator = TripPlannerCoordinator(
-        mock_config_entry_full.hass
-        if hasattr(mock_config_entry_full, "hass")
-        else MagicMock(),
+        (
+            mock_config_entry_full.hass
+            if hasattr(mock_config_entry_full, "hass")
+            else MagicMock()
+        ),
         mock_config_entry_full,
         mock_trip_manager,
         logger=mock_logger,
@@ -857,9 +860,11 @@ async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
         "t_base": 24.0,
     }
     coordinator = TripPlannerCoordinator(
-        mock_config_entry_full.hass
-        if hasattr(mock_config_entry_full, "hass")
-        else MagicMock(),
+        (
+            mock_config_entry_full.hass
+            if hasattr(mock_config_entry_full, "hass")
+            else MagicMock()
+        ),
         mock_config_entry_full,
         mock_trip_manager,
         logger=mock_logger,

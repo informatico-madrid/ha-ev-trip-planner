@@ -12,7 +12,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ev_trip_planner import EVTripRuntimeData
 
-
 # =============================================================================
 # Coverage: emhass_adapter.py:61-62 - Fallback entry handling
 # =============================================================================
@@ -52,9 +51,10 @@ async def test_publish_deferrable_loads_skips_trips_without_id(
     hass: HomeAssistant, mock_store
 ) -> None:
     """Test publish_deferrable_loads skips trips without id (line 616)."""
+    from unittest.mock import patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -244,9 +244,10 @@ async def test_get_current_soc_invalid_soc_value(hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_async_create_trip_emhass_sensor_no_callback(hass: HomeAssistant) -> None:
     """Test async_create_trip_emhass_sensor handles missing callback."""
+    from unittest.mock import patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from unittest.mock import patch
 
     # Create entry WITHOUT calling add_to_hass (to avoid full HA setup)
     entry = MockConfigEntry(
@@ -444,8 +445,8 @@ async def test_presence_monitor_check_home_coords_vehicle_sensor_none(
     hass: HomeAssistant,
 ) -> None:
     """Test _async_check_home_coords handles vehicle_coords_sensor=None (lines 336-340)."""
-    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
     from custom_components.ev_trip_planner.const import CONF_HOME_COORDINATES
+    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
     presence_config = {
         "enabled": True,
@@ -479,9 +480,10 @@ async def test_generate_power_profile_exception_batterycapacity(
     hass: HomeAssistant,
 ) -> None:
     """Test TripManager handles battery_capacity fallback when config_entry.data is None (line 1713)."""
+    from unittest.mock import MagicMock
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.trip_manager import TripManager
-    from unittest.mock import MagicMock
 
     # Create entry and add to hass
     entry = MockConfigEntry(
@@ -630,9 +632,10 @@ async def test_cleanup_raises_generic_exception_for_registry(
     hass: HomeAssistant,
 ) -> None:
     """Test async_cleanup_vehicle_indices handles generic Exception for registry."""
+    from unittest.mock import MagicMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, MagicMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -728,9 +731,11 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
     This covers emhass_adapter.py:339-340 where soc_current = 50.0 is executed
     when _get_current_soc() returns None.
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from homeassistant.helpers import storage as ha_storage
+
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, MagicMock, AsyncMock
 
     # Create mock entry
     entry = MagicMock()
@@ -786,10 +791,12 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
     This covers emhass_adapter.py:652-653 where soc_current = 50.0 is executed
     when soc_current is None in the caching loop of publish_deferrable_loads.
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from homeassistant.helpers import storage as ha_storage
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from unittest.mock import patch, MagicMock, AsyncMock
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     config = {
         "vehicle_name": "test_vehicle",
@@ -855,9 +862,10 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
 @pytest.mark.asyncio
 async def test_async_update_trip_sensor_unique_id_match(hass: HomeAssistant) -> None:
     """Test async_update_trip_sensor when unique_id matches trip_id (lines 628-631, 635-640)."""
+    from unittest.mock import patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.sensor import async_update_trip_sensor
-    from unittest.mock import patch
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -922,9 +930,10 @@ async def test_async_publish_deferrable_load_recurring_no_day(
     and lines 335-348: else branch when both day and time_str are None.
     Expected: Returns False, releases index.
     """
+    from unittest.mock import AsyncMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, AsyncMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -975,9 +984,10 @@ async def test_async_publish_deferrable_load_recurring_no_time(
     and lines 335-348: else branch when day is present but time_str is None.
     Expected: Returns False, releases index.
     """
+    from unittest.mock import AsyncMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, AsyncMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1027,9 +1037,10 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
     Covers lines 337-341: deadline_dt is None case after calling calculate_next_recurring_datetime.
     Expected: Returns False, releases index.
     """
+    from unittest.mock import AsyncMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, AsyncMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1088,9 +1099,10 @@ async def test_async_publish_deferrable_load_datetime_object(
     Covers lines 566-569: fallback for non-string deadline (deadline_dt = deadline_str or datetime.now())
     Expected: Uses datetime directly without conversion error.
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, AsyncMock, MagicMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1152,10 +1164,11 @@ async def test_async_publish_deferrable_load_valid_recurring_covers_debug_log(
     Covers lines 341-344: debug log when deadline_dt is successfully calculated.
     This test ensures the happy path (not the error path at lines 345-348).
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from unittest.mock import patch, AsyncMock, MagicMock
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1231,9 +1244,10 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
     Covers line 567: datetime.fromisoformat(deadline_str) when deadline_str is string.
     This is in async_publish_all_deferrable_loads method, not publish_deferrable_loads.
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-    from unittest.mock import patch, AsyncMock, MagicMock
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1307,10 +1321,11 @@ async def test_publish_deferrable_loads_presence_monitor_raises(
     Covers the except Exception branch when async_get_hora_regreso raises,
     ensuring hora_regreso falls back to None and processing continues normally.
     """
+    from unittest.mock import AsyncMock, MagicMock, patch
+
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from unittest.mock import patch, AsyncMock, MagicMock
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,

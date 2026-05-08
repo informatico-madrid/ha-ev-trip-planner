@@ -22,8 +22,8 @@ async def _fake_executor(func, *args):
 async def test_call_async_executor_with_coroutine_hass():
     """Verifica la rama donde hass.async_add_executor_job es una coroutine function."""
     from custom_components.ev_trip_planner.dashboard import (
-        _call_async_executor_sync,
         _await_executor_result,
+        _call_async_executor_sync,
     )
 
     class Hass:
@@ -43,8 +43,8 @@ async def test_import_dashboard_returns_structured_failure_when_yaml_helper_fail
 ):
     """Simula que la API de storage falla y el helper YAML devuelve un DashboardImportResult fallido."""
     from custom_components.ev_trip_planner.dashboard import (
-        import_dashboard,
         DashboardImportResult,
+        import_dashboard,
     )
 
     # Mock helpers
@@ -98,8 +98,8 @@ async def test_import_dashboard_returns_structured_failure_when_yaml_helper_fail
 async def test_save_yaml_creates_config_dir(tmp_path):
     """Verifica que _save_dashboard_yaml_fallback crea el directorio de config cuando no existe."""
     from custom_components.ev_trip_planner.dashboard import (
-        _save_dashboard_yaml_fallback,
         DashboardImportResult,
+        _save_dashboard_yaml_fallback,
     )
 
     # Create a hass-like object with no existing config dir

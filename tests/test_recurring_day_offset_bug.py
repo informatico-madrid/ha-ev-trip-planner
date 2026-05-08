@@ -16,7 +16,6 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-
 # =============================================================================
 # Shared test fixtures
 # =============================================================================
@@ -122,9 +121,9 @@ class TestBug1DayFormatMismatch:
             reference_dt=FRIDAY_09_15_UTC,
         )
 
-        assert result is not None, (
-            "calculate_trip_time returned None for valid recurring trip"
-        )
+        assert (
+            result is not None
+        ), "calculate_trip_time returned None for valid recurring trip"
 
         hours_until = (result - FRIDAY_09_15_UTC).total_seconds() / 3600
 
@@ -299,18 +298,18 @@ class TestBug2TimezoneOffset:
 
         # Expected pattern: [3300, 3300, 0, 0, ...]
         # (charging at hours 0 and 1, the last 2 hours before deadline at hour 2)
-        assert profile[0] == charging_power_w, (
-            f"Hour 0 should be {charging_power_w}W, got {profile[0]}"
-        )
-        assert profile[1] == charging_power_w, (
-            f"Hour 1 should be {charging_power_w}W, got {profile[1]}"
-        )
-        assert profile[2] == 0.0, (
-            f"Hour 2 should be 0 (past deadline), got {profile[2]}"
-        )
-        assert profile[3] == 0.0, (
-            f"Hour 3 should be 0 (past deadline), got {profile[3]}"
-        )
+        assert (
+            profile[0] == charging_power_w
+        ), f"Hour 0 should be {charging_power_w}W, got {profile[0]}"
+        assert (
+            profile[1] == charging_power_w
+        ), f"Hour 1 should be {charging_power_w}W, got {profile[1]}"
+        assert (
+            profile[2] == 0.0
+        ), f"Hour 2 should be 0 (past deadline), got {profile[2]}"
+        assert (
+            profile[3] == 0.0
+        ), f"Hour 3 should be 0 (past deadline), got {profile[3]}"
 
     def test_def_end_timestep_within_charging_window(self):
         """def_end_timestep must be 2 (end of charging window at hour 2).
@@ -360,6 +359,7 @@ class TestCalculateNextRecurringDatetimeTz:
         Expected: Next Friday (7 days ahead).
         """
         from datetime import datetime, timedelta, timezone
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_next_recurring_datetime,
         )
@@ -404,6 +404,7 @@ class TestCalculateTripTimeTz:
         Result should be Friday 13:30 local converted to UTC.
         """
         from datetime import datetime, timedelta, timezone
+
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
@@ -436,6 +437,7 @@ class TestCalculateTripTimeTz:
         Result should be next Friday (7 days ahead).
         """
         from datetime import datetime, timedelta, timezone
+
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
@@ -531,13 +533,13 @@ class TestIntegrationBothBugs:
 
         # All non-zero values must equal charging power
         for idx in non_zero:
-            assert profile[idx] == charging_power_w, (
-                f"profile[{idx}]={profile[idx]}, expected {charging_power_w}"
-            )
+            assert (
+                profile[idx] == charging_power_w
+            ), f"profile[{idx}]={profile[idx]}, expected {charging_power_w}"
 
         # Verify first few hours match expected pattern
         expected_start = [charging_power_w, charging_power_w, 0.0, 0.0, 0.0]
         actual_start = profile[:5]
-        assert actual_start == expected_start, (
-            f"Profile start: {actual_start}, expected: {expected_start}"
-        )
+        assert (
+            actual_start == expected_start
+        ), f"Profile start: {actual_start}, expected: {expected_start}"

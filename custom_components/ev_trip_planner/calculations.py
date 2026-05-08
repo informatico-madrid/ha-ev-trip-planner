@@ -1018,11 +1018,11 @@ def calculate_deficit_propagation(
             {
                 "trip_id": trip.get("id", f"trip_{original_idx}"),
                 "soc_objetivo": round(soc_objetivo_final, 2),
-                "soc_cap_raw": round(
-                    soc_caps[original_idx], 2
-                )
-                if soc_caps is not None and original_idx < len(soc_caps)
-                else 100.0,
+                "soc_cap_raw": (
+                    round(soc_caps[original_idx], 2)
+                    if soc_caps is not None and original_idx < len(soc_caps)
+                    else 100.0
+                ),
                 "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
                 "deficit_acumulado": round(deficits[original_idx], 2),
                 "ventana_carga": {

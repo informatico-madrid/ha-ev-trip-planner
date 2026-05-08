@@ -1,15 +1,16 @@
 """Tests for Presence Monitor SOC functionality (Task 1.8)."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 from custom_components.ev_trip_planner.const import (
     CONF_HOME_SENSOR,
     CONF_PLUGGED_SENSOR,
     CONF_SOC_SENSOR,
 )
+from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
 
 @pytest.fixture

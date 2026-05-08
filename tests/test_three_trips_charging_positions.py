@@ -10,6 +10,7 @@ This test verifies all charging positions are within their respective windows.
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
 import pytest
 
 from custom_components.ev_trip_planner.const import (
@@ -108,15 +109,15 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
     print(f"  Charging positions: {charging_positions1}")
 
     window_size1 = def_end1 - def_start1
-    assert window_size1 >= def_total1, (
-        f"Trip1: Window ({window_size1}h) too small for {def_total1}h charging"
-    )
+    assert (
+        window_size1 >= def_total1
+    ), f"Trip1: Window ({window_size1}h) too small for {def_total1}h charging"
 
     # All charging positions must be within window
     for pos in charging_positions1:
-        assert def_start1 <= pos < def_end1, (
-            f"Trip1: Position {pos} outside window [{def_start1}, {def_end1})"
-        )
+        assert (
+            def_start1 <= pos < def_end1
+        ), f"Trip1: Position {pos} outside window [{def_start1}, {def_end1})"
 
     # Verify Trip 2 (pun_20260821_3s0dhf) - THE BUG CASE
     params2 = adapter._cached_per_trip_params.get(trip2["id"])
@@ -133,21 +134,21 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
     charging_positions2 = [i for i, p in enumerate(power_profile2) if p == 3600]
     print(f"  Charging positions: {charging_positions2}")
 
-    assert def_start2 < def_end2, (
-        f"Trip2 BUG: def_start ({def_start2}) should be < def_end ({def_end2}) for {def_total2}h charge"
-    )
+    assert (
+        def_start2 < def_end2
+    ), f"Trip2 BUG: def_start ({def_start2}) should be < def_end ({def_end2}) for {def_total2}h charge"
 
     # Window must be large enough for charging
     window_size2 = def_end2 - def_start2
-    assert window_size2 >= def_total2, (
-        f"Trip2: Window ({window_size2}h) too small for {def_total2}h charging"
-    )
+    assert (
+        window_size2 >= def_total2
+    ), f"Trip2: Window ({window_size2}h) too small for {def_total2}h charging"
 
     # All charging positions must be within window
     for pos in charging_positions2:
-        assert def_start2 <= pos < def_end2, (
-            f"Trip2: Position {pos} outside window [{def_start2}, {def_end2})"
-        )
+        assert (
+            def_start2 <= pos < def_end2
+        ), f"Trip2: Position {pos} outside window [{def_start2}, {def_end2})"
 
     # Verify Trip 3 (rec_1_dj5tv1) - Recurring
     params3 = adapter._cached_per_trip_params.get(trip3["id"])
@@ -166,15 +167,15 @@ async def test_three_trips_puntual_and_recurring_charging_positions(
 
     # Window must be large enough
     window_size3 = def_end3 - def_start3
-    assert window_size3 >= def_total3, (
-        f"Trip3: Window ({window_size3}h) too small for {def_total3}h charging"
-    )
+    assert (
+        window_size3 >= def_total3
+    ), f"Trip3: Window ({window_size3}h) too small for {def_total3}h charging"
 
     # All charging positions must be within window
     for pos in charging_positions3:
-        assert def_start3 <= pos < def_end3, (
-            f"Trip3: Position {pos} outside window [{def_start3}, {def_end3})"
-        )
+        assert (
+            def_start3 <= pos < def_end3
+        ), f"Trip3: Position {pos} outside window [{def_start3}, {def_end3})"
 
     # For recurring trips, the window might be different
     # But all charging positions should be valid
@@ -249,15 +250,15 @@ async def test_multiple_puntual_trips_sequential_charging_windows(
         print(f"  Charging positions: {charging_positions}")
 
         # Window must be large enough
-        assert (def_end - def_start) >= def_total, (
-            f"Trip {i}: Window too small for charging"
-        )
+        assert (
+            def_end - def_start
+        ) >= def_total, f"Trip {i}: Window too small for charging"
 
         # All positions within window
         for pos in charging_positions:
-            assert def_start <= pos < def_end, (
-                f"Trip {i}: Position {pos} outside window"
-            )
+            assert (
+                def_start <= pos < def_end
+            ), f"Trip {i}: Position {pos} outside window"
 
 
 if __name__ == "__main__":

@@ -754,8 +754,9 @@ async def test_t_base_custom_value_persists():
 @pytest.mark.asyncio
 async def test_soh_sensor_selector_in_sensors_step():
     """T047: Config flow sensors step includes SOH sensor entity selector."""
-    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
     import voluptuous as vol
+
+    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
 
     # CONF_SOH_SENSOR should be an Optional key in the sensors schema
     vol.Optional(CONF_SOH_SENSOR)  # noqa: F841 — used for schema introspection

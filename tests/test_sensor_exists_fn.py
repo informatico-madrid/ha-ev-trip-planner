@@ -77,8 +77,8 @@ async def test_sensor_with_exists_fn_false_not_added_by_setup_entry(
     """
     from custom_components.ev_trip_planner import sensor
     from custom_components.ev_trip_planner.definitions import (
-        TripSensorEntityDescription,
         TRIP_SENSORS,
+        TripSensorEntityDescription,
     )
 
     entry = FakeEntry(
@@ -134,8 +134,8 @@ async def test_sensor_with_exists_fn_true_is_added_by_setup_entry(
     """
     from custom_components.ev_trip_planner import sensor
     from custom_components.ev_trip_planner.definitions import (
-        TripSensorEntityDescription,
         TRIP_SENSORS,
+        TripSensorEntityDescription,
     )
 
     entry = FakeEntry(

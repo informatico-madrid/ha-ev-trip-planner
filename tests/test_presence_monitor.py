@@ -1,18 +1,19 @@
 """Tests for Presence Monitor."""
 
+from unittest.mock import AsyncMock, MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock, MagicMock
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 from custom_components.ev_trip_planner.const import (
-    CONF_HOME_SENSOR,
-    CONF_PLUGGED_SENSOR,
     CONF_HOME_COORDINATES,
-    CONF_VEHICLE_COORDINATES_SENSOR,
+    CONF_HOME_SENSOR,
     CONF_NOTIFICATION_SERVICE,
+    CONF_PLUGGED_SENSOR,
     CONF_SOC_SENSOR,
+    CONF_VEHICLE_COORDINATES_SENSOR,
 )
+from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
 
 @pytest.fixture
@@ -39,8 +40,9 @@ def mock_hass():
 @pytest.fixture(autouse=True)
 def mock_store_class():
     """Fixture to patch the Store class for testing (autouse for all tests)."""
-    from homeassistant.helpers import storage as ha_storage
     from unittest.mock import patch
+
+    from homeassistant.helpers import storage as ha_storage
 
     class MockStore:
         def __init__(self, hass, version, key, *, private=None):

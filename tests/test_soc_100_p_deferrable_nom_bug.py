@@ -9,12 +9,13 @@ Esto es exactamente lo que reportó el usuario:
 - P_deferrable_nom: [3400.0, 3400.0, 3400.0, 3400.0, 3400.0] (incorrecto, debería ser [0.0, 0.0, 0.0, 0.0, 0.0])
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+import pytest
+
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 class TestSOC100PDeferrableNomBug:
@@ -155,9 +156,9 @@ class TestSOC100PDeferrableNomBug:
                     bug_detectado = True
 
                     # Este test fallará aquí, confirmando el bug
-                    assert power_nom == 0.0, (
-                        f"BUG: Viaje {trip_id} con def_total_hours=0 debe tener P_deferrable_nom=0.0, pero tiene {power_nom} W"
-                    )
+                    assert (
+                        power_nom == 0.0
+                    ), f"BUG: Viaje {trip_id} con def_total_hours=0 debe tener P_deferrable_nom=0.0, pero tiene {power_nom} W"
                 elif def_hours == 0 and power_nom == 0.0:
                     print(f"✅ Viaje {i + 1} correctamente tiene P_deferrable_nom=0.0")
                 elif def_hours > 0:
@@ -188,9 +189,9 @@ class TestSOC100PDeferrableNomBug:
                             f"❌ BUG FORZADO: {trip['id']} tiene def_hours=0 pero power_nom={power_nom} W"
                         )
                         # Esto fallará, confirmando el bug
-                        assert power_nom == 0.0, (
-                            f"BUG CONFIRMADO: {trip['id']} con def_hours=0 debe tener power_nom=0.0"
-                        )
+                        assert (
+                            power_nom == 0.0
+                        ), f"BUG CONFIRMADO: {trip['id']} con def_hours=0 debe tener power_nom=0.0"
 
         print("\n=== RESUMEN DEL ESPERADO vs REAL ===")
         print("Esperado (SOC 100%):")
@@ -253,9 +254,9 @@ class TestSOC100PDeferrableNomBug:
         )
 
         # Proactive charging: SOC 100% covers target → charge minimum = trip energy
-        assert energy_info["energia_necesaria_kwh"] == 20.0, (
-            "Viaje puntual con SOC 100% requiere carga proactiva = energía del viaje"
-        )
+        assert (
+            energy_info["energia_necesaria_kwh"] == 20.0
+        ), "Viaje puntual con SOC 100% requiere carga proactiva = energía del viaje"
 
         # Crear adapter y publicar
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -292,9 +293,9 @@ class TestSOC100PDeferrableNomBug:
             print(f"  P_deferrable_nom: {power_nom} W")
 
             # Proactive charging: trip energy > 0 → power_nom should match trip
-            assert power_nom > 0, (
-                f"Viaje puntual con carga proactiva debe tener P_deferrable_nom > 0, pero tiene {power_nom} W"
-            )
+            assert (
+                power_nom > 0
+            ), f"Viaje puntual con carga proactiva debe tener P_deferrable_nom > 0, pero tiene {power_nom} W"
         else:
             print("❌ Viaje no encontrado en caché")
             pytest.fail("Viaje no se publicó correctamente")

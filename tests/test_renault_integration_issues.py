@@ -6,13 +6,13 @@ import pytest
 from homeassistant import data_entry_flow
 from homeassistant.core import HomeAssistant
 
+from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_SOC_SENSOR,
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
+    CONF_SOC_SENSOR,
+    CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 
 
 def test_charging_status_sensor_entity_translation_exists():

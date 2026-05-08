@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.data_entry_flow import AbortFlow, FlowResultType
 
+from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -18,7 +19,6 @@ from custom_components.ev_trip_planner.const import (
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
 )
-from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
 
 
 @pytest.mark.asyncio

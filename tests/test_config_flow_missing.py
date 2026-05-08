@@ -38,7 +38,6 @@ from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
 )
 
-
 # =============================================================================
 # Tests for _read_emhass_config (lines 181-203)
 # =============================================================================

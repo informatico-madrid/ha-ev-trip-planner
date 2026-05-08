@@ -9,8 +9,9 @@ Bug real:
 - Resultado: def_start_timestep: [120, 0, 79, 90, 100] (índice 0 = Domingo, incorrecto)
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 

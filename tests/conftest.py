@@ -312,8 +312,9 @@ def mock_store_class():
     don't hit the real HA Store implementation which requires special
     internal state.
     """
-    from homeassistant.helpers import storage as ha_storage
     from unittest.mock import patch
+
+    from homeassistant.helpers import storage as ha_storage
 
     # Create a proper mock Store class
     class MockStore:
@@ -513,8 +514,9 @@ def mock_flow_manager():
 @pytest.fixture
 def mock_er_async_get(mock_entity_registry):
     """Patch er.async_get to return mock_entity_registry."""
-    from homeassistant.helpers import entity_registry as er
     from unittest.mock import patch
+
+    from homeassistant.helpers import entity_registry as er
 
     with patch.object(er, "async_get", return_value=mock_entity_registry):
         yield mock_entity_registry

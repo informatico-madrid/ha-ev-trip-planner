@@ -12,17 +12,17 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .calculations import (
+    DEFAULT_T_BASE,
     BatteryCapacity,
-    calculate_deferrable_parameters as calc_deferrable_parameters,
+)
+from .calculations import calculate_deferrable_parameters as calc_deferrable_parameters
+from .calculations import (
     calculate_dynamic_soc_limit,
     calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
-    DEFAULT_T_BASE,
-    determine_charging_need,
-)
-from .calculations import (
     calculate_power_profile_from_trips,
     calculate_trip_time,
+    determine_charging_need,
     generate_deferrable_schedule_from_trips,
 )
 from .const import (
@@ -549,8 +549,8 @@ class EMHASSAdapter:
 
             if day is not None and time_str is not None:
                 from .calculations import (
-                    calculate_next_recurring_datetime,
                     calculate_day_index,
+                    calculate_next_recurring_datetime,
                 )
 
                 # Convert day name to index (0=Monday for ES/EN names)
@@ -797,7 +797,6 @@ class EMHASSAdapter:
         # SOC cap NOT applied to per-trip power_profile here.
         # power_profile stays at full charger hardware power.
         # SOC cap is applied at batch aggregation level to reduce total energy
-
 
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
@@ -1205,7 +1204,9 @@ class EMHASSAdapter:
                 window = batch_charging_windows[trip_id]
                 ventana_horas = window.get("ventana_horas", 0)
                 # Get charging decision from cache
-                cached_params = self._cached_per_trip_params.get(trip_id, {})  # pyright: ignore[reportCallIssue,reportArgumentType]
+                cached_params = self._cached_per_trip_params.get(
+                    trip_id, {}
+                )  # pyright: ignore[reportCallIssue,reportArgumentType]
                 def_total_hours = cached_params.get("def_total_hours", 0)
 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100

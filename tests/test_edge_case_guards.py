@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from custom_components.ev_trip_planner.const import (

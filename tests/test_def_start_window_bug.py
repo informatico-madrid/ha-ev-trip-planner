@@ -182,9 +182,9 @@ class TestDefStartTimestepWindowBug:
         def_total_hours = params.get("def_total_hours")
 
         window = def_end - def_start
-        assert window >= def_total_hours, (
-            f"Window should be sufficient: {window} >= {def_total_hours}"
-        )
+        assert (
+            window >= def_total_hours
+        ), f"Window should be sufficient: {window} >= {def_total_hours}"
 
     @pytest.mark.asyncio
     async def test_def_start_at_zero_reduces_hours(self):
@@ -235,9 +235,9 @@ class TestDefStartTimestepWindowBug:
 
         # The invariant must still hold
         window = def_end - def_start
-        assert window >= def_total_hours, (
-            f"Window too small even after adjustment: {window} < {def_total_hours}"
-        )
+        assert (
+            window >= def_total_hours
+        ), f"Window too small even after adjustment: {window} < {def_total_hours}"
 
     @pytest.mark.asyncio
     async def test_all_5_loads_from_user_scenario(self):

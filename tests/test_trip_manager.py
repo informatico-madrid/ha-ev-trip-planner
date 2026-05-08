@@ -8,8 +8,8 @@ This test suite covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import asyncio
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -669,16 +669,16 @@ class TestChargingWindowCalculation:
         )
 
         # Verify window is 4 hours (from 18:00 to 22:00)
-        assert result["ventana_horas"] == 4.0, (
-            f"Expected 4.0 hours, got {result['ventana_horas']}"
-        )
+        assert (
+            result["ventana_horas"] == 4.0
+        ), f"Expected 4.0 hours, got {result['ventana_horas']}"
 
         # Verify all expected fields are returned (AC-1 interface contract)
         assert "ventana_horas" in result, "Missing ventana_horas field"
         assert "kwh_necesarios" in result, "Missing kwh_necesarios field"
-        assert "horas_carga_necesarias" in result, (
-            "Missing horas_carga_necesarias field"
-        )
+        assert (
+            "horas_carga_necesarias" in result
+        ), "Missing horas_carga_necesarias field"
         assert "inicio_ventana" in result, "Missing inicio_ventana field"
         assert "fin_ventana" in result, "Missing fin_ventana field"
         assert "es_suficiente" in result, "Missing es_suficiente field"
@@ -1799,9 +1799,9 @@ class TestCalcularSocObjetivoBase:
         result = trip_manager._calcular_soc_objetivo_base(
             trip, battery_capacity_kwh, consumption
         )
-        assert abs(result - expected_soc) < 0.001, (
-            f"Expected {expected_soc}, got {result}"
-        )
+        assert (
+            abs(result - expected_soc) < 0.001
+        ), f"Expected {expected_soc}, got {result}"
 
 
 class TestTripManagerConstructorInjection:
@@ -1818,8 +1818,8 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept a storage parameter.
         """
-        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
         from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         # Create mock implementations
         mock_storage = MagicMock(spec=YamlTripStorage)
@@ -1874,8 +1874,8 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept these parameters.
         """
-        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
         from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         mock_storage = MagicMock(spec=YamlTripStorage)
         mock_storage.async_load = AsyncMock(return_value={})
@@ -1904,9 +1904,9 @@ class TestTripManagerConstructorInjection:
         from custom_components.ev_trip_planner import trip_manager as tm_module
 
         # Verify _UNSET sentinel exists in the module
-        assert hasattr(tm_module, "_UNSET"), (
-            "TripManager module should define _UNSET sentinel"
-        )
+        assert hasattr(
+            tm_module, "_UNSET"
+        ), "TripManager module should define _UNSET sentinel"
 
         # When called without storage/emhass_adapter, they should default to _UNSET
         trip_manager = TripManager(mock_hass_with_storage, "test_vehicle")

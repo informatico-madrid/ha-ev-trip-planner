@@ -20,7 +20,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 # =============================================================================
 # TEST: Panel.js entity ID pattern matches sensor entity ID pattern
 # =============================================================================
@@ -48,9 +47,9 @@ class TestPanelEntityIdMatch:
         )
 
         # Verify sensor has _attr_has_entity_name = True
-        assert "self._attr_has_entity_name = True" in content, (
-            "Sensor must have _attr_has_entity_name = True for entity_id = sensor.emhass_perfil_diferible_{entry_id}"
-        )
+        assert (
+            "self._attr_has_entity_name = True" in content
+        ), "Sensor must have _attr_has_entity_name = True for entity_id = sensor.emhass_perfil_diferible_{entry_id}"
 
     def test_panel_js_uses_prefix_search_for_emhass_sensor(self):
         """Verify panel.js filters EMHASS sensor by vehicle_id attribute for multi-vehicle safety.
@@ -146,9 +145,9 @@ class TestPanelEntityIdMatch:
 
         # FR-2.1 MUST-HAVE: Verify vehicle_id filtering is in _renderEmhassConfig
         renderemhass_section = self._extract_method_body(content, "_renderEmhassConfig")
-        assert renderemhass_section, (
-            "Could not find _renderEmhassConfig() method in panel.js"
-        )
+        assert (
+            renderemhass_section
+        ), "Could not find _renderEmhassConfig() method in panel.js"
 
         has_vehicle_filter_in_method = (
             "state.attributes?.vehicle_id" in renderemhass_section

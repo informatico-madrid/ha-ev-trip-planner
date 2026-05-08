@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from custom_components.ev_trip_planner.calculations import determine_charging_need
@@ -147,12 +148,12 @@ class TestPropagateChargeIntegration:
         cache2 = adapter._cached_per_trip_params["trip_2"]
 
         # Both trips should have charging (def_total_hours > 0)
-        assert cache1["def_total_hours"] > 0, (
-            f"trip_1 def_total_hours={cache1['def_total_hours']}"
-        )
-        assert cache2["def_total_hours"] > 0, (
-            f"trip_2 def_total_hours={cache2['def_total_hours']}"
-        )
+        assert (
+            cache1["def_total_hours"] > 0
+        ), f"trip_1 def_total_hours={cache1['def_total_hours']}"
+        assert (
+            cache2["def_total_hours"] > 0
+        ), f"trip_2 def_total_hours={cache2['def_total_hours']}"
 
         # Propagation verification: trip_1 absorbed deficit from trip_2.
         # Trip_1 has a 10h window for 12kWh (~2.6h charging), leaving ~7.4h spare.
@@ -235,9 +236,9 @@ class TestPropagateChargeIntegration:
         assert "single_trip" in adapter._cached_per_trip_params
 
         cache = adapter._cached_per_trip_params["single_trip"]
-        assert cache["def_total_hours"] > 0, (
-            f"def_total_hours={cache['def_total_hours']}"
-        )
+        assert (
+            cache["def_total_hours"] > 0
+        ), f"def_total_hours={cache['def_total_hours']}"
         assert "def_start_timestep" in cache
         assert "def_end_timestep" in cache
 
@@ -390,12 +391,12 @@ class TestPropagateChargeIntegration:
         cache1 = adapter._cached_per_trip_params["early_trip"]
         cache2 = adapter._cached_per_trip_params["late_trip"]
 
-        assert cache1["def_total_hours"] > 0, (
-            f"early_trip def_total_hours should be > 0, got {cache1['def_total_hours']}"
-        )
-        assert cache2["def_total_hours"] > 0, (
-            f"late_trip def_total_hours should be > 0, got {cache2['def_total_hours']}"
-        )
+        assert (
+            cache1["def_total_hours"] > 0
+        ), f"early_trip def_total_hours should be > 0, got {cache1['def_total_hours']}"
+        assert (
+            cache2["def_total_hours"] > 0
+        ), f"late_trip def_total_hours should be > 0, got {cache2['def_total_hours']}"
 
         # Power profiles should be set
         assert "power_profile_watts" in cache1

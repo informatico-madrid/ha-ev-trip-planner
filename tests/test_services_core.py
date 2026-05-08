@@ -7,8 +7,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from custom_components.ev_trip_planner.const import DOMAIN
+
 from custom_components.ev_trip_planner.__init__ import register_services
+from custom_components.ev_trip_planner.const import DOMAIN
 
 
 def _patch_trip_manager():
@@ -27,10 +28,13 @@ def _patch_trip_manager():
         return_value=[{"id": "rec_lun_old"}, {"id": "rec_mar_old"}]
     )
 
-    return patch(
-        "custom_components.ev_trip_planner.__init__.TripManager",
-        return_value=manager,
-    ), manager
+    return (
+        patch(
+            "custom_components.ev_trip_planner.__init__.TripManager",
+            return_value=manager,
+        ),
+        manager,
+    )
 
 
 @pytest.fixture
@@ -1058,10 +1062,11 @@ class TestAsyncRemoveEntryCleanup:
         self, mock_hass_removal
     ):
         """async_remove_entry_cleanup catches storage removal errors."""
+        from homeassistant.helpers import storage as ha_storage
+
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from homeassistant.helpers import storage as ha_storage
 
         hass, mock_entry = mock_hass_removal
 
@@ -1078,10 +1083,11 @@ class TestAsyncRemoveEntryCleanup:
         self, mock_hass_removal
     ):
         """async_remove_entry_cleanup catches YAML removal errors."""
+        from homeassistant.helpers import storage as ha_storage
+
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from homeassistant.helpers import storage as ha_storage
 
         hass, mock_entry = mock_hass_removal
 
@@ -1103,10 +1109,11 @@ class TestAsyncRemoveEntryCleanup:
         self, mock_hass_removal
     ):
         """async_remove_entry_cleanup catches errors from trip_manager.async_delete_all_trips."""
+        from homeassistant.helpers import storage as ha_storage
+
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from homeassistant.helpers import storage as ha_storage
 
         hass, mock_entry = mock_hass_removal
         mock_entry.runtime_data.trip_manager.async_delete_all_trips = AsyncMock(
@@ -1124,10 +1131,11 @@ class TestAsyncRemoveEntryCleanup:
         self, mock_hass_removal
     ):
         """async_remove_entry_cleanup handles errors from _config_entry_listener invocation."""
+        from homeassistant.helpers import storage as ha_storage
+
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from homeassistant.helpers import storage as ha_storage
 
         hass, mock_entry = mock_hass_removal
         mock_entry.runtime_data.emhass_adapter._config_entry_listener = MagicMock(
@@ -1146,10 +1154,11 @@ class TestAsyncRemoveEntryCleanup:
         self, mock_hass_removal
     ):
         """async_remove_entry_cleanup catches errors from async_cleanup_vehicle_indices."""
+        from homeassistant.helpers import storage as ha_storage
+
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from homeassistant.helpers import storage as ha_storage
 
         hass, mock_entry = mock_hass_removal
         mock_entry.runtime_data.emhass_adapter.async_cleanup_vehicle_indices = (
@@ -1734,11 +1743,12 @@ class TestAsyncCleanupStaleStorageYaml:
     @pytest.mark.asyncio
     async def test_async_cleanup_stale_storage_yaml_cleanup_success(self, mock_hass):
         """async_cleanup_stale_storage removes YAML file when it exists."""
-        from custom_components.ev_trip_planner import services as svcs
+        import os
 
         # Create a temporary YAML file
         import tempfile
-        import os
+
+        from custom_components.ev_trip_planner import services as svcs
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Mock hass.config.config_dir to our temp dir
@@ -1768,8 +1778,9 @@ class TestAsyncCleanupStaleStorageYaml:
 
         Covers services.py:1159: _LOGGER.debug in the else branch when store exists.
         """
-        from custom_components.ev_trip_planner import services as svcs
         from homeassistant.helpers import storage as ha_storage
+
+        from custom_components.ev_trip_planner import services as svcs
 
         mock_store = MagicMock()
         mock_store.async_load = AsyncMock(return_value={"trips": []})
@@ -2714,9 +2725,9 @@ class TestHandleTripUpdatePunctualDatetime:
 
         assert trip_id == "pun_test_001"
         assert "datetime" in updates, f"datetime not in updates: {updates.keys()}"
-        assert updates["datetime"] == "2026-04-25T16:00:00", (
-            f"Expected datetime '2026-04-25T16:00:00', got '{updates.get('datetime')}'"
-        )
+        assert (
+            updates["datetime"] == "2026-04-25T16:00:00"
+        ), f"Expected datetime '2026-04-25T16:00:00', got '{updates.get('datetime')}'"
         assert updates["km"] == 50.0
 
 

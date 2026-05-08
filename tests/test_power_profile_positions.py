@@ -13,6 +13,7 @@ Expected: 3600W at positions 94 and 95 (last 2 positions of window)
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
 import pytest
 
 from custom_components.ev_trip_planner.const import (
@@ -109,21 +110,21 @@ async def test_power_profile_positions_at_end_of_charging_window(mock_hass, mock
     print(f"DEBUG: Charging positions (0-indexed) = {charging_positions}")
 
     # Verify there are exactly 2 charging hours
-    assert len(charging_positions) == def_total_hours, (
-        f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
-    )
+    assert (
+        len(charging_positions) == def_total_hours
+    ), f"Should have {def_total_hours} charging positions, got {len(charging_positions)}"
 
     # The optimizer may choose any position within [def_start, def_end)
     for pos in charging_positions:
-        assert def_start <= pos < def_end, (
-            f"Charging position {pos} is OUTSIDE charging window/EMHASS window [{def_start}, {def_end})"
-        )
+        assert (
+            def_start <= pos < def_end
+        ), f"Charging position {pos} is OUTSIDE charging window/EMHASS window [{def_start}, {def_end})"
 
     # Additional: Verify the last charging position is before deadline
     last_charging_pos = max(charging_positions) if charging_positions else -1
-    assert last_charging_pos < def_end, (
-        f"BUG: Last charging position {last_charging_pos} should be < def_end {def_end}"
-    )
+    assert (
+        last_charging_pos < def_end
+    ), f"BUG: Last charging position {last_charging_pos} should be < def_end {def_end}"
 
 
 @pytest.mark.asyncio
@@ -185,18 +186,18 @@ async def test_power_profile_positions_spread_across_window(mock_hass, mock_stor
     print(f"DEBUG 6h trip: def_total_hours = {def_total_hours}")
 
     window_size = def_end - def_start
-    assert window_size >= def_total_hours, (
-        f"BUG: Window size ({window_size}h) too small for {def_total_hours}h charging"
-    )
+    assert (
+        window_size >= def_total_hours
+    ), f"BUG: Window size ({window_size}h) too small for {def_total_hours}h charging"
 
     # Verify charging positions are within window
     charging_positions = [i for i, p in enumerate(power_profile) if p == 3600]
     print(f"DEBUG 6h trip: Charging positions = {charging_positions}")
 
     for pos in charging_positions:
-        assert def_start <= pos < def_end, (
-            f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
-        )
+        assert (
+            def_start <= pos < def_end
+        ), f"Charging position {pos} is OUTSIDE charging window [{def_start}, {def_end})"
 
 
 if __name__ == "__main__":

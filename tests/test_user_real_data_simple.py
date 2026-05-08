@@ -15,9 +15,10 @@ Este test usa DATOS REALES y muestra:
 5. POR QUÉ falla (el bug)
 """
 
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
+
+import pytest
 from homeassistant.core import HomeAssistant
 
 
@@ -79,10 +80,11 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
 
     ========================================================================
     """
+    from unittest.mock import patch
+
     from custom_components.ev_trip_planner.calculations import (
         generate_deferrable_schedule_from_trips,
     )
-    from unittest.mock import patch
 
     # ============================================================
     # DATOS REALES - ENTRADA
@@ -190,9 +192,9 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         # ============================================================
 
         # El slot 0 es 12:00 UTC (hora actual truncada)
-        assert actual_first_slot_hour == 12, (
-            f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
-        )
+        assert (
+            actual_first_slot_hour == 12
+        ), f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
 
         # El slot ya pasó (hace 58 minutos)
         assert time_passed == 58, "El slot empezó hace 58 minutos"

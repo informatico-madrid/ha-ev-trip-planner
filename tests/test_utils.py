@@ -1,18 +1,19 @@
 """Tests for utils module - trip ID generation and validation."""
 
-import pytest
 from datetime import date
 
+import pytest
+
 from custom_components.ev_trip_planner.utils import (
-    generate_trip_id,
-    generate_random_suffix,
-    is_valid_trip_id,
     calcular_energia_kwh,
-    validate_hora,
-    sanitize_recurring_trips,
-    get_trip_time,
+    generate_random_suffix,
+    generate_trip_id,
     get_day_index,
+    get_trip_time,
     is_trip_today,
+    is_valid_trip_id,
+    sanitize_recurring_trips,
+    validate_hora,
 )
 
 

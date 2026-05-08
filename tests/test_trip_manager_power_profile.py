@@ -4,9 +4,10 @@ Note: SOC-aware power profile functionality is not implemented yet.
 These tests verify the basic structure and return format of the power profile.
 """
 
-import pytest
 from datetime import timedelta
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
+
+import pytest
 from homeassistant.util import dt as dt_util
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -56,10 +57,10 @@ async def test_power_profile_without_vehicle_config(trip_manager, sample_trip):
     )
 
     # Should return a profile with correct structure
-    assert len(profile) == 7 * 24, (
-        "Should return profile with correct length (7 days * 24 hours)"
-    )
+    assert (
+        len(profile) == 7 * 24
+    ), "Should return profile with correct length (7 days * 24 hours)"
     assert isinstance(profile, list), "Should return a list"
-    assert all(isinstance(p, (int, float)) for p in profile), (
-        "All values should be numbers"
-    )
+    assert all(
+        isinstance(p, (int, float)) for p in profile
+    ), "All values should be numbers"

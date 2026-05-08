@@ -13,21 +13,21 @@ All operations are verified through Home Assistant services API.
 from __future__ import annotations
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_BATTERY_CAPACITY,
-    CONF_CONSUMPTION,
-    CONF_CHARGING_POWER,
-)
+import pytest
+
 from custom_components.ev_trip_planner import DOMAIN
 from custom_components.ev_trip_planner.__init__ import (
     EVTripRuntimeData,
     register_services,
 )
-
+from custom_components.ev_trip_planner.const import (
+    CONF_BATTERY_CAPACITY,
+    CONF_CHARGING_POWER,
+    CONF_CONSUMPTION,
+    CONF_VEHICLE_NAME,
+)
 
 # =============================================================================
 # Fixtures

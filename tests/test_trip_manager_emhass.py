@@ -1,14 +1,15 @@
 """Tests for TripManager EMHASS sync methods."""
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, Mock
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
+import pytest
+
 from custom_components.ev_trip_planner.const import (
-    TRIP_STATUS_PENDING,
     TRIP_STATUS_COMPLETED,
+    TRIP_STATUS_PENDING,
 )
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.fixture

@@ -1013,8 +1013,8 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
     - _populate_per_trip_cache_entry (for sensor cache)
     """
     from custom_components.ev_trip_planner.const import (
-        TRIP_TYPE_RECURRING,
         TRIP_TYPE_PUNCTUAL,
+        TRIP_TYPE_RECURRING,
     )
 
     config = {
@@ -1056,9 +1056,9 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
             "kwh": 10.0,
         }
         deadline_dt_es = adapter._calculate_deadline_from_trip(recurring_trip_es)
-        assert deadline_dt_es is not None, (
-            "Recurring trip (Spanish) should have valid deadline"
-        )
+        assert (
+            deadline_dt_es is not None
+        ), "Recurring trip (Spanish) should have valid deadline"
         assert deadline_dt_es.hour == 9, "Recurring trip deadline should be 09:00"
         print(f"Recurring trip (Spanish) deadline: {deadline_dt_es.isoformat()}")
 
@@ -1071,9 +1071,9 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
             "kwh": 15.0,
         }
         deadline_dt_en = adapter._calculate_deadline_from_trip(recurring_trip_en)
-        assert deadline_dt_en is not None, (
-            "Recurring trip (English) should have valid deadline"
-        )
+        assert (
+            deadline_dt_en is not None
+        ), "Recurring trip (English) should have valid deadline"
         print(f"Recurring trip (English) deadline: {deadline_dt_en.isoformat()}")
 
         # Test 4: Invalid trip - no datetime, not recurring
@@ -1096,12 +1096,12 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
         deadline_dt_day_time = adapter._calculate_deadline_from_trip(
             recurring_trip_day_time
         )
-        assert deadline_dt_day_time is not None, (
-            "Recurring trip (day/time) should have valid deadline"
-        )
-        assert deadline_dt_day_time.hour == 10, (
-            "Recurring trip deadline should be 10:00"
-        )
+        assert (
+            deadline_dt_day_time is not None
+        ), "Recurring trip (day/time) should have valid deadline"
+        assert (
+            deadline_dt_day_time.hour == 10
+        ), "Recurring trip deadline should be 10:00"
         print(f"Recurring trip (day/time) deadline: {deadline_dt_day_time.isoformat()}")
 
         # Test 6: Recurring trip with invalid time string - should return None (lines 514-517)
@@ -1115,9 +1115,9 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
         deadline_dt_invalid_time = adapter._calculate_deadline_from_trip(
             recurring_trip_invalid_time
         )
-        assert deadline_dt_invalid_time is None, (
-            "Recurring trip with invalid time should return None"
-        )
+        assert (
+            deadline_dt_invalid_time is None
+        ), "Recurring trip with invalid time should return None"
         print("Recurring trip with invalid time correctly returns None (line 514-517)")
 
         print("All _calculate_deadline_from_trip tests PASSED!")
@@ -1141,8 +1141,9 @@ async def test_recurring_trip_cache_builder_integration(mock_store, hass):
     - This ensures def_end_timestep is calculated from the recurring deadline
     - Not from datetime.now() as before the fix
     """
-    from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
     from unittest.mock import patch
+
+    from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",
@@ -1213,9 +1214,9 @@ async def test_recurring_trip_cache_builder_integration(mock_store, hass):
             )
 
         # Verify cache was populated
-        assert "rec_lunes_001" in adapter._cached_per_trip_params, (
-            f"Cache should be populated. Got: {list(adapter._cached_per_trip_params.keys())}"
-        )
+        assert (
+            "rec_lunes_001" in adapter._cached_per_trip_params
+        ), f"Cache should be populated. Got: {list(adapter._cached_per_trip_params.keys())}"
 
         params = adapter._cached_per_trip_params["rec_lunes_001"]
 
@@ -1651,9 +1652,9 @@ async def test_get_cached_results_includes_per_trip_params(mock_store):
         )
 
         # Verify the data matches
-        assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
-            "per_trip_emhass_params should match _cached_per_trip_params"
-        )
+        assert (
+            result["per_trip_emhass_params"] == adapter._cached_per_trip_params
+        ), "per_trip_emhass_params should match _cached_per_trip_params"
 
 
 # =============================================================================
@@ -1754,9 +1755,9 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
             await adapter.publish_deferrable_loads([trip_upper])
 
             # Verify the timestep was calculated and stored
-            assert "trip_upper" in adapter._cached_per_trip_params, (
-                "Trip should be in _cached_per_trip_params after publishing with real calculation"
-            )
+            assert (
+                "trip_upper" in adapter._cached_per_trip_params
+            ), "Trip should be in _cached_per_trip_params after publishing with real calculation"
 
             timestep_upper = adapter._cached_per_trip_params["trip_upper"][
                 "def_start_timestep"
@@ -1767,9 +1768,9 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
             # to 168 then subtracts 1 = 167. This is correct: the fix always expands
             # the window backward by 1 timestep to compensate for EMHASS's exclusive
             # end boundary convention.
-            assert timestep_upper == 167, (
-                f"def_start_timestep should be 167 (168 clamped - 1 off-by-one fix) for 200-hour window, got {timestep_upper}"
-            )
+            assert (
+                timestep_upper == 167
+            ), f"def_start_timestep should be 167 (168 clamped - 1 off-by-one fix) for 200-hour window, got {timestep_upper}"
 
         # Test CASE 2: Lower bound clamp (past window -> should clamp to 0)
         past_window_time = datetime.now() - timedelta(hours=5)
@@ -1786,18 +1787,18 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
             await adapter.publish_deferrable_loads([trip_lower])
 
             # Verify the timestep was calculated and stored
-            assert "trip_lower" in adapter._cached_per_trip_params, (
-                "Trip should be in _cached_per_trip_params after publishing with real calculation"
-            )
+            assert (
+                "trip_lower" in adapter._cached_per_trip_params
+            ), "Trip should be in _cached_per_trip_params after publishing with real calculation"
 
             timestep_lower = adapter._cached_per_trip_params["trip_lower"][
                 "def_start_timestep"
             ]
 
             # THE CRITICAL ASSERTION: timestep must be clamped to 0 for past windows
-            assert timestep_lower == 0, (
-                f"def_start_timestep should be clamped to 0 for past window, got {timestep_lower}"
-            )
+            assert (
+                timestep_lower == 0
+            ), f"def_start_timestep should be clamped to 0 for past window, got {timestep_lower}"
 
 
 @pytest.mark.asyncio
@@ -1861,18 +1862,18 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
             await adapter.publish_deferrable_loads([trip])
 
             # Verify the timestep was calculated and stored
-            assert "trip_no_window" in adapter._cached_per_trip_params, (
-                "Trip should be in _cached_per_trip_params after publishing"
-            )
+            assert (
+                "trip_no_window" in adapter._cached_per_trip_params
+            ), "Trip should be in _cached_per_trip_params after publishing"
 
             timestep = adapter._cached_per_trip_params["trip_no_window"][
                 "def_start_timestep"
             ]
 
             # THE CRITICAL ASSERTION: timestep must default to 0 when no window
-            assert timestep == 0, (
-                f"def_start_timestep should default to 0 when no charging window, got {timestep}"
-            )
+            assert (
+                timestep == 0
+            ), f"def_start_timestep should default to 0 when no charging window, got {timestep}"
 
         # Mock _get_current_soc
         adapter._get_current_soc = AsyncMock(return_value=50.0)
@@ -3268,9 +3269,9 @@ class TestPublishDeferrableLoadsWithCache:
             actual_keys = set(cached_params.keys())
 
             missing_keys = expected_keys - actual_keys
-            assert not missing_keys, (
-                f"Missing required keys in _cached_per_trip_params: {missing_keys}. Got: {actual_keys}"
-            )
+            assert (
+                not missing_keys
+            ), f"Missing required keys in _cached_per_trip_params: {missing_keys}. Got: {actual_keys}"
 
 
 class TestVerifyShellCommandIntegrationCoverage:
@@ -5252,9 +5253,9 @@ async def test_update_charging_power_fallback_to_data(hass, mock_store):
         await adapter.update_charging_power()
 
         # Should read 11 from data fallback
-        assert adapter._charging_power_kw == 11, (
-            f"Expected 11 from data fallback, got {adapter._charging_power_kw}"
-        )
+        assert (
+            adapter._charging_power_kw == 11
+        ), f"Expected 11 from data fallback, got {adapter._charging_power_kw}"
 
 
 @pytest.mark.asyncio
@@ -5307,9 +5308,9 @@ async def test_update_charging_power_zero_not_falsy(hass, mock_store):
 
         # Should read 0 from options, NOT fall through to data's 11
         # This validates the `is None` check — `or` would incorrectly treat 0 as falsy
-        assert adapter._charging_power_kw == 0, (
-            f"Expected 0 from options (not falsy-treated), got {adapter._charging_power_kw}"
-        )
+        assert (
+            adapter._charging_power_kw == 0
+        ), f"Expected 0 from options (not falsy-treated), got {adapter._charging_power_kw}"
 
 
 # =============================================================================
@@ -5561,9 +5562,9 @@ async def test_cached_per_trip_params_assignment(mock_store):
         )
 
         # The cache should be populated with the published trip's params
-        assert "trip_001" in adapter._cached_per_trip_params, (
-            f"_cached_per_trip_params should contain trip_001, got: {adapter._cached_per_trip_params.keys()}"
-        )
+        assert (
+            "trip_001" in adapter._cached_per_trip_params
+        ), f"_cached_per_trip_params should contain trip_001, got: {adapter._cached_per_trip_params.keys()}"
 
         # Verify the flat per-trip params structure (10 keys per spec 1.16)
         trip_params = adapter._cached_per_trip_params["trip_001"]
@@ -5583,14 +5584,14 @@ async def test_cached_per_trip_params_assignment(mock_store):
         }
         actual_keys = set(trip_params.keys())
         missing_keys = expected_keys - actual_keys
-        assert not missing_keys, (
-            f"Missing required keys: {missing_keys}. Got: {actual_keys}"
-        )
+        assert (
+            not missing_keys
+        ), f"Missing required keys: {missing_keys}. Got: {actual_keys}"
 
         # Verify emhass_index was cached
-        assert trip_params["emhass_index"] == mock_index, (
-            f"emhass_index should be {mock_index}, got {trip_params.get('emhass_index')}"
-        )
+        assert (
+            trip_params["emhass_index"] == mock_index
+        ), f"emhass_index should be {mock_index}, got {trip_params.get('emhass_index')}"
 
 
 @pytest.mark.asyncio
@@ -5730,9 +5731,9 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
         # we just verify the method doesn't crash and returns True
         # The actual verification is that the code path reaches the charging window calc
         # which is the GREEN fix we'll implement next
-        assert adapter._get_current_soc.called, (
-            "_get_current_soc should be called for def_start_timestep calculation"
-        )
+        assert (
+            adapter._get_current_soc.called
+        ), "_get_current_soc should be called for def_start_timestep calculation"
 
 
 @pytest.mark.asyncio
@@ -5812,19 +5813,19 @@ async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
         await adapter.publish_deferrable_loads(trips, 7.4)
 
         # _cached_per_trip_params should be populated with trip_id keys
-        assert hasattr(adapter, "_cached_per_trip_params"), (
-            "adapter should have _cached_per_trip_params attribute"
-        )
+        assert hasattr(
+            adapter, "_cached_per_trip_params"
+        ), "adapter should have _cached_per_trip_params attribute"
 
         # Should have cached params for both trips
-        assert len(adapter._cached_per_trip_params) == 2, (
-            f"Expected 2 cached trips, got {len(adapter._cached_per_trip_params)}"
-        )
+        assert (
+            len(adapter._cached_per_trip_params) == 2
+        ), f"Expected 2 cached trips, got {len(adapter._cached_per_trip_params)}"
 
         # Verify trip_001 has all 10 required keys
-        assert "trip_001" in adapter._cached_per_trip_params, (
-            "trip_001 should be in _cached_per_trip_params"
-        )
+        assert (
+            "trip_001" in adapter._cached_per_trip_params
+        ), "trip_001 should be in _cached_per_trip_params"
 
         params = adapter._cached_per_trip_params["trip_001"]
         required_keys = [
@@ -5927,14 +5928,14 @@ async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
         result = adapter.get_cached_optimization_results()
 
         # Result should have 'per_trip_emhass_params' key
-        assert "per_trip_emhass_params" in result, (
-            "get_cached_optimization_results should include 'per_trip_emhass_params' key"
-        )
+        assert (
+            "per_trip_emhass_params" in result
+        ), "get_cached_optimization_results should include 'per_trip_emhass_params' key"
 
         # Verify value matches _cached_per_trip_params
-        assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params, (
-            "per_trip_emhass_params should match _cached_per_trip_params"
-        )
+        assert (
+            result["per_trip_emhass_params"] == adapter._cached_per_trip_params
+        ), "per_trip_emhass_params should match _cached_per_trip_params"
 
 
 # =============================================================================
@@ -6019,14 +6020,14 @@ async def test_soc_propagation_between_trips(mock_store):
         params_002 = adapter._cached_per_trip_params["trip_002"]
 
         # Trip 1 should need 12.5kWh (10kWh trip + 5kWh margin - 2.5kWh current)
-        assert params_001["kwh_needed"] == 12.5, (
-            f"Trip 1 kwh_needed should be 12.5, got {params_001['kwh_needed']}"
-        )
+        assert (
+            params_001["kwh_needed"] == 12.5
+        ), f"Trip 1 kwh_needed should be 12.5, got {params_001['kwh_needed']}"
 
         # Trip 2 should need 17.5kWh (15kWh trip + 5kWh margin - 2.5kWh projected after trip 1)
-        assert params_002["kwh_needed"] == 17.5, (
-            f"Trip 2 kwh_needed should be 17.5, got {params_002['kwh_needed']}"
-        )
+        assert (
+            params_002["kwh_needed"] == 17.5
+        ), f"Trip 2 kwh_needed should be 17.5, got {params_002['kwh_needed']}"
 
 
 # =============================================================================
@@ -6296,9 +6297,9 @@ async def test_past_deadline_trip(mock_store):
         ]
 
         for key in required_keys:
-            assert key in result["per_trip_emhass_params"]["past_trip_001"], (
-                f"past_trip_001 should have key '{key}'"
-            )
+            assert (
+                key in result["per_trip_emhass_params"]["past_trip_001"]
+            ), f"past_trip_001 should have key '{key}'"
 
 
 # =============================================================================
@@ -6404,15 +6405,15 @@ async def test_stale_cache_cleared_on_republish(mock_store):
         await adapter.publish_deferrable_loads(trips_2)
 
         # Cache should have both trips
-        assert hasattr(adapter, "_cached_per_trip_params"), (
-            "_cached_per_trip_params should exist after first publish"
-        )
-        assert "trip_A" in adapter._cached_per_trip_params, (
-            f"_cached_per_trip_params should have trip_A, got: {adapter._cached_per_trip_params.keys()}"
-        )
-        assert "trip_B" in adapter._cached_per_trip_params, (
-            f"_cached_per_trip_params should have trip_B, got: {adapter._cached_per_trip_params.keys()}"
-        )
+        assert hasattr(
+            adapter, "_cached_per_trip_params"
+        ), "_cached_per_trip_params should exist after first publish"
+        assert (
+            "trip_A" in adapter._cached_per_trip_params
+        ), f"_cached_per_trip_params should have trip_A, got: {adapter._cached_per_trip_params.keys()}"
+        assert (
+            "trip_B" in adapter._cached_per_trip_params
+        ), f"_cached_per_trip_params should have trip_B, got: {adapter._cached_per_trip_params.keys()}"
 
         # Step 2: Re-publish with only 1 trip (simulating trip_B deletion)
         await adapter.publish_deferrable_loads(trips_1)
@@ -6425,14 +6426,14 @@ async def test_stale_cache_cleared_on_republish(mock_store):
         )
 
         # Verify trip_A still exists
-        assert "trip_A" in adapter._cached_per_trip_params, (
-            "_cached_per_trip_params should still have trip_A after republish"
-        )
+        assert (
+            "trip_A" in adapter._cached_per_trip_params
+        ), "_cached_per_trip_params should still have trip_A after republish"
 
         # Verify only 1 entry in cache
-        assert len(adapter._cached_per_trip_params) == 1, (
-            f"_cached_per_trip_params should have exactly 1 entry after republish, got {len(adapter._cached_per_trip_params)}"
-        )
+        assert (
+            len(adapter._cached_per_trip_params) == 1
+        ), f"_cached_per_trip_params should have exactly 1 entry after republish, got {len(adapter._cached_per_trip_params)}"
 
 
 # =============================================================================

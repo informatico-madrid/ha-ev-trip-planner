@@ -11,11 +11,12 @@ El bug ocurre cuando:
 Este es un bug diferente al de SOC 100%.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+import pytest
+
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 class TestDefTotalHoursMismatchBug:

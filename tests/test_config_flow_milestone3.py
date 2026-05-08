@@ -9,15 +9,15 @@ from homeassistant.data_entry_flow import FlowResultType
 from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
+    CONF_CHARGING_SENSOR,
     CONF_CONSUMPTION,
+    CONF_HOME_SENSOR,
     CONF_MAX_DEFERRABLE_LOADS,
+    CONF_NOTIFICATION_DEVICES,
+    CONF_NOTIFICATION_SERVICE,
     CONF_PLANNING_HORIZON,
     CONF_PLANNING_SENSOR,
-    CONF_HOME_SENSOR,
     CONF_PLUGGED_SENSOR,
-    CONF_CHARGING_SENSOR,
-    CONF_NOTIFICATION_SERVICE,
-    CONF_NOTIFICATION_DEVICES,
     CONF_SAFETY_MARGIN,
     CONF_VEHICLE_NAME,
 )
@@ -593,8 +593,9 @@ async def test_step_notifications_service_and_devices(hass: HomeAssistant):
 
 def test_notification_entity_selector_config():
     """Verify EntitySelectorConfig is configured correctly for notify domain."""
-    from custom_components.ev_trip_planner.config_flow import STEP_NOTIFICATIONS_SCHEMA
     import voluptuous as vol
+
+    from custom_components.ev_trip_planner.config_flow import STEP_NOTIFICATIONS_SCHEMA
 
     # Verify the schema is defined correctly
     schema = STEP_NOTIFICATIONS_SCHEMA.schema
@@ -616,10 +617,11 @@ def test_notification_entity_selector_config():
 @pytest.mark.asyncio
 async def test_options_flow_init_shows_form(hass: HomeAssistant):
     """Test options flow init shows form with current values."""
+    from unittest.mock import MagicMock
+
     from custom_components.ev_trip_planner.config_flow import (
         EVTripPlannerOptionsFlowHandler,
     )
-    from unittest.mock import MagicMock
 
     # Create a mock config entry with current values
     config_entry = MagicMock()
@@ -646,10 +648,11 @@ async def test_options_flow_init_shows_form(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_options_flow_init_updates_config(hass: HomeAssistant):
     """Test options flow init updates configuration."""
+    from unittest.mock import MagicMock
+
     from custom_components.ev_trip_planner.config_flow import (
         EVTripPlannerOptionsFlowHandler,
     )
-    from unittest.mock import MagicMock
 
     # Create a mock config entry with current values
     config_entry = MagicMock()
@@ -686,10 +689,11 @@ async def test_options_flow_init_updates_config(hass: HomeAssistant):
 @pytest.mark.asyncio
 async def test_options_flow_uses_defaults_when_not_present(hass: HomeAssistant):
     """Test options flow uses defaults when current config doesn't have values."""
+    from unittest.mock import MagicMock
+
     from custom_components.ev_trip_planner.config_flow import (
         EVTripPlannerOptionsFlowHandler,
     )
-    from unittest.mock import MagicMock
 
     # Create a mock config entry with minimal values
     config_entry = MagicMock()
@@ -909,8 +913,9 @@ async def test_full_flow_with_all_config(hass: HomeAssistant):
 
 def test_step_sensors_schema_validation():
     """Verify sensors step schema validates correctly."""
-    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
     import voluptuous as vol
+
+    from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
 
     schema = STEP_SENSORS_SCHEMA.schema
 
@@ -929,8 +934,9 @@ def test_step_sensors_schema_validation():
 
 def test_step_emhass_schema_validation():
     """Verify EMHASS step schema validates correctly."""
-    from custom_components.ev_trip_planner.config_flow import STEP_EMHASS_SCHEMA
     import voluptuous as vol
+
+    from custom_components.ev_trip_planner.config_flow import STEP_EMHASS_SCHEMA
 
     schema = STEP_EMHASS_SCHEMA.schema
 
@@ -944,8 +950,9 @@ def test_step_emhass_schema_validation():
 
 def test_step_presence_schema_validation():
     """Verify presence step schema validates correctly."""
-    from custom_components.ev_trip_planner.config_flow import STEP_PRESENCE_SCHEMA
     import voluptuous as vol
+
+    from custom_components.ev_trip_planner.config_flow import STEP_PRESENCE_SCHEMA
 
     schema = STEP_PRESENCE_SCHEMA.schema
 
@@ -960,11 +967,11 @@ def test_step_presence_schema_validation():
 def test_all_schemas_are_valid():
     """Verify all config flow schemas are valid voluptuous schemas."""
     from custom_components.ev_trip_planner.config_flow import (
-        STEP_USER_SCHEMA,
-        STEP_SENSORS_SCHEMA,
         STEP_EMHASS_SCHEMA,
-        STEP_PRESENCE_SCHEMA,
         STEP_NOTIFICATIONS_SCHEMA,
+        STEP_PRESENCE_SCHEMA,
+        STEP_SENSORS_SCHEMA,
+        STEP_USER_SCHEMA,
     )
 
     # All schemas should be valid voluptuous schemas

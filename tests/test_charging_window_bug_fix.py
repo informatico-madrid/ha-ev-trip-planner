@@ -53,17 +53,17 @@ def test_def_end_timestep_bug_demonstration():
     # BUG DEMONSTRATION:
     # When charging window starts at hour 96 and deadline is at hour 96,
     # def_end_timestep equals def_start_timestep, leaving ZERO time for charging!
-    assert def_start_when_car_not_returned == def_end_with_BUG, (
-        "Bug condition: def_start equals def_end when charging window starts near deadline"
-    )
+    assert (
+        def_start_when_car_not_returned == def_end_with_BUG
+    ), "Bug condition: def_start equals def_end when charging window starts near deadline"
 
     # This is impossible for a 6-hour charge!
     def_total_hours = 6
     charging_window_BUG = def_end_with_BUG - def_start_when_car_not_returned  # = 0!
 
-    assert charging_window_BUG < def_total_hours, (
-        f"BUG: Charging window ({charging_window_BUG}h) < charging time ({def_total_hours}h)"
-    )
+    assert (
+        charging_window_BUG < def_total_hours
+    ), f"BUG: Charging window ({charging_window_BUG}h) < charging time ({def_total_hours}h)"
 
     # CORRECT calculation would use fin_ventana (end of charging window)
     # fin_ventana should be the deadline (or close to it)
@@ -124,14 +124,14 @@ def test_def_end_timestep_should_use_fin_ventana():
     # Now we have a valid charging window
     window_size = def_end_timestep_CORRECT - def_start_timestep  # = 6 hours
 
-    assert window_size >= 6, (
-        f"Window size ({window_size}h) should be >= 6 hours for charging"
-    )
+    assert (
+        window_size >= 6
+    ), f"Window size ({window_size}h) should be >= 6 hours for charging"
 
     # The fix ensures def_end > def_start when charging is possible
-    assert def_end_timestep_CORRECT > def_start_timestep, (
-        f"def_end ({def_end_timestep_CORRECT}) should be > def_start ({def_start_timestep})"
-    )
+    assert (
+        def_end_timestep_CORRECT > def_start_timestep
+    ), f"def_end ({def_end_timestep_CORRECT}) should be > def_start ({def_start_timestep})"
 
 
 if __name__ == "__main__":

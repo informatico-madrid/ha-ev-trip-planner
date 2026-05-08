@@ -11,6 +11,7 @@ should be addressed at the window calculation level (calculate_multi_trip_chargi
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
 import pytest
 
 from custom_components.ev_trip_planner.const import (

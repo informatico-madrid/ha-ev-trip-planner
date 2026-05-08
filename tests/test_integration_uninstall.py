@@ -5,8 +5,9 @@ These tests use REAL TripManager and REAL EMHASSAdapter (not mocked).
 They verify the actual deletion flow that runs in production.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from homeassistant.helpers import storage as ha_storage
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
@@ -278,27 +279,27 @@ class TestAsyncRemoveEntryCleanupCascade:
         )
         print(f"DEBUG: coordinator_data: {coordinator_data}")
 
-        assert emhass_adapter._cached_per_trip_params == {}, (
-            f"BUG: _cached_per_trip_params should be empty after delete, got {emhass_adapter._cached_per_trip_params}"
-        )
-        assert emhass_adapter._cached_power_profile == [], (
-            f"BUG: _cached_power_profile should be [] after delete, got {emhass_adapter._cached_power_profile}"
-        )
-        assert emhass_adapter._published_trips == [], (
-            f"BUG: _published_trips should be [] after delete, got {emhass_adapter._published_trips}"
-        )
+        assert (
+            emhass_adapter._cached_per_trip_params == {}
+        ), f"BUG: _cached_per_trip_params should be empty after delete, got {emhass_adapter._cached_per_trip_params}"
+        assert (
+            emhass_adapter._cached_power_profile == []
+        ), f"BUG: _cached_power_profile should be [] after delete, got {emhass_adapter._cached_power_profile}"
+        assert (
+            emhass_adapter._published_trips == []
+        ), f"BUG: _published_trips should be [] after delete, got {emhass_adapter._published_trips}"
 
         # Note: _index_map is NOT cleared by async_delete_all_trips - it's cleared by
         # async_cleanup_vehicle_indices which is called separately. The _index_map check
         # is done in the test_async_remove_entry_cleanup_clears_emhass_cache test.
 
         # CRITICAL: coordinator.data should reflect empty state after refresh
-        assert coordinator_data["per_trip_emhass_params"] == {}, (
-            f"BUG: coordinator.data should be empty after delete, got {coordinator_data['per_trip_emhass_params']}"
-        )
-        assert coordinator_data["emhass_power_profile"] == [], (
-            f"BUG: coordinator.data emhass_power_profile should be [], got {coordinator_data['emhass_power_profile']}"
-        )
+        assert (
+            coordinator_data["per_trip_emhass_params"] == {}
+        ), f"BUG: coordinator.data should be empty after delete, got {coordinator_data['per_trip_emhass_params']}"
+        assert (
+            coordinator_data["emhass_power_profile"] == []
+        ), f"BUG: coordinator.data emhass_power_profile should be [], got {coordinator_data['emhass_power_profile']}"
 
     @pytest.mark.asyncio
     async def test_async_remove_entry_cleanup_calls_store_async_remove(self):
@@ -310,10 +311,10 @@ class TestAsyncRemoveEntryCleanupCascade:
         This is critical: if store.async_remove() is NOT called, the storage file
         persists after deletion and trips "survive" even though in-memory state is cleared.
         """
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
 
         mock_hass = MagicMock()
         mock_hass.data = {}
@@ -398,11 +399,11 @@ class TestAsyncRemoveEntryCleanupCascade:
 
         Uses REAL EMHASSAdapter to exercise actual cache clearing logic.
         """
+        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
         mock_hass = MagicMock()
         mock_hass.data = {}
@@ -487,20 +488,20 @@ class TestAsyncRemoveEntryCleanupCascade:
         print(f"DEBUG: _index_map: {emhass_adapter._index_map}")
         print(f"DEBUG: coordinator_data: {coordinator_data}")
 
-        assert emhass_adapter._cached_per_trip_params == {}, (
-            f"BUG: _cached_per_trip_params should be empty, got {emhass_adapter._cached_per_trip_params}"
-        )
-        assert emhass_adapter._cached_power_profile == [], (
-            f"BUG: _cached_power_profile should be [], got {emhass_adapter._cached_power_profile}"
-        )
-        assert emhass_adapter._index_map == {}, (
-            f"BUG: _index_map should be empty, got {emhass_adapter._index_map}"
-        )
+        assert (
+            emhass_adapter._cached_per_trip_params == {}
+        ), f"BUG: _cached_per_trip_params should be empty, got {emhass_adapter._cached_per_trip_params}"
+        assert (
+            emhass_adapter._cached_power_profile == []
+        ), f"BUG: _cached_power_profile should be [], got {emhass_adapter._cached_power_profile}"
+        assert (
+            emhass_adapter._index_map == {}
+        ), f"BUG: _index_map should be empty, got {emhass_adapter._index_map}"
         # Read from mock to get the current state (dict expansion creates a new object)
         mock_coordinator_data = mock_coordinator.data
-        assert mock_coordinator_data["per_trip_emhass_params"] == {}, (
-            f"BUG: coordinator.data should be empty, got {mock_coordinator_data['per_trip_emhass_params']}"
-        )
-        assert mock_coordinator_data["emhass_power_profile"] == [], (
-            f"BUG: coordinator.data emhass_power_profile should be [], got {mock_coordinator_data['emhass_power_profile']}"
-        )
+        assert (
+            mock_coordinator_data["per_trip_emhass_params"] == {}
+        ), f"BUG: coordinator.data should be empty, got {mock_coordinator_data['per_trip_emhass_params']}"
+        assert (
+            mock_coordinator_data["emhass_power_profile"] == []
+        ), f"BUG: coordinator.data emhass_power_profile should be [], got {mock_coordinator_data['emhass_power_profile']}"

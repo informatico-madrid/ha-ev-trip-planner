@@ -8,8 +8,9 @@ Bug reportado:
 Esto sugiere que def_total_hours_array SÍ rotó pero def_start_timestep_array NO.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 

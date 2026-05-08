@@ -1,9 +1,9 @@
 """Tests for TripEmhassSensor class."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.const import (
@@ -72,9 +72,9 @@ async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
         sensor = TripEmhassSensor(mock_coordinator, "test_vehicle", "trip_001")
 
         # This should return the emhass_index from per_trip_emhass_params
-        assert sensor.native_value == 2, (
-            f"Sensor native_value should be emhass_index=2, got {sensor.native_value}"
-        )
+        assert (
+            sensor.native_value == 2
+        ), f"Sensor native_value should be emhass_index=2, got {sensor.native_value}"
 
 
 @pytest.mark.asyncio
@@ -215,15 +215,15 @@ async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
         attrs = sensor.extra_state_attributes
 
         # Verify zeroed values
-        assert attrs["emhass_index"] == -1, (
-            f"emhass_index should be -1, got {attrs['emhass_index']}"
-        )
-        assert attrs["kwh_needed"] == 0.0, (
-            f"kwh_needed should be 0.0, got {attrs['kwh_needed']}"
-        )
-        assert attrs["power_profile_watts"] == [], (
-            f"power_profile_watts should be [], got {attrs['power_profile_watts']}"
-        )
+        assert (
+            attrs["emhass_index"] == -1
+        ), f"emhass_index should be -1, got {attrs['emhass_index']}"
+        assert (
+            attrs["kwh_needed"] == 0.0
+        ), f"kwh_needed should be 0.0, got {attrs['kwh_needed']}"
+        assert (
+            attrs["power_profile_watts"] == []
+        ), f"power_profile_watts should be [], got {attrs['power_profile_watts']}"
 
 
 @pytest.mark.asyncio
@@ -291,7 +291,10 @@ async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
         assert identifiers is not None, "identifiers should not be None"
 
         # Check that identifiers contains (DOMAIN, vehicle_id)
-        assert (DOMAIN, "test_vehicle") in identifiers, (
+        assert (
+            DOMAIN,
+            "test_vehicle",
+        ) in identifiers, (
             f"identifiers should contain {(DOMAIN, 'test_vehicle')}, got {identifiers}"
         )
 
@@ -348,9 +351,9 @@ async def test_create_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
         mock_add_entities.assert_not_called()
 
         # Assert function returns False
-        assert result is False, (
-            f"async_create_trip_emhass_sensor should return False when entry not found, got {result}"
-        )
+        assert (
+            result is False
+        ), f"async_create_trip_emhass_sensor should return False when entry not found, got {result}"
 
 
 @pytest.mark.asyncio
@@ -411,17 +414,17 @@ async def test_create_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
         sensors = args[0]
 
         # Assert list contains TripEmhassSensor instance
-        assert len(sensors) == 1, (
-            f"async_add_entities should be called with 1 sensor, got {len(sensors)}"
-        )
-        assert isinstance(sensors[0], TripEmhassSensor), (
-            f"async_add_entities should be called with TripEmhassSensor instance, got {type(sensors[0])}"
-        )
+        assert (
+            len(sensors) == 1
+        ), f"async_add_entities should be called with 1 sensor, got {len(sensors)}"
+        assert isinstance(
+            sensors[0], TripEmhassSensor
+        ), f"async_add_entities should be called with TripEmhassSensor instance, got {type(sensors[0])}"
 
         # Assert function returns True
-        assert result is True, (
-            f"async_create_trip_emhass_sensor should return True, got {result}"
-        )
+        assert (
+            result is True
+        ), f"async_create_trip_emhass_sensor should return True, got {result}"
 
 
 @pytest.mark.asyncio
@@ -485,9 +488,9 @@ async def test_remove_trip_emhass_sensor_success(mock_store, hass: HomeAssistant
 
         # Assert async_remove was called
         mock_registry.async_remove.assert_called_once()
-        assert result is True, (
-            f"async_remove_trip_emhass_sensor should return True, got {result}"
-        )
+        assert (
+            result is True
+        ), f"async_remove_trip_emhass_sensor should return True, got {result}"
 
 
 @pytest.mark.asyncio
@@ -542,6 +545,6 @@ async def test_remove_trip_emhass_sensor_no_entry(mock_store, hass: HomeAssistan
         )
 
         # Assert returns False
-        assert result is False, (
-            f"async_remove_trip_emhass_sensor should return False when sensor not found, got {result}"
-        )
+        assert (
+            result is False
+        ), f"async_remove_trip_emhass_sensor should return False when sensor not found, got {result}"

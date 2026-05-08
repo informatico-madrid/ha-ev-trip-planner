@@ -7,9 +7,9 @@ This test verifies the current proactive charging algorithm:
 """
 
 import logging
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
@@ -180,9 +180,9 @@ class TestSOC100PropagationBug:
         else:
             # With proactive charging, this should NOT happen
             logger.debug("First trip has 0 hours (unexpected with proactive charging)")
-            assert def_hours > 0, (
-                "With proactive charging, the first trip must have charge hours > 0"
-            )
+            assert (
+                def_hours > 0
+            ), "With proactive charging, the first trip must have charge hours > 0"
 
         for i, trip in enumerate(trips):
             trip_id = trip["id"]
@@ -200,12 +200,12 @@ class TestSOC100PropagationBug:
                 )
 
                 # With proactive charging, def_hours and power_nom should both be > 0
-                assert def_hours > 0, (
-                    f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours}"
-                )
-                assert power_nom > 0, (
-                    f"Trip {trip_id} failed proactive charging: P_deferrable_nom is {power_nom}"
-                )
+                assert (
+                    def_hours > 0
+                ), f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours}"
+                assert (
+                    power_nom > 0
+                ), f"Trip {trip_id} failed proactive charging: P_deferrable_nom is {power_nom}"
 
     def test_soc_100_impossible_physics(self):
         """
@@ -243,9 +243,9 @@ class TestSOC100PropagationBug:
         logger.debug("Maximum possible charge hours: %s", horas_carga_maximas)
 
         # With SOC 100%, nothing can be charged
-        assert energia_adicional_maxima == 0.0, (
-            "With SOC 100%, no additional energy can be charged"
-        )
+        assert (
+            energia_adicional_maxima == 0.0
+        ), "With SOC 100%, no additional energy can be charged"
         assert horas_carga_maximas == 0.0, "With SOC 100%, there cannot be charge hours"
 
         # NOTE: While physically true, the algorithm now charges proactively

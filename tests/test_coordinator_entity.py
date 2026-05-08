@@ -2,12 +2,12 @@
 
 from unittest.mock import MagicMock
 
+from custom_components.ev_trip_planner.definitions import TRIP_SENSORS
 from custom_components.ev_trip_planner.sensor import (
-    TripPlannerSensor,
     EmhassDeferrableLoadSensor,
+    TripPlannerSensor,
     TripSensor,
 )
-from custom_components.ev_trip_planner.definitions import TRIP_SENSORS
 
 
 def make_test_coordinator(data):

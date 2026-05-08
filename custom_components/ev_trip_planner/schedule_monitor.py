@@ -72,9 +72,9 @@ class VehicleScheduleMonitor:
         self.notification_service = notification_service
         self.emhass_adapter = emhass_adapter  # NEW: For index lookup
 
-        self._unsub_handlers: Dict[
-            int, Callable[..., Any]
-        ] = {}  # index -> unsub function
+        self._unsub_handlers: Dict[int, Callable[..., Any]] = (
+            {}
+        )  # index -> unsub function
         self._last_actions: Dict[int, str] = {}  # index -> last action
 
         _LOGGER.debug("Created VehicleScheduleMonitor for %s", vehicle_id)
@@ -158,7 +158,9 @@ class VehicleScheduleMonitor:
 
             # Get current schedule
             schedule_state = self.hass.states.get(schedule_entity_id)
-            if not schedule_state:  # pragma: no cover  # HA sensor I/O - entity may disappear between HA restarts
+            if (
+                not schedule_state
+            ):  # pragma: no cover  # HA sensor I/O - entity may disappear between HA restarts
                 _LOGGER.warning("Schedule entity disappeared: %s", schedule_entity_id)
                 return  # pragma: no cover  # HA sensor I/O - early return when entity not found
 
