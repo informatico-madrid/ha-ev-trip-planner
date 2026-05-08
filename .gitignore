@@ -120,3 +120,9 @@ gito-classification-final-v2.md
 quality-gate-checkpoint.json
 .progress.md
 docs/staging-qa-results.md
+
+# Ralph/Spec harness state files (anywhere in repo)
+**/.ralph-state.json
+**/.progress-task-*.md
+**/references/.ralph-field-baseline.json
+**/references/.ralph-field-baseline.json.lock

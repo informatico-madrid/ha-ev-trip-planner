@@ -178,7 +178,7 @@
   - _Requirements: FR-22_
   - _Design: Pre-commit Hook Configuration_
 
-- [ ] 4.4 Update project documentation: mypy→pyright references
+- [x] 4.4 Update project documentation: mypy→pyright references
   - **Do**: Update all documentation files that reference mypy to use pyright instead. Files to update: `.github/copilot-instructions.md`, `docs/development-guide.md`, `README.md` (if mentions mypy). Also add new quality-gate documentation (make quality-gate, layers, security targets).
   - **Files**: .github/copilot-instructions.md, docs/development-guide.md, README.md (if applicable)
   - **Done when**: All "mypy" references replaced with "pyright"; new quality-gate commands documented
@@ -193,7 +193,12 @@
 
 **Goal**: Create PR, monitor CI, resolve issues, validate completion.
 
-- [ ] 5.1 Create PR and validate completion
+- [x] 5.1 Create PR and validate completion
+  - **Result**: PR #42 created, CI passed (1848 tests passed), CodeRabbit approved
+  - **Fixes applied**:
+    - Fixed import-linter version (2.12.0 → 2.0.0)
+    - Fixed CI workflow to create and activate venv before running make commands
+  - **Commit**: ci(workflow): create and activate venv before running make commands
   - **Do**:
     1. Verify on feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin $(git branch --show-current)`
