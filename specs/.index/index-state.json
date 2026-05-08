@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-05-05T06:15:01Z",
+  "updated": "2026-05-08T14:36:33Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 34,
+      "specsCount": 35,
       "isDefault": true
     }
   ],
@@ -34,8 +34,7 @@
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 158
     },
     {
@@ -63,8 +62,7 @@
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
       "phase": "tasks",
-      "taskIndex": 0
-0,
+      "taskIndex": 0,
       "totalTasks": 68
     },
     {
@@ -241,6 +239,12 @@
       "phase": "tasks",
       "taskIndex": 0,
       "totalTasks": 200,
+      "awaitingApproval": true
+    },
+    {
+      "name": "tooling-foundation",
+      "path": "./specs/tooling-foundation",
+      "phase": "requirements",
       "awaitingApproval": true
     }
   ]

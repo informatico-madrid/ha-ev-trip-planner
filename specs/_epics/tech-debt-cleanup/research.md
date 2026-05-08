@@ -148,7 +148,7 @@ Epic correctly claims 3 backup files in Spec 1 AC-1.3. The `.fixed` file is larg
 | Spec 2: Test Reorg | 1.0 SP (8-12h) | UNDERESTIMATED | 104 flat files reorganized into 3+ directories is complex. Test consolidation alone (13 trip_manager files -> 3) needs careful dedup analysis. Recommend 1.5-2.0 SP. |
 | Spec 3: God Classes | 3.0 SP (24-36h) | SEVERELY UNDERESTIMATED | Splitting 3 modules (emhass_adapter 2,730 LOC, trip_manager 2,503 LOC, services 1,635 LOC) PLUS dashboard (1,285 LOC) PLUS vehicle_controller (537 LOC) PLUS calculations (1,690 LOC) = 11,373 LOC to reorganize. Each split requires: module creation, import migration, test migration, API preservation. 15-25 hours per module minimum. Recommend 8-12 SP. |
 | Spec 4: Arity | 0.5 SP (8-12h) | REASONABLE | Mechanical dataclass conversions |
-| Spec 5: Mutation | 4.0 SP (40-60h) | UNDERESTIMATED | 49% -> 80% kill rate is aggressive. 17 modules need significant test improvements. Recommend 6-8 SP. |
+| Spec 5: Mutation | 4.0 SP (40-60h) | UNDERESTIMATED | 49% -> 100% kill rate is aggressive. 17 modules need significant test improvements. Recommend 6-8 SP. |
 | Spec 6: Coverage | 1.0 SP (12-16h) | UNDERESTIMATED | 273 pragma locations across 9 files. Many are in complex IO paths. Recommend 2-3 SP. |
 | Spec 7: Lint/Type | 0.25 SP (4-6h) | REASONABLE | Mostly automated fixes + 16 sensor.py pyright errors |
 | Spec 8: Security | 0.5 SP (4-6h) | REASONABLE | Tool installs + CI updates |

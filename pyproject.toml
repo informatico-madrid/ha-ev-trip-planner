@@ -88,7 +88,7 @@ timeout = 600
 global_kill_threshold = 0.48
 fail_on_missing_module = false
 increment_step = 0.01
-target_final = 0.80
+target_final = 1.00
 modules_per_sprint = 2
 
 [tool.quality-gate.mutation.modules.calculations]

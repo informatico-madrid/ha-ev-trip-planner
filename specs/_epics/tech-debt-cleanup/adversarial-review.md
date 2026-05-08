@@ -118,9 +118,9 @@ The original prompt explicitly requested "un snapshot de quality gate para saber
 
 ### H6: Spec 5 mutation data confuses thresholds with actual scores
 
-The per-module strategy lists "definitions (100% → 80%)" but pyproject.toml shows `kill_threshold = 0.45`. The 100% is the actual kill rate, 0.45 is the minimum threshold. The epic mixes these concepts.
+The per-module strategy lists "definitions (100% → 100%)" but pyproject.toml shows `kill_threshold = 0.45`. The 100% is the actual kill rate, 0.45 is the minimum threshold. The epic mixes these concepts.
 
-**Fix**: Use research-tools.md actual scores as the "current" column, and pyproject.toml thresholds as the "minimum acceptable" column. Add a third column for "target" (0.80).
+**Fix**: Use research-tools.md actual scores as the "current" column, and pyproject.toml thresholds as the "minimum acceptable" column. Add a third column for "target" (1.00).
 
 ### H7: Missing TypeScript tooling in Spec 0
 

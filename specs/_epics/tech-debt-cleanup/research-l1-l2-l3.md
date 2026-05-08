@@ -27,7 +27,7 @@
   - `timeout = 600`
 - **Quality gate config:** `[tool.quality-gate.mutation]`
   - `global_kill_threshold = 0.48` (current baseline)
-  - `target_final = 0.80` (aiming for 80% mutation kill rate)
+  - `target_final = 1.00` (aiming for 100% mutation kill rate)
   - `modules_per_sprint = 2`
 - **Per-module targets:**
   - `calculations`: kill_threshold = 0.71, status = "passing"

@@ -3,28 +3,26 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-05T06:15:01Z
+**Last updated:** 2026-05-08T14:36:33Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 34 | Yes |
+| ./specs | 35 | Yes |
 
-## All Specs (34)
+## All Specs (35)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
 | 001-milestone-3-2-complete | ./specs | completed | done |
 | 007-complete-milestone-3-verify-1-2 | ./specs | completed | done |
 | 008-fix-config-flow-dashboard-sensors | ./specs | completed | done |
-| 009-fix-vehicle-creation-dashboard-notifications | ./specs | tasks | 0
-0/158 tasks |
+| 009-fix-vehicle-creation-dashboard-notifications | ./specs | tasks | 0/158 tasks |
 | 010-fix-sensor-errors-dashboard-issues | ./specs | completed | done |
 | 011-fix-production-errors | ./specs | completed | done |
 | 012-dashboard-crud-verify | ./specs | completed | done |
-| 017-native-panel-core | ./specs | tasks | 0
-0/68 tasks |
+| 017-native-panel-core | ./specs | tasks | 0/68 tasks |
 | 020-fix-panel-trips-sensors | ./specs | tasks |  |
 | trip-creation | ./specs | tasks | 6/47 tasks |
 | _epics | ./specs | new |  |
@@ -51,10 +49,11 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | propagate-charge-wiring | ./specs | requirements |  |
 | propagate-charge-test | ./specs | requirements |  |
 | m403-dynamic-soc-capping | ./specs | tasks | awaiting approval |
+| tooling-foundation | ./specs | requirements | awaiting approval |
 
 ---
 
 **Commands:**
-- `/ralph-specum:status` - Show detailed status
-- `/ralph-specum:switch <name>` - Switch active spec
-- `/ralph-specum:start <name>` - Create or resume spec
+- `/ralphharness:status` - Show detailed status
+- `/ralphharness:switch <name>` - Switch active spec
+- `/ralphharness:start <name>` - Create or resume spec

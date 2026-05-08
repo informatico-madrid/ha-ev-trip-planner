@@ -1,0 +1,61 @@
+{
+  "source": "spec",
+  "name": "tooling-foundation",
+  "basePath": "./specs/tooling-foundation",
+  "phase": "requirements",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [
+    {
+      "name": "context-auditor",
+      "source": "/home/malka/.claude/plugins/cache/ralphharness/ralphharness/5.0.0/skills/context-auditor/SKILL.md",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "python-cybersecurity-tool-development",
+      "source": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/.claude/skills/python-cybersecurity-tool-development",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "quality-gate",
+      "source": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/.claude/skills/quality-gate",
+      "matchedAt": "start",
+      "invoked": true
+    },
+    {
+      "name": "python-testing-patterns",
+      "source": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/.claude/skills/python-testing-patterns",
+      "matchedAt": "start",
+      "invoked": true
+    }
+  ],
+  "epicName": "tech-debt-cleanup",
+  "goal": "Install missing tools, fix broken tooling, add Makefile targets, establish baseline metrics.",
+  "acceptanceCriteria": [
+    "AC-0.1: bandit installed and make security-bandit target works",
+    "AC-0.2: pip-audit or safety installed and make security-audit target works",
+    "AC-0.3: gitleaks binary installed and make security-gitleaks target works",
+    "AC-0.4: semgrep installed",
+    "AC-0.5: mypy broken — replaced with pyright as primary type checker; make typecheck runs pyright",
+    "AC-0.6: make quality-gate target added (orchestrates layers 1-4)",
+    "AC-0.7: make mutation shortcut target added",
+    "AC-0.8: make typecheck replaces make mypy (pyright only, mypy skipped); make check updated to call pyright instead of mypy",
+    "AC-0.9: All existing targets (test, lint, format, e2e, check) still work",
+    "AC-0.10: CI workflow updated to include quality-gate, mutation, and coverage gates",
+    "AC-0.11: Full quality-gate baseline snapshot saved to _bmad-output/quality-gate/tech-debt-baseline.json",
+    "AC-0.12: deptry installed — verifies import consistency (critical for post-Spec 3 validation)",
+    "AC-0.13: vulture installed — detects dead code (complements Spec 1)",
+    "AC-0.14: TypeScript tooling installed: tsc, ESLint for TS, Prettier",
+    "AC-0.15: _bmad-output/ directory added to .gitignore",
+    "AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented"
+  ],
+  "awaitingApproval": true
+}

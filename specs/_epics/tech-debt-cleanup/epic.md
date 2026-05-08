@@ -2,7 +2,7 @@
 
 ## 1. Vision & Scope
 
-Systematically eliminate all technical debt to achieve 100% SOLID compliance, zero Tier A/B antipatterns, 80% mutation kill rate, 100% test coverage, no `pragma: no cover`, zero warnings, clean architecture with separated tests, and all linters passing.
+Systematically eliminate all technical debt to achieve 100% SOLID compliance, zero Tier A/B antipatterns, 100% mutation kill rate, 100% test coverage, no `pragma: no cover`, zero warnings, clean architecture with separated tests, and all linters passing.
 
 This epic touches all 18 source modules (~15,097 LOC), ~114 test files (~1,849 tests, including 10 TypeScript E2E), CI/CD, and Makefile infrastructure.
 
@@ -36,7 +36,7 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | pytest | 1,848 passed, 0 failures | 1,848+ passed, 0 failures |
 | Coverage | 100% | 100% (via `--cov-fail-under`) |
 | Mutation modules passing | 17/17 | 17/17 |
-| Mutation kill rate | 48-49% | 80% |
+| Mutation kill rate | 48-49% | 100% |
 | E2E | 30 passed | 30+ passed |
 
 ### Layer 2: Test Quality (currently FAIL)
@@ -116,7 +116,7 @@ Tests must be organized: `tests/unit/` (mocked unit tests), `tests/integration/`
 `.cover` files, `panel.js.bak/.old/.fixed` backups must be removed or moved to `_docs/`.
 
 ### ARN-010: All 17 modules meet per-module mutation thresholds
-Each module's mutation kill rate must meet or exceed the target defined in `pyproject.toml`, with global floor of 80%.
+Each module's mutation kill rate must meet or exceed the target defined in `pyproject.toml`, with global floor of 100%.
 
 ## 4. Epic Decomposition
 
@@ -266,33 +266,33 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 - **Estimated Size**: **0.5 story points**
 - **Dependencies**: Must run AFTER Spec 3 for `calculations`, `dashboard`, and `emhass_adapter` modules (their functions move to new files during the split). Can run in parallel with Spec 2 for other modules.
 
-### Spec 5: Mutation Score Ramp (49% → 80%)
-- **Goal**: Incrementally raise mutation kill rate from ~49% to 80% across all modules.
+### Spec 5: Mutation Score Ramp (49% → 100%)
+- **Goal**: Incrementally raise mutation kill rate from ~49% to 100% across all modules.
 - **Acceptance Criteria**:
   - AC-5.1: All modules meet or exceed target kill rate from `pyproject.toml`
-  - AC-5.2: Global kill rate >= 80%
+  - AC-5.2: Global kill rate >= 100%
   - AC-5.3: Per-module status all changed from `"in_progress"` to `"passing"`
   - AC-5.4: `make mutation` passes
   - AC-5.5: `make quality-gate` passes Layer 1 mutation check
 - **Per-module strategy** (lowest-hanging-fruit first, using actual kill rates from latest mutmut run):
-  | # | Module | Current Kill Rate | Threshold | Gap to 80% | Priority |
-  |---|--------|------------------|-----------|------------|----------|
+  | # | Module | Current Kill Rate | Threshold | Gap to 100% | Priority |
+  |---|--------|------------------|-----------|-------------|----------|
   | 1 | definitions | ~100% | 0.45 | ✅ Already met | Verify only |
-  | 2 | diagnostics | ~93% | 0.28 | ✅ Already met | Verify only |
-  | 3 | utils | ~89% | 0.89 | ✅ Already met | Verify only |
-  | 4 | calculations | ~72% | 0.71 | +8pp | Easy |
-  | 5 | vehicle_controller | ~55% | 0.55 | +25pp | Medium |
-  | 6 | emhass_adapter | ~53% | 0.53 | +27pp | Medium |
-  | 7 | presence_monitor | ~52% | 0.52 | +28pp | Medium |
-  | 8 | yaml_trip_storage | ~51% | 0.50 | +29pp | Medium |
-  | 9 | __init__ | ~52% | 0.51 | +28pp | Medium |
-  | 10 | trip_manager | ~47% | 0.46 | +33pp | Hard |
-  | 11 | dashboard | ~35% | 0.35 | +45pp | Hard |
-  | 12 | services | ~38% | 0.38 | +42pp | Hard |
-  | 13 | config_flow | ~31% | 0.31 | +49pp | Hard |
-  | 14 | coordinator | ~38% | 0.37 | +42pp | Hard |
-  | 15 | sensor | ~39% | 0.38 | +41pp | Hard |
-  | 16 | panel | ~38% | 0.37 | +42pp | Hard |
+  | 2 | diagnostics | ~93% | 0.28 | +7pp | Easy |
+  | 3 | utils | ~89% | 0.89 | +11pp | Easy |
+  | 4 | calculations | ~72% | 0.71 | +28pp | Medium |
+  | 5 | vehicle_controller | ~55% | 0.55 | +45pp | Medium |
+  | 6 | emhass_adapter | ~53% | 0.53 | +47pp | Medium |
+  | 7 | presence_monitor | ~52% | 0.52 | +48pp | Medium |
+  | 8 | yaml_trip_storage | ~51% | 0.50 | +49pp | Medium |
+  | 9 | __init__ | ~52% | 0.51 | +48pp | Medium |
+  | 10 | trip_manager | ~47% | 0.46 | +53pp | Hard |
+  | 11 | dashboard | ~35% | 0.35 | +65pp | Hard |
+  | 12 | services | ~38% | 0.38 | +62pp | Hard |
+  | 13 | config_flow | ~31% | 0.31 | +69pp | Hard |
+  | 14 | coordinator | ~38% | 0.37 | +62pp | Hard |
+  | 15 | sensor | ~39% | 0.38 | +61pp | Hard |
+  | 16 | panel | ~38% | 0.37 | +62pp | Hard |
 
   **Note**: `schedule_monitor` is excluded (deleted in Spec 1). After Spec 3 module splits, module names in `pyproject.toml` will change to reflect new package structure. Update mutation config accordingly.
 - **Interface Contracts**: Tests may need significant rewrites. No source code API changes required.
@@ -350,7 +350,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 | **CP-2** | After Spec 2 | `make test` passes (test count ~1,830 after Spec 1 deletions), Layer 2 weak test count reduced < 200, no `assert True` |
 | **CP-3** | After Spec 3 | `make test` passes, 0 SOLID violations, 0 circular cycles, 0 modules > 500 LOC, 0 classes > 20 methods |
 | **CP-4** | After Spec 4 | `make test` passes, all functions <= 5 params, pyright passes |
-| **CP-5** | After Spec 5 | `make mutation` passes, global kill rate >= 80%, all per-module thresholds met |
+| **CP-5** | After Spec 5 | `make mutation` passes, global kill rate >= 100%, all per-module thresholds met |
 | **CP-6** | After Spec 6 | Coverage = 100% with 0 `pragma: no cover`, `make test-cover` passes |
 | **CP-7** | After Spec 7 | `ruff check` passes, `ruff format` passes, pyright passes, pylint passes |
 | **CP-8** | After Spec 8 | `make security` passes, CI green end-to-end, all workflow files active |
@@ -378,7 +378,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 **Why after Phase 3**: Arity fixes are mechanical changes BUT the target functions live in modules that Spec 3 splits into packages. Running Spec 4 before Spec 3 means re-applying changes after the split. Running after ensures changes land in the correct final file locations. For modules NOT being split (config_flow, coordinator, sensor, etc.), arity fixes can proceed in parallel with Spec 3.
 
 ### Phase 5: Mutation Score Ramp (Spec 5) + Coverage Gap Closure (Spec 6)
-**What**: Raise mutation kill rate 49% → 80%. Eliminate `pragma: no cover`.
+**What**: Raise mutation kill rate 49% → 100%. Eliminate `pragma: no cover`.
 **Why fifth/sixth**: These two specs are tightly coupled — better tests (mutation) often require covering IO paths (no cover). Doing both together ensures they reinforce each other. Can start in parallel with Spec 2 (low-hanging-fruit modules). Refactored modules (Spec 3) make them easier but don't block.
 
 ### Phase 6: Lint, Format, Type Cleanup (Spec 7)
