@@ -306,14 +306,23 @@ data_schema = vol.Schema({
 
 3. `P_deferrable_nom` computation:
 ```python
-# Current (line ~725):
-"P_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
+# CRITICAL: P_deferrable_nom is ALWAYS the fixed charger power from config flow.
+# It does NOT change with SOC capping. The SOC cap reduces kwh_needed,
+# which reduces def_total_hours = kwh_needed / charger_power.
+# Example: if charging_power_kw = 11, P_deferrable_nom is always 11000W.
+# When SOC cap reduces kwh_needed from 11kWh to 5.5kWh:
+#   - P_deferrable_nom stays at 11000W (hardware is fixed)
+#   - def_total_hours goes from 1.0h to 0.5h
 
-# After change: power_watts is already derived from capped SOC via determine_charging_need()
-# No additional formula change needed — the capacity parameter is now real_capacity
+"P_deferrable_nom": round(power_watts, 0) if has_charging else 0.0,
+# power_watts comes from determine_charging_need() which sets:
+#   power_watts = charging_power_kw * 1000 (FIXED charger power)
+# This value MUST NOT be multiplied by cap_ratio.
 ```
 
 4. `_calculate_power_profile_from_trips()` delegates to `calculate_power_profile_from_trips()` which receives `battery_capacity_kwh`. This parameter will be `real_capacity`.
+
+5. The power_profile array uses fixed charger power during charging windows, 0W outside. The SOC cap affects WHICH windows are active (via reduced start/end timesteps), NOT the power values within windows.
 
 ---
 

@@ -75,7 +75,7 @@ V2G systems do dynamic SOC management from the discharge side:
 
 ## Codebase Analysis
 
-### SOC Value Flow
+### SOC Value Flow (CORRECTED — P_deferrable_nom is ALWAYS fixed charger power)
 
 ```
 Sensor: soc_current (float %)
@@ -84,13 +84,22 @@ calculate_energy_needed(soc_current) → energia_necesaria (kWh)
   ↓
 calculate_deficit_propagation() → soc_objetivo_ajustado (%, backward propagation)
   ↓
-determine_charging_need() → ChargingDecision (kwh_needed, def_total_hours, power_watts)
+SOC CAP: soc_objetivo_final = min(soc_objetivo_ajustado, dynamic_limit)
+  ↓
+determine_charging_need(capped_soc) → ChargingDecision(kwh_needed, def_total_hours, power_watts=FIXED)
+  - kwh_needed = (capped_soc - soc_current) / 100 * battery_capacity
+  - def_total_hours = kwh_needed / charger_power
+  - power_watts = charger_power * 1000  ← NEVER changed by SOC cap
   ↓
 _populate_per_trip_cache_entry() → deferrable load params
+  - P_deferrable_nom = power_watts (FIXED charger power, NOT modified)
+  - def_total_hours = kwh_needed / charger_power (REDUCED by cap)
   ↓
 calculate_power_profile_from_trips() → 168-element power profile (Watts)
+  - During charging windows: power_watts (FIXED charger power)
+  - Outside windows: 0W
   ↓
-EMHASS API: {def_total_hours, def_start_timestep, def_end_timestep, P_deferrable_nom}
+EMHASS API: {def_total_hours=REDUCED, def_start_timestep, def_end_timestep, P_deferrable_nom=FIXED}
 ```
 
 ### Integration Points

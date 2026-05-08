@@ -99,7 +99,7 @@ docs/source-tree-analysis.md
 │   ├── ha-onboard.sh                       # HA setup script
 │   └── extract_report.js                   # Coverage report extractor
 │
-├── docker-compose.yml                      # 🐳 Docker test environment (HA Container)
+├── docker-compose.yml                      # 📦 Docker config (DEPRECATED for E2E — historical residue, not referenced by E2E runner)
 ├── Dockerfile.custom                       # Custom HA Docker image
 ├── package.json                            # Node.js dependencies (Playwright, Jest, Lit)
 ├── pyproject.toml                          # Python tooling config (black, ruff, mypy, pytest)
@@ -137,4 +137,4 @@ docs/source-tree-analysis.md
 | **Dashboard Import** | `dashboard.py::import_dashboard` | Auto-deploys Lovelace dashboard |
 | **Frontend Panel** | `frontend/panel.js` | Lit web component loaded in HA sidebar |
 | **E2E Tests** | `tests/e2e/*.spec.ts` | Playwright test suite |
-| **Docker Test Env** | `docker-compose.yml` | HA Container for testing |
+| **Docker** | `docker-compose.yml` | DEPRECATED — historical residue. NOT used for E2E. E2E uses `hass` directly via `scripts/run-e2e.sh`. May be repurposed for staging. |

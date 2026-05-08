@@ -70,6 +70,13 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 - Use read_file to verify content before making changes
 - If you are implementing tasks, always read docs/IMPLEMENTATION_REVIEW.md for any important notes left by the reviewer that may help you in your task.
 
+## ⚠️ TWO HA ENVIRONMENTS — NEVER MIX
+
+> E2E and Staging are completely separate. See CLAUDE.md section "ENVIRONMENT SEPARATION".
+
+- **E2E** = `hass` direct (no Docker), port 8123, deterministic tests in `tests/e2e/`
+- **Staging** = Docker container, port 8124, persistent, for agent navigation (NO tests)
+
 ## Stuck State Protocol
 
 <mandatory>

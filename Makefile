@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug lint mypy format check clean htmlcov
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov
 
 help:
 	@echo "Comandos disponibles:"
@@ -10,9 +10,11 @@ help:
 	@echo "  make test-e2e-headed - Ejecutar tests E2E con navegador visible"
 	@echo "  make test-e2e-debug  - Ejecutar tests E2E en modo debug (inspector Playwright)"
 	@echo "  make e2e             - Arrancar HA si es necesario y ejecutar E2E (automático)"
-	@echo "  make e2e-headed      - Igual que e2e pero con navegador visible"
 	@echo "  make e2e-debug       - Igual que e2e pero en modo debug"
 	@echo "  make e2e-soc         - Tests E2E dynamic SOC (suite separada)"
+	@echo "  make staging-up          - Arrancar HA staging (Docker, localhost:8124)"
+	@echo "  make staging-down        - Detener HA staging"
+	@echo "  make staging-reset       - Resetear HA staging"
 	@echo "  make lint            - Ejecutar linting (ruff, pylint)"
 	@echo "  make mypy            - Ejecutar type checking"
 	@echo "  make format          - Formatear código con black e isort"
@@ -35,11 +37,8 @@ test-dashboard:
 
 test-e2e:
 	@echo "Ejecutando tests E2E contra http://localhost:8123 ..."
-	@echo "Asegúrate de que Home Assistant está corriendo (docker compose up -d o hass manual)"
+	@echo "⚠️  E2E uses hass directly (no Docker). See docs/staging-vs-e2e-separation.md"
 	npx playwright test tests/e2e/ --workers=1
-
-test-e2e-headed:
-	npx playwright test tests/e2e/ --workers=1 --headed
 
 test-e2e-debug:
 	npx playwright test tests/e2e/ --workers=1 --debug
@@ -91,3 +90,46 @@ clean:
 htmlcov:
 	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
 	@echo "Reporte HTML generado en htmlcov/index.html"
+
+# ============================================================================
+# Staging Environment Targets (Docker, localhost:8124)
+# ============================================================================
+STAGING_MAKE_DIR := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+
+staging-up:
+	@echo "Starting staging environment on localhost:8124 (Docker)..."
+	@echo "⚠️  STAGING is separate from E2E (localhost:8123, hass direct)."
+	@echo "   See docs/staging-vs-e2e-separation.md for separation rules."
+	@if [ ! -d "$$(eval echo ~/staging-ha-config)" ]; then \
+		echo "Staging config not initialized. Running init..."; \
+		bash "$(STAGING_MAKE_DIR)/scripts/staging-init.sh"; \
+	fi
+	cd "$(STAGING_MAKE_DIR)" && docker compose -f docker-compose.staging.yml up -d
+	@echo "Waiting for HA to be ready..."
+	@READY=0; \
+	for i in $$(seq 1 30); do \
+		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8124/api/ 2>/dev/null || echo "000"); \
+		if [ "$$STATUS" = "200" ] || [ "$$STATUS" = "401" ]; then \
+			echo "  ✅ HA ready (HTTP $$STATUS)"; \
+			READY=1; \
+			break; \
+		fi; \
+		echo "  Attempt $$i: status=$$STATUS (waiting 3s...)"; \
+		sleep 3; \
+	done; \
+	if [ "$$READY" = "0" ]; then \
+		echo "  ❌ HA failed to become ready after 30 attempts"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "Staging ready at http://localhost:8124"
+	@echo "Logs: docker logs -f ha-staging"
+	@echo "Stop: make staging-down"
+
+staging-down:
+	@echo "Stopping staging container..."
+	cd "$(STAGING_MAKE_DIR)" && docker compose -f docker-compose.staging.yml down
+
+staging-reset:
+	@echo "Resetting staging environment..."
+	bash scripts/staging-reset.sh

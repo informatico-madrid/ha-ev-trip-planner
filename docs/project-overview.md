@@ -31,7 +31,7 @@
 | **Formatting** | black + isort | Latest | Python code formatting |
 | **Type Checking** | mypy | Latest (strict) | Static type analysis |
 | **Package Manager** | npm + pip | Latest | JS and Python dependencies |
-| **Containerization** | Docker | docker-compose | HA test environment |
+| **E2E Runtime** | Python venv + `hass` | `scripts/run-e2e.sh` | E2E tests run WITHOUT Docker (see docs/staging-vs-e2e-separation.md) |
 | **Localization** | JSON (es, en) | - | Spanish + English translations |
 
 ## Architecture Type
@@ -69,6 +69,19 @@ ha-ev-trip-planner/
 └── design-artifacts/                     # UX/design documentation
 ```
 
+## Entornos de Desarrollo
+
+| Entorno | Propósito | Puerto | Acceso |
+|---------|-----------|--------|--------|
+| **E2E** | Tests deterministas automatizados | 8123 | `make e2e` |
+| **Staging** | Navegación interactiva con agente (Playwright MCP) | 8124 | `make staging-up` |
+
+> **⚠️ NUNCA mezclar entornos:** Staging es para navegación de agentes, NO para tests. E2E es para tests automatizados, NO para navegación de agentes. Ver [staging-vs-e2e-separation.md](./staging-vs-e2e-separation.md).
+
+## QA Results
+
+- [Staging QA Results](./staging-qa-results.md) — Todos los flujos probados en staging con Playwright MCP, bugs encontrados, workarounds
+
 ## Links to Detailed Documentation
 
 - [Architecture](./architecture.md)
@@ -76,3 +89,4 @@ ha-ev-trip-planner/
 - [API Contracts (Services)](./api-contracts.md)
 - [Data Models](./data-models.md)
 - [Development Guide](./development-guide.md)
+- [Staging vs E2E Separation](./staging-vs-e2e-separation.md)

@@ -5,19 +5,21 @@
 Tests end-to-end con Playwright que verifican el flujo completo de CRUD de viajes
 (crear, editar, eliminar) y operaciones de ciclo de vida (pausar, reanudar, completar, cancelar).
 
+## ⚠️ NUNCA USAR DOCKER PARA E2E
+
+> E2E usa `hass` directo desde Python venv. **Staging usa Docker.** Son entornos completamente separados.
+> Ver [`docs/staging-vs-e2e-separation.md`](../../docs/staging-vs-e2e-separation.md).
+
 ## Ejecución rápida
 
+> ⚠️ **NO se usa Docker para E2E.** El método actual es `hass` directo via `scripts/run-e2e.sh`.
+
 ```bash
-# 1. Arrancar Home Assistant (con Docker)
-docker compose up -d
+# 1. Arrancar HA + ejecutar E2E (todo automático — método actual):
+make e2e
 
-# 2. Onboarding (solo la primera vez)
-./scripts/ha-onboard.sh
-
-# 3. Ejecutar los tests
-npx playwright test tests/e2e/ --workers=1
-# o
-make test-e2e
+# 2. Debug mode:
+make e2e-debug
 ```
 
 Ver [`_ai/TESTING_E2E.md`](../../_ai/TESTING_E2E.md) para instrucciones completas, troubleshooting y detalles de configuración.
@@ -84,7 +86,9 @@ await tripCard.getByText('Eliminar').click();
 const msg = await dialogPromise;
 ```
 
-## Configuración HA requerida
+## Configuración HA
+
+> **NOTA**: E2E usa `hass` directo (sin Docker). La configuración está en `tests/ha-manual/configuration.yaml`.
 
 `tests/ha-manual/configuration.yaml` debe incluir:
 

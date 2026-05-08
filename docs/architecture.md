@@ -36,7 +36,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 
 | Technology | Purpose |
 |-----------|---------|
-| Docker (docker-compose) | HA Container test environment |
+| Python venv + `hass` | E2E test environment (NO Docker — see docs/staging-vs-e2e-separation.md) |
 | HACS | Community distribution |
 | Make | Build automation |
 

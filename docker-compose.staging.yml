@@ -1,0 +1,49 @@
+# ============================================================================
+# STAGING ENVIRONMENT — Home Assistant for Agent Navigation
+# ============================================================================
+#
+# STAGING (this file):
+#   - Purpose: Real HA for agent navigation, exploration, and pre-merge testing
+#   - Port:    localhost:8124
+#   - Config:  ${HOME}/staging-ha-config (bind mount, persistent)
+#   - Data:    Realistic data (vehicles, trips, automations, sensors)
+#   - Agent:   Yes — agents navigate and verify functionality
+#   - Tests:   NONE — staging is for agent navigation only
+#   - Commands: make staging-up, make staging-down, make staging-reset
+#
+# E2E (SEPARATE — DO NOT MIX):
+#   - Purpose: Deterministic feature verification
+#   - Port:    localhost:8123
+#   - Method:  hass directly (NO Docker)
+#   - Data:    Minimal (input_boolean, input_number only)
+#   - Agent:   No — automated Playwright tests only
+#   - Tests:   tests/e2e/ (feature tests, deterministic)
+#   - Commands: make e2e
+#
+# DO NOT MIX:
+#   - Never use docker compose for E2E
+#   - Never use tests/e2e/ for agent navigation
+#   - Never mix ports 8123 and 8124
+#   - See docs/staging-vs-e2e-separation.md for full separation rules
+# ============================================================================
+
+services:
+  homeassistant:
+    image: homeassistant/home-assistant:stable
+    container_name: ha-staging
+    restart: unless-stopped
+    # Run as host user so bind-mounted files have correct ownership
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "8124:8123"   # Host 8124 -> HA 8123 internal
+    volumes:
+      # Persistent HA configuration (bind mount = host directory)
+      # CRITICAL: Must use ${HOME} (not ~/ — Docker Compose doesn't expand ~)
+      - ${HOME}/staging-ha-config:/config
+      # Custom component bind mount (always reflects current HEAD)
+      # Mounted separately to override any symlink in ~/staging-ha-config/
+      - ${PWD}/custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
+    environment:
+      - TZ=Europe/Madrid
+    # Healthcheck removed: curl -sf fails in Docker healthcheck (IPv6 + response body issues)
+    # Container is verified working via host curl on port 8124
