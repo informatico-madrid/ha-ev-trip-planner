@@ -151,6 +151,20 @@ soc_objetivo_final = min(soc_objetivo_ajustado, dynamic_limit)
 
 **Key Principle**: The algorithm NEVER prevents a trip from succeeding. The dynamic limit is an upper bound, never a target.
 
+### What SOC Cap Affects (and Doesn't)
+
+| Parameter | Affected by SOC cap? | Notes |
+|-----------|---------------------|-------|
+| `soc_target` (cache) | Yes | `min(100%, dynamic_limit)` — upper bound for charging |
+| `kwh_needed` (cache) | Yes | Reduced by `cap_ratio = soc_target / 100` |
+| `P_deferrable_nom` | **NO** | Always charger hardware power (e.g., 3600W). **Never scaled.** |
+| `power_profile_watts` slot values | **NO** | Each slot is 0 or charger power. **Never fractional.** |
+| `def_total_hours` | Indirectly | `ceil(kwh_needed / power)` — changes when kwh_needed crosses ceil() boundary |
+
+**Energy Reduction via Hours, Not Power**: When SOC cap reduces `kwh_needed`, the total charging energy drops because fewer 1-hour slots are needed (higher `kwh_needed` → more slots). Each slot stays at full charger power. The SOC cap NEVER scales individual slot wattages.
+
+**Rounding Caveat**: `def_total_hours = ceil(kwh_needed / power)` rounds up to whole hours. Small differences in `kwh_needed` may not change slot count. SOC cap sensitivity is validated via `kwh_needed` cache values, not slot count.
+
 ---
 
 ## Configuration

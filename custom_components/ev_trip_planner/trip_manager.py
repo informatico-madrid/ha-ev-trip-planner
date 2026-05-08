@@ -345,12 +345,15 @@ class TripManager:
                 charging_power_kw=charging_kw,
                 vehicle_config=vehicle_config if vehicle_config else None,
             )
-            # Extract per-trip SOC caps from results
+            # Extract per-trip raw SOC caps from results.
+            # Use soc_cap_raw (degradation formula output), NOT soc_objetivo
+            # (which already has the cap applied by deficit propagation).
+            # Using soc_objetivo would double-count the cap.
             for hit in hits:
                 trip_id = hit.get("trip_id", "")
-                soc_obj = hit.get("soc_objetivo", 100.0)
+                soc_cap = hit.get("soc_cap_raw", 100.0)
                 if trip_id:
-                    soc_caps_by_id[trip_id] = soc_obj
+                    soc_caps_by_id[trip_id] = soc_cap
         except Exception as err:
             _LOGGER.debug(
                 "T093: calcular_hitos_soc() failed for SOC cap pre-computation: %s",

@@ -737,9 +737,11 @@ class EMHASSAdapter:
         power_watts = decision.power_watts
 
         # T062/T063: Apply dynamic SOC cap to reduce kwh_needed.
-        # The SOC cap MUST NOT affect power_watts (P_deferrable_nom) — that is always
-        # the charger hardware power. Cap only reduces the energy target (hours/kWh).
+        # The SOC cap MUST NOT affect power_watts — that is always the charger
+        # hardware power. Cap only reduces the energy target.
         # NOTE: total_hours will be overridden by deficit propagation below.
+        # The SOC cap is applied at batch aggregation level (line ~1250) to
+        # reduce total energy by zeroing slots, keeping each slot at full power.
         cap_ratio: float = 1.0
         if soc_cap is not None and soc_cap < 100.0:
             cap_ratio = soc_cap / 100.0
@@ -763,7 +765,6 @@ class EMHASSAdapter:
             if soc_current < 100.0:
                 needs_charging = True
                 # power_watts is ALWAYS the fixed charger hardware power.
-                # SOC cap only reduces hours/kWh, never power.
                 power_watts = charging_power_kw * 1000
 
         # BUG FIX (continued): If def_start was already 0 and couldn't be
@@ -793,13 +794,10 @@ class EMHASSAdapter:
                 safety_margin_percent=safety_margin_percent,
             )
 
-        # T062/T063: Apply SOC cap to power_profile by scaling watts.
-        # The SOC cap reduces total charging energy. This is done by scaling
-        # each slot in the power_profile by cap_ratio. P_deferrable_nom is
-        # set separately to the fixed charger hardware power — it does NOT
-        # get scaled by the SOC cap.
-        if cap_ratio < 1.0 and cap_ratio > 0:
-            power_profile = [v * cap_ratio for v in power_profile]
+        # SOC cap NOT applied to per-trip power_profile here.
+        # power_profile stays at full charger hardware power.
+        # SOC cap is applied at batch aggregation level to reduce total energy
+
 
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
@@ -1245,11 +1243,23 @@ class EMHASSAdapter:
                 projected_soc,
             )
 
-        # T062/T063: Aggregate capped per-trip power profiles to reflect SOC caps
-        # Each trip's cached power_profile_watts already accounts for the SOC cap.
-        # Sum them element-wise to get the final aggregated profile.
+        # T062/T063: Aggregate per-trip power profiles and apply SOC cap.
+        # Each trip's profile stays at full charger hardware power.
+        # Apply SOC cap to the aggregated profile by zeroing slots from the end
+        # to reduce total energy to the capped level.
         capped_profile = [0.0] * 168
         profile_trip_count = 0
+
+        # Pre-compute expected capped energy from per-trip kwh_needed
+        total_capped_kwh = 0.0
+        for trip in trips:
+            trip_id = trip.get("id")
+            if trip_id and trip_id in self._cached_per_trip_params:
+                total_capped_kwh += self._cached_per_trip_params[trip_id].get(
+                    "kwh_needed", 0.0
+                )
+        expected_capped_wh = total_capped_kwh * 1000.0
+
         for trip in trips:
             trip_id = trip.get("id")
             if trip_id and trip_id in self._cached_per_trip_params:
@@ -1266,6 +1276,28 @@ class EMHASSAdapter:
         # capped profile directly -- the base calculation would be overwritten.
         if profile_trip_count > 0:
             power_profile = capped_profile
+
+            # Apply SOC cap: zero out slots from the end to match expected capped energy.
+            # This keeps each slot at full charger power (multiple of charging_power_kw * 1000).
+            current_wh = sum(power_profile)
+            if current_wh > expected_capped_wh and expected_capped_wh > 0:
+                # Break profile into 1-hour sub-slots at full charger power
+                slot_size = charging_power_kw * 1000
+                if slot_size > 0:
+                    target_slots = int(round(expected_capped_wh / slot_size))
+                    # Count how many full slots we have
+                    total_slots = 0
+                    slot_positions = []
+                    for i in range(len(power_profile)):
+                        if power_profile[i] > 0:
+                            # A slot with value > 0 represents one sub-slot
+                            total_slots += 1
+                            slot_positions.append(i)
+                    # Zero out excess slots from the end
+                    slots_to_zero = max(0, total_slots - target_slots)
+                    for i in range(slots_to_zero):
+                        pos = slot_positions[total_slots - 1 - i]
+                        power_profile[pos] = 0.0
         else:
             power_profile = self._calculate_power_profile_from_trips(
                 trips,
