@@ -24,7 +24,7 @@
   - _Requirements: FR-1, FR-2, FR-4, FR-5, FR-12, FR-13, FR-21, FR-22, FR-23, FR-24, FR-25_
   - _Design: Tool Installation Strategy_
 
-- [ ] 1.2 Update requirements_dev.txt with new tools
+- [x] 1.2 Update requirements_dev.txt with new tools
   - **Do**: Add bandit[toml], pip-audit, semgrep, deptry, vulture, pyright-nodecli, import-linter, refurb, pytest-randomly, pytest-xdist, pre-commit; remove mypy line
   - **Files**: requirements_dev.txt
   - **Done when**: File updated with new tools, mypy removed
@@ -33,10 +33,10 @@
   - _Requirements: FR-1, FR-2, FR-4, FR-5, FR-6, FR-12, FR-13, FR-16, FR-21, FR-22, FR-23, FR-24, FR-25_
   - _Design: Python Tooling Dependencies_
 
-- [ ] 1.3 Install gitleaks binary system-wide
+- [x] 1.3 Install gitleaks binary system-wide
   - **Do**: Download gitleaks 8.18.4 for linux x64, extract to /usr/local/bin/ with sudo (using SUDO_PASS env var), verify installation
   - **Files**: /usr/local/bin/gitleaks (system binary)
-  - **Commands**: 
+  - **Commands**:
     ```bash
     wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz -O /tmp/gitleaks.tar.gz
     tar -xzf /tmp/gitleaks.tar.gz -C /tmp/
