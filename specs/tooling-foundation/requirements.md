@@ -25,7 +25,7 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **So that** I get faster, more accurate type analysis compatible with Python 3.14
 
 **Acceptance Criteria:**
-- [ ] AC-5: pyproject.toml [tool.mypy] section removed entirely, [tool.pyright] added with Python 3.14 target
+- [ ] AC-5: pyproject.toml `[tool.mypy]` section removed entirely, `[tool.pyright]` added with Python 3.14 target
 - [ ] AC-6: `make typecheck` runs pyright (not mypy); `make mypy` deprecated with warning
 - [ ] AC-7: `make check` calls `typecheck` instead of `mypy`
 
@@ -196,14 +196,14 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 - `make check` MUST run the same checks (test + lint + typecheck), just with pyright instead of mypy
 - CI MUST use Python 3.14 (not 3.11 or 3.12)
 - _bmad-output/ MUST be in .gitignore (prevents committing generated files)
-- pyproject.toml [tool.mypy] section MUST be completely removed (no partial migration)
+- pyproject.toml `[tool.mypy]` section MUST be completely removed (no partial migration)
 
 **Seed data**:
 - Python 3.14 virtual environment at `.venv/`
 - Existing tests in `tests/` directory (pytest-based)
 - Existing E2E tests in `tests/e2e/*.ts` (Playwright/TypeScript)
 - Custom component code in `custom_components/ev_trip_planner/`
-- Existing quality-gate configuration in pyproject.toml [tool.quality-gate.mutation]
+- Existing quality-gate configuration in pyproject.toml `[tool.quality-gate.mutation]`
 
 **Dependency map**:
 - **Epic**: tech-debt-cleanup

@@ -1,4 +1,4 @@
-# Gito Configuration for data_factory
+# Gito Configuration
 # Start simple: only exclude_files. Add more later if needed.
 
 # ============================================
@@ -43,6 +43,8 @@ exclude_files = [
     "_bmad/**",
     "_bmad-output/**",
     "specs/**",
+    "tests/**",
+    "tests_excluded_from_mutmut/**",
 
     # Minified files
     "*.min.js",

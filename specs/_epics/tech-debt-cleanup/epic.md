@@ -18,7 +18,7 @@ Every command in every spec assumes the venv is active. CI workflows must also h
 
 ### ⚠️ SOLID Threshold Phasing
 
-The [`quality-gate.yaml`](.roo/skills/quality-gate/config/quality-gate.yaml) defines stricter SOLID thresholds than this epic's ARNs:
+The [`quality-gate.yaml`](.agents/skills/quality-gate/config/quality-gate.yaml) defines stricter SOLID thresholds than this epic's ARNs:
 
 | Metric | ARN Target (Phase 1) | quality-gate.yaml (Phase 2) |
 |--------|---------------------|---------------------------|
