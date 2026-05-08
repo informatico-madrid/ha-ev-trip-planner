@@ -128,7 +128,7 @@
 
 **Goal**: Verify backward compatibility and test new Makefile targets.
 
-- [ ] 3.1 [P] Verify AC-9: All existing targets work identically
+- [x] 3.1 [P] Verify AC-9: All existing targets work identically
   - **Do**: Run each existing target and verify exit code 0: test, lint, format, e2e, e2e-soc, check. Confirm no behavior changes.
   - **Files**: Makefile (verification only)
   - **Done when**: All existing targets pass without error; check target runs typecheck (pyright) instead of mypy
