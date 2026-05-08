@@ -8,8 +8,8 @@ This guide explains how to run End-to-End tests (Playwright) both **locally** an
 
 1. [How Tests Work](#how-tests-work)
 2. [Prerequisites](#prerequisites)
-3. [Local Execution — Option A (Docker Compose, recommended)](#option-a-docker-compose-recommended)
-4. [Local Execution — Option B (manual hass)](#option-b-manual-hass-without-docker)
+3. [Local Execution — Option A (DEPRECATED — Docker Compose)](#option-a-deprecated--docker-compose-not-used)
+4. [Local Execution — Option B (manual hass, ACTUAL METHOD — DOCKER NOT NEEDED)](#option-b-manual-hass-actual-method--docker-not-needed)
 5. [CI Execution (GitHub Actions)](#ci-execution-github-actions)
 6. [Test Structure](#test-structure)
 7. [Users and Authentication](#users-and-authentication)
@@ -74,70 +74,59 @@ python3 --version
 pip install homeassistant
 ```
 
-### Only for Docker execution
+### Only for Docker execution (DEPRECATED — not used for E2E)
+
+> **NOTA**: Docker no se usa para E2E. El método actual es `hass` directo (Option B).
+> Esta sección se mantiene solo como referencia histórica.
 
 ```bash
-# Docker + docker compose
+# Docker + docker compose (DEPRECATED — no se usa para E2E)
 docker --version
 docker compose version
 ```
 
 ---
 
-## Option A: Docker Compose (recommended)
+## Option A: DEPRECATED — Docker Compose (NOT USED)
 
-This is the simplest and most reproducible way. The `docker-compose.yml` is already configured with:
-- `trusted_networks` for login bypass from localhost.
-- `input_boolean.test_ev_charging` required for Config Flow.
-- Volume mounting `custom_components/ev_trip_planner` from the local repo.
+> **DEPRECATED**: This method is NOT used for E2E tests. The actual E2E method is **Option B** (manual hass).
+> The `docker-compose.yml` file exists as a historical residue. It was used in earlier iterations
+> but was abandoned in favor of running `hass` directly from Python.
+>
+> **DO NOT USE THIS SECTION** for E2E testing. Use **Option B** instead.
 
-### 1. Start Home Assistant
+The `docker-compose.yml` file exists in the repository root but is NOT referenced by the E2E test runner.
+The actual E2E tests use `hass` directly via `scripts/run-e2e.sh`.
+
+### 1. Start Home Assistant (DEPRECATED)
 
 ```bash
-# From the repository root
+# DEPRECATED — do not use for E2E
 docker compose up -d
 
-# Check that HA is ready (wait ~30-60 seconds)
+# DEPRECATED — do not use for E2E
 docker compose logs -f homeassistant
 # Ctrl+C when you see: "Home Assistant is running"
 ```
 
-### 2. Complete HA onboarding (first time only)
+### 2. HA onboarding (DEPRECATED — use run-e2e.sh instead)
 
-When HA starts for the first time in Docker, it needs the **initial onboarding** (create admin user). You have two options:
+> ⚠️ DEPRECATED. The `scripts/run-e2e.sh` script handles onboarding automatically.
 
-**Option A1 — Automatic onboarding via script:**
 ```bash
 ./scripts/ha-onboard.sh
 ```
 
-**Option A2 — Manual onboarding via UI:**
-1. Open http://localhost:8123 in the browser.
-2. Create the user: name=`Developer`, username=`dev`, password=`dev`.
-3. Accept all screens until reaching the dashboard.
+Credentials `dev`/`dev` are hardcoded in `auth.setup.ts`.
 
-> ⚠️ The `dev`/`dev` credentials are hardcoded in `auth.setup.ts`. If you use different credentials, edit that file.
-
-### 3. Run tests
+### 3. Run tests (DEPRECATED — use run-e2e.sh)
 
 ```bash
-# Run all E2E tests
+# DEPRECATED — use make e2e or ./scripts/run-e2e.sh instead
 npx playwright test tests/e2e/ --workers=1
-
-# Or with make
-make test-e2e
-
-# With visible browser (to see what it does)
-make test-e2e-headed
-
-# Single file
-npx playwright test tests/e2e/create-trip.spec.ts
-
-# Debug mode (pauses at each step)
-make test-e2e-debug
 ```
 
-### 4. Stop Home Assistant
+### 4. Stop Home Assistant (DEPRECATED)
 
 ```bash
 docker compose down
@@ -145,9 +134,11 @@ docker compose down
 
 ---
 
-## Option B: manual hass (without Docker)
+## Option B: manual hass (ACTUAL METHOD — DOCKER NOT NEEDED)
 
-Useful if you already have Python installed and prefer not to use Docker.
+This is the actual, tested, and ONLY method used for E2E tests. No Docker required.
+
+The `scripts/run-e2e.sh` script handles all of this automatically. For manual execution:
 
 ### 1. Install Home Assistant
 
@@ -158,29 +149,39 @@ pip install homeassistant
 ### 2. Prepare the configuration directory
 
 ```bash
-# Create test config directory
+# Create test config directory (clean slate every run)
 mkdir -p /tmp/ha-e2e-config/custom_components
 
-# Link test configuration
+# Copy test configuration
 cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
 
-# Link the custom component
+# Symlink the custom component
 ln -sf $(pwd)/custom_components/ev_trip_planner \
        /tmp/ha-e2e-config/custom_components/ev_trip_planner
 ```
 
-### 3. Start Home Assistant
+### 3. Start Home Assistant (ACTUAL METHOD)
+
+The `scripts/run-e2e.sh` script handles all of this automatically. It:
+1. Kills any existing HA process on port 8123
+2. Cleans and recreates `/tmp/ha-e2e-config/`
+3. Starts `hass -c /tmp/ha-e2e-config` in background
+4. Waits for the API to respond
+5. Runs onboarding
+6. Executes Playwright tests
 
 ```bash
-nohup hass -c /tmp/ha-e2e-config > /tmp/ha-e2e.log 2>&1 &
-echo "HA PID: $!"
+# Recommended — let the script do everything:
+make e2e
 
-# Wait for it to be ready (~30-60 seconds)
-until curl -sf -o /dev/null -w "%{http_code}" http://localhost:8123/api/ | grep -qE "401|200"; do
-  echo "Waiting for HA..."
-  sleep 3
-done
-echo "HA ready!"
+# Or run the script directly:
+./scripts/run-e2e.sh
+
+# With visible browser:
+./scripts/run-e2e.sh --headed
+
+# Debug mode:
+./scripts/run-e2e.sh --debug
 ```
 
 ### 4. Complete onboarding (first time only)
@@ -358,7 +359,7 @@ make check
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/
 
 # View HA logs
-docker compose logs homeassistant   # if using Docker
+tail -50 /tmp/logs/ha-e2e-*.log    # if using hass (current method)
 tail -50 /tmp/ha-e2e.log            # if using manual hass
 ```
 
@@ -367,9 +368,11 @@ tail -50 /tmp/ha-e2e.log            # if using manual hass
 The `auth.setup.ts` detects if the integration is already configured and skips it. If there is a corrupt state:
 
 ```bash
-# Docker: remove volumes and recreate
-docker compose down -v
-docker compose up -d
+# If using Docker (DEPRECATED — not used for E2E):
+# docker compose down -v
+# docker compose up -d
+# Use the script instead:
+# make e2e (auto-handles everything)
 
 # hass manual: clean configuration
 rm -rf /tmp/ha-e2e-config/.storage

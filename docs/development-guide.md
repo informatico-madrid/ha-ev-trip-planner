@@ -6,9 +6,8 @@
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Python | 3.11+ (3.14 target) | Backend code |
+| Python | 3.11+ (3.14 target) | Backend, `pip install homeassistant` para E2E |
 | Node.js | 18+ | Frontend tooling, E2E tests |
-| Docker | Latest | HA Container test environment |
 | Git | Latest | Version control |
 | npm | Latest | Node package management |
 
@@ -35,13 +34,32 @@ pip install -r requirements_dev.txt
 npm install
 ```
 
-### 4. E2E Test Environment
+### 4. E2E Test Environment (no Docker)
 
-E2E tests run against `hass` directly (not Docker). The `run-e2e.sh` script manages the lifecycle automatically via `make e2e`.
+> ⚠️ E2E tests do NOT use Docker. Home Assistant is started directly via `hass` from the Python virtual environment.
+> Use `make e2e` or `./scripts/run-e2e.sh` to auto-start HA and run tests.
 
-For a persistent HA instance for agent navigation and real-user verification, use the staging environment: `make staging-up` (Docker on port 8124).
+HA will be available at `http://localhost:8123` (started by `scripts/run-e2e.sh`)
 
-See [`docs/staging-vs-e2e-separation.md`](docs/staging-vs-e2e-separation.md) for full separation rules.
+## Entornos — Recordatorio Crítico
+
+> ⚠️ **STAGING NUNCA TIENE TESTS.** Staging es para navegación interactiva con agentes IA.
+> Ver [staging-vs-e2e-separation.md](./staging-vs-e2e-separation.md) para reglas completas.
+
+| Entorno | Puerto | Motor | Tests | Agente |
+|---------|--------|-------|-------|--------|
+| **E2E** | 8123 | `hass` directo (Python venv) | SÍ | NO |
+| **Staging** | 8124 | Docker (`ha-staging`) | NO | SÍ |
+
+### Comandos de Entorno
+
+| Comando | Entorno | Descripción |
+|---------|---------|-------------|
+| `make e2e` | E2E | Auto-start HA + run E2E tests |
+| `make staging-up` | Staging | Iniciar HA en Docker (persistente) |
+| `make staging-down` | Staging | Detener contenedor staging |
+| `make staging-reset` | Staging | Reiniciar staging desde cero |
+| `make staging-logs` | Staging | `docker logs -f ha-staging` |
 
 ## Development Commands
 
@@ -170,7 +188,7 @@ tests/
 ### E2E Tests (Playwright)
 
 - **Target**: Critical user paths
-- **Setup**: Docker HA instance with trusted_networks auth
+- **Setup**: `hass` directly (no Docker) with trusted_networks auth
 - **Workers**: 1 (sequential execution)
 - **Helpers**: `trips-helpers.ts` provides shared functions
 
@@ -192,27 +210,18 @@ make check
 
 ## Environment Setup
 
-### Docker Test Environment
+### Docker Compose File (DEPRECATED — NOT used for E2E)
 
-The `docker-compose.yml` provides a HA Container instance:
+> ⚠️ `docker-compose.yml` exists as a historical residue. It is NOT referenced by the E2E test runner.
+> E2E tests use `hass` directly via `scripts/run-e2e.sh`.
 
-```yaml
-services:
-  homeassistant:
-    image: homeassistant/home-assistant:stable
-    container_name: ha-ev-trip-planner-test
-    ports:
-      - "8123:8123"
-    volumes:
-      - ./custom_components/ev_trip_planner:/config/custom_components/ev_trip_planner
-      - ./tests/ha-manual/configuration.yaml:/config/configuration.yaml:ro
-```
+Staging is already implemented via `docker-compose.staging.yml` and runs HA in Docker on port 8124 (see the Entornos section above).
 
 ### E2E Test Configuration
 
 - Auth: `trusted_networks` (no login required from localhost)
-- Config: Pre-configured with test input booleans
-- Scripts: `scripts/run-e2e.sh` handles HA lifecycle
+- Config: Pre-configured with test input booleans (`tests/ha-manual/configuration.yaml`)
+- Scripts: `scripts/run-e2e.sh` handles HA lifecycle (no Docker)
 
 ## Build & Deploy
 
@@ -262,12 +271,14 @@ services:
 ### HA Logs
 
 ```bash
-# Docker logs
-docker compose logs -f
+# E2E logs (hass direct method — current method)
+tail -f /tmp/logs/ha-e2e-*.log
 
 # Filter EV Trip Planner logs
-docker compose logs -f | grep ev_trip_planner
+grep ev_trip_planner /tmp/logs/ha-e2e-*.log
 ```
+
+> ⚠️ `docker compose logs` does NOT work for E2E — Docker is not used for E2E tests.
 
 ### Playwright Debug
 

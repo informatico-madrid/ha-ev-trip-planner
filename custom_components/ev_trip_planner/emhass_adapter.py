@@ -2517,14 +2517,22 @@ class EMHASSAdapter:
                         )
                         self._published_trips = all_trips_list
 
-        await self.update_charging_power()
+        await self.update_charging_power(
+            force="t_base" in changed_params or "soh_sensor" in changed_params
+        )
 
-    async def update_charging_power(self) -> None:
+    async def update_charging_power(self, force: bool = False) -> None:
         """
         Update charging power and republish sensor attributes if changed.
 
         FR-3.1/FR-3.2: Called when config entry is updated. Compares new power with
         stored value and republishes only if power actually changed.
+
+        Args:
+            force: If True, skip the unchanged-power early-return and always
+                   republish. Used when t_base or SOH sensor changes — SOC caps
+                   are recalculated and the cache must be refreshed even if
+                   charging_power is stable.
         """
         # CRITICAL FIX: Skip if shutting down - prevents republish during deletion
         if self._shutting_down:
@@ -2549,8 +2557,10 @@ class EMHASSAdapter:
             _LOGGER.warning("charging_power_kw not found in config entry")
             return
 
-        # Only republish if power actually changed
-        if new_power == self._charging_power_kw:
+        # Only republish if power actually changed (unless force is set).
+        # Force is used when t_base/SOH sensor changed — SOC caps are
+        # recalculated and the cache must be refreshed.
+        if not force and new_power == self._charging_power_kw:
             _LOGGER.debug("Charging power unchanged, skipping republish")
             return
 

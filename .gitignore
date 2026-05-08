@@ -97,6 +97,7 @@ specs/.current-spec
 .qwen/
 .agents/
 !.agents/skills/
+!.agents/skills/
 .github/skills/
 .ralph/logs/
 _bmad-output/
@@ -117,3 +118,4 @@ gito-classification-final-v2.md
 .gito/context.md
 quality-gate-checkpoint.json
 .progress.md
+docs/staging-qa-results.md
