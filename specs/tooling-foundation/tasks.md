@@ -137,7 +137,7 @@
   - _Requirements: FR-5, FR-6, FR-8, FR-18, FR-19_
   - _Design: Backward Compatibility Validation_
 
-- [ ] 3.2 [P] Test new Makefile targets
+- [x] 3.2 [P] Test new Makefile targets
   - **Do**: Run each new target: typecheck, security-bandit, layer1, layer2, layer3, layer4, quality-baseline. Verify they execute and produce output.
   - **Files**: Makefile (verification only)
   - **Done when**: All new targets execute; quality-baseline creates files in _bmad-output/quality-gate/baseline/
