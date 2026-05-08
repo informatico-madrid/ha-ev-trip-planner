@@ -69,7 +69,7 @@
   - _Requirements: FR-4_
   - _Design: Static Analysis Rules_
 
-- [ ] 1.6 Update pyproject.toml: remove mypy, add new tool configs
+- [x] 1.6 Update pyproject.toml: remove mypy, add new tool configs
   - **Do**: Remove [tool.mypy] section entirely; add [tool.pyright] with Python 3.14 target; add [tool.bandit], [tool.deptry], [tool.vulture], [tool.import-linter]; update pylint py-version to 3.14
   - **Files**: pyproject.toml
   - **Done when**: No [tool.mypy] in file; [tool.pyright] exists with pythonVersion="3.14"; pylint py-version="3.14"
