@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-08T17:28:14Z
+**Last updated:** 2026-05-08T17:41:48Z
 
 ## Directories (1)
 
@@ -49,7 +49,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | propagate-charge-wiring | ./specs | requirements |  |
 | propagate-charge-test | ./specs | requirements |  |
 | m403-dynamic-soc-capping | ./specs | tasks | awaiting approval |
-| tooling-foundation | ./specs | requirements | awaiting approval |
+| tooling-foundation | ./specs | design | awaiting approval |
 
 ---
 

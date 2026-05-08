@@ -15,7 +15,7 @@
 
 **Goal**: Install all tools, create configuration files, add Makefile targets, and prove they work end-to-end.
 
-- [ ] 1.1 Install Python quality and security tools
+- [x] 1.1 Install Python quality and security tools
   - **Do**: Install all pip packages in single command: bandit[toml], pip-audit, semgrep, deptry, vulture, pyright, import-linter, refurb, pytest-randomly, pytest-xdist, pre-commit
   - **Files**: requirements_dev.txt
   - **Done when**: All packages installed in .venv/, `which bandit pip-audit semgrep deptry vulture pyright` all return paths

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-08T17:28:14Z",
+  "updated": "2026-05-08T17:41:48Z",
   "directories": [
     {
       "path": "./specs",
@@ -244,7 +244,7 @@
     {
       "name": "tooling-foundation",
       "path": "./specs/tooling-foundation",
-      "phase": "requirements",
+      "phase": "design",
       "awaitingApproval": true
     }
   ]
