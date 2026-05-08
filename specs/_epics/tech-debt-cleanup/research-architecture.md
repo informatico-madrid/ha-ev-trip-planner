@@ -21,7 +21,7 @@ Epic: tech-debt-cleanup
 | `config_flow.py` | 1,038 | 2 | 15 | Moderate (1038 LOC) |
 | `sensor.py` | 1,041 | 4 | 28 | 16 pyright type errors (see Section 5.1) |
 | `presence_monitor.py` | 806 | 1 | 20 | Moderate (806 LOC, 20 methods) |
-| `vehicle_controller.py` | 537 | 8 | 40 | DEAD CODE (see Section 3.2) |
+| `vehicle_controller.py` | 537 | 8 | 40 | ACTIVE — wired into trip_manager.py (see Section 3.2) |
 | `schedule_monitor.py` | 327 | 2 | 15 | DEAD CODE (see Section 3.3) |
 | `coordinator.py` | 320 | 1 | 5 | Clean |
 | `utils.py` | 356 | 0 | 10 | Clean |

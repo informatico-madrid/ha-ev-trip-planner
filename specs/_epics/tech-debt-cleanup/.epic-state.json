@@ -6,7 +6,7 @@
     { "name": "dead-code-elimination", "status": "pending", "dependencies": [] },
     { "name": "test-architecture", "status": "pending", "dependencies": [] },
     { "name": "solid-refactoring", "status": "pending", "dependencies": ["test-architecture"] },
-    { "name": "high-arity-refactoring", "status": "pending", "dependencies": [] },
+    { "name": "high-arity-refactoring", "status": "pending", "dependencies": ["solid-refactoring"] },
     { "name": "mutation-score-ramp", "status": "pending", "dependencies": [] },
     { "name": "coverage-gap-closure", "status": "pending", "dependencies": [] },
     { "name": "lint-format-type", "status": "pending", "dependencies": ["solid-refactoring", "mutation-score-ramp", "coverage-gap-closure"] },

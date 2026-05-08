@@ -6,6 +6,28 @@ Systematically eliminate all technical debt to achieve 100% SOLID compliance, ze
 
 This epic touches all 18 source modules (~15,097 LOC), ~114 test files (~1,849 tests, including 10 TypeScript E2E), CI/CD, and Makefile infrastructure.
 
+### ⚠️ Critical Environment Note
+
+**ALL Python/bash commands in this project require virtual environment activation.** Before executing any `pip install`, `mutmut`, `pyright`, `pytest`, or other Python tool command, activate the venv:
+
+```bash
+. .venv/bin/activate
+```
+
+Every command in every spec assumes the venv is active. CI workflows must also handle venv activation. Failure to activate will result in tools not found or installing to the wrong Python.
+
+### ⚠️ SOLID Threshold Phasing
+
+The [`quality-gate.yaml`](.roo/skills/quality-gate/config/quality-gate.yaml) defines stricter SOLID thresholds than this epic's ARNs:
+
+| Metric | ARN Target (Phase 1) | quality-gate.yaml (Phase 2) |
+|--------|---------------------|---------------------------|
+| Max LOC per class | 500 | 200 |
+| Max public methods | 20 | 7 |
+| Max arity | 5 | 5 |
+
+This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is a future epic that further decomposes modules after the initial cleanup stabilizes. The quality-gate scripts should be configured with Phase 1 thresholds during this epic's execution.
+
 ## 2. Quality Gate Targets
 
 ### Layer 1: Test Execution (currently PASS)
@@ -33,18 +55,25 @@ This epic touches all 18 source modules (~15,097 LOC), ~114 test files (~1,849 t
 | Antipatterns Tier A | 0 | 0 |
 | `pragma: no cover` | 273 | 0 |
 | Format issues | 15 files | 0 |
-| Ruff errors | 1 (fixable) | 0 |
-| mypy | BROKEN | Working or explicitly replaced by pyright |
+| Ruff errors | 0 (clean) | 0 |
+| mypy | BROKEN | Replaced by pyright; `make check` calls pyright instead |
 | Circular import cycles | 3 | 0 |
 
 ### Layer 4: Security (currently 0 tools installed)
-| Tool | Target |
-|------|--------|
-| bandit | Installed + CI gate |
-| gitleaks | Installed + CI gate |
-| pip-audit / safety | Installed + CI gate |
-| semgrep | Installed (optional, no gate) |
-| checkov | Installed (optional, no gate) |
+| Tool | Priority | Target |
+|------|----------|--------|
+| bandit | Required | Installed + CI gate |
+| gitleaks | Required | Installed + CI gate |
+| pip-audit / safety | Required | Installed + CI gate |
+| semgrep | Recommended | Installed (optional, no gate) |
+| checkov | Recommended | Installed (optional, no gate) |
+| deptry | Recommended | Installed — verifies import consistency after module splits |
+| vulture | Recommended | Installed — detects dead code (complements Spec 1) |
+| import-linter | Recommended | Installed — enforces dependency rules between modules, prevents new circular imports after Spec 3 splits |
+| pre-commit | Recommended | Installed — automates quality checks before each commit, prevents regressions between specs |
+| pytest-randomly | Recommended | Installed — randomizes test execution order, catches hidden inter-test dependencies after Spec 2 |
+| pytest-xdist | Recommended | Installed — parallel test execution, speeds up CI 3-5x (critical for mutmut in Spec 5) |
+| refurb | Optional | Installed — suggests Python modernizations during Spec 7 cleanup |
 
 ### TypeScript Quality (10 TS test files, not yet measured)
 | Metric | Current | Target |
@@ -79,6 +108,10 @@ Every test must assert real behavior. `assert True` must be replaced with actual
 ### ARN-008: Tests organized by layer
 Tests must be organized: `tests/unit/` (mocked unit tests), `tests/integration/` (real dependencies), `tests/e2e/` (browser-based). No flat structure.
 
+**Naming convention**: `test_{module}_{aspect}.py` for unit tests, `test_{module}_integration.py` for integration tests. Shared fixtures in `tests/conftest.py` and `tests/fixtures/`. Test helpers in `tests/helpers/`.
+
+**Excluded tests**: `tests_excluded_from_mutmut/` files must be evaluated — keep, move into new structure, or delete if obsolete.
+
 ### ARN-009: No unused imports or backup files
 `.cover` files, `panel.js.bak/.old/.fixed` backups must be removed or moved to `_docs/`.
 
@@ -89,6 +122,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 
 ### Spec 0: Tooling Foundation
 - **Goal**: Install missing tools, fix broken tooling, add Makefile targets, establish baseline metrics.
+- **Prerequisites**: `.venv` exists and is activated for all commands.
 - **Acceptance Criteria**:
   - AC-0.1: `bandit` installed and `make security-bandit` target works
   - AC-0.2: `pip-audit` or `safety` installed and `make security-audit` target works
@@ -97,11 +131,22 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-0.5: `mypy` broken — replaced with `pyright` as primary type checker; `make typecheck` runs pyright
   - AC-0.6: `make quality-gate` target added (orchestrates layers 1-4)
   - AC-0.7: `make mutation` shortcut target added
-  - AC-0.8: `make typecheck` replaces `make mypy` (pyright only, mypy skipped)
+  - AC-0.8: `make typecheck` replaces `make mypy` (pyright only, mypy skipped); `make check` updated to call pyright instead of mypy
   - AC-0.9: All existing targets (`test`, `lint`, `format`, `e2e`, `check`) still work
   - AC-0.10: CI workflow updated to include quality-gate, mutation, and coverage gates
+  - AC-0.11: Full quality-gate baseline snapshot saved to `_bmad-output/quality-gate/tech-debt-baseline.json`
+  - AC-0.12: `deptry` installed — verifies import consistency (critical for post-Spec 3 validation)
+  - AC-0.13: `vulture` installed — detects dead code (complements Spec 1)
+  - AC-0.14: TypeScript tooling installed: `tsc`, ESLint for TS, Prettier
+  - AC-0.15: `_bmad-output/` directory added to `.gitignore`
+  - AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented
+  - AC-0.17: `import-linter` installed with layer configuration (prevents new circular imports post-Spec 3)
+  - AC-0.18: `pre-commit` installed with hooks for ruff, pyright, bandit, deptry (prevents regressions between specs)
+  - AC-0.19: `pytest-randomly` installed (catches hidden inter-test dependencies after Spec 2 reorganization)
+  - AC-0.20: `pytest-xdist` installed (parallel test execution, speeds up CI 3-5x, critical for mutmut in Spec 5)
+  - AC-0.21: `refurb` installed (suggests Python modernizations for Spec 7 cleanup)
 - **Interface Contracts**: Makefile targets must produce consistent exit codes (0 = pass, non-0 = fail) and machine-readable output for CI.
-- **Estimated Size**: 2h (tool install) + 3h (Makefile/CI updates) = **0.5 story points**
+- **Estimated Size**: **0.5 story points**
 - **Dependencies**: None (baseline, runs first)
 
 ### Spec 1: Dead Code & Artifact Elimination
@@ -110,69 +155,99 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-1.1: `schedule_monitor.py` deleted (confirmed 0 source imports from any active code path)
   - AC-1.2: `tests/test_schedule_monitor.py` deleted (depends on schedule_monitor.py)
   - AC-1.3: `tests/test_coverage_edge_cases.py` updated to remove schedule_monitor import (line 529)
-  - AC-1.4: All `*.py,cover` files (19 mutmut artifacts) added to `.gitignore`, NOT moved to `_docs/`
+  - AC-1.4: All `*.py,cover` files (19 mutmut artifacts) added to `.gitignore` with pattern `*,cover`; existing tracked files removed via `git rm --cached`
   - AC-1.5: `frontend/panel.js.bak`, `frontend/panel.js.old`, `frontend/panel.js.fixed` deleted
   - AC-1.6: `dashboard.py` remains (3 active importers: config_flow, services, __init__), but verified as god class target for Spec 3
   - AC-1.7: `vehicle_controller.py` remains (14 references across 4 files, IS wired), but verified as god class target for Spec 3
   - AC-1.8: `make test` still passes (test count drops by ~15-20 due to deleted test files, new count: ~1,830)
   - AC-1.9: No new import errors introduced
+  - AC-1.10: `[tool.quality-gate.mutation.modules.schedule_monitor]` removed from `pyproject.toml`
+  - AC-1.11: `protocols.py,cover` removed (references non-existent file)
+  - AC-1.12: `tests/ha-manual/` is a full HA test instance for E2E testing (NOT browser cache) — keep directory but clean up 63+ stale dashboard YAML versions (`ev-trip-planner-chispitas.yaml.{2..63}`)
+  - AC-1.13: Deprecated Lovelace auto-import gated behind feature flag or removed (`async_import_dashboard_for_entry` call in `__init__.py:187`)
 - **Interface Contracts**: No public APIs affected. `schedule_monitor.py` is never imported from production code.
-- **Estimated Size**: 3-4h = **0.25 story points**
+- **Estimated Size**: **0.25 story points**
 - **Dependencies**: None (can run in parallel with Spec 0)
 
 ### Spec 2: Test Architecture Reorganization
 - **Goal**: Reorganize ~107 flat test files into unit/integration/E2E structure. Consolidate duplicate/weak tests. Eliminate `assert True`.
 - **Acceptance Criteria**:
-  - AC-2.1: Tests organized: `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/fixtures/`
+  - AC-2.1: Tests organized: `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/fixtures/`, `tests/helpers/`
   - AC-2.2: 13 `test_trip_manager*.py` files consolidated into ≤ 3 focused test files
   - AC-2.3: 6 `test_config_flow*.py` files consolidated into ≤ 2 files
   - AC-2.4: Multiple `test_coverage*.py` files consolidated or replaced with behavior-driven tests
   - AC-2.5: 2 `assert True` violations fixed (replaced with real assertions or removed)
   - AC-2.6: Orphaned bug-finding tests (10 files) consolidated into behavior-driven regression tests
   - AC-2.7: `conftest.py` refactored: large fixture (~700 lines) split into module-scoped fixtures
-  - AC-2.8: `make test` passes with >= 1,848 tests
+  - AC-2.8: `make test` passes with >= 1,830 tests (post-Spec 1 baseline)
   - AC-2.9: All pytest path configuration updated in `pyproject.toml`
+  - AC-2.10: `tests_excluded_from_mutmut/` files evaluated: kept, moved into new structure, or deleted
+  - AC-2.11: Coverage source paths in `pyproject.toml` updated to reflect new test structure
 - **Interface Contracts**: Test file paths change; `conftest.py` fixture signatures must remain compatible. Update `mutmut tests_dir` if paths change.
-- **Estimated Size**: 12-20h = **1.5-2.0 story points**
+- **Estimated Size**: **1.5-2.0 story points**
 - **Dependencies**: None (independent of Spec 0 and Spec 1; can run in parallel)
 
 ### Spec 3: SOLID Refactoring — God Classes
 - **Goal**: Decompose god classes into focused modules. Eliminate all SOLID Tier A violations and 3 circular import cycles.
+- **⚠️ Naming Conflict**: `custom_components/ev_trip_planner/dashboard/` already exists as a template directory with YAML/JS files. When splitting `dashboard.py` into a package, the templates must be moved to a subdirectory (e.g., `dashboard/templates/`) to avoid conflicts with Python package `__init__.py`.
 - **Acceptance Criteria**:
   - AC-3.0: `dashboard.py` (1,285 LOC) split into:
+    - `dashboard/__init__.py` — re-exports public API (import_dashboard, DashboardImportResult, is_lovelace_available)
     - `dashboard/importer.py` — import_dashboard, DashboardImportResult
-    - `dashboard/templates.py` — YAML/JS template management
+    - `dashboard/template_manager.py` — YAML/JS template loading and management
+    - `dashboard/templates/` — existing YAML/JS template files moved here
   - AC-3.0b: `vehicle_controller.py` (537 LOC) split into:
+    - `vehicle/__init__.py` — re-exports VehicleController
     - `vehicle/strategy.py` — VehicleControlStrategy ABC + SwitchStrategy + ServiceStrategy
     - `vehicle/external.py` — ScriptStrategy + ExternalStrategy
     - `vehicle/controller.py` — VehicleController orchestrator
   - AC-3.0c: `calculations.py` (1,690 LOC) split into:
+    - `calculations/__init__.py` — re-exports all public functions
     - `calculations/windows.py` — charging window calculations
     - `calculations/power.py` — power profile generation
     - `calculations/deficit.py` — deficit propagation
   - AC-3.1: `emhass_adapter.py` (2,730 LOC, 41 methods) split into:
+    - `emhass/__init__.py` — re-exports EMHASSAdapter
     - `emhass/index_manager.py` — assign/release/cleanup of deferrable load indices
     - `emhass/load_publisher.py` — async_publish_all, cache management
     - `emhass/error_handler.py` — notification and error recovery
   - AC-3.2: `trip_manager.py` (2,503 LOC, 49 methods) split into:
+    - `trip/__init__.py` — re-exports TripManager
     - `trip/crud.py` — add/update/delete/list trips
     - `trip/soc_calculator.py` — SOC calculation logic (calcular_ventana_carga, etc.)
     - `trip/power_profile.py` — power profile generation
     - `trip/schedule_generator.py` — deferrables schedule generation
   - AC-3.3: `services.py` (1,635 LOC, 27 functions) split into:
+    - `services/__init__.py` — re-exports all service functions
     - `services/handlers.py` — service handler functions (grouped by domain)
-    - `services/dashboard.py` — dashboard import helpers
+    - `services/dashboard_helpers.py` — dashboard import helpers (renamed to avoid confusion with dashboard/ package)
     - `services/cleanup.py` — cleanup operations
   - AC-3.4: Circular import cycles eliminated:
     - `coordinator -> trip_manager -> sensor -> coordinator` → `from __future__ import annotations` in coordinator.py
     - `trip_manager -> vehicle_controller -> presence_monitor -> trip_manager` → TYPE_CHECKING imports
     - `trip_manager -> vehicle_controller -> trip_manager` → string type annotations
-  - AC-3.5: All 18 modules <= 500 LOC
+  - AC-3.5: All modules <= 500 LOC (new package sub-modules counted individually)
   - AC-3.6: All classes <= 20 public methods
-  - AC-3.7: `make test` passes with >= 1,848 tests
+  - AC-3.7: `make test` passes with >= 1,830 tests (post-Spec 1 baseline)
   - AC-3.8: No new pyright errors introduced
-- **Interface Contracts**: Public API surface of `TripManager` and `EMHASSAdapter` must remain identical. Refactored modules expose the same methods/signatures. Update imports in all consumers.
-- **Estimated Size**: 80-120h = **8.0-12.0 story points**
+  - AC-3.9: `pyproject.toml` mutation config updated: old module entries replaced with new sub-module entries
+  - AC-3.10: `pyproject.toml` `[tool.mutmut] paths_to_mutate` updated for new package structure
+  - AC-3.11: `services.yaml` updated if service signatures change
+  - AC-3.12: `deptry` run after all splits to verify no broken imports
+  - AC-3.13: `ventana_horas` bug fix applied in calculations split (ROADMAP: inflated by away time in `calculations.py:545`)
+- **Interface Contracts**: Public API surface of ALL split modules must remain identical — each package's `__init__.py` re-exports the original public API. Consumers import from the package name without needing to know internal structure. **Verified import graph — required re-exports per package:**
+
+  | Package | Must Re-Export | Imported By |
+  |---------|---------------|-------------|
+  | `emhass/` | `EMHASSAdapter` | `__init__.py`, `coordinator.py`, `trip_manager.py` |
+  | `trip/` | `TripManager` | `__init__.py`, `services.py`, `coordinator.py`, `presence_monitor.py` (TYPE_CHECKING), `vehicle_controller.py` (TYPE_CHECKING) |
+  | `services/` | 10 functions: `async_cleanup_orphaned_emhass_sensors`, `async_cleanup_stale_storage`, `async_import_dashboard_for_entry`, `async_register_panel_for_entry`, `async_register_static_paths`, `async_remove_entry_cleanup`, `async_unload_entry_cleanup`, `build_presence_config`, `create_dashboard_input_helpers`, `register_services` | `__init__.py` |
+  | `calculations/` | All public functions (11+ import sites in `emhass_adapter.py` and `trip_manager.py`) | `emhass_adapter.py`, `trip_manager.py` |
+  | `dashboard/` | `import_dashboard`, `is_lovelace_available`, `DashboardImportResult` | `config_flow.py`, `services.py` |
+  | `vehicle/` | `VehicleController` | `trip_manager.py` |
+
+  **Internal imports within split modules** (e.g., `trip_manager.py` importing from `calculations.py` 7 times) must be updated to point to the correct sub-module after the split.
+- **Estimated Size**: **8.0-12.0 story points**
 - **Dependencies**: Spec 2 (test reorganization first, so tests don't break during refactoring)
 
 ### Spec 4: High-Arity & Parameter Refactoring
@@ -188,38 +263,41 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-4.8: `make test` passes
   - AC-4.9: All type checks pass (pyright)
 - **Interface Contracts**: Parameter order and names may change — update all callers. Dataclass fields must be named consistently.
-- **Estimated Size**: 8-12h = **0.5 story points**
-- **Dependencies**: None (mechanical change; can run in parallel with Spec 2 or after Spec 3 for cleaner modules)
+- **Estimated Size**: **0.5 story points**
+- **Dependencies**: Must run AFTER Spec 3 for `calculations`, `dashboard`, and `emhass_adapter` modules (their functions move to new files during the split). Can run in parallel with Spec 2 for other modules.
 
-### Spec 5: Mutation Score Ramp (48% → 80%)
-- **Goal**: Incrementally raise mutation kill rate from ~49% to 80% across all 17 modules.
+### Spec 5: Mutation Score Ramp (49% → 80%)
+- **Goal**: Incrementally raise mutation kill rate from ~49% to 80% across all modules.
 - **Acceptance Criteria**:
-  - AC-5.1: All 17 modules meet or exceed target kill rate from pyproject.toml
+  - AC-5.1: All modules meet or exceed target kill rate from `pyproject.toml`
   - AC-5.2: Global kill rate >= 80%
   - AC-5.3: Per-module status all changed from `"in_progress"` to `"passing"`
   - AC-5.4: `make mutation` passes
   - AC-5.5: `make quality-gate` passes Layer 1 mutation check
-- **Per-module strategy** (lowest-hanging-fruit first):
-  1. `definitions` (100% → 80%) — already strong, verify
-  2. `diagnostics` (93% → 80%) — already strong, verify
-  3. `utils` (89% → 80%) — already strong, verify
-  4. `calculations` (72% → 80%) — +8pp needed
-  5. `vehicle_controller` (55% → 80%) — +25pp needed
-  6. `emhass_adapter` (53% → 80%) — +27pp needed
-  7. `presence_monitor` (52% → 80%) — +28pp needed
-  8. `yaml_trip_storage` (51% → 80%) — +29pp needed
-  9. `schedule_monitor` (50% → 80%) — +30pp (delete in Spec 1, skip this module)
-  10. `__init__` (52% → 80%) — +28pp needed
-  11. `trip_manager` (47% → 80%) — +33pp needed
-  12. `dashboard` (35% → 80%) — +45pp needed
-  13. `services` (38% → 80%) — +42pp needed
-  14. `config_flow` (31% → 80%) — +49pp needed
-  15. `coordinator` (38% → 80%) — +42pp needed
-  16. `sensor` (39% → 80%) — +41pp needed
-  17. `panel` (38% → 80%) — +42pp needed
+- **Per-module strategy** (lowest-hanging-fruit first, using actual kill rates from latest mutmut run):
+  | # | Module | Current Kill Rate | Threshold | Gap to 80% | Priority |
+  |---|--------|------------------|-----------|------------|----------|
+  | 1 | definitions | ~100% | 0.45 | ✅ Already met | Verify only |
+  | 2 | diagnostics | ~93% | 0.28 | ✅ Already met | Verify only |
+  | 3 | utils | ~89% | 0.89 | ✅ Already met | Verify only |
+  | 4 | calculations | ~72% | 0.71 | +8pp | Easy |
+  | 5 | vehicle_controller | ~55% | 0.55 | +25pp | Medium |
+  | 6 | emhass_adapter | ~53% | 0.53 | +27pp | Medium |
+  | 7 | presence_monitor | ~52% | 0.52 | +28pp | Medium |
+  | 8 | yaml_trip_storage | ~51% | 0.50 | +29pp | Medium |
+  | 9 | __init__ | ~52% | 0.51 | +28pp | Medium |
+  | 10 | trip_manager | ~47% | 0.46 | +33pp | Hard |
+  | 11 | dashboard | ~35% | 0.35 | +45pp | Hard |
+  | 12 | services | ~38% | 0.38 | +42pp | Hard |
+  | 13 | config_flow | ~31% | 0.31 | +49pp | Hard |
+  | 14 | coordinator | ~38% | 0.37 | +42pp | Hard |
+  | 15 | sensor | ~39% | 0.38 | +41pp | Hard |
+  | 16 | panel | ~38% | 0.37 | +42pp | Hard |
+
+  **Note**: `schedule_monitor` is excluded (deleted in Spec 1). After Spec 3 module splits, module names in `pyproject.toml` will change to reflect new package structure. Update mutation config accordingly.
 - **Interface Contracts**: Tests may need significant rewrites. No source code API changes required.
-- **Estimated Size**: 60-90h = **6.0-9.0 story points**
-- **Dependencies**: None hard — can start in parallel with Spec 2 on low-hanging-fruit modules. Spec 3 refactoring makes modules more testable but doesn't block.
+- **Estimated Size**: **6.0-9.0 story points**
+- **Dependencies**: None hard — can start in parallel with Spec 2 on low-hanging-fruit modules. Spec 3 refactoring makes modules more testable but doesn't block. After Spec 3, module names change — coordinate mutation config updates.
 
 ### Spec 6: Coverage Gap Closure — Zero `pragma: no cover`
 - **Goal**: Eliminate all 273 `pragma: no cover` locations by making IO error paths testable via mocking.
@@ -230,7 +308,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-6.4: `make test-cover` passes (`--cov-fail-under=100`)
   - AC-6.5: Mutation gate still passes (Spec 5 work overlaps)
 - **Interface Contracts**: No API changes. Only test code additions.
-- **Estimated Size**: 24-36h = **2.0-3.0 story points**
+- **Estimated Size**: **2.0-3.0 story points**
 - **Dependencies**: Can run in parallel with Spec 5 (coverage tests often improve mutation scores)
 
 ### Spec 7: Lint, Format, and Type Cleanup
@@ -238,13 +316,14 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 - **Acceptance Criteria**:
   - AC-7.1: `ruff check` passes with zero errors
   - AC-7.2: `ruff format` passes with zero files needing reformat
-  - AC-7.3: `pyright` passes with zero errors (resolve 16 sensor.py HA Entity override issues via `type: ignore` or protocol adoption)
+  - AC-7.3: `pyright` passes with zero errors (resolve 16 sensor.py HA Entity override issues via `type: ignore` with justification comments, or protocol adoption)
   - AC-7.4: `pylint` passes with zero warnings
-  - AC-7.5: No E2E-DEBUG tagged logs remain in production code (remove or gate behind feature flag)
+  - AC-7.5: E2E-DEBUG tagged logs gated behind environment variable (not removed — E2E tests depend on them). Pattern: `if os.environ.get("E2E_DEBUG"):`
   - AC-7.6: No unused imports anywhere
   - AC-7.7: 90+ DEBUG log lines reviewed — non-essential debug logs replaced with proper log levels
-- **Interface Contracts**: No API changes. Debug log removal is safe (DEBUG level, not used by any production logic).
-- **Estimated Size**: 4-6h = **0.25 story points**
+  - AC-7.8: Active TODOs in source code converted to GitHub issues or documented as accepted tech debt
+- **Interface Contracts**: No API changes. Debug log gating is safe (environment variable, not used by any production logic).
+- **Estimated Size**: **0.25 story points**
 - **Dependencies**: After all refactoring is done (Specs 3-6)
 
 ### Spec 8: Security & CI Hardening
@@ -255,9 +334,9 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
   - AC-8.3: `pip-audit` finds zero known vulnerabilities (or documented acceptable risk)
   - AC-8.4: CI workflow includes quality-gate, mutation, coverage, lint, and security scans
   - AC-8.5: `make security` target runs all Layer 4 tools
-  - AC-8.6: Playwright CI workflow re-enabled (was `.yml.disabled`)
+  - AC-8.6: Playwright CI workflow re-enabled — requires HA test instance in CI (Docker container or mock)
 - **Interface Contracts**: CI-only changes. No code or API changes.
-- **Estimated Size**: 4-6h = **0.5 story points**
+- **Estimated Size**: **0.5 story points**
 - **Dependencies**: Spec 0 (tools installed first), Spec 7 (code must be clean for security scans)
 
 ## 5. Deterministic Gate Checkpoints
@@ -296,7 +375,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 
 ### Phase 4: High-Arity & Parameter Refactoring (Spec 4)
 **What**: Replace long parameter lists with dataclasses in all modules.
-**Why fifth (or parallel with Phase 3)**: Arity fixes are mechanical changes. Can run in parallel with Spec 2 or after Spec 3. After god classes are split, modules are smaller and functions better scoped.
+**Why after Phase 3**: Arity fixes are mechanical changes BUT the target functions live in modules that Spec 3 splits into packages. Running Spec 4 before Spec 3 means re-applying changes after the split. Running after ensures changes land in the correct final file locations. For modules NOT being split (config_flow, coordinator, sensor, etc.), arity fixes can proceed in parallel with Spec 3.
 
 ### Phase 5: Mutation Score Ramp (Spec 5) + Coverage Gap Closure (Spec 6)
 **What**: Raise mutation kill rate 49% → 80%. Eliminate `pragma: no cover`.
@@ -344,20 +423,56 @@ All modules in `custom_components/ev_trip_planner/` — affected files by spec:
 
 | Spec | Files Changed |
 |------|-------------|
-| Spec 0 | `Makefile`, `pyproject.toml`, `.github/workflows/python-tests.yml` |
-| Spec 1 | Delete: `schedule_monitor.py`. Move: `*.cover` files, `frontend/panel.js.*` |
-| Spec 2 | Move/rename all `tests/test_*.py` → `tests/unit/`, `tests/integration/` |
-| Spec 3 | Split: `emhass_adapter.py`, `trip_manager.py`, `services.py`. Fix: `coordinator.py`, `sensor.py`, `presence_monitor.py`, `vehicle_controller.py` |
-| Spec 4 | Modify: `calculations.py`, `dashboard.py`, `emhass_adapter.py` |
+| Spec 0 | `Makefile`, `pyproject.toml`, `.github/workflows/python-tests.yml`, `.gitignore` |
+| Spec 1 | Delete: `schedule_monitor.py`. Remove: `*.cover` files, `frontend/panel.js.*`. Update: `pyproject.toml` mutation config |
+| Spec 2 | Move/rename all `tests/test_*.py` → `tests/unit/`, `tests/integration/`. Update: `pyproject.toml` test paths |
+| Spec 3 | Split: `emhass_adapter.py`, `trip_manager.py`, `services.py`, `dashboard.py`, `vehicle_controller.py`, `calculations.py`. Fix: `coordinator.py`, `sensor.py`, `presence_monitor.py`. Update: `services.yaml`, mutation config |
+| Spec 4 | Modify: `calculations/`, `dashboard/`, `emhass/` (post-split packages) |
 | Spec 5 | Add: new tests in `tests/unit/`, `tests/integration/` |
 | Spec 6 | Modify: source files (remove `pragma: no cover`), add tests |
-| Spec 7 | Modify: `sensor.py` (16 pyright errors), all source files (format/lint) |
+| Spec 7 | Modify: `sensor.py` (16 pyright errors), all source files (format/lint), E2E-DEBUG gating |
 | Spec 8 | Add: `.github/workflows/security.yml`, modify `Makefile` |
 
-## 10. Notes
+## 10. Rollback Strategy
+
+Each spec must be developed on its own branch with the following safety measures:
+
+- **Branching**: `feat/tech-debt-spec-{N}` for each spec, merged to `feat/tech-debt-cleanup` only after checkpoint passes
+- **Git tags**: `tech-debt-pre-spec-{N}` before starting each spec
+- **Checkpoint commits**: Within Spec 3, commit after each module split (not just at the end)
+- **Rollback procedure**: If a checkpoint fails and cannot be fixed, revert to the last passing tag
+- **Quality gate snapshots**: Save gate results after each spec to `_bmad-output/quality-gate/` for comparison
+
+## 11. Lessons Learned Template
+
+After each spec is completed, document:
+
+```markdown
+### Spec {N}: {Name} — Lessons Learned
+- **What went well**:
+- **What went wrong**:
+- **What surprised us**:
+- **What we'd do differently**:
+- **Impact on subsequent specs**:
+```
+
+This section is populated during implementation, not during planning.
+
+## 12. Notes
 
 - **POC shortcuts taken**: N/A — this is a production cleanup, not a feature. Every change is production-ready.
 - **Production TODOs**: None — all changes are scoped to cleanup.
 - **Spec 5 parallelization**: Mutation score improvement can be done in parallel across modules. Group modules by difficulty: easy (utils, definitions, diagnostics), medium (calculations, vehicle_controller, emhass_adapter), hard (config_flow, sensor, services, panel, dashboard).
 - **Spec 6 and Spec 5 overlap**: Coverage gap closure often improves mutation scores. Coordinate these specs — some test additions serve both goals.
 - **Spec 3 is the critical path**: This is the highest-risk, highest-effort spec. If it fails, the entire epic is blocked. Allocate the most experienced engineers to this spec.
+- **Phase 2 SOLID tightening**: After this epic achieves ARN thresholds (500 LOC, 20 methods), a future epic will tighten to quality-gate.yaml thresholds (200 LOC, 7 methods).
+- **mutation-testing skill**: Available as a global skill at `/home/malka/.roo/skills/mutation-testing/SKILL.md` — use for guidance when improving mutation scores in Spec 5.
+- **Quality-gate workflow mapping**: The quality-gate skill at `.roo/skills/quality-gate/` uses step-file architecture. Spec-to-step mapping:
+  - Spec 0 → `step-01-init.md` (initialize gate, install tools)
+  - Spec 5 + Spec 6 → `step-02-layer1.md` (test execution, coverage, mutation)
+  - Spec 2 + Spec 5 → `step-03-layer2.md` (test quality, weak tests, diversity)
+  - Spec 7 → `step-03a-layer3a.md` (Tier A smoke test: ruff, pyright, SOLID)
+  - Spec 3 → `step-04-layer3b.md` (Tier B BMAD Party Mode: SOLID Tier B, antipatterns)
+  - All specs → `step-05-checkpoint.md` (checkpoint JSON generation)
+  - Spec 8 → `step-06-layer4.md` (security and defense)
+- **Quality-gate execution order**: L3A → L1 → L2 → L3B → L4. Fail-fast: if L3A smoke test fails, don't waste time on mutation testing (~15 min).

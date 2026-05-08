@@ -106,11 +106,15 @@ mypy fails with a Python 3.14 syntax incompatibility in `homeassistant` package 
 | `home-assistant-best-practices` | `.agents/skills/` (symlink) | HA automation/dashboard patterns |
 | `python-performance` | `.agents/skills/` (symlink) | Python performance optimization |
 
+### Available as Global Skills
+| Skill | Location | Status |
+|-------|----------|--------|
+| `mutation-testing` | `/home/malka/.roo/skills/mutation-testing/SKILL.md` | **AVAILABLE** — global skill, not project-local. Covers Stryker (TS/JS) and mutmut (Python). Use for Spec 5 guidance. |
+| `mutation-gate` | Command/skill defined in project context | **AVAILABLE** — mutation gate cycle command (venv → mutmut → gate check) |
+
 ### NOT Found
 | Skill | Expected Location | Status |
 |-------|-------------------|--------|
-| `mutation-testing` | `.claude/skills/` or `.agents/skills/` | **NOT FOUND** (skill referenced in quality-gate but not installed) |
-| `mutation-gate` | `.agents/skills/` | **NOT FOUND** |
 | `simplify` | `.agents/skills/` | **NOT FOUND** |
 
 ---
