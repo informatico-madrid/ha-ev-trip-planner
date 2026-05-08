@@ -1,9 +1,0 @@
-# CodeRabbit configuration
-# Exclude large directories from review to stay within file limits
-
-exclude:
-  - specs/**/*
-  - tests/**/*
-  - tests_excluded_from_mutmut/**/*
-  - .agents/**/*
-  - _bmad/**/*
