@@ -102,7 +102,7 @@
 
 **Goal**: Build Makefile orchestration layer with clean architecture, maintain backward compatibility.
 
-- [ ] 2.1 Create Makefile targets: layers, security, typecheck, quality-gate
+- [x] 2.1 Create Makefile targets: layers, security, typecheck, quality-gate
   - **Do**: Add .PHONY targets for layer1, layer1-ci, layer2, layer3, layer4; quality-gate, quality-gate-ci; security-bandit, security-audit, security-gitleaks, security-semgrep; typecheck (pyright); dead-code, unused-deps, import-check, refurb; test-parallel, test-random; e2e-lint; pre-commit-install, pre-commit-run, pre-commit-update; quality-baseline. Update mypy target to run pyright with deprecation warning. Update check target to use typecheck. Add bilingual help text for all new targets.
 
     **E2E auto-discovery**: layer1 target uses wildcard pattern `e2e-%` to auto-discover E2E suite targets. This integrates with existing `e2e` and `e2e-soc` targets. Headed/debug variants (e2e-debug, e2e-headed) are NOT auto-discovered—only the base suite names are valid for layer1. This satisfies FR-27 (auto-discovery) and FR-29 (layer1-ci excludes E2E).
