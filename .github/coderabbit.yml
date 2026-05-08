@@ -1,21 +1,9 @@
 # CodeRabbit configuration
 # Exclude large directories from review to stay within file limits
 
-path_filters:
-  # Spec harness internal files (not relevant for code review)
-  - exclude: "specs/**/.ralph-state.json"
-  - exclude: "specs/**/.progress-task-*.md"
-  - exclude: "specs/**/references/.ralph-field-baseline.json"
-  - exclude: "specs/**/references/.ralph-field-baseline.json.lock"
-  - exclude: "specs/**/.metrics.jsonl"
-
-  # Skills and agents (template code, not project code)
-  - exclude: ".agents/**"
-  - exclude: "_bmad/**"
-
-  # Epic-level specs (review individual specs, not epics)
-  - exclude: "specs/_epics/**"
-
-  # Test files (large count, review manually as needed)
-  - exclude: "tests/**"
-  - exclude: "tests_excluded_from_mutmut/**"
+exclude:
+  - specs/**/*
+  - tests/**/*
+  - tests_excluded_from_mutmut/**/*
+  - .agents/**/*
+  - _bmad/**/*
