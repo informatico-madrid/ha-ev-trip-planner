@@ -11,6 +11,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_INDEX_COOLDOWN_HOURS,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_NOTIFICATION_SERVICE,
+    CONF_T_BASE,
     CONF_VEHICLE_NAME,
     EMHASS_STATE_ACTIVE,
     EMHASS_STATE_ERROR,
@@ -6927,3 +6928,79 @@ async def test_cleanup_coordinator_data_mutation_exception(hass, mock_store):
         "homeassistant.helpers.entity_registry.async_get", return_value=mock_registry
     ):
         await adapter.async_cleanup_vehicle_indices()  # Should not raise
+
+
+# =============================================================================
+# SOC CAP POWER ASSERTION BUG — P_deferrable_nom must NEVER be reduced by cap_ratio
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_soc_cap_does_not_reduce_p_deferrable_nom(hass, mock_store):
+    """SOC cap must ONLY affect kwh_needed, def_total_hours, and power_profile.
+
+    P_deferrable_nom must ALWAYS equal the charger hardware power
+    (charging_power_kw * 1000), never charger_power * cap_ratio.
+
+    The bug: emhass_adapter.py line ~746 applies `power_watts = power_watts * cap_ratio`,
+    turning 11000W into 3850W (35% cap). This is wrong — SOC cap should reduce
+    hours, not power.
+
+    Spec (spec.md:152): "The algorithm NEVER prevents a trip from succeeding.
+    The dynamic limit is an upper bound, never a target."
+
+    Regression fix: remove cap_ratio multiplication from power_watts in
+    _populate_per_trip_cache_entry.
+    """
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 11.0,  # 11000W
+        CONF_T_BASE: 24.0,
+    }
+    adapter = EMHASSAdapter(hass, config)
+    adapter._loaded = True
+
+    trip = {
+        "id": "test_trip_soc_cap",
+        "tipo": "puntual",
+        "kwh": 15.0,
+        "hora": "10:00",
+        "dia_semana": "monday",
+        "datetime": "2026-06-01T10:00:00",
+    }
+
+    # Mock the power profile calculation
+    mock_profile = [0.0] * 168
+    for i in range(5, 10):
+        mock_profile[i] = 11000.0
+
+    with patch.object(
+        adapter,
+        "_calculate_power_profile_from_trips",
+        return_value=mock_profile,
+    ):
+        await adapter._populate_per_trip_cache_entry(
+            trip=trip,
+            trip_id="test_trip_soc_cap",
+            charging_power_kw=11.0,
+            battery_capacity_kwh=50.0,
+            safety_margin_percent=10.0,
+            soc_current=40.0,
+            hora_regreso=None,
+            soc_cap=35.0,  # Aggressive SOC cap — would reduce power to 3850W if bug exists
+        )
+
+    params = adapter._cached_per_trip_params["test_trip_soc_cap"]
+
+    # THE KEY ASSERTION: P_deferrable_nom must ALWAYS be the charger hardware power.
+    # If the bug exists, this will be 3850.0 (11000 * 0.35) instead of 11000.0.
+    assert params["P_deferrable_nom"] == 11000.0, (
+        f"P_deferrable_nom={params['P_deferrable_nom']} — "
+        f"expected 11000.0 (charger power). "
+        f"Bug: SOC cap is distorting power values (cap_ratio=0.35). "
+        f"The fix: remove 'power_watts = power_watts * cap_ratio' from "
+        f"emhass_adapter.py line ~746."
+    )
