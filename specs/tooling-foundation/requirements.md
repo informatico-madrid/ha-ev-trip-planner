@@ -54,15 +54,30 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **Acceptance Criteria:**
 - [ ] AC-11: `make mutation` runs `mutmut run --until=100`; results integrate with quality-gate thresholds in pyproject.toml
 
-### US-6: Backward Compatibility
+### US-6: E2E Suite Extensibility
+**As a** developer
+**I want to** add new E2E test suites without modifying the quality gate
+**So that** I can test different aspects of the system independently
+
+**Acceptance Criteria:**
+- [ ] AC-8.1: E2E suite pattern defined: `{suite-name}`.
+- [ ] AC-8.2: Layer 1 auto-discovers all `e2e-*` targets via Makefile wildcard pattern
+- [ ] AC-8.3: Adding a new E2E suite (e.g., `e2e-charging`) requires no changes to quality-gate targets
+- [ ] AC-8.4: `make layer1` runs all E2E suites; `make layer1-ci` excludes all E2E suites
+
+### US-7: Backward Compatibility
 **As a** developer
 **I want to** existing Makefile targets to continue working
 **So that** my muscle memory and CI scripts don't break
 
 **Acceptance Criteria:**
-- [ ] AC-9: All existing targets work identically: `make test`, `make lint`, `make format`, `make e2e` (including e2e-headed, e2e-debug, e2e-soc variants)
+- [ ] AC-9: All existing targets work identically: `make test`, `make lint`, `make format`
+  - **E2E suites**: All E2E targets must continue working:
+    - Standard suite: `make e2e`
+    - SOC suite: `make e2e-soc`
+    - Future suites: Follow pattern `e2e-{suite-name}`
 
-### US-7: CI/CD Integration
+### US-8: CI/CD Integration
 **As a** maintainer
 **I want to** CI to run the same quality gate as developers
 **So that** PRs are automatically validated
@@ -70,33 +85,33 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 **Acceptance Criteria:**
 - [ ] AC-10: .github/workflows/python-tests.yml updated with pyright (replaces mypy), security scan (bandit, semgrep), import consistency check (deptry), and runs on Python 3.14
 
-### US-8: TypeScript Tooling
+### US-9: TypeScript Tooling
 **As a** developer writing E2E tests
 **I want to** TypeScript type checking and linting
 **So that** I catch type errors in E2E tests before runtime
 
 **Acceptance Criteria:**
-- [ ] AC-14: .eslintrc.json extends "plugin:@typescript-eslint/recommended", package.json includes "typecheck": "tsc --noEmit" script, and tsc/eslint configured for tests/e2e/*.ts files
+- [ ] AC-11: .eslintrc.json extends "plugin:@typescript-eslint/recommended", package.json includes "typecheck": "tsc --noEmit" script, and tsc/eslint configured for tests/e2e/*.ts files
 
-### US-9: Baseline Metrics
+### US-10: Baseline Metrics
 **As a** tech lead
 **I want to** capture baseline quality metrics before improvements
 **So that** I can measure progress over time
 
 **Acceptance Criteria:**
-- [ ] AC-16: `make quality-baseline` creates _bmad-output/quality-gate/ directory with snapshots of pytest, ruff, pyright, bandit, deptry, vulture outputs; antipattern_checker.py run against all modules with findings documented
+- [ ] AC-12: `make quality-baseline` creates _bmad-output/quality-gate/ directory with snapshots of pytest, ruff, pyright, bandit, deptry, vulture outputs; antipattern_checker.py run against all modules with findings documented
 
-### US-10: Additional Quality Tools
+### US-11: Additional Quality Tools
 **As a** developer
 **I want to** additional tools for code quality and CI performance
 **So that** I can prevent regressions and speed up testing
 
 **Acceptance Criteria:**
-- [ ] AC-17: import-linter installed (prevents circular imports post-refactoring)
-- [ ] AC-18: pre-commit installed with hooks (ruff, pyright, bandit, deptry)
-- [ ] AC-19: pytest-randomly installed (catches hidden inter-test dependencies)
-- [ ] AC-20: pytest-xdist installed (parallel test execution, 3-5x CI speedup)
-- [ ] AC-21: refurb installed (Python modernization suggestions)
+- [ ] AC-13: import-linter installed (prevents circular imports post-refactoring)
+- [ ] AC-14: pre-commit installed with hooks (ruff, pyright, bandit, deptry)
+- [ ] AC-15: pytest-randomly installed (catches hidden inter-test dependencies)
+- [ ] AC-16: pytest-xdist installed (parallel test execution, 3-5x CI speedup)
+- [ ] AC-17: refurb installed (Python modernization suggestions)
 
 ---
 
@@ -122,8 +137,17 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 | FR-16 | Update pyproject.toml version to 3.14 | High | AC-2.2 |
 | FR-17 | Update CI workflow with quality gates | High | AC-7.1 - AC-7.4 |
 | FR-18 | Update documentation references (mypy→pyright) | Medium | AC-2.1 - AC-2.5 |
-| FR-19 | Verify all existing Makefile targets work | Critical | AC-6.1 - AC-6.5 |
-| FR-20 | Run antipattern_checker.py baseline | Medium | AC-9.3 |
+| FR-19 | Verify all existing Makefile targets work | Critical | AC-9.1 - AC-9.5 |
+| FR-20 | Run antipattern_checker.py baseline | Medium | AC-12.3 |
+| FR-21 | Install import-linter | Medium | AC-13 |
+| FR-22 | Install pre-commit | Medium | AC-14 |
+| FR-23 | Install pytest-randomly | Medium | AC-15 |
+| FR-24 | Install pytest-xdist | Medium | AC-16 |
+| FR-25 | Install refurb | Medium | AC-17 |
+| FR-26 | Define E2E suite naming pattern | High | AC-8.1 |
+| FR-27 | Layer 1 auto-discovers E2E suites | High | AC-8.2 |
+| FR-28 | New E2E suites require no gate changes | High | AC-8.3 |
+| FR-29 | layer1-ci excludes all E2E suites | High | AC-8.4 |
 
 ---
 
@@ -250,9 +274,9 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 
 ## Success Criteria
 
-1. All 21 ACs pass (AC-1 through AC-21)
+1. All 17 ACs pass (AC-1 through AC-17) plus 4 E2E extensibility ACs (AC-8.1 through AC-8.4)
 2. `make quality-gate` completes in < 5 minutes on fresh checkout
-3. No existing Makefile targets break (AC-9 verified)
+3. No existing Makefile targets break (AC-9 verified, including all E2E suites)
 4. CI passes with new quality checks
 5. Baseline metrics documented for future comparison
 6. Developer onboarding docs updated (copilot-instructions.md reflects pyright, not mypy)
@@ -270,8 +294,11 @@ Install missing security and quality tools, migrate from mypy to pyright, create
 | AC-5: pyproject.toml mypy→pyright | FR-5, FR-6 | New |
 | AC-6: make typecheck (pyright) | FR-8 | New |
 | AC-7: make check updated | FR-6, FR-19 | New |
-| AC-8: make quality-gate | FR-10 | New |
-| AC-9: existing targets work | FR-19 | **Critical** |
+| AC-8.1: E2E suite pattern defined | FR-26 | New |
+| AC-8.2: Layer 1 auto-discovers E2E suites | FR-27 | New |
+| AC-8.3: New E2E suites need no gate changes | FR-28 | New |
+| AC-8.4: layer1-ci excludes all E2E | FR-29 | New |
+| AC-9: existing targets work (all E2E suites) | FR-19 | **Critical** |
 | AC-10: CI workflow updated | FR-17 | New |
 | AC-11: make mutation shortcut | FR-9 | New |
 | AC-12: deptry installed | FR-12 | New |

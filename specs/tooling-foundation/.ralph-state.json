@@ -2,7 +2,7 @@
   "source": "spec",
   "name": "tooling-foundation",
   "basePath": "./specs/tooling-foundation",
-  "phase": "requirements",
+  "phase": "design",
   "taskIndex": 0,
   "totalTasks": 0,
   "taskIteration": 1,

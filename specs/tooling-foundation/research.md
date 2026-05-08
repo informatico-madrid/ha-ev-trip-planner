@@ -241,8 +241,8 @@ quality-baseline:
 
 **UPDATE .PHONY line:**
 ```makefile
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug \
-        e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug \
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e \
+        e2e e2e-soc \
         staging-up staging-down staging-reset \
         lint typecheck format check clean htmlcov \
         security security-bandit security-audit security-gitleaks security-semgrep \
