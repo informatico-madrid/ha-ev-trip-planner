@@ -55,8 +55,10 @@ for i in $(seq 1 40); do
 done
 
 # Run onboarding
-if ! ./scripts/ha-onboard.sh "$HA_URL" 2>/dev/null; then
-  echo "FAIL: Onboarding failed for HA_URL=$HA_URL (exit code: $?)"
+./scripts/ha-onboard.sh "$HA_URL" 2>/dev/null
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "FAIL: Onboarding failed for HA_URL=$HA_URL (exit code: $rc)"
   exit 1
 fi
 sleep 5

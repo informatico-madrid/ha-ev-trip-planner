@@ -71,7 +71,7 @@ Si un agente tiene dudas: **lee CLAUDE.md sección "ENVIRONMENT SEPARATION" prim
 
 ## Qué NO existe en Staging
 
-```
+```text
 ❌ tests/staging/                 — NO EXISTE
 ❌ playwright.staging.config.ts   — NO EXISTE
 ❌ auth.setup.ts (staging)        — NO EXISTE

@@ -433,6 +433,129 @@ async def test_handle_config_entry_update_detects_charging_power_change(
 
 
 @pytest.mark.asyncio
+async def test_t_base_change_triggers_republish_when_power_unchanged(
+    mock_hass: HomeAssistant, mock_store
+):
+    """Test that changing t_base without changing charging_power recomputes cache.
+
+    When t_base changes in config entry, the SOC cap parameters change.
+    If charging_power is unchanged, update_charging_power() returns early
+    and the stale cached per_trip_params remains with old SOC caps.
+
+    This is a regression test: _handle_config_entry_update must force
+    recomputation when t_base or soh_sensor changes, even if power is stable.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(mock_hass, config)
+        adapter.entry_id = "test_entry_id_123"
+        adapter.vehicle_id = "test_vehicle"
+
+        # Populate cache and published trips (simulating real running state)
+        adapter._cached_per_trip_params = {
+            "trip_1": {
+                "def_total_hours": 5,
+                "P_deferrable_nom": 3600.0,
+                "soc_target": 80.0,
+            },
+        }
+        adapter._published_trips = [{"id": "trip_1", "kwh": 5.0}]
+
+        # Stash original power value (same as options value below)
+        adapter._charging_power_kw = 3.6
+
+        # Create mock config entry: only t_base changes, power stays 3.6
+        class ConfigData(dict):
+            pass
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_id_123"
+        mock_entry.options = ConfigData(
+            {CONF_T_BASE: 48, CONF_CHARGING_POWER: 3.6}
+        )
+        mock_entry.data = ConfigData(
+            {CONF_T_BASE: 24, CONF_CHARGING_POWER: 3.6}
+        )
+
+        # Wire async_get_entry to return the mock config entry
+        mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+        # Track whether update_charging_power was called with force=True
+        adapter.update_charging_power = AsyncMock()
+
+        # Execute: Handle config entry update with t_base change only
+        await adapter._handle_config_entry_update(mock_hass, mock_entry)
+
+        # Verify: update_charging_power WAS called with force=True — t_base
+        # change must force recomputation of SOC caps even when power is unchanged
+        adapter.update_charging_power.assert_called_once()
+        call_kwargs = adapter.update_charging_power.call_args
+        assert call_kwargs.kwargs.get("force") is True or (
+            len(call_kwargs.args) > 0 and call_kwargs.args[0] is True
+        ), "update_charging_power must be called with force=True when t_base changes"
+
+
+@pytest.mark.asyncio
+async def test_soh_sensor_change_triggers_republish_when_power_unchanged(
+    mock_hass: HomeAssistant, mock_store
+):
+    """Test that changing soh_sensor without changing charging_power recomputes cache.
+
+    When soh_sensor changes, _battery_cap is reinitialized and the real capacity
+    may change. The cached per_trip_params is stale and must be recomputed.
+    """
+    config = {
+        CONF_VEHICLE_NAME: "test_vehicle",
+        CONF_MAX_DEFERRABLE_LOADS: 50,
+        CONF_CHARGING_POWER: 3.6,
+    }
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(mock_hass, config)
+        adapter.entry_id = "test_entry_id_123"
+        adapter.vehicle_id = "test_vehicle"
+
+        adapter._cached_per_trip_params = {
+            "trip_1": {
+                "def_total_hours": 5,
+                "P_deferrable_nom": 3600.0,
+                "soc_target": 80.0,
+            },
+        }
+        adapter._published_trips = [{"id": "trip_1", "kwh": 5.0}]
+        adapter._charging_power_kw = 3.6
+
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_id_123"
+        mock_entry.options = {
+            CONF_SOH_SENSOR: "sensor.new_soh",
+            CONF_CHARGING_POWER: 3.6,
+        }
+        mock_entry.data = {
+            CONF_SOH_SENSOR: "sensor.old_soh",
+            CONF_CHARGING_POWER: 3.6,
+        }
+
+        mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        adapter.update_charging_power = AsyncMock()
+
+        await adapter._handle_config_entry_update(mock_hass, mock_entry)
+
+        adapter.update_charging_power.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_async_publish_all_deferrable_loads_skips_trip_without_datetime(
     mock_hass: HomeAssistant, mock_store
 ):

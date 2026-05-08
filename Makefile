@@ -64,17 +64,6 @@ e2e-soc-headed:
 e2e-soc-debug:
 	./scripts/run-e2e-soc.sh --debug
 
-# e2e-soc: dynamic SOC capping suite (requires HA with SOH sensor configured)
-# Uses INDEPENDENT setup: separate HA config dir, separate auth state (user-soc.json), separate Playwright config
-e2e-soc:
-	./scripts/run-e2e-soc.sh
-
-e2e-soc-headed:
-	./scripts/run-e2e-soc.sh --headed
-
-e2e-soc-debug:
-	./scripts/run-e2e-soc.sh --debug
-
 lint:
 	ruff check .
 	pylint custom_components/ tests/
