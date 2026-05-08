@@ -1,0 +1,17 @@
+{
+  "name": "tech-debt-cleanup",
+  "goal": "Systematically eliminate all technical debt to achieve 100% SOLID compliance, zero Tier A/B antipatterns, 80% mutation kill rate, 100% test coverage, no pragma: no cover, zero warnings, clean architecture with separated tests, and all linters passing.",
+  "specs": [
+    { "name": "tooling-foundation", "status": "pending", "dependencies": [] },
+    { "name": "dead-code-elimination", "status": "pending", "dependencies": [] },
+    { "name": "test-architecture", "status": "pending", "dependencies": [] },
+    { "name": "solid-refactoring", "status": "pending", "dependencies": ["test-architecture"] },
+    { "name": "high-arity-refactoring", "status": "pending", "dependencies": [] },
+    { "name": "mutation-score-ramp", "status": "pending", "dependencies": [] },
+    { "name": "coverage-gap-closure", "status": "pending", "dependencies": [] },
+    { "name": "lint-format-type", "status": "pending", "dependencies": ["solid-refactoring", "mutation-score-ramp", "coverage-gap-closure"] },
+    { "name": "security-ci", "status": "pending", "dependencies": ["tooling-foundation", "lint-format-type"] }
+  ],
+  "output": "spec-files",
+  "issueNumber": null
+}
