@@ -14,7 +14,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 
 
 ## 📋 PYTHON CODING STANDARDS
-- **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `mypy`.
+- **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `pyright`.
 - **Typing & Docs:** Type hints and Google-style docstrings are REQUIRED for all public functions and classes.
 - **Logging:** ALWAYS use `%s` format for logging (e.g., `_LOGGER.debug("Data: %s", data)`). DO NOT use f-strings or string concatenation in log payloads.
 - **File Naming & Conventions:**
@@ -134,7 +134,7 @@ Los patrones aceptados en home-assistant/core son muy concretos:
 
 Ramas imposibles de alcanzar en test — Por ejemplo, código que solo se ejecuta si falla algo del sistema operativo, o ramas else de un TYPE_CHECKING block (que solo existe en tiempo de análisis estático, no de ejecución)
 
-Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como mypy, nunca se ejecutan realmente
+Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como pyright, nunca se ejecutan realmente
 
 Bloques if TYPE_CHECKING: — Todo lo que está dentro de este bloque se excluye porque no se ejecuta en runtime
 

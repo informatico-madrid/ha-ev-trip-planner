@@ -152,7 +152,7 @@
 
 **Goal**: All local checks pass, update CI, create PR.
 
-- [ ] 4.1 V1 [VERIFY] Full local CI: typecheck + lint + existing tests
+- [x] 4.1 V1 [VERIFY] Full local CI: typecheck + lint + existing tests
   - **Do**: Run complete local CI: typecheck (pyright), lint (ruff, pylint), test (pytest)
   - **Verify**: `make typecheck && make lint && make test && echo V1_PASS`
   - **Done when**: No type errors, no lint errors, all tests pass
@@ -160,7 +160,7 @@
   - _Requirements: FR-5, FR-8, FR-17, FR-19_
   - _Design: Quality Gate Validation_
 
-- [ ] 4.2 Update CI workflow with quality gate steps
+- [x] 4.2 Update CI workflow with quality gate steps
   - **Do**: Add layer4 security step (bandit, semgrep) and quality-gate-ci step (layer1-ci through layer4) to .github/workflows/python-tests.yml
   - **Files**: .github/workflows/python-tests.yml
   - **Done when**: CI workflow has layer4 and quality-gate-ci steps
@@ -169,7 +169,7 @@
   - _Requirements: FR-17, FR-29_
   - _Design: CI Integration_
 
-- [ ] 4.3 Create .pre-commit-config.yaml
+- [x] 4.3 Create .pre-commit-config.yaml
   - **Do**: Create pre-commit config with hooks: ruff, ruff-format, pyright, bandit, deptry
   - **Files**: .pre-commit-config.yaml
   - **Done when**: Config file exists with all 5 hooks defined

@@ -2,12 +2,12 @@
   "source": "spec",
   "name": "tooling-foundation",
   "basePath": "./specs/tooling-foundation",
-  "phase": "tasks",
-  "taskIndex": 0,
+  "phase": "execution",
+  "taskIndex": 15,
   "totalTasks": 18,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 1,
+  "globalIteration": 11,
   "maxGlobalIterations": 100,
   "commitSpec": true,
   "quickMode": false,
@@ -57,6 +57,30 @@
     "AC-0.15: _bmad-output/ directory added to .gitignore",
     "AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented"
   ],
-  "awaitingApproval": true,
-  "granularity": "coarse"
+  "awaitingApproval": false,
+  "granularity": "coarse",
+  "repairIteration": 0,
+  "failedStory": null,
+  "originTaskIndex": null,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0,
+  "circuitBreaker": {
+    "state": "closed",
+    "consecutiveFailures": 0,
+    "maxConsecutiveFailures": 5,
+    "maxSessionSeconds": 172800
+  },
+  "chat": {
+    "executor": {
+      "lastReadLine": 0
+    }
+  }
 }

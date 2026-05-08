@@ -30,6 +30,7 @@ disable = [
     "too-few-public-methods",
     "too-many-instance-attributes",
     "too-many-arguments",
+    "C0200",  # consider-using-enumerate: style preference, not critical
 ]
 
 [tool.pyright]
@@ -40,6 +41,7 @@ reportMissingTypeStubs = "warning"
 reportUnknownMemberType = "warning"
 reportUnknownVariableType = "warning"
 reportUnknownArgumentType = "warning"
+exclude = ["**/tests/**", ".venv/**", "**/node_modules/**"]
 
 [tool.bandit]
 exclude_dirs = ["/tests"]
