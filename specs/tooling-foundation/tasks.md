@@ -51,7 +51,7 @@
 
   **Sudo constraint note**: Uses `echo "$SUDO_PASS" | sudo -S` for non-interactive sudo. **ONLY gitleaks installation requires sudo**—all other tools use pip (no sudo needed). For containerized/CI environments without sudo, task 2.2's `scripts/install-tools.sh` should include alternative installation logic (e.g., download to project-local `bin/` directory and add to PATH).
 
-- [ ] 1.4 [P] Create .gitleaks.toml configuration
+- [x] 1.4 [P] Create .gitleaks.toml configuration
   - **Do**: Create config with allowlist for tests/, .venv/, node_modules/, _bmad-output/ directories
   - **Files**: .gitleaks.toml
   - **Done when**: File exists with extendDefault=true and allowlist paths
