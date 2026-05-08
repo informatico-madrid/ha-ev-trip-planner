@@ -2,9 +2,9 @@
   "source": "spec",
   "name": "tooling-foundation",
   "basePath": "./specs/tooling-foundation",
-  "phase": "design",
+  "phase": "tasks",
   "taskIndex": 0,
-  "totalTasks": 0,
+  "totalTasks": 18,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
@@ -57,5 +57,6 @@
     "AC-0.15: _bmad-output/ directory added to .gitignore",
     "AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented"
   ],
-  "awaitingApproval": true
+  "awaitingApproval": true,
+  "granularity": "coarse"
 }
