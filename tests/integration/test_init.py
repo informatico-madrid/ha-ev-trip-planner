@@ -19,29 +19,6 @@ from custom_components.ev_trip_planner.dashboard import (
 )
 
 
-@pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance."""
-    hass = Mock(spec=HomeAssistant)
-    hass.config = Mock()
-    hass.config.config_dir = Path("/config")
-    hass.config.components = []
-    hass.services = Mock()
-    hass.services.has_service = Mock(return_value=False)
-    hass.data = {}  # Add data attribute for runtime storage
-
-    # Mock async_add_executor_job for non-blocking I/O
-    async def mock_executor_job(func, *args):
-        """Mock executor job that runs function synchronously."""
-        return func(*args)
-
-    hass.async_add_executor_job = mock_executor_job
-    hass.loop = Mock()
-    hass.loop.time.return_value = 0.0  # Required for async_track_time_interval in T3.1
-
-    return hass
-
-
 class TestIsLovelaceAvailable:
     """Tests for is_lovelace_available function."""
 
@@ -881,15 +858,6 @@ class TestStartupOrphanCleanup:
 class TestAsyncMigrateEntryMissingLines:
     """Tests for missing lines in async_migrate_entry."""
 
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock HomeAssistant."""
-        hass = MagicMock()
-        hass.data = {}
-        hass.config_entries = MagicMock()
-        hass.config_entries.async_update_entry = MagicMock()  # sync function
-        return hass
-
     def _create_entry_without_emhass_adapter(self):
         """Create a mock entry that has no emhass_adapter in runtime_data."""
         entry = MagicMock()
@@ -1024,15 +992,6 @@ class TestAsyncMigrateEntryMissingLines:
 
 class TestAsyncSetupEntryMissingLines:
     """Tests for missing lines in async_setup_entry."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock HomeAssistant."""
-        hass = MagicMock()
-        hass.data = {"ev_trip_planner": {}}
-        hass.config_entries = MagicMock()
-        hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
-        return hass
 
     @pytest.mark.asyncio
     async def test_setup_entry_with_soc_sensor_triggers_soc_listener(self, mock_hass):
@@ -1276,14 +1235,6 @@ class TestAsyncSetupEntryMissingLines:
 
 class TestAsyncRemoveEntry:
     """Tests for async_remove_entry."""
-
-    @pytest.fixture
-    def mock_hass(self):
-        """Create mock HomeAssistant."""
-        hass = MagicMock()
-        hass.data = {}
-        hass.config.config_dir = "/tmp/test_config"
-        return hass
 
     @pytest.mark.asyncio
     async def test_async_remove_entry_calls_cleanup(self, mock_hass):

@@ -729,3 +729,57 @@ def mock_hass_removal():
     mock_entry.runtime_data = mock_runtime_data
 
     return hass, mock_entry
+
+
+# ============================================================================
+# test_init.py — mock_hass fixture
+# ============================================================================
+
+
+class _ServicesRegistry:
+    """Minimal services registry for mock hass in test services tests."""
+
+    def __init__(self):
+        self.registry = {}
+
+    def async_register(
+        self, domain, name, handler, schema=None, supports_response=None
+    ):
+        if domain == DOMAIN:
+            self.registry[name] = handler
+
+
+@pytest.fixture
+def mock_hass():
+    """Create mock HomeAssistant for test_init.py and test_services_core.py tests.
+
+    This fixture provides a comprehensive mock hass that covers all test_init.py use cases:
+    - hass.data = {} or {"ev_trip_planner": {}}
+    - hass.config.config_dir = "/tmp/test_config"
+    - hass.config_entries with all needed methods
+    - hass.services with Services.registry for service registration tests
+
+    Tests that need specific configurations can override/add attributes directly.
+    """
+    hass = MagicMock()
+    hass.data = {}
+    hass.config = MagicMock()
+    hass.config.config_dir = "/tmp/test_config"
+    hass.config.components = []
+    hass.services = _ServicesRegistry()
+
+    # Config entries with all needed methods
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_update_entry = MagicMock()
+    hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
+    hass.config_entries.async_get_entry = MagicMock()
+    hass.config_entries.async_entries = MagicMock(return_value=[])
+
+    # Mock async_add_executor_job for non-blocking I/O
+    async def mock_executor_job(func, *args):
+        return func(*args)
+    hass.async_add_executor_job = mock_executor_job
+    hass.loop = MagicMock()
+    hass.loop.time.return_value = 0.0
+
+    return hass
