@@ -326,7 +326,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): eliminate inline mock_hass in test_services_core.py`
   - _Requirements: FR-11, AC-7.4_
 
-- [ ] 2.23 Eliminate inline mock_hass in test_dashboard.py (10 definitions)
+- [x] 2.23 Eliminate inline mock_hass in test_dashboard.py (10 definitions)
   - **Do**: Replace all 10 inline `def mock_hass` definitions in `tests/unit/test_dashboard.py` with usage of the conftest `mock_hass` fixture.
   - **Files**: tests/unit/test_dashboard.py
   - **Done when**: `grep -c "def mock_hass" tests/unit/test_dashboard.py` returns 0

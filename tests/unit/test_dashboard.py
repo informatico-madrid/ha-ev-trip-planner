@@ -369,37 +369,6 @@ class TestDashboardImport:
     """Tests for dashboard import functionality."""
 
     @pytest.fixture
-    def mock_hass(self):
-        """Create a mock HomeAssistant instance for dashboard import tests."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["lovelace"]
-
-        # Mock storage
-        hass.storage = MagicMock()
-        hass.storage.async_read = AsyncMock(
-            return_value={"data": {"config": {"views": []}}}
-        )
-        hass.storage.async_write_dict = AsyncMock(return_value=True)
-
-        # Mock services
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = MagicMock(return_value=True)
-
-        # Mock async_add_executor_job for non-blocking I/O
-        async def mock_executor_job(func, *args):
-            """Mock executor job that runs function synchronously."""
-            return func(*args)
-
-        hass.async_add_executor_job = mock_executor_job
-
-        return hass
-
-    @pytest.fixture
     def dashboard_module(self):
         """Import and return the ev_trip_planner module."""
         import sys
@@ -570,37 +539,6 @@ class TestContainerEnvironment:
     This test should FAIL before the fix and PASS after the fix.
     """
 
-    @pytest.fixture
-    def mock_hass_container(self):
-        """Create a mock HomeAssistant instance simulating Container environment.
-
-        Container environment characteristics:
-        - hass.services.has_service returns False for lovelace.save
-        - hass.storage is not available (None or no async_write_dict)
-        """
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["sensor"]  # No lovelace component
-
-        # Container: NO storage API available
-        hass.storage = None
-
-        # Container: lovelace.save service does NOT exist
-        def has_service(domain, service):
-            if domain == "lovelace" and service == "save":
-                return False
-            return False
-
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = has_service
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_container_environment_fallback(self, mock_hass_container):
         """Test that Container environment generates YAML file with instructions.
 
@@ -651,32 +589,6 @@ class TestDuplicateDashboardNameCollision:
     the system should append suffixes (-2-, -3-, etc.) to make it unique.
     """
 
-    @pytest.fixture
-    def mock_hass_container(self):
-        """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["sensor"]  # No lovelace component
-
-        # Container: NO storage API available
-        hass.storage = None
-
-        # Container: lovelace.save service does NOT exist
-        def has_service(domain, service):
-            if domain == "lovelace" and service == "save":
-                return False
-            return False
-
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = has_service
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_duplicate_dashboard_name_appends_suffix(
         self, mock_hass_container, tmp_path
     ):
@@ -792,34 +704,6 @@ class TestCRUDOperationsViaDashboard:
     - Update trip (update_trip)
     - Delete trip (delete_trip)
     """
-
-    @pytest.fixture
-    def mock_hass_with_storage(self):
-        """Create a mock HomeAssistant with storage support."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-
-        # Mock storage API
-        hass.storage = MagicMock()
-        hass.storage.async_read_dict = AsyncMock(return_value={})
-        hass.storage.async_write_dict = AsyncMock()
-
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass_with_storage):
-        """Create a TripManager instance for testing."""
-        import sys
-
-        sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
-
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-
-        manager = TripManager(mock_hass_with_storage, "test_vehicle")
-        return manager
 
     @pytest.mark.asyncio
     async def test_create_recurring_trip_via_dashboard(
@@ -1274,32 +1158,6 @@ class TestCRUDOperationsViaDashboard:
             config_dir / "ev-trip-planner-vehicle1.yaml.2"
         ).exists(), "Duplicate file with .2 suffix should be created"
 
-    @pytest.fixture
-    def mock_hass_container(self):
-        """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["sensor"]  # No lovelace component
-
-        # Container: NO storage API available
-        hass.storage = None
-
-        # Container: lovelace.save service does NOT exist
-        def has_service(domain, service):
-            if domain == "lovelace" and service == "save":
-                return False
-            return False
-
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = has_service
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_multiple_duplicate_dashboard_names_appends_progressive_suffixes(
         self, mock_hass_container, tmp_path
     ):
@@ -1362,32 +1220,6 @@ class TestAllFailureModes:
     gracefully and return appropriate error information.
     """
 
-    @pytest.fixture
-    def mock_hass_container(self):
-        """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["sensor"]
-
-        # Container: NO storage API available
-        hass.storage = None
-
-        # Container: lovelace.save service does NOT exist
-        def has_service(domain, service):
-            if domain == "lovelace" and service == "save":
-                return False
-            return False
-
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = has_service
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_invalid_dashboard_config_rejected(
         self, mock_hass_container, tmp_path
     ):
@@ -1651,41 +1483,6 @@ class TestDashboardCreationAfterVehicleSetup:
     - Dashboard configuration is valid and loadable
     """
 
-    @pytest.fixture
-    def mock_hass_with_vehicle(self, tmp_path):
-        """Create a mock HA instance with a vehicle configured."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = str(tmp_path / "config")
-        hass.config.components = ["lovelace", "sensor"]
-
-        # Create config directory
-        config_dir = tmp_path / "config"
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        # Mock storage API (Supervisor environment)
-        hass.storage = MagicMock()
-        hass.storage.async_read = AsyncMock(
-            return_value={
-                "data": {
-                    "views": [
-                        {"path": "existing-dashboard", "title": "Existing", "cards": []}
-                    ]
-                }
-            }
-        )
-        hass.storage.async_write_dict = AsyncMock(return_value=True)
-
-        # Mock services
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = MagicMock(return_value=True)
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_dashboard_created_after_vehicle_setup(
         self, mock_hass_with_vehicle, tmp_path
     ):
@@ -1906,34 +1703,6 @@ class TestDashboardDataSync:
 
     Verifies that the dashboard loads and syncs data from TripManager correctly.
     """
-
-    @pytest.fixture
-    def mock_hass_with_storage(self):
-        """Create a mock HomeAssistant with storage support."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-
-        # Mock storage API
-        hass.storage = MagicMock()
-        hass.storage.async_read_dict = AsyncMock(return_value={})
-        hass.storage.async_write_dict = AsyncMock()
-
-        return hass
-
-    @pytest.fixture
-    def trip_manager(self, mock_hass_with_storage):
-        """Create a TripManager instance for testing."""
-        import sys
-
-        sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
-
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-
-        manager = TripManager(mock_hass_with_storage, "test_vehicle")
-        return manager
 
     @pytest.mark.asyncio
     async def test_dashboard_syncs_all_trips_from_trip_manager(
@@ -2303,33 +2072,6 @@ class TestEMHASSErrorNotifications:
     Verifies that error notifications are triggered when EMHASS load fails.
     """
 
-    @pytest.fixture
-    def mock_hass_with_notification(self):
-        """Create a mock HomeAssistant with notification service."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-
-        # Mock storage API
-        hass.storage = MagicMock()
-        hass.storage.async_read_dict = AsyncMock(return_value={})
-        hass.storage.async_write_dict = AsyncMock()
-
-        # Mock services with notification service
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = MagicMock(return_value=True)
-
-        # Mock states for sensor
-        hass.states = MagicMock()
-        hass.states.async_set = MagicMock()
-        hass.states.get = MagicMock(return_value=None)
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_error_notification_triggered_when_load_fails(
         self, mock_hass_with_notification
     ):
@@ -2385,32 +2127,6 @@ class TestDashboardErrorPaths:
     - _validate_dashboard_config - validation branches
     """
 
-    @pytest.fixture
-    def mock_hass_container(self):
-        """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import AsyncMock, MagicMock
-
-        hass = MagicMock()
-        hass.config = MagicMock()
-        hass.config.config_dir = "/tmp/test_config"
-        hass.config.components = ["sensor"]  # No lovelace component
-
-        # Container: NO storage API available
-        hass.storage = None
-
-        # Container: lovelace.save service does NOT exist
-        def has_service(domain, service):
-            if domain == "lovelace" and service == "save":
-                return False
-            return False
-
-        hass.services = MagicMock()
-        hass.services.async_call = AsyncMock()
-        hass.services.has_service = has_service
-
-        return hass
-
-    @pytest.mark.asyncio
     async def test_save_yaml_fallback_write_failure(
         self, mock_hass_container, tmp_path
     ):
