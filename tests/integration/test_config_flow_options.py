@@ -1599,3 +1599,57 @@ async def test_presence_step_description_mentions_purpose():
     description = presence_step["description"]
     assert "presence" in description.lower() or "home" in description.lower()
     assert "charging" in description.lower() or "required" in description.lower()
+
+
+@pytest.mark.asyncio
+async def test_sensors_step_advances_to_emhass_with_valid_config(hass):
+    """Test sensors step executes correctly with valid input and advances to EMHASS."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+    # Execute: Provide valid sensor configuration
+    result = await flow.async_step_sensors(
+        user_input={
+            CONF_BATTERY_CAPACITY: 60.0,
+            CONF_CHARGING_POWER: 11.0,
+            CONF_CONSUMPTION: 0.15,
+            CONF_SAFETY_MARGIN: 20,
+        }
+    )
+
+    # Verify: Should advance to EMHASS step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "emhass"
+
+    # Verify: Data stored correctly
+    assert flow.context["vehicle_data"][CONF_BATTERY_CAPACITY] == 60.0
+    assert flow.context["vehicle_data"][CONF_CHARGING_POWER] == 11.0
+    assert flow.context["vehicle_data"][CONF_CONSUMPTION] == 0.15
+    assert flow.context["vehicle_data"][CONF_SAFETY_MARGIN] == 20
+
+
+@pytest.mark.asyncio
+async def test_user_step_stores_vehicle_name_in_context(hass):
+    """Test user step correctly stores vehicle name in context."""
+    from custom_components.ev_trip_planner.config_flow import EVTripPlannerConfigFlow
+
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+
+    # Execute: Provide vehicle name
+    result = await flow.async_step_user(
+        user_input={
+            CONF_VEHICLE_NAME: "My Electric Car",
+        }
+    )
+
+    # Verify: Should advance to sensors step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+
+    # Verify: Vehicle name stored in context
+    assert flow.context["vehicle_data"][CONF_VEHICLE_NAME] == "My Electric Car"
