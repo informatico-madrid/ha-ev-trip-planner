@@ -93,7 +93,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Done when**: Zero lint errors, zero unused import warnings
   - **Commit**: `chore(spec1): pass quality checkpoint after deletions` (only if fixes needed)
 
-- [ ] 1.9 Verify AC-1.13 NO-OP and run full test suite
+- [x] 1.9 Verify AC-1.13 NO-OP and run full test suite
   - **Do**:
     1. Verify `async_import_dashboard_for_entry` is active: `grep -rn "async_import_dashboard_for_entry" custom_components/ tests/ --include="*.py" | head -10`
     2. Activate venv: `. .venv/bin/activate`
