@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.ev_trip_planner.const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -447,3 +449,283 @@ def mock_store_class():
 
     with patch.object(ha_storage, "Store", MockStore):
         yield MockStore
+
+
+# ============================================================================
+# Services Core — mock_hass helper and fixtures
+# ============================================================================
+
+
+class _ServicesRegistry:
+    """Minimal services registry for mock hass in test_services_core tests."""
+
+    def __init__(self):
+        self.registry = {}
+
+    def async_register(
+        self, domain, name, handler, schema=None, supports_response=None
+    ):
+        if domain == DOMAIN:
+            self.registry[name] = handler
+
+
+def _build_services_hass(manager_config=None):
+    """Build a mock hass with Services registry and a config entry.
+
+    Args:
+        manager_config: dict mapping method names to config dicts with
+            "return_value" or "side_effect" keys.
+    """
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services = _ServicesRegistry()
+    hass.config_entries = MagicMock()
+
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "entry_test"
+    mock_entry.data = {"vehicle_name": "test_vehicle"}
+    mock_coordinator = MagicMock()
+    mock_coordinator.async_refresh_trips = AsyncMock()
+
+    mock_manager = MagicMock()
+    if manager_config:
+        for method_name, cfg in manager_config.items():
+            if "return_value" in cfg:
+                setattr(mock_manager, method_name, AsyncMock(return_value=cfg["return_value"]))
+            if "side_effect" in cfg:
+                setattr(mock_manager, method_name, AsyncMock(side_effect=cfg["side_effect"]))
+    mock_entry.runtime_data = EVTripRuntimeData(
+        coordinator=mock_coordinator,
+        trip_manager=mock_manager,
+    )
+    mock_entry.runtime_data.trip_manager = mock_manager
+
+    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+
+    return hass
+
+
+@pytest.fixture
+def mock_hass():
+    """Plain mock hass with no manager configuration."""
+    return _build_services_hass()
+
+
+@pytest.fixture
+def mock_hass_get_error():
+    """Manager raises RuntimeError on async_get_recurring_trips."""
+    return _build_services_hass({
+        "async_get_recurring_trips": {"side_effect": RuntimeError("Storage error")},
+        "async_get_punctual_trips": {"return_value": []},
+    })
+
+
+@pytest.fixture
+def mock_hass_list_error():
+    """Manager raises on both get methods."""
+    return _build_services_hass({
+        "async_get_recurring_trips": {"side_effect": RuntimeError("Storage corrupted")},
+        "async_get_punctual_trips": {"side_effect": RuntimeError("Storage corrupted")},
+    })
+
+
+@pytest.fixture
+def mock_hass_invalid_type():
+    """Manager configured for invalid trip_type test."""
+    return _build_services_hass({
+        "async_add_recurring_trip": {"return_value": "rec_lun_abc12345"},
+        "async_add_punctual_trip": {"return_value": "pun_20251119_abc12345"},
+    })
+
+
+@pytest.fixture
+def mock_hass_update_sensor_error():
+    """Manager configured for sensor update error test."""
+    return _build_services_hass({
+        "async_setup": {"return_value": None},
+        "async_update_trip": {"return_value": True},
+        "async_get_recurring_trips": {"return_value": [{"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}]},
+    })
+
+
+@pytest.fixture
+def mock_hass_delete_not_found_v1():
+    """async_delete_trip returns None (for TestHandleDeleteTripNotFound)."""
+    return _build_services_hass({
+        "async_setup": {"return_value": None},
+        "async_delete_trip": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_manager_setup_error():
+    """Manager async_setup raises RuntimeError."""
+    return _build_services_hass({
+        "async_setup": {"side_effect": RuntimeError("Setup failed")},
+        "async_get_recurring_trips": {"return_value": []},
+    })
+
+
+@pytest.fixture
+def mock_hass_get_not_found():
+    """Trip not found in search (both get methods return [])."""
+    return _build_services_hass({
+        "async_get_recurring_trips": {"return_value": []},
+        "async_get_punctual_trips": {"return_value": []},
+    })
+
+
+@pytest.fixture
+def mock_hass_import_error():
+    """async_get_recurring_trips raises during import."""
+    return _build_services_hass({
+        "async_get_recurring_trips": {"side_effect": RuntimeError("Storage error during clear")},
+        "async_add_recurring_trip": {"return_value": "rec_lun_new"},
+    })
+
+
+@pytest.fixture
+def mock_hass_delete_not_found_v2():
+    """async_delete_trip returns False (for TestHandleTripDelete)."""
+    return _build_services_hass({
+        "async_delete_trip": {"return_value": False},
+    })
+
+
+@pytest.fixture
+def mock_hass_create_manager_error():
+    """Manager async_setup raises during creation."""
+    return _build_services_hass({
+        "async_setup": {"side_effect": RuntimeError("Setup failed")},
+        "async_add_recurring_trip": {"return_value": "rec_lun_abc"},
+    })
+
+
+@pytest.fixture
+def mock_hass_update_km_kwh():
+    """Manager configured for km/kwh update."""
+    return _build_services_hass({
+        "async_update_trip": {"return_value": True},
+        "async_get_recurring_trips": {"return_value": [{"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00", "km": 24.0, "kwh": 3.6}]},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_recurrente_success():
+    """Manager configured for recurrente success."""
+    return _build_services_hass({
+        "async_add_recurring_trip": {"return_value": "rec_lun_abc12345"},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_puntual_success():
+    """Manager configured for puntual success."""
+    return _build_services_hass({
+        "async_add_punctual_trip": {"return_value": "pun_20251119_abc12345"},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_english_fields():
+    """Manager configured for English fields."""
+    return _build_services_hass({
+        "async_add_recurring_trip": {"return_value": "rec_lun_abc12345"},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_list_with_trips():
+    """Hass with existing trips."""
+    return _build_services_hass({
+        "async_get_recurring_trips": {"return_value": [{"id": "rec_lun_1", "tipo": "recurrente", "activo": True}, {"id": "rec_mar_1", "tipo": "recurrente", "activo": True}]},
+        "async_get_punctual_trips": {"return_value": [{"id": "pun_20251119_1", "tipo": "puntual", "estado": "pendiente"}]},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_none_data_entry():
+    """Entry with None data (special case, needs custom build)."""
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+    class Services:
+        def __init__(self):
+            self.registry = {}
+
+        def async_register(
+            self, domain, name, handler, schema=None, supports_response=None
+        ):
+            if domain == DOMAIN:
+                self.registry[name] = handler
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.services = Services()
+    hass.config_entries = MagicMock()
+
+    mock_entry_valid = MagicMock()
+    mock_entry_valid.entry_id = "entry_valid"
+    mock_entry_valid.data = {"vehicle_name": "valid_vehicle"}
+    mock_coordinator = MagicMock()
+    mock_manager = MagicMock()
+    mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
+    mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
+    mock_entry_valid.runtime_data = EVTripRuntimeData(
+        coordinator=mock_coordinator,
+        trip_manager=mock_manager,
+    )
+
+    mock_entry_none = MagicMock()
+    mock_entry_none.entry_id = "entry_none"
+    mock_entry_none.data = None
+
+    hass.config_entries.async_entries = MagicMock(
+        return_value=[mock_entry_none, mock_entry_valid]
+    )
+    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry_valid)
+
+    return hass
+
+
+@pytest.fixture
+def mock_hass_update_with_updates():
+    """Old 'updates' object format."""
+    return _build_services_hass({
+        "async_update_trip": {"return_value": True},
+        "async_get_recurring_trips": {"return_value": [{"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}]},
+        "async_setup": {"return_value": None},
+    })
+
+
+@pytest.fixture
+def mock_hass_removal():
+    """Mock hass for async_remove_entry_cleanup tests (returns tuple)."""
+    hass = MagicMock()
+    hass.data = {"storage": {}}
+    hass.config.config_dir = "/tmp/test_config"
+
+    mock_trip_manager = MagicMock()
+    mock_trip_manager.async_delete_all_trips = AsyncMock()
+
+    mock_emhass_adapter = MagicMock()
+    mock_emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
+    mock_emhass_adapter._config_entry_listener = MagicMock()
+
+    mock_runtime_data = MagicMock()
+    mock_runtime_data.trip_manager = mock_trip_manager
+    mock_runtime_data.emhass_adapter = mock_emhass_adapter
+
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "entry_test"
+    mock_entry.data = {"vehicle_name": "Test Vehicle"}
+    mock_entry.runtime_data = mock_runtime_data
+
+    return hass, mock_entry

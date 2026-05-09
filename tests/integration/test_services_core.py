@@ -37,28 +37,6 @@ def _patch_trip_manager():
     )
 
 
-@pytest.fixture
-def mock_hass():
-    class Services:
-        def __init__(self):
-            self.registry = {}
-
-        def async_register(
-            self, domain, name, handler, schema=None, supports_response=None
-        ):
-            # Accept supports_response argument to match Home Assistant 2025.1+ API
-            if domain == DOMAIN:
-                self.registry[name] = handler
-
-    hass = MagicMock()
-    hass.data = {}
-    hass.services = Services()
-    hass.config_entries = MagicMock()
-    hass.config_entries.async_entries = MagicMock(return_value=[])
-    hass.config_entries.async_get_entry = MagicMock(return_value=None)
-    return hass
-
-
 def _setup_mock_config_entry(mock_hass, vehicle_id="chispitas"):
     """Set up a mock config entry for the given vehicle_id."""
     from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
@@ -330,50 +308,6 @@ async def test_service_import_from_weekly_pattern_no_clear(mock_hass):
 class TestHandleTripGetErrorPaths:
     """Tests for handle_trip_get error paths - PRAGMA-A coverage targets."""
 
-    @pytest.fixture
-    def mock_hass_get_error(self):
-        """Create mock hass that errors on async_get_recurring_trips."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        # Manager that raises on async_get_recurring_trips
-        mock_manager = MagicMock()
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            side_effect=RuntimeError("Storage error")
-        )
-        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_get_catches_exception_from_async_get_recurring_trips(
         self, mock_hass_get_error
@@ -399,51 +333,6 @@ class TestHandleTripGetErrorPaths:
 class TestHandleTripListErrorPaths:
     """Tests for handle_trip_list error paths - PRAGMA-A coverage targets."""
 
-    @pytest.fixture
-    def mock_hass_list_error(self):
-        """Create mock hass that errors on async_get_recurring_trips."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-
-        # Manager that raises on both
-        mock_manager = MagicMock()
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            side_effect=RuntimeError("Storage corrupted")
-        )
-        mock_manager.async_get_punctual_trips = AsyncMock(
-            side_effect=RuntimeError("Storage corrupted")
-        )
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_list_catches_exception(self, mock_hass_list_error):
         """handle_trip_list catches RuntimeError from manager methods."""
@@ -467,51 +356,6 @@ class TestHandleTripListErrorPaths:
 
 class TestHandleTripCreateErrorPaths:
     """Tests for handle_trip_create error paths - PRAGMA-A coverage targets."""
-
-    @pytest.fixture
-    def mock_hass_invalid_type(self):
-        """Create mock hass for invalid trip_type test."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_add_recurring_trip = AsyncMock(
-            return_value="rec_lun_abc12345"
-        )
-        mock_manager.async_add_punctual_trip = AsyncMock(
-            return_value="pun_20251119_abc12345"
-        )
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_create_invalid_type_returns_early(
@@ -547,50 +391,6 @@ class TestHandleTripCreateErrorPaths:
 
 class TestHandleTripUpdateSensorErrorPath:
     """Tests for handle_trip_update sensor update error path - PRAGMA-A coverage targets."""
-
-    @pytest.fixture
-    def mock_hass_update_sensor_error(self):
-        """Create mock hass where async_update_trip_sensor raises."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_setup = AsyncMock()
-        mock_manager.async_update_trip = AsyncMock(return_value=True)
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            return_value=[{"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}]
-        )
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_update_sensor_failure_caught(
@@ -630,51 +430,9 @@ class TestHandleTripUpdateSensorErrorPath:
 class TestHandleDeleteTripNotFound:
     """Tests for handle_delete_trip when trip not found - PRAGMA-A coverage targets."""
 
-    @pytest.fixture
-    def mock_hass_delete_not_found(self):
-        """Create mock hass where trip is not found."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_setup = AsyncMock()
-        # async_delete_trip returns None when trip not found (just logs warning)
-        mock_manager.async_delete_trip = AsyncMock(return_value=None)
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_delete_trip_not_found_still_refreshes(
-        self, mock_hass_delete_not_found
+        self, mock_hass_delete_not_found_v1
     ):
         """handle_delete_trip still refreshes even when trip not found.
 
@@ -683,7 +441,7 @@ class TestHandleDeleteTripNotFound:
         """
         from custom_components.ev_trip_planner.__init__ import register_services
 
-        hass = mock_hass_delete_not_found
+        hass = mock_hass_delete_not_found_v1
         register_services(hass)
 
         handler = hass.services.registry["delete_trip"]
@@ -703,48 +461,6 @@ class TestHandleDeleteTripNotFound:
 
 class TestGetManagerErrorPaths:
     """Tests for _get_manager error paths - PRAGMA-A coverage targets."""
-
-    @pytest.fixture
-    def mock_hass_manager_setup_error(self):
-        """Create mock hass where manager async_setup raises."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_entry.unique_id = "unique_test"
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        # Manager that raises on async_setup
-        mock_manager = MagicMock()
-        mock_manager.async_setup = AsyncMock(side_effect=RuntimeError("Setup failed"))
-        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=None,  # Will cause new manager to be created
-        )
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_list_with_manager_setup_error(
@@ -777,47 +493,6 @@ class TestGetManagerErrorPaths:
 class TestHandleTripGetNotFound:
     """Tests for handle_trip_get when trip is not found - PRAGMA-A coverage targets."""
 
-    @pytest.fixture
-    def mock_hass_get_not_found(self):
-        """Create mock hass where trip is not found."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_get_returns_not_found(self, mock_hass_get_not_found):
         """handle_trip_get returns found=False when trip_id not found.
@@ -843,49 +518,6 @@ class TestHandleTripGetNotFound:
 
 class TestHandleImportWeeklyPattern:
     """Tests for handle_import_weekly_pattern error paths - PRAGMA-A coverage targets."""
-
-    @pytest.fixture
-    def mock_hass_import_error(self):
-        """Create mock hass that errors on async_get_recurring_trips during import."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            side_effect=RuntimeError("Storage error during clear")
-        )
-        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_new")
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_import_weekly_pattern_catches_clear_error(
@@ -1032,31 +664,6 @@ class TestAsyncRegisterStaticPathsErrorPaths:
 class TestAsyncRemoveEntryCleanup:
     """Tests for async_remove_entry_cleanup error paths."""
 
-    @pytest.fixture
-    def mock_hass_removal(self):
-        """Create mock hass for async_remove_entry_cleanup tests."""
-        hass = MagicMock()
-        hass.data = {"storage": {}}
-        hass.config.config_dir = "/tmp/test_config"
-
-        mock_trip_manager = MagicMock()
-        mock_trip_manager.async_delete_all_trips = AsyncMock()
-
-        mock_emhass_adapter = MagicMock()
-        mock_emhass_adapter.async_cleanup_vehicle_indices = AsyncMock()
-        mock_emhass_adapter._config_entry_listener = MagicMock()
-
-        mock_runtime_data = MagicMock()
-        mock_runtime_data.trip_manager = mock_trip_manager
-        mock_runtime_data.emhass_adapter = mock_emhass_adapter
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "Test Vehicle"}
-        mock_entry.runtime_data = mock_runtime_data
-
-        return hass, mock_entry
-
     @pytest.mark.asyncio
     async def test_async_remove_entry_cleanup_handles_storage_error(
         self, mock_hass_removal
@@ -1175,49 +782,9 @@ class TestAsyncRemoveEntryCleanup:
 class TestHandleTripDelete:
     """Tests for handle_delete_trip error paths - PRAGMA-A coverage targets."""
 
-    @pytest.fixture
-    def mock_hass_delete_not_found(self):
-        """Create mock hass where trip is not found."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_delete_trip = AsyncMock(return_value=False)
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_delete_trip_not_found_returns_early(
-        self, mock_hass_delete_not_found
+        self, mock_hass_delete_not_found_v2
     ):
         """handle_delete_trip proceeds when async_delete_trip returns False (trip not found).
 
@@ -1225,7 +792,7 @@ class TestHandleTripDelete:
         """
         from custom_components.ev_trip_planner.__init__ import register_services
 
-        hass = mock_hass_delete_not_found
+        hass = mock_hass_delete_not_found_v2
         register_services(hass)
 
         handler = hass.services.registry["delete_trip"]
@@ -1245,47 +812,6 @@ class TestHandleTripDelete:
 
 class TestHandleTripCreateManagerError:
     """Tests for handle_trip_create when manager setup raises - PRAGMA-A coverage targets."""
-
-    @pytest.fixture
-    def mock_hass_create_manager_error(self):
-        """Create mock hass where manager async_setup raises."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_entry.unique_id = "unique_test"
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_setup = AsyncMock(side_effect=RuntimeError("Setup failed"))
-        mock_manager.async_add_recurring_trip = AsyncMock(return_value="rec_lun_abc")
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=None,  # Will cause new manager to be created
-        )
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_create_catches_manager_setup_error(
@@ -1469,58 +995,6 @@ class TestHandleTripUpdateSensorLoop:
 
 class TestHandleTripUpdateWithKmAndKwh:
     """Tests for handle_trip_update with km and kwh fields - covers lines 164, 166."""
-
-    @pytest.fixture
-    def mock_hass_update_km_kwh(self):
-        """Create mock hass for trip_update with km/kwh fields."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_update_trip = AsyncMock(return_value=True)
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            return_value=[
-                {
-                    "id": "rec_lun_abc",
-                    "dia_semana": "lunes",
-                    "hora": "09:00",
-                    "km": 24.0,
-                    "kwh": 3.6,
-                }
-            ]
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_update_with_km_and_kwh(self, mock_hass_update_km_kwh):
@@ -2162,49 +1636,6 @@ class TestAsyncRemoveEntryCleanupMissingVehicleName:
 class TestHandleTripCreateRecurrenteSuccess:
     """Tests for handle_trip_create with type=recurrente - covers lines 83-93, 125-128."""
 
-    @pytest.fixture
-    def mock_hass_recurrente_success(self):
-        """Create mock hass for successful recurrente trip creation."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_add_recurring_trip = AsyncMock(
-            return_value="rec_lun_abc12345"
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_create_recurrente_success(
         self, mock_hass_recurrente_success
@@ -2241,49 +1672,6 @@ class TestHandleTripCreateRecurrenteSuccess:
 class TestHandleTripCreatePuntualSuccess:
     """Tests for handle_trip_create with type=puntual - covers lines 102-110."""
 
-    @pytest.fixture
-    def mock_hass_puntual_success(self):
-        """Create mock hass for successful punctual trip creation."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_add_punctual_trip = AsyncMock(
-            return_value="pun_20251119_abc12345"
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_create_puntual_success(self, mock_hass_puntual_success):
         """handle_trip_create with type=puntual creates trip and refreshes coordinator.
@@ -2316,49 +1704,6 @@ class TestHandleTripCreatePuntualSuccess:
 
 class TestHandleTripCreateEnglishFields:
     """Tests for handle_trip_create with English field names - covers lines 83-93."""
-
-    @pytest.fixture
-    def mock_hass_english_fields(self):
-        """Create mock hass for trip creation with English fields."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_add_recurring_trip = AsyncMock(
-            return_value="rec_lun_abc12345"
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_create_with_english_fields_recurrente(
@@ -2403,58 +1748,6 @@ class TestHandleTripCreateEnglishFields:
 class TestHandleTripListWithTrips:
     """Tests for handle_trip_list when trips exist - covers lines 513, 523, 544, 546."""
 
-    @pytest.fixture
-    def mock_hass_list_with_trips(self):
-        """Create mock hass with existing trips."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        # Return trips that will trigger the debug logging
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            return_value=[
-                {"id": "rec_lun_1", "tipo": "recurrente", "activo": True},
-                {"id": "rec_mar_1", "tipo": "recurrente", "activo": True},
-            ]
-        )
-        mock_manager.async_get_punctual_trips = AsyncMock(
-            return_value=[
-                {"id": "pun_20251119_1", "tipo": "puntual", "estado": "pendiente"},
-            ]
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_handle_trip_list_with_trips(self, mock_hass_list_with_trips):
         """handle_trip_list returns trips and triggers debug logging.
@@ -2480,52 +1773,6 @@ class TestHandleTripListWithTrips:
 class TestFindEntryByVehicleWithNoneData:
     """Tests for _find_entry_by_vehicle when entry.data is None - covers lines 696-700."""
 
-    @pytest.fixture
-    def mock_hass_none_data_entry(self):
-        """Create mock hass with an entry that has None data."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        # Create two entries: one with None data (should be skipped), one with valid data
-        mock_entry_valid = MagicMock()
-        mock_entry_valid.entry_id = "entry_valid"
-        mock_entry_valid.data = {"vehicle_name": "valid_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_manager = MagicMock()
-        mock_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-        mock_manager.async_get_punctual_trips = AsyncMock(return_value=[])
-
-        mock_entry_valid.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-
-        mock_entry_none = MagicMock()
-        mock_entry_none.entry_id = "entry_none"
-        mock_entry_none.data = None  # This should trigger lines 696-700
-
-        # First entry has None data, second entry is valid
-        hass.config_entries.async_entries = MagicMock(
-            return_value=[mock_entry_none, mock_entry_valid]
-        )
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry_valid)
-
-        return hass
-
     @pytest.mark.asyncio
     async def test_find_entry_by_vehicle_skips_none_data(
         self, mock_hass_none_data_entry
@@ -2546,50 +1793,6 @@ class TestFindEntryByVehicleWithNoneData:
 
 class TestHandleTripUpdateWithUpdatesObject:
     """Tests for handle_trip_update with old 'updates' format - covers line 149."""
-
-    @pytest.fixture
-    def mock_hass_update_with_updates(self):
-        """Create mock hass for trip_update with updates object."""
-        from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-
-        class Services:
-            def __init__(self):
-                self.registry = {}
-
-            def async_register(
-                self, domain, name, handler, schema=None, supports_response=None
-            ):
-                if domain == DOMAIN:
-                    self.registry[name] = handler
-
-        hass = MagicMock()
-        hass.data = {}
-        hass.services = Services()
-        hass.config_entries = MagicMock()
-
-        mock_entry = MagicMock()
-        mock_entry.entry_id = "entry_test"
-        mock_entry.data = {"vehicle_name": "test_vehicle"}
-        mock_coordinator = MagicMock()
-        mock_coordinator.async_refresh_trips = AsyncMock()
-
-        mock_manager = MagicMock()
-        mock_manager.async_update_trip = AsyncMock(return_value=True)
-        mock_manager.async_get_recurring_trips = AsyncMock(
-            return_value=[{"id": "rec_lun_abc", "dia_semana": "lunes", "hora": "09:00"}]
-        )
-        mock_manager.async_setup = AsyncMock()
-
-        mock_entry.runtime_data = EVTripRuntimeData(
-            coordinator=mock_coordinator,
-            trip_manager=mock_manager,
-        )
-        mock_entry.runtime_data.trip_manager = mock_manager
-
-        hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-        hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-        return hass
 
     @pytest.mark.asyncio
     async def test_handle_trip_update_with_updates_object(

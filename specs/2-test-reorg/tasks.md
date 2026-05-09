@@ -282,7 +282,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `fix(test-reorg): replace assert True in test_init.py`
   - _Requirements: FR-8, AC-5.2, AC-5.3_
 
-- [ ] 2.17 [VERIFY] Quality checkpoint: assert True eliminated
+- [x] 2.17 [VERIFY] Quality checkpoint: assert True eliminated
   - **Do**: Verify zero `assert True` matches across all Python test files. Run `make test-cover`.
   - **Verify**: `grep -r "assert True" tests/unit/ tests/integration/ --include="*.py" | wc -l | grep -q "^0$" && make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: 0 assert True violations; 100% coverage
@@ -312,13 +312,13 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): create integration conftest with HA framework fixtures`
   - _Requirements: FR-10, AC-7.3_
 
-- [ ] 2.21 [VERIFY] Quality checkpoint: conftest split
+- [x] 2.21 [VERIFY] Quality checkpoint: conftest split
   - **Do**: Run `make test` and `make test-cover`. Verify fixture resolution works across all layers.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All tests pass at 100%; no fixture resolution errors
   - **Commit**: None
 
-- [ ] 2.22 Eliminate inline mock_hass in test_services_core.py (19 definitions)
+- [x] 2.22 Eliminate inline mock_hass in test_services_core.py (19 definitions)
   - **Do**: Replace all 19 inline `def mock_hass` definitions in `tests/integration/test_services_core.py` with usage of the conftest `mock_hass` or `hass` fixture. Remove duplicate definitions; ensure tests use the shared fixture.
   - **Files**: tests/integration/test_services_core.py
   - **Done when**: `grep -c "def mock_hass" tests/integration/test_services_core.py` returns 0
