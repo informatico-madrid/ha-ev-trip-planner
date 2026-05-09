@@ -146,7 +146,26 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 
 ## 4. Epic Decomposition
 
-### Spec 0: Tooling Foundation
+### Branch Strategy
+
+```
+main
+  └── epic/tech-debt-cleanup          ← rama epic (merge target)
+        ├── spec/tooling-foundation    ← Spec 0 ✅ COMPLETADA (18/18 tasks)
+        ├── spec/1-dead-code           ← Spec 1 (pendiente)
+        ├── spec/2-test-reorg          ← Spec 2 (pendiente)
+        ├── spec/3-solid-refactor      ← Spec 3 (pendiente)
+        ├── ...
+```
+
+**Reglas:**
+1. Cada spec trabaja en su rama `spec/<N>-<name>` desde `epic/tech-debt-cleanup`
+2. Al completar una spec, PR merge a rama epic
+3. La rama epic se mergea a main cuando la epic esté completa (o por milestones)
+4. Esto evita CI rojo en main durante desarrollo
+5. El baseline de quality-gate actual refleja el estado post-Spec 0
+
+### Spec 0: Tooling Foundation ✅ COMPLETADA
 - **Goal**: Install missing tools, fix broken tooling, add Makefile targets, establish baseline metrics. Establish **6-layer quality gate**: L3A (smoke test) → L1 (test execution) → L2 (test quality) → L3B (deep quality via BMAD) → L4 (security & defense).
 - **Prerequisites**: `.venv` exists and is activated for all commands.
 - **Acceptance Criteria**:
@@ -177,6 +196,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 - **Interface Contracts**: Makefile targets must produce consistent exit codes (0 = pass, non-0 = fail) and machine-readable output for CI.
 - **Estimated Size**: **0.5 story points**
 - **Dependencies**: None (baseline, runs first)
+- **Status**: ✅ COMPLETADA — 24 ACs verificados, baseline 6-layer capturada (19 archivos), Tier B BMAD consensus ejecutado (3 agentes, 8 SOLID + 14 antipatterns confirmados). Rama: `feat/tech-debt-cleanup`.
 
 ### Spec 1: Dead Code & Artifact Elimination
 - **Goal**: Remove all dead code, backup files, and stale artifacts. Reduce source LOC without changing behavior.
