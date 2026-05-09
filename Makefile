@@ -63,16 +63,16 @@ help:
 	@echo "  make staging-reset   - Reset staging HA / Resetear HA staging"
 
 test:
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100 --ignore=tests/e2e/
 
 test-verbose:
-	python3 -m pytest tests -vv -s --tb=long --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	python3 -m pytest tests -vv -s --tb=long --ignore=tests/e2e/
 
 test-dashboard:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100 --ignore=tests/ha-manual/ --ignore=tests/e2e/
+	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100 --ignore=tests/e2e/
 	@echo "Dashboard de cobertura generado en htmlcov/index.html"
 
 test-e2e:
@@ -268,11 +268,11 @@ mutation-gate:
 # ============================================================================
 test-parallel:
 	@echo "Running tests in parallel mode..."
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/ -n auto
+	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/ -n auto
 
 test-random:
 	@echo "Running tests in random order..."
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/ --random-order
+	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/ --random-order
 
 # ============================================================================
 # E2E Linting
