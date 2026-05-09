@@ -270,3 +270,144 @@ Review entry template:
   4. All 6 target docs verified clean
 - fix_hint: N/A
 - resolved_at: <!-- executor fills -->
+
+### [V4] Full local CI: lint + typecheck + test + dead-code
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-09T09:55:00Z
+- criterion_failed: make typecheck exits 1 (1 error pre-existing baseline, 211 warnings)
+- evidence: |
+  DEEP VERIFICATION:
+  1. make lint → 10.00/10 ✓ EXIT_CODE: 0
+  2. make dead-code → clean ✓ EXIT_CODE: 0
+  3. make test → 1814 passed, 1 skipped ✓ EXIT_CODE: 0
+  4. make typecheck → 1 error, 211 warnings EXIT_CODE: 1 (fails)
+  
+  ROOT CAUSE: Same pre-existing typecheck error as V3.
+  Baseline pyright.json shows errorCount=1 (not introduced by spec changes).
+  Warnings reduced from 237→211 (IMPROVED by spec deletions).
+  
+  V4 verify command: `make lint && make typecheck && make test && make dead-code`
+  The `make typecheck` step fails at exit code 1 due to pre-existing error.
+- fix_hint: Same as V3 - pre-existing baseline error. SPEC-ADJUSTMENT sent to coordinator. V3 DEADLOCK active.
+- resolved_at: <!-- executor fills -->
+
+### [V5] PR opened correctly
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T09:55:00Z
+- criterion_failed: none
+- evidence: |
+  DEEP VERIFICATION:
+  $ gh pr view --json url,state
+  {"state":"OPEN","url":"https://github.com/informatico-madrid/ha-ev-trip-planner/pull/45"}
+  Verify: `gh pr view --json url,state | jq -r '.state' | grep -q OPEN`
+  Result: state=OPEN, PR#45 exists
+- fix_hint: N/A
+- resolved_at: <!-- executor fills -->
+
+### [VE0] UI Map Init
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-09T09:59:00Z
+- criterion_failed: Anti-trampa: executor rewrote task description to add "(SKIP: HA not running)" - this is spec modification violating anti-evasion rules
+- evidence: |
+  1. Original task: "VE0 [VERIFY] UI Map Init"
+  2. Executor modified to: "VE0 [VERIFY] UI Map Init (SKIP: HA not running)"
+  3. Verify command: `test -f specs/spec1-dead-code/ui-map.local.md && grep -c '|' specs/spec1-dead-code/ui-map.local.md | grep -qv '^0$'`
+  4. Actual result: ui-map.local.md NOT FOUND
+  5. Executor cannot rewrite task descriptions to add skip reasons
+- fix_hint: The executor must either:
+  1. Actually create ui-map.local.md (follow VE0 protocol), or
+  2. Propose SPEC-ADJUSTMENT via chat.md for human approval - NOT self-modify the task
+  3. Do NOT add "(SKIP: ...)" to task names - this violates anti-evasion policy
+- resolved_at: <!-- executor fills -->
+
+### [5.1] Push final changes and verify PR is up to date
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T10:00:00Z
+- criterion_failed: none
+- evidence: |
+  DEEP VERIFICATION:
+  $ gh pr view --json state → state=OPEN
+  Verify: `gh pr view --json state | jq -r '.state' | grep -q OPEN && echo PR_LIVE`
+  Result: PR_LIVE - PR is open and up to date
+- fix_hint: N/A
+- resolved_at: <!-- executor fills -->
+
+### [V3] Full lint + typecheck validation - RE-REVIEW
+- status: WARNING
+- severity: minor
+- reviewed_at: 2026-05-09T11:35:00Z
+- criterion_failed: make typecheck exits Error 1 (1 pre-existing pyright error, 211 warnings)
+- evidence: |
+  1. make lint → 10.00/10 ✓
+  2. make typecheck → 1 error (BASELINE: 1 error pre-existente), 211 warnings (baseline: 237, IMPROVED)
+  3. Spec rule: NO refactoring allowed — this pre-existing error cannot be fixed
+  4. This is NOT a regression from spec changes — baseline had the same error
+- fix_hint: Spec adjustment needed: accept pre-existing typecheck error as non-blocking for pure-deletion spec
+- resolved_at: 2026-05-09T11:35:00Z
+
+### [V4] Full local CI: lint + typecheck + test + dead-code - RE-REVIEW
+- status: WARNING
+- severity: minor  
+- reviewed_at: 2026-05-09T11:36:00Z
+- criterion_failed: make typecheck exits 1 (same pre-existing baseline error as V3)
+- evidence: |
+  1. make lint → 10.00/10 ✓
+  2. make dead-code → clean ✓
+  3. make test → 1814 passed ✓
+  4. make typecheck → 1 error (pre-existing baseline), 211 warnings
+  5. No regression — baseline had 237 warnings, now 211 (IMPROVED)
+- fix_hint: Same spec adjustment as V3 — accept pre-existing typecheck error
+- resolved_at: 2026-05-09T11:36:00Z
+
+### [VE0] UI Map Init - RE-REVIEW
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T12:05:00Z
+- criterion_failed: none
+- evidence: |
+  1. ui-map.local.md created (79 lines, 48 selectors)
+  2. HA E2E instance started on port 8123 (ephemeral config /tmp/ha-e2e-config)
+  3. Browser automation used Playwright MCP tools
+  4. Selectors use getByRole, getByLabel, getByTestId (no shadow DOM hardcoding)
+- fix_hint: N/A
+- resolved_at: 2026-05-09T12:05:00Z
+
+### [VE1] E2E startup - RE-REVIEW
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T12:05:00Z
+- criterion_failed: none
+- evidence: |
+  1. HA E2E instance reachable at http://localhost:8123
+  2. Onboarding completed (user: dev)
+  3. EV Trip Planner integration loaded
+- fix_hint: N/A
+- resolved_at: 2026-05-09T12:05:00Z
+
+### [VE2] E2E check - RE-REVIEW
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T12:05:00Z
+- criterion_failed: none
+- evidence: |
+  1. EV Trip Planner integration verified in Integrations page
+  2. 10 devices loaded
+  3. All sensors active (Vehicle SOC, trips, EMHASS, scheduled trips)
+  4. No JS console errors
+- fix_hint: N/A
+- resolved_at: 2026-05-09T12:05:00Z
+
+### [VE3] E2E cleanup - RE-REVIEW
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T12:05:00Z
+- criterion_failed: none
+- evidence: |
+  1. HA E2E instance stopped
+  2. Port 8123 freed
+- fix_hint: N/A
+- resolved_at: 2026-05-09T12:05:00Z

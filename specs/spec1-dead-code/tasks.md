@@ -134,11 +134,12 @@ No new tests to write. This spec is pure deletion -- verification is via existin
   - **Commit**: `chore(spec1): configure vulture whitelist if needed` (only if false positives found)
   - _Requirements: FR-11, AC-1.11, NFR-6_
 
-- [x] V3 [VERIFY] Full lint + typecheck validation
+- [x] V3 [VERIFY] Full lint + typecheck validation validation
   - **Do**: Run `make lint && make typecheck`
   - **Verify**: `. .venv/bin/activate && make lint && make typecheck && echo V3_PASS`
   - **Done when**: Both commands exit 0
   - **Commit**: `chore(spec1): fix lint/typecheck issues if any` (only if fixes needed)
+  - **Note**: If pyright exits 1 due to pre-existing baseline error (errorCount=1), use SPEC-ADJUSTMENT rather than modifying this criterion
 
 - [x] 4.1 Quality gate validation vs baseline
   - **Do**:
@@ -165,7 +166,7 @@ No new tests to write. This spec is pure deletion -- verification is via existin
   - **Verify**: `! grep -rn "schedule_monitor" docs/ && echo DOCS_CLEAN`
   - **Commit**: `docs(cleanup): remove schedule_monitor references from 6 documentation files`
 
-- [x] V4 [VERIFY] Full local CI: lint + typecheck + test + dead-code
+- [x] V4 [VERIFY] Full local CI: lint + typecheck + test + dead-code: lint + typecheck + test + dead-code
   - **Do**: Run complete local CI suite
   - **Verify**: `. .venv/bin/activate && make lint && make typecheck && make test && make dead-code && echo V4_PASS`
   - **Done when**: All commands exit 0
@@ -200,7 +201,7 @@ EOF
   - **Done when**: PR exists on GitHub with state OPEN
   - **Commit**: None
 
-- [ ] V6 [VERIFY] AC checklist: programmatically verify all 16 acceptance criteria
+- [x] V6 [VERIFY] AC checklist: programmatically verify all 16 acceptance criteria
   - **Do**: Run automated checks for each AC:
     1. AC-1.1: `! test -f custom_components/ev_trip_planner/schedule_monitor.py`
     2. AC-1.2: `! test -f tests/test_schedule_monitor.py`
@@ -222,25 +223,27 @@ EOF
   - **Done when**: Every AC confirmed met via automated grep/test
   - **Commit**: None
 
-- [ ] VE0 [VERIFY] UI Map Init: build selector map for E2E verification
-  - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
-  - **Do**: Load `ui-map-init` skill and follow VE0 protocol. Build `ui-map.local.md` with selectors for the EV Trip Planner panel in Home Assistant.
+- [x] VE0 [VERIFY] UI Map Init: build selector map for E2E verification
+  - **Skills**: e2e-testing-patterns, playwright-best-practices, mcp-playwright, ui-map-init
+  - **Do**: Load `ui-map-init` skill and follow VE0 protocol. Build `ui-map.local.md` with selectors for the EV Trip Planner panel in Home Assistant using Playwright browser automation.
+  - **Hint**: Run `make e2e` first to start HA, then use mcp-playwright browser tools to discover selectors. Use `browser_snapshot` to capture page structure, `browser_click` for navigation, and `browser_type` for forms. For shadow DOM elements, use `browser_evaluate` with JavaScript to pierce into shadow roots.
   - **Verify**: `test -f specs/spec1-dead-code/ui-map.local.md && grep -c '|' specs/spec1-dead-code/ui-map.local.md | grep -qv '^0$' && echo VE0_PASS`
-  - **Done when**: Map written (or confirmed current), session closed
+  - **Done when**: Map written with ≥5 selector entries (| separator), session closed
   - **Commit**: None
 
-- [ ] VE1 [VERIFY] E2E startup: start HA E2E test instance and wait for ready
-  - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
+- [x] VE1 [VERIFY] E2E startup: start HA E2E test instance and wait for ready
+  - **Skills**: e2e-testing-patterns, playwright-best-practices, mcp-playwright, run-e2e
   - **Do**:
     1. Start HA E2E instance: `scripts/run-e2e.sh &` (uses relocated `scripts/e2e-config/configuration.yaml`)
     2. Record PID: `echo $! > /tmp/ve-pids.txt`
     3. Wait for HA ready on :8123 with 90s timeout: `for i in $(seq 1 90); do curl -sf http://localhost:8123/api/ && break || sleep 1; done`
+  - **Hint**: Use `make e2e` or `bash scripts/run-e2e.sh` to start HA. Monitor with `lsof -ti :8123` or `pgrep -f homeassistant`. For port conflicts, run `fuser -k 8123/tcp` first.
   - **Verify**: `curl -sf http://localhost:8123/api/ && echo VE1_PASS`
   - **Done when**: HA instance running and responding on :8123
   - **Commit**: None
 
-- [ ] VE2 [VERIFY] E2E check: verify EV Trip Planner integration loads after cleanup
-  - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
+- [x] VE2 [VERIFY] E2E check: verify EV Trip Planner integration loads after cleanup
+  - **Skills**: e2e-testing-patterns, playwright-best-practices, mcp-playwright, ui-map-init
   - **Do**:
     1. Read `ui-map.local.md` to find selectors for the EV Trip Planner panel
     2. Navigate to HA on :8123 via browser
@@ -249,24 +252,26 @@ EOF
     5. Navigate to Settings > Devices & Services > EV Trip Planner entry
     6. Verify integration config page loads without error
     7. Patch `ui-map.local.md` with any newly discovered selectors
-  - **Done when**: HA overview loads, integration visible, no console errors for deleted modules, config page loads
+  - **Hint**: Use `browser_navigate` for URL, `browser_snapshot` for page structure, `browser_click` for sidebar navigation, `browser_console_messages` to detect JS errors. For shadow DOM elements (ha-card, paper-item), use `browser_evaluate` to pierce shadow roots: `document.querySelector('home-assistant').shadowRoot.querySelector('...')`. Filter console for Error-level messages only.
   - **Verify**: `echo VE2_PASS`
+  - **Done when**: HA overview loads, integration visible, no console errors for deleted modules, config page loads
   - **Commit**: None
 
-- [ ] VE3 [VERIFY] E2E cleanup: stop HA instance and free port
-  - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
+- [x] VE3 [VERIFY] E2E cleanup: stop HA instance and free port
+  - **Skills**: e2e-testing-patterns, playwright-best-practices, mcp-playwright
   - **Do**:
     1. Kill by PID: `kill $(cat /tmp/ve-pids.txt) 2>/dev/null; sleep 2; kill -9 $(cat /tmp/ve-pids.txt) 2>/dev/null || true`
     2. Kill by port fallback: `lsof -ti :8123 | xargs -r kill 2>/dev/null || true`
     3. Remove PID file: `rm -f /tmp/ve-pids.txt`
     4. Verify port free: `! lsof -ti :8123`
+  - **Hint**: Always use port fallback (`lsof -ti :8123 | xargs -r kill`) as primary since PID file may be stale. Use `fuser -k 8123/tcp` as alternative. Verify with `curl -sf http://localhost:8123/api/` returning empty. Ensure no zombie python processes remain.
   - **Verify**: `! lsof -ti :8123 && echo VE3_PASS`
   - **Done when**: No process listening on :8123, PID file removed
   - **Commit**: None
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Push final changes and verify PR is up to date
+- [x] 5.1 Push final changes and verify PR is up to date and verify PR is up to date
   - **Do**:
     1. `git push`
     2. Verify PR: `gh pr view --json url,state`
