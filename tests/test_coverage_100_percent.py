@@ -6,15 +6,16 @@ Este archivo cubre las últimas líneas sin cobertura identificadas en el análi
 - custom_components/ev_trip_planner/trip_manager.py (7 líneas): publish_deferrable_loads error handling
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.ev_trip_planner import EVTripRuntimeData
 from custom_components.ev_trip_planner.__init__ import _hourly_refresh_callback
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from tests import TEST_VEHICLE_ID, TEST_ENTRY_ID
+from tests import TEST_ENTRY_ID, TEST_VEHICLE_ID
 
 
 class TestHourlyRefreshCallbackCoverage:

@@ -1,20 +1,21 @@
 """Tests for EV Trip Planner integration __init__.py."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock, MagicMock, PropertyMock, patch, mock_open
+from unittest.mock import AsyncMock, MagicMock, Mock, PropertyMock, mock_open, patch
+
+import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.dashboard import (
-    is_lovelace_available,
-    import_dashboard,
-    _load_dashboard_template,
-    _verify_storage_permissions,
-    _save_lovelace_dashboard,
-)
 from custom_components.ev_trip_planner import (
     TripPlannerCoordinator,
     create_dashboard_input_helpers,
+)
+from custom_components.ev_trip_planner.dashboard import (
+    _load_dashboard_template,
+    _save_lovelace_dashboard,
+    _verify_storage_permissions,
+    import_dashboard,
+    is_lovelace_available,
 )
 
 
@@ -750,20 +751,18 @@ class TestAsyncUnloadEntry:
 
             # CRITICAL: cleanup MUST be called before platforms are unloaded
             # This asserts the ORDER: cleanup should appear BEFORE unload_platforms in call_order
-            assert "cleanup_vehicle_indices" in call_order, (
-                "emhass_adapter.async_cleanup_vehicle_indices must be called during unload"
-            )
+            assert (
+                "cleanup_vehicle_indices" in call_order
+            ), "emhass_adapter.async_cleanup_vehicle_indices must be called during unload"
             assert "unload_platforms" in call_order, "platforms must be unloaded"
             assert call_order.index("cleanup_vehicle_indices") < call_order.index(
                 "unload_platforms"
-            ), (
-                "async_cleanup_vehicle_indices must be called BEFORE async_unload_platforms"
-            )
+            ), "async_cleanup_vehicle_indices must be called BEFORE async_unload_platforms"
 
             # Also verify the cleanup method was actually called
-            assert call_order.count("cleanup_vehicle_indices") == 1, (
-                "async_cleanup_vehicle_indices should be called exactly once"
-            )
+            assert (
+                call_order.count("cleanup_vehicle_indices") == 1
+            ), "async_cleanup_vehicle_indices should be called exactly once"
 
 
 class TestStartupOrphanCleanup:
@@ -870,9 +869,9 @@ class TestStartupOrphanCleanup:
         await async_cleanup_orphaned_emhass_sensors(mock_hass)
 
         # Active sensor should NOT be removed
-        assert "sensor.emhass_perfil_diferible_test_vehicle" not in removed_entities, (
-            "Sensors with entry_id matching an active entry must NOT be removed"
-        )
+        assert (
+            "sensor.emhass_perfil_diferible_test_vehicle" not in removed_entities
+        ), "Sensors with entry_id matching an active entry must NOT be removed"
 
 
 # =============================================================================

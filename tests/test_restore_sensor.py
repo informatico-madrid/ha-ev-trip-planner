@@ -38,11 +38,12 @@ def test_trip_planner_sensor_inherits_restore_sensor(mock_coordinator):
     This test previously failed because TripPlannerSensor did not
     inherit RestoreSensor.
     """
+    from homeassistant.components.sensor import RestoreSensor
+
     from custom_components.ev_trip_planner.definitions import (
         TripSensorEntityDescription,
     )
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-    from homeassistant.components.sensor import RestoreSensor
 
     # Create entity description with restore=True
     desc = TripSensorEntityDescription(
@@ -108,11 +109,12 @@ def test_trip_planner_sensor_without_restore_not_restore_sensor(mock_coordinator
     This test PASSES even in RED state - sensors without restore=True
     are not expected to do state restoration.
     """
+    from homeassistant.components.sensor import RestoreSensor
+
     from custom_components.ev_trip_planner.definitions import (
         TripSensorEntityDescription,
     )
     from custom_components.ev_trip_planner.sensor import TripPlannerSensor
-    from homeassistant.components.sensor import RestoreSensor
 
     # Create entity description with restore=False (default)
     desc = TripSensorEntityDescription(

@@ -13,8 +13,9 @@ El problema: emhass_index se asigna por orden de CREACIÓN de viajes,
 no por orden CRONOLÓGICO.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 

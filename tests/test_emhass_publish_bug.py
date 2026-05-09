@@ -8,6 +8,7 @@ Fix: async_setup() now calls publish_deferrable_loads() internally after loading
 """
 
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from custom_components.ev_trip_planner.const import (
@@ -83,12 +84,12 @@ async def test_publish_deferrable_loads_called_after_setup(mock_hass):
     await trip_manager.async_setup()
 
     # Verify trips were loaded from storage
-    assert len(trip_manager._recurring_trips) == 1, (
-        "TripManager should load 1 recurring trip from storage"
-    )
-    assert len(trip_manager._punctual_trips) == 1, (
-        "TripManager should load 1 punctual trip from storage"
-    )
+    assert (
+        len(trip_manager._recurring_trips) == 1
+    ), "TripManager should load 1 recurring trip from storage"
+    assert (
+        len(trip_manager._punctual_trips) == 1
+    ), "TripManager should load 1 punctual trip from storage"
     print("✓ Trips loaded from storage successfully")
 
     # Step 2: Set EMHASS adapter (simulates __init__.py line 126)
@@ -220,21 +221,21 @@ async def test_emhass_sensors_populated_after_publish(mock_hass):
     # Verify EMHASS cache was populated with deferrable load data
     # This addresses the PR comment: the test now verifies actual cache population
     cached = emhass_adapter.get_cached_optimization_results()
-    assert cached["def_total_hours_array"] == [8.5], (
-        "def_total_hours_array should be populated after publish"
-    )
-    assert cached["p_deferrable_nom_array"] == [3.6], (
-        "p_deferrable_nom_array should be populated after publish"
-    )
-    assert cached["def_start_timestep_array"] == [22], (
-        "def_start_timestep_array should be populated after publish"
-    )
-    assert cached["def_end_timestep_array"] == [24], (
-        "def_end_timestep_array should be populated after publish"
-    )
-    assert cached["number_of_deferrable_loads"] == 1, (
-        "number_of_deferrable_loads should be 1 after publish"
-    )
+    assert cached["def_total_hours_array"] == [
+        8.5
+    ], "def_total_hours_array should be populated after publish"
+    assert cached["p_deferrable_nom_array"] == [
+        3.6
+    ], "p_deferrable_nom_array should be populated after publish"
+    assert cached["def_start_timestep_array"] == [
+        22
+    ], "def_start_timestep_array should be populated after publish"
+    assert cached["def_end_timestep_array"] == [
+        24
+    ], "def_end_timestep_array should be populated after publish"
+    assert (
+        cached["number_of_deferrable_loads"] == 1
+    ), "number_of_deferrable_loads should be 1 after publish"
 
     print("✓ FIX VERIFIED:")
     print("  EMHASS publish_deferrable_loads is called after HA restart")

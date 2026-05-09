@@ -23,9 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -484,9 +482,9 @@ async def test_no_charging_needed_power_watts_zero():
         f"Expected power_watts=0.0 for kwh=0 trip, got {params.get('power_watts')}. "
         "The total_hours == 0 branch (power_watts = 0.0) is not working."
     )
-    assert params.get("kwh_needed") == 0.0, (
-        f"Expected kwh_needed=0.0 for kwh=0 trip, got {params.get('kwh_needed')}."
-    )
+    assert (
+        params.get("kwh_needed") == 0.0
+    ), f"Expected kwh_needed=0.0 for kwh=0 trip, got {params.get('kwh_needed')}."
 
 
 # ---------------------------------------------------------------------------
@@ -543,9 +541,9 @@ async def test_stale_cache_cleanup():
     ):
         await adapter.async_publish_all_deferrable_loads(trips_3)
 
-    assert len(adapter._cached_per_trip_params) == 3, (
-        f"Expected 3 cache entries after first publish, got {len(adapter._cached_per_trip_params)}"
-    )
+    assert (
+        len(adapter._cached_per_trip_params) == 3
+    ), f"Expected 3 cache entries after first publish, got {len(adapter._cached_per_trip_params)}"
 
     # Step 2: Publish with only 1 trip — stale cache for 2 trips should be cleaned up
     trips_1 = [
@@ -575,15 +573,15 @@ async def test_stale_cache_cleanup():
         f"Expected 1 cache entry after removing 2 trips, got {len(adapter._cached_per_trip_params)}. "
         f"Stale cache cleanup is not working. Keys: {list(adapter._cached_per_trip_params.keys())}"
     )
-    assert "trip_0" in adapter._cached_per_trip_params, (
-        f"trip_0 should still be in cache. Keys: {list(adapter._cached_per_trip_params.keys())}"
-    )
-    assert "trip_1" not in adapter._cached_per_trip_params, (
-        "trip_1 should have been cleaned from stale cache"
-    )
-    assert "trip_2" not in adapter._cached_per_trip_params, (
-        "trip_2 should have been cleaned from stale cache"
-    )
+    assert (
+        "trip_0" in adapter._cached_per_trip_params
+    ), f"trip_0 should still be in cache. Keys: {list(adapter._cached_per_trip_params.keys())}"
+    assert (
+        "trip_1" not in adapter._cached_per_trip_params
+    ), "trip_1 should have been cleaned from stale cache"
+    assert (
+        "trip_2" not in adapter._cached_per_trip_params
+    ), "trip_2 should have been cleaned from stale cache"
 
 
 # ---------------------------------------------------------------------------

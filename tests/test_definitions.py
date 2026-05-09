@@ -12,9 +12,9 @@ def test_entity_description_has_exists_fn() -> None:
     desc = TripSensorEntityDescription(key="test_sensor")
 
     # Verify exists_fn exists and is callable
-    assert hasattr(desc, "exists_fn"), (
-        "TripSensorEntityDescription should have exists_fn field"
-    )
+    assert hasattr(
+        desc, "exists_fn"
+    ), "TripSensorEntityDescription should have exists_fn field"
     assert callable(desc.exists_fn), "exists_fn should be callable"
 
     # Verify default behavior - should return True for any input
@@ -28,9 +28,9 @@ def test_entity_description_has_restore_field() -> None:
     desc = TripSensorEntityDescription(key="test_sensor")
 
     # Verify restore field exists
-    assert hasattr(desc, "restore"), (
-        "TripSensorEntityDescription should have restore field"
-    )
+    assert hasattr(
+        desc, "restore"
+    ), "TripSensorEntityDescription should have restore field"
 
     # Verify default is False
     assert desc.restore is False, "restore should default to False"
@@ -41,12 +41,12 @@ def test_entity_description_exists_fn_and_restore_fields() -> None:
     desc = TripSensorEntityDescription(key="test_sensor")
 
     # Both fields should exist
-    assert hasattr(desc, "exists_fn"), (
-        "TripSensorEntityDescription should have exists_fn field"
-    )
-    assert hasattr(desc, "restore"), (
-        "TripSensorEntityDescription should have restore field"
-    )
+    assert hasattr(
+        desc, "exists_fn"
+    ), "TripSensorEntityDescription should have exists_fn field"
+    assert hasattr(
+        desc, "restore"
+    ), "TripSensorEntityDescription should have restore field"
 
     # defaults: exists_fn returns True, restore is False
     assert desc.exists_fn({"test": "data"}) is True

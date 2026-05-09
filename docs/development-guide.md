@@ -77,9 +77,9 @@ HA will be available at `http://localhost:8123` (started by `scripts/run-e2e.sh`
 | `make e2e` | Auto-start HA + run E2E tests |
 | `make e2e-headed` | Auto-start HA + E2E with browser |
 | `make lint` | Run ruff + pylint |
-| `make mypy` | Run type checking |
+| `make typecheck` | Run type checking (pyright) |
 | `make format` | Format with black + isort |
-| `make check` | Run all checks (test + lint + mypy) |
+| `make check` | Run all checks (test + lint + typecheck) |
 | `make clean` | Clean generated files |
 
 ### Direct Commands
@@ -99,7 +99,7 @@ ruff check .
 pylint custom_components/ tests/
 
 # Type checking
-mypy custom_components/
+pyright custom_components/
 
 # Formatting
 black .
@@ -155,7 +155,7 @@ tests/
 - **Formatter**: black (88 char line length)
 - **Import sorting**: isort (black profile)
 - **Linter**: ruff + pylint
-- **Type checking**: mypy (strict mode)
+- **Type checking**: pyright (Python 3.14 target)
 - **Naming**: snake_case for functions/variables, PascalCase for classes
 - **Docstrings**: Google-style docstrings on all public functions/classes
 - **Language**: Code in English, user-facing strings in Spanish/English (via translations/)
@@ -265,6 +265,39 @@ Staging is already implemented via `docker-compose.staging.yml` and runs HA in D
 2. All functions must be synchronous with explicit `reference_dt`
 3. Add parametrized tests in `test_calculations.py`
 4. TripManager delegates to calculation functions
+
+## Quality Gate
+
+This project includes a comprehensive quality gate that runs all checks in layers.
+
+### Quality Gate Commands
+
+| Command | Description |
+|---------|-------------|
+| `make quality-gate` | Run full quality gate (layers 1-4) |
+| `make quality-baseline` | Create baseline snapshot |
+| `make layer1` | Layer 1: Test execution (unit + E2E) |
+| `make layer1-ci` | Layer 1: Tests only (no E2E) |
+| `make layer2` | Layer 2: Test quality (mutation analysis) |
+| `make layer3` | Layer 3: Code quality (lint, typecheck, deptry, vulture) |
+| `make layer4` | Layer 4: Security (bandit, semgrep, gitleaks, pip-audit) |
+
+### Security Commands
+
+| Command | Description |
+|---------|-------------|
+| `make security` | Run all security scans |
+| `make security-bandit` | Bandit security linter |
+| `make security-audit` | pip-audit dependency scanner |
+| `make security-gitleaks` | Gitleaks secret detection |
+| `make security-semgrep` | Semgrep static analysis |
+
+### Quality Layers
+
+1. **Layer 1: Test Execution** - pytest unit tests + E2E tests
+2. **Layer 2: Test Quality** - mutation analysis gate
+3. **Layer 3: Code Quality** - ruff, pylint, pyright, deptry, vulture
+4. **Layer 4: Security** - bandit, semgrep, gitleaks, pip-audit
 
 ## Debugging
 

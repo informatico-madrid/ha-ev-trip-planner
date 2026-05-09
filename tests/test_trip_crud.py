@@ -12,11 +12,11 @@ All tests follow TDD principles and use pytest-homeassistant-custom-component pa
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
+import pytest
 
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 # =============================================================================
 # Fixtures
@@ -523,9 +523,9 @@ class TestTripUpdate:
         # Verify datetime was actually updated
         trips = await trip_manager.async_get_punctual_trips()
         assert len(trips) == 1
-        assert trips[0]["datetime"] == "2026-03-28T15:30", (
-            f"Expected datetime '2026-03-28T15:30', got '{trips[0].get('datetime')}'"
-        )
+        assert (
+            trips[0]["datetime"] == "2026-03-28T15:30"
+        ), f"Expected datetime '2026-03-28T15:30', got '{trips[0].get('datetime')}'"
         # Verify other fields were NOT changed
         assert trips[0]["km"] == 50.0
         assert trips[0]["kwh"] == 10.0

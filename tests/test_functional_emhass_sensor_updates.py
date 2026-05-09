@@ -9,10 +9,11 @@ se debe actualizar"
 Estos tests verifican ese requisito sin preocuparse por el flujo interno.
 """
 
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, MagicMock
-from homeassistant.core import HomeAssistant, CoreState
+from unittest.mock import AsyncMock, MagicMock, Mock
+
+import pytest
+from homeassistant.core import CoreState, HomeAssistant
 
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
@@ -138,13 +139,13 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor(
     Simula el cambio de SOC vía el evento del PresenceMonitor.
     Usa un TripManager REAL (no mock) para que el código real se ejecute.
     """
-    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
-    from custom_components.ev_trip_planner.trip_manager import TripManager
     from custom_components.ev_trip_planner.const import (
         CONF_HOME_SENSOR,
         CONF_PLUGGED_SENSOR,
         CONF_SOC_SENSOR,
     )
+    from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
+    from custom_components.ev_trip_planner.trip_manager import TripManager
 
     print("\n" + "=" * 80)
     print("TEST FUNCIONAL: Cambio SOC ≥5% → Sensor EMHASS actualiza AUTOMÁTICAMENTE")

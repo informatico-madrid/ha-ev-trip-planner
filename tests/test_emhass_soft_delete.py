@@ -1,17 +1,18 @@
 """Tests for EMHASS soft delete index stability."""
 
-import pytest
 from datetime import datetime, timedelta
-from homeassistant.core import HomeAssistant
 from unittest.mock import patch
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+import pytest
+from homeassistant.core import HomeAssistant
+
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
     CONF_INDEX_COOLDOWN_HOURS,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_VEHICLE_NAME,
 )
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
@@ -124,9 +125,9 @@ async def test_new_trip_gets_next_available_index(hass: HomeAssistant, mock_stor
 
         # Assign a new trip - should get index 3, NOT 1 (still in cooldown)
         new_idx = await adapter.async_assign_index_to_trip("trip_004")
-        assert new_idx == 3, (
-            "New trip should get next available index, not recently released one"
-        )
+        assert (
+            new_idx == 3
+        ), "New trip should get next available index, not recently released one"
 
         # Verify index 1 is still in released_indices
         assert 1 in adapter._released_indices

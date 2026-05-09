@@ -8,17 +8,18 @@ This test will FAIL with current code and PASS after the fix.
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
 import pytest
 
+from custom_components.ev_trip_planner.calculations import (
+    calculate_multi_trip_charging_windows,
+)
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-from custom_components.ev_trip_planner.calculations import (
-    calculate_multi_trip_charging_windows,
-)
 
 
 @pytest.mark.asyncio
@@ -117,17 +118,17 @@ async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available(
     print(f"DEBUG: Actual window size = {actual_def_end - actual_def_start} hours")
 
     # The bug: def_end is calculated from hours_available, not fin_ventana
-    assert actual_def_end == expected_def_end, (
-        f"BUG: def_end ({actual_def_end}) should equal {expected_def_end} (calculated from fin_ventana), not hours_available"
-    )
+    assert (
+        actual_def_end == expected_def_end
+    ), f"BUG: def_end ({actual_def_end}) should equal {expected_def_end} (calculated from fin_ventana), not hours_available"
 
     # Also verify window is valid for charging
     def_total_hours = params.get("def_total_hours")
     window_size = actual_def_end - actual_def_start
 
-    assert window_size >= def_total_hours, (
-        f"BUG: Window ({window_size}h) too small for {def_total_hours}h charging"
-    )
+    assert (
+        window_size >= def_total_hours
+    ), f"BUG: Window ({window_size}h) too small for {def_total_hours}h charging"
 
 
 if __name__ == "__main__":

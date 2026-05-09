@@ -5,9 +5,10 @@ Targets:
 - trip_manager.py:258-260 - except Exception in weekly trip rotation
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -233,12 +234,13 @@ class TestHourlyRefreshExceptionHandler:
         This covers __init__.py lines 75-76 where the exception handler
         catches exceptions from publish_deferrable_loads().
         """
+        from datetime import datetime
+
         from custom_components.ev_trip_planner import (
-            _hourly_refresh_callback,
             EVTripRuntimeData,
+            _hourly_refresh_callback,
         )
         from custom_components.ev_trip_planner.trip_manager import TripManager
-        from datetime import datetime
 
         # Create mock trip manager that raises exception
         mock_trip_manager = AsyncMock(spec=TripManager)
@@ -274,11 +276,12 @@ class TestHourlyRefreshExceptionHandler:
 
         This covers __init__.py line 73 where trip_manager is None.
         """
-        from custom_components.ev_trip_planner import (
-            _hourly_refresh_callback,
-            EVTripRuntimeData,
-        )
         from datetime import datetime
+
+        from custom_components.ev_trip_planner import (
+            EVTripRuntimeData,
+            _hourly_refresh_callback,
+        )
 
         # Create runtime data with trip_manager=None
         runtime_data = EVTripRuntimeData(
@@ -299,12 +302,13 @@ class TestHourlyRefreshExceptionHandler:
 
         This covers the happy path in __init__.py lines 72-74.
         """
+        from datetime import datetime
+
         from custom_components.ev_trip_planner import (
-            _hourly_refresh_callback,
             EVTripRuntimeData,
+            _hourly_refresh_callback,
         )
         from custom_components.ev_trip_planner.trip_manager import TripManager
-        from datetime import datetime
 
         # Create mock trip manager that succeeds
         mock_trip_manager = AsyncMock(spec=TripManager)

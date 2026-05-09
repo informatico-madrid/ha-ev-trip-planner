@@ -4,9 +4,9 @@ These tests are RED by design - they document expected behavior that is not yet 
 """
 
 import logging
+from unittest.mock import Mock
 
 import pytest
-from unittest.mock import Mock
 
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
@@ -113,9 +113,9 @@ class TestT32_RecurringTripRotation:
 
         # Assert - The datetime must be different from the original (updated by T3.2)
         # For now this test will fail because T3.2 is not implemented
-        assert past_trip["datetime"] != original_datetime, (
-            "T3.2: The datetime of the past recurring trip must be updated"
-        )
+        assert (
+            past_trip["datetime"] != original_datetime
+        ), "T3.2: The datetime of the past recurring trip must be updated"
 
     @pytest.mark.asyncio
     async def test_multiple_recurring_trips_rotated_correctly(

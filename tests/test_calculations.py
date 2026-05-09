@@ -686,9 +686,9 @@ class TestCalculateMultiTripChargingWindows:
         )
         assert len(result) == 1
         # Window should start from now, not from departure - 6h
-        assert result[0]["inicio_ventana"] >= now, (
-            f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
-        )
+        assert (
+            result[0]["inicio_ventana"] >= now
+        ), f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
         # ventana_horas = (departure + 6h) - now = 96 + 6 = 102h
         assert result[0]["ventana_horas"] == pytest.approx(102.0, abs=0.02)
 
@@ -1450,9 +1450,9 @@ class TestCalculatePowerProfile:
             reference_dt=datetime(2026, 4, 6, 10, 0),
         )
         # Trip should be skipped due to insufficient window -> all zeros
-        assert all(v == 0.0 for v in result), (
-            "Trip with insufficient window should produce all zeros"
-        )
+        assert all(
+            v == 0.0 for v in result
+        ), "Trip with insufficient window should produce all zeros"
 
 
 class TestGenerateDeferrableScheduleFromTrips:
@@ -1518,11 +1518,12 @@ class TestGenerateDeferrableScheduleFromTrips:
 
     def test_punctual_trip_with_future_deadline(self):
         """Punctual trip with future deadline has charging window before deadline."""
+        from datetime import datetime
+
         from custom_components.ev_trip_planner.calculations import (
             generate_deferrable_schedule_from_trips,
         )
         from custom_components.ev_trip_planner.const import TRIP_TYPE_PUNCTUAL
-        from datetime import datetime
 
         # Trip deadline is 10 hours from reference
         ref = datetime(2026, 4, 6, 8, 0)
@@ -2624,10 +2625,11 @@ class TestCalculatePowerProfileEdgeCases:
 
         Covers lines 1039-1041: if horas_desde_ahora < 0: hora_inicio_carga = 0
         """
+        from datetime import timezone
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile,
         )
-        from datetime import timezone
 
         reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
         # Trip departure is in the past (8 hours ago)
@@ -2661,10 +2663,11 @@ class TestCalculatePowerProfileEdgeCases:
 
         Covers line 1053-1054 (was 1060): if horas_hasta_fin < 0: continue
         """
+        from datetime import timezone
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile,
         )
-        from datetime import timezone
 
         reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
         # Trip that already ended (yesterday) with past return time
@@ -2700,10 +2703,11 @@ class TestCalculatePowerProfileEdgeCases:
         This happens when ventana_info has horas_carga_necesarias=0 but es_suficiente=True.
         We construct a trip that produces this edge case.
         """
+        from datetime import timezone
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile,
         )
-        from datetime import timezone
 
         reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
         # Trip with very small kwh that still produces a valid window
@@ -2737,11 +2741,12 @@ class TestCalculatePowerProfileEdgeCases:
         execution of line 1044. We also mock calculate_energy_needed to ensure
         energia_kwh > 0 so the trip is not skipped.
         """
+        from datetime import timezone
         from unittest.mock import patch
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile,
         )
-        from datetime import timezone
 
         reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
         trips = [
@@ -2798,11 +2803,12 @@ class TestCalculatePowerProfileEdgeCases:
         forcing horas_hasta_fin < 0 and triggering the continue on line 1051.
         We also mock calculate_energy_needed to ensure energia_kwh > 0.
         """
+        from datetime import timezone
         from unittest.mock import patch
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile,
         )
-        from datetime import timezone
 
         reference = datetime(2026, 4, 13, 12, 0, 0, tzinfo=timezone.utc)
         trips = [
@@ -3180,6 +3186,7 @@ class TestCalculateNextRecurringDatetimeTimezone:
     def test_zoneinfo_exception_fallback(self):
         """Cover lines 1048-1050: ZoneInfo exception fallback to UTC."""
         from unittest.mock import patch
+
         from custom_components.ev_trip_planner.calculations import (
             calculate_next_recurring_datetime,
         )

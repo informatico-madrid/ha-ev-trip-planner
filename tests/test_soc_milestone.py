@@ -117,19 +117,19 @@ class TestConsecutiveDeficits:
         result_b = next(r for r in results if r["trip_id"] == "trip_b")
 
         # B has its own deficit of 10
-        assert result_b["deficit_acumulado"] == 10.0, (
-            f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
-        )
+        assert (
+            result_b["deficit_acumulado"] == 10.0
+        ), f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
 
         # A has B's deficit propagated
-        assert result_a["deficit_acumulado"] == 10.0, (
-            f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
-        )
+        assert (
+            result_a["deficit_acumulado"] == 10.0
+        ), f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
 
         # A's target = base 30 + deficit 10 = 40
-        assert result_a["soc_objetivo"] == 40.0, (
-            f"A target: expected 40.0, got {result_a['soc_objetivo']}"
-        )
+        assert (
+            result_a["soc_objetivo"] == 40.0
+        ), f"A target: expected 40.0, got {result_a['soc_objetivo']}"
 
     @pytest.mark.asyncio
     async def test_single_trip_no_deficit(self, trip_manager):
@@ -194,13 +194,13 @@ class TestConsecutiveDeficits:
         result_a = results[0]
 
         # A has no deficit
-        assert result_a["deficit_acumulado"] == 0.0, (
-            f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
-        )
+        assert (
+            result_a["deficit_acumulado"] == 0.0
+        ), f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
         # A's target is just base target (no deficit propagated)
-        assert result_a["soc_objetivo"] == 30.0, (
-            f"A target: expected 30.0, got {result_a['soc_objetivo']}"
-        )
+        assert (
+            result_a["soc_objetivo"] == 30.0
+        ), f"A target: expected 30.0, got {result_a['soc_objetivo']}"
 
 
 class TestAC1:
@@ -302,19 +302,19 @@ class TestAC1:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has deficit of 20
-        assert result_night["deficit_acumulado"] == 20.0, (
-            f"Night deficit: expected 20.0, got {result_night['deficit_acumulado']}"
-        )
+        assert (
+            result_night["deficit_acumulado"] == 20.0
+        ), f"Night deficit: expected 20.0, got {result_night['deficit_acumulado']}"
 
         # Morning has deficit propagated from night: 20
-        assert result_morning["deficit_acumulado"] == 20.0, (
-            f"Morning deficit: expected 20.0, got {result_morning['deficit_acumulado']}"
-        )
+        assert (
+            result_morning["deficit_acumulado"] == 20.0
+        ), f"Morning deficit: expected 20.0, got {result_morning['deficit_acumulado']}"
 
         # Morning target = 30% base + 10% buffer + 20% deficit = 60%
-        assert result_morning["soc_objetivo"] == 60.0, (
-            f"Morning target: expected 60.0, got {result_morning['soc_objetivo']}"
-        )
+        assert (
+            result_morning["soc_objetivo"] == 60.0
+        ), f"Morning target: expected 60.0, got {result_morning['soc_objetivo']}"
 
 
 class TestAC2:
@@ -429,12 +429,12 @@ class TestAC2:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Verify no deficit propagation (night has no deficit)
-        assert result_night["deficit_acumulado"] == 0.0, (
-            f"Night deficit should be 0 (no deficit), got {result_night['deficit_acumulado']}"
-        )
-        assert result_morning["deficit_acumulado"] == 0.0, (
-            f"Morning deficit should be 0 (no propagation), got {result_morning['deficit_acumulado']}"
-        )
+        assert (
+            result_night["deficit_acumulado"] == 0.0
+        ), f"Night deficit should be 0 (no deficit), got {result_night['deficit_acumulado']}"
+        assert (
+            result_morning["deficit_acumulado"] == 0.0
+        ), f"Morning deficit should be 0 (no propagation), got {result_morning['deficit_acumulado']}"
 
         # Key AC-2 assertion: morning kwh_necesarios > night kwh_necesarios
         # Morning: (40-0)=40% gap → 20 kWh
@@ -445,12 +445,12 @@ class TestAC2:
         )
 
         # Verify specific values
-        assert result_morning["kwh_necesarios"] == 20.0, (
-            f"Morning kwh_necesarios: expected 20.0, got {result_morning['kwh_necesarios']}"
-        )
-        assert result_night["kwh_necesarios"] == 17.5, (
-            f"Night kwh_necesarios: expected 17.5, got {result_night['kwh_necesarios']}"
-        )
+        assert (
+            result_morning["kwh_necesarios"] == 20.0
+        ), f"Morning kwh_necesarios: expected 20.0, got {result_morning['kwh_necesarios']}"
+        assert (
+            result_night["kwh_necesarios"] == 17.5
+        ), f"Night kwh_necesarios: expected 17.5, got {result_night['kwh_necesarios']}"
 
 
 class TestAC3:
@@ -556,19 +556,19 @@ class TestAC3:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has NO deficit (20% + 80% capacity = 100% > 80% target)
-        assert result_night["deficit_acumulado"] == 0.0, (
-            f"Night deficit: expected 0.0, got {result_night['deficit_acumulado']}"
-        )
+        assert (
+            result_night["deficit_acumulado"] == 0.0
+        ), f"Night deficit: expected 0.0, got {result_night['deficit_acumulado']}"
 
         # Morning has NO deficit propagated (night had no deficit to propagate)
-        assert result_morning["deficit_acumulado"] == 0.0, (
-            f"Morning deficit: expected 0.0, got {result_morning['deficit_acumulado']}"
-        )
+        assert (
+            result_morning["deficit_acumulado"] == 0.0
+        ), f"Morning deficit: expected 0.0, got {result_morning['deficit_acumulado']}"
 
         # Morning target = 30% base + 10% buffer = 40% (no deficit added)
-        assert result_morning["soc_objetivo"] == 40.0, (
-            f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
-        )
+        assert (
+            result_morning["soc_objetivo"] == 40.0
+        ), f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
 
 
 class TestAC4:
@@ -647,14 +647,14 @@ class TestAC4:
         result = results[0]
 
         # No accumulated deficit (single trip, no previous trips)
-        assert result["deficit_acumulado"] == 0.0, (
-            f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 0.0
+        ), f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
 
         # SOC target = 30% energy + 10% buffer = 40%
-        assert result["soc_objetivo"] == 40.0, (
-            f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
-        )
+        assert (
+            result["soc_objetivo"] == 40.0
+        ), f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
 
 
 class TestEmptyAndSingleTrip:
@@ -760,9 +760,9 @@ class TestEdgeShortWindow:
         # Capacity = 10% * 0.5h = 5%
         # Achieveable = 20% + 5% = 25%
         # Deficit = 80% - 25% = 55%
-        assert result["deficit_acumulado"] == 55.0, (
-            f"Short window deficit: expected 55.0, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 55.0
+        ), f"Short window deficit: expected 55.0, got {result['deficit_acumulado']}"
 
 
 class TestEdgeExact:
@@ -841,9 +841,9 @@ class TestEdgeExact:
 
         # 20% + (10% * 6h) = 80% achievable = 80% target
         # Deficit = 0
-        assert result["deficit_acumulado"] == 0.0, (
-            f"Exact charging deficit: expected 0.0, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 0.0
+        ), f"Exact charging deficit: expected 0.0, got {result['deficit_acumulado']}"
 
 
 class TestEdgeSurplus:
@@ -921,9 +921,9 @@ class TestEdgeSurplus:
 
         # 50% + (10% * 4h) = 90% achievable > 70% target
         # Deficit = 0
-        assert result["deficit_acumulado"] == 0.0, (
-            f"Surplus charging deficit: expected 0.0, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 0.0
+        ), f"Surplus charging deficit: expected 0.0, got {result['deficit_acumulado']}"
 
 
 class TestThreeTripChain:
@@ -1068,27 +1068,27 @@ class TestThreeTripChain:
         result_c = next(r for r in results if r["trip_id"] == "trip_c")
 
         # Trip C: 20% + 20% = 40% < 50% target → deficit = 10%
-        assert result_c["deficit_acumulado"] == 10.0, (
-            f"Trip C deficit: expected 10.0, got {result_c['deficit_acumulado']}"
-        )
+        assert (
+            result_c["deficit_acumulado"] == 10.0
+        ), f"Trip C deficit: expected 10.0, got {result_c['deficit_acumulado']}"
 
         # Trip B: receives C's 10%, target = 50% + 10% = 60%
         # 20% + 30% = 50% < 60% target → B's own deficit = 10%, total = 20%
-        assert result_b["deficit_acumulado"] == 20.0, (
-            f"Trip B deficit: expected 20.0, got {result_b['deficit_acumulado']}"
-        )
+        assert (
+            result_b["deficit_acumulado"] == 20.0
+        ), f"Trip B deficit: expected 20.0, got {result_b['deficit_acumulado']}"
 
         # Trip A: receives B's deficit (B generated 10% own deficit to propagate)
         # A's deficit_acumulado = B's propagated deficit = 10%
         # Note: B's propagated deficit is B's own deficit, not the total (20%)
-        assert result_a["deficit_acumulado"] == 10.0, (
-            f"Trip A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
-        )
+        assert (
+            result_a["deficit_acumulado"] == 10.0
+        ), f"Trip A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
 
         # Trip A target = 30% base + 10% deficit = 40%
-        assert result_a["soc_objetivo"] == 40.0, (
-            f"Trip A target: expected 40.0, got {result_a['soc_objetivo']}"
-        )
+        assert (
+            result_a["soc_objetivo"] == 40.0
+        ), f"Trip A target: expected 40.0, got {result_a['soc_objetivo']}"
 
 
 class TestBatteryFallback:
@@ -1162,9 +1162,9 @@ class TestBatteryFallback:
         # kwh_necesarios = (30% - 50%) * 75.0 / 100 = -15 kWh (clamped to 0)
         # But since soc_objetivo > soc_inicio is false, it should be 0
         # Actually: target 30%, start 50%, so gap is negative -> 0 kWh needed
-        assert result["kwh_necesarios"] == 0.0, (
-            f"kwh_necesarios with explicit battery: expected 0.0, got {result['kwh_necesarios']}"
-        )
+        assert (
+            result["kwh_necesarios"] == 0.0
+        ), f"kwh_necesarios with explicit battery: expected 0.0, got {result['kwh_necesarios']}"
 
     @pytest.mark.asyncio
     async def test_battery_capacity_none_fallback(self, trip_manager):
@@ -1229,9 +1229,9 @@ class TestBatteryFallback:
         result = results[0]
 
         # kwh_necesarios = (30% - 30%) * 50.0 / 100 = 0 kWh
-        assert result["kwh_necesarios"] == 0.0, (
-            f"kwh_necesarios with None config: expected 0.0, got {result['kwh_necesarios']}"
-        )
+        assert (
+            result["kwh_necesarios"] == 0.0
+        ), f"kwh_necesarios with None config: expected 0.0, got {result['kwh_necesarios']}"
 
     @pytest.mark.asyncio
     async def test_battery_capacity_missing_key(self, trip_manager):
@@ -1296,9 +1296,9 @@ class TestBatteryFallback:
 
         # With 50% start, 30% target, gap = 10%
         # kwh_necesarios = 10% * 50.0 / 100 = 5.0 kWh
-        assert result["kwh_necesarios"] == 5.0, (
-            f"kwh_necesarios with missing key: expected 5.0, got {result['kwh_necesarios']}"
-        )
+        assert (
+            result["kwh_necesarios"] == 5.0
+        ), f"kwh_necesarios with missing key: expected 5.0, got {result['kwh_necesarios']}"
 
 
 class TestChargingPowerAffectsRate:
@@ -1372,9 +1372,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (7.2% * 4h) = 48.8% achievable < 80% target
         # Deficit = 80% - 48.8% = 31.2%
-        assert result["deficit_acumulado"] == 31.2, (
-            f"Low power deficit: expected 31.2, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 31.2
+        ), f"Low power deficit: expected 31.2, got {result['deficit_acumulado']}"
 
     @pytest.mark.asyncio
     async def test_high_charging_power_11kw(self, trip_manager):
@@ -1441,9 +1441,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (22% * 4h) = 108% > 80% target
         # NO deficit
-        assert result["deficit_acumulado"] == 0.0, (
-            f"High power deficit: expected 0.0, got {result['deficit_acumulado']}"
-        )
+        assert (
+            result["deficit_acumulado"] == 0.0
+        ), f"High power deficit: expected 0.0, got {result['deficit_acumulado']}"
 
 
 class TestResultStructure:
@@ -1538,23 +1538,23 @@ class TestResultStructure:
 
         # Verify field types
         assert isinstance(result["trip_id"], str), "trip_id should be str"
-        assert isinstance(result["soc_objetivo"], (int, float)), (
-            "soc_objetivo should be numeric"
-        )
-        assert isinstance(result["kwh_necesarios"], (int, float)), (
-            "kwh_necesarios should be numeric"
-        )
-        assert isinstance(result["deficit_acumulado"], (int, float)), (
-            "deficit_acumulado should be numeric"
-        )
+        assert isinstance(
+            result["soc_objetivo"], (int, float)
+        ), "soc_objetivo should be numeric"
+        assert isinstance(
+            result["kwh_necesarios"], (int, float)
+        ), "kwh_necesarios should be numeric"
+        assert isinstance(
+            result["deficit_acumulado"], (int, float)
+        ), "deficit_acumulado should be numeric"
 
         # Verify ventana_carga structure
         ventana = result["ventana_carga"]
         assert "ventana_horas" in ventana, "Missing ventana_carga.ventana_horas"
         assert "kwh_necesarios" in ventana, "Missing ventana_carga.kwh_necesarios"
-        assert "horas_carga_necesarias" in ventana, (
-            "Missing ventana_carga.horas_carga_necesarias"
-        )
+        assert (
+            "horas_carga_necesarias" in ventana
+        ), "Missing ventana_carga.horas_carga_necesarias"
         assert "inicio_ventana" in ventana, "Missing ventana_carga.inicio_ventana"
         assert "fin_ventana" in ventana, "Missing ventana_carga.fin_ventana"
         assert "es_suficiente" in ventana, "Missing ventana_carga.es_suficiente"

@@ -754,7 +754,9 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
                 len(trip_manager._recurring_trips),
                 len(trip_manager._punctual_trips),
             )
-        except Exception as setup_err:  # pragma: no cover — factory function error path; requires broken factory to trigger
+        except (
+            Exception
+        ) as setup_err:  # pragma: no cover — factory function error path; requires broken factory to trigger
             _LOGGER.error(
                 "=== _get_manager - Error setting up manager for %s: %s ===",
                 vehicle_id,
@@ -1422,9 +1424,11 @@ async def async_unload_entry_cleanup(
     _LOGGER.debug(
         "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
         emhass_adapter,
-        getattr(emhass_adapter, "_config_entry_listener", None)
-        if emhass_adapter
-        else None,
+        (
+            getattr(emhass_adapter, "_config_entry_listener", None)
+            if emhass_adapter
+            else None
+        ),
     )
 
     # CRITICAL FIX: Remove config entry listener BEFORE deleting trips.

@@ -12,7 +12,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-
 from homeassistant.helpers.entity_registry import callback
 
 
@@ -189,9 +188,9 @@ async def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
     registered = mock_registry.async_entries_for_config_entry(entry.entry_id)
     assert len(registered) == 3
     for entity in registered:
-        assert entity.unique_id in old_unique_ids, (
-            f"Expected old format, got {entity.unique_id}"
-        )
+        assert (
+            entity.unique_id in old_unique_ids
+        ), f"Expected old format, got {entity.unique_id}"
 
     # Migrate
     await async_migrate_entry(mock_hass, entry)
@@ -209,6 +208,6 @@ async def test_migrate_entry_version2_entity_registry(mock_hass, mock_registry):
         )
         # Verify no old-format unique_ids remain
         for old_uid in old_unique_ids:
-            assert entity.unique_id != old_uid, (
-                f"Migration FAILED: old unique_id '{old_uid}' still exists as '{entity.unique_id}'"
-            )
+            assert (
+                entity.unique_id != old_uid
+            ), f"Migration FAILED: old unique_id '{old_uid}' still exists as '{entity.unique_id}'"

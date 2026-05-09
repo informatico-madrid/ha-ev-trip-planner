@@ -133,7 +133,9 @@ class SwitchStrategy(VehicleControlStrategy):
             )
             _LOGGER.info("Deactivated charging via switch: %s", self.switch_entity_id)
             return True
-        except Exception as err:  # pragma: no cover  # HA service I/O - service call failures in production when switch is unavailable
+        except (
+            Exception
+        ) as err:  # pragma: no cover  # HA service I/O - service call failures in production when switch is unavailable
             _LOGGER.error("Error deactivating switch: %s", err, exc_info=True)
             return False  # pragma: no cover  # HA service I/O - error return path
 
@@ -175,7 +177,9 @@ class ServiceStrategy(VehicleControlStrategy):
             await self.hass_wrapper.async_call_service(domain, service, self.data_off)
             _LOGGER.info("Deactivated charging via service: %s", self.service_off)
             return True
-        except Exception as err:  # pragma: no cover  # HA service I/O - service call failures in production when service is unavailable
+        except (
+            Exception
+        ) as err:  # pragma: no cover  # HA service I/O - service call failures in production when service is unavailable
             _LOGGER.error(
                 "Error calling service %s: %s", self.service_off, err, exc_info=True
             )
@@ -218,7 +222,9 @@ class ScriptStrategy(VehicleControlStrategy):
             )
             _LOGGER.info("Deactivated charging via script: %s", self.script_off)
             return True
-        except Exception as err:  # pragma: no cover  # HA script I/O - script execution failures in production when script is unavailable
+        except (
+            Exception
+        ) as err:  # pragma: no cover  # HA script I/O - script execution failures in production when script is unavailable
             _LOGGER.error(
                 "Error executing script %s: %s", self.script_off, err, exc_info=True
             )
@@ -486,10 +492,14 @@ class VehicleController:
             _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
             return False
 
-        result = await self._strategy.async_deactivate()  # pragma: no cover  # HA control I/O - strategy deactivation result depends on external service availability
+        result = (
+            await self._strategy.async_deactivate()
+        )  # pragma: no cover  # HA control I/O - strategy deactivation result depends on external service availability
 
         # Update charging state after deactivation
-        if result:  # pragma: no cover  # HA control I/O - only updates state on successful deactivation
+        if (
+            result
+        ):  # pragma: no cover  # HA control I/O - only updates state on successful deactivation
             await self._update_charging_state_after_deactivation()
 
         return result  # pragma: no cover  # HA control I/O - returns deactivation result from strategy
@@ -522,4 +532,6 @@ class VehicleController:
         """Get current charging status."""
         if self._strategy is None:
             return False
-        return await self._strategy.async_get_status()  # pragma: no cover  # HA control I/O - delegates to strategy which may use services/sensors
+        return (
+            await self._strategy.async_get_status()
+        )  # pragma: no cover  # HA control I/O - delegates to strategy which may use services/sensors

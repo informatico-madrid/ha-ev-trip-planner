@@ -10,8 +10,9 @@ Marked with mutation:skip for mutmut.
 """
 
 import inspect
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
@@ -43,12 +44,14 @@ class TestEventHandling:
 
         # The bug: using event.get() instead of event.data.get()
         # This will fail because HA Event objects don't have a .get() method
-        assert 'event.get("data")' not in source, \
-            "Event handler should NOT use event.get() - use event.data.get() instead"
+        assert (
+            'event.get("data")' not in source
+        ), "Event handler should NOT use event.get() - use event.data.get() instead"
 
         # The fix: should use event.data.get()
-        assert 'event.data.get' in source, \
-            "Event handler should use event.data.get() for HA Event objects"
+        assert (
+            "event.data.get" in source
+        ), "Event handler should use event.data.get() for HA Event objects"
 
     @pytest.mark.asyncio
     async def test_async_handle_soc_change_with_mock_event(self):

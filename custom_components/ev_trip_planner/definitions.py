@@ -24,9 +24,9 @@ def default_attrs_fn(data: dict[str, Any]) -> dict[str, Any]:
     This is the default behavior for most sensors.
     """
     return {
-        "recurring_trips": list(data.get("recurring_trips", {}).values())
-        if data
-        else [],
+        "recurring_trips": (
+            list(data.get("recurring_trips", {}).values()) if data else []
+        ),
         "punctual_trips": list(data.get("punctual_trips", {}).values()) if data else [],
     }
 

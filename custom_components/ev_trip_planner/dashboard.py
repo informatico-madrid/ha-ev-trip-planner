@@ -473,9 +473,13 @@ async def import_dashboard(
             "Storage API method failed or returned non-success, generating YAML fallback for Container"
         )
 
-    except DashboardStorageError as e:  # pragma: no cover  # HA storage I/O exception - storage API failure triggers fallback path
+    except (
+        DashboardStorageError
+    ) as e:  # pragma: no cover  # HA storage I/O exception - storage API failure triggers fallback path
         _LOGGER.warning("Storage API failed, attempting YAML fallback: %s", e)
-    except Exception as e:  # pragma: no cover  # HA storage I/O exception - unexpected storage errors trigger fallback path
+    except (
+        Exception
+    ) as e:  # pragma: no cover  # HA storage I/O exception - unexpected storage errors trigger fallback path
         _LOGGER.warning("Storage API exception, attempting YAML fallback: %s", e)
 
     # Fallback: Generate YAML file for Container environment
@@ -752,7 +756,9 @@ async def _load_dashboard_template(
 
         return dashboard_config
 
-    except Exception as err:  # pragma: no cover  # HA I/O exception during YAML template loading (file corruption, encoding issues)
+    except (
+        Exception
+    ) as err:  # pragma: no cover  # HA I/O exception during YAML template loading (file corruption, encoding issues)
         _LOGGER.error(
             "TEMPLATE LOAD FAILED for %s: %s",
             vehicle_id,

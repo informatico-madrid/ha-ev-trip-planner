@@ -36,6 +36,7 @@ async def test_get_charging_power_from_entry() -> None:
 def test_get_charging_power_default_when_no_entry() -> None:
     # Using a plain MagicMock hass that has no config entries should return default
     from unittest.mock import MagicMock
+
     from custom_components.ev_trip_planner.const import DEFAULT_CHARGING_POWER
 
     hass = MagicMock()

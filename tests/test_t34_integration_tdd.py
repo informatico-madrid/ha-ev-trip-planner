@@ -7,9 +7,10 @@ These tests use publish_deferrable_loads(trips) directly with pre-formed
 trip dictionaries, following the pattern from test_t32_and_p11_tdd.py that PASS.
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
+
+import pytest
 
 
 def _next_weekday_from_now(weekday_iso: int) -> str:
@@ -86,13 +87,13 @@ class TestT34_Integration:
             else datetime.fromisoformat(rotated_dt)
         )
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
-        assert rotated_date > now, (
-            f"T3.4-01: Rotated datetime should be in the future, got {rotated_dt}"
-        )
+        assert (
+            rotated_date > now
+        ), f"T3.4-01: Rotated datetime should be in the future, got {rotated_dt}"
         # Verify it's a Monday (ISO weekday 1)
-        assert rotated_date.isoweekday() == 1, (
-            f"T3.4-01: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
-        )
+        assert (
+            rotated_date.isoweekday() == 1
+        ), f"T3.4-01: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
     async def test_t34_03_multiple_recurring_trips_rotate_independently(
@@ -158,13 +159,13 @@ class TestT34_Integration:
                 else datetime.fromisoformat(rotated_dt)
             )
             now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
-            assert rotated_date > now, (
-                f"T3.4-03: {trip['id']} should be rotated to future, got {rotated_dt}"
-            )
+            assert (
+                rotated_date > now
+            ), f"T3.4-03: {trip['id']} should be rotated to future, got {rotated_dt}"
             expected_wd = expected_weekdays[trip["id"]]
-            assert rotated_date.isoweekday() == expected_wd, (
-                f"T3.4-03: {trip['id']} should be on weekday {expected_wd}, got {rotated_date.isoweekday()} ({rotated_dt})"
-            )
+            assert (
+                rotated_date.isoweekday() == expected_wd
+            ), f"T3.4-03: {trip['id']} should be on weekday {expected_wd}, got {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
     async def test_t34_04_rotation_without_emhass_adapter(
@@ -193,9 +194,9 @@ class TestT34_Integration:
         await trip_manager_no_entry_id.publish_deferrable_loads([recurring_trip])
 
         # Assert - Trip should still be rotated even without emhass_adapter
-        assert recurring_trip["datetime"] != original_datetime, (
-            f"T3.4-04: Rotation should work without emhass_adapter, got {recurring_trip['datetime']}"
-        )
+        assert (
+            recurring_trip["datetime"] != original_datetime
+        ), f"T3.4-04: Rotation should work without emhass_adapter, got {recurring_trip['datetime']}"
         rotated_dt = recurring_trip["datetime"]
         rotated_date = (
             datetime.fromisoformat(rotated_dt.replace("Z", "+00:00"))
@@ -203,12 +204,12 @@ class TestT34_Integration:
             else datetime.fromisoformat(rotated_dt)
         )
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
-        assert rotated_date > now, (
-            f"T3.4-04: Rotated datetime should be future Monday, got {rotated_dt}"
-        )
-        assert rotated_date.isoweekday() == 1, (
-            f"T3.4-04: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
-        )
+        assert (
+            rotated_date > now
+        ), f"T3.4-04: Rotated datetime should be future Monday, got {rotated_dt}"
+        assert (
+            rotated_date.isoweekday() == 1
+        ), f"T3.4-04: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
     @pytest.mark.skip(
@@ -242,9 +243,7 @@ class TestT34_Integration:
         # Assert - Trip with past deadline should be marked inactive
         assert (
             past_trip.get("activo") is False or past_trip.get("estado") == "completado"
-        ), (
-            f"T3.4-05: Past punctual trip should be marked inactive, got activo={past_trip.get('activo')}, estado={past_trip.get('estado')}"
-        )
+        ), f"T3.4-05: Past punctual trip should be marked inactive, got activo={past_trip.get('activo')}, estado={past_trip.get('estado')}"
 
     @pytest.mark.asyncio
     async def test_t34_06_no_infinite_loop_in_rotation(
@@ -282,6 +281,6 @@ class TestT34_Integration:
 
         # Assert - Coordinator refresh should NOT be called
         # (rotation happens before coordinator refresh logic to avoid infinite loop)
-        assert not mock_coordinator.async_refresh.called, (
-            "T3.4-06: publish_deferrable_loads should not call coordinator.async_refresh"
-        )
+        assert (
+            not mock_coordinator.async_refresh.called
+        ), "T3.4-06: publish_deferrable_loads should not call coordinator.async_refresh"

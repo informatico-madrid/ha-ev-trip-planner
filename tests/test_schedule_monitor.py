@@ -1,16 +1,17 @@
 """Tests for Schedule Monitor."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from homeassistant.core import HomeAssistant
 
+from custom_components.ev_trip_planner.const import (
+    CONF_NOTIFICATION_SERVICE,
+    CONF_VEHICLE_NAME,
+)
 from custom_components.ev_trip_planner.schedule_monitor import (
     ScheduleMonitor,
     VehicleScheduleMonitor,
-)
-from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_NOTIFICATION_SERVICE,
 )
 
 

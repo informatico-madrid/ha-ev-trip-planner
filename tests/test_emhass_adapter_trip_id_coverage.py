@@ -1,15 +1,16 @@
 """Test for line 697 coverage: trip with falsy id in async_publish_all_deferrable_loads."""
 
 from typing import Any, Dict, Optional
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
+    CONF_MAX_DEFERRABLE_LOADS,
+    CONF_VEHICLE_NAME,
 )
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -129,12 +130,12 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
         )
         assert "valid_trip" in adapter._cached_per_trip_params
         # Verify falsy IDs are NOT present as keys in the cache
-        assert None not in adapter._cached_per_trip_params, (
-            "None should not be a cache key"
-        )
-        assert "" not in adapter._cached_per_trip_params, (
-            "Empty string should not be a cache key"
-        )
+        assert (
+            None not in adapter._cached_per_trip_params
+        ), "None should not be a cache key"
+        assert (
+            "" not in adapter._cached_per_trip_params
+        ), "Empty string should not be a cache key"
 
 
 @pytest.mark.asyncio

@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # Dashboard validation error paths
 # =============================================================================
@@ -176,8 +175,8 @@ class TestDashboardTemplateLoading:
     async def test_template_load_raises_dashboardnotfound_error(self):
         """Propagates DashboardNotFoundError from template loading."""
         from custom_components.ev_trip_planner.dashboard import (
-            import_dashboard,
             DashboardNotFoundError,
+            import_dashboard,
         )
 
         mock_hass = MagicMock()
@@ -708,6 +707,7 @@ class TestCallAsyncExecutorSync:
     def test_call_async_executor_sync_without_attr(self):
         """_call_async_executor_sync falls back when hass has no async_add_executor_job."""
         from unittest.mock import MagicMock
+
         from custom_components.ev_trip_planner.dashboard import (
             _call_async_executor_sync,
         )

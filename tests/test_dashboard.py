@@ -1,9 +1,10 @@
 """Tests for EV Trip Planner Dashboard YAML structure."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 import pytest
 import yaml
-from pathlib import Path
 
 # Path to the dashboard templates
 DASHBOARD_DIR = (
@@ -122,9 +123,9 @@ class TestFullDashboardYAML:
                         has_button_cards = True
                         break
                 break
-        assert has_button_cards, (
-            "Dashboard should have button cards for CRUD operations"
-        )
+        assert (
+            has_button_cards
+        ), "Dashboard should have button cards for CRUD operations"
 
 
 class TestSimpleDashboardYAML:
@@ -205,12 +206,12 @@ class TestDashboardVariableSubstitution:
             content = f.read()
 
         # Check for variable placeholders
-        assert "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content, (
-            "Full dashboard should contain vehicle_id placeholder"
-        )
-        assert "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content, (
-            "Full dashboard should contain vehicle_name placeholder"
-        )
+        assert (
+            "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content
+        ), "Full dashboard should contain vehicle_id placeholder"
+        assert (
+            "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content
+        ), "Full dashboard should contain vehicle_name placeholder"
 
     def test_variable_substitution_simple_dashboard(self):
         """Test variable substitution in simple dashboard."""
@@ -219,12 +220,12 @@ class TestDashboardVariableSubstitution:
             content = f.read()
 
         # Check for variable placeholders
-        assert "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content, (
-            "Simple dashboard should contain vehicle_id placeholder"
-        )
-        assert "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content, (
-            "Simple dashboard should contain vehicle_name placeholder"
-        )
+        assert (
+            "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content
+        ), "Simple dashboard should contain vehicle_id placeholder"
+        assert (
+            "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content
+        ), "Simple dashboard should contain vehicle_name placeholder"
 
     def test_variable_substitution_vehicle_dashboard(self):
         """Test variable substitution in vehicle dashboard."""
@@ -233,12 +234,12 @@ class TestDashboardVariableSubstitution:
             content = f.read()
 
         # Check for variable placeholders
-        assert "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content, (
-            "Vehicle dashboard should contain vehicle_id placeholder"
-        )
-        assert "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content, (
-            "Vehicle dashboard should contain vehicle_name placeholder"
-        )
+        assert (
+            "{{ vehicle_id }}" in content or "{{vehicle_id}}" in content
+        ), "Vehicle dashboard should contain vehicle_id placeholder"
+        assert (
+            "{{ vehicle_name }}" in content or "{{vehicle_name}}" in content
+        ), "Vehicle dashboard should contain vehicle_name placeholder"
 
 
 class TestDashboardCRUDOperations:
@@ -250,9 +251,9 @@ class TestDashboardCRUDOperations:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "add_recurring_trip" in content, (
-            "Full dashboard should have add_recurring_trip service call"
-        )
+        assert (
+            "add_recurring_trip" in content
+        ), "Full dashboard should have add_recurring_trip service call"
 
     def test_full_dashboard_has_create_punctual_trip_button(self):
         """Test full dashboard has button to create punctual trips."""
@@ -260,9 +261,9 @@ class TestDashboardCRUDOperations:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "add_punctual_trip" in content, (
-            "Full dashboard should have add_punctual_trip service call"
-        )
+        assert (
+            "add_punctual_trip" in content
+        ), "Full dashboard should have add_punctual_trip service call"
 
     def test_full_dashboard_has_pause_resume_buttons(self):
         """Test full dashboard has pause and resume buttons."""
@@ -270,12 +271,12 @@ class TestDashboardCRUDOperations:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "pause_recurring_trip" in content, (
-            "Full dashboard should have pause_recurring_trip service"
-        )
-        assert "resume_recurring_trip" in content, (
-            "Full dashboard should have resume_recurring_trip service"
-        )
+        assert (
+            "pause_recurring_trip" in content
+        ), "Full dashboard should have pause_recurring_trip service"
+        assert (
+            "resume_recurring_trip" in content
+        ), "Full dashboard should have resume_recurring_trip service"
 
     def test_full_dashboard_has_delete_button(self):
         """Test full dashboard has delete button."""
@@ -283,9 +284,9 @@ class TestDashboardCRUDOperations:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "delete_trip" in content, (
-            "Full dashboard should have delete_trip service"
-        )
+        assert (
+            "delete_trip" in content
+        ), "Full dashboard should have delete_trip service"
 
     def test_full_dashboard_has_complete_cancel_buttons(self):
         """Test full dashboard has complete and cancel buttons for punctual trips."""
@@ -293,12 +294,12 @@ class TestDashboardCRUDOperations:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "complete_punctual_trip" in content, (
-            "Full dashboard should have complete_punctual_trip service"
-        )
-        assert "cancel_punctual_trip" in content, (
-            "Full dashboard should have cancel_punctual_trip service"
-        )
+        assert (
+            "complete_punctual_trip" in content
+        ), "Full dashboard should have complete_punctual_trip service"
+        assert (
+            "cancel_punctual_trip" in content
+        ), "Full dashboard should have cancel_punctual_trip service"
 
     def test_simple_dashboard_has_crud_services(self):
         """Test simple dashboard has CRUD services defined."""
@@ -332,9 +333,9 @@ class TestDashboardResponsiveness:
             content = f.read()
 
         # Check for media queries or responsive styles
-        assert "@media" in content or "max-width" in content, (
-            "Full dashboard should have responsive CSS for mobile"
-        )
+        assert (
+            "@media" in content or "max-width" in content
+        ), "Full dashboard should have responsive CSS for mobile"
 
 
 class TestDashboardRefreshInterval:
@@ -346,9 +347,9 @@ class TestDashboardRefreshInterval:
         with open(full_path, "r") as f:
             content = f.read()
 
-        assert "refresh_interval" in content, (
-            "Full dashboard should have refresh_interval configured"
-        )
+        assert (
+            "refresh_interval" in content
+        ), "Full dashboard should have refresh_interval configured"
 
     def test_simple_dashboard_has_refresh_interval(self):
         """Test simple dashboard has refresh interval configured."""
@@ -356,9 +357,9 @@ class TestDashboardRefreshInterval:
         with open(simple_path, "r") as f:
             content = f.read()
 
-        assert "refresh_interval" in content, (
-            "Simple dashboard should have refresh_interval configured"
-        )
+        assert (
+            "refresh_interval" in content
+        ), "Simple dashboard should have refresh_interval configured"
 
 
 class TestDashboardImport:
@@ -367,7 +368,7 @@ class TestDashboardImport:
     @pytest.fixture
     def mock_hass(self):
         """Create a mock HomeAssistant instance for dashboard import tests."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -450,9 +451,9 @@ class TestDashboardImport:
         assert result is not None
         # The template should have the vehicle_id in its paths/titles
         result_str = str(result)
-        assert vehicle_id in result_str or "my_tesla" in result_str.lower(), (
-            "Vehicle ID should be in the loaded template"
-        )
+        assert (
+            vehicle_id in result_str or "my_tesla" in result_str.lower()
+        ), "Vehicle ID should be in the loaded template"
 
     @pytest.mark.asyncio
     async def test_import_dashboard_substitutes_vehicle_name(
@@ -470,9 +471,9 @@ class TestDashboardImport:
         assert result is not None
         # The template should have the vehicle_name in its titles
         result_str = str(result)
-        assert vehicle_name in result_str or "family" in result_str.lower(), (
-            "Vehicle name should be in the loaded template"
-        )
+        assert (
+            vehicle_name in result_str or "family" in result_str.lower()
+        ), "Vehicle name should be in the loaded template"
 
     def test_load_dashboard_template_returns_dict(self, mock_hass):
         """Test that _load_dashboard_template returns a valid dictionary."""
@@ -513,6 +514,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_with_lovelace_in_components(self):
         """Test is_lovelace_available returns True when lovelace is in components."""
         from unittest.mock import MagicMock
+
         from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
@@ -523,6 +525,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_without_lovelace(self):
         """Test is_lovelace_available returns False when lovelace is not available."""
         from unittest.mock import MagicMock
+
         from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
@@ -534,6 +537,7 @@ class TestDashboardImport:
     def test_is_lovelace_available_with_import_service(self):
         """Test is_lovelace_available returns True when import service exists."""
         from unittest.mock import MagicMock
+
         from custom_components.ev_trip_planner.dashboard import is_lovelace_available
 
         hass = MagicMock()
@@ -571,7 +575,7 @@ class TestContainerEnvironment:
         - hass.services.has_service returns False for lovelace.save
         - hass.storage is not available (None or no async_write_dict)
         """
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -647,7 +651,7 @@ class TestDuplicateDashboardNameCollision:
     @pytest.fixture
     def mock_hass_container(self):
         """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -768,9 +772,9 @@ class TestDuplicateDashboardNameCollision:
         assert result.success is True, "Should succeed with suffix"
         # Original file should remain unchanged
         original_content = existing_file.read_text()
-        assert "existing: content" in original_content, (
-            "Original file should be preserved"
-        )
+        assert (
+            "existing: content" in original_content
+        ), "Original file should be preserved"
         # New file should be created with some suffix (check for any file with suffix)
         new_files = list(config_dir.glob("ev-trip-planner-vehicle1.yaml.*"))
         assert len(new_files) >= 1, "Should create new file with suffix"
@@ -789,7 +793,7 @@ class TestCRUDOperationsViaDashboard:
     @pytest.fixture
     def mock_hass_with_storage(self):
         """Create a mock HomeAssistant with storage support."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -1263,14 +1267,14 @@ class TestCRUDOperationsViaDashboard:
         # Verify both files exist
         existing_file = config_dir / "ev-trip-planner-vehicle1.yaml"
         assert existing_file.exists(), "Original file should exist"
-        assert (config_dir / "ev-trip-planner-vehicle1.yaml.2").exists(), (
-            "Duplicate file with .2 suffix should be created"
-        )
+        assert (
+            config_dir / "ev-trip-planner-vehicle1.yaml.2"
+        ).exists(), "Duplicate file with .2 suffix should be created"
 
     @pytest.fixture
     def mock_hass_container(self):
         """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -1358,7 +1362,7 @@ class TestAllFailureModes:
     @pytest.fixture
     def mock_hass_container(self):
         """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -1418,9 +1422,9 @@ class TestAllFailureModes:
 
         # No file should be created for invalid config
         expected_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
-        assert not expected_file.exists(), (
-            "No file should be created for invalid config"
-        )
+        assert (
+            not expected_file.exists()
+        ), "No file should be created for invalid config"
 
     @pytest.mark.asyncio
     async def test_empty_dashboard_config_rejected(self, mock_hass_container, tmp_path):
@@ -1567,15 +1571,15 @@ class TestAllFailureModes:
                 config,
                 "test_vehicle",
             )
-            assert result.success is False, (
-                f"Invalid config should return False: {config}"
-            )
+            assert (
+                result.success is False
+            ), f"Invalid config should return False: {config}"
 
         # Final file count should still be initial (no partial files)
         final_files = list(config_dir.glob("*.yaml"))
-        assert len(initial_files) == len(final_files), (
-            "No partial files should be created when errors occur"
-        )
+        assert len(initial_files) == len(
+            final_files
+        ), "No partial files should be created when errors occur"
 
     @pytest.mark.asyncio
     async def test_valid_config_succeeds(self, mock_hass_container, tmp_path):
@@ -1647,7 +1651,7 @@ class TestDashboardCreationAfterVehicleSetup:
     @pytest.fixture
     def mock_hass_with_vehicle(self, tmp_path):
         """Create a mock HA instance with a vehicle configured."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -1694,11 +1698,11 @@ class TestDashboardCreationAfterVehicleSetup:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import (
-            import_dashboard,
-            _load_dashboard_template,
-        )
         from custom_components.ev_trip_planner import create_dashboard_input_helpers
+        from custom_components.ev_trip_planner.dashboard import (
+            _load_dashboard_template,
+            import_dashboard,
+        )
 
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
@@ -1707,26 +1711,26 @@ class TestDashboardCreationAfterVehicleSetup:
         result_helpers = await create_dashboard_input_helpers(
             mock_hass_with_vehicle, vehicle_id
         )
-        assert result_helpers.success is True, (
-            "Input helpers should be created successfully after vehicle setup"
-        )
+        assert (
+            result_helpers.success is True
+        ), "Input helpers should be created successfully after vehicle setup"
 
         # Step 2: Load dashboard template
         dashboard_config = await _load_dashboard_template(
             mock_hass_with_vehicle, vehicle_id, vehicle_name, use_charts=False
         )
 
-        assert dashboard_config is not None, (
-            "Dashboard template should load successfully after vehicle setup"
-        )
+        assert (
+            dashboard_config is not None
+        ), "Dashboard template should load successfully after vehicle setup"
         assert "title" in dashboard_config, "Loaded dashboard should have a title"
         assert "views" in dashboard_config, "Loaded dashboard should have views"
-        assert isinstance(dashboard_config["views"], list), (
-            "Dashboard views should be a list"
-        )
-        assert len(dashboard_config["views"]) > 0, (
-            "Dashboard should have at least one view"
-        )
+        assert isinstance(
+            dashboard_config["views"], list
+        ), "Dashboard views should be a list"
+        assert (
+            len(dashboard_config["views"]) > 0
+        ), "Dashboard should have at least one view"
 
         # Step 3: Import dashboard
         result_import = await import_dashboard(
@@ -1736,9 +1740,9 @@ class TestDashboardCreationAfterVehicleSetup:
             use_charts=False,
         )
 
-        assert result_import.success is True, (
-            f"Dashboard import should succeed after vehicle setup. Result: {result_import}"
-        )
+        assert (
+            result_import.success is True
+        ), f"Dashboard import should succeed after vehicle setup. Result: {result_import}"
 
     @pytest.mark.asyncio
     async def test_dashboard_with_charts_created_after_vehicle_setup(
@@ -1761,21 +1765,21 @@ class TestDashboardCreationAfterVehicleSetup:
             mock_hass_with_vehicle, vehicle_id, vehicle_name, use_charts=True
         )
 
-        assert dashboard_config is not None, (
-            "Full dashboard template should load successfully"
-        )
+        assert (
+            dashboard_config is not None
+        ), "Full dashboard template should load successfully"
         assert "title" in dashboard_config, "Full dashboard should have a title"
         assert "views" in dashboard_config, "Full dashboard should have views"
 
         # Verify the title contains the vehicle name
-        assert vehicle_name in dashboard_config["title"], (
-            "Dashboard title should contain vehicle name"
-        )
+        assert (
+            vehicle_name in dashboard_config["title"]
+        ), "Dashboard title should contain vehicle name"
 
         # Verify there are multiple views (status + CRUD)
-        assert len(dashboard_config["views"]) >= 2, (
-            "Full dashboard should have multiple views (status + CRUD)"
-        )
+        assert (
+            len(dashboard_config["views"]) >= 2
+        ), "Full dashboard should have multiple views (status + CRUD)"
 
     @pytest.mark.asyncio
     async def test_dashboard_import_no_errors_in_logs(
@@ -1805,9 +1809,9 @@ class TestDashboardCreationAfterVehicleSetup:
             )
 
         # Dashboard import should succeed
-        assert result.success is True, (
-            f"Dashboard import should not produce errors. Result: {result}"
-        )
+        assert (
+            result.success is True
+        ), f"Dashboard import should not produce errors. Result: {result}"
 
         # Check for error logs during import
         error_logs = [
@@ -1824,9 +1828,9 @@ class TestDashboardCreationAfterVehicleSetup:
             )
         ]
 
-        assert len(dashboard_errors) == 0, (
-            f"Dashboard import should not produce error logs. Found: {dashboard_errors}"
-        )
+        assert (
+            len(dashboard_errors) == 0
+        ), f"Dashboard import should not produce error logs. Found: {dashboard_errors}"
 
 
 class TestDashboardAPICompatibility:
@@ -1874,15 +1878,15 @@ class TestDashboardAPICompatibility:
         )
 
         # Should succeed with YAML fallback
-        assert result.success is True, (
-            "Dashboard should be saved via YAML fallback in Container mode"
-        )
+        assert (
+            result.success is True
+        ), "Dashboard should be saved via YAML fallback in Container mode"
 
         # Verify YAML file was created
         yaml_file = config_dir / "ev-trip-planner-test_vehicle.yaml"
-        assert yaml_file.exists(), (
-            "YAML file should be created in Container environment"
-        )
+        assert (
+            yaml_file.exists()
+        ), "YAML file should be created in Container environment"
 
         # Verify file content is valid YAML
         import yaml
@@ -1903,7 +1907,7 @@ class TestDashboardDataSync:
     @pytest.fixture
     def mock_hass_with_storage(self):
         """Create a mock HomeAssistant with storage support."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -2005,9 +2009,9 @@ class TestDashboardNoErrorsInLogs:
             )
 
         # Dashboard should load successfully
-        assert dashboard_config is not None, (
-            "Dashboard template should load without import errors"
-        )
+        assert (
+            dashboard_config is not None
+        ), "Dashboard template should load without import errors"
 
         # Check for import-related error logs
         import_errors = [
@@ -2051,9 +2055,9 @@ class TestDashboardNoErrorsInLogs:
                     # Verify required fields
                     assert "title" in config, f"YAML file {filename} should have title"
                     assert "views" in config, f"YAML file {filename} should have views"
-                    assert isinstance(config["views"], list), (
-                        f"YAML file {filename} views should be a list"
-                    )
+                    assert isinstance(
+                        config["views"], list
+                    ), f"YAML file {filename} views should be a list"
 
                 except yaml.YAMLError as e:
                     assert False, f"YAML error in {filename}: {e}"
@@ -2098,9 +2102,9 @@ class TestDashboardNoErrorsInLogs:
             )
 
         # Dashboard import should succeed
-        assert result.success is True, (
-            f"Dashboard import should succeed without Lovelace errors. Result: {result}"
-        )
+        assert (
+            result.success is True
+        ), f"Dashboard import should succeed without Lovelace errors. Result: {result}"
 
         # Check for Lovelace-related error logs
         lovelace_errors = [
@@ -2184,9 +2188,9 @@ class TestDashboardNoErrorsInLogs:
         assert dashboard_config is not None, "Full dashboard should load without errors"
 
         # Should have multiple views
-        assert len(dashboard_config.get("views", [])) >= 2, (
-            "Full dashboard should have status and CRUD views"
-        )
+        assert (
+            len(dashboard_config.get("views", [])) >= 2
+        ), "Full dashboard should have status and CRUD views"
 
         # Check for any error logs
         error_logs = [
@@ -2223,14 +2227,14 @@ class TestDashboardNoErrorsInLogs:
             )
 
         # Should load successfully
-        assert dashboard_config is not None, (
-            "Simple dashboard should load without errors"
-        )
+        assert (
+            dashboard_config is not None
+        ), "Simple dashboard should load without errors"
 
         # Should have at least one view
-        assert len(dashboard_config.get("views", [])) >= 1, (
-            "Simple dashboard should have views"
-        )
+        assert (
+            len(dashboard_config.get("views", [])) >= 1
+        ), "Simple dashboard should have views"
 
         # Check for any error logs
         error_logs = [
@@ -2255,9 +2259,9 @@ class TestDashboardNoErrorsInLogs:
         # Get all YAML files in dashboard directory
         yaml_files = list(DASHBOARD_DIR.glob("*.yaml"))
 
-        assert len(yaml_files) > 0, (
-            "Should have at least one YAML file in dashboard directory"
-        )
+        assert (
+            len(yaml_files) > 0
+        ), "Should have at least one YAML file in dashboard directory"
 
         for yaml_file in yaml_files:
             with caplog.at_level("ERROR"):
@@ -2266,9 +2270,9 @@ class TestDashboardNoErrorsInLogs:
                         content = f.read()
                         # Parse to verify validity
                         config = yaml.safe_load(content)
-                        assert config is not None, (
-                            f"YAML file {yaml_file.name} should parse successfully"
-                        )
+                        assert (
+                            config is not None
+                        ), f"YAML file {yaml_file.name} should parse successfully"
                 except yaml.YAMLError as e:
                     assert False, f"YAML syntax error in {yaml_file.name}: {e}"
                 except UnicodeDecodeError as e:
@@ -2285,9 +2289,9 @@ class TestDashboardNoErrorsInLogs:
             )
         ]
 
-        assert len(yaml_errors) == 0, (
-            f"No YAML syntax errors should occur. Found: {yaml_errors}"
-        )
+        assert (
+            len(yaml_errors) == 0
+        ), f"No YAML syntax errors should occur. Found: {yaml_errors}"
 
 
 class TestEMHASSErrorNotifications:
@@ -2299,7 +2303,7 @@ class TestEMHASSErrorNotifications:
     @pytest.fixture
     def mock_hass_with_notification(self):
         """Create a mock HomeAssistant with notification service."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -2381,7 +2385,7 @@ class TestDashboardErrorPaths:
     @pytest.fixture
     def mock_hass_container(self):
         """Create a mock HomeAssistant instance simulating Container environment."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
 
         hass = MagicMock()
         hass.config = MagicMock()
@@ -2778,8 +2782,8 @@ class TestDashboardErrorPaths:
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
         from custom_components.ev_trip_planner.dashboard import (
-            _validate_dashboard_config,
             DashboardValidationError,
+            _validate_dashboard_config,
         )
 
         # Non-dict config should raise
@@ -2797,15 +2801,13 @@ class TestDashboardErrorPaths:
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
         from custom_components.ev_trip_planner.dashboard import (
-            _validate_dashboard_config,
             DashboardValidationError,
+            _validate_dashboard_config,
         )
 
         invalid_config = {
             "title": "Test",
-            "views": [
-                "not a dict"  # Invalid view
-            ],
+            "views": ["not a dict"],  # Invalid view
         }
 
         with pytest.raises(DashboardValidationError):

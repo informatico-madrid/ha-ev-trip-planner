@@ -6,18 +6,19 @@ Tests verify that charging power updates trigger sensor attribute republish:
 - No-op when power remains unchanged
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from homeassistant.core import HomeAssistant
-from unittest.mock import patch, AsyncMock, MagicMock
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.const import (
-    CONF_VEHICLE_NAME,
-    CONF_MAX_DEFERRABLE_LOADS,
     CONF_CHARGING_POWER,
-    CONF_T_BASE,
+    CONF_MAX_DEFERRABLE_LOADS,
     CONF_SOH_SENSOR,
+    CONF_T_BASE,
+    CONF_VEHICLE_NAME,
 )
+from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.fixture
@@ -385,7 +386,9 @@ async def test_handle_config_entry_update_detects_soh_sensor_change(
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry_id_123"
         mock_entry.options = {CONF_SOH_SENSOR: "sensor.new_soh_sensor"}
-        mock_entry.data = {}  # Empty data — old_soh will be DEFAULT_SOH_SENSOR (empty string)
+        mock_entry.data = (
+            {}
+        )  # Empty data — old_soh will be DEFAULT_SOH_SENSOR (empty string)
 
         # Execute: Handle config entry update
         await adapter._handle_config_entry_update(mock_hass, mock_entry)
@@ -478,12 +481,8 @@ async def test_t_base_change_triggers_republish_when_power_unchanged(
 
         mock_entry = MagicMock()
         mock_entry.entry_id = "test_entry_id_123"
-        mock_entry.options = ConfigData(
-            {CONF_T_BASE: 48, CONF_CHARGING_POWER: 3.6}
-        )
-        mock_entry.data = ConfigData(
-            {CONF_T_BASE: 24, CONF_CHARGING_POWER: 3.6}
-        )
+        mock_entry.options = ConfigData({CONF_T_BASE: 48, CONF_CHARGING_POWER: 3.6})
+        mock_entry.data = ConfigData({CONF_T_BASE: 24, CONF_CHARGING_POWER: 3.6})
 
         # Wire async_get_entry to return the mock config entry
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)

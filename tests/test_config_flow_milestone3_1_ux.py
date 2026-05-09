@@ -24,9 +24,9 @@ async def test_strings_json_includes_data_descriptions():
     config_steps = ["user", "sensors", "emhass", "presence"]
 
     for step in config_steps:
-        assert "data_description" in strings_data["config"]["step"][step], (
-            f"Step '{step}' missing data_description"
-        )
+        assert (
+            "data_description" in strings_data["config"]["step"][step]
+        ), f"Step '{step}' missing data_description"
 
         # Verify data_description is not empty
         data_desc = strings_data["config"]["step"][step]["data_description"]
@@ -35,9 +35,9 @@ async def test_strings_json_includes_data_descriptions():
         # Verify each field in data has a description
         data_fields = strings_data["config"]["step"][step]["data"]
         for field in data_fields:
-            assert field in data_desc, (
-                f"Field '{field}' in step '{step}' missing data_description"
-            )
+            assert (
+                field in data_desc
+            ), f"Field '{field}' in step '{step}' missing data_description"
 
 
 @pytest.mark.asyncio
@@ -67,9 +67,9 @@ async def test_error_messages_are_descriptive():
 
     for error_key in required_errors:
         assert error_key in error_messages, f"Missing error message: {error_key}"
-        assert len(error_messages[error_key]) > 10, (
-            f"Error message '{error_key}' is too short to be descriptive"
-        )
+        assert (
+            len(error_messages[error_key]) > 10
+        ), f"Error message '{error_key}' is too short to be descriptive"
 
 
 @pytest.mark.asyncio
@@ -95,9 +95,9 @@ async def test_data_descriptions_include_examples():
     has_example = "example" in capacity_desc.lower() or "e.g." in capacity_desc.lower()
 
     assert has_kwh, f"Battery capacity description should mention kWh: {capacity_desc}"
-    assert has_example, (
-        f"Battery capacity description should include examples: {capacity_desc}"
-    )
+    assert (
+        has_example
+    ), f"Battery capacity description should include examples: {capacity_desc}"
 
 
 @pytest.mark.asyncio

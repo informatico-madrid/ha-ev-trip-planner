@@ -16,13 +16,13 @@ with mock EMHASS adapter.
 
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import MagicMock, patch
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.fixture
@@ -137,9 +137,9 @@ class TestPostRestartPersistenceBug:
         trip_manager.set_emhass_adapter(emhass_adapter)
 
         # Verify initial state: EMHASS _cached_per_trip_params should be empty
-        assert len(emhass_adapter._cached_per_trip_params) == 0, (
-            "Initial: no cached trip params"
-        )
+        assert (
+            len(emhass_adapter._cached_per_trip_params) == 0
+        ), "Initial: no cached trip params"
 
         # ACT: Call async_setup (simulates what happens on HA restart)
         await trip_manager.async_setup()
@@ -150,22 +150,22 @@ class TestPostRestartPersistenceBug:
 
         # VERIFY FIX: EMHASS adapter SHOULD have cached params after async_setup
         # This is what the EMHASS template reads to show data
-        assert len(emhass_adapter._cached_per_trip_params) == 2, (
-            "EMHASS _cached_per_trip_params should have 2 trips after async_setup"
-        )
+        assert (
+            len(emhass_adapter._cached_per_trip_params) == 2
+        ), "EMHASS _cached_per_trip_params should have 2 trips after async_setup"
 
         # Verify the cached params have the expected structure (what EMHASS template uses)
         for trip_id in ["pun_20260418_z9ryxq", "pun_20260419_62qe8m"]:
-            assert trip_id in emhass_adapter._cached_per_trip_params, (
-                f"trip {trip_id} should be in _cached_per_trip_params"
-            )
+            assert (
+                trip_id in emhass_adapter._cached_per_trip_params
+            ), f"trip {trip_id} should be in _cached_per_trip_params"
             params = emhass_adapter._cached_per_trip_params[trip_id]
-            assert "def_total_hours" in params, (
-                f"trip {trip_id} should have def_total_hours in cached params"
-            )
-            assert "P_deferrable_nom" in params, (
-                f"trip {trip_id} should have P_deferrable_nom in cached params"
-            )
+            assert (
+                "def_total_hours" in params
+            ), f"trip {trip_id} should have def_total_hours in cached params"
+            assert (
+                "P_deferrable_nom" in params
+            ), f"trip {trip_id} should have P_deferrable_nom in cached params"
 
 
 class TestIntegrationDeletionBug:
@@ -210,21 +210,21 @@ class TestIntegrationDeletionBug:
 
         # Assert: Trips are removed from in-memory dicts
         assert len(trip_manager._trips) == 0, "Trips should be deleted"
-        assert len(trip_manager._punctual_trips) == 0, (
-            "Punctual trips should be deleted"
-        )
-        assert len(trip_manager._recurring_trips) == 0, (
-            "Recurring trips should be deleted"
-        )
+        assert (
+            len(trip_manager._punctual_trips) == 0
+        ), "Punctual trips should be deleted"
+        assert (
+            len(trip_manager._recurring_trips) == 0
+        ), "Recurring trips should be deleted"
 
         # Assert: Persisted storage is also cleared (reload from same store to verify)
         new_manager = TripManager(hass, "test_vehicle", "test_entry_id", None)
         new_manager._storage = mock_store
         await new_manager.async_setup()
         assert len(new_manager._trips) == 0, "Persisted trips should be cleared"
-        assert len(new_manager._punctual_trips) == 0, (
-            "Persisted punctual trips should be cleared"
-        )
-        assert len(new_manager._recurring_trips) == 0, (
-            "Persisted recurring trips should be cleared"
-        )
+        assert (
+            len(new_manager._punctual_trips) == 0
+        ), "Persisted punctual trips should be cleared"
+        assert (
+            len(new_manager._recurring_trips) == 0
+        ), "Persisted recurring trips should be cleared"

@@ -169,8 +169,9 @@ async def test_async_load_trips_skips_when_data_in_memory(
     mock_hass, vehicle_id, caplog
 ):
     """Test that _load_trips skips loading when data already in memory. Covers lines 202, 208."""
-    from homeassistant.helpers import storage as ha_storage
     import logging
+
+    from homeassistant.helpers import storage as ha_storage
 
     existing_recurring = {
         "rec_lun_123": {
@@ -857,8 +858,9 @@ async def test_get_emhass_adapter_returns_none_when_not_set(mock_hass, vehicle_i
 @pytest.mark.asyncio
 async def test_get_emhass_adapter_returns_adapter_when_set(mock_hass, vehicle_id):
     """Test get_emhass_adapter returns adapter when set."""
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
     from unittest.mock import MagicMock
+
+    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
     manager = TripManager(mock_hass, vehicle_id)
 
@@ -1273,12 +1275,12 @@ async def test_storage_wiring_uses_injected_storage(mock_hass, vehicle_id):
     await manager.async_setup()
 
     # T035: _load_trips() should have used injected storage, loading data
-    assert manager._recurring_trips.get("rec_lun") is not None, (
-        "_load_trips() did not use injected storage - recurring_trips empty"
-    )
-    assert manager._punctual_trips.get("pun_1") is not None, (
-        "_load_trips() did not use injected storage - punctual_trips empty"
-    )
+    assert (
+        manager._recurring_trips.get("rec_lun") is not None
+    ), "_load_trips() did not use injected storage - recurring_trips empty"
+    assert (
+        manager._punctual_trips.get("pun_1") is not None
+    ), "_load_trips() did not use injected storage - punctual_trips empty"
 
     # Now modify and save - T035: async_save_trips() should use fake.async_save()
     manager._recurring_trips["rec_lun"] = {
@@ -1289,9 +1291,9 @@ async def test_storage_wiring_uses_injected_storage(mock_hass, vehicle_id):
     await manager.async_save_trips()
 
     # Verify FakeTripStorage received the save call
-    assert "modified" in manager._recurring_trips["rec_lun"], (
-        "async_save_trips() did not use injected storage - data not saved"
-    )
+    assert (
+        "modified" in manager._recurring_trips["rec_lun"]
+    ), "async_save_trips() did not use injected storage - data not saved"
 
 
 @pytest.mark.asyncio
@@ -1319,9 +1321,9 @@ async def test_storage_wiring_fallback_to_ha_store(mock_hass, vehicle_id):
         manager = TripManager(mock_hass, vehicle_id)  # no storage= passed
         await manager.async_setup()
 
-        assert manager._trips.get("trip_fb") is not None, (
-            "Fallback HA Store path failed - _load_trips() not working"
-        )
+        assert (
+            manager._trips.get("trip_fb") is not None
+        ), "Fallback HA Store path failed - _load_trips() not working"
 
 
 @pytest.mark.asyncio
