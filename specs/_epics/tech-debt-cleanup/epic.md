@@ -152,7 +152,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 main
   └── epic/tech-debt-cleanup          ← rama epic (merge target)
         ├── spec/tooling-foundation    ← Spec 0 ✅ COMPLETADA (18/18 tasks)
-        ├── spec/1-dead-code           ← Spec 1 (pendiente)
+        ├── spec/1-dead-code           ← Spec 1 [COMPLETADO 22/22 tareas, PR #45 OPEN]
         ├── spec/2-test-reorg          ← Spec 2 (pendiente)
         ├── spec/3-solid-refactor      ← Spec 3 (pendiente)
         ├── ...
@@ -413,6 +413,23 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 ### Phase 1: Dead Code & Artifact Elimination (Spec 1)
 **What**: Delete `schedule_monitor.py`, remove backup files, update `.gitignore` for `*.py,cover` artifacts.
 **Why second (or parallel with Phase 0)**: Dead code removal is zero-risk (confirmed 0 source imports). Can run in parallel with Spec 0. Reduces LOC count for all quality metrics. Must delete dependent test files too (`test_schedule_monitor.py`, update `test_coverage_edge_cases.py`).
+**Status**: ✅ **COMPLETE** — 22/22 tasks done, PR #45 OPEN
+**Results**:
+- Deleted: `schedule_monitor.py` (327 LOC) + `test_schedule_monitor.py` (871 LOC, 33 tests)
+- Untracked 19 mutmut `.py,cover` artifacts
+- Relocated E2E config: `tests/ha-manual/configuration.yaml` → `scripts/e2e-config/`
+- Deleted `tests/ha-manual/` directory (195 MB)
+- Removed 4 dead constants (`SIGNAL_TRIPS_UPDATED`, `DEFAULT_CONTROL_TYPE`, `DEFAULT_NOTIFICATION_SERVICE`, `ALL_DAYS`)
+- Deleted `.qwen/settings.json.orig` orphaned backup
+- Cleaned 6 Makefile targets (`--ignore=tests/ha-manual/` removed)
+- Updated 6 documentation files (removed all `schedule_monitor` refs)
+- Quality gate: NO REGRESSION vs baseline (pyright 237→211 warnings improved)
+- Tests: 1,814 passed, 1 skipped (from baseline 1,849)
+- Coverage: 100% maintained
+- Vulture: 0 findings (clean dead code detection)
+- E2E: 29/30 pass (1 pre-existing flaky test, not regression)
+- PR: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/45
+- E2E ≠ STAGING: E2E uses port 8123 via `make e2e` (hass direct), staging uses port 8124 via `make staging-up` (Docker)
 
 ### Phase 2: Test Architecture Reorganization (Spec 2)
 **What**: Reorganize flat tests into unit/integration layers. Consolidate duplicates. Fix `assert True`.
