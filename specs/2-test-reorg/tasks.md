@@ -138,13 +138,13 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): move 73 unit test files to tests/unit/`
   - _Requirements: FR-1, AC-1.1, AC-1.6_
 
-- [ ] 1.19 [VERIFY] Quality checkpoint: unit files moved
+- [x] 1.19 [VERIFY] Quality checkpoint: unit files moved
   - **Do**: Run `pytest tests/unit/ --co -q` and verify test count. Run `make test-cover` to verify 100%.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All 1,821+ tests discovered and pass at 100%
   - **Commit**: None
 
-- [ ] 1.20 Move 30 integration test files to tests/integration/ (excluding POC-moved test_init.py)
+- [x] 1.20 Move 30 integration test files to tests/integration/ (excluding POC-moved test_init.py)
   - **Do**: Move all 29 remaining files with `from homeassistant` imports to `tests/integration/`. Use `git mv` for each file. Excludes test_init.py (already in POC task 1.16). Files: test_config_entry_not_ready.py, test_config_flow.py, test_config_flow_core.py, test_config_flow_milestone3.py, test_config_flow_missing.py, test_config_updates.py, test_coordinator.py, test_coverage_edge_cases.py, test_emhass_adapter.py, test_emhass_soft_delete.py, test_functional_emhass_sensor_updates.py, test_integration_uninstall.py, test_migrate_entry.py, test_notifications.py, test_parse_trip_datetime_error_paths.py, test_post_restart_persistence.py, test_power_profile_tdd.py, test_presence_monitor.py, test_presence_monitor_soc.py, test_renault_integration_issues.py, test_restore_sensor.py, test_sensor_coverage.py, test_services_core.py, test_trip_calculations.py, test_trip_emhass_sensor.py, test_trip_manager_core.py, test_trip_manager_power_profile.py, test_user_real_data_simple.py, test_vehicle_controller.py
   - **Files**: 29 test files moved to tests/integration/
   - **Done when**: All 29 files in tests/integration/; `pytest tests/integration/ --co -q` finds them
