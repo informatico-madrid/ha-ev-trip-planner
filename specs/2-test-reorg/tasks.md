@@ -162,7 +162,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
 
 Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage files. Fix assert True. Split conftest. Clean up.
 
-- [ ] 2.1 Consolidate trip_manager files: create test_trip_manager_core.py
+- [x] 2.1 Consolidate trip_manager files: create test_trip_manager_core.py
   - **Do**: Merge content from `test_trip_manager.py` (unit), `test_trip_manager_fix_branches.py` (unit), and the unit-scoped tests from the moved files into a single consolidated file. Target: tests/unit/test_trip_manager_core.py. Use AAA pattern. Ensure all original assertions preserved.
   - **Files**: tests/unit/test_trip_manager_core.py (existing, augmented with tests from test_trip_manager.py and test_trip_manager_fix_branches.py)
   - **Done when**: Consolidated file passes all merged tests; original source files can be deleted
