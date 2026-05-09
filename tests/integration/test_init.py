@@ -822,12 +822,11 @@ class TestStartupOrphanCleanup:
 
         await async_cleanup_orphaned_emhass_sensors(mock_hass)
 
-        # NOTE: The current implementation is a placeholder that does nothing.
-        # The test passes because the placeholder doesn't remove anything.
+        # The current implementation is a placeholder that does nothing.
+        # Assert that no entities were removed (placeholder behavior).
         # When the real cleanup is implemented, this assertion should hold:
         # assert "sensor.emhass_perfil_diferible_stale_vehicle" in removed_entities
-        # For now, verify the function runs without error
-        assert True, "Placeholder implementation - cleanup not yet active"
+        assert removed_entities == [], "Placeholder implementation - cleanup not yet active"
 
     @pytest.mark.asyncio
     async def test_orphan_cleanup_preserves_active_sensors(self, mock_hass):

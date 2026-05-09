@@ -260,7 +260,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): rename TDD files with opaque numeric codes`
   - _Requirements: FR-28, AC-4.2_
 
-- [ ] 2.14 [VERIFY] Quality checkpoint: coverage-driven renames complete
+- [x] 2.14 [VERIFY] Quality checkpoint: coverage-driven renames complete
   - **Do**: Run `make test` and `make test-cover`
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All tests pass at 100%
@@ -274,7 +274,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `fix(test-reorg): replace assert True in test_init_coverage.py`
   - _Requirements: FR-8, AC-5.1, AC-5.4_
 
-- [ ] 2.16 Fix assert True in test_init.py
+- [x] 2.16 Fix assert True in test_init.py
   - **Do**: Find and replace `assert True` at line 830 in tests/integration/test_init.py. Examine the source code — comment says "Placeholder implementation - cleanup not yet active". If cleanup is now active (verify source), write real assertion. If not, remove the placeholder test.
   - **Files**: tests/integration/test_init.py (moved from tests/ in POC task 1.16)
   - **Done when**: `assert True` replaced or test removed; coverage stays 100%
@@ -288,7 +288,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Done when**: 0 assert True violations; 100% coverage
   - **Commit**: None
 
-- [ ] 2.18 Split conftest.py: extract root fixtures
+- [x] 2.18 Split conftest.py: extract root fixtures
   - **Do**: Identify the 8 truly shared fixtures (mock_datetime, mock_frame_reporting, vehicle_id, mock_store, sample_*_config, _make_mock_datetime_fixture, trip_manager_no_entry_id). Keep them in `tests/conftest.py`. Target ~120 LOC. Remove all integration-specific fixtures from root.
   - **Files**: tests/conftest.py
   - **Done when**: Root conftest.py has only shared fixtures; ~120 LOC
@@ -296,7 +296,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): trim root conftest.py to shared fixtures only`
   - _Requirements: FR-10, AC-7.1, AC-7.2_
 
-- [ ] 2.19 Split conftest.py: create unit/conftest.py with unit fixtures
+- [x] 2.19 Split conftest.py: create unit/conftest.py with unit fixtures
   - **Do**: Create `tests/unit/conftest.py` with `mock_hass` (minimal version) and `trip_manager_no_entry_id` fixtures. These are the unit-scoped fixtures that don't need HA framework.
   - **Files**: tests/unit/conftest.py
   - **Done when**: Unit conftest.py has mock_hass and trip_manager_no_entry_id; ~40 LOC
@@ -304,7 +304,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): create unit conftest with mock_hass fixture`
   - _Requirements: FR-10, AC-7.3_
 
-- [ ] 2.20 Split conftest.py: create integration/conftest.py with HA fixtures
+- [x] 2.20 Split conftest.py: create integration/conftest.py with HA fixtures
   - **Do**: Create `tests/integration/conftest.py` with the remaining integration fixtures: hass (full mock), enable_custom_integrations, mock_input_text_*, mock_store_class, mock_entity/device_registry, mock_config_entries, mock_flow_manager, mock_er_async_get, mock_hass_with_entity_registry, trip_manager_with_entry_id. Target ~540 LOC.
   - **Files**: tests/integration/conftest.py
   - **Done when**: Integration conftest.py has all HA framework fixtures; tests pass
