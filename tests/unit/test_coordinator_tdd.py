@@ -1,10 +1,8 @@
-"""Integration TDD tests for SOC-Aware Charging Phase 3.
+"""Tests for recurring trip rotation in publish_deferrable_loads.
 
-Tests T3.1 (hourly refresh timer), T3.2 (recurring trip rotation),
-and T3.3 (auto-complete punctual trips) working together end-to-end.
-
-These tests use publish_deferrable_loads(trips) directly with pre-formed
-trip dictionaries, following the pattern from test_t32_and_p11_tdd.py that PASS.
+Tests the coordinator's hourly timer triggering rotation of recurring trips,
+multiple independent rotations, rotation without EMHASS adapter, and
+prevention of infinite loops between rotation and coordinator refresh.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -48,14 +46,14 @@ def _past_datetime_for_weekday(weekday_iso: int, weeks_ago: int = 2) -> str:
     return target.strftime("%Y-%m-%dT08:00:00")
 
 
-class TestT34_Integration:
-    """Integration tests for SOC-Aware Charging Phase 3."""
+class TestCoordinatorTdd:
+    """Tests for coordinator recurring trip rotation."""
 
     @pytest.mark.asyncio
-    async def test_t34_01_hourly_timer_rotates_recurring_trips(
+    async def test_hourly_timer_rotates_recurring_trips(
         self, trip_manager_with_entry_id
     ):
-        """T3.4-01: Hourly timer triggers rotation of recurring trips.
+        """Hourly timer triggers rotation of recurring trips.
 
         Verifies that the hourly timer in __init__.py calls
         publish_deferrable_loads() which rotates recurring trips.
@@ -89,17 +87,17 @@ class TestT34_Integration:
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
         assert (
             rotated_date > now
-        ), f"T3.4-01: Rotated datetime should be in the future, got {rotated_dt}"
+        ), f"Rotated datetime should be in the future, got {rotated_dt}"
         # Verify it's a Monday (ISO weekday 1)
         assert (
             rotated_date.isoweekday() == 1
-        ), f"T3.4-01: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
+        ), f"Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
-    async def test_t34_03_multiple_recurring_trips_rotate_independently(
+    async def test_multiple_recurring_trips_rotate_independently(
         self, trip_manager_with_entry_id
     ):
-        """T3.4-03: Multiple recurring trips rotate independently.
+        """Multiple recurring trips rotate independently.
 
         Verifies that each recurring trip is rotated based on its own
         schedule, not affecting other trips.
@@ -161,17 +159,17 @@ class TestT34_Integration:
             now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
             assert (
                 rotated_date > now
-            ), f"T3.4-03: {trip['id']} should be rotated to future, got {rotated_dt}"
+            ), f"{trip['id']} should be rotated to future, got {rotated_dt}"
             expected_wd = expected_weekdays[trip["id"]]
             assert (
                 rotated_date.isoweekday() == expected_wd
-            ), f"T3.4-03: {trip['id']} should be on weekday {expected_wd}, got {rotated_date.isoweekday()} ({rotated_dt})"
+            ), f"{trip['id']} should be on weekday {expected_wd}, got {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
-    async def test_t34_04_rotation_without_emhass_adapter(
+    async def test_rotation_without_emhass_adapter(
         self, trip_manager_no_entry_id
     ):
-        """T3.4-04: Rotation works even without EMHASS adapter.
+        """Rotation works even without EMHASS adapter.
 
         Verifies that recurring trip rotation works when emhass_adapter
         is None (e.g., before EMHASS is configured).
@@ -196,7 +194,7 @@ class TestT34_Integration:
         # Assert - Trip should still be rotated even without emhass_adapter
         assert (
             recurring_trip["datetime"] != original_datetime
-        ), f"T3.4-04: Rotation should work without emhass_adapter, got {recurring_trip['datetime']}"
+        ), f"Rotation should work without emhass_adapter, got {recurring_trip['datetime']}"
         rotated_dt = recurring_trip["datetime"]
         rotated_date = (
             datetime.fromisoformat(rotated_dt.replace("Z", "+00:00"))
@@ -206,19 +204,19 @@ class TestT34_Integration:
         now = datetime.now(timezone.utc) if rotated_date.tzinfo else datetime.now()
         assert (
             rotated_date > now
-        ), f"T3.4-04: Rotated datetime should be future Monday, got {rotated_dt}"
+        ), f"Rotated datetime should be future Monday, got {rotated_dt}"
         assert (
             rotated_date.isoweekday() == 1
-        ), f"T3.4-04: Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
+        ), f"Rotated datetime should be a Monday, got weekday {rotated_date.isoweekday()} ({rotated_dt})"
 
     @pytest.mark.asyncio
     @pytest.mark.skip(
         reason="T3.3 (auto-complete punctual trips) not implemented yet - pending Plan v3 scope extension"
     )
-    async def test_t34_05_punctual_trip_auto_complete_past_deadline(
+    async def test_punctual_trip_auto_complete_past_deadline(
         self, trip_manager_with_entry_id
     ):
-        """T3.4-05: Punctual trips with past deadline marked inactive.
+        """Punctual trips with past deadline marked inactive.
 
         Verifies that T3.3 (auto-complete punctual trips) marks
         trips with past deadlines as inactive.
@@ -243,13 +241,13 @@ class TestT34_Integration:
         # Assert - Trip with past deadline should be marked inactive
         assert (
             past_trip.get("activo") is False or past_trip.get("estado") == "completado"
-        ), f"T3.4-05: Past punctual trip should be marked inactive, got activo={past_trip.get('activo')}, estado={past_trip.get('estado')}"
+        ), f"Past punctual trip should be marked inactive, got activo={past_trip.get('activo')}, estado={past_trip.get('estado')}"
 
     @pytest.mark.asyncio
-    async def test_t34_06_no_infinite_loop_in_rotation(
+    async def test_no_infinite_loop_in_rotation(
         self, trip_manager_with_entry_id
     ):
-        """T3.4-06: No infinite loop in rotation logic.
+        """No infinite loop in rotation logic.
 
         Verifies that calling publish_deferrable_loads() does NOT
         trigger coordinator refresh (which would cause infinite loop).
@@ -283,4 +281,4 @@ class TestT34_Integration:
         # (rotation happens before coordinator refresh logic to avoid infinite loop)
         assert (
             not mock_coordinator.async_refresh.called
-        ), "T3.4-06: publish_deferrable_loads should not call coordinator.async_refresh"
+        ), "publish_deferrable_loads should not call coordinator.async_refresh"

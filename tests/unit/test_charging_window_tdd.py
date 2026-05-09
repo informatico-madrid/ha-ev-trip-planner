@@ -1,6 +1,7 @@
-"""TDD tests for T3.2 (recurring trip rotation) and P1.1 (number_of_deferrable_loads fix).
+"""Tests for EMHASS deferrable load count and recurring trip rotation.
 
-These tests are RED by design - they document expected behavior that is not yet implemented.
+Tests that the sensor shows correct load counts (0 when empty, N when N trips exist)
+and that past recurring trips are rotated to future dates.
 """
 
 import logging
@@ -39,14 +40,14 @@ def mock_coordinator(mock_hass):
     return coordinator
 
 
-class TestP11_NumberOfDeferrableLoadsFix:
-    """TDD tests for P1.1: Fix bug number_of_deferrable_loads."""
+class TestNumberOfDeferrableLoadsFix:
+    """Tests for number_of_deferrable_loads sensor attribute."""
 
     @pytest.mark.asyncio
     async def test_emhass_sensor_zero_deferrable_shows_zero_not_none(
         self, mock_coordinator
     ):
-        """TDD: Sensor with 0 deferrable loads must show 0, not None."""
+        """Sensor with 0 deferrable loads must show 0, not None."""
         # Arrange
         mock_coordinator.data = {
             "per_trip_emhass_params": {},  # No trips
@@ -63,7 +64,7 @@ class TestP11_NumberOfDeferrableLoadsFix:
 
     @pytest.mark.asyncio
     async def test_emhass_sensor_with_trips_shows_correct_count(self, mock_coordinator):
-        """TDD: Sensor with N loads must show N."""
+        """Sensor with N loads must show N."""
         # Arrange
         mock_coordinator.data = {
             "per_trip_emhass_params": {
@@ -82,14 +83,14 @@ class TestP11_NumberOfDeferrableLoadsFix:
         assert attrs["number_of_deferrable_loads"] == 3
 
 
-class TestT32_RecurringTripRotation:
-    """TDD tests for T3.2: Recurring trip rotation."""
+class TestRecurringTripRotation:
+    """Tests for recurring trip rotation in publish_deferrable_loads."""
 
     @pytest.mark.asyncio
     async def test_recurring_trip_past_deadline_uses_next_week(
         self, trip_manager_no_entry_id
     ):
-        """TDD: Past recurring trip must use next occurrence."""
+        """Past recurring trip must use next occurrence."""
         # Arrange
         past_trip = {
             "id": "recurring_1",
@@ -111,17 +112,16 @@ class TestT32_RecurringTripRotation:
             past_trip["datetime"],
         )
 
-        # Assert - The datetime must be different from the original (updated by T3.2)
-        # For now this test will fail because T3.2 is not implemented
+        # Assert - The datetime must be different from the original (updated by rotation)
         assert (
             past_trip["datetime"] != original_datetime
-        ), "T3.2: The datetime of the past recurring trip must be updated"
+        ), "The datetime of the past recurring trip must be updated"
 
     @pytest.mark.asyncio
     async def test_multiple_recurring_trips_rotated_correctly(
         self, trip_manager_with_entry_id
     ):
-        """TDD: Multiple recurring trips must rotate independently."""
+        """Multiple recurring trips must rotate independently."""
         # Arrange
         trips = [
             {
@@ -151,5 +151,4 @@ class TestT32_RecurringTripRotation:
         await trip_manager_with_entry_id.publish_deferrable_loads(trips)
 
         # Assert - All recurring trips must have updated datetime
-        # For now this test doesn't fail because there is no implementation
-        # When T3.2 is implemented, the datetimes must change
+        # When rotation is implemented, the datetimes must change

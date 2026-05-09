@@ -252,7 +252,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): rename/merge coverage-driven test files`
   - _Requirements: FR-7, AC-4.1, AC-4.2, AC-4.3_
 
-- [ ] 2.13 Rename test_t34_integration_tdd.py (misleading name, actually unit)
+- [x] 2.13 Rename test_t34_integration_tdd.py (misleading name, actually unit)
   - **Do**: Rename `tests/unit/test_t34_integration_tdd.py` to `tests/unit/test_coordinator_tdd.py` (or appropriate module name based on actual content). Rename `tests/unit/test_t32_and_p11_tdd.py` to behavior-based name.
   - **Files**: tests/unit/test_t34_integration_tdd.py, tests/unit/test_t32_and_p11_tdd.py
   - **Done when**: Files renamed; opaque numeric codes removed from names
@@ -266,7 +266,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Done when**: All tests pass at 100%
   - **Commit**: None
 
-- [ ] 2.15 Fix assert True in test_init_coverage.py (created from test_missing_coverage.py merge)
+- [x] 2.15 Fix assert True in test_init_coverage.py (created from test_missing_coverage.py merge)
   - **Do**: Find and replace `assert True` in tests/integration/test_init_coverage.py (created in task 2.12 from merging test_missing_coverage.py + test_coverage_remaining.py). Examine the source code path being covered. Replace with a real assertion that validates the actual behavior, or remove the test if the code path is already covered elsewhere.
   - **Files**: tests/integration/test_init_coverage.py
   - **Done when**: `assert True` replaced with meaningful assertion or test removed; coverage stays 100%
