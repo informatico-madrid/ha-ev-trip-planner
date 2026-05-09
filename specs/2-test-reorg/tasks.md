@@ -244,7 +244,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): merge dashboard coverage files into test_dashboard.py`
   - _Requirements: FR-7, AC-4.1, AC-4.2_
 
-- [ ] 2.12 Rename/merge coverage-driven files: sensor + emhass + init groups
+- [x] 2.12 Rename/merge coverage-driven files: sensor + emhass + init groups
   - **Do**: Rename `test_sensor_coverage.py` (integration) to `test_sensor_integration.py`. Rename `test_coverage_edge_cases.py` (integration) to `test_emhass_integration_edge_cases.py`. Merge `test_missing_coverage.py` + `test_coverage_remaining.py` into `test_init_coverage.py` (integration). Rename `test_coverage_100_percent.py` (unit) to `test_init_full_coverage.py`. Rename `test_emhass_adapter_trip_id_coverage.py` (unit) to `test_emhass_adapter_trip_id.py`.
   - **Files**: 6 files renamed/merged
   - **Done when**: No files with `_coverage`/`_cover`/`_missing`/`_remaining` suffixes remain; `make test` passes
