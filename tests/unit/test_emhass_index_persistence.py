@@ -16,7 +16,7 @@ import pytest
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
-class TestEMHASSIndexPersistenceBug:
+class TestEMHASSIndexPersistence:
     """Test que reproduce el bug de índices persistentes."""
 
     def setup_method(self):
@@ -40,7 +40,7 @@ class TestEMHASSIndexPersistenceBug:
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
     @pytest.mark.asyncio
-    async def test_persistent_indices_not_reassigned_on_republish(
+    async def test_persistent_indices_preserved_on_republish(
         self, mock_datetime_2026_05_04_monday_0800_utc
     ):
         """

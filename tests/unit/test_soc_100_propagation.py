@@ -17,7 +17,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 logger = logging.getLogger(__name__)
 
 
-class TestSOC100PropagationBug:
+class TestSOC100Propagation:
     """Verifies proactive charging at SOC 100% uses power profile clamping."""
 
     def setup_method(self):

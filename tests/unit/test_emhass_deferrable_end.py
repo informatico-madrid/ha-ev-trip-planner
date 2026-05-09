@@ -20,7 +20,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
-async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(
+async def test_populate_cache_entry_def_end_gt_def_start(
     mock_hass, mock_store
 ):
     """
@@ -84,7 +84,7 @@ async def test_populate_cache_entry_def_end_should_be_greater_than_def_start(
 
 
 @pytest.mark.asyncio
-async def test_populate_cache_entry_def_end_uses_fin_ventana_not_hours_available(
+async def test_populate_cache_entry_def_end_uses_fin_ventana(
     mock_hass, mock_store
 ):
     """

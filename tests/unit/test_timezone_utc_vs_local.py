@@ -75,7 +75,7 @@ TODAY_01_00_LOCAL = datetime(
 # =============================================================================
 # BUG 1: generate_deferrable_schedule_from_trips uses UTC timestamps
 # =============================================================================
-class TestScheduleTimezoneBug:
+class TestScheduleTimezone:
     """Bug: deferrables_schedule shows UTC hours instead of local hours."""
 
     def test_schedule_with_utc_reference_shows_utc_hours(self):
@@ -189,7 +189,7 @@ class TestScheduleTimezoneBug:
 # =============================================================================
 # BUG 2: calculate_power_profile_from_trips uses UTC reference
 # =============================================================================
-class TestPowerProfileTimezoneBug:
+class TestPowerProfileTimezone:
     """Bug: Power profile positions are offset by timezone difference."""
 
     def test_power_profile_utc_vs_local_reference_differ_for_recurring(self):
@@ -282,7 +282,7 @@ class TestPowerProfileTimezoneBug:
 # =============================================================================
 # BUG 3: calculate_next_recurring_datetime without tz treats time as UTC
 # =============================================================================
-class TestRecurringDatetimeTimezoneBug:
+class TestRecurringDatetimeTimezone:
     """Bug: Recurring trip times treated as UTC instead of local.
 
     When tz=None, calculate_next_recurring_datetime treats time_str as UTC.
@@ -373,7 +373,7 @@ class TestRecurringDatetimeTimezoneBug:
 # =============================================================================
 # BUG 4: calculate_multi_trip_charging_windows uses datetime.now(timezone.utc)
 # =============================================================================
-class TestChargingWindowsTimezoneBug:
+class TestChargingWindowsTimezone:
     """Bug: Charging windows use UTC now, affecting window start calculation.
 
     calculate_multi_trip_charging_windows() has NO 'now' parameter.
@@ -446,7 +446,7 @@ class TestChargingWindowsTimezoneBug:
 # =============================================================================
 # BUG 5: calculate_deferrable_parameters uses datetime.now() (naive)
 # =============================================================================
-class TestDeferrableParametersTimezoneBug:
+class TestDeferrableParametersTimezone:
     """Bug: calculate_deferrable_parameters uses datetime.now() without tz."""
 
     def test_deferrable_params_end_timestep_with_utc_vs_local(self):
@@ -505,7 +505,7 @@ class TestDeferrableParametersTimezoneBug:
 # =============================================================================
 # BUG 6: Edge case - midnight boundary date mismatch
 # =============================================================================
-class TestMidnightBoundaryTimezoneBug:
+class TestMidnightBoundaryTimezone:
     """Bug: Using UTC date for 'today' calculations fails around midnight.
 
     When it's 00:30 local (22:30 UTC previous day for CEST),
@@ -661,7 +661,7 @@ class TestIntegrationScheduleTimezone:
 # =============================================================================
 # SUMMARY: Count of affected sites
 # =============================================================================
-class TestTimezoneBugSummary:
+class TestTimezoneSummary:
     """Summary of all timezone-affected sites in the codebase."""
 
     def test_summary_of_affected_sites(self):

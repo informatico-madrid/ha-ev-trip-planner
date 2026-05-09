@@ -152,7 +152,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): move 29 integration test files to tests/integration/`
   - _Requirements: FR-2, AC-1.2, AC-1.6_
 
-- [ ] 1.21 [VERIFY] POC Checkpoint: full structure works
+- [x] 1.21 [VERIFY] POC Checkpoint: full structure works
   - **Do**: Run `make test` and `make test-cover`. Verify test count = 1,821+. Verify coverage = 100%. Run `pytest --co -q` to count tests in unit/ and integration/. Verify tests/fixtures/ unchanged: `git diff --name-only tests/fixtures/` returns empty.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && git diff --name-only tests/fixtures/ | wc -l | grep -q "^0$" && echo POC_PASS`
   - **Done when**: 1,821+ tests pass at 100% coverage in new structure; fixtures data untouched
@@ -186,7 +186,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): consolidate trip_manager EMHASS + sensor tests`
   - _Requirements: FR-4, AC-2.1, AC-2.2, AC-2.5_
 
-- [ ] 2.4 Delete merged trip_manager source files
+- [x] 2.4 Delete merged trip_manager source files
   - **Do**: Delete the 13 original trip_manager files that were merged into the 3 consolidated files (test_trip_manager.py, test_trip_manager_fix_branches.py, test_trip_manager_calculations.py, test_trip_manager_more_coverage.py, test_trip_manager_missing_coverage.py, test_trip_manager_cover_more.py, test_trip_manager_cover_line1781.py, test_trip_manager_emhass.py, test_trip_manager_sensor_hooks.py, test_trip_manager_entry_lookup.py, test_trip_manager_datetime_tz.py). Keep test_trip_manager_core.py and test_trip_manager_power_profile.py as they are now the consolidated targets.
   - **Files**: 11+ files deleted from tests/unit/ and tests/integration/
   - **Done when**: Only 3 trip_manager test files remain; `make test` passes
@@ -194,7 +194,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): delete merged trip_manager source files`
   - _Requirements: FR-4, AC-2.5_
 
-- [ ] 2.5 [VERIFY] Quality checkpoint: trip_manager consolidation
+- [x] 2.5 [VERIFY] Quality checkpoint: trip_manager consolidation
   - **Do**: Run `make test` and `make test-cover` to verify trip consolidation
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All tests pass at 100%
@@ -216,13 +216,13 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): consolidate config_flow options + milestone + missing`
   - _Requirements: FR-6, AC-3.1, AC-3.3_
 
-- [ ] 2.8 [VERIFY] Quality checkpoint: config_flow consolidation
+- [x] 2.8 [VERIFY] Quality checkpoint: config_flow consolidation
   - **Do**: Run `make test` and `make test-cover`
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All tests pass at 100%
   - **Commit**: None
 
-- [ ] 2.9 Rename 14 bug regression files (remove _bug suffix)
+- [x] 2.9 Rename 14 bug regression files (remove _bug suffix)
   - **Do**: Rename bug-named files to behavior-based names using `git mv`: test_aggregated_sensor_bug.py -> test_sensor_aggregation.py, test_charging_window_bug_fix.py -> test_charging_window_edge_cases.py, test_def_end_bug_red.py -> test_deferrable_end_boundary.py, test_def_start_window_bug.py -> test_deferrable_start_boundary.py, test_def_total_hours_mismatch_bug.py -> test_deferrable_hours_calculation.py, test_def_total_hours_window_mismatch.py -> test_deferrable_hours_window.py, test_emhass_adapter_def_end_bug.py -> test_emhass_deferrable_end.py, test_emhass_arrays_ordering_bug.py -> test_emhass_array_ordering.py, test_emhass_index_persistence_bug.py -> test_emhass_index_persistence.py, test_emhass_publish_bug.py -> test_emhass_publish_edge_cases.py, test_recurring_day_offset_bug.py -> test_recurring_day_offset.py, test_soc_100_p_deferrable_nom_bug.py -> test_soc_100_deferrable_nominal.py, test_soc_100_propagation_bug.py -> test_soc_100_propagation.py, test_timezone_utc_vs_local_bug.py -> test_timezone_utc_vs_local.py. All 14 are in tests/unit/.
   - **Files**: 14 files renamed in tests/unit/
   - **Done when**: No files with `_bug` suffix remain; `make test` passes

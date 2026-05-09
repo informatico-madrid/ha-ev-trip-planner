@@ -23,7 +23,7 @@ from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
-async def test_def_end_timestep_bug_when_inicio_ventana_equals_hours_available(
+async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     mock_hass, mock_store
 ):
     """

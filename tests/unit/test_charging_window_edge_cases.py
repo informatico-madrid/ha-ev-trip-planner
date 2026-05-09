@@ -24,7 +24,7 @@ TDD Flow:
 from datetime import datetime, timedelta, timezone
 
 
-def test_def_end_timestep_bug_demonstration():
+def test_def_end_timestep_demonstration():
     """RED phase test: Demonstrates the bug with a simple calculation.
 
     This test shows the bug logic directly without mocking.
@@ -100,7 +100,7 @@ def test_def_end_timestep_bug_demonstration():
     )
 
 
-def test_def_end_timestep_should_use_fin_ventana():
+def test_def_end_timestep_correct_calculation():
     """RED phase test: Shows what the CORRECT calculation should be.
 
     The fix: def_end_timestep should be calculated from fin_ventana,
@@ -136,8 +136,8 @@ def test_def_end_timestep_should_use_fin_ventana():
 
 if __name__ == "__main__":
     # Run the tests directly
-    test_def_end_timestep_bug_demonstration()
+    test_def_end_timestep_demonstration()
     print("\n✓ Bug demonstrated successfully!")
 
-    test_def_end_timestep_should_use_fin_ventana()
+    test_def_end_timestep_correct_calculation()
     print("✓ Correct calculation verified!")

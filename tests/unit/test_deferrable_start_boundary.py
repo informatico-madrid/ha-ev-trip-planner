@@ -77,7 +77,7 @@ def _make_adapter():
     return adapter
 
 
-class TestDefStartTimestepWindowBug:
+class TestDeferrableStartBoundary:
     """Bug: def_end - def_start < def_total_hours causes EMHASS optimization failure.
 
     The invariant that must hold for every deferrable load:
@@ -307,7 +307,7 @@ class TestDefStartTimestepWindowBug:
             )
 
 
-class TestDefStartTimestepMath:
+class TestDeferrableStartMath:
     """Pure math tests demonstrating the off-by-one in timestep calculation.
 
     These tests verify the math without needing the full adapter infrastructure.

@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.calculations import calculate_energy_need
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
-class TestSOC100PDeferrableNomBug:
+class TestSOC100DeferrableNominal:
     """Test que reproduce el bug específico de P_deferrable_nom en SOC 100%."""
 
     def setup_method(self):

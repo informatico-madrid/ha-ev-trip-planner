@@ -48,7 +48,7 @@ SOC_CURRENT = 20.0
 # =============================================================================
 
 
-class TestBug1DayFormatMismatch:
+class TestDayFormatMismatch:
     """Bug 1: calculate_day_index interprets JS getDay format as Monday=0 format.
 
     Frontend stores: dia_semana="5" → Friday (JS: Sunday=0, Monday=1, ..., Friday=5)
@@ -57,7 +57,7 @@ class TestBug1DayFormatMismatch:
     Result: Trip scheduled for Saturday instead of Friday → ~24h offset.
     """
 
-    def test_calculate_day_index_js_format_friday(self):
+    def test_calculate_day_index_maps_friday(self):
         """calculate_day_index("5") should return Friday index, not Saturday.
 
         JS getDay format: Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
@@ -103,7 +103,7 @@ class TestBug1DayFormatMismatch:
             f"({DAYS_OF_WEEK[result] if result < len(DAYS_OF_WEEK) else 'out of range'})"
         )
 
-    def test_trip_time_friday_due_today_not_saturday(self):
+    def test_trip_time_friday_scheduled_today(self):
         """Friday recurring trip must be scheduled for today (Friday), not tomorrow (Saturday).
 
         This is the core Bug 1 test: with dia_semana="5" (JS format Friday),
@@ -135,7 +135,7 @@ class TestBug1DayFormatMismatch:
             f"Deadline: {result.isoformat()}, Now: {FRIDAY_09_15_UTC.isoformat()}"
         )
 
-    def test_trip_time_friday_correct_day_of_week(self):
+    def test_trip_time_friday_is_friday(self):
         """The computed deadline must be a Friday (weekday=4 in Monday=0)."""
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
@@ -155,7 +155,7 @@ class TestBug1DayFormatMismatch:
             f"Date: {result.date()}, {result.strftime('%A')}"
         )
 
-    def test_power_profile_friday_trip_within_24h(self):
+    def test_power_profile_friday_within_window(self):
         """Power profile for Friday trip must have non-zero values within first 24 hours.
 
         Bug 1 causes the profile to have values at indices ~26-27 instead of ~1-3.
@@ -190,7 +190,7 @@ class TestBug1DayFormatMismatch:
 # =============================================================================
 
 
-class TestBug2TimezoneOffset:
+class TestTimezoneOffset:
     """Bug 2: calculate_trip_time treats hora as UTC instead of local time.
 
     The user sets hora="13:30" meaning 13:30 local time (e.g., UTC+2 = 11:30 UTC).
@@ -273,7 +273,7 @@ class TestBug2TimezoneOffset:
             f"Non-zero indices: {non_zero_indices}"
         )
 
-    def test_power_profile_charging_at_expected_hours(self):
+    def test_power_profile_charging_pattern(self):
         """P_deferrable must match expected pattern: [3300, 3300, 0, 0, ...].
 
         With tz=UTC+2, hora="13:30" local → deadline 11:30 UTC.
@@ -311,7 +311,7 @@ class TestBug2TimezoneOffset:
             profile[3] == 0.0
         ), f"Hour 3 should be 0 (past deadline), got {profile[3]}"
 
-    def test_def_end_timestep_within_charging_window(self):
+    def test_def_end_timestep_within_window(self):
         """def_end_timestep must be 2 (end of charging window at hour 2).
 
         The charging window is 11:00-13:30 local (09:00-11:30 UTC).
@@ -469,7 +469,7 @@ class TestCalculateTripTimeTz:
 # =============================================================================
 
 
-class TestIntegrationBothBugs:
+class TestIntegrationBothFixes:
     """Integration test: both bugs must be fixed for correct sensor output.
 
     Simulates the exact user scenario:
@@ -487,7 +487,7 @@ class TestIntegrationBothBugs:
         P_deferrable: [[3300.0, 3300.0, 0.0, 0.0, 0.0, ...]]
     """
 
-    def test_full_sensor_output_correct(self):
+    def test_full_output_correct(self):
         """End-to-end: sensor attributes match expected values."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_power_profile_from_trips,

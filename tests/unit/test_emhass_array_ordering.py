@@ -19,7 +19,7 @@ import pytest
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
-class TestEMHASSArraysOrderingBug:
+class TestEMHASSArrayOrdering:
     """Test que demuestra el problema de ordenamiento en todos los arrays."""
 
     def setup_method(self):

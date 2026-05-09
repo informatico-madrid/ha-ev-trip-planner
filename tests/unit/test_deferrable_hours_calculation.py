@@ -19,7 +19,7 @@ from custom_components.ev_trip_planner.calculations import calculate_energy_need
 from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
 
 
-class TestDefTotalHoursMismatchBug:
+class TestDeferrableHoursCalculation:
     """Test que reproduce el bug donde def_total_hours no coincide con P_deferrable."""
 
     def setup_method(self):
@@ -47,7 +47,7 @@ class TestDefTotalHoursMismatchBug:
         )
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
-    async def test_def_total_hours_debe_coincidir_con_perfil_potencia(self):
+    async def test_def_total_hours_must_match_power_profile(self):
         """
         Test que reproduce el bug reportado por el usuario.
 

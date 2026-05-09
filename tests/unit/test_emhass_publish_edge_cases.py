@@ -19,7 +19,7 @@ from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.mark.asyncio
-async def test_publish_deferrable_loads_called_after_setup(mock_hass):
+async def test_deferrable_loads_published_after_setup(mock_hass):
     """Verify publish_deferrable_loads() calls EMHASS adapter when both are configured.
 
     Flow:
