@@ -38,7 +38,7 @@ jobs:
     - name: Create HA config directory
       run: |
         mkdir -p /tmp/ha-e2e-config/custom_components
-        cp tests/ha-manual/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
+        cp scripts/e2e-config/configuration.yaml /tmp/ha-e2e-config/configuration.yaml
         ln -sf ${{ github.workspace }}/custom_components/ev_trip_planner \
                /tmp/ha-e2e-config/custom_components/ev_trip_planner
         mkdir -p playwright/.auth

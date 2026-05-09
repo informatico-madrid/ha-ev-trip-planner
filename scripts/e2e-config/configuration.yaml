@@ -1,0 +1,62 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+http:
+  server_host: 0.0.0.0
+  server_port: 8123
+
+homeassistant:
+  auth_providers:
+    - type: trusted_networks
+      trusted_networks:
+        - 127.0.0.1
+        - 172.17.0.0/16
+        - 192.168.1.0/24
+        - ::1
+      allow_bypass_login: true
+    - type: homeassistant
+
+# Required by E2E tests: the config flow presence step needs a binary_sensor or input_boolean
+input_boolean:
+  test_ev_charging:
+    name: "EV Charging Test"
+    initial: false
+
+# SOC and SOH input_numbers — used as backing state for test_vehicle sensors
+input_number:
+  test_vehicle_soc:
+    name: "Test Vehicle SOC"
+    initial: 20
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+  test_vehicle_soh:
+    name: "Test Vehicle SOH"
+    initial: 92
+    min: 50
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+
+# Template sensors for test_vehicle (mirrors input_numbers as real sensors)
+template:
+  - sensor:
+      - name: "Test Vehicle SOC"
+        unique_id: "test_vehicle_soc_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.test_vehicle_soc') | float(0) | round(0) }}"
+      - name: "Test Vehicle SOH"
+        unique_id: "test_vehicle_soh_sensor"
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.test_vehicle_soh') | float(92) | round(0) }}"
+
+# Logger debug config for E2E tests
+logger:
+  default: warning
+  logs:
+    custom_components.ev_trip_planner: debug
+    homeassistant.components.sensor: debug

@@ -82,7 +82,7 @@ echo "  Creating directory structure..."
 mkdir -p "${HA_CONFIG_DIR}/custom_components"
 
 echo "  Copying configuration.yaml (with SOC/SOH sensors)..."
-cp tests/ha-manual/configuration.yaml "${HA_CONFIG_DIR}/configuration.yaml"
+cp scripts/e2e-config/configuration.yaml "${HA_CONFIG_DIR}/configuration.yaml"
 
 echo "  Creating symlink for ev_trip_planner custom component..."
 ln -sf "$(pwd)/custom_components/ev_trip_planner" \

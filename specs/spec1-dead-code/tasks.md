@@ -18,7 +18,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - _Requirements: FR-12_
   - _Note_: Takes ~5-10 minutes. Script runs 17 quality checks across 4 layers.
 
-- [ ] 1.2 BLOCKER: E2E config relocation -- copy configuration.yaml and update 3 script references
+- [x] 1.2 BLOCKER: E2E config relocation -- copy configuration.yaml and update 3 script references
   - **Do**:
     1. Create target: `mkdir -p scripts/e2e-config/`
     2. Copy: `cp tests/ha-manual/configuration.yaml scripts/e2e-config/configuration.yaml`
