@@ -50,13 +50,13 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `feat(test-reorg): configure pytest strict mode, importlib, and markers`
   - _Requirements: FR-15, FR-16, FR-17, AC-9.1-9.6_
 
-- [ ] 1.7 [VERIFY] Quality checkpoint: strict mode + importlib works
+- [x] 1.7 [VERIFY] Quality checkpoint: strict mode + importlib works
   - **Do**: Run `make test` and `make test-cover` to verify strict mode and importlib cause no regressions
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: 1,821+ tests pass at 100%, no warnings about unregistered markers
   - **Commit**: None
 
-- [ ] 1.8 Create tests/helpers/ directory with constants.py
+- [x] 1.8 Create tests/helpers/ directory with constants.py
   - **Do**: Create `tests/helpers/` dir. Extract CONSTANTS section (lines 10-53) from `tests/__init__.py` to `tests/helpers/constants.py`. Create `tests/helpers/__init__.py` with re-export of all public symbols.
   - **Files**: tests/helpers/constants.py, tests/helpers/__init__.py
   - **Done when**: Constants file exists; helpers/__init__.py re-exports TEST_VEHICLE_ID, TEST_CONFIG, etc.
