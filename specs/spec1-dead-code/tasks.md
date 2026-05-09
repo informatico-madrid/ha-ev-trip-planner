@@ -66,7 +66,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - _Requirements: FR-4, AC-1.12d_
   - _Design: Step 4 -- safe after config relocation in 1.2_
 
-- [ ] 1.6 [P] Delete dead constants from const.py and utils.py
+- [x] 1.6 [P] Delete dead constants from const.py and utils.py
   - **Do**:
     1. Re-verify zero references: `grep -rn "SIGNAL_TRIPS_UPDATED\|DEFAULT_CONTROL_TYPE\|DEFAULT_NOTIFICATION_SERVICE\|ALL_DAYS" custom_components/ tests/ --include="*.py"` -- must return ONLY definition lines (NOTE: valid only after task 1.5 deletes tests/ha-manual/ which contains copies of const.py)
     2. Edit `custom_components/ev_trip_planner/const.py` -- remove `SIGNAL_TRIPS_UPDATED` (line 21-22), `DEFAULT_CONTROL_TYPE` (line 67), `DEFAULT_NOTIFICATION_SERVICE` (line 71)
