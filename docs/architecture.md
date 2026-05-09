@@ -168,11 +168,6 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 - SOC tracking via sensor state changes
 - Home/away event detection
 
-#### 11. `schedule_monitor.py` — Schedule Monitoring (323 LOC)
-- Monitors EMHASS schedule sensor state changes
-- Triggers vehicle control when charging window starts
-- Per-vehicle monitoring with `VehicleScheduleMonitor`
-
 #### 12. `panel.py` — Native Panel (244 LOC)
 - Registers custom sidebar panel via `panel_custom`
 - Serves Lit web component from `frontend/panel.js`

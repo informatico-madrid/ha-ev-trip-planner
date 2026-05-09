@@ -128,7 +128,6 @@ custom_components/ev_trip_planner/
 ├── config_flow.py       # Config flow
 ├── vehicle_controller.py # Charging control strategies
 ├── presence_monitor.py  # Presence detection
-├── schedule_monitor.py  # Schedule monitoring
 ├── panel.py             # Native panel registration
 ├── dashboard.py         # Dashboard auto-deploy
 ```

@@ -21,7 +21,6 @@ ha-ev-trip-planner/
 │       ├── emhass_adapter.py               # EMHASS integration adapter (deferrable loads, power profiles)
 │       ├── vehicle_controller.py           # 4 charging control strategies (switch, service, script, external)
 │       ├── presence_monitor.py             # GPS + sensor-based presence detection
-│       ├── schedule_monitor.py             # EMHASS schedule monitoring + vehicle control execution
 │       ├── panel.py                        # Native HA sidebar panel registration
 │       ├── dashboard.py                    # Auto-deploy Lovelace dashboards (storage + YAML modes)
 │       ├── utils.py                        # Utility functions (trip ID generation, validation)
@@ -61,7 +60,6 @@ ha-ev-trip-planner/
 │   ├── test_emhass_adapter.py              # EMHASS adapter tests
 │   ├── test_dashboard*.py                  # Dashboard tests
 │   ├── test_presence_monitor.py            # Presence monitor tests
-│   ├── test_schedule_monitor.py            # Schedule monitor tests
 │   ├── test_vehicle_controller*.py         # Vehicle controller tests
 │   ├── test_utils.py # Utility function tests
 │   ├── fixtures/                           # Test fixtures (JSON trip/vehicle data)
