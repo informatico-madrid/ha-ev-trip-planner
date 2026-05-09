@@ -110,13 +110,13 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `feat(test-reorg): create unit/ and integration/ directories with stub conftest`
   - _Requirements: FR-1, FR-2, AC-1.1, AC-1.2_
 
-- [ ] 1.15 [VERIFY] Quality checkpoint: directory structure created
+- [x] 1.15 [VERIFY] Quality checkpoint: directory structure created
   - **Do**: Run `make test` to verify new directories don't break discovery
   - **Verify**: `make test 2>&1 | tail -3 | grep -q "passed" && echo VERIFY_PASS`
   - **Done when**: 1,821+ tests pass
   - **Commit**: None
 
-- [ ] 1.16 POC: Move 2 representative files to prove structure works
+- [x] 1.16 POC: Move 2 representative files to prove structure works
   - **Do**: Move `tests/test_calculations.py` to `tests/unit/test_calculations.py` (unit representative). Move `tests/test_init.py` to `tests/integration/test_init.py` (integration representative). Use `git mv`. Verify import_mode=importlib handles subdirectory imports correctly.
   - **Files**: tests/unit/test_calculations.py, tests/integration/test_init.py
   - **Done when**: Both files moved; `make test-cover` passes at 100%
