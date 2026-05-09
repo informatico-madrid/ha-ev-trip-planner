@@ -32,7 +32,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: `refactor(e2e): relocate configuration.yaml from tests/ha-manual to scripts/e2e-config`
   - _Requirements: FR-3, AC-1.12, AC-1.12a, AC-1.12b, AC-1.12c_
 
-- [ ] 1.3 [P] Untrack 19 .cover files from git and remove from disk
+- [x] 1.3 [P] Untrack 19 .cover files from git and remove from disk
   - **Do**:
     1. Verify .gitignore pattern exists: `grep ',cover' .gitignore` (must match at line 30)
     2. Run `git rm --cached $(git ls-files '*.py,cover')` to untrack all 19 mutmut coverage artifacts
