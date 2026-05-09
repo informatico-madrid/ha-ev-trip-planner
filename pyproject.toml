@@ -152,10 +152,6 @@ status = "passing"
 kill_threshold = 0.37
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.schedule_monitor]
-kill_threshold = 0.50
-status = "passing"
-
 [tool.quality-gate.mutation.modules.yaml_trip_storage]
 kill_threshold = 0.50
 status = "passing"

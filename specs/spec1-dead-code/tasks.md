@@ -43,7 +43,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: `chore(cleanup): untrack and remove 19 mutmut .cover files`
   - _Requirements: FR-2, AC-1.4, AC-1.11_
 
-- [ ] 1.4 [P] Delete schedule_monitor module, test file, coverage edge case test, and mutation config
+- [x] 1.4 [P] Delete schedule_monitor module, test file, coverage edge case test, and mutation config
   - **Do**:
     1. Delete: `rm custom_components/ev_trip_planner/schedule_monitor.py`
     2. Delete: `rm tests/test_schedule_monitor.py`

@@ -519,32 +519,6 @@ async def test_generate_power_profile_exception_batterycapacity(
 
 
 # =============================================================================
-# Coverage: schedule_monitor.py:282 - Edge case
-# =============================================================================
-
-
-@pytest.mark.asyncio
-async def test_schedule_monitor_notify_with_none_service() -> None:
-    """Test _async_notify handles notification_service=None (line 282)."""
-    from custom_components.ev_trip_planner.schedule_monitor import (
-        VehicleScheduleMonitor,
-    )
-
-    # Create VehicleScheduleMonitor with notification_service=None
-    monitor = VehicleScheduleMonitor(
-        hass=Mock(spec=HomeAssistant),
-        vehicle_id="test_car",
-        control_strategy="test",
-        presence_monitor=MagicMock(),
-        notification_service=None,  # This triggers line 282
-        emhass_adapter=MagicMock(),
-    )
-
-    # Should return early without error (line 282)
-    await monitor._async_notify("Test Title", "Test Message")
-
-
-# =============================================================================
 # Coverage: emhass_adapter.py:1338-1339 - HomeAssistantError in state cleanup
 # =============================================================================
 
