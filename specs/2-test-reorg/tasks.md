@@ -88,7 +88,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): replace tests/__init__.py with re-export shim`
   - _Requirements: FR-29, C-5_
 
-- [ ] 1.12 Update 4 import statements in test files
+- [x] 1.12 Update 4 import statements in test files
   - **Do**: Update imports in `test_coverage_100_percent.py`, `test_trip_manager_missing_coverage.py`, `test_trip_manager_cover_more.py`, `test_trip_manager_core.py` from `from tests import X` to `from tests.helpers import X` (or keep as-is since shim handles it — verify both work and pick cleaner option).
   - **Files**: tests/test_coverage_100_percent.py, tests/test_trip_manager_missing_coverage.py, tests/test_trip_manager_cover_more.py, tests/test_trip_manager_core.py
   - **Done when**: All 4 files import from tests.helpers; `make test` passes

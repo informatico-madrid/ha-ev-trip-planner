@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from tests import FakeTripStorage, create_mock_ev_config_entry
+from tests.helpers import FakeTripStorage, create_mock_ev_config_entry
 
 
 @pytest.mark.asyncio

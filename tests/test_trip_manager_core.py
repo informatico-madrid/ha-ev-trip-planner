@@ -1243,7 +1243,7 @@ async def test_storage_wiring_uses_injected_storage(mock_hass, vehicle_id):
 
     This test FAILS if wiring is incomplete (T039).
     """
-    from tests import FakeTripStorage
+    from tests.helpers import FakeTripStorage
 
     initial_data = {
         "trips": {

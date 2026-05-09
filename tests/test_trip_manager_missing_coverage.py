@@ -11,7 +11,7 @@ from datetime import datetime
 import pytest
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
-from tests import create_mock_ev_config_entry
+from tests.helpers import create_mock_ev_config_entry
 
 
 @pytest.mark.asyncio
