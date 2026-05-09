@@ -8,10 +8,16 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-from homeassistant.data_entry_flow import FlowResultType
+import json
 
-from custom_components.ev_trip_planner.config_flow import EVTripPlannerFlowHandler
+import pytest
+from homeassistant.data_entry_flow import AbortFlow, FlowResultType
+
+from custom_components.ev_trip_planner.config_flow import (
+    EVTripPlannerConfigFlow,
+    EVTripPlannerFlowHandler,
+)
+from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
 from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -934,3 +940,367 @@ async def test_config_entry_migrate_unknown_version():
     assert mock_entry.version == 1
     # async_update_entry should NOT have been called
     flow.hass.config_entries.async_update_entry.assert_not_called()
+
+
+# ----------------------------------------------------------------------
+# Core Flow Tests (merged from test_config_flow_core.py)
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_show_user_form_direct():
+    """Test that the initial user step shows a form (EVTripPlannerConfigFlow)."""
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+    result = await flow.async_step_user()
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+
+@pytest.mark.asyncio
+async def test_full_flow_success_direct():
+    """Test a complete successful configuration flow invoking EVTripPlannerConfigFlow directly."""
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    # User step - step 1: vehicle basic info
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()) as _set_uid,
+        patch.object(
+            flow, "_abort_if_unique_id_configured", return_value=None
+        ) as _abort_check,
+    ):
+        result = await flow.async_step_user(
+            {
+                CONF_VEHICLE_NAME: "Chispitas",
+            }
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "sensors"
+
+        # Step 2: sensors configuration
+        result = await flow.async_step_sensors(
+            {
+                CONF_BATTERY_CAPACITY: 60.0,
+                CONF_CHARGING_POWER: 11.0,
+                CONF_CONSUMPTION: 0.15,
+                CONF_SAFETY_MARGIN: 20,
+            }
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "emhass"
+
+        # Step 3: EMHASS configuration
+        result = await flow.async_step_emhass(
+            {
+                CONF_PLANNING_HORIZON: 7,
+                CONF_MAX_DEFERRABLE_LOADS: 50,
+            }
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "presence"
+
+        # Step 4: Presence configuration (skip with empty input)
+        mock_registry = MagicMock()
+        mock_registry.entities.keys.return_value = ["binary_sensor.test_charging"]
+        mock_state = MagicMock()
+        mock_state.state = "on"
+        flow.hass.states.get.return_value = mock_state
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
+            result = await flow.async_step_presence({})
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "notifications"
+
+        # Step 5: Notifications configuration (skip with empty input)
+        result = await flow.async_step_notifications({})
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "Chispitas"
+        data = result["data"]
+        assert data[CONF_VEHICLE_NAME] == "Chispitas"
+        assert data[CONF_BATTERY_CAPACITY] == 60.0
+        assert data[CONF_CHARGING_POWER] == 11.0
+        assert data[CONF_CONSUMPTION] == 0.15
+        assert data[CONF_SAFETY_MARGIN] == 20
+        assert data[CONF_PLANNING_HORIZON] == 7
+        assert data[CONF_MAX_DEFERRABLE_LOADS] == 50
+
+
+@pytest.mark.asyncio
+async def test_emhass_step_shows_form_direct():
+    """Test that the EMHASS step shows a form (EVTripPlannerConfigFlow)."""
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+    flow.context["vehicle_data"] = {
+        CONF_VEHICLE_NAME: "TestVehicle",
+    }
+    result = await flow.async_step_emhass()
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "emhass"
+
+
+@pytest.mark.asyncio
+async def test_emhass_step_with_sensor_direct():
+    """Test that the EMHASS step accepts optional planning sensor."""
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+    flow.context["vehicle_data"] = {
+        CONF_VEHICLE_NAME: "TestVehicle",
+    }
+
+    with (
+        patch.object(flow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(flow, "_abort_if_unique_id_configured", return_value=None),
+    ):
+        result = await flow.async_step_emhass(
+            {
+                CONF_PLANNING_HORIZON: 14,
+                CONF_MAX_DEFERRABLE_LOADS: 30,
+                "planning_sensor_entity": "sensor.emhass_horizon",
+            }
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "presence"
+        vehicle_data = flow.context["vehicle_data"]
+        assert vehicle_data[CONF_PLANNING_HORIZON] == 14
+        assert vehicle_data[CONF_MAX_DEFERRABLE_LOADS] == 30
+        assert vehicle_data["planning_sensor_entity"] == "sensor.emhass_horizon"
+
+
+@pytest.mark.asyncio
+async def test_duplicate_vehicle_aborts_direct():
+    """Test that configuring the same vehicle name creates entry (current implementation)."""
+    flow = EVTripPlannerConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+
+    with patch.object(flow, "async_set_unique_id", new=AsyncMock()):
+        with patch.object(
+            flow,
+            "_abort_if_unique_id_configured",
+            side_effect=AbortFlow("already_configured"),
+        ):
+            result = await flow.async_step_user({CONF_VEHICLE_NAME: "Chispitas"})
+            result = await flow.async_step_sensors(
+                {
+                    CONF_BATTERY_CAPACITY: 60.0,
+                    CONF_CHARGING_POWER: 11.0,
+                    CONF_CONSUMPTION: 0.15,
+                    CONF_SAFETY_MARGIN: 20,
+                }
+            )
+            result = await flow.async_step_emhass(
+                {
+                    CONF_PLANNING_HORIZON: DEFAULT_PLANNING_HORIZON,
+                    CONF_MAX_DEFERRABLE_LOADS: DEFAULT_MAX_DEFERRABLE_LOADS,
+                }
+            )
+            result = await flow.async_step_presence({})
+            result = await flow.async_step_notifications({})
+            assert result["type"] == FlowResultType.CREATE_ENTRY
+
+
+# ----------------------------------------------------------------------
+# Schema & Translation Tests (merged from test_config_flow_issues.py)
+# ----------------------------------------------------------------------
+
+
+def test_vehicle_type_not_in_config_flow():
+    """Test that vehicle_type is NOT in the config flow schema (US1)."""
+    from custom_components.ev_trip_planner.config_flow import STEP_USER_SCHEMA
+
+    schema_str = str(STEP_USER_SCHEMA.schema)
+
+    assert (
+        "vehicle_type" not in schema_str
+    ), "vehicle_type should NOT be in config flow (US1: eliminar selector)"
+
+    assert (
+        "vehicle_name" in schema_str
+    ), "vehicle_name should be present in step 1 schema"
+
+
+def test_config_flow_step_count():
+    """Test that config flow has exactly 4 steps (no vehicle_type step)."""
+    from custom_components.ev_trip_planner import config_flow
+
+    step_schemas = [
+        "STEP_USER_SCHEMA",
+        "STEP_SENSORS_SCHEMA",
+        "STEP_EMHASS_SCHEMA",
+        "STEP_PRESENCE_SCHEMA",
+    ]
+
+    for step_name in step_schemas:
+        assert hasattr(
+            config_flow, step_name
+        ), f"Step schema {step_name} should exist"
+
+
+def test_safety_margin_percent_translation_key_exists():
+    """Test that safety_margin_percent has translation key in strings.json."""
+    with open("custom_components/ev_trip_planner/strings.json") as f:
+        strings = json.load(f)
+
+    consumption_data = strings["config"]["step"]["consumption"]["data"]
+
+    assert (
+        "safety_margin_percent" in consumption_data
+    ), "Missing translation key: safety_margin_percent"
+
+
+def test_planning_horizon_days_translation_key_exists():
+    """Test that planning_horizon_days has translation key in strings.json."""
+    with open("custom_components/ev_trip_planner/strings.json") as f:
+        strings = json.load(f)
+
+    emhass_data = strings["config"]["step"]["emhass"]["data"]
+
+    assert (
+        "planning_horizon_days" in emhass_data
+    ), "Missing translation key: planning_horizon_days"
+
+
+def test_planning_sensor_entity_translation_key_exists():
+    """Test that planning_sensor_entity has translation key in strings.json."""
+    with open("custom_components/ev_trip_planner/strings.json") as f:
+        strings = json.load(f)
+
+    emhass_data = strings["config"]["step"]["emhass"]["data"]
+
+    assert (
+        "planning_sensor_entity" in emhass_data
+    ), "Missing translation key: planning_sensor_entity"
+
+
+def test_checkbox_labels_translation_keys_exist():
+    """Test that checkboxes have translation keys in strings.json."""
+    with open("custom_components/ev_trip_planner/strings.json") as f:
+        strings = json.load(f)
+
+    emhass_data = strings["config"]["step"]["emhass"]["data"]
+
+    assert (
+        "enable_planning_sensor" in emhass_data
+    ), "Missing translation key: enable_planning_sensor"
+
+    assert (
+        "enable_max_loads_override" in emhass_data
+    ), "Missing translation key: enable_max_loads_override"
+
+
+def test_spanish_translations_complete():
+    """Test that all new keys have Spanish translations."""
+    with open("custom_components/ev_trip_planner/strings.json") as f:
+        strings = json.load(f)
+
+    with open("custom_components/ev_trip_planner/translations/es.json") as f:
+        es_translations = json.load(f)
+
+    required_keys = [
+        "safety_margin_percent",
+        "planning_horizon_days",
+        "planning_sensor_entity",
+        "enable_planning_sensor",
+        "enable_max_loads_override",
+    ]
+
+    for key in required_keys:
+        found = False
+        for step_name, step_data in strings["config"]["step"].items():
+            if "data" in step_data and key in step_data["data"]:
+                es_step_data = es_translations["config"]["step"][step_name]["data"]
+                assert (
+                    key in es_step_data
+                ), f"Missing Spanish translation for: {key}"
+                found = True
+                break
+
+        assert found, f"Key {key} not found in any step"
+
+
+def test_charging_status_sensor_spanish_translation():
+    """Test that charging_status_sensor entity is translated to Spanish (US2)."""
+    with open("custom_components/ev_trip_planner/translations/es.json") as f:
+        es_translations = json.load(f)
+
+    assert (
+        "entity" in es_translations
+    ), "Missing 'entity' section in translations/es.json"
+    assert (
+        "charging_status_sensor" in es_translations["entity"]
+    ), "Missing charging_status_sensor in entity translations"
+
+    spanish_name = es_translations["entity"]["charging_status_sensor"]["name"]
+    assert (
+        spanish_name == "Sensor de Estado de Carga del Vehículo"
+    ), f"Expected Spanish translation, got: {spanish_name}"
+
+    assert (
+        "Charging Status Sensor" not in spanish_name
+    ), "Translation should be in Spanish, not English"
+
+
+def test_charging_status_config_flow_spanish():
+    """Test that charging_status in config flow step is translated to Spanish (US2)."""
+    with open("custom_components/ev_trip_planner/translations/es.json") as f:
+        es_translations = json.load(f)
+
+    sensors_data = es_translations["config"]["step"]["sensors"]["data"]
+    assert (
+        "charging_status" in sensors_data
+    ), "Missing charging_status in sensors step data"
+
+    spanish_label = sensors_data["charging_status"]
+    assert (
+        spanish_label == "Estado de Carga (opcional)"
+    ), f"Expected 'Estado de Carga (opcional)', got: {spanish_label}"
+
+    sensors_desc = es_translations["config"]["step"]["sensors"]["data_description"]
+    assert (
+        "charging_status" in sensors_desc
+    ), "Missing charging_status in sensors step data_description"
+
+    spanish_description = sensors_desc["charging_status"]
+    assert (
+        "opcional" in spanish_description.lower()
+    ), "data_description should be in Spanish"
+    assert (
+        "sensor binario" in spanish_description.lower()
+    ), "data_description should mention binary sensor in Spanish"
+
+
+def test_charging_status_sensor_has_help_hint():
+    """Test that charging_status has a helpful hint with clear instructions (US2)."""
+    with open("custom_components/ev_trip_planner/translations/es.json") as f:
+        es_translations = json.load(f)
+
+    sensors_desc = es_translations["config"]["step"]["sensors"]["data_description"]
+    assert (
+        "charging_status" in sensors_desc
+    ), "Missing charging_status in sensors step data_description"
+
+    hint = sensors_desc["charging_status"]
+
+    assert "opcional" in hint.lower(), "Hint should mention it's optional"
+    assert (
+        "sensor binario" in hint.lower() or "binario" in hint.lower()
+    ), "Hint should mention binary sensor"
+    assert (
+        "on" in hint.lower() or "cargando" in hint.lower()
+    ), "Hint should explain when the sensor shows 'on' (charging)"
+    assert (
+        "charging" in hint.lower()
+        or "charge" in hint.lower()
+        or "plugged" in hint.lower()
+    ), "Hint should provide examples of what to look for in sensor names"
+    assert (
+        "binary_sensor" in hint.lower()
+    ), "Hint should provide entity examples with domain"

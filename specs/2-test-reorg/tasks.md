@@ -178,7 +178,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): consolidate trip_manager calculation tests`
   - _Requirements: FR-4, AC-2.1, AC-2.2_
 
-- [ ] 2.3 Consolidate trip_manager files: create test_trip_manager_emhass_sensors.py
+- [x] 2.3 Consolidate trip_manager files: create test_trip_manager_emhass_sensors.py
   - **Do**: Merge content from `test_trip_manager_emhass.py`, `test_trip_manager_sensor_hooks.py`, `test_trip_manager_entry_lookup.py`, `test_trip_manager_power_profile.py` (integration), `test_trip_manager_datetime_tz.py` into tests/integration/test_trip_manager_emhass_sensors.py. Preserve all assertions. Named by aspect (EMHASS + sensors), not by layer.
   - **Files**: tests/integration/test_trip_manager_emhass_sensors.py (consolidated)
   - **Done when**: Consolidated file passes; 5 source files deleted
@@ -200,7 +200,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Done when**: All tests pass at 100%
   - **Commit**: None
 
-- [ ] 2.6 Consolidate config_flow files: merge core + issues into test_config_flow.py
+- [x] 2.6 Consolidate config_flow files: merge core + issues into test_config_flow.py
   - **Do**: Merge `test_config_flow_core.py` and `test_config_flow_issues.py` into `test_config_flow.py` in tests/integration/. Preserve all assertions. Use AAA pattern.
   - **Files**: tests/integration/test_config_flow.py (augmented)
   - **Done when**: Consolidated file passes; 2 source files can be deleted
