@@ -96,13 +96,13 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): update imports from tests to tests.helpers`
   - _Requirements: FR-3, C-5_
 
-- [ ] 1.13 [VERIFY] Quality checkpoint: helpers extraction complete
+- [x] 1.13 [VERIFY] Quality checkpoint: helpers extraction complete
   - **Do**: Run `make test` and `make test-cover` to verify extraction did not break anything
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: 1,821+ tests pass at 100%
   - **Commit**: None
 
-- [ ] 1.14 Create directory structure: tests/unit/ and tests/integration/
+- [x] 1.14 Create directory structure: tests/unit/ and tests/integration/
   - **Do**: Create `tests/unit/` and `tests/integration/` directories. Create empty `__init__.py` in each. Create stub `conftest.py` in each (empty initially, just `# Layer-specific fixtures`).
   - **Files**: tests/unit/__init__.py, tests/unit/conftest.py, tests/integration/__init__.py, tests/integration/conftest.py
   - **Done when**: Directories exist with __init__.py and stub conftest.py
