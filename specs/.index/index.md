@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-09T08:21:30Z
+**Last updated:** 2026-05-09T17:32:42Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 35 | Yes |
+| ./specs | 36 | Yes |
 
-## All Specs (35)
+## All Specs (36)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -49,7 +49,8 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | propagate-charge-wiring | ./specs | new |  |
 | m403-dynamic-soc-capping | ./specs | completed | done |
 | tooling-foundation | ./specs | completed | done |
-| spec1-dead-code | ./specs | execution | 6/22 tasks |
+| spec1-dead-code | ./specs | completed | done |
+| 2-test-reorg | ./specs | tasks | awaiting approval |
 
 ---
 

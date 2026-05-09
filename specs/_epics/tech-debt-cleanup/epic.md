@@ -4,7 +4,7 @@
 
 Systematically eliminate all technical debt to achieve 100% SOLID compliance, zero Tier A/B antipatterns, 100% mutation kill rate, 100% test coverage, no `pragma: no cover`, zero warnings, clean architecture with separated tests, and all linters passing.
 
-This epic touches all 18 source modules (~15,097 LOC), ~114 test files (~1,849 tests, including 10 TypeScript E2E), CI/CD, and Makefile infrastructure.
+This epic touches all 18 source modules (~15,097 LOC), ~104 test files (~1,821 tests, including 10 TypeScript E2E), CI/CD, and Makefile infrastructure.
 
 ### ⚠️ Critical Environment Note
 
@@ -33,7 +33,7 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 ### Layer 1: Test Execution (currently PASS)
 | Metric | Current | Target |
 |--------|---------|--------|
-| pytest | 1,848 passed, 0 failures | 1,848+ passed, 0 failures |
+| pytest | 1,820 passed, 1 skipped | 1,820+ passed, 0 failures |
 | Coverage | 100% | 100% (via `--cov-fail-under`) |
 | Mutation modules passing | 17/17 | 17/17 |
 | Mutation kill rate | 48-49% | 100% |
@@ -91,6 +91,9 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | pytest-randomly | Randomizes test execution order, catches hidden inter-test dependencies |
 | pytest-xdist | Parallel test execution, speeds up CI 3-5x (critical for mutmut) |
 | refurb | Suggests Python modernizations during cleanup |
+| time-machine | C-level time mocking, 100x faster than freezegun. Installed in Spec 2 (should have been Spec 0). Replaces manual datetime mocking. |
+| flake8-pytest-style | Lints pytest patterns (fixture naming, marker usage, assert location). Installed in Spec 2 (should have been Spec 0). Enforced in Spec 7. |
+| hypothesis | Property-based testing for edge cases (calculations.py SOC windows, power profiles). Installed in Spec 2 (should have been Spec 0). Used in Spec 5. |
 
 ### Deferred to Future Specs (Intentional, Not Fixed Now)
 
@@ -100,6 +103,11 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | `import-check` only runs `ruff --select I` (import style) | Does NOT run `lint-imports` (circular import detection). These are different concerns. `lint-imports` runs via its own target. | Not deferred — working as designed |
 | security_scanner.py `overall_pass: false` with LOW findings | 14 LOW findings (B101 assert, B110 try/except/pass, B311 random). At `high` severity threshold these don't block, but the scanner reports `false` when any findings exist. Scanner logic may need tuning. | Post-Spec 1 baseline review |
 | quality-gate-ci skips L3B (BMAD) | BMAD Party Mode requires LLM agents not available in CI. Tier B runs locally only. | Permanent — CI only runs Tier A |
+| Coverage-driven test name consolidation (26+ files) | Files named `test_coverage_*.py` should be renamed to behavior-driven names. Renaming alone is safe in Spec 2, but consolidation (merging overlapping tests) risks coverage regressions. | Spec 5 (Mutation Ramp) — test consolidation improves mutation scores |
+| `tests_excluded_from_mutmut/` migration (2 files) | These files are excluded from mutation testing. Moving them into the new structure requires updating mutmut config. | Spec 5 (Mutation Ramp) — thematically belongs with mutation testing |
+| Hypothesis property-based test writing | Tool installed in Spec 2 (AC-2.14). Writing actual property-based tests for `calculations.py` edge cases is Spec 5's scope. | Spec 5 (Mutation Ramp) — hypothesis tests improve mutation kill rate |
+| time-machine migration of existing time mocks | Tool installed in Spec 2 (AC-2.12). Migrating conftest.py manual datetime mocking to time-machine is cleanup. | Spec 7 (Lint/Format/Type) — cleanup phase, low risk |
+| flake8-pytest-style enforcement | Tool installed in Spec 2 (AC-2.13). Enforcing linting compliance (fixing violations) is Spec 7's scope. | Spec 7 (Lint/Format/Type) — linting phase |
 
 ### TypeScript Quality (10 TS test files, not yet measured)
 | Metric | Current | Target |
@@ -219,20 +227,26 @@ main
 - **Dependencies**: None (can run in parallel with Spec 0)
 
 ### Spec 2: Test Architecture Reorganization
-- **Goal**: Reorganize ~107 flat test files into unit/integration/E2E structure. Consolidate duplicate/weak tests. Eliminate `assert True`.
+- **Goal**: Reorganize 104 flat test files into unit/integration/E2E structure. Consolidate duplicate/weak tests. Eliminate `assert True`.
 - **Acceptance Criteria**:
   - AC-2.1: Tests organized: `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/fixtures/`, `tests/helpers/`
-  - AC-2.2: 13 `test_trip_manager*.py` files consolidated into ≤ 3 focused test files
+  - AC-2.2: 13 `test_trip_manager*.py` files consolidated into ≤ 3 focused test files (note: 18 total trip-related files including `test_trip_*.py`)
   - AC-2.3: 6 `test_config_flow*.py` files consolidated into ≤ 2 files
   - AC-2.4: Multiple `test_coverage*.py` files consolidated or replaced with behavior-driven tests
   - AC-2.5: 2 `assert True` violations fixed (replaced with real assertions or removed)
   - AC-2.6: Orphaned bug-finding tests (10 files) consolidated into behavior-driven regression tests
   - AC-2.7: `conftest.py` refactored: large fixture (~700 lines) split into module-scoped fixtures
-  - AC-2.8: `make test`, `make test-cover` passes with >= 1,830 tests (post-Spec 1 baseline)
+  - AC-2.8: `make test`, `make test-cover` passes with >= 1,820 tests (post-Spec 1 baseline: 1,820 passed + 1 skipped = 1,821 collected)
   - AC-2.81: `make e2e` y `make e2e-soc` passes
   - AC-2.9: All pytest path configuration updated in `pyproject.toml`
   - AC-2.10: `tests_excluded_from_mutmut/` files evaluated: kept, moved into new structure, or deleted
   - AC-2.11: Coverage source paths in `pyproject.toml` updated to reflect new test structure
+  - AC-2.12: **time-machine** installed — C-level time mocking, replaces fragile manual datetime mocking in conftest.py (100x faster than freezegun). Should have been in Spec 0.
+  - AC-2.13: **flake8-pytest-style** installed — lints pytest patterns (fixture naming, marker usage, assert in tests). Should have been in Spec 0.
+  - AC-2.14: **hypothesis** installed — property-based testing, available for Spec 5 mutation ramp. Should have been in Spec 0.
+  - AC-2.15: **pytest `strict = true`** configured in `pyproject.toml` — enables strict_markers + strict_config, catches typos in markers. Required BEFORE adding any markers.
+  - AC-2.16: **`--import-mode=importlib`** configured in `pyproject.toml` — required for subdirectory test structure with same-named files.
+  - AC-2.17: **Markers registered** in `pyproject.toml` — `unit`, `integration`, `slow` markers defined with descriptions. Prevents pytest warnings.
 - **Interface Contracts**: Test file paths change; `conftest.py` fixture signatures must remain compatible. Update `mutmut tests_dir` if paths change.
 - **Estimated Size**: **1.5-2.0 story points**
 - **Dependencies**: None (independent of Spec 0 and Spec 1; can run in parallel)
@@ -278,7 +292,7 @@ main
     - `trip_manager -> vehicle_controller -> trip_manager` → string type annotations
   - AC-3.5: All modules <= 500 LOC (new package sub-modules counted individually)
   - AC-3.6: All classes <= 20 public methods
-  - AC-3.7: `make test` passes with >= 1,830 tests (post-Spec 1 baseline)
+  - AC-3.7: `make test` passes with >= 1,820 tests (post-Spec 1 baseline)
   - AC-3.8: No new pyright errors introduced
   - AC-3.9: `pyproject.toml` mutation config updated: old module entries replaced with new sub-module entries
   - AC-3.10: `pyproject.toml` `[tool.mutmut] paths_to_mutate` updated for new package structure
@@ -317,7 +331,7 @@ main
 - **Dependencies**: Must run AFTER Spec 3 for `calculations`, `dashboard`, and `emhass_adapter` modules (their functions move to new files during the split). Can run in parallel with Spec 2 for other modules.
 
 ### Spec 5: Mutation Score Ramp (49% → 100%)
-- **Goal**: Incrementally raise mutation kill rate from ~49% to 100% across all modules.
+- **Goal**: Incrementally raise mutation kill rate from ~49% to 100% across all modules. Use **Hypothesis** (installed in Spec 2) for property-based testing of calculation edge cases. Consolidate coverage-driven test names. Migrate `tests_excluded_from_mutmut/` into new structure.
 - **Acceptance Criteria**:
   - AC-5.1: All modules meet or exceed target kill rate from `pyproject.toml`
   - AC-5.2: Global kill rate >= 100%
@@ -350,9 +364,9 @@ main
 - **Dependencies**: None hard — can start in parallel with Spec 2 on low-hanging-fruit modules. Spec 3 refactoring makes modules more testable but doesn't block. After Spec 3, module names change — coordinate mutation config updates.
 
 ### Spec 6: Coverage Gap Closure — Zero `pragma: no cover`
-- **Goal**: Eliminate all 273 `pragma: no cover` locations by making IO error paths testable via mocking.
+- **Goal**: Eliminate all 118 `pragma: no cover` locations by making IO error paths testable via mocking.
 - **Acceptance Criteria**:
-  - AC-6.1: Zero `pragma: no cover` in any source file
+  - AC-6.1: Zero `pragma: no cover` in any source file (118 lines across 8 files: vehicle_controller 19, presence_monitor 22, trip_manager 27, sensor 18, dashboard 18, services 6, emhass_adapter 7, config_flow 1)
   - AC-6.2: All IO error paths tested via `pytest.raises`, `unittest.mock.patch`, or equivalent
   - AC-6.3: `coverage report` shows 100% coverage with zero excluded lines
   - AC-6.4: `make test-cover` passes (`--cov-fail-under=100`)
@@ -362,7 +376,7 @@ main
 - **Dependencies**: Can run in parallel with Spec 5 (coverage tests often improve mutation scores)
 
 ### Spec 7: Lint, Format, and Type Cleanup
-- **Goal**: Fix all remaining lint/format/type issues. Clean up debug logging.
+- **Goal**: Fix all remaining lint/format/type issues. Clean up debug logging. Enforce **flake8-pytest-style** (installed in Spec 2) for pytest pattern compliance. Migrate remaining time-related tests from freezegun to **time-machine** (installed in Spec 2).
 - **Acceptance Criteria**:
   - AC-7.1: `ruff check` passes with zero errors
   - AC-7.2: `ruff format` passes with zero files needing reformat
@@ -397,7 +411,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 |------------|-------|------|
 | **CP-0** | After Spec 0 | `make test` passes, all new tools installed, `make quality-gate` runs end-to-end |
 | **CP-1** | After Spec 1 | `make test` passes (no regression from dead code removal), `ruff check` passes |
-| **CP-2** | After Spec 2 | `make test` passes (test count ~1,830 after Spec 1 deletions), Layer 2 weak test count reduced < 200, no `assert True` |
+| **CP-2** | After Spec 2 | `make test` passes (test count ~1,820 after Spec 1 deletions), Layer 2 weak test count reduced < 200, no `assert True`, new tools installed (time-machine, flake8-pytest-style, hypothesis), pytest strict mode + importlib configured |
 | **CP-3** | After Spec 3 | `make test` passes, 0 SOLID violations, 0 circular cycles, 0 modules > 500 LOC, 0 classes > 20 methods |
 | **CP-4** | After Spec 4 | `make test` passes, all functions <= 5 params, pyright passes |
 | **CP-5** | After Spec 5 | `make mutation` passes, global kill rate >= 100%, all per-module thresholds met |
@@ -425,7 +439,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 - Cleaned 6 Makefile targets (`--ignore=tests/ha-manual/` removed)
 - Updated 6 documentation files (removed all `schedule_monitor` refs)
 - Quality gate: NO REGRESSION vs baseline (pyright 237→211 warnings improved)
-- Tests: 1,814 passed, 1 skipped (from baseline 1,849)
+- Tests: 1,820 passed, 1 skipped (from baseline 1,849)
 - Coverage: 100% maintained
 - Vulture: 0 findings (clean dead code detection)
 - E2E: 29/30 pass (1 pre-existing flaky test, not regression)
@@ -474,7 +488,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 |------|-------------|----------|
 | Spec 0: Tooling Foundation | 0.5 | P0 — blocks everything |
 | Spec 1: Dead Code & Artifacts | 0.25 | P0 — zero risk, independent |
-| Spec 2: Test Architecture | 1.5-2.0 | P1 — safety net for refactoring, independent |
+| Spec 2: Test Architecture | 1.5-2.0 | P1 — safety net for refactoring, 104 test files / 1,821 tests |
 | Spec 3: SOLID Refactoring | 8.0-12.0 | P1 — highest impact, highest risk, critical path |
 | Spec 4: High-Arity Fixes | 0.5 | P2 — mechanical, independent |
 | Spec 5: Mutation Score Ramp | 6.0-9.0 | P1 — core quality target, can start in parallel |
