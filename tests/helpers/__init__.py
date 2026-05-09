@@ -7,6 +7,12 @@ from tests.helpers.constants import (
     TEST_TRIPS,
     TEST_VEHICLE_ID,
 )
+from tests.helpers.factories import (
+    create_mock_coordinator,
+    create_mock_ev_config_entry,
+    create_mock_trip_manager,
+    setup_mock_ev_config_entry,
+)
 from tests.helpers.fakes import FakeEMHASSPublisher, FakeTripStorage
 
 __all__ = [
@@ -17,4 +23,8 @@ __all__ = [
     "TEST_ENTRY_ID",
     "TEST_TRIPS",
     "TEST_VEHICLE_ID",
+    "create_mock_coordinator",
+    "create_mock_ev_config_entry",
+    "create_mock_trip_manager",
+    "setup_mock_ev_config_entry",
 ]

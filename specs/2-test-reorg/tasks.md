@@ -72,7 +72,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): extract fakes to tests/helpers/fakes.py`
   - _Requirements: FR-3, AC-1.5_
 
-- [ ] 1.10 [P] Create tests/helpers/factories.py
+- [x] 1.10 [P] Create tests/helpers/factories.py
   - **Do**: Extract `create_mock_trip_manager`, `create_mock_coordinator`, `create_mock_ev_config_entry`, `setup_mock_ev_config_entry` from `tests/__init__.py` to `tests/helpers/factories.py`. Update `tests/helpers/__init__.py` re-exports.
   - **Files**: tests/helpers/factories.py, tests/helpers/__init__.py
   - **Done when**: All 4 factory functions importable from tests.helpers
