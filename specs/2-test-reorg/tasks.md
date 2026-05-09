@@ -12,7 +12,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `chore(test-reorg): capture baseline metrics`
   - _Requirements: FR-21, AC-10.1_
 
-- [ ] 1.2 [P] Install time-machine as dev dependency
+- [x] 1.2 [P] Install time-machine as dev dependency
   - **Do**: Add `time-machine` to dev dependencies in pyproject.toml. Run `pip install time-machine` in venv.
   - **Files**: pyproject.toml
   - **Done when**: `time-machine` importable; listed in pyproject.toml

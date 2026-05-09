@@ -1,3 +1,8 @@
+[project.optional-dependencies]
+dev = [
+    "time-machine>=2.10.0",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
