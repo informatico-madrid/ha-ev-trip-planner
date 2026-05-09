@@ -170,7 +170,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): consolidate trip_manager core tests`
   - _Requirements: FR-4, AC-2.1, AC-2.2, AC-2.3, AC-2.4_
 
-- [ ] 2.2 Consolidate trip_manager files: create test_trip_manager_calculations.py
+- [x] 2.2 Consolidate trip_manager files: create test_trip_manager_calculations.py
   - **Do**: Merge content from `test_trip_manager_calculations.py`, `test_trip_manager_more_coverage.py`, `test_trip_manager_missing_coverage.py`, `test_trip_manager_cover_more.py`, `test_trip_manager_cover_line1781.py` into a single consolidated file in tests/unit/. Preserve all assertions. Rename coverage-driven test functions to behavior-based names.
   - **Files**: tests/unit/test_trip_manager_calculations.py (consolidated)
   - **Done when**: Consolidated file passes; 5 source files deleted
