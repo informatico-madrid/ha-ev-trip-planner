@@ -56,7 +56,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: `refactor(cleanup): delete schedule_monitor module, tests, and mutation config`
   - _Requirements: FR-1, FR-8, FR-9, AC-1.1, AC-1.2, AC-1.3, AC-1.10_
 
-- [ ] 1.5 Delete tests/ha-manual/ directory (195 MB)
+- [x] 1.5 Delete tests/ha-manual/ directory (195 MB)
   - **Do**:
     1. Run `rm -rf tests/ha-manual/`
   - **Files**: `tests/ha-manual/` (DELETE entire directory)
