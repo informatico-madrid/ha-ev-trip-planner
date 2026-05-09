@@ -182,7 +182,7 @@ main
   - AC-0.11: Full quality-gate baseline snapshot saved to `_bmad-output/quality-gate/baseline/`
   - AC-0.12: `deptry` installed — verifies import consistency (critical for post-Spec 3 validation)
   - AC-0.13: `vulture` installed — detects dead code (complements Spec 1)
-  - AC-0.14: TypeScript tooling installed: `tsc`, ESLint for TS, Prettier
+  - AC-0.14: TypeScript tooling installed: `tsc`, ESLint for TS (formatting via ESLint rules, no Prettier needed)
   - AC-0.15: `_bmad-output/` directory added to `.gitignore`
   - AC-0.16: Full antipattern_checker.py run against all modules; baseline findings documented (Tier A + Tier B context generated)
   - AC-0.17: `import-linter` installed with layer configuration (prevents new circular imports post-Spec 3)

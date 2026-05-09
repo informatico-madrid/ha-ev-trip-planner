@@ -333,13 +333,16 @@ clean:
 
 ## 5. Quality Gate Architecture - COMPLETE
 
-### 5.1 Layer Structure (3 Layers)
+### 5.1 Layer Structure (6 Layers)
 
 | Layer | Purpose | Commands (MUST ALL PASS) |
 |-------|---------|--------------------------|
-| **L1: Test Execution** | Unit tests pass | `make test`, `make e2e`, `make e2e-soc`, `coverage`, `mutation_analyzer.py --gate` |
+| **L3A: Smoke Test** | Fast fail-fast AST checks | `ruff check`, `ruff format --check`, `pyright`, `solid_metrics.py`, `principles_checker.py`, `antipattern_checker.py` |
+| **L1: Test Execution** | Unit + E2E tests pass | `make test`, `make e2e`, `make e2e-soc` (auto-discovered), coverage, `mutation_analyzer.py --gate` |
 | **L2: Test Quality** | Test effectiveness | `weak_test_detector.py`, `mutation_analyzer.py` (kill-map), `diversity_metric.py` |
-| **L3: Code Quality** | SOLID, DRY, KISS, YAGNI, LoD, CoI, Antipatterns | **Tier A** (deterministic): `solid_metrics.py`, `principles_checker.py`, `antipattern_checker.py`<br>**Tier B** (LLM consensus): `llm_solid_judge.py`, `antipattern_judge.py` → BMAD Party Mode + Adversarial Review |
+| **L3B: Deep Quality** | BMAD consensus (Tier B) | `llm_solid_judge.py`, `antipattern_judge.py` → BMAD Party Mode (2/3 agent consensus) |
+| **L4: Security & Defense** | 8 security tools | `security_scanner.py` (bandit, pip-audit, gitleaks, semgrep, checkov, deptry, vulture, trivy) |
+| **Checkpoint** | Final JSON report | Quality gate JSON output with all layer results |
 
 **Gate fails if ANY layer fails.** No partial passes.
 
@@ -383,7 +386,7 @@ All quality-gate scripts are in `.claude/skills/quality-gate/scripts/`:
 | AC-0.3: gitleaks | ✅ DONE | Binary install documented, Makefile target defined |
 | AC-0.4: semgrep | ✅ DONE | Config defined, Makefile target defined |
 | AC-0.5: pyright | ✅ DONE | Replaces mypy, config in pyproject.toml |
-| AC-0.6: quality-gate | ✅ DONE | All 3 layers with Tier A/B defined |
+| AC-0.6: quality-gate | ✅ DONE | All 6 layers (L3A→L1→L2→L3B→L4→checkpoint) with Tier A/B defined |
 | AC-0.7: mutation shortcut | ✅ DONE | Target: `mutmut run --until=100` |
 | AC-0.8: typecheck | ✅ DONE | Replaces mypy in `check` target |
 | AC-0.9: existing targets | ✅ DONE | Verified: test, lint, format, e2e, e2e-soc, check all work |

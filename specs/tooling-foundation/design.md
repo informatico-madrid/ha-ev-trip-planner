@@ -55,7 +55,7 @@ graph TB
     subgraph L1["Layer 1: Test Execution"]
         X1[pytest]
         X2[coverage 100%]
-        X3[migration gate]
+        X3[mutation gate]
         X4[E2E Suites]
         XS1[e2e suite]
         XS2[e2e-soc suite]
@@ -128,7 +128,7 @@ graph TB
 - `make lint` — ruff + pylint (existing)
 - `make security-bandit` — bandit security scan
 - `make security-semgrep` — semgrep SAST
-- `make security-pip-audit` — pip-audit dependency scan
+- `make security-audit` — pip-audit dependency scan
 - `make security-gitleaks` — gitleaks secret scan
 - `make dead-code` — vulture unused code
 - `make unused-deps` — deptry dependency analysis
@@ -574,7 +574,7 @@ Based on codebase analysis:
 6. Create `.semgrep.yml` with Python security rules
 7. Update `.eslintrc.json`: add `"extends": ["plugin:@typescript-eslint/recommended"]` for TypeScript E2E tests
 8. Modify `Makefile`:
-   - Add independent targets: typecheck (pyright), dead-code, unused-deps, import-check, mutation-gate, security-bandit, security-semgrep, security-pip-audit, security-gitleaks, e2e-lint
+   - Add independent targets: typecheck (pyright), dead-code, unused-deps, import-check, mutation-gate, security-bandit, security-semgrep, security-audit, security-gitleaks, e2e-lint
    - Add layer targets: layer1 (auto-discovers all E2E suites), layer1-ci (NO E2E), layer2, layer3, layer4
    - Add orchestrator targets: quality-gate (with all E2E), quality-gate-ci (NO E2E), quality-baseline
    - Update `mypy` target to run pyright with deprecation warning
@@ -584,10 +584,10 @@ Based on codebase analysis:
 10. Create `scripts/quality-baseline.sh` for metric snapshots
 11. Create `_bmad-output/quality-gate/baseline/` directory
 12. Verify backward compatibility: run all existing targets (test, lint, mypy, format, check, e2e*, staging-*)
-17. Run `make quality-baseline` to establish initial metrics (15 files: 3 layers × Tier A/B)
-18. For Tier B LLM validations: Run BMAD Party Mode + Adversarial Review manually on generated context
-19. Update `.github/workflows/python-tests.yml`: add layer4 step, add quality-gate step
-20. Document tool outputs and exit codes in project README or docs/
+13. Run `make quality-baseline` to establish initial metrics (6-layer architecture × Tier A/B)
+14. For Tier B LLM validations: Run BMAD Party Mode + Adversarial Review manually on generated context
+15. Update `.github/workflows/python-tests.yml`: add layer4 step, add quality-gate step
+16. Document tool outputs and exit codes in project README or docs/
 
 ## Unresolved Questions
 
@@ -605,11 +605,11 @@ Based on codebase analysis:
 | AC | Verification |
 |----|---------------|
 | AC-1: bandit installed | `make security-bandit` runs without error |
-| AC-2: pip-audit installed | `make security-pip-audit` runs without error |
+| AC-2: pip-audit installed | `make security-audit` runs without error |
 | AC-3: gitleaks installed | `make security-gitleaks` runs without error |
 | AC-4: semgrep installed | `make security-semgrep` runs without error |
 | AC-5: mypy removed, pyright works | `make typecheck` runs pyright, `make mypy` runs pyright with warning |
-| AC-6: quality-gate orchestrates layers | `make quality-gate` runs L1→L2→L3→L4 (with all E2E suites), `make quality-gate-ci` runs L1-CI→L2→L3→L4 (NO E2E), both fail fast |
+| AC-6: quality-gate orchestrates layers | `make quality-gate` runs L3A→L1→L2→L3B→L4 (with all E2E suites), `make quality-gate-ci` runs L3A→L1-CI→L2→L4 (NO E2E, NO L3B), both fail fast |
 | AC-7: E2E suite extensibility | Layer 1 auto-discovers all `e2e-*` targets; `make e2e`, `make e2e-soc` pass; future suites auto-included |
 | AC-8: deptry and vulture installed | `make unused-deps` and `make dead-code` run |
 | AC-9: mutmut works with quality-gate | `make mutation-gate` runs mutation_analyzer.py |
