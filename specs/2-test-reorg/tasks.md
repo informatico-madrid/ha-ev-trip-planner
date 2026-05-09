@@ -28,7 +28,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `build(test-reorg): add hypothesis dev dependency`
   - _Requirements: FR-14, AC-8.3_
 
-- [ ] 1.4 [P] Install flake8-pytest-style as dev dependency
+- [x] 1.4 [P] Install flake8-pytest-style as dev dependency
   - **Do**: Add `flake8-pytest-style` to dev dependencies in pyproject.toml. Run `pip install flake8-pytest-style` in venv.
   - **Files**: pyproject.toml
   - **Done when**: `flake8-pytest-style` importable; listed in pyproject.toml

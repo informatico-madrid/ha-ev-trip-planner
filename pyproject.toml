@@ -2,6 +2,7 @@
 dev = [
     "time-machine>=2.10.0",
     "hypothesis>=6.0.0",
+    "flake8-pytest-style>=1.7.0",
 ]
 
 [tool.black]
