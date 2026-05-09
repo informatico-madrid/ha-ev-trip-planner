@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-08T17:41:48Z",
+  "updated": "2026-05-09T06:55:08Z",
   "directories": [
     {
       "path": "./specs",
@@ -70,7 +70,7 @@
       "path": "./specs/020-fix-panel-trips-sensors",
       "phase": "tasks",
       "taskIndex": 0,
-      "totalTasks": 5
+      "totalTasks": 24
     },
     {
       "name": "trip-creation",
@@ -115,8 +115,8 @@
     {
       "name": "trip-card-enhancement",
       "path": "./specs/trip-card-enhancement",
-      "phase": "execution",
-      "taskIndex": 5,
+      "phase": "completed",
+      "taskIndex": 21,
       "totalTasks": 21
     },
     {
@@ -129,10 +129,9 @@
     {
       "name": "emhass-integration-with-fixes",
       "path": "./specs/emhass-integration-with-fixes",
-      "phase": "execution",
-      "taskIndex": 10,
-      "totalTasks": 23,
-      "awaitingApproval": true
+      "phase": "completed",
+      "taskIndex": 23,
+      "totalTasks": 23
     },
     {
       "name": "013-fix-emhass-attribute-size",
@@ -151,8 +150,8 @@
     {
       "name": "duplicate-emhass-sensor-fix",
       "path": "./specs/duplicate-emhass-sensor-fix",
-      "phase": "tasks",
-      "taskIndex": 19,
+      "phase": "completed",
+      "taskIndex": 25,
       "totalTasks": 25
     },
     {
@@ -179,9 +178,9 @@
     {
       "name": "fix-emhass-sensor-attributes",
       "path": "./specs/fix-emhass-sensor-attributes",
-      "phase": "execution",
-      "taskIndex": 36,
-      "totalTasks": 39
+      "phase": "completed",
+      "taskIndex": 38,
+      "totalTasks": 38
     },
     {
       "name": "m401-emhass-hotfixes",
@@ -207,44 +206,49 @@
     {
       "name": "e2e-ux-tests-fix",
       "path": "./specs/e2e-ux-tests-fix",
-      "phase": "tasks"
+      "phase": "completed",
+      "taskIndex": 98,
+      "totalTasks": 98
     },
     {
       "name": "pr35-review-fixes",
       "path": "./specs/pr35-review-fixes",
-      "phase": "execution",
+      "phase": "completed",
       "taskIndex": 6,
       "totalTasks": 6
     },
     {
       "name": "propagate-charge-deficit-algo",
       "path": "./specs/propagate-charge-deficit-algo",
-      "phase": "execution",
-      "taskIndex": 0,
-      "totalTasks": 0
+      "phase": "tasks",
+      "taskIndex": 2,
+      "totalTasks": 5
     },
     {
       "name": "propagate-charge-wiring",
       "path": "./specs/propagate-charge-wiring",
-      "phase": "requirements"
-    },
-    {
-      "name": "propagate-charge-test",
-      "path": "./specs/propagate-charge-test",
-      "phase": "requirements"
+      "phase": "new"
     },
     {
       "name": "m403-dynamic-soc-capping",
       "path": "./specs/m403-dynamic-soc-capping",
-      "phase": "tasks",
-      "taskIndex": 0,
-      "totalTasks": 200,
-      "awaitingApproval": true
+      "phase": "completed",
+      "taskIndex": 30,
+      "totalTasks": 30
     },
     {
       "name": "tooling-foundation",
       "path": "./specs/tooling-foundation",
-      "phase": "design",
+      "phase": "completed",
+      "taskIndex": 18,
+      "totalTasks": 18
+    },
+    {
+      "name": "spec1-dead-code",
+      "path": "./specs/spec1-dead-code",
+      "phase": "tasks",
+      "taskIndex": 0,
+      "totalTasks": 22,
       "awaitingApproval": true
     }
   ]

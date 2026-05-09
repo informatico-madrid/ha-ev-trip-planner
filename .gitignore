@@ -126,3 +126,4 @@ docs/staging-qa-results.md
 **/.progress-task-*.md
 **/references/.ralph-field-baseline.json
 **/references/.ralph-field-baseline.json.lock
+**/.progress.md
