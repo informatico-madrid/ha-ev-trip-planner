@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-09T06:55:08Z",
+  "updated": "2026-05-09T07:23:24Z",
   "directories": [
     {
       "path": "./specs",
@@ -246,10 +246,9 @@
     {
       "name": "spec1-dead-code",
       "path": "./specs/spec1-dead-code",
-      "phase": "tasks",
+      "phase": "execution",
       "taskIndex": 0,
-      "totalTasks": 22,
-      "awaitingApproval": true
+      "totalTasks": 22
     }
   ]
 }
