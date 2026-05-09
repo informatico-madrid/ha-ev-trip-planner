@@ -92,6 +92,15 @@ This epic achieves Phase 1 (ARN targets). Phase 2 (quality-gate.yaml targets) is
 | pytest-xdist | Parallel test execution, speeds up CI 3-5x (critical for mutmut) |
 | refurb | Suggests Python modernizations during cleanup |
 
+### Deferred to Future Specs (Intentional, Not Fixed Now)
+
+| Item | Why Deferred | Which Spec Should Address It |
+|------|-------------|----------------------------|
+| pyright `typeCheckingMode = "basic"` | 16 pyright errors in `sensor.py` from HA Entity overrides. `standard` mode would break CI. Requires fixing HA type stubs first. | Spec 3 (SOLID Refactoring) — after sensor.py decomposition |
+| `import-check` only runs `ruff --select I` (import style) | Does NOT run `lint-imports` (circular import detection). These are different concerns. `lint-imports` runs via its own target. | Not deferred — working as designed |
+| security_scanner.py `overall_pass: false` with LOW findings | 14 LOW findings (B101 assert, B110 try/except/pass, B311 random). At `high` severity threshold these don't block, but the scanner reports `false` when any findings exist. Scanner logic may need tuning. | Post-Spec 1 baseline review |
+| quality-gate-ci skips L3B (BMAD) | BMAD Party Mode requires LLM agents not available in CI. Tier B runs locally only. | Permanent — CI only runs Tier A |
+
 ### TypeScript Quality (10 TS test files, not yet measured)
 | Metric | Current | Target |
 |--------|---------|--------|

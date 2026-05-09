@@ -259,6 +259,10 @@ mutation:
 	@echo "Running mutation testing..."
 	.venv/bin/mutmut run --until=100
 
+mutation-gate:
+	@echo "Running mutation gate (per-module thresholds)..."
+	python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+
 # ============================================================================
 # Test Variants
 # ============================================================================

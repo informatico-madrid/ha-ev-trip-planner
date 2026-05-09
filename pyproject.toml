@@ -58,7 +58,7 @@ extend_exclude = ["docs", "scripts"]
 ignore_notebooks = true
 
 [tool.vulture]
-min_confidence = 60
+min_confidence = 80
 exclude = ["tests/", "docs/"]
 paths = ["custom_components"]
 

@@ -25,25 +25,17 @@ jobs:
         python3 -m pip install --upgrade pip
         pip install -r requirements_dev.txt
 
-    - name: Run Python tests
+    - name: Install gitleaks
       run: |
-        . .venv/bin/activate
-        python3 -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/ --junitxml=test-results/junit.xml
-      env:
-        PYTHONPATH: .
+        wget -q https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz
+        tar -xzf gitleaks_linux_x64.tar.gz
+        sudo mv gitleaks /usr/local/bin/
+        gitleaks version
 
-    - name: layer4 security scan
+    - name: Quality Gate CI (L3A → L1-CI → L2 → L4)
       run: |
         . .venv/bin/activate
-        bandit -r custom_components/ -f screen -ll || true
-        semgrep scan --config auto custom_components/ || true
-
-    - name: quality-gate-ci step
-      run: |
-        . .venv/bin/activate
-        make layer1-ci
-        make layer2
-        make layer3
+        make quality-gate-ci
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -51,4 +43,4 @@ jobs:
       with:
         name: python-test-results
         path: test-results/junit.xml
-        retention-days: 30
+      continue-on-error: true
