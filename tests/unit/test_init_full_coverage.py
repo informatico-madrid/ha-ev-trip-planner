@@ -1,10 +1,4 @@
-"""Tests para alcanzar 100% de cobertura de código.
-
-Este archivo cubre las últimas líneas sin cobertura identificadas en el análisis:
-- custom_components/ev_trip_planner/__init__.py (9 líneas): _hourly_refresh_callback
-- custom_components/ev_trip_planner/emhass_adapter.py (5 líneas): async_notify_error error handling
-- custom_components/ev_trip_planner/trip_manager.py (7 líneas): publish_deferrable_loads error handling
-"""
+"""Tests for __init__ hourly refresh callback, emhass error handling, and trip_manager error paths."""
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch

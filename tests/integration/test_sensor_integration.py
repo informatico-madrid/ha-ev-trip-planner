@@ -1,8 +1,4 @@
-"""Tests for sensor.py device_info and edge cases.
-
-Covers uncovered lines in sensor.py device_info properties,
-async_setup_entry error paths, and helper function edge cases.
-"""
+"""Tests for sensor.py device_info, edge cases, and integration flows."""
 
 from __future__ import annotations
 

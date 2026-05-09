@@ -1,7 +1,4 @@
-"""Edge case tests for 100% coverage (Task 3.2).
-
-These tests cover rare paths and error handling that achieve 100% coverage.
-"""
+"""Edge case tests for EMHASS integration paths."""
 
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,4 +1,4 @@
-"""Test for line 697 coverage: trip with falsy id in async_publish_all_deferrable_loads."""
+"""Tests for trip with falsy/missing id in async_publish_all_deferrable_loads."""
 
 from typing import Any, Dict, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
