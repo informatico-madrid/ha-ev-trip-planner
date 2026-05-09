@@ -1,6 +1,7 @@
 [project.optional-dependencies]
 dev = [
     "time-machine>=2.10.0",
+    "hypothesis>=6.0.0",
 ]
 
 [tool.black]

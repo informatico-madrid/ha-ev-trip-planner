@@ -20,7 +20,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `build(test-reorg): add time-machine dev dependency`
   - _Requirements: FR-12, AC-8.1_
 
-- [ ] 1.3 [P] Install hypothesis as dev dependency
+- [x] 1.3 [P] Install hypothesis as dev dependency
   - **Do**: Add `hypothesis` to dev dependencies in pyproject.toml. Run `pip install hypothesis` in venv.
   - **Files**: pyproject.toml
   - **Done when**: `hypothesis` importable; listed in pyproject.toml
