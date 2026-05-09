@@ -211,7 +211,7 @@
   - _Requirements: FR-17_
   - _Design: PR Creation and CI Validation_
 
-- [ ] 5.2 Clean up SUDO_PASS from .env (post-PR)
+- [x] 5.2 Clean up SUDO_PASS from .env (post-PR)
   - **Do**: After PR is merged and all CI validates successfully, remove the temporary `SUDO_PASS` line from `.env` file. Use `sed` to delete only the line containing `SUDO_PASS=`, preserving all other `.env` content.
   - **Commands**:
     ```bash
