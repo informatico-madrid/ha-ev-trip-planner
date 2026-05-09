@@ -152,7 +152,7 @@ No new tests to write. This spec is pure deletion -- verification is via existin
   - **Commit**: `chore(spec1): quality gate validation passed`
   - _Requirements: FR-13, NFR-5_
 
-- [ ] 4.2 Update 6 documentation files referencing schedule_monitor
+- [x] 4.2 Update 6 documentation files referencing schedule_monitor
   - **Do**: Remove schedule_monitor references from:
     1. `docs/architecture.md:171` -- remove section 11 describing schedule_monitor.py module
     2. `docs/source-tree-analysis.md:24,64` -- remove tree entries for schedule_monitor.py and its tests
@@ -165,7 +165,7 @@ No new tests to write. This spec is pure deletion -- verification is via existin
   - **Verify**: `! grep -rn "schedule_monitor" docs/ && echo DOCS_CLEAN`
   - **Commit**: `docs(cleanup): remove schedule_monitor references from 6 documentation files`
 
-- [ ] V4 [VERIFY] Full local CI: lint + typecheck + test + dead-code
+- [x] V4 [VERIFY] Full local CI: lint + typecheck + test + dead-code
   - **Do**: Run complete local CI suite
   - **Verify**: `. .venv/bin/activate && make lint && make typecheck && make test && make dead-code && echo V4_PASS`
   - **Done when**: All commands exit 0
