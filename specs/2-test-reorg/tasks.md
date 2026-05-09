@@ -124,7 +124,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): POC move 2 files to prove structure works`
   - _Requirements: FR-1, FR-2, AC-1.6, AC-1.7_
 
-- [ ] 1.17 [VERIFY] POC checkpoint: structure proven with representative files
+- [x] 1.17 [VERIFY] POC checkpoint: structure proven with representative files
   - **Do**: Run `make test` and `make test-cover`. Verify test count unchanged. This proves import_mode=importlib works and fail_under=100 passes with subdirectory structure.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo POC_PROVEN`
   - **Done when**: 1,821+ tests pass at 100% — structure proven, safe to proceed with bulk move
