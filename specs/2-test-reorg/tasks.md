@@ -230,13 +230,13 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): rename 14 bug regression files to behavior names`
   - _Requirements: FR-9, AC-6.1, AC-6.2_
 
-- [ ] 2.10 [VERIFY] Quality checkpoint: bug file renames + assertion preservation
+- [x] 2.10 [VERIFY] Quality checkpoint: bug file renames + assertion preservation
   - **Do**: Run `make test` and `make test-cover`. Also verify that no bug-catching assertions were lost during renames by checking assertion counts in renamed files match pre-rename counts (sample 3 files: test_sensor_aggregation.py, test_emhass_index_persistence.py, test_charging_window_edge_cases.py must each contain at least 1 `assert` statement).
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && grep -c "assert" tests/unit/test_sensor_aggregation.py | grep -qv "^0$" && grep -c "assert" tests/unit/test_emhass_index_persistence.py | grep -qv "^0$" && grep -c "assert" tests/unit/test_charging_window_edge_cases.py | grep -qv "^0$" && echo VERIFY_PASS`
   - **Done when**: All tests pass at 100%; renamed files preserve their assertions (AC-6.3)
   - **Commit**: None
 
-- [ ] 2.11 Rename/merge coverage-driven files: dashboard group
+- [x] 2.11 Rename/merge coverage-driven files: dashboard group
   - **Do**: Merge `test_dashboard_cover.py`, `test_dashboard_missing.py`, `test_dashboard_coverage_missing.py` into `test_dashboard.py` in tests/unit/. Rename coverage-driven test functions to behavior-based names. Delete merged source files.
   - **Files**: tests/unit/test_dashboard.py (augmented), 3 files deleted
   - **Done when**: Merged file passes; 3 source files deleted
