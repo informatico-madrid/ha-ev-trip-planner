@@ -6,15 +6,17 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
 
 - [x] 1.1 Quality gate baseline capture
   - **Do**:
-    1. Create baseline directory: `mkdir -p _bmad-output/quality-gate/spec1-baseline/`
-    2. Activate venv and run: `make quality-gate 2>&1 | tee _bmad-output/quality-gate/spec1-baseline/output.txt`
-    3. Record baseline test count (1,849), coverage %, mutation scores from output
-    4. Capture baseline commit hash: `BASELINE_SHA=$(git rev-parse HEAD) && echo "Baseline: $BASELINE_SHA"`
-  - **Files**: `_bmad-output/quality-gate/spec1-baseline/output.txt` (CREATE)
-  - **Done when**: Quality gate output saved, baseline metrics recorded in .progress.md
-  - **Verify**: `test -f _bmad-output/quality-gate/spec1-baseline/output.txt && echo BASELINE_CAPTURED`
-  - **Commit**: `chore(spec1): capture quality gate baseline before dead code cleanup`
+    1. Delete incorrect baseline: `rm -rf _bmad-output/quality-gate/spec1-baseline/`
+    2. Run baseline script: `bash scripts/quality-baseline.sh --force`
+    3. The script creates: `_bmad-output/quality-gate/baseline/<timestamp>/` with 19 files
+    4. Record baseline metrics from key files: pytest.txt (test count), coverage.txt (coverage%), baseline.json (timestamp)
+    5. Capture baseline commit hash: `BASELINE_SHA=$(git rev-parse HEAD) && echo "Baseline: $BASELINE_SHA"`
+  - **Files**: 19 files in `_bmad-output/quality-gate/baseline/<timestamp>/` (pytest.txt, coverage.txt, pyright.json, mutation-*.txt, solid-*.txt, antipatterns-*.txt, weak-tests.txt, principles.txt, layer4-security.json, etc.)
+  - **Done when**: Baseline directory with 19 files exists, baseline metrics and BASELINE_SHA recorded in .progress.md
+  - **Verify**: `test -d _bmad-output/quality-gate/baseline/latest && ls _bmad-output/quality-gate/baseline/latest/ | wc -l | grep -q '^19$' && echo BASELINE_CAPTURED`
+  - **Commit**: `chore(spec1): capture quality gate baseline before dead code cleanup (19 files, correct format)`
   - _Requirements: FR-12_
+  - _Note_: Takes ~5-10 minutes. Script runs 17 quality checks across 4 layers.
 
 - [ ] 1.2 BLOCKER: E2E config relocation -- copy configuration.yaml and update 3 script references
   - **Do**:
@@ -141,8 +143,8 @@ No new tests to write. This spec is pure deletion -- verification is via existin
 - [ ] 4.1 Quality gate validation vs baseline
   - **Do**:
     1. Create validation dir: `mkdir -p _bmad-output/quality-gate/spec1-validation/`
-    2. Run `make quality-gate 2>&1 | tee _bmad-output/quality-gate/spec1-validation/output.txt`
-    3. Compare layer-by-layer against baseline in `_bmad-output/quality-gate/spec1-baseline/output.txt`
+    2. Run ``bash scripts/quality-baseline.sh --force``
+    3. Compare layer-by-layer against baseline in `_bmad-output/quality-gate/baseline/<timestamp>`
     4. Every metric must be equal or better: test count, coverage %, mutation scores, lint, security
   - **Files**: `_bmad-output/quality-gate/spec1-validation/output.txt` (CREATE)
   - **Done when**: Quality gate passes and no layer regressed vs baseline
