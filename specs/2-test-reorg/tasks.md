@@ -80,7 +80,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): extract factories to tests/helpers/factories.py`
   - _Requirements: FR-3, AC-1.5_
 
-- [ ] 1.11 Replace tests/__init__.py with re-export shim
+- [x] 1.11 Replace tests/__init__.py with re-export shim
   - **Do**: Replace `tests/__init__.py` (198 LOC) with a thin re-export shim that imports all symbols from `tests.helpers`. This ensures backward compat for any `from tests import X` usage.
   - **Files**: tests/__init__.py
   - **Done when**: `from tests import FakeTripStorage` still works; file is < 20 LOC
