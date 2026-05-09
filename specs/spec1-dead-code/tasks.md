@@ -171,7 +171,7 @@ No new tests to write. This spec is pure deletion -- verification is via existin
   - **Done when**: All commands exit 0
   - **Commit**: `chore(spec1): pass full local CI` (only if fixes needed)
 
-- [ ] V5 [VERIFY] PR opened correctly
+- [x] V5 [VERIFY] PR opened correctly
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin $(git branch --show-current)`
