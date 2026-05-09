@@ -3,7 +3,7 @@
 These tests cover rare paths and error handling that achieve 100% coverage.
 """
 
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
