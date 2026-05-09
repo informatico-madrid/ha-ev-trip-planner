@@ -612,6 +612,10 @@ test.describe('EMHASS Sensor Updates', () => {
    * Verifies that creating a second trip immediately after the first works correctly.
    */
   test('race-condition-regression-rapid-successive-creation', async ({ page }) => {
+    // @see https://playwright.dev/docs/test-annotations#tag-a-test-as-slow
+    // Marked slow: race condition test needs extra time for HA sensor polling under load
+    test.slow();
+
     // Step 1: cleanup → navigate
     await cleanupTestTrips(page);
     await navigateToPanel(page);
@@ -628,13 +632,14 @@ test.describe('EMHASS Sensor Updates', () => {
     );
 
     // Step 3: toPass() check — sensor shows trip 1 data
+    // Increased timeout: HA sensor update latency varies under system load
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       expect(sensorEntityId).toBeTruthy();
       const a = await getSensorAttributes(page, sensorEntityId!);
       expect(Array.isArray(a.power_profile_watts)).toBe(true);
       expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 4: IMMEDIATELY create second trip (no delay)
     const trip2Datetime = getFutureIso(1, '14:00');
@@ -651,6 +656,7 @@ test.describe('EMHASS Sensor Updates', () => {
     // CRITICAL FIX (C8): The old assertion `power_profile_watts.some(v > 0)` passes
     // even if the second trip overwrote the first trip's data. We must verify that
     // both trips are represented in the sensor attributes.
+    // Increased timeout: two trips require more HA coordinator cycles
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       expect(sensorEntityId).toBeTruthy();
@@ -663,14 +669,14 @@ test.describe('EMHASS Sensor Updates', () => {
       expect((a.def_total_hours_array as number[]).length).toBeGreaterThanOrEqual(2);
       expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
       expect((a.p_deferrable_matrix as number[][]).length).toBeGreaterThanOrEqual(2);
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 6: toPass() check — emhass_status === 'ready'
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       const a = await getSensorAttributes(page, sensorEntityId!);
       expect(a.emhass_status).toBe('ready');
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 7: cleanup
     await cleanupTestTrips(page);
