@@ -4,7 +4,7 @@
 
 Focus: Install tools, configure pytest, create directory structure, extract helpers, classify files, move all files to unit/ first. Proves the structure works end-to-end.
 
-- [ ] 1.1 Capture baseline metrics
+- [x] 1.1 Capture baseline metrics
   - **Do**: Run `make test` and capture test count. Run `make test-cover` and capture coverage. Save output to `specs/2-test-reorg/.baseline.txt`.
   - **Files**: specs/2-test-reorg/.baseline.txt
   - **Done when**: Baseline file exists with 1,821+ tests and 100% coverage recorded
