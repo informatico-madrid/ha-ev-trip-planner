@@ -4,7 +4,7 @@
 
 Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure deletion spec). Validate via existing test suite.
 
-- [ ] 1.1 Quality gate baseline capture
+- [x] 1.1 Quality gate baseline capture
   - **Do**:
     1. Create baseline directory: `mkdir -p _bmad-output/quality-gate/spec1-baseline/`
     2. Activate venv and run: `make quality-gate 2>&1 | tee _bmad-output/quality-gate/spec1-baseline/output.txt`
