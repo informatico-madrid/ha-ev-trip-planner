@@ -122,7 +122,7 @@ SRC_DIR="custom_components"
 # Layer 1: Test Execution (pytest, coverage, mutation, E2E)
 # ============================================================================
 
-log_step "1/15: Running pytest..."
+log_step "1/17: Running pytest..."
 if PYTHONPATH=. .venv/bin/python -m pytest tests/ -v --tb=short --ignore=tests/ha-manual/ --ignore=tests/e2e/ > "$BASELINE_RUN_DIR/pytest.txt" 2>&1; then
     PYTEST_STATUS="pass"
 else
@@ -130,7 +130,7 @@ else
 fi
 log_info "  pytest: $PYTEST_STATUS"
 
-log_step "2/15: Running coverage check..."
+log_step "2/17: Running coverage check..."
 if PYTHONPATH=. .venv/bin/python -m pytest tests/ --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=json --ignore=tests/ha-manual/ --ignore=tests/e2e/ > "$BASELINE_RUN_DIR/coverage.txt" 2>&1; then
     COVERAGE_STATUS="pass"
 else
@@ -138,7 +138,7 @@ else
 fi
 log_info "  coverage: $COVERAGE_STATUS"
 
-log_step "3/15: Running mutation gate (mutation_analyzer.py)..."
+log_step "3/17: Running mutation gate (mutation_analyzer.py)..."
 if python3 "$SKILL_ROOT/scripts/mutation_analyzer.py" . --gate > "$BASELINE_RUN_DIR/mutation-gate.txt" 2>&1; then
     MUTATION_STATUS="pass"
 else
@@ -146,7 +146,7 @@ else
 fi
 log_info "  mutation gate: $MUTATION_STATUS"
 
-log_step "4/15: Running E2E tests (make e2e)..."
+log_step "4/17: Running E2E tests (make e2e)..."
 if make e2e > "$BASELINE_RUN_DIR/e2e.txt" 2>&1; then
     E2E_STATUS="pass"
 else
@@ -154,7 +154,7 @@ else
 fi
 log_info "  e2e: $E2E_STATUS"
 
-log_step "5/15: Running E2E SOC suite (make e2e-soc)..."
+log_step "5/17: Running E2E SOC suite (make e2e-soc)..."
 if make e2e-soc > "$BASELINE_RUN_DIR/e2e-soc.txt" 2>&1; then
     E2E_SOC_STATUS="pass"
 else
@@ -166,7 +166,7 @@ log_info "  e2e-soc: $E2E_SOC_STATUS"
 # Layer 2: Test Quality (weak tests, mutation kill-map, diversity)
 # ============================================================================
 
-log_step "6/15: Running weak test detector..."
+log_step "6/17: Running weak test detector..."
 if python3 "$SKILL_ROOT/scripts/weak_test_detector.py" tests/ "$SRC_DIR/" > "$BASELINE_RUN_DIR/weak-tests.txt" 2>&1; then
     WEAK_TESTS_STATUS="pass"
 else
@@ -174,7 +174,7 @@ else
 fi
 log_info "  weak_tests: $WEAK_TESTS_STATUS"
 
-log_step "7/15: Running mutation kill-map analysis..."
+log_step "7/17: Running mutation kill-map analysis..."
 if python3 "$SKILL_ROOT/scripts/mutation_analyzer.py" . > "$BASELINE_RUN_DIR/mutation-killmap.txt" 2>&1; then
     KILLMAP_STATUS="pass"
 else
@@ -182,7 +182,7 @@ else
 fi
 log_info "  mutation killmap: $KILLMAP_STATUS"
 
-log_step "8/15: Running test diversity metric..."
+log_step "8/17: Running test diversity metric..."
 if python3 "$SKILL_ROOT/scripts/diversity_metric.py" tests/ > "$BASELINE_RUN_DIR/diversity.txt" 2>&1; then
     DIVERSITY_STATUS="pass"
 else
@@ -194,7 +194,7 @@ log_info "  diversity: $DIVERSITY_STATUS"
 # Layer 3: Code Quality (ruff, pyright)
 # ============================================================================
 
-log_step "9/15: Running ruff linting..."
+log_step "9/17: Running ruff linting..."
 if ruff check "$SRC_DIR/" > "$BASELINE_RUN_DIR/ruff.txt" 2>&1; then
     RUFF_STATUS="pass"
 else
@@ -202,7 +202,7 @@ else
 fi
 log_info "  ruff: $RUFF_STATUS"
 
-log_step "10/15: Running pyright typecheck..."
+log_step "10/17: Running pyright typecheck..."
 if .venv/bin/pyright --outputjson "$SRC_DIR/" > "$BASELINE_RUN_DIR/pyright.json" 2>&1; then
     PYRIGHT_STATUS="pass"
 else
@@ -214,7 +214,7 @@ log_info "  pyright: $PYRIGHT_STATUS"
 # Layer 3: SOLID Principles (Tier A: AST-based, Tier B: LLM-based)
 # ============================================================================
 
-log_step "11/15: Running SOLID Tier A (solid_metrics.py)..."
+log_step "11/17: Running SOLID Tier A (solid_metrics.py)..."
 if python3 "$SKILL_ROOT/scripts/solid_metrics.py" "$SRC_DIR/" > "$BASELINE_RUN_DIR/solid-tier-a.txt" 2>&1; then
     SOLID_TIER_A_STATUS="pass"
 else
@@ -222,7 +222,7 @@ else
 fi
 log_info "  SOLID Tier A: $SOLID_TIER_A_STATUS"
 
-log_step "12/15: Running SOLID Tier B (llm_solid_judge.py)..."
+log_step "12/17: Running SOLID Tier B (llm_solid_judge.py)..."
 if python3 "$SKILL_ROOT/scripts/llm_solid_judge.py" "$SRC_DIR/" > "$BASELINE_RUN_DIR/solid-tier-b.txt" 2>&1; then
     SOLID_TIER_B_STATUS="pass"
 else
@@ -234,7 +234,7 @@ log_info "  SOLID Tier B (LLM): $SOLID_TIER_B_STATUS"
 # Layer 3: Additional Principles (DRY, KISS, YAGNI, LoD, CoI)
 # ============================================================================
 
-log_step "13/15: Running principles checker..."
+log_step "13/17: Running principles checker..."
 if python3 "$SKILL_ROOT/scripts/principles_checker.py" "$SRC_DIR/" > "$BASELINE_RUN_DIR/principles.txt" 2>&1; then
     PRINCIPLES_STATUS="pass"
 else
@@ -246,16 +246,16 @@ log_info "  principles: $PRINCIPLES_STATUS"
 # Layer 3: Antipatterns (Tier A: AST-based, Tier B: LLM-based)
 # ============================================================================
 
-log_step "14/15: Running antipatterns Tier A (AST-based)..."
-if python3 "$SKILL_ROOT/scripts/antipattern_checker.py" "$SRC_DIR/" > "$BASELINE_RUN_DIR/antipatterns-tier-a.txt" 2>&1; then
+log_step "14/17: Running antipatterns Tier A (AST-based)..."
+if python3 "$SKILL_ROOT/scripts/antipattern_checker.py" "$SRC_DIR/" "tests/" > "$BASELINE_RUN_DIR/antipatterns-tier-a.txt" 2>&1; then
     ANTIPATTERNS_TIER_A_STATUS="pass"
 else
     ANTIPATTERNS_TIER_A_STATUS="fail"
 fi
 log_info "  antipatterns Tier A: $ANTIPATTERNS_TIER_A_STATUS"
 
-log_step "15/15: Running antipatterns Tier B (antipattern_judge.py)..."
-if python3 "$SKILL_ROOT/scripts/antipattern_judge.py" "$SRC_DIR/" > "$BASELINE_RUN_DIR/antipatterns-tier-b.txt" 2>&1; then
+log_step "15/17: Running antipatterns Tier B (antipattern_judge.py)..."
+if python3 "$SKILL_ROOT/scripts/antipattern_judge.py" "$SRC_DIR/" "tests/" > "$BASELINE_RUN_DIR/antipatterns-tier-b.txt" 2>&1; then
     ANTIPATTERNS_TIER_B_STATUS="pass"
 else
     ANTIPATTERNS_TIER_B_STATUS="fail"
@@ -268,6 +268,32 @@ log_info "  antipatterns Tier B (LLM): $ANTIPATTERNS_TIER_B_STATUS"
 # - Full LLM validation (BMAD Party Mode + Adversarial Review) will be executed
 #   manually after this script completes to complete the baseline
 # ============================================================================
+
+# ============================================================================
+# Layer 4: Security & Defense (unified scanner, 8 tools)
+# ============================================================================
+
+log_step "16/17: Running Layer 4 unified security scanner..."
+if python3 "$SKILL_ROOT/scripts/security_scanner.py" . --severity-threshold high --output "$BASELINE_RUN_DIR/layer4-security.json" > "$BASELINE_RUN_DIR/layer4-security-stderr.txt" 2>&1; then
+    SECURITY_STATUS="pass"
+else
+    SECURITY_STATUS="fail"
+fi
+log_info "  layer4 security: $SECURITY_STATUS"
+
+# ============================================================================
+# Layer 3B: Tier B Consensus (BMAD Party Mode)
+# ============================================================================
+
+log_step "17/17: Checking Tier B consensus report..."
+if [ -f "_bmad-output/quality-gate/baseline/latest/tier-b-consensus.md" ]; then
+    cp "_bmad-output/quality-gate/baseline/latest/tier-b-consensus.md" "$BASELINE_RUN_DIR/tier-b-consensus.md"
+    TIERB_STATUS="pass"
+else
+    log_warn "  Tier B consensus report not found — run BMAD Party Mode manually"
+    TIERB_STATUS="pending"
+fi
+log_info "  tier-b consensus: $TIERB_STATUS"
 
 # ============================================================================
 # Summary
@@ -310,6 +336,13 @@ echo "  - solid-tier-b.txt        : SOLID LLM context (requires BMAD)"
 echo "  - principles.txt          : DRY, KISS, YAGNI, LoD, CoI"
 echo "  - antipatterns-tier-a.txt : Antipatterns AST-based (25 patterns)"
 echo "  - antipatterns-tier-b.txt : Antipatterns LLM context (25 patterns)"
+echo ""
+echo "Layer 4 - Security & Defense:"
+echo "  - layer4-security.json    : Unified security scanner (8 tools)"
+echo "  - layer4-security-stderr.txt : Security scanner summary"
+echo ""
+echo "Layer 3B - Tier B Consensus:"
+echo "  - tier-b-consensus.md     : BMAD Party Mode consensus results"
 echo ""
 echo "  - baseline.json           : Combined metrics"
 echo ""
