@@ -36,13 +36,13 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `build(test-reorg): add flake8-pytest-style dev dependency`
   - _Requirements: FR-13, AC-8.2_
 
-- [ ] 1.5 [VERIFY] Quality checkpoint: new deps + existing tests pass
+- [x] 1.5 [VERIFY] Quality checkpoint: new deps + existing tests pass
   - **Do**: Run `make test` and `make test-cover` to verify all 1,821 tests pass at 100% with new deps
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: 1,821+ tests pass, coverage 100%, no warnings
   - **Commit**: None (no fixes needed unless failure)
 
-- [ ] 1.6 Configure pytest strict mode, importlib, and markers
+- [x] 1.6 Configure pytest strict mode, importlib, and markers
   - **Do**: Update `[tool.pytest.ini_options]` in pyproject.toml: add `import_mode = "importlib"`, `strict = true`, markers (`unit`, `integration`, `slow`), add `--strict-markers` and `--strict-config` to addopts. Keep existing asyncio_mode, filterwarnings, etc.
   - **Files**: pyproject.toml
   - **Done when**: `pytest --co -q` succeeds without marker warnings; config has all 6 new fields

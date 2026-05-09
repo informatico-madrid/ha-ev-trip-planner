@@ -81,9 +81,16 @@ python_functions = "test_*"
 # NOTE: --cov removed from addopts because pytest-cov causes a deadlock when
 # mutmut 3.x redirects stdout during in-process pytest.main() calls.
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
-addopts = "-v"
+# import_mode=importlib set via addopts (not a standalone ini key in pytest 9)
+addopts = "-v --import-mode=importlib --strict-markers --strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+strict = true
+markers = [
+    "unit: unit tests (no external dependencies)",
+    "integration: integration tests (require HA framework or external services)",
+    "slow: tests that take significantly longer than average",
+]
 filterwarnings = [
     "ignore:Inheritance class.*:DeprecationWarning",
     "ignore::pytest.PytestDeprecationWarning",
