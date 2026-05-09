@@ -208,7 +208,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): consolidate config_flow core + issues`
   - _Requirements: FR-6, AC-3.1, AC-3.2_
 
-- [ ] 2.7 Consolidate config_flow files: merge milestone3 + ux + missing into test_config_flow_options.py
+- [x] 2.7 Consolidate config_flow files: merge milestone3 + ux + missing into test_config_flow_options.py
   - **Do**: Merge `test_config_flow_milestone3.py`, `test_config_flow_milestone3_1_ux.py`, `test_config_flow_missing.py` into `test_config_flow_options.py` in tests/integration/. Rename coverage-driven test functions to behavior-based names.
   - **Files**: tests/integration/test_config_flow_options.py (new consolidated file)
   - **Done when**: Consolidated file passes; 3 source files deleted

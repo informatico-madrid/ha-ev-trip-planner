@@ -199,3 +199,149 @@ Review entry template:
 - fix_hint: N/A - executor will mark [x] when ready
 - review_submode: post-task
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.10] Create tests/helpers/factories.py
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  File tests/helpers/factories.py exists with 4 factory functions:
+  - create_mock_trip_manager: MagicMock(spec=TripManager) with async stubs
+  - create_mock_coordinator: MagicMock(spec=TripPlannerCoordinator)
+  - create_mock_ev_config_entry: MockConfigEntry from HA test utils
+  - setup_mock_ev_config_entry: Async factory with HA boundary patches
+  Import verification: from tests.helpers.factories import create_mock_trip_manager → OK
+  Tests pass: 1820 passed, 1 skipped
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.11] Replace tests/__init__.py with re-export shim
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  tests/__init__.py is now 3 lines (was 198 LOC):
+  """Backward-compat shim — all symbols live in tests.helpers now."""
+  from tests.helpers import * # noqa: F401,F403
+  Backward compat works: from tests import FakeTripStorage, TEST_VEHICLE_ID, create_mock_trip_manager → OK
+  Tests pass: 1820 passed, 1 skipped
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.12] Update 4 import statements in test files
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  Tests pass at 100% coverage after import updates. Shim provides backward compat.
+  1820 passed, 1 skipped, 100% coverage
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.13] Quality checkpoint: helpers extraction complete
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  make test-cover: 1820 passed, 1 skipped, 100% coverage
+  All helpers extracted: constants.py, fakes.py, factories.py, __init__.py
+  Re-export shim in tests/__init__.py works
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.14] Create directory structure: tests/unit/ and tests/integration/
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  tests/unit/ exists with __init__.py and conftest.py
+  tests/integration/ exists with __init__.py and conftest.py
+  Tests pass: 1820 passed, 1 skipped
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.15] Quality checkpoint: directory structure created
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.16] POC: Move 2 representative files to prove structure works
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  test_calculations.py moved to tests/unit/
+  test_init.py moved to tests/integration/
+  import_mode=importlib handles subdirectory imports correctly
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.17] POC checkpoint: structure proven with representative files
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:12:00Z
+- criterion_failed: none
+- evidence: |
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+  Structure proven — safe to proceed with bulk move
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.18] Move 74 unit test files to tests/unit/
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:13:00Z
+- criterion_failed: none
+- evidence: |
+  tests/unit/ contains 77 files (74 + POC + __init__.py + conftest.py)
+  pytest tests/unit/ --co -q: 981 tests collected
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.19] Quality checkpoint: unit files moved
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:13:00Z
+- criterion_failed: none
+- evidence: |
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-1.20] Move 30 integration test files to tests/integration/
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-09T19:14:00Z
+- criterion_failed: none
+- evidence: |
+  tests/integration/ contains 33 files (30 + POC test_init.py + __init__.py + conftest.py)
+  pytest tests/integration/ --co -q: 840 tests collected
+  Total: 981 unit + 840 integration = 1821 (matches baseline)
+  Tests pass: 1820 passed, 1 skipped, 100% coverage
+  No test_*.py files remain in tests/ root (only __init__.py, conftest.py, setup_entry.py)
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: <!-- spec-executor fills this -->
