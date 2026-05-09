@@ -228,7 +228,8 @@ main
   - AC-2.5: 2 `assert True` violations fixed (replaced with real assertions or removed)
   - AC-2.6: Orphaned bug-finding tests (10 files) consolidated into behavior-driven regression tests
   - AC-2.7: `conftest.py` refactored: large fixture (~700 lines) split into module-scoped fixtures
-  - AC-2.8: `make test` passes with >= 1,830 tests (post-Spec 1 baseline)
+  - AC-2.8: `make test`, `make test-cover` passes with >= 1,830 tests (post-Spec 1 baseline)
+  - AC-2.81: `make e2e` y `make e2e-soc` passes
   - AC-2.9: All pytest path configuration updated in `pyproject.toml`
   - AC-2.10: `tests_excluded_from_mutmut/` files evaluated: kept, moved into new structure, or deleted
   - AC-2.11: Coverage source paths in `pyproject.toml` updated to reflect new test structure

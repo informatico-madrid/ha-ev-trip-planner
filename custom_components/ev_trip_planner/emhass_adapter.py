@@ -1283,9 +1283,12 @@ class EMHASSAdapter:
             current_wh = sum(power_profile)
             if current_wh > expected_capped_wh and expected_capped_wh > 0:
                 # Break profile into 1-hour sub-slots at full charger power
+                # EMHASS works in complete hours: any fraction (0.01+) = 1 full hour.
+                # Use math.ceil (not round) to avoid zeroing all slots when
+                # expected energy < 1 full slot (e.g., 5 kWh / 11 kW = 0.45 → ceil = 1).
                 slot_size = charging_power_kw * 1000
                 if slot_size > 0:
-                    target_slots = int(round(expected_capped_wh / slot_size))
+                    target_slots = math.ceil(expected_capped_wh / slot_size)
                     # Count how many full slots we have
                     total_slots = 0
                     slot_positions = []
