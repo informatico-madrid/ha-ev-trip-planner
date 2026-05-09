@@ -331,7 +331,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(attrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
       const hasNonZero = attrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(true, 'power_profile_watts should have non-zero values after trip creation');
+      expect(hasNonZero).toBe(true);
     }).toPass({ timeout: 15000 });
 
     // Step 3: Read BEFORE attributes and verify power_profile has values
@@ -361,7 +361,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(attrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
       const hasNonZero = attrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(true, 'power_profile_watts should have non-zero values after SOC change');
+      expect(hasNonZero).toBe(true);
     }).toPass({ timeout: 15000 });
 
     // Step 6: Record last_updated AFTER SOC change
@@ -395,7 +395,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(deleteAttrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(deleteAttrs.power_profile_watts)).toBe(true);
       const hasNonZero = deleteAttrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(false, 'power_profile_watts should be all zeros after trip deletion');
+      expect(hasNonZero).toBe(false);
     }).toPass({ timeout: 15000 });
 
     // Step 10: Read final attributes after deletion

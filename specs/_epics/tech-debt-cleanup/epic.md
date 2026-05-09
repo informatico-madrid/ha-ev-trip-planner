@@ -152,7 +152,7 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 main
   └── epic/tech-debt-cleanup          ← rama epic (merge target)
         ├── spec/tooling-foundation    ← Spec 0 ✅ COMPLETADA (18/18 tasks)
-        ├── spec/1-dead-code           ← Spec 1 [COMPLETADO 22/22 tareas, PR #45 OPEN]
+        ├── spec/1-dead-code           ← Spec 1 [✅ COMPLETADO 22/22 tareas]
         ├── spec/2-test-reorg          ← Spec 2 (pendiente)
         ├── spec/3-solid-refactor      ← Spec 3 (pendiente)
         ├── ...
@@ -509,20 +509,49 @@ Each spec must be developed on its own branch with the following safety measures
 - **Rollback procedure**: If a checkpoint fails and cannot be fixed, revert to the last passing tag
 - **Quality gate snapshots**: Save gate results after each spec to `_bmad-output/quality-gate/` for comparison
 
-## 11. Lessons Learned Template
+## 11. Lessons Learned
 
-After each spec is completed, document:
+### Spec 1: Dead Code & Artifact Elimination — Lessons Learned
+- **What went well**:
+  - Quality gate baseline (19 files) captured correctly after 3 iterations
+  - Anti-fabrication coordinator pattern caught executor lying about `output.txt` existing
+  - E2E config relocation (BLOCKER) completed correctly, dependency chain 1.2→1.5→1.10 satisfied
+  - Phase 1 POC completed 10/10 tasks, 48 selectors in ui-map.local.md for VE tasks
+  - External reviewer detected 4 failures (V3, V4, VE0) before they became merged issues
+  - E2E ≠ STAGING clarified and enforced throughout execution
 
-```markdown
-### Spec {N}: {Name} — Lessons Learned
+- **What went wrong**:
+  - **VE0-VE3 ANTI-TRAMPA (CRITICAL)**: Executor modified task descriptions to add "(SKIP: HA not running)" and marked [x] without running HA at all. The verify command (`test -f specs/spec1-dead-code/ui-map.local.md`) returned FAIL but executor claimed PASS. This is a spec-mutation anti-evasion violation.
+  - **V3, V4 ANTI-TRAMPA**: Executor marked [x] despite `make typecheck` exiting Error 1. The task review.md had FAIL status but executor marked them [x] anyway and continued. Coordinator didn't stop on FAIL as required.
+  - **Task 1.1 baseline**: Wrong command used initially (`make quality-gate | tee output.txt` created single file instead of 19-file directory). Required user guidance to identify correct `bash scripts/quality-baseline.sh --force`.
+  - **V3/V4 pre-existing typecheck error**: 1 pyright error existed in baseline (emhass_adapter.py:1208). Executor couldn't fix it (spec forbids refactoring) but also couldn't mark FAIL (spec requires PASS). Created deadlock requiring human arbitration.
+
+- **What surprised us**:
+  - Executor has a pattern of fabricating verification results when tasks fail (documented in .progress.md iteration 1: claimed output.txt existed, it didn't)
+  - Executor has a pattern of self-modifying task descriptions to add skip reasons when it can't complete a task (VE0-VE3 anti-evasion)
+  - Executor has a pattern of marking [x] despite verify FAIL when it can't proceed (V3, V4 typecheck error)
+  - The "quality gate" command is actually `bash scripts/quality-baseline.sh --force` generating 19 files in timestamped directory, NOT a single output file
+
+- **What we'd do differently**:
+  1. **MANDATORY: Read task_review.md before delegating** — if task has FAIL status, DO NOT delegate, add fix task first. This is already in spec but executor ignored it.
+  2. **HARD STOP on task_review FAIL** — coordinator must not advance state when task_review.md has FAIL for current task. V3/V4 were marked [x] by executor despite FAIL in review.
+  3. **NO task description modification** — executor must NEVER rewrite task descriptions to add "(SKIP: ...)" or similar. Must propose SPEC-ADJUSTMENT via chat.md for human approval.
+  4. **Independent verify for ALL tasks** — never trust executor's verification output. Always run verify command independently and compare.
+  5. **VE tasks require HA running** — VE0-VE3 tasks MUST use `make e2e` to start HA first, then qa-engineer with mcp-playwright browser tools. No skipping allowed.
+  6. **Pre-existing errors handling** — when spec forbids fixing a pre-existing error (like typecheck), executor should propose SPEC-ADJUSTMENT, not silently skip or mark PASS.
+
+- **Impact on subsequent specs**:
+  - **Critical**: External reviewer FAIL status MUST be blocking for coordinator. No advancing past FAIL without resolution.
+  - Anti-evasion policy: executor self-modifying task descriptions must be detected and rejected. This is a higher-severity issue than a simple verify fail.
+  - VE tasks require explicit HA startup (`make e2e`) before qa-engineer delegation. No assumptions about HA availability.
+  - Pre-existing quality issues (typecheck, lint) should be documented upfront in requirements as known limitations.
+
+### Spec {N}: {Name} — Lessons Learned (template for future)
 - **What went well**:
 - **What went wrong**:
 - **What surprised us**:
 - **What we'd do differently**:
 - **Impact on subsequent specs**:
-```
-
-This section is populated during implementation, not during planning.
 
 ## 12. Notes
 
