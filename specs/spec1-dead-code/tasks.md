@@ -77,7 +77,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: `refactor(cleanup): remove 4 dead constants (const.py, utils.py)`
   - _Requirements: FR-6, AC-1.14, AC-1.14b_
 
-- [ ] 1.7 [P] Delete .qwen/settings.json.orig and clean Makefile --ignore flags
+- [x] 1.7 [P] Delete .qwen/settings.json.orig and clean Makefile --ignore flags
   - **Do**:
     1. Delete: `rm .qwen/settings.json.orig`
     2. Edit `Makefile` -- remove `--ignore=tests/ha-manual/` from 6 targets: test (line 66), test-cover (69), test-verbose (72), test-dashboard (75), test-parallel (271), test-random (275)
@@ -87,7 +87,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: `chore(cleanup): delete .qwen backup and remove Makefile ha-manual ignore flags`
   - _Requirements: FR-5, FR-7, AC-1.15, AC-1.16_
 
-- [ ] 1.8 V1 [VERIFY] Quality checkpoint: verify no import regressions after all deletions
+- [x] 1.8 V1 [VERIFY] Quality checkpoint: verify no import regressions after all deletions
   - **Do**: Run lint and unused import checks to confirm no breakage from deletions
   - **Verify**: `make lint && ruff check --select F401 custom_components/ tests/ && echo V1_PASS`
   - **Done when**: Zero lint errors, zero unused import warnings
