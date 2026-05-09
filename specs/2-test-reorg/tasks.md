@@ -64,7 +64,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Commit**: `refactor(test-reorg): extract constants to tests/helpers/constants.py`
   - _Requirements: FR-3, AC-1.5_
 
-- [ ] 1.9 [P] Create tests/helpers/fakes.py
+- [x] 1.9 [P] Create tests/helpers/fakes.py
   - **Do**: Extract FakeTripStorage and FakeEMHASSPublisher classes from `tests/__init__.py` to `tests/helpers/fakes.py`. Update `tests/helpers/__init__.py` re-exports.
   - **Files**: tests/helpers/fakes.py, tests/helpers/__init__.py
   - **Done when**: FakeTripStorage and FakeEMHASSPublisher importable from tests.helpers
