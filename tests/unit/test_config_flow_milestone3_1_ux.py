@@ -12,6 +12,7 @@ async def test_strings_json_includes_data_descriptions():
     strings_path = os.path.join(
         os.path.dirname(__file__),
         "..",
+        "..",
         "custom_components",
         "ev_trip_planner",
         "strings.json",
@@ -46,6 +47,7 @@ async def test_error_messages_are_descriptive():
     strings_path = os.path.join(
         os.path.dirname(__file__),
         "..",
+        "..",
         "custom_components",
         "ev_trip_planner",
         "strings.json",
@@ -78,6 +80,7 @@ async def test_data_descriptions_include_examples():
     strings_path = os.path.join(
         os.path.dirname(__file__),
         "..",
+        "..",
         "custom_components",
         "ev_trip_planner",
         "strings.json",
@@ -106,6 +109,7 @@ async def test_emhass_step_description_mentions_emhass_integration():
     strings_path = os.path.join(
         os.path.dirname(__file__),
         "..",
+        "..",
         "custom_components",
         "ev_trip_planner",
         "strings.json",
@@ -129,6 +133,7 @@ async def test_presence_step_description_mentions_prevention():
     """Test that presence step description mentions preventing charging when away."""
     strings_path = os.path.join(
         os.path.dirname(__file__),
+        "..",
         "..",
         "custom_components",
         "ev_trip_planner",

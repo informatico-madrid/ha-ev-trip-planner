@@ -130,7 +130,7 @@ Focus: Install tools, configure pytest, create directory structure, extract help
   - **Done when**: 1,821+ tests pass at 100% — structure proven, safe to proceed with bulk move
   - **Commit**: None
 
-- [ ] 1.18 Move 74 unit test files to tests/unit/ (excluding POC-moved test_calculations.py)
+- [x] 1.18 Move 74 unit test files to tests/unit/ (excluding POC-moved test_calculations.py)
   - **Do**: Move all 73 remaining files that do NOT have `from homeassistant` imports to `tests/unit/`. Use `git mv` for each file. Excludes test_calculations.py (already in POC task 1.16).
   - **Files**: 73 test files moved to tests/unit/
   - **Done when**: All 73 files in tests/unit/; `pytest tests/unit/ --co -q` finds them all

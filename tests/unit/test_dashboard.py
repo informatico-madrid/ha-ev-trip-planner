@@ -8,7 +8,7 @@ import yaml
 
 # Path to the dashboard templates
 DASHBOARD_DIR = (
-    Path(__file__).parent.parent / "custom_components" / "ev_trip_planner" / "dashboard"
+    Path(__file__).parent.parent.parent / "custom_components" / "ev_trip_planner" / "dashboard"
 )
 
 
