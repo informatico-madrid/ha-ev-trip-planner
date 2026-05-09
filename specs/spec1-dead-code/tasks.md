@@ -105,7 +105,7 @@ Focus: Execute all deletions in blocker-enforced order. Skip test writing (pure 
   - **Commit**: None (verification task -- no code changes)
   - _Requirements: FR-10, AC-1.8, AC-1.8b, AC-1.13_
 
-- [ ] 1.10 POC Checkpoint: run E2E tests to verify config relocation worked
+- [x] 1.10 POC Checkpoint: run E2E tests to verify config relocation worked
   - **Do**:
     1. Activate venv: `. .venv/bin/activate`
     2. Run `make e2e` -- all Playwright specs against :8123 must pass
@@ -127,20 +127,20 @@ No new tests to write. This spec is pure deletion -- verification is via existin
 
 ## Phase 4: Quality Gates
 
-- [ ] V2 [VERIFY] Dead code detection: vulture passes clean
+- [x] V2 [VERIFY] Dead code detection: vulture passes clean
   - **Do**: Run `make dead-code` (vulture --min-confidence 80). If false positives, add to vulture whitelist in pyproject.toml and iterate.
   - **Verify**: `. .venv/bin/activate && make dead-code && echo V2_PASS`
   - **Done when**: vulture exits 0 with zero findings at min-confidence 80
   - **Commit**: `chore(spec1): configure vulture whitelist if needed` (only if false positives found)
   - _Requirements: FR-11, AC-1.11, NFR-6_
 
-- [ ] V3 [VERIFY] Full lint + typecheck validation
+- [x] V3 [VERIFY] Full lint + typecheck validation
   - **Do**: Run `make lint && make typecheck`
   - **Verify**: `. .venv/bin/activate && make lint && make typecheck && echo V3_PASS`
   - **Done when**: Both commands exit 0
   - **Commit**: `chore(spec1): fix lint/typecheck issues if any` (only if fixes needed)
 
-- [ ] 4.1 Quality gate validation vs baseline
+- [x] 4.1 Quality gate validation vs baseline
   - **Do**:
     1. Create validation dir: `mkdir -p _bmad-output/quality-gate/spec1-validation/`
     2. Run ``bash scripts/quality-baseline.sh --force``

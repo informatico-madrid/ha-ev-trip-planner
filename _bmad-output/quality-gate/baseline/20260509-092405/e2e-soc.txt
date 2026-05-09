@@ -1,0 +1,92 @@
+./scripts/run-e2e-soc.sh
+==========================================
+🏠 EV Trip Planner — E2E Test Runner
+==========================================
+
+[1/5] Killing any existing Home Assistant instances...
+  Killing process on port 8123 (PID 3948323)...
+
+[2/5] Setting up fresh HA config directory at /tmp/ha-e2e-soc-config...
+  Creating directory structure...
+  Copying configuration.yaml (with SOC/SOH sensors)...
+  Creating symlink for ev_trip_planner custom component...
+✅ Config setup complete
+
+[3/5] Starting Home Assistant...
+  Starting hass -c /tmp/ha-e2e-soc-config ... (logs -> /tmp/logs/ha-e2e-soc-20260509_092852.log)
+  HA started with PID 3975622
+
+[4/5] Waiting for Home Assistant to be ready...
+  Attempt 1: status=000000 (waiting 3s...)
+  ✅ HA API ready (HTTP 401) after 6s
+
+[5/5] Running onboarding...
+🏠 Checking Home Assistant at http://localhost:8123 ...
+✅ HA is reachable (HTTP 401)
+🔧 Completing onboarding (user=dev, password=dev)...
+  User created. Exchanging auth code for token...
+  Token obtained. Completing remaining steps...
+✅ Onboarding complete! HA user: dev / pass: dev
+   Open http://localhost:8123 in your browser to verify.
+✅ Onboarding complete
+
+[6/6] Running Playwright E2E tests...
+Command: npx playwright test --config=playwright.soc.config.ts --workers=1
+-------------------------------------------
+[auth.setup] Waiting for Home Assistant to be ready...
+[auth.setup] Home Assistant is ready (status 401)
+[auth.setup] HA already onboarded
+[auth.setup] Entity "input_boolean.test_ev_charging" is available in HA
+[auth.setup] Entity "sensor.test_vehicle_soh" is available in HA
+[auth.setup] Setting up ev_trip_planner integration via REST API...
+[auth.setup] Config flow created (attempt 1), flow_id=01KR6134RSBV088GGKSC4QW8BA
+[auth.setup] Integration "test_vehicle" created successfully
+[auth.setup] Asset "/ev-trip-planner/panel.js" is accessible (200)
+[auth.setup] Asset "/ev-trip-planner/lit-bundle.js" is accessible (200)
+[auth.setup] Navigating to HA root for trusted_networks auth...
+[auth.setup] Starting URL: about:blank
+[auth.setup] Immediately after goto, URL is: http://localhost:8123/
+[auth.setup] Waiting for /lovelace or /home (auth should redirect here)...
+[auth.setup] Auth successful, URL is: http://localhost:8123/
+[auth.setup] Waiting for HA frontend to settle...
+[auth.setup] HA frontend load wait complete (proceeding regardless)
+[auth.setup] Auth state saved to playwright/.auth/user-soc.json
+[auth.setup] Global setup complete
+
+Running 10 tests using 1 worker
+
+  ✓   1 tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts:78:3 › Options Flow SOH and T_BASE Validation › options flow should show t_base with default value 24 and soh_sensor field (6.4s)
+  ✓   2 tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts:100:3 › Options Flow SOH and T_BASE Validation › options flow should validate t_base range (6-48 hours) (8.2s)
+  ✓   3 tests/e2e-dynamic-soc/test-config-flow-soh.spec.ts:142:3 › Options Flow SOH and T_BASE Validation › options flow should accept t_base at minimum boundary (6 hours) (6.9s)
+Scenario C: 2 charging hours, 24 deferrable loads, def_total_hours_array length: 4
+  ⚡ P_deferrable_nom: All non-zero p_deferrable_nom values = 11000W (✅)
+  ⚡ Power profile: 2/168 valid non-zero elements (✅)
+  ✓   4 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:407:3 › Dynamic SOC Capping — Multi-Trip Scenarios › Scenario C: 4 daily commutes at T_BASE=24h — limit 94.9% > need 61% (16.1s)
+Scenario A: 24 deferrable loads, power_profile non-zero hours: 2
+  ⚡ P_deferrable_nom: All non-zero p_deferrable_nom values = 11000W (✅)
+  ⚡ Power profile: 2/168 valid non-zero elements (✅)
+  ✓   5 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:465:3 › Dynamic SOC Capping — Multi-Trip Scenarios › Scenario A: commute->large->commute at T_BASE=24h — all trips succeed (13.5s)
+Scenario B: 24 deferrable loads (1 large + 3 commutes)
+  ⚡ P_deferrable_nom: All non-zero p_deferrable_nom values = 11000W (✅)
+  ⚡ Power profile: 4/168 valid non-zero elements (✅)
+  ✓   6 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:506:3 › Dynamic SOC Capping — Multi-Trip Scenarios › Scenario B: large drain->100% then commutes at T_BASE=24h (9.7s)
+T_BASE=24h baseline: def_total_hours_array sum = 6.00h, 24 deferrable loads
+T_BASE=6h narrow: def_total_hours_array sum = 12.00h, 24 deferrable loads
+  ✓   7 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:550:3 › Dynamic SOC Capping — Multi-Trip Scenarios › T_BASE=6h narrow window — more charging hours than T_BASE=24h baseline (34.0s)
+T_BASE=24h baseline: def_total_hours_array sum = 6.00h, 24 deferrable loads
+T_BASE=48h conservative: def_total_hours_array sum = 12.00h, 24 deferrable loads
+  ✓   8 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:629:3 › Dynamic SOC Capping — Multi-Trip Scenarios › T_BASE=48h conservative capping — more charging hours than T_BASE=24h baseline (32.9s)
+SOH=100% baseline: def_total_hours_array sum = 4.00h, 24 deferrable loads
+SOH=92%: def_total_hours_array sum = 7.00h, 24 deferrable loads, real capacity 55.2kWh used in capping
+  ✓   9 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:708:3 › Dynamic SOC Capping — Multi-Trip Scenarios › SOH=92% increases total charging hours vs SOH=100% baseline (29.5s)
+Negative risk: 5 charging hours — 100% allowed after large drain
+  ✓  10 tests/e2e-dynamic-soc/test-dynamic-soc-capping.spec.ts:768:3 › Dynamic SOC Capping — Multi-Trip Scenarios › Negative risk: large trip drains below 35% -> 100% charge allowed (12.7s)
+
+  10 passed (2.9m)
+Collecting Playwright artifacts into /tmp/logs
+E2E tests passed. HA log: /tmp/logs/ha-e2e-soc-20260509_092852.log
+
+==========================================
+✅ E2E tests complete!
+==========================================
+Cleaning up HA...

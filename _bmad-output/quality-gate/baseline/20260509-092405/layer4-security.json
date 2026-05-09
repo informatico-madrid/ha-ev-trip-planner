@@ -1,0 +1,560 @@
+{
+  "layer4_security_defense": {
+    "PASS": false,
+    "phases_completed": [
+      "deterministic",
+      "dedup_confidence"
+    ],
+    "findings_deduplicated": 0,
+    "findings_false_positive": 0,
+    "findings_confirmed": 0,
+    "findings_uncertain": 0,
+    "bandit": {
+      "status": "PASS",
+      "priority": "required",
+      "duration_s": 0.43,
+      "findings_count": 14,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 14,
+        "info": 0
+      },
+      "metadata": {
+        "files_scanned": 5,
+        "metrics": {
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/__init__.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 164,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py": {
+            "CONFIDENCE.HIGH": 6,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 6,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 1233,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/config_flow.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 846,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/const.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 73,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/coordinator.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 259,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/dashboard.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 1039,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/definitions.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 84,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/diagnostics.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 64,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/emhass_adapter.py": {
+            "CONFIDENCE.HIGH": 1,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 1,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 2016,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/panel.py": {
+            "CONFIDENCE.HIGH": 1,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 1,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 181,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/presence_monitor.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 630,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/sensor.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 817,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/services.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 1358,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py": {
+            "CONFIDENCE.HIGH": 5,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 5,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 1932,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/utils.py": {
+            "CONFIDENCE.HIGH": 1,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 1,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 259,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/vehicle_controller.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 427,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/yaml_trip_storage.py": {
+            "CONFIDENCE.HIGH": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 49,
+            "nosec": 0,
+            "skipped_tests": 0
+          },
+          "_totals": {
+            "CONFIDENCE.HIGH": 14,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.HIGH": 0,
+            "SEVERITY.LOW": 14,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "loc": 11431,
+            "nosec": 0,
+            "skipped_tests": 0
+          }
+        }
+      },
+      "details": [
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 672,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 681,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 690,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 695,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 919,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/calculations.py",
+          "line": 1408,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B110",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/emhass_adapter.py",
+          "line": 945,
+          "message": "Try, Except, Pass detected.",
+          "category": "try_except_pass",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B110",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/panel.py",
+          "line": 65,
+          "message": "Try, Except, Pass detected.",
+          "category": "try_except_pass",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B110",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py",
+          "line": 1397,
+          "message": "Try, Except, Pass detected.",
+          "category": "try_except_pass",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py",
+          "line": 1556,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B101",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py",
+          "line": 1929,
+          "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+          "category": "assert_used",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B110",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py",
+          "line": 2359,
+          "message": "Try, Except, Pass detected.",
+          "category": "try_except_pass",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B110",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/trip_manager.py",
+          "line": 2426,
+          "message": "Try, Except, Pass detected.",
+          "category": "try_except_pass",
+          "cwe": "CWE-UNKNOWN",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        },
+        {
+          "rule_id": "B311",
+          "severity": "low",
+          "file": "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/custom_components/ev_trip_planner/utils.py",
+          "line": 43,
+          "message": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+          "category": "blacklist",
+          "cwe": "CWE-338",
+          "confidence_score": 0.5,
+          "llm_verdict": ""
+        }
+      ]
+    },
+    "safety": {
+      "status": "PASS",
+      "priority": "required",
+      "duration_s": 0.01,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "tool": "safety",
+        "vulnerabilities_found": 0
+      }
+    },
+    "gitleaks": {
+      "status": "PASS",
+      "priority": "required",
+      "duration_s": 2.72,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "secrets_found": 0
+      }
+    },
+    "semgrep": {
+      "status": "PASS",
+      "priority": "recommended",
+      "duration_s": 0.01,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "rules_loaded": 0,
+        "paths_scanned": []
+      }
+    },
+    "checkov": {
+      "status": "PASS",
+      "priority": "recommended",
+      "duration_s": 0.01,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "passed_checks": 0,
+        "failed_checks": 0,
+        "skipped_checks": 0
+      }
+    },
+    "deptry": {
+      "status": "PASS",
+      "priority": "recommended",
+      "duration_s": 0.06,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "missing_deps": 0,
+        "unused_deps": 0,
+        "transitive_deps": 0
+      }
+    },
+    "vulture": {
+      "status": "PASS",
+      "priority": "recommended",
+      "duration_s": 0.13,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {
+        "dead_code_items": 0
+      }
+    },
+    "trivy": {
+      "status": "PASS",
+      "priority": "optional",
+      "duration_s": 0.0,
+      "findings_count": 0,
+      "severity_counts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "metadata": {}
+    }
+  },
+  "summary_l4_additions": {
+    "security_total_findings": 14,
+    "security_unique_findings": 14,
+    "security_findings_by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 14,
+      "info": 0
+    },
+    "security_tools_run": [
+      "bandit",
+      "safety",
+      "gitleaks",
+      "semgrep",
+      "checkov",
+      "deptry",
+      "vulture",
+      "trivy"
+    ],
+    "security_tools_skipped": [],
+    "security_tools_error": []
+  }
+}
