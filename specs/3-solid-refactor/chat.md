@@ -494,3 +494,69 @@ RED state confirmed: `grep -q "FAILED\|FAIL"` → RED_PASS
 Files: tests/unit/test_calculations_imports.py
 
 Expected Response: ACK
+
+### [2026-05-10 23:45:00] coordinator → spec-executor
+**Task**: 1.14 [GREEN] Move core types/functions to core.py
+**Signal**: CONTINUE
+
+**Task**: 1.14 [GREEN] Extract core types and functions to `calculations/core.py`
+
+**Context**: The RED test (task 1.13) is complete and fails as expected. `core.py` is currently an empty stub. Need to populate it.
+
+**Do**:
+1. Create `custom_components/ev_trip_planner/calculations/core.py` with these 7 symbols:
+   - `BatteryCapacity` dataclass (from calculations_orig.py lines 54-116)
+   - `DEFAULT_T_BASE` (re-export from `custom_components.ev_trip_planner.const`)
+   - `calculate_dynamic_soc_limit` (lines 117-170)
+   - `calculate_day_index` (lines 171-213)
+   - `calculate_trip_time` (lines 214-300)
+   - `calculate_charging_rate` (lines 301-319)
+   - `calculate_soc_target` (lines 320-356)
+
+2. Add proper imports to core.py for dependencies:
+   - `from .const import DEFAULT_T_BASE`
+   - Other imports needed by the extracted functions (check each function's body)
+
+3. Update `calculations/__init__.py` to re-export the 7 core names from `.core` in addition to existing imports from calculations_orig
+
+4. Verify with RED test: `pytest tests/unit/test_calculations_core.py -v`
+
+**Files**: custom_components/ev_trip_planner/calculations/core.py, custom_components/ev_trip_planner/calculations/__init__.py
+**Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_calculations_core.py -v && echo GREEN_PASS`
+**Commit**: `refactor(spec3): extract core types and functions to calculations/core.py`
+
+Proceeding with delegation.
+
+### [2026-05-10 23:45:00] coordinator → spec-executor
+**Task**: 1.14 [GREEN] Move core types/functions to core.py
+**Signal**: CONTINUE
+
+**Task**: 1.14 [GREEN] Move core types/functions to `core.py`
+**Do**:
+1. Populate `calculations/core.py` with these 7 names extracted from `calculations_orig.py`:
+   - `BatteryCapacity` class (lines 55-115) — includes SOH_CACHE_TTL_SECONDS=300
+   - `calculate_dynamic_soc_limit` (lines 117-151) — uses DEFAULT_SOC_BASE from const
+   - `calculate_day_index` (lines 171-206) — uses DAYS_OF_WEEK (local tuple)
+   - `calculate_trip_time` (lines 214-293) — calls calculate_day_index internally
+   - `calculate_charging_rate` (lines 301-317) — pure function
+   - `calculate_soc_target` (lines 320-354) — uses calcular_energia_kwh from utils
+   - `DEFAULT_T_BASE` — import from .const
+
+2. core.py needs these imports:
+   - `from __future__ import annotations`
+   - `from dataclasses import dataclass`
+   - `from datetime import datetime, timedelta, timezone`
+   - `from typing import Any, Dict, Optional`
+   - `from .const import DEFAULT_T_BASE, DEFAULT_SOC_BASE, DEFAULT_SOC_BUFFER_PERCENT`
+   - `from .utils import calcular_energia_kwh`
+   - `DAYS_OF_WEEK` tuple defined in core.py (local constant)
+   - `SOH_CACHE_TTL_SECONDS = 300` defined in core.py
+
+3. Update `calculations/__init__.py` to add imports from `.core` and add the 7 names to `__all__`
+
+4. Run `pytest tests/unit/test_calculations_core.py -v` and verify PASS
+
+**Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_calculations_core.py -v && echo GREEN_PASS`
+**Commit**: `refactor(spec3): extract core types and functions to calculations/core.py`
+
+Proceeding with delegation.

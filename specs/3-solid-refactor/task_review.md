@@ -715,3 +715,32 @@ La corrección inline del verify command está justificada porque:
 ### Nota sobre anti-trampa
 
 El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. Esto es correcto — el test debe existir Y fallar antes de GREEN. El agente está siguiendo el workflow TDD correctamente.
+
+---
+
+### [task-1.13] RED: Test core.py re-exports core types and functions — PASS (RED confirmed)
+
+- **status**: PASS
+- **severity**: none
+- **reviewed_at**: 2026-05-10T23:31Z
+- **criterion_failed**: none — RED test correctly fails
+- **evidence**: |
+  Test file creado: `tests/unit/test_calculations_core.py` (1426 bytes)
+
+  Verify command ejecutado:
+  ```
+  PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_calculations_core.py -v 2>&1 | grep -q "FAILED\|FAIL" && echo "RED_PASS"
+  ```
+  Resultado: **RED_PASS**
+
+  Tests fallan como esperado:
+  ```
+  FAILED test_core_re_exports_types - ImportError: cannot import name 'BatteryCapacity'
+  FAILED test_core_re_exports_functions - ImportError: cannot import name 'calculate_charging_rate'
+  ```
+
+  El test busca funciones en `calculations.core`, pero `core.py` es un stub vacío. Esto es correcto para una fase RED.
+
+- **review_submode**: post-task
+- **resolved_at**: 2026-05-10T23:31Z
+

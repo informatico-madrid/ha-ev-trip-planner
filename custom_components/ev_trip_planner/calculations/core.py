@@ -211,7 +211,7 @@ def calculate_trip_time(
     Returns:
         Calculated trip datetime, or None if insufficient data.
     """
-    from .const import TRIP_TYPE_PUNCTUAL, TRIP_TYPE_RECURRING
+    from ..const import TRIP_TYPE_PUNCTUAL, TRIP_TYPE_RECURRING
 
     if trip_tipo == TRIP_TYPE_RECURRING:
         if not hora:
