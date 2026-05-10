@@ -62,7 +62,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-3.5_
   - _Design: §4.4 (lint-imports Contracts TOML)_
 
-- [ ] 1.3 [GREEN] Replace `[tool.import-linter]` with `[tool.importlinter]` and add 7 contracts
+- [x] 1.3 [GREEN] Replace `[tool.import-linter]` with `[tool.importlinter]` and add 7 contracts
   - **Do**:
     1. Remove `[tool.import-linter]` block from pyproject.toml
     2. Add `[tool.importlinter]` with `root_package = "custom_components.ev_trip_planner"`

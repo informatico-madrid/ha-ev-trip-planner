@@ -158,7 +158,7 @@ layer3b:
 	@echo "  → Generating SOLID Tier B context..."
 	@.venv/bin/python .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
 	@echo "  → Generating Antipatterns Tier B context..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/ tests/
 	@echo "  → Run BMAD Party Mode for consensus validation"
 	@echo "     (Requires BMAD integration — context JSON files generated)"
 	@echo "=== Layer 3B Complete ==="
@@ -234,7 +234,8 @@ unused-deps:
 
 import-check:
 	@echo "Checking import organization and style..."
-	ruff check . --select I
+	.venv/bin/ruff check --select I custom_components/ tests/
+	.venv/bin/lint-imports --config pyproject.toml
 
 refurb:
 	@echo "Running refurb for Python modernization suggestions..."
