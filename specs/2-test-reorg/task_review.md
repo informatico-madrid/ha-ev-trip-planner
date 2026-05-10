@@ -707,3 +707,31 @@ Review entry template:
 - review_submode: post-task
 - resolved_at: <!-- spec-executor fills this -->
 
+
+### [task-3.1] Update pyproject.toml testpaths and mutmut tests_dir
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T06:00:20Z
+- criterion_failed: none
+- evidence: |
+  pyproject.toml testpaths = ["tests/unit", "tests/integration"] ✓
+  pyproject.toml mutmut tests_dir = ["tests/unit/", "tests/integration/"] ✓
+  .venv/bin/python -m pytest tests/unit tests/integration → 1822 passed, 100% coverage
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task
+
+### [task-3.2] Update Makefile test targets (7 targets)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T06:00:25Z
+- criterion_failed: none
+- evidence: |
+  test: pytest tests/unit tests/integration -v --tb=short ✓
+  test-cover: pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-fail-under=100 ✓
+  7/7 targets updated from "pytest tests" to "pytest tests/unit tests/integration" ✓
+  make test-cover: 1822 passed, 1 skipped, 100% coverage ✓
+  Commit: 46ff1ab
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task

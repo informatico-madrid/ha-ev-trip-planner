@@ -106,7 +106,7 @@ e2e-soc-debug:
 
 lint:
 	ruff check .
-	pylint custom_components/ tests/
+	pylint custom_components/ tests/unit/ tests/integration/
 
 mypy:
 	@echo "⚠️  DEPRECATED: mypy target is deprecated. Use 'make typecheck' instead (runs pyright)."
@@ -234,14 +234,14 @@ security-gitleaks:
 
 security-semgrep:
 	@echo "Running Semgrep static analysis..."
-	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/
+	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/unit/ tests/integration/
 
 # ============================================================================
 # Dead Code and Unused Dependencies
 # ============================================================================
 dead-code:
 	@echo "Running vulture dead code detector..."
-	.venv/bin/vulture custom_components/ tests/ --min-confidence 80
+	.venv/bin/vulture custom_components/ tests/unit/ tests/integration/ --min-confidence 80
 
 unused-deps:
 	@echo "Running deptry for unused dependencies..."
@@ -253,7 +253,7 @@ import-check:
 
 refurb:
 	@echo "Running refurb for Python modernization suggestions..."
-	.venv/bin/refurb custom_components/ tests/
+	.venv/bin/refurb custom_components/ tests/unit/ tests/integration/
 
 mutation:
 	@echo "Running mutation testing..."
