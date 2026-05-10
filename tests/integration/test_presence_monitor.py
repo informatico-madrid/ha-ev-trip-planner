@@ -16,27 +16,6 @@ from custom_components.ev_trip_planner.const import (
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
 
-@pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance with required attributes for Store."""
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}  # Required by ha_storage.Store
-    hass.states = Mock()
-    hass.states.async_set = MagicMock()
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    # Mock hass.bus for async_track_state_change_event
-    hass.bus = Mock()
-    hass.bus.async_listen = Mock()
-
-    # Mock async_run_hass_job for debounce
-    async def mock_async_run_hass_job(job, *_args, **_kwargs):
-        return None
-
-    hass.async_run_hass_job = mock_async_run_hass_job
-    return hass
-
-
 @pytest.fixture(autouse=True)
 def mock_store_class():
     """Fixture to patch the Store class for testing (autouse for all tests)."""

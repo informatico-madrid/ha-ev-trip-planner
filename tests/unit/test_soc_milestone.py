@@ -8,15 +8,6 @@ import pytest
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance."""
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.config.config_dir = "/tmp/test_config"
-    return hass
 
 
 @pytest.fixture

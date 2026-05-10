@@ -13,16 +13,6 @@ from homeassistant.util import dt as dt_util
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
-@pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance."""
-    hass = MagicMock()
-    # Set up config_entries mock
-    mock_entry = Mock()
-    mock_entry.entry_id = "test_vehicle"
-    hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
-    return hass
-
 
 @pytest.fixture
 def trip_manager(mock_hass):

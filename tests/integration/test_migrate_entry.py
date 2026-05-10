@@ -125,13 +125,6 @@ class FakeConfigEntry:
         return self.entry_id
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock HomeAssistant."""
-    hass = MagicMock()
-    hass.data = {}
-    return hass
-
 
 @pytest.fixture
 def mock_registry(mock_hass):

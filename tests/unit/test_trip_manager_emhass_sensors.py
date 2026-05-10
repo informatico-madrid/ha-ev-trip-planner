@@ -28,32 +28,6 @@ def vehicle_id() -> str:
     return "test_vehicle"
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock hass with config_entries and data."""
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_vehicle"  # Must match vehicle_id
-    mock_entry.data = {}  # Default empty data - no charging power
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.data = {}
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    return hass
-
-
-@pytest.fixture
-def mock_hass_with_charging_power():
-    """Create a mock hass with charging power configured."""
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_vehicle"  # Must match vehicle_id
-    mock_entry.data = {"charging_power": 11.0}
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.data = {}
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    return hass
 
 
 @pytest.fixture

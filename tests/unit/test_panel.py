@@ -24,13 +24,6 @@ def mock_frontend_module():
         yield mock
 
 
-@pytest.fixture
-def mock_hass(mock_panel_module):
-    """Create a mock Home Assistant instance."""
-    hass = MagicMock()
-    hass.data = {}
-    hass.config.components = {"panel_custom"}  # Simulate panel_custom is available
-    return hass
 
 
 class TestAsyncRegisterPanel:
@@ -38,18 +31,18 @@ class TestAsyncRegisterPanel:
 
     @pytest.mark.asyncio
     async def test_register_panel_success(
-        self, mock_hass, mock_panel_module, mock_frontend_module
+        self, mock_hass_panel, mock_panel_module, mock_frontend_module
     ):
         """Test successful panel registration."""
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
 
         # Ensure hass.config.components is properly mocked
-        mock_hass.config.components = {"panel_custom"}
+        mock_hass_panel.config.components = {"panel_custom"}
 
         # Call the function
         result = await panel.async_register_panel(
-            mock_hass,
+            mock_hass_panel,
             vehicle_id,
             vehicle_name,
         )
@@ -59,18 +52,18 @@ class TestAsyncRegisterPanel:
         mock_panel_module.async_register_panel.assert_called_once()
 
         # Verify mapping stored
-        assert panel.VEHICLE_PANEL_MAPPING_KEY in mock_hass.data
-        mapping = mock_hass.data[panel.VEHICLE_PANEL_MAPPING_KEY]
+        assert panel.VEHICLE_PANEL_MAPPING_KEY in mock_hass_panel.data
+        mapping = mock_hass_panel.data[panel.VEHICLE_PANEL_MAPPING_KEY]
         assert vehicle_id in mapping
 
     @pytest.mark.asyncio
     async def test_register_panel_multiple_vehicles(
-        self, mock_hass, mock_panel_module, mock_frontend_module
+        self, mock_hass_panel, mock_panel_module, mock_frontend_module
     ):
         """Test registering panels for multiple vehicles."""
         # Register first vehicle
         result1 = await panel.async_register_panel(
-            mock_hass,
+            mock_hass_panel,
             "vehicle_1",
             "Vehicle 1",
         )
@@ -78,25 +71,25 @@ class TestAsyncRegisterPanel:
 
         # Register second vehicle
         result2 = await panel.async_register_panel(
-            mock_hass,
+            mock_hass_panel,
             "vehicle_2",
             "Vehicle 2",
         )
         assert result2 is True
 
         # Verify both mappings exist
-        mapping = mock_hass.data[panel.VEHICLE_PANEL_MAPPING_KEY]
+        mapping = mock_hass_panel.data[panel.VEHICLE_PANEL_MAPPING_KEY]
         assert len(mapping) == 2
         assert "vehicle_1" in mapping
         assert "vehicle_2" in mapping
 
     @pytest.mark.asyncio
     async def test_register_panel_exception(
-        self, mock_hass, mock_panel_module, mock_frontend_module
+        self, mock_hass_panel, mock_panel_module, mock_frontend_module
     ):
         """Test handling of exceptions during registration."""
         # Ensure hass.config.components is properly mocked
-        mock_hass.config.components = {"panel_custom"}
+        mock_hass_panel.config.components = {"panel_custom"}
 
         # Mock exception - make it async
         async def raise_error(*args, **kwargs):
@@ -105,7 +98,7 @@ class TestAsyncRegisterPanel:
         mock_panel_module.async_register_panel.side_effect = raise_error
 
         result = await panel.async_register_panel(
-            mock_hass,
+            mock_hass_panel,
             "test_vehicle",
             "Test Vehicle",
         )
@@ -117,26 +110,15 @@ class TestAsyncRegisterPanel:
 class TestAsyncUnregisterPanel:
     """Tests for async_unregister_panel function."""
 
-    @pytest.fixture
-    def mock_hass_with_mapping(self, mock_frontend_module):
-        """Create a mock HA with existing panel mapping."""
-        hass = MagicMock()
-        hass.data = {
-            panel.VEHICLE_PANEL_MAPPING_KEY: {
-                "test_vehicle": "ev-trip-planner-test_vehicle",
-            }
-        }
-        return hass
-
     @pytest.mark.asyncio
     async def test_unregister_panel_success(
-        self, mock_hass_with_mapping, mock_frontend_module
+        self, mock_hass_panel_with_mapping, mock_frontend_module
     ):
         """Test successful panel unregistration."""
         vehicle_id = "test_vehicle"
 
         result = await panel.async_unregister_panel(
-            mock_hass_with_mapping,
+            mock_hass_panel_with_mapping,
             vehicle_id,
         )
 
@@ -145,12 +127,12 @@ class TestAsyncUnregisterPanel:
         mock_frontend_module.async_remove_panel.assert_called_once()
 
         # Verify mapping removed
-        mapping = mock_hass_with_mapping.data[panel.VEHICLE_PANEL_MAPPING_KEY]
+        mapping = mock_hass_panel_with_mapping.data[panel.VEHICLE_PANEL_MAPPING_KEY]
         assert vehicle_id not in mapping
 
     @pytest.mark.asyncio
     async def test_unregister_panel_exception(
-        self, mock_hass_with_mapping, mock_frontend_module
+        self, mock_hass_panel_with_mapping, mock_frontend_module
     ):
         """Test handling of exceptions during unregistration."""
 
@@ -161,7 +143,7 @@ class TestAsyncUnregisterPanel:
         mock_frontend_module.async_remove_panel.side_effect = raise_error
 
         result = await panel.async_unregister_panel(
-            mock_hass_with_mapping,
+            mock_hass_panel_with_mapping,
             "test_vehicle",
         )
 

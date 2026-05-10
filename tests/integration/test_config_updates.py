@@ -37,17 +37,6 @@ def mock_store():
 
 
 @pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance."""
-    hass = MagicMock()
-    hass.config_entries = MagicMock()
-    hass.bus = MagicMock()
-    hass.states = MagicMock()
-    hass.states.async_remove = MagicMock(return_value=None)
-    return hass
-
-
-@pytest.fixture
 def mock_entry():
     """Create a mock config entry."""
     entry = MagicMock()

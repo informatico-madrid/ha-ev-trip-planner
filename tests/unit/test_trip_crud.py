@@ -29,52 +29,8 @@ def vehicle_id() -> str:
     return "tesla_model_3"
 
 
-@pytest.fixture
-def mock_hass_storage():
-    """Create a mock Home Assistant instance with storage (Supervisor environment).
-
-    This fixture creates a proper mock hass with storage support for testing
-    CRUD operations that require persistence.
-    """
-    hass = MagicMock()
-
-    # Mock config_entries to support entry_id lookup
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_config_entry_123"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # Mock storage for Supervisor environment
-    hass.storage = MagicMock()
-    hass.storage.async_read = MagicMock(return_value=None)
-    hass.storage.async_write_dict = MagicMock()
-
-    # Mock config directory
-    hass.config.config_dir = "/tmp/test_config"
-
-    return hass
 
 
-@pytest.fixture
-def mock_hass_no_storage():
-    """Create a mock hass WITHOUT storage (Container environment).
-
-    This fixture simulates the Container environment where hass.storage is None.
-    CRUD operations fall back to YAML persistence in this case.
-    """
-    hass = MagicMock()
-
-    # Mock config_entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_config_entry_123"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # NO storage - simulates Container environment
-    hass.storage = None
-
-    # Mock config directory
-    hass.config.config_dir = "/tmp/test_config_no_storage"
-
-    return hass
 
 
 @pytest.fixture

@@ -42,23 +42,6 @@ class MockRuntimeData:
 
 
 @pytest.fixture
-def mock_hass():
-    """Create a mock hass instance."""
-    hass = MagicMock()
-    hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
-    hass.config.time_zone = "UTC"
-    hass.data = {}
-
-    # Mock services
-    hass.services = MagicMock()
-    hass.services.async_call = AsyncMock()
-    hass.services.has_service = MagicMock(return_value=True)
-
-    return hass
-
-
-@pytest.fixture
 def mock_coordinator():
     """Create a mock TripPlannerCoordinator."""
     coordinator = MagicMock()

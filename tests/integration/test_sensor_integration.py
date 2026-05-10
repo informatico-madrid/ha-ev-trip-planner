@@ -532,16 +532,6 @@ class TestTripPlannerSensorExtraStateAttributes:
 class TestSensorAsyncUpdateTripSensor:
     """Tests for sensor.py lines 532-543: async_update_trip_sensor branches."""
 
-    @pytest.fixture
-    def mock_hass_and_coordinator(self):
-        """Create mock hass and coordinator."""
-        hass = MagicMock()
-        hass.services = MagicMock()
-        hass.config_entries = MagicMock()
-        coordinator = MagicMock()
-        coordinator.data = None
-        return hass, coordinator
-
     @pytest.mark.asyncio
     async def test_async_update_trip_sensor_punctual(self, mock_hass_and_coordinator):
         """async_update_trip_sensor with punctual trip finds existing entity and returns True."""

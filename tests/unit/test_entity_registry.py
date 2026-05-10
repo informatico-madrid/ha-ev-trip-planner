@@ -48,6 +48,15 @@ def config_entry():
     )
 
 
+class MockRegistryEntry:
+    """Registry entry for entity registry tests."""
+
+    def __init__(self, entity_id, unique_id, config_entry_id):
+        self.entity_id = entity_id
+        self.unique_id = unique_id
+        self.config_entry_id = config_entry_id
+
+
 @pytest.fixture
 def mock_hass(config_entry):
     """Create a mock HomeAssistant with entity registry."""
@@ -61,14 +70,12 @@ def mock_hass(config_entry):
         def __init__(self, hass_mock):
             self.hass_mock = hass_mock
             self.entries = {}
-            # Add entities attribute with get_entries_for_config_entry_id method
             self.entities = self
 
         def async_get(self, hass_instance=None):
             return self
 
         def async_get_or_create(self, *args, **kwargs):
-            # Create a mock entry and store it
             suggested_object_id = kwargs.get("suggested_object_id", "unknown")
             unique_id = kwargs.get("unique_id", "")
             entity_id = f"sensor.{suggested_object_id}"
@@ -80,25 +87,15 @@ def mock_hass(config_entry):
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
         def get_entries_for_config_entry_id(self, entry_id):
-            """Mock method for entity_registry.py compatibility."""
             return [e for e in self.entries.values() if e.config_entry_id == entry_id]
 
         def async_remove(self, entity_id):
-            """EntityRegistry.async_remove is @callback, NOT async def."""
             if entity_id in self.entries:
                 del self.entries[entity_id]
 
-    class MockRegistryEntry:
-        def __init__(self, entity_id, unique_id, config_entry_id):
-            self.entity_id = entity_id
-            self.unique_id = unique_id
-            self.config_entry_id = config_entry_id
-
-    # Create mock registry
     mock_registry = MockRegistry(hass)
     hass.entity_registry = mock_registry
 
-    # Mock hass.data for runtime storage
     tm = MagicMock()
     tm.async_get_recurring_trips = AsyncMock(return_value=[])
     tm.async_get_punctual_trips = AsyncMock(return_value=[])
@@ -122,11 +119,9 @@ def mock_hass(config_entry):
         }
     }
 
-    # Set up entry.runtime_data with the mock objects
     config_entry.runtime_data.trip_manager = tm
     config_entry.runtime_data.coordinator = coordinator
 
-    # Make async_unload_entry work and async_create_trip_sensor work
     hass.config_entries = MagicMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.config_entries.async_entries = MagicMock(return_value=[config_entry])

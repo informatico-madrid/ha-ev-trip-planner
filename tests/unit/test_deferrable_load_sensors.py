@@ -22,32 +22,6 @@ from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance with config entry."""
-    hass = Mock()
-    hass.data = {}
-
-    # Mock config entry
-    mock_entry = Mock()
-    mock_entry.data = {
-        "vehicle_name": "test_vehicle",
-        "battery_capacity_kwh": 50.0,
-        "charging_power_kw": 3.6,
-        "planning_horizon_days": 7,
-    }
-    mock_entry.entry_id = "test_entry_id"
-
-    # Mock async_get_entry to return the entry
-    hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
-
-    # Mock async_entries to return a list of config entries
-    def _async_entries(domain=None):
-        return [mock_entry]
-
-    hass.config_entries.async_entries = _async_entries
-
-    return hass
 
 
 @pytest.fixture

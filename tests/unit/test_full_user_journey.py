@@ -34,101 +34,6 @@ from custom_components.ev_trip_planner.const import (
 # =============================================================================
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock hass instance for testing."""
-    hass = MagicMock()
-    hass.data = {}
-
-    # Mock config_entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry_001"
-    mock_entry.data = {
-        CONF_VEHICLE_NAME: "tesla_model_3",
-        CONF_BATTERY_CAPACITY: 75.0,
-        CONF_CONSUMPTION: 0.15,
-        CONF_CHARGING_POWER: 11.0,
-    }
-    # Set up entry.runtime_data with EVTripRuntimeData structure (Phase 4 pattern)
-    mock_entry.runtime_data = EVTripRuntimeData(
-        coordinator=MagicMock(),
-        trip_manager=None,
-    )
-
-    def _async_entries(domain=None):
-        return [mock_entry]
-
-    def _async_get_entry(entry_id):
-        if entry_id == "test_entry_001":
-            return mock_entry
-        return None
-
-    hass.config_entries = MagicMock()
-    hass.config_entries.async_entries = _async_entries
-    hass.config_entries.async_get_entry = _async_get_entry
-
-    # Mock storage for persistence
-    hass.storage = MagicMock()
-    hass.storage.async_read = AsyncMock(return_value=None)
-    hass.storage.async_write_dict = AsyncMock()
-
-    # Store services registry at module level so handlers can access it
-    services_registry = {}
-    hass._services_registry = services_registry
-
-    class Services:
-        def async_register(
-            self, domain, name, handler, schema=None, supports_response=None
-        ):
-            if domain == DOMAIN:
-                services_registry[name] = handler
-
-        async def async_call(
-            self, domain, service, data=None, blocking=True, return_response=False
-        ):
-            if domain == DOMAIN and service in services_registry:
-                handler = services_registry[service]
-                call = MagicMock()
-                call.data = data or {}
-                # Execute handler - it's an async function, so it returns a coroutine
-                coro = handler(call)
-                if asyncio.iscoroutine(coro):
-                    result = await coro
-                    # Return the result if return_response=True
-                    if return_response:
-                        return result
-                    # Otherwise, store it in call.return_data for backward compatibility
-                    call.return_data = result
-                return call.return_data
-            return None
-
-        def has_service(self, domain, service):
-            if domain == DOMAIN:
-                return service in services_registry
-            return False
-
-        def async_services(self):
-            return {DOMAIN: services_registry}
-
-    hass.services = Services()
-
-    # Mock async_run_hass_job
-    def _mock_async_run_hass_job(job, *args, **kwargs):
-        if job is None:
-            return None
-        job_target = job.target if hasattr(job, "target") else job
-        if asyncio.iscoroutinefunction(job_target):
-            return job_target(*args, **kwargs)
-        else:
-
-            async def _wrapper():
-                return job_target(*args, **kwargs)
-
-            return _wrapper()
-
-    hass.async_run_hass_job = _mock_async_run_hass_job
-
-    return hass
 
 
 # =============================================================================
@@ -222,7 +127,7 @@ class TestFullUserJourney:
     @pytest.mark.asyncio
     async def test_full_journey_create_vehicle_create_trip_view_update_delete(
         self,
-        mock_hass: MagicMock,
+        mock_hass_full_journey: MagicMock,
     ):
         """Test complete user journey: create vehicle → create trip → view → update → delete.
 
@@ -244,7 +149,7 @@ class TestFullUserJourney:
         manager = _create_mock_manager()
 
         # Get the mock entry from config_entries
-        mock_entry = mock_hass.config_entries.async_get_entry(entry_id)
+        mock_entry = mock_hass_full_journey.config_entries.async_get_entry(entry_id)
 
         # _get_manager looks for trip_manager in entry.runtime_data
         mock_entry.runtime_data.trip_manager = manager
@@ -257,10 +162,10 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 2: Register services
         # =====================================================================
-        register_services(mock_hass)
+        register_services(mock_hass_full_journey)
 
         # Verify services are available
-        services = mock_hass.services.async_services()
+        services = mock_hass_full_journey.services.async_services()
         ev_services = services.get(DOMAIN, {})
 
         assert "trip_create" in ev_services
@@ -271,7 +176,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 3: Create a recurring trip
         # =====================================================================
-        await mock_hass.services.async_call(
+        await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_create",
             {
@@ -298,7 +203,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 4: View trips
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_list",
             {"vehicle_id": vehicle_id},
@@ -330,7 +235,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 5: Update the trip
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_update",
             {
@@ -349,7 +254,7 @@ class TestFullUserJourney:
         assert manager.async_update_trip.called
 
         # Verify the trip was updated by listing trips again
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_list",
             {"vehicle_id": vehicle_id},
@@ -369,7 +274,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 6: Create a punctual trip
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_create",
             {
@@ -390,7 +295,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 7: Verify both trips exist
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_list",
             {"vehicle_id": vehicle_id},
@@ -411,7 +316,7 @@ class TestFullUserJourney:
         punctual_trip_id = punctual_trips[0].get("id")
         assert punctual_trip_id is not None
 
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "delete_trip",
             {
@@ -428,7 +333,7 @@ class TestFullUserJourney:
         assert (kwargs.get("trip_id") or args[0]) == punctual_trip_id
 
         # Verify the trip was deleted
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_list",
             {"vehicle_id": vehicle_id},
@@ -442,7 +347,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 9: Delete the remaining recurring trip
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "delete_trip",
             {
@@ -461,7 +366,7 @@ class TestFullUserJourney:
         # =====================================================================
         # STEP 10: Verify all trips are deleted
         # =====================================================================
-        result = await mock_hass.services.async_call(
+        result = await mock_hass_full_journey.services.async_call(
             DOMAIN,
             "trip_list",
             {"vehicle_id": vehicle_id},

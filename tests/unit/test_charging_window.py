@@ -47,29 +47,6 @@ def vehicle_id() -> str:
     return "morgan"
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance with storage (Supervisor environment)."""
-    hass = MagicMock()
-    # Mock config_entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # Provide mocked loop for Store API
-    mock_loop = MagicMock()
-    mock_loop.create_future = MagicMock(return_value=None)
-    hass.loop = mock_loop
-
-    # Provide mocked storage so HA Store API can work in tests
-    hass.storage = MagicMock()
-    hass.storage.async_read = AsyncMock(return_value=None)
-    hass.storage.async_write_dict = AsyncMock(return_value=True)
-
-    # Mock config directory
-    hass.config.config_dir = "/tmp/test_config"
-
-    return hass
 
 
 @pytest.fixture

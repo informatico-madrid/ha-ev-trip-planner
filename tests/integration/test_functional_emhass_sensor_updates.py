@@ -20,24 +20,6 @@ from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 
 
 @pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance."""
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}
-    hass.states = Mock()
-    hass.bus = Mock()
-    hass.bus.async_listen = Mock()
-    hass.state = CoreState.running
-
-    # Configurar hass.config para PresenceMonitor
-    config_mock = Mock()
-    config_mock.config_dir = "/tmp/homeassistant"
-    hass.config = config_mock
-
-    return hass
-
-
-@pytest.fixture
 def mock_emhass_adapter():
     """Create mock EMHASS adapter with mutable cache state.
 

@@ -22,14 +22,6 @@ import pytest
 from homeassistant.core import HomeAssistant
 
 
-@pytest.fixture
-def mock_hass():
-    """Create mock Home Assistant instance."""
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}
-    hass.states = Mock()
-    return hass
-
 
 @pytest.fixture
 def mock_trip_manager():

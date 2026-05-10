@@ -21,34 +21,6 @@ def vehicle_id() -> str:
     return "chispitas"
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock hass with config_entries, data, and storage."""
-
-    hass = MagicMock()
-    # Mock config_entries with async_entries returning list of entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry_123"
-    # Use a dict for data, and a MagicMock that proxies to the dict
-    data_dict = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
-    mock_entry.data = MagicMock()
-    mock_entry.data.get = MagicMock(
-        side_effect=lambda key, default=None: data_dict.get(key, default)
-    )
-    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    # Mock hass.data with proper namespace (legacy)
-    hass.data = {}
-    # Mock async_add_executor_job - required by HA Store API
-    hass.async_add_executor_job = AsyncMock(return_value=None)
-
-    # Mock config
-    hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
-
-    return hass
-
-
 @pytest.mark.asyncio
 async def test_async_setup_initializes_empty_storage(mock_hass, vehicle_id):
     """Test that async_setup initializes with empty trips when no data exists."""

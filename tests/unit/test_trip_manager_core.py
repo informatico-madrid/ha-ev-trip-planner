@@ -24,48 +24,8 @@ def vehicle_id() -> str:
     return "morgan"
 
 
-@pytest.fixture
-def mock_hass_no_storage():
-    """Create a mock hass WITH storage for testing.
-
-    The production code requires hass.storage to use HA Store API.
-    This fixture provides a mocked storage so tests don't hit real storage.
-    """
-
-    hass = MagicMock()
-    # Mock config_entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # Provide mocked loop for Store API
-    mock_loop = MagicMock()
-    mock_loop.create_future = MagicMock(return_value=None)
-    hass.loop = mock_loop
-
-    # Provide mocked storage so HA Store API can work in tests
-    # This is needed because production code uses ha_storage.Store which requires hass.storage
-    hass.storage = MagicMock()
-    hass.storage.async_read = AsyncMock(return_value=None)
-    hass.storage.async_write_dict = AsyncMock(return_value=True)
-
-    return hass
 
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance with storage (Supervisor environment)."""
-
-    hass = MagicMock()
-    # Mock config_entries
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    # Mock config directory
-    hass.config.config_dir = "/tmp/test_config"
-
-    return hass
 
 
 @pytest.fixture
@@ -697,23 +657,6 @@ class TestChargingWindowCalculation:
         assert result["es_suficiente"] is True
 
 
-@pytest.fixture
-def mock_hass_with_storage():
-    """Create a mock hass with storage for testing error paths."""
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-
-    mock_loop = MagicMock()
-    mock_loop.create_future = MagicMock(return_value=None)
-    hass.loop = mock_loop
-
-    hass.storage = MagicMock()
-    hass.storage.async_read = AsyncMock(return_value=None)
-    hass.storage.async_write_dict = AsyncMock(return_value=True)
-
-    return hass
 
 
 @pytest.mark.asyncio
