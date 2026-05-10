@@ -53,7 +53,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: NFR-7.B.1, NFR-8_
   - _Design: §7 (Per-Decomposition Validation Gate)_
 
-- [ ] 1.2 [RED] Test: lint-imports uses correct `[tool.importlinter]` key
+- [x] 1.2 [RED] Test: lint-imports uses correct `[tool.importlinter]` key
   - **Do**: Write a shell-test asserting that pyproject.toml contains `[tool.importlinter]` (no hyphen). Current file has `[tool.import-linter]` which is ignored.
   - **Files**: tests/unit/test_importlinter_config.py
   - **Done when**: Test exists and fails (current config uses hyphenated key)
