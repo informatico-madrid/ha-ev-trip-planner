@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.utils import validate_hora as pure_validate_hora
 from tests.helpers import FakeTripStorage, create_mock_ev_config_entry
 
 # =============================================================================
@@ -217,12 +218,10 @@ class TestAsyncCalcularEnergiaNecesaria:
 class TestTripManagerValidation:
     """Tests for TripManager validation and sanitization logic."""
 
-    @pytest.mark.asyncio
-    async def test_validate_hora_raises_on_invalid_format(self) -> None:
+    def test_validate_hora_raises_on_invalid_format(self) -> None:
         """Invalid hora format raises ValueError."""
-        tm = TripManager(MagicMock(), "veh")
         with pytest.raises(ValueError):
-            tm._validate_hora("99:99")
+            pure_validate_hora("99:99")
 
     def test_sanitize_recurring_trips_removes_invalid_hours(self) -> None:
         """Trips with invalid hora values are removed during sanitization."""

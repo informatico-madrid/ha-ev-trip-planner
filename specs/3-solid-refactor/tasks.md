@@ -113,14 +113,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §2 (ISP mechanism)_
 
 
-- [ ] 1.7 [P] DRY: Consolidate `validate_hora` into single canonical location
+- [x] 1.7 [P] DRY: Consolidate `validate_hora` into single canonical location
   - **Do**:
     1. Identify all duplicate `validate_hora` / `pure_validate_hora` copies
     2. Remove duplicates from god modules, import from `utils.py`
     3. Verify behavior unchanged by running affected tests
   - **Files**: custom_components/ev_trip_planner/*.py (duplicate removal), utils.py
   - **Done when**: `validate_hora` exists in exactly one location (`utils.py` as `pure_validate_hora`)
-  - **Verify**: `grep -rc 'validate_hora\|pure_validate_hora' custom_components/ev_trip_planner/ | grep -v 'utils.py' | grep -v '__pycache__' | grep -v ':0$' | wc -l | grep -q '^0$' && echo GREEN_PASS`
+  - **Verify**: `grep -rn 'def validate_hora\|def pure_validate_hora' custom_components/ev_trip_planner/ --include='*.py' | grep -v 'utils.py' | grep -v '__pycache__' | grep -v '^Binary' | wc -l | grep -q '^0$' && echo GREEN_PASS`
   - **Commit**: `fix(spec3): consolidate validate_hora into utils.py canonical location`
   - _Requirements: AC-5.1, NFR-2.1_
   - _Design: §6.2 Step 0.5 (DRY consolidation pre-flight)_

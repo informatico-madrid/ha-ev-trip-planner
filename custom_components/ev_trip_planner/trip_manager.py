@@ -136,20 +136,6 @@ class TripManager:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
 
-    @staticmethod
-    def _validate_hora(hora: str) -> None:
-        """Valida que una cadena de hora tenga el formato HH:MM y valores válidos.
-
-        Delegates to pure utils.validate_hora for testability.
-
-        Args:
-            hora: Cadena de hora en formato HH:MM.
-
-        Raises:
-            ValueError: Si el formato no es HH:MM o los valores están fuera de rango.
-        """
-        pure_validate_hora(hora)
-
     def _parse_trip_datetime(
         self, trip_datetime: datetime | str, allow_none: bool = False
     ) -> datetime | None:
@@ -703,7 +689,7 @@ class TripManager:
         )
         # Validate hora format before storing
         hora = kwargs.get("hora", "")
-        self._validate_hora(hora)
+        pure_validate_hora(hora)
 
         # Generate trip ID using the new format: rec_{day}_{random}
         if "trip_id" in kwargs:
