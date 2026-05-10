@@ -607,6 +607,50 @@ def mock_hass_create_manager_error():
 
 
 @pytest.fixture
+def mock_hass_manager_setup_error():
+    """trip_manager is None in runtime_data so _get_manager creates a new one.
+
+    The new manager's async_setup raises, exercising the error path in
+    _get_manager where the factory catches the exception and logs it.
+    """
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+
+    hass = _build_services_hass()
+    # Override: set trip_manager to None so _get_manager enters the "create new" path
+    mock_entry = hass.config_entries.async_get_entry("entry_test")
+    mock_entry.runtime_data.trip_manager = None
+
+    # Patch TripManager so async_setup raises when _get_manager creates one
+    with patch.object(
+        TripManager,
+        "async_setup",
+        side_effect=RuntimeError("Storage read failed"),
+    ):
+        yield hass
+
+
+@pytest.fixture
+def mock_hass_manager_setup_ok():
+    """trip_manager is None but async_setup succeeds, exercising line 752.
+
+    _get_manager creates a new manager and calls async_setup successfully,
+    covering the log line after async_setup returns.
+    """
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+
+    hass = _build_services_hass()
+    # Override: set trip_manager to None so _get_manager enters the "create new" path
+    mock_entry = hass.config_entries.async_get_entry("entry_test")
+    mock_entry.runtime_data.trip_manager = None
+
+    # Patch TripManager so async_setup succeeds
+    with patch.object(TripManager, "async_setup", return_value=None):
+        yield hass
+
+
+@pytest.fixture
 def mock_hass_update_km_kwh():
     """Manager configured for km/kwh update."""
     return _build_services_hass({

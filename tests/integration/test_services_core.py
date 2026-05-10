@@ -815,16 +815,18 @@ class TestHandleTripCreateManagerError:
 
     @pytest.mark.asyncio
     async def test_handle_trip_create_catches_manager_setup_error(
-        self, mock_hass_create_manager_error
+        self, mock_hass_manager_setup_error
     ):
         """handle_trip_create catches RuntimeError from manager async_setup.
 
-        Tests the error path at lines 758-764 where async_setup raises in _get_manager,
-        but the error is logged and manager is still returned.
+        Tests the error path at lines 738-770 where _get_manager creates a new
+        manager whose async_setup raises, then catches and logs it.
+        Uses mock_hass_manager_setup_error where runtime_data.trip_manager is None,
+        forcing _get_manager into the "create new" code path.
         """
         from custom_components.ev_trip_planner.__init__ import register_services
 
-        hass = mock_hass_create_manager_error
+        hass = mock_hass_manager_setup_error
         register_services(hass)
 
         handler = hass.services.registry["trip_create"]
@@ -841,6 +843,21 @@ class TestHandleTripCreateManagerError:
         # Should catch the setup error and log it, then continue
         # Manager is returned with empty storage after setup error
         await handler(call)
+
+    @pytest.mark.asyncio
+    async def test_handle_trip_create_manager_setup_ok(
+        self, mock_hass_manager_setup_ok
+    ):
+        """_get_manager creates new manager and calls async_setup successfully.
+
+        Tests lines 738-752 where _get_manager creates a new manager and
+        the successful log after async_setup is called.
+        Uses mock_hass_manager_setup_ok where runtime_data.trip_manager is None.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        hass = mock_hass_manager_setup_ok
+        await svcs._get_manager(hass, "test_vehicle")
 
 
 # =============================================================================
@@ -2040,6 +2057,47 @@ class TestAsyncUnloadEntryCleanupEntityRegistryFallback:
 
         # Verify async_entries_for_config_entry was called (line 1438 - module-level API)
         mock_async_entries.assert_called_once()
+
+
+class TestAsyncUnloadEntryCleanupEntityRegistryError:
+    """Tests for async_unload_entry_cleanup entity registry exception - lines 1488-1489."""
+
+    @pytest.mark.asyncio
+    async def test_async_unload_entry_cleanup_entity_registry_error(self, mock_hass):
+        """async_unload_entry_cleanup catches exception in entity registry cleanup.
+
+        Covers lines 1488-1489: the exception handler that logs a warning when
+        entity registry cleanup fails.
+        """
+        from custom_components.ev_trip_planner import services as svcs
+
+        mock_entry = _setup_mock_config_entry(mock_hass, "chispitas")
+        mock_entry.data["vehicle_name"] = "chispitas"
+        mock_hass.data = {svcs.DOMAIN: {}}
+        mock_hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        # Create a real entity entry
+        mock_entity_entry = MagicMock()
+        mock_entity_entry.entity_id = "sensor.chispitas_test"
+
+        # Patch the module-level er.async_entries_for_config_entry to return entries
+        mock_registry = MagicMock()
+        mock_registry.async_remove = MagicMock(
+            side_effect=RuntimeError("Registry corrupted")
+        )
+
+        mock_hass.entity_registry = mock_registry
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            return_value=[mock_entity_entry],
+        ):
+            await svcs.async_unload_entry_cleanup(
+                mock_hass, mock_entry, "chispitas", "Chispitas"
+            )
+
+        # Should not raise - exception at line 1488 is caught and logged
+        mock_registry.async_remove.assert_called_once_with("sensor.chispitas_test")
 
 
 class TestAsyncUnloadEntryCleanupWithTripManager:
