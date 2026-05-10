@@ -193,7 +193,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.13 [RED] Test: core.py re-exports core types and functions
+- [x] 1.13 [RED] Test: core.py re-exports core types and functions
   - **Do**: Write test importing `BatteryCapacity`, `DEFAULT_T_BASE`, `calculate_dynamic_soc_limit`, `calculate_day_index`, `calculate_trip_time`, `calculate_charging_rate`, `calculate_soc_target` from `calculations.core`
   - **Files**: tests/unit/test_calculations_core.py
   - **Done when**: Test exists and fails (core.py not populated yet)
