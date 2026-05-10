@@ -157,7 +157,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.10 [GREEN] Scaffold calculations/ package with re-exports
+- [x] 1.10 [GREEN] Scaffold calculations/ package with re-exports
   - **Do**:
     1. Create `custom_components/ev_trip_planner/calculations/` directory
     2. Create `__init__.py` with `from __future__ import annotations`, import all 20 names from sub-modules, declare `__all__`
