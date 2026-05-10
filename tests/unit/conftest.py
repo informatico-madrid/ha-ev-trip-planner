@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
-
-
 import pytest
+
+from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.fixture
@@ -797,8 +797,6 @@ def config_entry():
 
 
 # --- Shared datetime fixture ---
-from datetime import datetime, timezone
-from unittest.mock import patch
 
 
 def _make_mock_datetime_fixture(default_dt: datetime):
@@ -837,13 +835,6 @@ mock_datetime_2026_05_04_monday_0800_utc = _make_mock_datetime_fixture(
 
 
 # --- TripManager fixtures (for unit tests only) ---
-
-@pytest.fixture
-def trip_manager_no_entry_id(mock_hass):
-    """Return a TripManager instance WITHOUT entry_id for pure function tests."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
-    return TripManager(mock_hass, "test_vehicle")
-
 
 @pytest.fixture
 def trip_manager_with_entry_id(mock_hass, mock_store):

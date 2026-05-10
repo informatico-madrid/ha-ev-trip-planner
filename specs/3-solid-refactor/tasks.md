@@ -75,14 +75,15 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-3.5, NFR-1.5_
   - _Design: §4.4 (lint-imports Contracts TOML)_
 
-- [ ] 1.4 [YELLOW] Clean up import-linter config
+- [x] 1.4 [YELLOW] Verify lint-imports config syntax only (contract enforcement deferred)
   - **Do**:
-    1. Verify `make import-check` passes with new config
-    2. Clean up any import warnings
+    1. Verify pyproject.toml has `[tool.importlinter]` with 7 contract blocks (structural check)
+    2. Verify `ruff check --select I` passes (import style, independent of packages)
+    3. NOTE: `lint-imports --config pyproject.toml` contract enforcement is deferred to Phase 2 (task 2.5) because the 7 contracts reference packages (trip/, sensor/, emhass/, etc.) that are created during SOLID decomposition. Running `make import-check` now would always FAIL.
   - **Files**: pyproject.toml, Makefile
-  - **Done when**: `make import-check` passes
-  - **Verify**: `make import-check 2>&1 | tail -5 && echo YELLOW_PASS`
-  - **Commit**: `refactor(spec3): clean up import-linter config`
+  - **Done when**: Importlinter config is syntactically valid, ruff import style passes
+  - **Verify**: `grep -q '\[tool.importlinter\]' pyproject.toml && grep -c '\[\[tool.importlinter.contracts\]\]' pyproject.toml | grep -q '^7$' && .venv/bin/ruff check --select I custom_components/ tests/ && echo YELLOW_PASS`
+  - **Commit**: `refactor(spec3): validate lint-imports config syntax (contract enforcement deferred to Phase 2)`
   - _Requirements: FR-3.5, NFR-1.5_
   - _Design: §4.4 (lint-imports Contracts TOML)_
 
@@ -139,7 +140,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V1 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks
-  - **Verify**: `make lint 2>&1 | tail -3 && make typecheck 2>&1 | tail -3`
+  - **Verify**: `make lint && make typecheck && echo GREEN_PASS`
   - **Done when**: No lint errors, no type errors
   - **Commit**: `chore(spec3): pass quality checkpoint pre-calculations`
   - _Requirements: NFR-7.A.5, NFR-8_
@@ -376,7 +377,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V2 [VERIFY] Quality check: ruff check && pyright && make test
   - **Do**: Run quality checks after calculations decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | tail -5`
+  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, all tests pass
   - **Commit**: `chore(spec3): pass quality checkpoint calculations`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
@@ -592,7 +593,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Update `dashboard.py` to delegate to `template_manager`
   - **Files**: custom_components/ev_trip_planner/dashboard/template_manager.py, dashboard.py
   - **Done when**: Template functions importable from `dashboard.template_manager`; dashboard tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py::TestLoadTemplate -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py::TestLoadTemplate -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move template I/O to dashboard/template_manager.py`
   - _Requirements: FR-1.1, AC-7.2_
   - _Design: §3.4 + §4.3 (dashboard Facade + TEMPLATES_DIR)_
@@ -637,7 +638,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Each private re-export annotated with `# transitional` comment
   - **Files**: custom_components/ev_trip_planner/dashboard.py
   - **Done when**: All test imports from `dashboard` resolve; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_dashboard_validation.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_dashboard_validation.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): turn dashboard.py into transitional shim re-exporting package`
   - _Requirements: AC-2.5_
   - _Design: §3.4 + §4.6 (dashboard shim re-exports)_
@@ -646,7 +647,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - **Do**: Run `make e2e-soc` to verify dashboard template loading works end-to-end
   - **Files**: N/A (verification only)
   - **Done when**: `make e2e-soc` passes
-  - **Verify**: `make e2e-soc 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `make e2e-soc && echo YELLOW_PASS`
   - **Commit**: `chore(spec3): verify dashboard e2e after template path fix`
   - _Requirements: AC-7.1, AC-3.3_
   - _Design: §3.4 + §4.3 (dashboard e2e verification)_
@@ -659,7 +660,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Update both files' imports to point at `dashboard.template_manager` and `dashboard.builder`
   - **Files**: tests/unit/test_dashboard.py, tests/unit/test_dashboard_validation.py
   - **Done when**: All ~80 test imports redirected to sub-module paths; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_dashboard_validation.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_dashboard_validation.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): update dashboard test imports to use sub-module paths`
   - _Requirements: AC-2.5_
   - _Design: §4.6 (Test Import Migration)_
@@ -690,7 +691,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V5 [VERIFY] Quality check: ruff check && pyright && make test
   - **Do**: Run quality checks after dashboard decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | tail -5`
+  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, all tests pass
   - **Commit**: `chore(spec3): pass quality checkpoint dashboard`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
@@ -738,7 +739,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     2. Keep Store persistence, index map, released indices as `IndexManager` state
   - **Files**: custom_components/ev_trip_planner/emhass/index_manager.py, emhass_adapter.py
   - **Done when**: `IndexManager` importable from `emhass.index_manager`; tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_index_manager.py tests/unit/test_emhass_index_rotation.py tests/unit/test_emhass_index_persistence.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_index_manager.py tests/unit/test_emhass_index_rotation.py tests/unit/test_emhass_index_persistence.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move IndexManager to emhass/index_manager.py`
   - _Requirements: FR-1.1_
   - _Design: §3.1 (emhass IndexManager)_
@@ -767,7 +768,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. `LoadPublisher` owns cache, calls `IndexManager` and `_cache_entry_builder` via DI
   - **Files**: custom_components/ev_trip_planner/emhass/load_publisher.py, emhass/_cache_entry_builder.py, emhass_adapter.py
   - **Done when**: `LoadPublisher` importable from `emhass.load_publisher`; cache entry builder importable; tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_deferrable_end.py tests/unit/test_deferrable_start_boundary.py tests/unit/test_deferrable_end_boundary.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_deferrable_end.py tests/unit/test_deferrable_start_boundary.py tests/unit/test_deferrable_end_boundary.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move LoadPublisher to emhass/load_publisher.py`
   - _Requirements: FR-1.1, AC-1.6_
   - _Design: §3.1 (emhass LoadPublisher + cache_entry_builder)_
@@ -790,7 +791,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Methods: `async_notify_error`, `async_handle_emhass_unavailable`, `async_handle_sensor_error`, `async_handle_shell_command_failure`, `get_last_error`, `async_clear_error`, `async_verify_shell_command_integration`, `async_check_emhass_response_sensors`, `async_get_integration_status`
   - **Files**: custom_components/ev_trip_planner/emhass/error_handler.py, emhass_adapter.py
   - **Done when**: `ErrorHandler` importable from `emhass.error_handler`; tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_integration_dynamic_soc.py tests/unit/test_emhass_soft_delete.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_integration_dynamic_soc.py tests/unit/test_emhass_soft_delete.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move ErrorHandler to emhass/error_handler.py`
   - _Requirements: FR-1.1_
   - _Design: §3.1 (emhass ErrorHandler)_
@@ -813,7 +814,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     4. Constructor signature unchanged: `__init__(self, hass, entry)` (AC-2.1)
   - **Files**: custom_components/ev_trip_planner/emhass/adapter.py, emhass/__init__.py, emhass_adapter.py
   - **Done when**: All 27 methods accessible via `EMHASSAdapter`; constructor signature verified; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_imports.py tests/unit/test_emhass_adapter_trip_id.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass_imports.py tests/unit/test_emhass_adapter_trip_id.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): wire EMHASSAdapter facade with composition in emhass/adapter.py`
   - _Requirements: AC-2.1, FR-1.1_
   - _Design: §3.1 (emhass Facade delegation)_
@@ -825,7 +826,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Verify `make test` passes with all 24+ test imports
   - **Files**: custom_components/ev_trip_planner/emhass_adapter.py (delete), __init__.py, coordinator.py, trip_manager.py
   - **Done when**: No `emhass_adapter.py` exists; all source and test imports resolve
-  - **Verify**: `! test -f custom_components/ev_trip_planner/emhass_adapter.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass*.py tests/integration/test_emhass*.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `! test -f custom_components/ev_trip_planner/emhass_adapter.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass*.py tests/integration/test_emhass*.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): remove emhass_adapter.py transitional shim`
   - _Requirements: AC-2.5_
   - _Design: §3.1 + §4.6 (transitional shim removal)_
@@ -844,7 +845,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V7 [VERIFY] Quality check: ruff check && pyright && make test
   - **Do**: Run quality checks after emhass decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | tail -5`
+  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, all tests pass
   - **Commit**: `chore(spec3): pass quality checkpoint emhass`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
@@ -939,7 +940,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     5. Reads shared state from `self` (`_trips`, `_storage`, `_sensor_callbacks`, `_emhass_adapter`)
   - **Files**: custom_components/ev_trip_planner/trip/_crud_mixin.py, trip_manager.py
   - **Done when**: `_CRUDMixin` importable; 7 lazy imports eliminated; CRUD methods functional
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_crud_mixin.py tests/unit/test_trip_crud.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_crud_mixin.py tests/unit/test_trip_crud.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move CRUD methods to trip/_crud_mixin.py`
   - _Requirements: AC-8.1, AC-8.2, FR-1.1_
   - _Design: §3.2 + §4.1 + §4.2 (CRUD mixin + SensorCallbackRegistry)_
@@ -961,7 +962,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Reads `_trips`, `hass`, `vehicle_id` from shared `self`
   - **Files**: custom_components/ev_trip_planner/trip/_soc_mixin.py, trip_manager.py
   - **Done when**: `_SOCMixin` importable; SOC tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_soc_mixin.py tests/unit/test_soc_milestone.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_soc_mixin.py tests/unit/test_soc_milestone.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move SOC methods to trip/_soc_mixin.py`
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (SOC mixin)_
@@ -984,7 +985,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Reads `_trips`, `hass` from shared `self`
   - **Files**: custom_components/ev_trip_planner/trip/_power_profile_mixin.py, trip_manager.py
   - **Done when**: Mixin importable; power profile tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_power_profile_mixin.py tests/unit/test_power_profile_positions.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_power_profile_mixin.py tests/unit/test_power_profile_positions.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move power profile method to trip/_power_profile_mixin.py`
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (PowerProfile mixin)_
@@ -1006,7 +1007,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Reads `_trips`, `_emhass_adapter` from shared `self`
   - **Files**: custom_components/ev_trip_planner/trip/_schedule_mixin.py, trip_manager.py
   - **Done when**: Mixin importable; schedule tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_schedule_mixin.py tests/unit/test_deferrables_schedule.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_schedule_mixin.py tests/unit/test_deferrables_schedule.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move schedule methods to trip/_schedule_mixin.py`
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (Schedule mixin)_
@@ -1029,7 +1030,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     4. Constructor signature unchanged: `__init__(self, hass, vehicle_id, entry_id, presence_config, storage, emhass_adapter=None)` (AC-2.2)
   - **Files**: custom_components/ev_trip_planner/trip/manager.py, trip/__init__.py, trip_manager.py
   - **Done when**: `TripManager` importable from `trip/`; constructor signature verified; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_facade.py tests/unit/test_trip_manager_core.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_facade.py tests/unit/test_trip_manager_core.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): wire TripManager facade with mixins in trip/manager.py`
   - _Requirements: AC-2.2_
   - _Design: §3.2 + §4.1 (TripManager facade mixin chain)_
@@ -1040,7 +1041,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     2. Files: `tests/unit/conftest.py` (3 imports), `tests/integration/conftest.py` (2 imports), plus any integration tests
   - **Files**: tests/unit/conftest.py, tests/integration/conftest.py, tests/unit/*.py, tests/integration/*.py
   - **Done when**: All test imports resolved; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_crud.py tests/integration/test_trip_manager_core.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_trip_crud.py tests/integration/test_trip_manager_core.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): update trip test imports to use sub-module paths`
   - _Requirements: AC-2.5_
   - _Design: §4.6 (Test Import Migration)_
@@ -1073,7 +1074,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V8 [VERIFY] Quality check: ruff check && pyright && make test
   - **Do**: Run quality checks after trip decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | tail -5`
+  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, all tests pass
   - **Commit**: `chore(spec3): pass quality checkpoint trip`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
@@ -1121,7 +1122,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Shrink `register_services` to ~80 LOC of `async_register` calls in `services/handlers.py`
   - **Files**: custom_components/ev_trip_planner/services/_handler_factories.py, services/handlers.py, services.py
   - **Done when**: Handler factories importable; `register_services` <= 100 LOC; tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_services_handler_factories.py -v 2>&1 | tail -5 && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_services_handler_factories.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): extract handler factories from register_services`
   - _Requirements: AC-1.5, AC-6.1_
   - _Design: §3.3 (services handler factories)_
@@ -1195,7 +1196,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [ ] V9 [VERIFY] Quality check: ruff check && pyright && make test
   - **Do**: Run quality checks after services decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | tail -5`
+  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, all tests pass
   - **Commit**: `chore(spec3): pass quality checkpoint services`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
@@ -1256,7 +1257,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Verify `make test` and `make typecheck` pass
   - **Files**: custom_components/ev_trip_planner/sensor.py (delete)
   - **Done when**: No `sensor.py` exists; all imports resolve through package
-  - **Verify**: `! test -f custom_components/ev_trip_planner/sensor.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_sensor*.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `! test -f custom_components/ev_trip_planner/sensor.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_sensor*.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): remove sensor.py transitional shim`
   - _Requirements: AC-2.5_
   - _Design: design-by-convention (sensor shim removal); §4.6_
@@ -1300,7 +1301,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     2. Verify `make test` passes
   - **Files**: custom_components/ev_trip_planner/config_flow.py (delete)
   - **Done when**: No `config_flow.py` exists; all imports resolve through package
-  - **Verify**: `! test -f custom_components/ev_trip_planner/config_flow.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_config_flow*.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `! test -f custom_components/ev_trip_planner/config_flow.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_config_flow*.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): remove config_flow.py transitional shim`
   - _Requirements: AC-2.5_
   - _Design: design-by-convention (config_flow shim removal); §4.6_
@@ -1346,7 +1347,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Verify `make test` passes
   - **Files**: custom_components/ev_trip_planner/presence_monitor.py (delete)
   - **Done when**: No `presence_monitor.py` exists; all imports resolve through package
-  - **Verify**: `! test -f custom_components/ev_trip_planner/presence_monitor.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_presence_monitor*.py -v 2>&1 | tail -3 && echo YELLOW_PASS`
+  - **Verify**: `! test -f custom_components/ev_trip_planner/presence_monitor.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_presence_monitor*.py -v && echo YELLOW_PASS`
   - **Commit**: `refactor(spec3): remove presence_monitor.py transitional shim`
   - _Requirements: AC-2.5_
   - _Design: design-by-convention (presence_monitor shim removal); §4.6_
@@ -1367,7 +1368,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 Focus: Integration testing across decomposed packages, E2E verification, full quality validation.
 - [ ] 2.1 [VERIFY] Run full test suite: make test-cover with 100% coverage
   - **Do**: Run `make test-cover` and verify 100% coverage maintained
-  - **Verify**: `make test-cover 2>&1 | tail -10`
+  - **Verify**: `make test-cover && echo VERIFY_PASS`
   - **Done when**: All 1,820+ tests pass with 100% coverage
   - **Commit**: `chore(spec3): pass full test suite with 100% coverage`
   - _Requirements: NFR-4.1, NFR-4.4_
@@ -1375,7 +1376,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
 
 - [ ] 2.2 [VERIFY] Run E2E tests: make e2e
   - **Do**: Run `make e2e` to verify all 30 E2E tests pass
-  - **Verify**: `make e2e 2>&1 | tail -10`
+  - **Verify**: `make e2e && echo VERIFY_PASS`
   - **Done when**: All 30 E2E tests pass
   - **Commit**: `chore(spec3): pass all 30 E2E tests`
   - _Requirements: NFR-4.2_
@@ -1383,7 +1384,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
 
 - [ ] 2.3 [VERIFY] Run E2E SOC tests: make e2e-soc
   - **Do**: Run `make e2e-soc` to verify all 10 SOC tests pass
-  - **Verify**: `make e2e-soc 2>&1 | tail -10`
+  - **Verify**: `make e2e-soc && echo VERIFY_PASS`
   - **Done when**: All 10 SOC E2E tests pass
   - **Commit**: `chore(spec3): pass all 10 SOC E2E tests`
   - _Requirements: NFR-4.3_
@@ -1399,7 +1400,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
 
 - [ ] 2.5 [VERIFY] Verify lint-imports contracts pass
   - **Do**: Run `make import-check` and verify all 7 lint-imports contracts pass
-  - **Verify**: `make import-check 2>&1 | tail -10`
+  - **Verify**: `make import-check && echo VERIFY_PASS`
   - **Done when**: All 7 import contracts pass, zero violations
   - **Commit**: `chore(spec3): verify all 7 lint-imports contracts pass`
   - _Requirements: NFR-7.A.4_
@@ -1637,7 +1638,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
 
 - [ ] 3.9 [VERIFY] deptry: zero broken imports
   - **Do**: Run `make unused-deps` to verify zero broken imports
-  - **Verify**: `make unused-deps 2>&1 | tail -5 && echo VERIFY_PASS`
+  - **Verify**: `make unused-deps && echo VERIFY_PASS`
   - **Done when**: `deptry` reports zero broken-import findings
   - **Commit**: `chore(spec3): verify zero broken imports via deptry`
   - _Requirements: AC-2.7_
@@ -1645,7 +1646,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
 
 - [ ] 3.10 [VERIFY] Bug fixes verified: [BUG-001] and [BUG-002] regression tests pass
   - **Do**: Run the bug regression tests
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_ventana_horas_invariant.py tests/unit/test_previous_arrival_invariant.py tests/unit/test_single_trip_hora_regreso_past.py -v 2>&1 | tail -5`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_ventana_horas_invariant.py tests/unit/test_previous_arrival_invariant.py tests/unit/test_single_trip_hora_regreso_past.py -v && echo VERIFY_PASS`
   - **Done when**: All bug regression tests pass with corrected values
   - **Commit**: `chore(spec3): verify [BUG-001] and [BUG-002] regression tests pass`
   - _Requirements: AC-10.1, AC-10.2, AC-10.3_
@@ -1734,7 +1735,7 @@ print('VERIFY_PASS')
 
 - [ ] 3.17 [VERIFY] Verify KISS compliance: register_services() decomposed
   - **Do**: Check services/handlers.py for `register_services` function LOC and cyclomatic complexity
-  - **Verify**: `python -m radon cc custom_components/ev_trip_planner/services/handlers.py -a 2>&1 | tail -3 && wc -l custom_components/ev_trip_planner/services/handlers.py`
+  - **Verify**: `python -m radon cc custom_components/ev_trip_planner/services/handlers.py -a && wc -l custom_components/ev_trip_planner/services/handlers.py && echo VERIFY_PASS`
   - **Done when**: `register_services` <= 100 LOC, cc <= 10
   - **Commit**: `chore(spec3): verify KISS compliance for register_services`
   - _Requirements: AC-1.5, AC-6.1, NFR-3.1, NFR-3.3_
