@@ -11,6 +11,18 @@ this file will be updated to import from them instead.
 
 from __future__ import annotations
 
+# Import core symbols from .core first (takes precedence over calculations_orig).
+# These will eventually replace the calculations_orig imports entirely.
+from .core import (
+    BatteryCapacity,
+    DEFAULT_T_BASE,
+    calculate_charging_rate,
+    calculate_day_index,
+    calculate_dynamic_soc_limit,
+    calculate_soc_target,
+    calculate_trip_time,
+)
+
 # Import all public symbols from the legacy module file (now _orig).
 # These imports are temporary -- sub-modules will take ownership later.
 from custom_components.ev_trip_planner.calculations_orig import (

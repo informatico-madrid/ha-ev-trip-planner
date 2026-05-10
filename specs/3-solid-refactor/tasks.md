@@ -203,7 +203,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.6 (calculations functional decomposition)_
 
 
-- [ ] 1.14 [GREEN] Move core types/functions to `core.py`
+- [x] 1.14 [GREEN] Move core types/functions to `core.py`
   - **Do**:
     1. Extract `BatteryCapacity`, `DEFAULT_T_BASE`, `calculate_dynamic_soc_limit`, `calculate_day_index`, `calculate_trip_time`, `calculate_charging_rate`, `calculate_soc_target` from `calculations.py` to `calculations/core.py`
     2. Update `calculations.py` to import from `calculations.core`
