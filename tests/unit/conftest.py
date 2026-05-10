@@ -795,3 +795,70 @@ def config_entry():
         data={"vehicle_name": "Chispitas"},
     )
 
+
+# --- Shared datetime fixture ---
+from datetime import datetime, timezone
+from unittest.mock import patch
+
+
+def _make_mock_datetime_fixture(default_dt: datetime):
+    """Factory that creates a fixture with a hardcoded default datetime."""
+
+    @pytest.fixture
+    def mock_dt_fixture(request):
+        """Mock datetime.now(timezone.utc) for deterministic deadline calculations."""
+        if hasattr(request, "param") and request.param is not None:
+            fixed_now = request.param
+        else:
+            fixed_now = default_dt
+
+        real_datetime = datetime
+
+        class MockDatetime(real_datetime):
+            """Subclass of datetime that overrides .now() to return a fixed value."""
+            @classmethod
+            def now(cls, tz=None):
+                return fixed_now.replace(tzinfo=tz or timezone.utc)
+
+        with (
+            patch("custom_components.ev_trip_planner.emhass_adapter.datetime", MockDatetime),
+            patch("custom_components.ev_trip_planner.calculations.datetime", MockDatetime),
+            patch("homeassistant.util.dt.utcnow", return_value=fixed_now),
+            patch("homeassistant.util.dt.now", return_value=fixed_now),
+        ):
+            yield fixed_now
+
+    return mock_dt_fixture
+
+
+mock_datetime_2026_05_04_monday_0800_utc = _make_mock_datetime_fixture(
+    datetime(2026, 5, 4, 8, 0, 0, tzinfo=timezone.utc)
+)
+
+
+# --- TripManager fixtures (for unit tests only) ---
+
+@pytest.fixture
+def trip_manager_no_entry_id(mock_hass):
+    """Return a TripManager instance WITHOUT entry_id for pure function tests."""
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+    return TripManager(mock_hass, "test_vehicle")
+
+
+@pytest.fixture
+def trip_manager_with_entry_id(mock_hass, mock_store):
+    """Return a TripManager instance with entry_id for EMHASS-dependent tests."""
+    from custom_components.ev_trip_planner.trip_manager import TripManager
+    return TripManager(
+        mock_hass, "test_vehicle", entry_id="test_entry_123", storage=mock_store
+    )
+
+
+@pytest.fixture
+def sample_notification_config():
+    """Return a sample notification configuration for testing."""
+    return {
+        "notification_service": "notify.mobile_app",
+        "notification_devices": ["device_123"],
+    }
+

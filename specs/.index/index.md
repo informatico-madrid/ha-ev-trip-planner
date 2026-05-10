@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-09T17:32:42Z
+**Last updated:** 2026-05-10T07:16:58Z
 
 ## Directories (1)
 
@@ -50,7 +50,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | m403-dynamic-soc-capping | ./specs | completed | done |
 | tooling-foundation | ./specs | completed | done |
 | spec1-dead-code | ./specs | completed | done |
-| 2-test-reorg | ./specs | tasks | awaiting approval |
+| 2-test-reorg | ./specs | execution | 53/63 tasks |
 
 ---
 

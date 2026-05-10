@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-09T17:32:42Z",
+  "updated": "2026-05-10T07:16:58Z",
   "directories": [
     {
       "path": "./specs",
@@ -253,10 +253,9 @@
     {
       "name": "2-test-reorg",
       "path": "./specs/2-test-reorg",
-      "phase": "tasks",
-      "taskIndex": 0,
-      "totalTasks": 62,
-      "awaitingApproval": true
+      "phase": "execution",
+      "taskIndex": 53,
+      "totalTasks": 63
     }
   ]
 }

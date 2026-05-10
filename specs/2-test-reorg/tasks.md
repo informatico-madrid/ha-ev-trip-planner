@@ -368,7 +368,6 @@ Focus: Update all configuration files to reflect new test structure.
   - **Commit**: `refactor(test-reorg): update testpaths and mutmut tests_dir`
   - _Requirements: FR-18, FR-19, AC-11.1, AC-11.2_
 
-- [ ] 3.2 Update Makefile test targets (7 targets)
 - [x] 3.2 Update Makefile test targets (7 targets)
   - **Do**: Update all `pytest tests` references in Makefile to `pytest tests/unit tests/integration`. Remove `--ignore=tests/e2e/` since e2e is no longer under the test path. Targets: test, test-cover, test-verbose, test-dashboard, test-parallel, test-random, htmlcov.
   - **Files**: Makefile
@@ -384,7 +383,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Commit**: None
   - **Result**: `make test-cover` passes — 1822 passed, 1 skipped, 100% coverage in 8.36s. test-verbose has pre-existing fd issue (uses `python3` not `.venv/bin/python`).
 
-- [ ] 3.4 Update Makefile lint/dead-code/refurb paths
+- [x] 3.4 Update Makefile lint/dead-code/refurb paths
   - **Do**: Update `pylint custom_components/ tests/` to `pylint custom_components/ tests/unit/ tests/integration/`. Update `vulture custom_components/ tests/` to `vulture custom_components/ tests/unit/ tests/integration/`. Update `refurb custom_components/ tests/` to `refurb custom_components/ tests/unit/ tests/integration/`. Update `semgrep` path if it references tests/.
   - **Files**: Makefile
   - **Done when**: All quality tool paths updated; lint targets still work
@@ -400,7 +399,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Commit**: `refactor(test-reorg): update pre-commit and quality-gate script paths`
   - _Requirements: AC-11.5_
 
-- [ ] 3.6 [VERIFY] Quality checkpoint: all config paths updated
+- [x] 3.6 [VERIFY] Quality checkpoint: all config paths updated
   - **Do**: Run `make test`, `make test-cover`, `mutmut run --list` (verify file discovery). Verify pyright still excludes tests/.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: All config paths correct; all tools discover tests
@@ -421,25 +420,21 @@ Focus: Update all configuration files to reflect new test structure.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && make lint 2>&1 | tail -1 && echo V4_PASS`
   - **Done when**: All local quality checks pass at 100%
   - **Commit**: None
-  - **Result**: make test PASS, make test-cover PASS, make lint FAIL (51 ruff errors in tests/ — all spec-introduced from file moves/consolidation, 0 on main branch)
+  - **Result**: make test PASS, make test-cover PASS, make lint PASS (all lint errors from 51 to 0 after fixing 11 duplicate fixtures + unused imports in conftest.py files)
 
-- [ ] 4.2 Capture final metrics and compare with baseline
+- [x] 4.2 Capture final metrics and compare with baseline
+  - **Result**: 1823 tests collected (baseline 1821), +2 net gain from Phase 2 consolidations. Coverage 100% (4800 statements). Execution time 7.63s (was 7.80s baseline, slight improvement).
   - **Do**: Run `pytest --co -q` to get final test count. Compare with baseline in `specs/2-test-reorg/.baseline.txt`. Document delta in `.progress.md`.
   - **Files**: specs/2-test-reorg/.progress.md
   - **Done when**: Final metrics recorded; test count >= baseline; coverage = 100%
   - **Verify**: `grep -q "Final metrics" specs/2-test-reorg/.progress.md && echo PASS`
   - **Commit**: None
 
-- [ ] 4.3 [VERIFY] VE1: E2E startup and run main suite
+- [x] 4.3 [VERIFY] VE1: E2E startup and run main suite
   - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
-  - **Do**:
-    1. Run `make e2e` which handles HA startup via scripts/run-e2e.sh
-    2. Wait for completion
-  - **Verify**: `make e2e 2>&1 | tail -20 | grep -q "passed" && echo VE1_PASS`
-  - **Done when**: E2E tests pass on port 8123 (hass direct, NOT Docker)
-  - **Commit**: None
+  - **Result**: 30 E2E tests passed (3.7m). All 7 spec files passed. HA started on port 8123 via hass direct (no Docker). Verify command: VE1_PASS.
 
-- [ ] 4.4 [VERIFY] VE2: E2E SOC suite
+- [x] 4.4 [VERIFY] VE2: E2E SOC suite
   - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
   - **Do**:
     1. Run `make e2e-soc` which handles HA startup via scripts/run-e2e-soc.sh
@@ -447,18 +442,24 @@ Focus: Update all configuration files to reflect new test structure.
   - **Verify**: `make e2e-soc 2>&1 | tail -20 | grep -q "passed" && echo VE2_PASS`
   - **Done when**: E2E SOC tests pass
   - **Commit**: None
-
-- [ ] 4.5 [VERIFY] V5: Create PR
+  - **Result**: 10 E2E tests passed (2.9m). All 10 tests in 2 spec files passed. Suite covers: options flow SOH/T_BASE validation, dynamic SOC capping multi-trip scenarios (A, B, C), T_BASE windows, SOH degradation effects, negative risk scenarios. Verify: VE2_PASS.
+- [x] 4.41 [DOCUMENTATION] UPDATE DOCUMENTATION FOR TEST ARCHITECTURE CHANGE
+  - **Do**: Update README.md and any relevant documentation files to reflect the new test architecture with unit/ and integration/ layers. Document the rationale for the change, how to run tests in each layer, and any new conventions (e.g. fixture usage).
+  - **Files**: README.md, CONTRIBUTING.md
+  - **Done when**: Documentation updated with clear explanation of new test structure and guidelines for developers
+  - **Commit**: `update documentation for new test architecture`
+  - **Result**: Updated README.md: directory tree (tests/unit/, tests/integration/), pytest commands (`pytest tests/unit tests/integration`), layer-specific commands, coverage report. Updated CONTRIBUTING.md: layered architecture table (unit vs integration), fixture paths (`tests/unit/conftest.py`), test doubles table, pytest commands in 5 locations, CI workflow reference. All `pytest tests/` references replaced with `pytest tests/unit tests/integration`.
+- [x] 4.5 [VERIFY] V5: Create PR
   - **Do**:
     1. Verify current branch: `git branch --show-current` (should be spec/2-test-reorg)
     2. Push branch: `git push -u origin spec/2-test-reorg`
     3. Create PR targeting epic/tech-debt-cleanup: `gh pr create --base epic/tech-debt-cleanup --title "refactor(tests): reorganize test architecture into unit/integration layers" --body "$(cat specs/2-test-reorg/.pr-body.md 2>/dev/null || echo 'Test architecture reorganization per spec 2-test-reorg')"`
-    4. Creato gito bot background review /gito-review-with-spec context of this spec review from this branch to epic/tech-debt-cleanup gito process can run very long is normal
+    4. Creato gito bot background review USE SKILL /gito-review-with-spec . IMPORTANT CONTEXTO FOR GITO context of this spec review from this branch to epic/tech-debt-cleanup gito process can run very long is normal
   - **Verify**: `gh pr view --json url,state | jq -r '.state' | grep -q "OPEN" && echo V5_PASS`
   - **Done when**: PR exists on GitHub targeting epic/tech-debt-cleanup with state OPEN
   - **Commit**: None
 
-- [ ] 4.6 [VERIFY] V6: AC checklist
+- [x] 4.6 [VERIFY] V6: AC checklist
   - **Do**: Programmatically verify each AC:
     - AC-1.1: `test -d tests/unit/ && echo PASS`
     - AC-1.2: `test -d tests/integration/ && echo PASS`
@@ -477,6 +478,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Verify**: All AC checks exit 0
   - **Done when**: All acceptance criteria confirmed met via automated checks
   - **Commit**: None
+  - **Result**: All 14 ACs verified PASS: AC-1.1 to AC-1.7 (dirs, tests, coverage), AC-2.1 (5 trip_manager files), AC-3.1 (2 config_flow files), AC-5.3 (zero assert True), AC-7.1 (root conftest 189 LOC < 200), AC-8.1 to AC-8.3 (time_machine, hypothesis, flake8_pytest_style installed), AC-9.1 (strict=true), AC-11.1 (tests/unit in pyproject). 1822 passed, 100% coverage.
 
 ## Phase 5: PR Lifecycle
 
@@ -487,7 +489,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Commit**: `fix(test-reorg): address CI failures` (if needed)
 
 - [ ] 5.2 Resolve review comments
-  - **Do**: If PR has review comments, address each one. Push fixes.
+  - **Do**: If PR has review comments, address each one. Push fixes ALMOST OF THIS COMMENTS CAN BE FALSE POSITIVE. BE CAREFUL APPLY ONLY NECESSARY CHANGES AND REAL CHANGES AND RELEVANT FOR THIS SPEC.
   - **Verify**: `gh pr view --json comments --jq '.comments | length' | grep -q "^0$" && echo NO_COMMENTS`
   - **Done when**: Zero unresolved review comments
   - **Commit**: `fix(test-reorg): address review feedback` (if needed)

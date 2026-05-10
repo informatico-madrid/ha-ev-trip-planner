@@ -348,7 +348,7 @@ This project is open source and welcomes contributions. See [CONTRIBUTING.md](CO
 
 4. **Run tests**:
    ```bash
-   pytest tests/ -v --cov=custom_components/ev_trip_planner
+   pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
    ```
 
 5. **Restart Home Assistant** and check logs:
@@ -726,9 +726,10 @@ ha-ev-trip-planner/
 │   ├── panel.js
 │   └── panel.css
 ├── dashboard/               # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
-├── tests/                   # Unit and integration tests
-│ ├── test_*.py # ~90 test files
-│   └── e2e/                  # E2E Tests (Playwright)
+├── tests/                   # Layered test architecture
+│   ├── unit/                # Unit tests (~1,000+ tests, fast, no HA)
+│   ├── integration/         # Integration tests (~30+ tests, HA fixtures)
+│   ├── e2e/                 # E2E Tests (Playwright)
 │       ├── create-trip.spec.ts
 │       ├── delete-trip.spec.ts
 │       └── ...
@@ -761,13 +762,25 @@ ha-ev-trip-planner/
 ```bash
 cd /your/ha-ev-trip-planner/directory
 source venv/bin/activate
-pytest tests/ -v --cov=custom_components/ev_trip_planner
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
 ```
 
-**Specific file tests:**
+**Run a specific layer:**
 ```bash
-pytest tests/test_trip_manager.py -v
-pytest tests/test_emhass_adapter.py -v
+pytest tests/unit -v                          # Unit tests only
+pytest tests/integration -v                   # Integration tests only
+```
+
+**Run a specific file:**
+```bash
+pytest tests/unit/test_trip_manager_core.py -v
+pytest tests/integration/test_coordinator.py -v
+```
+
+**Run with coverage report:**
+```bash
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner --cov-report=html
+open htmlcov/index.html
 ```
 
 **E2E Tests (requires Playwright):**

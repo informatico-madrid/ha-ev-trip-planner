@@ -5,71 +5,13 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _make_mock_datetime_fixture(default_dt: datetime):
-    """Factory that creates a fixture with a hardcoded default datetime."""
-
-    @pytest.fixture
-    def mock_dt_fixture(request):
-        """Mock datetime.now(timezone.utc) for deterministic deadline calculations.
-
-        Accepts an optional datetime parameter. When used without parameters,
-        defaults to the provided fixed datetime.
-
-        Example usage:
-            async def test_something(mock_datetime_2026_05_04_monday_0800_utc):
-                pass
-        """
-        if hasattr(request, "param") and request.param is not None:
-            fixed_now = request.param
-        else:
-            fixed_now = default_dt
-
-        # Save real datetime class for isinstance checks
-        real_datetime = datetime
-
-        class MockDatetime(real_datetime):
-            """Subclass of datetime that overrides .now() to return a fixed value."""
-
-            @classmethod
-            def now(cls, tz=None):
-                return fixed_now.replace(tzinfo=tz or timezone.utc)
-
-        with (
-            patch(
-                "custom_components.ev_trip_planner.emhass_adapter.datetime",
-                MockDatetime,
-            ),
-            patch(
-                "custom_components.ev_trip_planner.calculations.datetime", MockDatetime
-            ),
-            patch("homeassistant.util.dt.utcnow", return_value=fixed_now),
-            patch("homeassistant.util.dt.now", return_value=fixed_now),
-        ):
-            yield fixed_now
-
-    return mock_dt_fixture
-
-
-mock_datetime_2026_05_04_monday_0800_utc = _make_mock_datetime_fixture(
-    datetime(2026, 5, 4, 8, 0, 0, tzinfo=timezone.utc)
-)
-
-
-# Note: pytest-homeassistant-custom-component is not available
-# The auto_enable_custom_integrations fixture is commented out
-# Tests that require it should use the hass fixture instead
-# @pytest.fixture(autouse=True)
-# def auto_enable_custom_integrations(enable_custom_integrations):
-#     """Enable custom integrations in all tests."""
-#     yield
 
 
 @pytest.fixture
@@ -244,47 +186,3 @@ def sample_presence_config():
     }
 
 
-@pytest.fixture
-def sample_notification_config():
-    """Return a sample notification configuration for testing."""
-    return {
-        "notification_service": "notify.mobile_app",
-        "notification_devices": ["device_123"],
-    }
-
-
-@pytest.fixture
-def trip_manager_no_entry_id(mock_hass):
-    """Return a TripManager instance WITHOUT entry_id for pure function tests.
-
-    This fixture provides a TripManager without entry_id for tests that don't
-    depend on coordinator refresh or config entry lookup.
-
-    Usage:
-        async def test_calculation(trip_manager_no_entry_id):
-            tm = trip_manager_no_entry_id
-            result = await tm.async_get_kwh_needed_today()
-    """
-    from custom_components.ev_trip_planner.trip_manager import TripManager
-
-    return TripManager(mock_hass, "test_vehicle")
-
-
-@pytest.fixture
-def trip_manager_with_entry_id(mock_hass, mock_store):
-    """Return a TripManager instance with entry_id for EMHASS-dependent tests.
-
-    This fixture provides a consistent TripManager instance that has entry_id
-    set, which is required for publish_deferrable_loads() to trigger coordinator
-    refresh correctly.
-
-    Usage:
-        async def test_something(trip_manager_with_entry_id):
-            tm = trip_manager_with_entry_id
-            await tm.publish_deferrable_loads()
-    """
-    from custom_components.ev_trip_planner.trip_manager import TripManager
-
-    return TripManager(
-        mock_hass, "test_vehicle", entry_id="test_entry_123", storage=mock_store
-    )

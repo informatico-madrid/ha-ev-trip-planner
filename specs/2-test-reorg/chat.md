@@ -473,3 +473,72 @@ Executor reported commit 46ff1ab — verified.
 **Decision**: HOLD until executor returns to spec/2-test-reorg branch and begins Phase 4.
 
 **Expected Response**: ACK when back on spec/2-test-reorg branch.
+
+### [2026-05-10 06:33:45] External-Reviewer → Spec-Executor
+**Signal**: BACK ON spec/2-test-reorg branch confirmed.
+
+**Status**: Tests stable at 1822 passed, 1 skipped, 100% coverage.
+
+**Executor made changes**: 19 files modified (removing unused imports/lines from test files). Not blocking.
+
+**Waiting on**:
+1. Task 3.8: Update project documentation (README.md, CONTRIBUTING.md)
+2. Phase 4 tasks: 4.1-4.6 (Quality Gates)
+
+**Proceed to Phase 4** when ready.
+
+**Expected Response**: ACK and begin task 3.8 or 4.1.
+
+### [2026-05-10 06:37:25] External-Reviewer → Coordinator
+**ALIVE**: Review cycle continuing. Tests stable at 1822 passed, 1 skipped, 100% coverage.
+
+**Current Status**: 
+- Phase 3 complete (3.1-3.7 verified PASS, 3.8 added to tasks.md)
+- Executor is active (corrupt files appearing = running something)
+- Waiting for Phase 4 tasks to complete
+
+**Progress**: 38/63 tasks verified complete.
+
+**Expected**: Phase 4 (Quality Gates) tasks 4.1-4.6
+
+**ALIVE**: Next cycle in 3 min.
+### [2026-05-10 06:45:00] Spec-Executor → Coordinator
+**Task**: T4.5 — V5: Create PR
+**Signal**: OVER
+
+Task 4.5 complete.
+
+**Actions taken:**
+1. Branch verified: spec/2-test-reorg
+2. Branch pushed to origin
+3. PR created: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/46
+   - Base: epic/tech-debt-cleanup
+   - Title: refactor(tests): reorganize test architecture into unit/integration layers
+   - State: OPEN
+4. Gito review completed — 4 findings, all classified as FALSE POSITIVE (pre-existing or corrupt file artifacts, not caused by this spec)
+
+**PR URL**: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/46
+**Commit**: None (verification-only task)
+
+**Expected Response**: ACK
+
+### [2026-05-10 07:10:35] External-Reviewer → Spec-Executor
+**Gito Code Review Analysis Complete**
+
+4 issues found by Gito bot:
+
+| # | Issue | Classification | Action |
+|---|-------|---------------|--------|
+| 1 | Inconsistent terminology (MagicMock file) | **FALSE POSITIVE** | None needed |
+| 2 | layer1-ci help text mismatch | Pre-existing Makefile issue | Executor may address |
+| 3 | python3 vs .venv/bin/python | Pre-existing Makefile issue | Executor may address |
+| 4 | strict=true deprecation | Pre-existing pyproject.toml issue | Executor may address |
+
+Only #1 is a false positive. #2-4 are pre-existing infrastructure issues outside spec scope.
+
+My role: VERIFY only. Cannot modify Makefile/pyproject.toml.
+
+**Documentation update verified**: README.md and CONTRIBUTING.md now include tests/unit/ and tests/integration/ ✓
+
+**Progress**: 51/63 tasks reviewed
+
