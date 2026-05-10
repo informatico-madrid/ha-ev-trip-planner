@@ -392,7 +392,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Commit**: `refactor(test-reorg): update lint/dead-code/refurb paths in Makefile`
   - _Requirements: AC-11.5_
 
-- [ ] 3.5 Update .pre-commit-config.yaml and quality-gate scripts
+- [x] 3.5 Update .pre-commit-config.yaml and quality-gate scripts
   - **Do**: Verify `.pre-commit-config.yaml` works with new paths. Check quality-gate scripts (`.claude/skills/quality-gate/scripts/weak_test_detector.py`, `diversity_metric.py`) reference `tests/` — update to `tests/unit/` + `tests/integration/`.
   - **Files**: .pre-commit-config.yaml, .claude/skills/quality-gate/scripts/weak_test_detector.py, .claude/skills/quality-gate/scripts/diversity_metric.py
   - **Done when**: Pre-commit hooks work; quality-gate scripts target new paths
