@@ -171,7 +171,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.11 [RED] Test: _ensure_aware and private helpers exist in _helpers.py
+- [x] 1.11 [RED] Test: _ensure_aware and private helpers exist in _helpers.py
   - **Do**: Write test asserting `_helpers.py` exposes `_ensure_aware` and can be imported from `calculations._helpers`
   - **Files**: tests/unit/test_calculations_helpers.py
   - **Done when**: Test exists and fails (function not yet moved)
