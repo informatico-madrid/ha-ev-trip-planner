@@ -225,7 +225,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §5.1 (ventana_horas bug fix)_
 
 
-- [ ] 1.16 [GREEN] Fix [BUG-001] ventana_horas in calculations/windows.py
+- [x] 1.16 [GREEN] Fix [BUG-001] ventana_horas in calculations/windows.py
   - **Do**:
     1. Create `calculations/windows.py` with `calculate_charging_window_pure`, `calculate_multi_trip_charging_windows`
     2. Fix line ~698: change `trip_arrival_aware - window_start_aware` to `trip_departure_aware - window_start_aware` in delta computation

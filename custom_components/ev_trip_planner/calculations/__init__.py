@@ -14,17 +14,15 @@ from __future__ import annotations
 # Import all public symbols from the legacy module file (now _orig).
 # These imports are temporary -- sub-modules will take ownership later.
 from custom_components.ev_trip_planner.calculations_orig import (
-    # 16 names from __all__
+    # 16 names from __all__ (window functions moved to .windows)
     BatteryCapacity,
     calculate_charging_rate,
-    calculate_charging_window_pure,
     calculate_day_index,
     calculate_deferrable_parameters,
     calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
     calculate_energy_needed,
     calculate_hours_deficit_propagation,
-    calculate_multi_trip_charging_windows,
     calculate_power_profile,
     calculate_power_profile_from_trips,
     calculate_soc_at_trip_starts,
@@ -50,6 +48,12 @@ from .core import (
     calculate_dynamic_soc_limit,
     calculate_soc_target,
     calculate_trip_time,
+)
+
+# Window functions extracted to their own module.
+from .windows import (
+    calculate_charging_window_pure,
+    calculate_multi_trip_charging_windows,
 )
 
 # Re-export datetime/timezone/timedelta for test mocking (tests patch calculations.datetime).
