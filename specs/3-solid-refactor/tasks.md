@@ -98,7 +98,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-4.7, NFR-1.4_
   - _Design: §2 (ISP mechanism)_
 
-- [ ] 1.6 [GREEN] Implement max_unused_methods_ratio in solid_metrics.py (~60-100 LOC)
+- [x] 1.6 [GREEN] Implement max_unused_methods_ratio in solid_metrics.py (~60-100 LOC)
   - **Do**:
     1. Add AST walk to detect ABC/Protocol definitions in `custom_components.ev_trip_planner/`
     2. Skip HA framework ABCs (Entity, RestoreEntity, Platform, ConfigFlow, OptionsFlow)

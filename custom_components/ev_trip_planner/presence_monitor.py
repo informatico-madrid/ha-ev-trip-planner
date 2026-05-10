@@ -229,9 +229,7 @@ class PresenceMonitor:
         state = self.hass.states.get(
             self._return_info_entity_id
         )  # pragma: no cover  # HA sensor I/O - state lookup may return None during HA initialization
-        if (
-            not state
-        ):  # pragma: no cover  # HA sensor I/O - entity not yet created during initial setup
+        if not state:  # pragma: no cover  # HA sensor I/O - entity not yet created during initial setup
             _LOGGER.debug(
                 "Return info entity %s not found for %s",
                 self._return_info_entity_id,
@@ -244,9 +242,7 @@ class PresenceMonitor:
         hora_regreso_iso = state.attributes.get(
             "hora_regreso_iso"
         )  # pragma: no cover  # HA sensor I/O - attribute access may return None
-        if (
-            not hora_regreso_iso
-        ):  # pragma: no cover  # HA sensor I/O - attribute not set until first return event
+        if not hora_regreso_iso:  # pragma: no cover  # HA sensor I/O - attribute not set until first return event
             _LOGGER.debug(
                 "hora_regreso_iso attribute not found in %s for %s",
                 self._return_info_entity_id,
@@ -366,9 +362,7 @@ class PresenceMonitor:
             return True
 
         state_obj = self.hass.states.get(self.vehicle_coords_sensor)
-        if (
-            not state_obj
-        ):  # pragma: no cover  # HA sensor I/O - sensor entity may not exist if vehicle not yet detected
+        if not state_obj:  # pragma: no cover  # HA sensor I/O - sensor entity may not exist if vehicle not yet detected
             _LOGGER.warning(
                 "Vehicle coordinates sensor %s not found for %s, assuming at home",
                 self.vehicle_coords_sensor,
@@ -380,9 +374,7 @@ class PresenceMonitor:
         if state is None:
             return True
         vehicle_coords = self._parse_coordinates(state)
-        if (
-            not vehicle_coords
-        ):  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
+        if not vehicle_coords:  # pragma: no cover  # HA sensor I/O - defensive handling for malformed coordinate strings
             _LOGGER.warning(
                 "Could not parse vehicle coordinates from %s for %s, assuming at home",
                 state,
@@ -519,9 +511,7 @@ class PresenceMonitor:
 
         # Get new SOC value from event
         new_state = event.data.get("new_state")
-        if (
-            not new_state
-        ):  # pragma: no cover  # HA event bus - race condition during sensor initialization
+        if not new_state:  # pragma: no cover  # HA event bus - race condition during sensor initialization
             _LOGGER.debug(
                 "SOC change event for %s has no new_state, skipping",
                 self.vehicle_id,
@@ -683,9 +673,7 @@ class PresenceMonitor:
         Returns:
             True if notification was sent successfully, False otherwise
         """
-        if (
-            not self.notification_service
-        ):  # pragma: no cover  # HA configuration - notification_service must be configured at init
+        if not self.notification_service:  # pragma: no cover  # HA configuration - notification_service must be configured at init
             _LOGGER.warning(
                 "No notification service configured for vehicle %s",
                 self.vehicle_id,

@@ -8,8 +8,6 @@ import pytest
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
-
-
 @pytest.fixture
 def trip_manager(mock_hass):
     """Create a TripManager instance for testing."""

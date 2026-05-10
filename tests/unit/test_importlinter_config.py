@@ -7,8 +7,9 @@ Requirement: FR-3.5
 Design: §4.4 (lint-imports Contracts TOML)
 """
 
-import tomllib
 from pathlib import Path
+
+import tomllib
 
 PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 

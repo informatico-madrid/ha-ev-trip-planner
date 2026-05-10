@@ -12,7 +12,6 @@ from custom_components.ev_trip_planner.const import (
 from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 
 
-
 @pytest.fixture(autouse=True)
 def mock_store_class():
     """Fixture to patch the Store class for testing (autouse for all tests)."""

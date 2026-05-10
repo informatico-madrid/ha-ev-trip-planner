@@ -361,9 +361,7 @@ class EmhassDeferrableLoadSensor(
 
     async def async_will_remove_from_hass(
         self,
-    ) -> (
-        None
-    ):  # pragma: no cover  # HA entity lifecycle - entity removal triggers cleanup; tested via HA integration tests
+    ) -> None:  # pragma: no cover  # HA entity lifecycle - entity removal triggers cleanup; tested via HA integration tests
         """Clean up when entity is removed from Home Assistant."""
         trip_manager = getattr(self.coordinator, "trip_manager", None)
         if (
@@ -524,9 +522,7 @@ async def async_setup_entry(
         # Await if it returns an awaitable (async callback)
         try:
             await result
-        except (
-            TypeError
-        ):  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+        except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
             # Sync callback - result is None, nothing to await
             pass  # pragma: no cover  # HA entity platform - sync callback error handling
 
@@ -568,11 +564,7 @@ async def _async_create_trip_sensors(
         )
 
         # Create sensors for recurring trips
-        for (
-            trip_data
-        ) in (
-            recurring_trips
-        ):  # pragma: no cover  # HA entity platform - loop creates sensors for all valid trips; no error means all succeed
+        for trip_data in recurring_trips:  # pragma: no cover  # HA entity platform - loop creates sensors for all valid trips; no error means all succeed
             try:  # pragma: no cover  # HA entity platform - try block for sensor creation
                 sensor = TripSensor(coordinator, vehicle_id, trip_data.get("id", ""))
                 entities.append(sensor)
@@ -580,9 +572,7 @@ async def _async_create_trip_sensors(
                     "Created trip sensor for recurring trip %s",
                     trip_data.get("id"),
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
+            except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
                 _LOGGER.warning(  # pragma: no cover  # HA entity platform - warning logged but sensor creation continues
                     "Failed to create sensor for recurring trip %s: %s",
                     trip_data.get("id"),
@@ -598,9 +588,7 @@ async def _async_create_trip_sensors(
                     "Created trip sensor for punctual trip %s",
                     trip_data.get("id"),
                 )
-            except (
-                Exception
-            ) as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
+            except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
                 _LOGGER.warning(  # pragma: no cover  # HA entity platform - warning logged but sensor creation continues
                     "Failed to create sensor for punctual trip %s: %s",
                     trip_data.get("id"),
@@ -680,16 +668,12 @@ async def async_create_trip_sensor(
         if result is not None:
             try:
                 await result
-            except (
-                TypeError
-            ):  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+            except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
                 # Sync callback
                 pass  # pragma: no cover  # HA entity platform - sync callback error handling
         _LOGGER.debug("Trip sensor created and registered for trip %s", trip_id)
         return True
-    except (
-        Exception
-    ) as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
+    except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
         _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
         return False  # pragma: no cover  # HA entity platform - error return path
 
@@ -911,16 +895,12 @@ async def async_create_trip_emhass_sensor(
         if result is not None:
             try:
                 await result
-            except (
-                TypeError
-            ):  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+            except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
                 # Sync callback
                 pass  # pragma: no cover  # HA entity platform - sync callback error handling
         _LOGGER.debug("EMHASS sensor created and registered for trip %s", trip_id)
         return True
-    except (
-        Exception
-    ) as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
+    except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
         _LOGGER.error("Failed to create EMHASS sensor for trip %s: %s", trip_id, err)
         return False  # pragma: no cover  # HA entity platform - error return path
 

@@ -824,6 +824,17 @@ import-check:
     .venv/bin/lint-imports --config pyproject.toml
 ```
 
+**CROSS-PACKAGE VERIFICATION TIMING (CRITICAL — not a TDD issue, a spec-timing issue):**
+
+The 7 contracts define rules for cross-package dependency direction. However, **writing the contracts** (config task: writing TOML to pyproject.toml) and **enforcing the contracts** (verification task: running `lint-imports --config pyproject.toml`) are separate concerns with different timing:
+
+- **Config** (tasks 1.2-1.3): Can happen at any time. Only requires reading pyproject.toml. Does NOT require packages to exist.
+- **Enforcement** (Phase 2, task 2.5): `lint-imports` attempts to import each `source_modules` and `forbidden_modules` listed in the contracts. If a package directory does not exist (e.g., `custom_components/ev_trip_planner.trip` before `trip/` decomposition), lint-imports fails with "Module does not exist" — this is a false negative, not a real contract violation.
+
+**Rule**: Any task whose Verify command runs cross-package tooling (`lint-imports --config pyproject.toml`, `solid_metrics.py` against all 9 packages, or any tool that imports from the target packages) MUST be placed in Phase 2 or later, after all scaffold tasks for the referenced packages are complete. Config tasks can run in Phase 1.
+
+This is NOT a TDD anti-pattern. TDD requires tests to fail before implementation. Here, the test itself (`lint-imports`) is a pre-existing tool that cannot run correctly until the subject-under-test (the packages) exists. The verification is deferred to Phase 2, and the config is installed in Phase 1 as a pre-condition so contracts exist as documentation and TOML structure.
+
 ### 4.5 Public API `__all__` Mechanics
 
 - `__all__` declared in every package `__init__.py` (9 packages).

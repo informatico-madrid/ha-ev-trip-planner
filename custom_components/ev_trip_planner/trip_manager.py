@@ -273,9 +273,9 @@ class TripManager:
                             # trips, or trips passed from outside), fall back to mutating
                             # the trip dict directly (original behavior).
                             if trip_id in self._recurring_trips:
-                                self._recurring_trips[trip_id][
-                                    "datetime"
-                                ] = next_occurrence.isoformat()
+                                self._recurring_trips[trip_id]["datetime"] = (
+                                    next_occurrence.isoformat()
+                                )
                             else:
                                 trip["datetime"] = next_occurrence.isoformat()
                             _LOGGER.debug(

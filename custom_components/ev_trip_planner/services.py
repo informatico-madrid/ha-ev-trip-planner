@@ -754,9 +754,7 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
                 len(trip_manager._recurring_trips),
                 len(trip_manager._punctual_trips),
             )
-        except (
-            Exception
-        ) as setup_err:  # pragma: no cover — factory function error path; requires broken factory to trigger
+        except Exception as setup_err:  # pragma: no cover — factory function error path; requires broken factory to trigger
             _LOGGER.error(
                 "=== _get_manager - Error setting up manager for %s: %s ===",
                 vehicle_id,

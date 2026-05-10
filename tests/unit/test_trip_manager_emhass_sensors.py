@@ -20,7 +20,6 @@ from custom_components.ev_trip_planner.const import (
 )
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────
 
 @pytest.fixture

@@ -6,18 +6,17 @@ to entry creation, verifying data persistence and validation.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import AbortFlow, FlowResultType
 
 from custom_components.ev_trip_planner.config_flow import (
+    STEP_SENSORS_SCHEMA,
     EVTripPlannerConfigFlow,
     EVTripPlannerFlowHandler,
 )
-from custom_components.ev_trip_planner.config_flow import STEP_SENSORS_SCHEMA
 from custom_components.ev_trip_planner.const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,

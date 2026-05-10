@@ -12,7 +12,6 @@ All tests follow TDD principles and use pytest-homeassistant-custom-component pa
 
 from __future__ import annotations
 
-
 import pytest
 
 from custom_components.ev_trip_planner.trip_manager import TripManager

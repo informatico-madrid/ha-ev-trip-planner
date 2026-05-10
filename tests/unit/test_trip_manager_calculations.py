@@ -19,7 +19,6 @@ import pytest
 from custom_components.ev_trip_planner.trip_manager import TripManager
 from tests.helpers import FakeTripStorage, create_mock_ev_config_entry
 
-
 # =============================================================================
 # TestCalcularVentanaCarga — charging window calculation
 # =============================================================================

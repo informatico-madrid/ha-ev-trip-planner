@@ -14,9 +14,6 @@ from homeassistant.util import dt as dt_util
 from .calculations import (
     DEFAULT_T_BASE,
     BatteryCapacity,
-)
-from .calculations import calculate_deferrable_parameters as calc_deferrable_parameters
-from .calculations import (
     calculate_dynamic_soc_limit,
     calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
@@ -25,6 +22,7 @@ from .calculations import (
     determine_charging_need,
     generate_deferrable_schedule_from_trips,
 )
+from .calculations import calculate_deferrable_parameters as calc_deferrable_parameters
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -1200,13 +1198,12 @@ class EMHASSAdapter:
 
             # Update projected SOC for next trip
             # 1. Add SOC gained from charging this trip
+            assert trip_id is not None
             if trip_id in batch_charging_windows:
                 window = batch_charging_windows[trip_id]
                 ventana_horas = window.get("ventana_horas", 0)
                 # Get charging decision from cache
-                cached_params = self._cached_per_trip_params.get(
-                    trip_id, {}
-                )  # pyright: ignore[reportCallIssue,reportArgumentType]
+                cached_params = self._cached_per_trip_params.get(trip_id, {})  # pyright: ignore[reportCallIssue,reportArgumentType,reportPossiblyUnboundVariable]
                 def_total_hours = cached_params.get("def_total_hours", 0)
 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100

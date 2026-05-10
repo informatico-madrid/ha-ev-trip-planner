@@ -13,7 +13,6 @@ from homeassistant.util import dt as dt_util
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
-
 @pytest.fixture
 def trip_manager(mock_hass):
     """Create TripManager instance."""
