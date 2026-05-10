@@ -89,7 +89,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.5 [RED] Test: solid_metrics.py implements max_unused_methods_ratio ISP check
+- [x] 1.5 [RED] Test: solid_metrics.py implements max_unused_methods_ratio ISP check
   - **Do**: Write a test that asserts `scripts/solid_metrics.py` contains `max_unused_methods_ratio` logic (AST walk + stub detection for ABC methods). Current code has no such check.
   - **Files**: tests/unit/test_solid_metrics_isp.py
   - **Done when**: Test exists and fails (check not implemented yet)
