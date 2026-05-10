@@ -11,17 +11,14 @@ help:
 	@echo "  make test-parallel   - Run tests in parallel mode / Tests en paralelo"
 	@echo "  make test-random     - Run tests in random order / Tests en orden aleatorio"
 	@echo "  make test-e2e        - Run E2E tests (HA on localhost:8123) / Tests E2E (HA en localhost:8123)"
-	@echo "  make test-e2e-headed - Run E2E with visible browser / E2E con navegador visible"
-	@echo "  make test-e2e-debug  - Run E2E in debug mode (Playwright inspector) / E2E en modo debug"
 	@echo "  make e2e             - Auto-setup HA and run E2E / Arrancar HA y ejecutar E2E"
-	@echo "  make e2e-debug       - Same as e2e but debug mode / Igual que e2e pero en modo debug"
 	@echo "  make e2e-soc         - E2E dynamic SOC suite / Suite E2E dynamic SOC"
 	@echo "  make e2e-lint        - Lint E2E test files / Lintear archivos E2E"
 	@echo ""
 	@echo "Quality Gate Layers (6-layer architecture):"
 	@echo "  make layer3a         - Layer 3A: Smoke test (ruff, pyright, SOLID-TA, principles, anti-TA)"
 	@echo "  make layer1          - Layer 1: Test execution (unit + E2E) / Capa 1: Ejecución de tests"
-	@echo "  make layer1-ci       - Layer 1 CI: Unit tests only (fast) / Capa 1 CI: Solo unit tests (rápido)"
+	@echo "  make layer1-ci       - Layer 1 CI: Unit + integration tests, no E2E (fast) / Capa 1 CI: Unit + integration (sin E2E, rápido)"
 	@echo "  make layer2          - Layer 2: Test quality (mutation) / Capa 2: Calidad de tests (mutación)"
 	@echo "  make layer3b         - Layer 3B: Deep quality (SOLID-TB + Anti-TB via BMAD) / Capa 3B: Calidad profunda"
 	@echo "  make layer3          - Layer 3: Code quality (all tiers) / Capa 3: Calidad de código"
@@ -63,16 +60,16 @@ help:
 	@echo "  make staging-reset   - Reset staging HA / Resetear HA staging"
 
 test:
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100 --ignore=tests/e2e/
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100
 
 test-verbose:
-	python3 -m pytest tests -vv -s --tb=long --ignore=tests/e2e/
+	python3 -m pytest tests/unit tests/integration -vv -s --tb=long
 
 test-dashboard:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100 --ignore=tests/e2e/
+	python3 -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
 	@echo "Dashboard de cobertura generado en htmlcov/index.html"
 
 test-e2e:
@@ -87,26 +84,14 @@ test-e2e-debug:
 e2e:
 	./scripts/run-e2e.sh
 
-e2e-headed:
-	./scripts/run-e2e.sh --headed
-
-e2e-debug:
-	./scripts/run-e2e.sh --debug
-
 # e2e-soc: dynamic SOC capping suite (requires HA with SOH sensor configured)
 # Uses INDEPENDENT setup: separate HA config dir, separate auth state (user-soc.json), separate Playwright config
 e2e-soc:
 	./scripts/run-e2e-soc.sh
 
-e2e-soc-headed:
-	./scripts/run-e2e-soc.sh --headed
-
-e2e-soc-debug:
-	./scripts/run-e2e-soc.sh --debug
-
 lint:
 	ruff check .
-	pylint custom_components/ tests/
+	pylint custom_components/ tests/unit/ tests/integration/
 
 mypy:
 	@echo "⚠️  DEPRECATED: mypy target is deprecated. Use 'make typecheck' instead (runs pyright)."
@@ -160,20 +145,20 @@ layer1-ci:
 layer2:
 	@echo "Running Layer 2: Test Quality (mutation, weak tests, diversity)..."
 	@echo "  → Mutation gate..."
-	@python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
 	@echo "  → Weak test detector..."
-	@python3 .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
 	@echo "  → Test diversity..."
-	@python3 .claude/skills/quality-gate/scripts/diversity_metric.py tests/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/
 	@echo "=== Layer 2 Complete ==="
 
 # Layer 3B: Deep Quality (BMAD Party Mode — SOLID Tier B + Antipatterns Tier B)
 layer3b:
 	@echo "Running Layer 3B: Deep Quality (BMAD Tier B consensus)..."
 	@echo "  → Generating SOLID Tier B context..."
-	@python3 .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
 	@echo "  → Generating Antipatterns Tier B context..."
-	@python3 .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
 	@echo "  → Run BMAD Party Mode for consensus validation"
 	@echo "     (Requires BMAD integration — context JSON files generated)"
 	@echo "=== Layer 3B Complete ==="
@@ -234,14 +219,14 @@ security-gitleaks:
 
 security-semgrep:
 	@echo "Running Semgrep static analysis..."
-	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/
+	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/unit/ tests/integration/
 
 # ============================================================================
 # Dead Code and Unused Dependencies
 # ============================================================================
 dead-code:
 	@echo "Running vulture dead code detector..."
-	.venv/bin/vulture custom_components/ tests/ --min-confidence 80
+	.venv/bin/vulture custom_components/ tests/unit/ tests/integration/ --min-confidence 80
 
 unused-deps:
 	@echo "Running deptry for unused dependencies..."
@@ -253,7 +238,7 @@ import-check:
 
 refurb:
 	@echo "Running refurb for Python modernization suggestions..."
-	.venv/bin/refurb custom_components/ tests/
+	.venv/bin/refurb custom_components/ tests/unit/ tests/integration/
 
 mutation:
 	@echo "Running mutation testing..."
@@ -268,11 +253,11 @@ mutation-gate:
 # ============================================================================
 test-parallel:
 	@echo "Running tests in parallel mode..."
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/ -n auto
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short -n auto
 
 test-random:
 	@echo "Running tests in random order..."
-	PYTHONPATH=. .venv/bin/python -m pytest tests -v --tb=short --ignore=tests/e2e/ --random-order
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short --random-order
 
 # ============================================================================
 # E2E Linting
@@ -318,7 +303,7 @@ clean:
 	rm -rf .hypothesis
 
 htmlcov:
-	python3 -m pytest tests --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
+	python3 -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=html --cov-fail-under=100
 	@echo "Reporte HTML generado en htmlcov/index.html"
 
 # ============================================================================

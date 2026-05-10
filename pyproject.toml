@@ -1,3 +1,10 @@
+[project.optional-dependencies]
+dev = [
+    "time-machine>=2.10.0",
+    "hypothesis>=6.0.0",
+    "flake8-pytest-style>=1.7.0",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
@@ -66,7 +73,7 @@ paths = ["custom_components"]
 root_package = "custom_components"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/integration"]
 pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = "Test*"
@@ -74,9 +81,16 @@ python_functions = "test_*"
 # NOTE: --cov removed from addopts because pytest-cov causes a deadlock when
 # mutmut 3.x redirects stdout during in-process pytest.main() calls.
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
-addopts = "-v"
+# import_mode=importlib set via addopts (not a standalone ini key in pytest 9)
+addopts = "-v --import-mode=importlib --strict-markers --strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+strict = true
+markers = [
+    "unit: unit tests (no external dependencies)",
+    "integration: integration tests (require HA framework or external services)",
+    "slow: tests that take significantly longer than average",
+]
 filterwarnings = [
     "ignore:Inheritance class.*:DeprecationWarning",
     "ignore::pytest.PytestDeprecationWarning",
@@ -99,9 +113,14 @@ exclude_lines = [
 ]
 
 [tool.mutmut]
+# NOTE: tests_excluded_from_mutmut/ directory (2 files) remains in its current
+# location. These files are NOT being moved as part of Spec 2 test reorganization.
+# Their disposition — whether to integrate into tests/unit/ or tests/integration/
+# or remove entirely — is deferred to Spec 5 (Mutation Ramp).
+# Per AC-12.3/AC-12.4: exclusion list update not required since files are not moved.
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
-tests_dir = ["tests/"]
+tests_dir = ["tests/unit/", "tests/integration/"]
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
 
