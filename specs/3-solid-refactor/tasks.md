@@ -166,7 +166,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     5. Add transitional shim: `calculations.py` re-exports from `calculations/`
   - **Files**: custom_components/ev_trip_planner/calculations/__init__.py, calculations/*.py, calculations.py (shim)
   - **Done when**: `from custom_components.ev_trip_planner.calculations import calculate_charging_window_pure` resolves; `make test` passes
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -c "from custom_components.ev_trip_planner.calculations import calculate_charging_window_pure, BatteryCapacity, ChargingDecision, DEFAULT_T_BASE" && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_calculations_imports.py -v && echo GREEN_PASS`
+  - **Verify**: `test -s custom_components/ev_trip_planner/calculations/__init__.py && python -c "from custom_components.ev_trip_planner.calculations import calculate_charging_window_pure, BatteryCapacity, ChargingDecision, DEFAULT_T_BASE" && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_calculations_imports.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): scaffold calculations/ package with re-exports`
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.6 (calculations functional decomposition)_
@@ -182,7 +182,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.12 [GREEN] Move private helpers to `_helpers.py`
+- [x] 1.12 [GREEN] Move private helpers to `_helpers.py`
   - **Do**:
     1. Extract `_ensure_aware` and other private datetime helpers from `calculations.py` to `calculations/_helpers.py`
     2. Update `calculations.py` to import from `_helpers`

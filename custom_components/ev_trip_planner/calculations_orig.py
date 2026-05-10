@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from .calculations._helpers import _ensure_aware
 from .const import (
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOC_BASE,
@@ -148,13 +149,6 @@ def calculate_dynamic_soc_limit(
 
     limit = DEFAULT_SOC_BASE + 65.0 * (1.0 / (1.0 + risk / t_base))
     return max(35.0, min(100.0, limit))
-
-
-def _ensure_aware(dt: datetime) -> datetime:
-    """Convert naive datetime to aware (UTC) if needed."""
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
 
 
 # Days of week in Spanish (lowercase) — mirrors trip_manager.DAYS_OF_WEEK
