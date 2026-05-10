@@ -369,6 +369,7 @@ Focus: Update all configuration files to reflect new test structure.
   - _Requirements: FR-18, FR-19, AC-11.1, AC-11.2_
 
 - [ ] 3.2 Update Makefile test targets (7 targets)
+- [x] 3.2 Update Makefile test targets (7 targets)
   - **Do**: Update all `pytest tests` references in Makefile to `pytest tests/unit tests/integration`. Remove `--ignore=tests/e2e/` since e2e is no longer under the test path. Targets: test, test-cover, test-verbose, test-dashboard, test-parallel, test-random, htmlcov.
   - **Files**: Makefile
   - **Done when**: All 7 targets use new paths; `make test` passes
