@@ -1,10 +1,8 @@
 """Tests for EV Trip Planner integration __init__.py."""
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, PropertyMock, mock_open, patch
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner import (
     TripPlannerCoordinator,

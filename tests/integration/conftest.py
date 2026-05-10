@@ -511,12 +511,6 @@ def _build_services_hass(manager_config=None):
 
 
 @pytest.fixture
-def mock_hass():
-    """Plain mock hass with no manager configuration."""
-    return _build_services_hass()
-
-
-@pytest.fixture
 def mock_hass_get_error():
     """Manager raises RuntimeError on async_get_recurring_trips."""
     return _build_services_hass({
@@ -563,15 +557,6 @@ def mock_hass_delete_not_found_v1():
 
 
 @pytest.fixture
-def mock_hass_manager_setup_error():
-    """Manager async_setup raises RuntimeError."""
-    return _build_services_hass({
-        "async_setup": {"side_effect": RuntimeError("Setup failed")},
-        "async_get_recurring_trips": {"return_value": []},
-    })
-
-
-@pytest.fixture
 def mock_hass_get_not_found():
     """Trip not found in search (both get methods return [])."""
     return _build_services_hass({
@@ -613,7 +598,6 @@ def mock_hass_manager_setup_error():
     The new manager's async_setup raises, exercising the error path in
     _get_manager where the factory catches the exception and logs it.
     """
-    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
     hass = _build_services_hass()
@@ -637,7 +621,6 @@ def mock_hass_manager_setup_ok():
     _get_manager creates a new manager and calls async_setup successfully,
     covering the log line after async_setup returns.
     """
-    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
     hass = _build_services_hass()
@@ -839,166 +822,6 @@ def mock_hass():
     hass.loop = MagicMock()
     hass.loop.time.return_value = 0.0
 
-    return hass
-
-
-# ============================================================================
-# test_config_updates.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_config_updates():
-    hass = MagicMock()
-    hass.config_entries = MagicMock()
-    hass.bus = MagicMock()
-    hass.states = MagicMock()
-    hass.states.async_remove = MagicMock(return_value=None)
-    return hass
-
-
-# ============================================================================
-# test_functional_emhass_sensor_updates.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_functional():
-    from homeassistant.core import HomeAssistant, CoreState
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}
-    hass.states = Mock()
-    hass.bus = Mock()
-    hass.bus.async_listen = Mock()
-    hass.state = CoreState.running
-    hass.config = Mock()
-    hass.config.config_dir = '/tmp/homeassistant'
-    return hass
-
-
-# ============================================================================
-# test_migrate_entry.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_migrate():
-    hass = MagicMock()
-    hass.data = {}
-    return hass
-
-
-# ============================================================================
-# test_presence_monitor.py / test_presence_monitor_soc.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_presence():
-    from homeassistant.core import HomeAssistant
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}
-    hass.states = Mock()
-    hass.states.async_set = MagicMock()
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    hass.bus = Mock()
-    hass.bus.async_listen = Mock()
-    async def _mock_ahj(job, *_a, **_k):
-        return None
-    hass.async_run_hass_job = _mock_ahj
-    return hass
-
-
-# ============================================================================
-# test_sensor_integration.py - mock_hass_and_coordinator fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_and_coordinator():
-    hass = MagicMock()
-    hass.services = MagicMock()
-    hass.config_entries = MagicMock()
-    coordinator = MagicMock()
-    coordinator.data = None
-    return hass, coordinator
-
-
-# ============================================================================
-# test_trip_calculations.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_trip_calculations():
-    hass = Mock(spec=HomeAssistant)
-    hass.data = {}
-    hass.states = Mock()
-    return hass
-
-
-# ============================================================================
-# test_trip_manager_core.py (integration) - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_trip_manager():
-    hass = MagicMock()
-    hass.data = {}
-    hass.config_entries = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = 'test_entry_id'
-    mock_entry.data = {'vehicle_name': 'test_vehicle', 'charging_power_kw': 3.6}
-    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.loop = MagicMock()
-    hass.loop.time.return_value = 0.0
-    return hass
-
-
-# ============================================================================
-# test_trip_manager_power_profile.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_power_profile():
-    hass = MagicMock()
-    mock_entry = Mock()
-    mock_entry.entry_id = 'test_vehicle'
-    hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
-    return hass
-
-
-# ============================================================================
-# test_user_real_data_simple.py - mock_hass fixture
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_user_real_data():
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = 'test_entry_123'
-    data_dict = {'vehicle_name': 'test_vehicle', 'charging_power_kw': 3.6}
-    mock_entry.data = MagicMock()
-    mock_entry.data.get = MagicMock(
-        side_effect=lambda key, default=None: data_dict.get(key, default)
-    )
-    hass.config_entries.async_entries = MagicMock(return_value=[mock_entry])
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.data = {}
-    hass.async_add_executor_job = AsyncMock(return_value=None)
-    hass.config = MagicMock()
-    hass.config.config_dir = '/tmp/test_config'
-    hass.config.components = []
-    hass.services = MagicMock()
-    hass.services.async_call = AsyncMock()
-    hass.services.has_service = MagicMock(return_value=True)
-    hass.loop = MagicMock()
-    hass.loop.time.return_value = 0.0
     return hass
 
 

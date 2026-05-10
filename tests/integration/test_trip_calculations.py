@@ -1,8 +1,6 @@
 """Tests for trip calculation logic - Milestone 2."""
 
-import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
 
 import pytest
 from freezegun import freeze_time

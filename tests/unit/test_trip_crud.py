@@ -12,7 +12,6 @@ All tests follow TDD principles and use pytest-homeassistant-custom-component pa
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
 
 import pytest
 

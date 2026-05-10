@@ -149,7 +149,7 @@ def hass():
                     return job_target(*job_args, **filtered_kwargs)
 
                 return asyncio.ensure_future(_wrapper())
-        except Exception as e:
+        except Exception:
             raise
 
     hass_inst.async_run_hass_job = _mock_async_run_hass_job

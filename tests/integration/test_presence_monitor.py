@@ -1,9 +1,8 @@
 """Tests for Presence Monitor."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.const import (
     CONF_HOME_COORDINATES,

@@ -2188,11 +2188,6 @@ Covers:
 - Fallback when `async_entries` raises (defaults to 50.0 battery capacity).
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-
-from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
 @pytest.mark.asyncio

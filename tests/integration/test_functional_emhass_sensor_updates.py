@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
-from homeassistant.core import CoreState, HomeAssistant
 
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor

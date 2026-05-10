@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.ev_trip_planner.__init__ import register_services
-from custom_components.ev_trip_planner.const import DOMAIN
 
 
 def _patch_trip_manager():

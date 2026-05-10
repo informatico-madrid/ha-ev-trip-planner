@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
-import asyncio
 
 import pytest
 
@@ -289,7 +287,7 @@ def mock_hass_entity_registry(config_entry):
             suggested_object_id = kwargs.get("suggested_object_id", "unknown")
             unique_id = kwargs.get("unique_id", "")
             entity_id = f"sensor.{suggested_object_id}"
-            entry = _MockRegistryEntry(entity_id, unique_id, mock_config_entry.entry_id)
+            entry = _MockRegistryEntry(entity_id, unique_id, config_entry.entry_id)
             self.entries[entity_id] = entry
             return entry
 
@@ -746,7 +744,6 @@ def mock_hass_yaml():
 @pytest.fixture
 def mock_panel_module():
     """Create a mock panel_custom module."""
-    from unittest.mock import patch
     from unittest.mock import AsyncMock
     with patch("custom_components.ev_trip_planner.panel.panel_custom") as mock:
         mock.async_register_panel = AsyncMock()
@@ -756,7 +753,6 @@ def mock_panel_module():
 @pytest.fixture
 def mock_frontend_module():
     """Create a mock frontend module."""
-    from unittest.mock import patch
     from unittest.mock import AsyncMock
     with patch("custom_components.ev_trip_planner.panel.frontend") as mock:
         mock.async_register_built_in_panel = AsyncMock()

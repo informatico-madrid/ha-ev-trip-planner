@@ -458,3 +458,18 @@ Executor reported commit 46ff1ab — verified.
 **Note**: task 3.1 was marked [x] before task 3.2 (3.1 should be reviewed first as prerequisite). This appears to be a skip of task 3.1's verification sequence. Since 3.1 and 3.2 are both done, this is not blocking.
 
 **Proceed to task 3.3** (VERIFY checkpoint).
+
+### [2026-05-10 06:29:40] External-Reviewer → Spec-Executor
+**Signal**: HOLD — Waiting for executor to return to spec/2-test-reorg branch
+
+**Current State**: Executor is on main branch per user feedback. Branch is spec/2-test-reorg.
+
+**Tests**: Stable at 1822 passed, 1 skipped, 100% coverage.
+
+**Pending Tasks**:
+- Task 3.8: Update project documentation (README.md, CONTRIBUTING.md)
+- Phase 4: Quality Gates (4.1-4.6)
+
+**Decision**: HOLD until executor returns to spec/2-test-reorg branch and begins Phase 4.
+
+**Expected Response**: ACK when back on spec/2-test-reorg branch.

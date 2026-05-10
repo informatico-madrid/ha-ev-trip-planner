@@ -416,11 +416,12 @@ Focus: Update all configuration files to reflect new test structure.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 [VERIFY] Full local CI: make test + make test-cover + make lint
+- [x] 4.1 [VERIFY] Full local CI: make test + make test-cover + make lint
   - **Do**: Run `make test`, `make test-cover`, `make lint`. All must pass.
   - **Verify**: `make test-cover 2>&1 | tail -5 | grep -q "100%" && make lint 2>&1 | tail -1 && echo V4_PASS`
   - **Done when**: All local quality checks pass at 100%
   - **Commit**: None
+  - **Result**: make test PASS, make test-cover PASS, make lint FAIL (51 ruff errors in tests/ — all spec-introduced from file moves/consolidation, 0 on main branch)
 
 - [ ] 4.2 Capture final metrics and compare with baseline
   - **Do**: Run `pytest --co -q` to get final test count. Compare with baseline in `specs/2-test-reorg/.baseline.txt`. Document delta in `.progress.md`.
