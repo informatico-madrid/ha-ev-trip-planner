@@ -160,9 +160,9 @@ Each module's mutation kill rate must meet or exceed the target defined in `pypr
 main
   └── epic/tech-debt-cleanup          ← rama epic (merge target)
         ├── spec/tooling-foundation    ← Spec 0 ✅ COMPLETADA (18/18 tasks)
-        ├── spec/1-dead-code           ← Spec 1 [✅ COMPLETADO 22/22 tareas]
-        ├── spec/2-test-reorg          ← Spec 2 (pendiente)
-        ├── spec/3-solid-refactor      ← Spec 3 (pendiente)
+        ├── spec/1-dead-code           ← Spec 1 [✅ COMPLETADO 22/22 tareas, PR #45]
+        ├── spec/2-test-reorg          ← Spec 2 [✅ COMPLETADO 63/63 tareas, PR #46]
+        ├── spec/3-solid-refactor      ← Spec 3 (en curso)
         ├── ...
 ```
 
@@ -226,8 +226,20 @@ main
 - **Estimated Size**: **0.25 story points**
 - **Dependencies**: None (can run in parallel with Spec 0)
 
-### Spec 2: Test Architecture Reorganization
+### Spec 2: Test Architecture Reorganization ✅ COMPLETADA
 - **Goal**: Reorganize 104 flat test files into unit/integration/E2E structure. Consolidate duplicate/weak tests. Eliminate `assert True`.
+- **Status**: ✅ COMPLETADA — 63/63 tasks, PR #46 MERGED to `epic/tech-debt-cleanup` (commit `e7cf020b`)
+- **Results**:
+  - Tests: 1,822 passed, 1 skipped, 100% coverage (4,800 statements, 0 missed)
+  - Files moved: 73 unit test files → `tests/unit/`, 29 integration test files → `tests/integration/`
+  - Consolidations: 18 trip_manager files → 3 (core/calculations/integration), 6 config_flow files → 2, dashboard/bug/TDD/coverage tests renamed to behavior-driven names
+  - Mock reduction: 25 inline `mock_hass` fixtures eliminated (test_services_core.py alone -800 LOC), centralized in `tests/unit/conftest.py` + `tests/integration/conftest.py`
+  - Tooling installed: time-machine, hypothesis, flake8-pytest-style
+  - pyproject.toml: `strict = true`, `--import-mode=importlib`, registered markers (`unit`, `integration`, `slow`)
+  - 2 `assert True` violations fixed
+  - 51 lint errors from conftest consolidation resolved (commit `f58db6d8`)
+  - E2E: `make e2e` (30 tests, 3.7m) + `make e2e-soc` (10 tests, 2.9m) — both pass
+  - PR: <https://github.com/informatico-madrid/ha-ev-trip-planner/pull/46>
 - **Acceptance Criteria**:
   - AC-2.1: Tests organized: `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/fixtures/`, `tests/helpers/`
   - AC-2.2: 13 `test_trip_manager*.py` files consolidated into ≤ 3 focused test files (note: 18 total trip-related files including `test_trip_*.py`)
@@ -449,6 +461,7 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 ### Phase 2: Test Architecture Reorganization (Spec 2)
 **What**: Reorganize flat tests into unit/integration layers. Consolidate duplicates. Fix `assert True`.
 **Why parallel with Phase 1**: Test reorganization is independent of dead code removal. Tests must be organized and reliable before any structural code changes (Spec 3). Also, consolidating coverage-driven tests into behavior-driven tests provides the safety net needed for aggressive refactoring.
+**Status**: ✅ **COMPLETE** — 63/63 tasks done, PR #46 MERGED to `epic/tech-debt-cleanup`
 
 ### Phase 3: SOLID Refactoring — God Classes (Spec 3)
 **What**: Split `EMHASSAdapter` (2,730 LOC), `TripManager` (2,503 LOC), `services.py` (1,635 LOC), `dashboard.py` (1,285 LOC), `vehicle_controller.py` (537 LOC), `calculations.py` (1,690 LOC). Eliminate circular imports.
@@ -560,6 +573,40 @@ Each spec must be developed on its own branch with the following safety measures
   - Anti-evasion policy: executor self-modifying task descriptions must be detected and rejected. This is a higher-severity issue than a simple verify fail.
   - VE tasks require explicit HA startup (`make e2e`) before qa-engineer delegation. No assumptions about HA availability.
   - Pre-existing quality issues (typecheck, lint) should be documented upfront in requirements as known limitations.
+
+### Spec 2: Test Architecture Reorganization — Lessons Learned
+- **What went well**:
+  - Test reorganization completed with zero coverage loss (100% maintained, 1,822 passed + 1 skipped)
+  - Massive consolidation: 18 `test_trip_manager*.py` → 3 files; 6 `test_config_flow*.py` → 2; 25 inline `mock_hass` fixtures centralized
+  - All Spec 0-deferred tooling installed in this spec (time-machine, hypothesis, flake8-pytest-style)
+  - `make e2e` (30/30) + `make e2e-soc` (10/10) green at end of spec
+  - pyproject.toml `strict = true` + `--import-mode=importlib` adopted cleanly
+  - PR #46 merged after addressing 51 lint errors from conftest consolidation (commit `f58db6d8`)
+
+- **What went wrong**:
+  - **CodeRabbit auto-wait deadlock (CRITICAL)**: The PR-creation step instructed the agent to "wait for CodeRabbit comments". CodeRabbit on this repo only runs when triggered manually (`@coderabbitai review`), so the agent stalled indefinitely waiting for events that would never fire. Required human intervention to unstick.
+  - **Gito-bot context omission**: Agent triggered Gito review without passing the spec context, without explicitly verifying the comparison branch (head vs base), and without confirming the `exclude_files` list — leading to noise/false positives that wasted review iterations.
+  - **Chat.md silence**: Executor produced commits and verifications without narrating what it was doing or why in `chat.md`. Made coordinator and human review hard — could not tell intent vs outcome without re-reading code.
+  - Initial verify command for AC counts was too literal (`grep "1821 passed"`) when actual pytest output was `"1820 passed, 1 skipped"`. Required adapting baseline-summary line.
+
+- **What surprised us**:
+  - pytest 9.0.0 has NO `import_mode` ini key; the only way to enable importlib is `--import-mode=importlib` inside `addopts`. Documentation suggested otherwise.
+  - 44 test files defined inline `mock_hass` (initial estimate was 27); some files had it up to 19 times.
+  - `tests/__init__.py` (198 LOC) was imported by 90+ files — extracting helpers required a SEPARATE commit from the file-move commits to keep the diff tractable.
+  - mutmut `tests_dir` had to move in the SAME commit as test-file moves or the mutation gate would break for at least one push.
+
+- **What we'd do differently**:
+  1. **PR review automation is OUT OF SCOPE for the Ralph loop.** CodeRabbit triggers manually on this repo — the human (joao) drives it. The spec workflow MUST NOT include a "wait for CodeRabbit" task. Drop it entirely or mark it explicitly as a manual gate the human performs offline.
+  2. **Gito-bot reviews MUST go through `/gito-review-with-spec`.** This skill enforces the three musts: (a) pass the spec context (`specs/<N>-<name>/research.md`, `requirements.md`, `design.md`), (b) explicitly state the comparison branches (head=`spec/<N>-<name>`, base=`epic/tech-debt-cleanup`), (c) verify `.gito/config.toml` `exclude_files` is appropriate for the diff scope before kicking off the review. Never run a bare `/gito` review.
+  3. **Every task must update `chat.md` with a one-line "What & Why" before the verify step.** Format: `[<task-id>] DOING: <what> — REASON: <why>`. Coordinator should reject task completion if chat.md was not updated for that task. This restores observability without forcing verbose narratives.
+  4. **Verify commands must match real pytest output**, including skipped/xfailed counts. Use `grep -E "[0-9]+ passed"` patterns, not literal counts.
+  5. **Mutmut config + test paths move atomically** in the same commit to avoid CI red between commits.
+
+- **Impact on subsequent specs**:
+  - **Spec 3 (and beyond) MUST NOT include a "wait for CodeRabbit" task.** PR review is a manual human gate after merge-ready commits exist. Generate the PR, post a comment requesting `/gito-review-with-spec`, and STOP — human handles CodeRabbit.
+  - **Spec 3 task templates MUST include a `chat.md` update step before each verify.** Add to the task-planner agent instructions and to `tasks.md` template.
+  - **Gito review tasks MUST invoke `/gito-review-with-spec`** with explicit branches, spec-context paths, and exclude-list verification.
+  - Naming convention `tests/unit/test_{module}_{aspect}.py` is now stable — Spec 3 module splits should land their tests in the existing layout without re-organizing.
 
 ### Spec {N}: {Name} — Lessons Learned (template for future)
 - **What went well**:
