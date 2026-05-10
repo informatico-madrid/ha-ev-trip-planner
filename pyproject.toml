@@ -73,7 +73,7 @@ paths = ["custom_components"]
 root_package = "custom_components"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/integration"]
 pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = "Test*"
@@ -115,7 +115,7 @@ exclude_lines = [
 [tool.mutmut]
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
-tests_dir = ["tests/"]
+tests_dir = ["tests/unit/", "tests/integration/"]
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
 

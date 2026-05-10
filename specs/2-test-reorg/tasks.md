@@ -360,7 +360,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
 
 Focus: Update all configuration files to reflect new test structure.
 
-- [ ] 3.1 Update pyproject.toml testpaths and mutmut tests_dir
+- [x] 3.1 Update pyproject.toml testpaths and mutmut tests_dir
   - **Do**: Change `testpaths = ["tests"]` to `testpaths = ["tests/unit", "tests/integration"]`. Change `tests_dir = ["tests/"]` to `tests_dir = ["tests/unit/", "tests/integration/"]` in `[tool.mutmut]`.
   - **Files**: pyproject.toml
   - **Done when**: Both paths updated; `make test` discovers all tests
