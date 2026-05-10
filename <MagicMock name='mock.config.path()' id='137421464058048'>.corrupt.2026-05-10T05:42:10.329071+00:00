@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "ev_trip_planner_morgan",
+  "data": {
+    "trips": {},
+    "recurring_trips": {
+      "rec_lun_xf49hv": {
+        "id": "rec_lun_xf49hv",
+        "tipo": "recurrente",
+        "dia_semana": "lunes",
+        "hora": "08:00",
+        "km": 50.0,
+        "kwh": 10.0,
+        "descripcion": "",
+        "activo": true
+      }
+    },
+    "punctual_trips": {},
+    "last_update": "2026-05-10T05:42:09.874209+00:00"
+  }
+}

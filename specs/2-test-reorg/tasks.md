@@ -342,7 +342,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): eliminate inline mock_hass in test_init.py`
   - _Requirements: FR-11, AC-7.4_
 
-- [ ] 2.25 Eliminate inline mock_hass in remaining high-count files
+- [x] 2.25 Eliminate inline mock_hass in remaining high-count files
   - **Do**: Replace inline `def mock_hass` in all remaining files that define it. NOTE: test_trip_manager.py and test_trip_manager_emhass.py were deleted in task 2.4 (consolidated). Use `grep -rl "def mock_hass" tests/unit/ tests/integration/ --include="*.py"` to find all remaining instances and replace with conftest fixtures. Expected files include: test_trip_crud.py, test_panel.py, test_yaml_trip_storage.py, test_migrate_entry.py, test_propagate_charge_integration.py, test_soc_cap_aggregation_ceil.py, test_charging_window.py, test_trip_manager_core.py (consolidated target), test_config_updates.py, test_presence_monitor_soc.py, test_soc_milestone.py, test_deferrable_load_sensors.py, test_entity_registry.py, test_functional_emhass_sensor_updates.py, test_full_user_journey.py, test_sensor_exists_fn.py, test_presence_monitor.py, test_sensor_coverage.py (or renamed test_sensor_integration.py), test_trip_calculations.py, test_emhass_adapter.py, test_user_real_data_simple.py, test_trip_manager_power_profile.py, and any others found by grep.
   - **Files**: ~24 test files in tests/unit/ and tests/integration/ (use grep to discover actual list)
   - **Done when**: `grep -rl "def mock_hass" tests/unit/ tests/integration/` returns 0 files
@@ -350,7 +350,7 @@ Focus: Consolidate trip_manager files, config_flow files. Rename bug/coverage fi
   - **Commit**: `refactor(test-reorg): eliminate all remaining inline mock_hass definitions`
   - _Requirements: FR-11, AC-7.4_
 
-- [ ] 2.26 [VERIFY] Quality checkpoint: mock_hass elimination
+- [x] 2.26 [VERIFY] Quality checkpoint: mock_hass elimination
   - **Do**: Run `make test` and `make test-cover`. Verify zero inline mock_hass remain.
   - **Verify**: `grep -rl "def mock_hass" tests/unit/ tests/integration/ --include="*.py" | wc -l | grep -q "^0$" && make test-cover 2>&1 | tail -5 | grep -q "100%" && echo VERIFY_PASS`
   - **Done when**: 0 inline mock_hass; 100% coverage
@@ -450,6 +450,7 @@ Focus: Update all configuration files to reflect new test structure.
     1. Verify current branch: `git branch --show-current` (should be spec/2-test-reorg)
     2. Push branch: `git push -u origin spec/2-test-reorg`
     3. Create PR targeting epic/tech-debt-cleanup: `gh pr create --base epic/tech-debt-cleanup --title "refactor(tests): reorganize test architecture into unit/integration layers" --body "$(cat specs/2-test-reorg/.pr-body.md 2>/dev/null || echo 'Test architecture reorganization per spec 2-test-reorg')"`
+    4. Creato gito bot background review /gito-review-with-spec context of this spec review from this branch to epic/tech-debt-cleanup
   - **Verify**: `gh pr view --json url,state | jq -r '.state' | grep -q "OPEN" && echo V5_PASS`
   - **Done when**: PR exists on GitHub targeting epic/tech-debt-cleanup with state OPEN
   - **Commit**: None
@@ -477,9 +478,9 @@ Focus: Update all configuration files to reflect new test structure.
 ## Phase 5: PR Lifecycle
 
 - [ ] 5.1 Monitor CI and address failures
-  - **Do**: Check CI status. If failures found, read logs, fix locally, push fix.
+  - **Do**: Check CI status. Only for unit and integration tests. If failures found, read logs, fix locally, push fix.
   - **Verify**: `gh pr checks 2>&1 | grep -v "pending" | grep -v "skipped" | head -20`
-  - **Done when**: CI checks pass or no CI configured for this branch
+  - **Done when**: CI unit and integration checks pass or no CI configured for this branch
   - **Commit**: `fix(test-reorg): address CI failures` (if needed)
 
 - [ ] 5.2 Resolve review comments

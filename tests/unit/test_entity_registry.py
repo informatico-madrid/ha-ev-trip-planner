@@ -57,81 +57,8 @@ class MockRegistryEntry:
         self.config_entry_id = config_entry_id
 
 
-@pytest.fixture
-def mock_hass(config_entry):
-    """Create a mock HomeAssistant with entity registry."""
-    from custom_components.ev_trip_planner.const import DOMAIN
-
-    hass = MagicMock()
-
-    class MockRegistry:
-        """Mock entity registry that tracks entities."""
-
-        def __init__(self, hass_mock):
-            self.hass_mock = hass_mock
-            self.entries = {}
-            self.entities = self
-
-        def async_get(self, hass_instance=None):
-            return self
-
-        def async_get_or_create(self, *args, **kwargs):
-            suggested_object_id = kwargs.get("suggested_object_id", "unknown")
-            unique_id = kwargs.get("unique_id", "")
-            entity_id = f"sensor.{suggested_object_id}"
-            entry = MockRegistryEntry(entity_id, unique_id, config_entry.entry_id)
-            self.entries[entity_id] = entry
-            return entry
-
-        def async_entries_for_config_entry(self, entry_id):
-            return [e for e in self.entries.values() if e.config_entry_id == entry_id]
-
-        def get_entries_for_config_entry_id(self, entry_id):
-            return [e for e in self.entries.values() if e.config_entry_id == entry_id]
-
-        def async_remove(self, entity_id):
-            if entity_id in self.entries:
-                del self.entries[entity_id]
-
-    mock_registry = MockRegistry(hass)
-    hass.entity_registry = mock_registry
-
-    tm = MagicMock()
-    tm.async_get_recurring_trips = AsyncMock(return_value=[])
-    tm.async_get_punctual_trips = AsyncMock(return_value=[])
-    tm.async_delete_all_trips = AsyncMock()
-    tm._recurring_trips = []
-    tm._punctual_trips = []
-
-    coordinator = MagicMock()
-    coordinator.data = {}
-    coordinator.trip_manager = tm
-    coordinator.async_config_entry_first_refresh = AsyncMock()
-
-    namespace = f"{DOMAIN}_{config_entry.entry_id}"
-    hass.data = {
-        f"{DOMAIN}_runtime_data": {
-            namespace: {
-                "trip_manager": tm,
-                "coordinator": coordinator,
-                "config": config_entry.data,
-            }
-        }
-    }
-
-    config_entry.runtime_data.trip_manager = tm
-    config_entry.runtime_data.coordinator = coordinator
-
-    hass.config_entries = MagicMock()
-    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
-    hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
-    hass.config_entries.async_get_entry = MagicMock(return_value=config_entry)
-
-    return hass
-
-
 @pytest.mark.asyncio
-async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
+async def test_sensor_unique_id_exists_after_setup(mock_hass_entity_registry_full, config_entry):
     """Test that all sensors have unique_id set after async_setup_entry.
 
     This test FAILS today because the current sensor classes do NOT set unique_id.
@@ -148,7 +75,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     def capture_async_add_entities(entities, update_before_add=True):
         created_entities.extend(entities)
         # Simulate HA's async_add_entities: register each entity in the registry
-        registry = mock_hass.entity_registry
+        registry = mock_hass_entity_registry_full.entity_registry
         for entity in entities:
             # Use the entity's unique_id and name to create a registry entry
             unique_id = getattr(entity, "_attr_unique_id", None) or getattr(
@@ -167,7 +94,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
 
     # Run the actual async_setup_entry
     result = await async_setup_entry(
-        mock_hass, config_entry, capture_async_add_entities
+        mock_hass_entity_registry_full, config_entry, capture_async_add_entities
     )
     assert result is True, "async_setup_entry should succeed"
 
@@ -193,7 +120,7 @@ async def test_sensor_unique_id_exists_after_setup(mock_hass, config_entry):
     )
 
     # Verify the entity registry also has entries with unique_id
-    registry = mock_hass.entity_registry
+    registry = mock_hass_entity_registry_full.entity_registry
     entries = registry.async_entries_for_config_entry(config_entry.entry_id)
 
     # At least 8 registry entries should exist
@@ -370,7 +297,7 @@ async def test_two_vehicles_no_unique_id_collision():
 
 
 @pytest.mark.asyncio
-async def test_sensor_removed_after_unload(mock_hass, config_entry):
+async def test_sensor_removed_after_unload(mock_hass_entity_registry_full, config_entry):
     """Test that all sensors are removed from entity registry after async_unload_entry.
 
     This test FAILS today because async_unload_entry does NOT clean up the entity
@@ -384,7 +311,7 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
 
     # Manually register 8 sensors in the entity registry before the test
     # (simulating what async_setup_entry does)
-    registry = mock_hass.entity_registry
+    registry = mock_hass_entity_registry_full.entity_registry
     for i in range(8):
         registry.async_get_or_create(
             domain="sensor",
@@ -401,7 +328,7 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
     ), f"Expected 8 sensors registered before unload, got {len(entries_before)}"
 
     # Now unload the entry via the integration's unload function
-    unload_ok = await async_unload_entry(mock_hass, config_entry)
+    unload_ok = await async_unload_entry(mock_hass_entity_registry_full, config_entry)
     assert unload_ok is True, "async_unload_entry should succeed"
 
     # Get entries for this config entry AFTER unload
@@ -416,7 +343,7 @@ async def test_sensor_removed_after_unload(mock_hass, config_entry):
 
 
 @pytest.mark.asyncio
-async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry):
+async def test_trip_sensor_created_in_registry_after_add(mock_hass_entity_registry_full, config_entry):
     """Test that TripSensor appears in entity registry after add_trip service.
 
     This test FAILS today because async_create_trip_sensor() creates an orphan
@@ -441,7 +368,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
     async def capture_async_add_entities(entities, update_before_add=True):
         setup_entities.extend(entities)
         # Simulate HA's async_add_entities: register each entity in the registry
-        registry = mock_hass.entity_registry
+        registry = mock_hass_entity_registry_full.entity_registry
         for entity in entities:
             # Use the entity's unique_id and name to create a registry entry
             unique_id = getattr(entity, "_attr_unique_id", None) or getattr(
@@ -460,7 +387,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
 
     # Run async_setup_entry to set up the initial 8 sensors
     result = await async_setup_entry(
-        mock_hass, config_entry, capture_async_add_entities
+        mock_hass_entity_registry_full, config_entry, capture_async_add_entities
     )
     assert result is True, "async_setup_entry should succeed"
 
@@ -486,13 +413,13 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
 
     # Call async_create_trip_sensor - this creates AND registers the sensor
     create_result = await async_create_trip_sensor(
-        mock_hass, config_entry.entry_id, trip_data
+        mock_hass_entity_registry_full, config_entry.entry_id, trip_data
     )
     assert create_result is True, "async_create_trip_sensor should succeed"
 
     # The sensor SHOULD be in the entity registry (this is the fix!)
     # Check the entity registry for a TripSensor with this trip_id
-    registry = mock_hass.entity_registry
+    registry = mock_hass_entity_registry_full.entity_registry
     all_entries = registry.entries
 
     # Find any registry entry whose unique_id contains our trip_id
@@ -510,7 +437,7 @@ async def test_trip_sensor_created_in_registry_after_add(mock_hass, config_entry
 
 
 @pytest.mark.asyncio
-async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_entry):
+async def test_trip_sensor_removed_from_registry_after_delete(mock_hass_entity_registry_full, config_entry):
     """Test that TripSensor is removed from entity registry after delete_trip service.
 
     This test FAILS today because async_remove_trip_sensor() only deletes from dict
@@ -523,7 +450,7 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
 
     # Manually register the trip sensor in the entity registry
     # (simulating what should happen during proper sensor creation in a real HA setup)
-    registry = mock_hass.entity_registry
+    registry = mock_hass_entity_registry_full.entity_registry
     registry.async_get_or_create(
         domain="sensor",
         platform="ev_trip_planner",
@@ -541,7 +468,7 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
 
     # Now call async_remove_trip_sensor to delete the trip
     await async_remove_trip_sensor(
-        hass=mock_hass,
+        hass=mock_hass_entity_registry_full,
         entry_id=config_entry.entry_id,
         trip_id="trip_001",
     )
@@ -557,7 +484,7 @@ async def test_trip_sensor_removed_from_registry_after_delete(mock_hass, config_
 
 
 @pytest.mark.asyncio
-async def test_no_duplicate_sensors_after_reload(mock_hass, config_entry):
+async def test_no_duplicate_sensors_after_reload(mock_hass_entity_registry_full, config_entry):
     """Test that reloading the config entry does not create duplicate sensors.
 
     This test FAILS today because sensors do not have unique_id set, so when
@@ -576,7 +503,7 @@ async def test_no_duplicate_sensors_after_reload(mock_hass, config_entry):
 
     # Initial setup
     result = await async_setup_entry(
-        mock_hass, config_entry, capture_async_add_entities
+        mock_hass_entity_registry_full, config_entry, capture_async_add_entities
     )
     assert result is True, "async_setup_entry should succeed"
 

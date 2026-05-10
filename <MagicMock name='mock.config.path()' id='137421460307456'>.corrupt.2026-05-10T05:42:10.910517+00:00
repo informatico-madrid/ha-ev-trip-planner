@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "ev_trip_planner_morgan",
+  "data": {
+    "trips": {},
+    "recurring_trips": {},
+    "punctual_trips": {
+      "pun_20260320_lz495e": {
+        "id": "pun_20260320_lz495e",
+        "tipo": "puntual",
+        "datetime": "2026-03-20T10:00",
+        "km": 50.0,
+        "kwh": 10.0,
+        "descripcion": "",
+        "estado": "pendiente"
+      },
+      "pun_20260321_9il1cs": {
+        "id": "pun_20260321_9il1cs",
+        "tipo": "puntual",
+        "datetime": "2026-03-21T10:00",
+        "km": 100.0,
+        "kwh": 20.0,
+        "descripcion": "",
+        "estado": "pendiente"
+      },
+      "pun_20260322_qo773n": {
+        "id": "pun_20260322_qo773n",
+        "tipo": "puntual",
+        "datetime": "2026-03-22T10:00",
+        "km": 150.0,
+        "kwh": 30.0,
+        "descripcion": "",
+        "estado": "pendiente"
+      }
+    },
+    "last_update": "2026-05-10T05:42:09.775650+00:00"
+  }
+}

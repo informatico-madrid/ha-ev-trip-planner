@@ -271,7 +271,7 @@ def mock_hass_deferrable():
 
 
 @pytest.fixture
-def mock_hass_entity_registry(mock_config_entry):
+def mock_hass_entity_registry(config_entry):
     from custom_components.ev_trip_planner.const import DOMAIN
 
     hass = MagicMock()
@@ -310,6 +310,84 @@ class _MockRegistryEntry:
         self.entity_id = entity_id
         self.unique_id = unique_id
         self.config_entry_id = config_entry_id
+
+
+@pytest.fixture
+def mock_hass_entity_registry_full(config_entry):
+    """Create a full mock HomeAssistant with entity registry, trip_manager, coordinator.
+
+    This is the comprehensive fixture that replaces inline mock_hass fixtures
+    in test_entity_registry.py. Provides full HA mock with entity registry,
+    trip_manager, coordinator, and config_entries setup.
+    """
+    from custom_components.ev_trip_planner.const import DOMAIN
+
+    hass = MagicMock()
+
+    class MockRegistry:
+        """Mock entity registry that tracks entities."""
+
+        def __init__(self, hass_mock):
+            self.hass_mock = hass_mock
+            self.entries = {}
+            self.entities = self
+
+        def async_get(self, hass_instance=None):
+            return self
+
+        def async_get_or_create(self, *args, **kwargs):
+            suggested_object_id = kwargs.get("suggested_object_id", "unknown")
+            unique_id = kwargs.get("unique_id", "")
+            entity_id = f"sensor.{suggested_object_id}"
+            entry = _MockRegistryEntry(entity_id, unique_id, config_entry.entry_id)
+            self.entries[entity_id] = entry
+            return entry
+
+        def async_entries_for_config_entry(self, entry_id):
+            return [e for e in self.entries.values() if e.config_entry_id == entry_id]
+
+        def get_entries_for_config_entry_id(self, entry_id):
+            return [e for e in self.entries.values() if e.config_entry_id == entry_id]
+
+        def async_remove(self, entity_id):
+            if entity_id in self.entries:
+                del self.entries[entity_id]
+
+    mock_registry = MockRegistry(hass)
+    hass.entity_registry = mock_registry
+
+    tm = MagicMock()
+    tm.async_get_recurring_trips = AsyncMock(return_value=[])
+    tm.async_get_punctual_trips = AsyncMock(return_value=[])
+    tm.async_delete_all_trips = AsyncMock()
+    tm._recurring_trips = []
+    tm._punctual_trips = []
+
+    coordinator = MagicMock()
+    coordinator.data = {}
+    coordinator.trip_manager = tm
+    coordinator.async_config_entry_first_refresh = AsyncMock()
+
+    namespace = f"{DOMAIN}_{config_entry.entry_id}"
+    hass.data = {
+        f"{DOMAIN}_runtime_data": {
+            namespace: {
+                "trip_manager": tm,
+                "coordinator": coordinator,
+                "config": config_entry.data,
+            }
+        }
+    }
+
+    config_entry.runtime_data.trip_manager = tm
+    config_entry.runtime_data.coordinator = coordinator
+
+    hass.config_entries = MagicMock()
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    hass.config_entries.async_entries = MagicMock(return_value=[config_entry])
+    hass.config_entries.async_get_entry = MagicMock(return_value=config_entry)
+
+    return hass
 
 
 # ============================================================================

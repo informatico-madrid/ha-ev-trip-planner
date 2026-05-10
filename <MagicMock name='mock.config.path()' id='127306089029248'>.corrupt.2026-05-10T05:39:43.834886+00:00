@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "ev_trip_planner_chispitas",
+  "data": {
+    "trips": {},
+    "recurring_trips": {
+      "rec_lun_12345678": {
+        "id": "rec_lun_12345678",
+        "tipo": "recurrente",
+        "activo": false,
+        "dia_semana": "lunes",
+        "hora": "09:00"
+      }
+    },
+    "punctual_trips": {
+      "pun_20251119_87654321": {
+        "id": "pun_20251119_87654321",
+        "tipo": "puntual",
+        "datetime": "2025-11-19T15:00:00",
+        "estado": "completado"
+      }
+    },
+    "last_update": "2026-05-10T05:39:43.791143+00:00"
+  }
+}
