@@ -860,3 +860,87 @@ Review entry template:
 - fix_hint: N/A
 - resolved_at: <!-- executor fills upon fix -->
 - review_submode: post-task
+
+### [task-4.4] VE2: E2E SOC suite
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T07:00:00Z
+- criterion_failed: none
+- evidence: |
+  E2E SOC test suite: 10 E2E tests passed in 2.9 minutes ✓
+  All 10 tests in 2 spec files passed ✓
+  Suite covers: options flow SOH/T_BASE validation, dynamic SOC capping (A, B, C), T_BASE windows, SOH degradation, negative risk scenarios ✓
+  .progress.md confirms: "10 E2E tests passed in 2.9m" ✓
+  Verify command: make e2e-soc 2>&1 | tail -20 | grep -q "passed" → VE2_PASS ✓
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task
+
+### [task-4.5] V5: Create PR
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T07:05:00Z
+- criterion_failed: none
+- evidence: |
+  PR #46 created on GitHub targeting epic/tech-debt-cleanup ✓
+  PR state: OPEN ✓
+  PR URL: https://github.com/informatico-madrid/ha-ev-trip-planner/pull/46 ✓
+  Branch pushed: spec/2-test-reorg ✓
+  Verify command: gh pr view --json url,state | jq -r '.state' | grep -q "OPEN" → V5_PASS ✓
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task
+
+### [task-4.6] V6: AC checklist
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T07:54:00Z
+- criterion_failed: none
+- evidence: |
+  All 14 acceptance criteria verified PASS independently:
+  AC-1.1: tests/unit/ directory exists ✓
+  AC-1.2: tests/integration/ directory exists ✓
+  AC-1.3: E2E spec files exist (tests/e2e/) ✓
+  AC-1.4: tests/fixtures/ directory exists ✓
+  AC-1.5: tests/helpers/ directory exists ✓
+  AC-1.6: 1822 tests pass ✓
+  AC-1.7: 100% coverage ✓
+  AC-2.1: 5 trip_manager consolidated files ✓
+  AC-3.1: 2 config_flow files ✓
+  AC-5.3: 0 assert True violations ✓
+  AC-7.1: root conftest 189 LOC (< 200) ✓
+  AC-8.1-8.3: time_machine, hypothesis, flake8_pytest_style installed ✓
+  AC-9.1: strict=true in pyproject.toml ✓
+  AC-11.1: tests/unit in pyproject.toml testpaths ✓
+  Verify command: All AC programmatic checks exit 0 independently → VERIFY_PASS
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task
+
+### [task-5.1] Monitor CI and address failures
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T07:10:00Z
+- criterion_failed: none
+- evidence: |
+  CI status: CodeRabbit pass ✓
+  python-tests.yml does not trigger for PR branch (by design — targets main/master) ✓
+  .progress.md confirms: "CI shows CodeRabbit pass" ✓
+  No unresolved CI failures ✓
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task
+
+### [task-5.2] Resolve review comments
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-10T07:15:00Z
+- criterion_failed: none
+- evidence: |
+  Zero reviews on PR #46 ✓
+  Zero review comments ✓
+  .progress.md confirms: "Zero reviews, zero comments on PR #46" ✓
+  No action needed ✓
+- fix_hint: N/A
+- resolved_at: <!-- executor fills upon fix -->
+- review_submode: post-task

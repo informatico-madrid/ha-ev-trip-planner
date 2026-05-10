@@ -21,7 +21,7 @@ help:
 	@echo "Quality Gate Layers (6-layer architecture):"
 	@echo "  make layer3a         - Layer 3A: Smoke test (ruff, pyright, SOLID-TA, principles, anti-TA)"
 	@echo "  make layer1          - Layer 1: Test execution (unit + E2E) / Capa 1: Ejecución de tests"
-	@echo "  make layer1-ci       - Layer 1 CI: Unit tests only (fast) / Capa 1 CI: Solo unit tests (rápido)"
+	@echo "  make layer1-ci       - Layer 1 CI: Unit + integration tests, no E2E (fast) / Capa 1 CI: Unit + integration (sin E2E, rápido)"
 	@echo "  make layer2          - Layer 2: Test quality (mutation) / Capa 2: Calidad de tests (mutación)"
 	@echo "  make layer3b         - Layer 3B: Deep quality (SOLID-TB + Anti-TB via BMAD) / Capa 3B: Calidad profunda"
 	@echo "  make layer3          - Layer 3: Code quality (all tiers) / Capa 3: Calidad de código"
@@ -160,20 +160,20 @@ layer1-ci:
 layer2:
 	@echo "Running Layer 2: Test Quality (mutation, weak tests, diversity)..."
 	@echo "  → Mutation gate..."
-	@python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
 	@echo "  → Weak test detector..."
-	@python3 .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
 	@echo "  → Test diversity..."
-	@python3 .claude/skills/quality-gate/scripts/diversity_metric.py tests/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/
 	@echo "=== Layer 2 Complete ==="
 
 # Layer 3B: Deep Quality (BMAD Party Mode — SOLID Tier B + Antipatterns Tier B)
 layer3b:
 	@echo "Running Layer 3B: Deep Quality (BMAD Tier B consensus)..."
 	@echo "  → Generating SOLID Tier B context..."
-	@python3 .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
 	@echo "  → Generating Antipatterns Tier B context..."
-	@python3 .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/
 	@echo "  → Run BMAD Party Mode for consensus validation"
 	@echo "     (Requires BMAD integration — context JSON files generated)"
 	@echo "=== Layer 3B Complete ==="
