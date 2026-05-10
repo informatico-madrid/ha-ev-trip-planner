@@ -125,7 +125,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-5.1, NFR-2.1_
   - _Design: §6.2 Step 0.5 (DRY consolidation pre-flight)_
 
-- [ ] 1.8 [P] DRY: Consolidate `is_trip_today` into single canonical location
+- [x] 1.8 [P] DRY: Consolidate `is_trip_today` into single canonical location
   - **Do**:
     1. Identify all duplicate `is_trip_today` / `pure_is_trip_today` copies
     2. Remove duplicates from god modules, import from `utils.py`
