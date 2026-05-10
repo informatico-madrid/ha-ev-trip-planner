@@ -132,15 +132,15 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
     3. Verify behavior unchanged
   - **Files**: custom_components/ev_trip_planner/*.py (duplicate removal), utils.py
   - **Done when**: `is_trip_today` exists in exactly one location
-  - **Verify**: `grep -rc 'is_trip_today\|pure_is_trip_today' custom_components/ev_trip_planner/ | grep -v 'utils.py' | grep -v '__pycache__' | grep -v ':0$' | wc -l | grep -q '^0$' && echo GREEN_PASS`
+  - **Verify**: `grep -rn 'def is_trip_today\|def pure_is_trip_today' custom_components/ev_trip_planner/ --include='*.py' | grep -v 'utils.py' | grep -v '__pycache__' | grep -v '^Binary' | wc -l | grep -q '^0$' && echo GREEN_PASS`
   - **Commit**: `fix(spec3): consolidate is_trip_today into utils.py canonical location`
   - _Requirements: AC-5.2, NFR-2.1_
   - _Design: §6.2 Step 0.5 (DRY consolidation pre-flight)_
 
 
-- [ ] V1 [VERIFY] Quality check: ruff check && pyright
+- [x] V1 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks
-  - **Verify**: `make lint && make typecheck && echo GREEN_PASS`
+  - **Verify**: `ruff check . && make typecheck && python -m pylint custom_components/ && echo GREEN_PASS`
   - **Done when**: No lint errors, no type errors
   - **Commit**: `chore(spec3): pass quality checkpoint pre-calculations`
   - _Requirements: NFR-7.A.5, NFR-8_
@@ -148,7 +148,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.1 calculations/ - Functional Decomposition + Bug Fixes
 
-- [ ] 1.9 [RED] Test: calculations package re-exports all 20 public names
+- [x] 1.9 [RED] Test: calculations package re-exports all 20 public names
   - **Do**: Write test that imports each of the 20 public names from `custom_components.ev_trip_planner.calculations` and asserts they resolve to callable/class/constant
   - **Files**: tests/unit/test_calculations_imports.py
   - **Done when**: Test exists and fails (package doesn't exist yet)
