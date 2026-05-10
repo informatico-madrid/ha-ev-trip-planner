@@ -113,6 +113,11 @@ exclude_lines = [
 ]
 
 [tool.mutmut]
+# NOTE: tests_excluded_from_mutmut/ directory (2 files) remains in its current
+# location. These files are NOT being moved as part of Spec 2 test reorganization.
+# Their disposition — whether to integrate into tests/unit/ or tests/integration/
+# or remove entirely — is deferred to Spec 5 (Mutation Ramp).
+# Per AC-12.3/AC-12.4: exclusion list update not required since files are not moved.
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
 tests_dir = ["tests/unit/", "tests/integration/"]

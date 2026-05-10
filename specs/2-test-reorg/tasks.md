@@ -406,7 +406,7 @@ Focus: Update all configuration files to reflect new test structure.
   - **Done when**: All config paths correct; all tools discover tests
   - **Commit**: None
 
-- [ ] 3.7 Document tests_excluded_from_mutmut disposition (files NOT moved — AC-12.3/12.4 not triggered)
+- [x] 3.7 Document tests_excluded_from_mutmut disposition (files NOT moved — AC-12.3/12.4 not triggered)
   - **Do**: Add a comment in pyproject.toml near `[tool.mutmut]` documenting that `tests_excluded_from_mutmut/` (2 files) remain in their current location. Files are NOT being moved, so mutmut exclusion list does NOT need updating (AC-12.3/AC-12.4 condition "if files are moved" is false). Disposition of whether to integrate them into the new structure is deferred to Spec 5. Add note in `.progress.md`.
   - **Files**: pyproject.toml, specs/2-test-reorg/.progress.md
   - **Done when**: Comment in pyproject.toml documents deferral; progress.md updated; mutmut exclusion list unchanged
@@ -452,7 +452,7 @@ Focus: Update all configuration files to reflect new test structure.
     1. Verify current branch: `git branch --show-current` (should be spec/2-test-reorg)
     2. Push branch: `git push -u origin spec/2-test-reorg`
     3. Create PR targeting epic/tech-debt-cleanup: `gh pr create --base epic/tech-debt-cleanup --title "refactor(tests): reorganize test architecture into unit/integration layers" --body "$(cat specs/2-test-reorg/.pr-body.md 2>/dev/null || echo 'Test architecture reorganization per spec 2-test-reorg')"`
-    4. Creato gito bot background review /gito-review-with-spec context of this spec review from this branch to epic/tech-debt-cleanup
+    4. Creato gito bot background review /gito-review-with-spec context of this spec review from this branch to epic/tech-debt-cleanup gito process can run very long is normal
   - **Verify**: `gh pr view --json url,state | jq -r '.state' | grep -q "OPEN" && echo V5_PASS`
   - **Done when**: PR exists on GitHub targeting epic/tech-debt-cleanup with state OPEN
   - **Commit**: None
