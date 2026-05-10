@@ -1,7 +1,7 @@
 {
   "timestamp": "2026-05-09T22:00:00Z",
   "branch": "spec/2-test-reorg",
-  "commit": "$(git rev-parse HEAD)",
+  "commit": "b5a186eb400777685607db898878b7e03d99c506",
   "tasksCompleted": 0,
   "totalTasks": 62
 }

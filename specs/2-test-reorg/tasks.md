@@ -454,7 +454,7 @@ Focus: Update all configuration files to reflect new test structure.
     1. Verify current branch: `git branch --show-current` (should be spec/2-test-reorg)
     2. Push branch: `git push -u origin spec/2-test-reorg`
     3. Create PR targeting epic/tech-debt-cleanup: `gh pr create --base epic/tech-debt-cleanup --title "refactor(tests): reorganize test architecture into unit/integration layers" --body "$(cat specs/2-test-reorg/.pr-body.md 2>/dev/null || echo 'Test architecture reorganization per spec 2-test-reorg')"`
-    4. Creato gito bot background review USE SKILL /gito-review-with-spec . IMPORTANT CONTEXTO FOR GITO context of this spec review from this branch to epic/tech-debt-cleanup gito process can run very long is normal
+    4. Create Gito bot background review USE SKILL /gito-review-with-spec . IMPORTANT CONTEXT FOR GITO context of this spec review from this branch to epic/tech-debt-cleanup gito process can run very long is normal
   - **Verify**: `gh pr view --json url,state | jq -r '.state' | grep -q "OPEN" && echo V5_PASS`
   - **Done when**: PR exists on GitHub targeting epic/tech-debt-cleanup with state OPEN
   - **Commit**: None

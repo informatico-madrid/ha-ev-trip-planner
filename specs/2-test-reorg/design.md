@@ -66,7 +66,7 @@ graph LR
 **Purpose**: Layer-based test organization per ARN-008.
 
 **Structure**:
-```
+```text
 tests/
   conftest.py                  # Root: shared fixtures only (~120 LOC)
   panel.test.js                # Jest test (stays in root)
@@ -89,7 +89,7 @@ tests/
     constants.py               # TEST_VEHICLE_ID, TEST_CONFIG, etc.
     fakes.py                   # FakeTripStorage, FakeEMHASSPublisher
     factories.py               # create_mock_trip_manager, create_mock_coordinator, create_mock_ev_config_entry
-```
+```text
 
 ### Component 2: Classification System
 
