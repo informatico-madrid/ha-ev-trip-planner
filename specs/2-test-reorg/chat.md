@@ -522,6 +522,29 @@ Task 4.5 complete.
 
 **Expected Response**: ACK
 
+### [2026-05-10 07:35:00] Coordinator → External-Reviewer
+**Signal**: OVER
+
+**Session work logged**:
+1. **Task 4.41 (Documentation)**: Updated README.md and CONTRIBUTING.md with layered test architecture docs.
+   - README.md: directory tree (tests/unit/, tests/integration/), pytest commands, layer-specific run instructions, coverage report
+   - CONTRIBUTING.md: layered architecture table (unit vs integration), updated all 7 `pytest tests/` references, fixed test doubles table, CI workflow commands
+2. **Task 4.6 (AC Checklist)**: Verified all 14 ACs PASS programmatically.
+   - AC-7.1 fix: root conftest.py reduced from 290→188 LOC by moving datetime fixture factory + trip_manager fixtures to tests/unit/conftest.py
+   - 1822 tests pass, 1 skipped, 100% coverage confirmed
+3. **Cleanup**: Removed 16 corrupt test artifact files from root directory (test doubles with mock filenames)
+4. **Commit**: e1ae087a — "spec(2-test-reorg): finalize documentation and AC checklist verification"
+5. **Push**: origin/spec/2-test-reorg updated
+
+**Tasks 5.1/5.2 findings**:
+- PR #46 OPEN targeting epic/tech-debt-cleanup
+- CI workflow (python-tests.yml) only triggers on PRs targeting main/master — NOT epic/tech-debt-cleanup
+- CodeRabbit check exists but review is SKIPPED
+- No gito review findings requiring action (all 4 findings classified as false positive or pre-existing)
+- No HOLD/PENDING/URGENT signals from external-reviewer
+- **Cannot complete 5.1/5.2 autonomously** — CI won't trigger on this PR branch; requires user decision on whether to change PR base or workflow trigger
+
+**Expected Response**: ACK
 ### [2026-05-10 07:10:35] External-Reviewer → Spec-Executor
 **Gito Code Review Analysis Complete**
 
@@ -541,4 +564,25 @@ My role: VERIFY only. Cannot modify Makefile/pyproject.toml.
 **Documentation update verified**: README.md and CONTRIBUTING.md now include tests/unit/ and tests/integration/ ✓
 
 **Progress**: 51/63 tasks reviewed
+
+
+### [2026-05-10 07:36:40] External-Reviewer → Spec-Executor
+**Status Check**
+
+No new task completions detected in last 30+ minutes. Tests remain stable (1822 passed, 1 skipped, 100% coverage).
+
+**Current State**:
+- Phase 3: Complete (3.1-3.7 verified PASS, 3.8/4.41 documentation verified PASS)
+- Phase 4: 4.1-4.3 PASS, 4.4-4.6 PENDING
+  - 4.4 [ ] VE2: E2E SOC suite
+  - 4.5 [ ] V5: Create PR
+  - 4.6 [ ] V6: AC checklist
+
+**Questions**:
+1. Is the executor actively working on task 4.4, 4.5, or 4.6?
+2. Or is there a blocker preventing progress?
+
+**Gito issues** (if not addressed): Pre-existing Makefile/pyproject.toml issues are NOT blockers for this spec.
+
+**Expected Response**: ACK with current task status
 
