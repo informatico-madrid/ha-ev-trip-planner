@@ -11,10 +11,7 @@ help:
 	@echo "  make test-parallel   - Run tests in parallel mode / Tests en paralelo"
 	@echo "  make test-random     - Run tests in random order / Tests en orden aleatorio"
 	@echo "  make test-e2e        - Run E2E tests (HA on localhost:8123) / Tests E2E (HA en localhost:8123)"
-	@echo "  make test-e2e-headed - Run E2E with visible browser / E2E con navegador visible"
-	@echo "  make test-e2e-debug  - Run E2E in debug mode (Playwright inspector) / E2E en modo debug"
 	@echo "  make e2e             - Auto-setup HA and run E2E / Arrancar HA y ejecutar E2E"
-	@echo "  make e2e-debug       - Same as e2e but debug mode / Igual que e2e pero en modo debug"
 	@echo "  make e2e-soc         - E2E dynamic SOC suite / Suite E2E dynamic SOC"
 	@echo "  make e2e-lint        - Lint E2E test files / Lintear archivos E2E"
 	@echo ""
@@ -87,22 +84,10 @@ test-e2e-debug:
 e2e:
 	./scripts/run-e2e.sh
 
-e2e-headed:
-	./scripts/run-e2e.sh --headed
-
-e2e-debug:
-	./scripts/run-e2e.sh --debug
-
 # e2e-soc: dynamic SOC capping suite (requires HA with SOH sensor configured)
 # Uses INDEPENDENT setup: separate HA config dir, separate auth state (user-soc.json), separate Playwright config
 e2e-soc:
 	./scripts/run-e2e-soc.sh
-
-e2e-soc-headed:
-	./scripts/run-e2e-soc.sh --headed
-
-e2e-soc-debug:
-	./scripts/run-e2e-soc.sh --debug
 
 lint:
 	ruff check .
