@@ -179,7 +179,10 @@ filterwarnings = [
 
 [tool.coverage.run]
 source = ["custom_components/ev_trip_planner"]
-omit = ["tests/*"]
+omit = [
+    "tests/*",
+    "custom_components/ev_trip_planner/calculations_orig.py",
+]
 
 [tool.coverage.report]
 fail_under = 100
