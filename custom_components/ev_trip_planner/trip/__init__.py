@@ -7,8 +7,12 @@ from custom_components.ev_trip_planner.trip._types import CargaVentana
 from custom_components.ev_trip_planner.trip._types import SOCMilestoneResult
 from custom_components.ev_trip_planner.trip.manager import TripManager
 
+# Re-export constants that tests imported from old trip_manager
+from ..const import DEFAULT_CHARGING_POWER  # noqa: F401 — test compatibility
+
 __all__ = [
     "TripManager",
+    "DEFAULT_CHARGING_POWER",
     "CargaVentana",
     "SOCMilestoneResult",
     "SensorCallbackRegistry",

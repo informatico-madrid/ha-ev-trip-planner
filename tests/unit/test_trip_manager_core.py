@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.ev_trip_planner import EVTripRuntimeData
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 @pytest.fixture

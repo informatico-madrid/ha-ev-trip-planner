@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.const import (
     TRIP_STATUS_COMPLETED,
     TRIP_STATUS_PENDING,
 )
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
 

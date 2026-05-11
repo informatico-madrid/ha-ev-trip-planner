@@ -7,8 +7,10 @@ runtime_data y tipado estricto.
 
 from __future__ import annotations
 
+import datetime as _datetime_mod  # noqa: F401 — module-level for test mocking
 import logging
 from datetime import date, datetime, timezone
+from pathlib import Path  # noqa: F401 — module-level for test mocking
 from typing import Any, Dict, Optional
 
 
@@ -102,6 +104,10 @@ class TripManager(_CRUDMixin, _SOCMixin, _PowerProfileMixin, _ScheduleMixin):
     def get_emhass_adapter(self) -> Optional[EMHASSAdapter]:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
+
+    def get_charging_power(self) -> float:
+        """Get the configured charging power for the vehicle."""
+        return self._get_charging_power()
 
     @staticmethod
     def _validate_hora(hora: str) -> None:
@@ -239,5 +245,23 @@ class TripManager(_CRUDMixin, _SOCMixin, _PowerProfileMixin, _ScheduleMixin):
             if next_trip is None or trip_time < next_trip["time"]:
                 next_trip = {"time": trip_time, "trip": trip}
 
+        return next_trip["trip"] if next_trip else None
+
+    async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
+        """Get the next scheduled trip from all trips."""
+        now = datetime.now(timezone.utc)
+        next_trip: Optional[Dict[str, Any]] = None
+        for trip in self._recurring_trips.values():
+            if trip.get("activo"):
+                trip_time = self._get_trip_time(trip)
+                if trip_time and trip_time > now:
+                    if next_trip is None or trip_time < next_trip["time"]:
+                        next_trip = {"time": trip_time, "trip": trip}
+        for trip in self._punctual_trips.values():
+            if trip.get("estado") == "pendiente":
+                trip_time = self._get_trip_time(trip)
+                if trip_time and trip_time > now:
+                    if next_trip is None or trip_time < next_trip["time"]:
+                        next_trip = {"time": trip_time, "trip": trip}
         return next_trip["trip"] if next_trip else None
 
