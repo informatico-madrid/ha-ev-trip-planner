@@ -1396,7 +1396,7 @@ These tasks implement the Human's explicit decision (chat.md 2026-05-11 13:52) t
   - **Done when**: New test files exist covering all emhass/ public methods
   - **Commit**: `test(spec3): recreate emhass package tests against new SOLID API`
 
-- [ ] 2.04 [TDD-RED] Write new tests for trip/ package (facade + mixins)
+- [x] 2.04 [TDD-RED] Write new tests for trip/ package (facade + mixins)
   - **Do**: Write tests in tests/unit/ for trip/manager.py, trip/_crud_mixin.py, trip/_soc_mixin.py, trip/_power_profile_mixin.py, trip/_schedule_mixin.py, trip/_sensor_callbacks.py, trip/_types.py
   - **Verify**: `pytest tests/unit/test_trip_*.py --co -q | wc -l` shows ≥ 40 new tests
   - **Done when**: New test files exist covering all trip/ public methods
