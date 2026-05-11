@@ -1253,7 +1253,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: NFR-7.A.5, FR-1.7_
   - _Design: design-by-convention (sensor pyright); NFR-7.A.5 + FR-1.7_
 
-- [x] 1.99 [YELLOW] Remove sensor.py transitional shim - <pending>
+- [x] 1.99 [YELLOW] Remove sensor.py transitional shim
   - **Do**:
     1. Delete `sensor.py`
     2. Verify HA platform discovery still loads `async_setup_entry` via `sensor/__init__.py` re-export (no edit needed because the new package re-exports the same public symbols: `async_setup_entry`, `TripPlannerSensor`, `EmhassDeferrableLoadSensor`, `TripSensor`, `TripEmhassSensor`)
@@ -1266,7 +1266,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: design-by-convention (sensor shim removal); §4.6_
 
 
-- [ ] V10 [VERIFY] Quality check: ruff check && pyright
+- [x] V10 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks after sensor decomposition
   - **Verify**: `make lint && make typecheck`
   - **Done when**: No lint errors, no type errors
@@ -1276,7 +1276,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.8 config_flow.py - Decomposition
 
-- [ ] 1.100 [RED] Test: config_flow package re-exports 3 public names
+- [x] 1.100 [RED] Test: config_flow package re-exports 3 public names
   - **Do**: Write test importing `EVTripPlannerFlowHandler`, `EVTripPlannerOptionsFlowHandler`, `async_get_options_flow` from `custom_components.ev_trip_planner.config_flow`
   - **Files**: tests/unit/test_config_flow_imports.py
   - **Done when**: Test exists and fails
