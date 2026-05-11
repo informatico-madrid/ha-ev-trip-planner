@@ -7,21 +7,14 @@ runtime_data y tipado estricto.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime, timezone
+from typing import Any, Dict, Optional
 
-from homeassistant.helpers import storage as ha_storage
-from homeassistant.helpers.storage import Store
-from homeassistant.config_entries import ConfigEntry
 
-import yaml
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .trip._crud_mixin import _CRUDMixin
 from .trip._power_profile_mixin import _PowerProfileMixin
 from .trip._schedule_mixin import _ScheduleMixin
@@ -30,13 +23,11 @@ from .trip._soc_mixin import _SOCMixin
 
 from .emhass import EMHASSAdapter
 from .yaml_trip_storage import YamlTripStorage
-from .utils import generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
 
 # T3.2: Import function for recurring trip rotation
-from .calculations import calculate_next_recurring_datetime, calculate_day_index
 from .vehicle_controller import VehicleController
 
 _UNSET = object()

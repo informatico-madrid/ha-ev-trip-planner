@@ -956,7 +956,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (SOC mixin)_
 
-- [ ] 1.75 [GREEN] Move SOC methods to `_soc_mixin.py`
+- [x] 1.75 [GREEN] Move SOC methods to `_soc_mixin.py`
   - **Do**:
     1. Move SOC calculation methods from `trip_manager.py` to `trip/_soc_mixin.py`
     2. Mixin `__init__` uses explicit `_SOCMixin.__init__(self)`

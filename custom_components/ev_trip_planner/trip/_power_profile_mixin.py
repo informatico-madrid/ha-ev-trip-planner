@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN
 

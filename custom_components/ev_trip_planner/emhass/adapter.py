@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime  # noqa: F401 — re-export for test mock path (conftest.py:822)
 from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store  # noqa: F401 — re-export for test compatibility
 
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
 from .load_publisher import LoadPublisher
 
-from homeassistant.helpers.storage import Store
 
 
 class EMHASSAdapter:

@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
 
