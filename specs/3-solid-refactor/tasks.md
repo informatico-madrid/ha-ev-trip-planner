@@ -922,7 +922,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.2 (trip TypedDicts)_
 
-- [ ] 1.72 [RED] Test: _CRUDMixin class has CRUD operations
+- [x] 1.72 [RED] Test: _CRUDMixin class has CRUD operations
   - **Do**: Write test asserting `_CRUDMixin` has methods: `async_setup`, `async_add_recurring_trip`, `async_update_trip`, `async_delete_trip`, `async_pause_recurring_trip`, `async_resume_recurring_trip`, `async_complete_punctual_trip`, `async_cancel_punctual_trip`
   - **Files**: tests/unit/test_trip_crud_mixin.py
   - **Done when**: Test exists and fails
