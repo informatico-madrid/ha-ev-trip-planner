@@ -918,10 +918,11 @@ class TestSingleTripBackwardCompatibility:
 
         With return_buffer_hours=4.0:
         - Trip 0 window starts at hora_regreso (def_start=0)
-        - Trip 1 window starts at trip0_arrival + 4h buffer
-        - Trip 2 window starts at trip1_arrival + 4h buffer
+        - Trip 1 window starts at trip0_departure + 4h buffer
+        - Trip 2 window starts at trip1_departure + 4h buffer
 
         This verifies AC-1.2: cumulative offset chaining across 3 trips.
+        BUG-001 fix: uses previous_departure + buffer, not previous_arrival + buffer.
         """
         now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
@@ -952,27 +953,22 @@ class TestSingleTripBackwardCompatibility:
         assert len(results) == 3, f"Expected 3 results, got {len(results)}"
 
         # Trip 0: window starts at hora_regreso
-        # Trip 0's arrival = deadline + duration_hours = (now + 12h) + 6h = now + 18h
         trip0_inicio = results[0]["inicio_ventana"]
-        trip0_arrival = trip0_deadline.replace(tzinfo=timezone.utc) + timedelta(
-            hours=6.0
-        )
 
-        # Trip 1: window starts at trip0_arrival + 4h buffer
+        # Trip 1: window starts at trip0_departure + 4h buffer
         trip1_inicio = results[1]["inicio_ventana"]
-        expected_trip1_start = trip0_arrival + timedelta(hours=4.0)
+        expected_trip1_start = trip0_deadline.replace(tzinfo=timezone.utc) + timedelta(
+            hours=4.0
+        )
         assert (
             trip1_inicio == expected_trip1_start
-        ), f"Trip 1 inicio_ventana should be trip0_arrival + 4h buffer = {expected_trip1_start}, got {trip1_inicio}"
+        ), f"Trip 1 inicio_ventana should be trip0_departure + 4h buffer = {expected_trip1_start}, got {trip1_inicio}"
 
-        # Trip 1's arrival = trip1_deadline + 6h = (now + 36h) + 6h = now + 42h
-        trip1_arrival = trip1_deadline.replace(tzinfo=timezone.utc) + timedelta(
-            hours=6.0
-        )
-
-        # Trip 2: window starts at trip1_arrival + 4h buffer
+        # Trip 2: window starts at trip1_departure + 4h buffer
         trip2_inicio = results[2]["inicio_ventana"]
-        expected_trip2_start = trip1_arrival + timedelta(hours=4.0)
+        expected_trip2_start = trip1_deadline.replace(tzinfo=timezone.utc) + timedelta(
+            hours=4.0
+        )
         assert (
             trip2_inicio == expected_trip2_start
         ), f"Trip 2 inicio_ventana should be trip1_arrival + 4h buffer = {expected_trip2_start}, got {trip2_inicio}"
@@ -1233,7 +1229,7 @@ class TestZeroBufferConsecutiveTrips:
     """Test that two trips with return_buffer_hours=0 start consecutively (no gap)."""
 
     def test_zero_buffer_consecutive_trips(self):
-        """Test that with return_buffer_hours=0.0, trip 2 starts exactly at trip 1 arrival.
+        """Test that with return_buffer_hours=0.0, trip 2 starts exactly at trip 1 departure.
 
         Scenario:
         - Trip 0: deadline = now + 12h
@@ -1242,8 +1238,9 @@ class TestZeroBufferConsecutiveTrips:
 
         Expected:
         - Trip 0 window starts at hora_regreso (def_start=0)
-        - Trip 1 window starts exactly when Trip 0 arrives (no buffer gap)
+        - Trip 1 window starts at Trip 0 departure (no buffer gap)
         - consecutive windows with no gap between them
+        BUG-001 fix: uses previous_departure + buffer, not previous_arrival + buffer.
         """
         now = datetime.now(timezone.utc)
         hora_regreso = now - timedelta(hours=2)  # Car returned 2h ago
@@ -1274,12 +1271,11 @@ class TestZeroBufferConsecutiveTrips:
         assert results[0]["inicio_ventana"] is not None
         assert results[0]["fin_ventana"] is not None
 
-        # Trip 1 should start exactly at trip 0's arrival (no buffer gap)
-        # trip_arrival = trip_departure + duration_hours (6h)
-        trip0_arrival = trip0_deadline + timedelta(hours=6)
+        # Trip 1 should start exactly at trip 0's departure (no buffer gap)
+        # BUG-001 fix: uses previous_departure + buffer, not previous_arrival + buffer
         assert (
-            results[1]["inicio_ventana"] == trip0_arrival
-        ), f"Trip 1 should start at Trip 0 arrival (deadline + 6h, no buffer), got {results[1]['inicio_ventana']} vs expected {trip0_arrival}"
+            results[1]["inicio_ventana"] == trip0_deadline
+        ), f"Trip 1 should start at Trip 0 departure (deadline + 0h buffer), got {results[1]['inicio_ventana']} vs expected {trip0_deadline}"
 
         # Verify the windows are valid (inicio <= fin)
         assert (

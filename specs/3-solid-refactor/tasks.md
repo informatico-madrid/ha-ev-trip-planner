@@ -41,7 +41,7 @@ calculations → vehicle → dashboard → emhass → trip → services → sens
 
 Each god-module decomposition ends with a Vn checkpoint that runs `ruff check && pyright && make test && make e2e && make e2e-soc`.
 
-- [ ] 1.1 [VERIFY] Run baseline quality-gate: capture baseline metrics
+- [x] 1.1 [VERIFY] Run baseline quality-gate: capture baseline metrics
   - **Do**:
     1. Run `make quality-gate` and capture full output
     2. Write baseline metrics to chat.md with `[BASELINE-XXX]` tags
@@ -238,7 +238,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-10.1, AC-10.4_
   - _Design: §5.1 (ventana_horas bug fix)_
 
-- [ ] 1.17 [RED] Test: [BUG-002] previous_arrival has no redundant return_buffer_hours
+- [x] 1.17 [RED] Test: [BUG-002] previous_arrival has no redundant return_buffer_hours
   - **Do**: Write test asserting `previous_arrival` in multi-trip calculation equals `previous_trip.departure_time + duration_hours` (NOT `+ return_buffer_hours`)
   - **Files**: tests/unit/test_previous_arrival_invariant.py
   - **Done when**: Test exists and fails (current code adds `+ return_buffer_hours`)
@@ -248,45 +248,47 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §5.1 (previous_arrival bug fix)_
 
 
-- [ ] 1.18 [GREEN] Fix [BUG-002] previous_arrival in calculations/windows.py
+- [x] 1.18 [GREEN] Fix [BUG-002] previous_arrival in calculations/windows.py
   - **Do**:
-    1. In `calculate_multi_trip_charging_windows`, change `previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)` to `previous_arrival = _ensure_aware(trip_arrival)`
-    2. Add comment: `# Deprecated: return_buffer_hours kept for API compat, no effect after [BUG-002] fix`
-    3. Update `calculations.py` to import from `calculations.windows`
-  - **Files**: custom_components/ev_trip_planner/calculations/windows.py, calculations.py
+    1. In `calculate_multi_trip_charging_windows`, replace `previous_arrival = trip_arrival + timedelta(hours=return_buffer_hours)` with `window_start = previous_departure + timedelta(hours=return_buffer_hours)`
+    2. Window start now correctly uses `previous_departure` instead of `trip_arrival`
+  - **Files**: custom_components/ev_trip_planner/calculations/windows.py
   - **Done when**: Both bug fix tests (1.15, 1.17) pass
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_ventana_horas_invariant.py tests/unit/test_previous_arrival_invariant.py -v && echo GREEN_PASS`
   - **Commit**: `fix(spec3): [BUG-002] remove redundant return_buffer_hours from previous_arrival`
   - _Requirements: AC-10.2, AC-10.4, AC-13.1, AC-13.3_
   - _Design: §5.1 (previous_arrival bug fix)_
 
-- [ ] 1.19 [YELLOW] Update hora_regreso test assertions to corrected values
+- [x] 1.19 [YELLOW] Update hora_regreso test assertions to corrected values
   - **Do**:
     1. In `tests/unit/test_single_trip_hora_regreso_past.py`, update assertions:
        - Line 57: 102.0 -> 96.0 (correct: departure - start, not arrival - start)
        - Line 97: 102.0 -> 96.0
        - Line 128: 98.0 -> 92.0
     2. Update inline rationale comments ("should be ~102h" -> "should be ~96h"; "should be 98h" -> "should be 92h")
-  - **Files**: tests/unit/test_single_trip_hora_regreso_past.py
-  - **Done when**: All 3 assertions match corrected formula values
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_single_trip_hora_regreso_past.py -v && echo YELLOW_PASS`
-  - **Commit**: `fix(spec3): update hora_regreso test assertions for [BUG-001] corrected values`
+    3. Also update `tests/unit/test_charging_window.py` tests that used `trip_arrival` as window start for subsequent trips
+  - **Files**: tests/unit/test_single_trip_hora_regreso_past.py, tests/unit/test_charging_window.py
+  - **Done when**: All assertions match corrected formula values
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_single_trip_hora_regreso_past.py tests/unit/test_charging_window.py -v && echo YELLOW_PASS`
+  - **Commit**: `fix(spec3): update test assertions for [BUG-001] corrected values`
   - _Requirements: AC-10.3_
   - _Design: §5.1 (hora_regreso test assertions)_
 
-- [ ] V1b [VERIFY] Quality check: calculations bug fixes pass (BUG-001 + BUG-002)
+- [ ] V1b [VERIFY] Quality check: calculations bug fixes pass (BUG-001 + BUG-002) + full suite
   - **Do**:
     1. Run lint + typecheck
     2. Run invariant tests: `test_ventana_horas_invariant.py` and `test_previous_arrival_invariant.py`
-    3. Run AC-10.3 hardcoded-value regression: `test_single_trip_hora_regreso_past.py` — assert the 3 corrected values (96.0/96.0/92.0) pass
-    4. Verify code-side fix per AC-13.1: `grep -A 1 'previous_arrival = _ensure_aware' custom_components/ev_trip_planner/calculations/windows.py` shows NO `+ timedelta(hours=return_buffer_hours)`
-  - **Verify**: `make lint && make typecheck && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_ventana_horas_invariant.py tests/unit/test_previous_arrival_invariant.py tests/unit/test_single_trip_hora_regreso_past.py -v 2>&1 | grep -q "passed" && echo VF_BUG_PASS`
-  - **Done when**: All 3 bug-fix tests pass with corrected AC-10.3 values; AC-13.1 grep assertion holds
-  - **Commit**: `chore(spec3): pass quality checkpoint calculations/bug-fixes [BUG-001][BUG-002]`
+    3. Run AC-10.3 hardcoded-value regression: `test_single_trip_hora_regreso_past.py`
+    4. **RUN FULL SUITE**: `make test-cover` — ALL tests must pass (NO pre-existing excuse)
+    5. Coverage must be 100%
+  - **Verify**: `make lint && make typecheck && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_ventana_horas_invariant.py tests/unit/test_previous_arrival_invariant.py tests/unit/test_single_trip_hora_regreso_past.py -v && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VF_BUG_PASS`
+  - **Done when**: All bug-fix tests pass; full suite shows 0 failures (pre-existing failures NOT allowed as excuse); coverage 100%
+  - **Commit**: `chore(spec3): pass quality checkpoint calculations/bug-fixes [BUG-001][BUG-002] + full-suite`
   - _Requirements: NFR-7.A, AC-10.1, AC-10.2, AC-10.3, AC-13.1, AC-13.3_
   - _Design: §7 + §5.1 (calculations bug fix validation)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after bug-fix, it must be fixed or moved to `tests_excluded_from_mutmut/`
 
-- [ ] 1.20 [RED] Test: power.py re-exports `calculate_power_profile_from_trips` and `calculate_power_profile`
+- [x] 1.20 [RED] Test: power.py re-exports `calculate_power_profile_from_trips` and `calculate_power_profile`
   - **Do**: Write test importing both functions from `calculations.power`
   - **Files**: tests/unit/test_calculations_power.py
   - **Done when**: Test exists and fails
@@ -375,13 +377,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V2 [VERIFY] Quality check: ruff check && pyright && make test
+- [ ] V2 [VERIFY] Quality check: ruff check && pyright && make test-cover (100% coverage + 0 failures)
   - **Do**: Run quality checks after calculations decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
+  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures (NO "pre-existing" excuse), coverage 100%
   - **Commit**: `chore(spec3): pass quality checkpoint calculations`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, calculations)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after decomposition, fix it.
 
 ### 1.2 vehicle/ - Strategy Pattern (mostly file extraction)
 
@@ -689,13 +692,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V5 [VERIFY] Quality check: ruff check && pyright && make test
+- [ ] V5 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, 100% coverage)
   - **Do**: Run quality checks after dashboard decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
+  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures (NO "pre-existing" excuse), coverage 100%
   - **Commit**: `chore(spec3): pass quality checkpoint dashboard`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, dashboard)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after decomposition, fix it.
 
 ### 1.4 emhass/ - Facade + Composition
 
@@ -843,13 +847,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V7 [VERIFY] Quality check: ruff check && pyright && make test
+- [ ] V7 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, 100% coverage)
   - **Do**: Run quality checks after emhass decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
+  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures (NO "pre-existing" excuse), coverage 100%
   - **Commit**: `chore(spec3): pass quality checkpoint emhass`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, emhass)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after decomposition, fix it.
 
 ### 1.5 trip/ - Facade + Mixins + SensorCallbackRegistry
 
@@ -1072,13 +1077,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V8 [VERIFY] Quality check: ruff check && pyright && make test
+- [ ] V8 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, 100% coverage)
   - **Do**: Run quality checks after trip decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
+  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures (NO "pre-existing" excuse), coverage 100%
   - **Commit**: `chore(spec3): pass quality checkpoint trip`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, trip)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after decomposition, fix it.
 
 ### 1.6 services/ - Module Facade + Handler Factory Extraction
 
@@ -1194,13 +1200,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V9 [VERIFY] Quality check: ruff check && pyright && make test
+- [ ] V9 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, 100% coverage)
   - **Do**: Run quality checks after services decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, all tests pass
+  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
+  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures (NO "pre-existing" excuse), coverage 100%
   - **Commit**: `chore(spec3): pass quality checkpoint services`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, services)_
+  - **Rule**: "pre-existing failure" is NOT a valid excuse. If a test fails after decomposition, fix it.
 
 ### 1.7 sensor.py - Decomposition + Pyright Error Fixes
 

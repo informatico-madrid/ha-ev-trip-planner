@@ -2780,11 +2780,11 @@ class TestCalculatePowerProfileEdgeCases:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            "custom_components.ev_trip_planner.calculations_orig.calculate_energy_needed",
             return_value=mock_energia,
         ):
             with patch(
-                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                "custom_components.ev_trip_planner.calculations_orig.calculate_charging_window_pure",
                 return_value=mock_window,
             ):
                 result = calculate_power_profile(
@@ -2843,11 +2843,11 @@ class TestCalculatePowerProfileEdgeCases:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            "custom_components.ev_trip_planner.calculations_orig.calculate_energy_needed",
             return_value=mock_energia,
         ):
             with patch(
-                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                "custom_components.ev_trip_planner.calculations_orig.calculate_charging_window_pure",
                 return_value=mock_window,
             ):
                 result = calculate_power_profile(

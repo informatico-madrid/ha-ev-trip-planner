@@ -268,15 +268,8 @@ def calculate_multi_trip_charging_windows(
         ):
             window_start = trip_departure_time
 
-        # Calculate arrival for this trip (departure + duration)
-        assert trip_departure_time is not None
-        trip_arrival = trip_departure_time + timedelta(hours=duration_hours)
-
         # Calculate ventana_horas
-        # BUG FIX: Use trip_departure_time (fin_ventana) not trip_arrival
-        # trip_arrival = departure + duration (e.g., 6h) which extends the window
-        # incorrectly. The charging window ends at departure, not at arrival.
-        # Ensure window_start is not None for the calculation
+        # The charging window ends at trip departure (fin_ventana), not arrival.
         assert window_start is not None
         window_start_aware = _helpers._ensure_aware(window_start)
         trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
