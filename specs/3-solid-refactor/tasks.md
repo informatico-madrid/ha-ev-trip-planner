@@ -1366,6 +1366,47 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §7 (Per-decomposition validation gate, presence_monitor)_
 
 
+## Post-Refactor Test Recreation (Human-approved DELETE + RECREATE approach)
+
+These tasks implement the Human's explicit decision (chat.md 2026-05-11 13:52) to delete old-API tests and recreate them against the new SOLID-decomposed package structure.
+
+- [ ] 2.01 [DELETE] Remove stale test files from tests_excluded_from_mutmut/
+  - **Do**: `git rm tests_excluded_from_mutmut/*.py` — all 40 files reference old monolithic API
+  - **Verify**: `! ls tests_excluded_from_mutmut/test_*.py 2>/dev/null | head -1` (directory empty or gone)
+  - **Done when**: No test files remain in tests_excluded_from_mutmut/
+  - **Commit**: `chore(spec3): remove 40 stale test files from tests_excluded_from_mutmut`
+  - _Rationale: Human decision — these tests reference old monolithic API and must be recreated_
+
+- [ ] 2.02 [VERIFY] Confirm test suite still passes after deletion
+  - **Do**: Run `make test` to verify no regressions from deleting excluded tests
+  - **Verify**: `make test && echo VERIFY_PASS`
+  - **Done when**: All tests pass (tests_excluded_from_mutmut/ is not in pytest path, so deletion should be safe)
+  - **Commit**: None (verification only)
+
+- [ ] 2.03 [TDD-RED] Write new tests for emhass/ package (facade + mixins)
+  - **Do**: Write tests in tests/unit/ for emhass/adapter.py, emhass/index_manager.py, emhass/load_publisher.py, emhass/error_handler.py, emhass/cache_entry_builder.py, emhass/_crud_mixin.py, emhass/_soc_mixin.py, emhass/_power_profile_mixin.py, emhass/_schedule_mixin.py
+  - **Verify**: `pytest tests/unit/test_emhass_*.py --co -q | wc -l` shows ≥ 50 new tests
+  - **Done when**: New test files exist covering all emhass/ public methods
+  - **Commit**: `test(spec3): recreate emhass package tests against new SOLID API`
+
+- [ ] 2.04 [TDD-RED] Write new tests for trip/ package (facade + mixins)
+  - **Do**: Write tests in tests/unit/ for trip/manager.py, trip/_crud_mixin.py, trip/_soc_mixin.py, trip/_power_profile_mixin.py, trip/_schedule_mixin.py, trip/_sensor_callbacks.py, trip/_types.py
+  - **Verify**: `pytest tests/unit/test_trip_*.py --co -q | wc -l` shows ≥ 40 new tests
+  - **Done when**: New test files exist covering all trip/ public methods
+  - **Commit**: `test(spec3): recreate trip package tests against new SOLID API`
+
+- [ ] 2.05 [TDD-RED] Write new tests for dashboard/ package (facade + builder + template_manager)
+  - **Do**: Write tests in tests/unit/ for dashboard/importer.py, dashboard/builder.py, dashboard/template_manager.py
+  - **Verify**: `pytest tests/unit/test_dashboard_*.py --co -q | wc -l` shows ≥ 20 new tests
+  - **Done when**: New test files exist covering all dashboard/ public methods
+  - **Commit**: `test(spec3): recreate dashboard package tests against new SOLID API`
+
+- [ ] 2.06 [VERIFY] Coverage restoration check
+  - **Do**: Run `make test-cover` and verify coverage ≥ 80% for emhass/, trip/, dashboard/ packages
+  - **Verify**: `make test-cover 2>&1 | grep -E 'emhass|trip|dashboard' | grep -v '80%' | wc -l | grep -q '^0$' && echo VERIFY_PASS`
+  - **Done when**: Coverage ≥ 80% for all three decomposed packages
+  - **Commit**: None (verification only)
+
 ## Phase 2: Additional Testing
 
 Focus: Integration testing across decomposed packages, E2E verification, full quality validation.
