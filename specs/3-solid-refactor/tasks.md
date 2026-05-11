@@ -550,7 +550,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-7.1, AC-7.2_
   - _Design: §3.4 + §4.3 (dashboard pathlib pre-condition)_
 
-- [ ] 1.42 [RED] Test: dashboard package re-exports public API
+- [x] 1.42 [RED] Test: dashboard package re-exports public API
   - **Do**: Write test importing `import_dashboard`, `is_lovelace_available`, `DashboardImportResult`, and 4 exception classes from `custom_components.ev_trip_planner.dashboard`
   - **Files**: tests/unit/test_dashboard_imports.py
   - **Done when**: Test exists and fails
@@ -560,7 +560,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.4 (dashboard Facade + Builder)_
 
 
-- [ ] 1.43 [GREEN] Create dashboard/__init__.py with re-exports
+- [x] 1.43 [GREEN] Create dashboard/__init__.py with re-exports
   - **Do**:
     1. Create `custom_components/ev_trip_planner/dashboard/__init__.py` with `from __future__ import annotations`
     2. Re-export `import_dashboard`, `is_lovelace_available`, `DashboardImportResult`, and 4 exception classes from `importer.py` and `exceptions.py`

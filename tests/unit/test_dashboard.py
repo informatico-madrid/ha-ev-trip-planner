@@ -9,9 +9,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import yaml
 
-# Path to the dashboard templates
+# Path to the dashboard templates (moved to templates/ subdirectory during SOLID refactor)
 DASHBOARD_DIR = (
-    Path(__file__).parent.parent.parent / "custom_components" / "ev_trip_planner" / "dashboard"
+    Path(__file__).parent.parent.parent
+    / "custom_components"
+    / "ev_trip_planner"
+    / "dashboard"
+    / "templates"
 )
 
 
