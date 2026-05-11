@@ -979,7 +979,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.77 [GREEN] Move power profile method to `_power_profile_mixin.py`
+- [x] 1.77 [GREEN] Move power profile method to `_power_profile_mixin.py`
   - **Do**:
     1. Move `async_generate_power_profile` and helpers from `trip_manager.py` to `trip/_power_profile_mixin.py`
     2. Mixin `__init__` uses explicit `_PowerProfileMixin.__init__(self)`
