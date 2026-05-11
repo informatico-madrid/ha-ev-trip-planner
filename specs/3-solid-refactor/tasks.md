@@ -877,7 +877,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.2 (trip Facade + Mixins)_
 
-- [ ] 1.68 [RED] Test: SensorCallbackRegistry class exists and works
+- [x] 1.68 [RED] Test: SensorCallbackRegistry class exists and works
   - **Do**: Write test importing `SensorCallbackRegistry` from `trip._sensor_callbacks`, asserting `register(event, cb)` and `await emit(event, *args)` work correctly, and missing callback emits WARNING
   - **Files**: tests/unit/test_sensor_callback_registry.py
   - **Done when**: Test exists and fails
