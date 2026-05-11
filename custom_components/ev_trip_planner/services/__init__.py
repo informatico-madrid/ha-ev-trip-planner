@@ -17,10 +17,12 @@ from homeassistant.core import HomeAssistant, SupportsResponse
 from ..services_orig import (
     PLATFORMS,
     CoordinatorType,
+    build_presence_config,
+)
+from .dashboard_helpers import (
     async_import_dashboard_for_entry,
     async_register_panel_for_entry,
     async_register_static_paths,
-    build_presence_config,
     create_dashboard_input_helpers,
 )
 from .cleanup import (

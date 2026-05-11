@@ -1150,7 +1150,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.3 (services cleanup)_
 
-- [x] 1.91 [RED] Test: dashboard_helpers.py functions are importable - a1b2c3d
+- [x] 1.91 [RED] Test: dashboard_helpers.py functions are importable
   - **Do**: Write test importing `create_dashboard_input_helpers`, `async_register_panel_for_entry`, `async_register_static_paths`, `async_import_dashboard_for_entry` from `services.dashboard_helpers`
   - **Files**: tests/unit/test_services_dashboard_helpers.py
   - **Done when**: Test exists and fails
@@ -1160,7 +1160,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.3 (services dashboard helpers)_
 
 
-- [ ] 1.92 [GREEN] Move dashboard helpers to `dashboard_helpers.py`
+- [x] 1.92 [GREEN] Move dashboard helpers to `dashboard_helpers.py`
   - **Do**:
     1. Extract dashboard helper functions from `services.py` to `services/dashboard_helpers.py`
     2. Update `services/__init__.py` to re-export from `.dashboard_helpers`
