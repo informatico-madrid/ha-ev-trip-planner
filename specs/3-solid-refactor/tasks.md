@@ -1298,7 +1298,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: design-by-convention (config_flow decomp); §4.6_
 
-- [ ] 1.102 [YELLOW] Remove config_flow.py transitional shim
+- [x] 1.102 [YELLOW] Remove config_flow.py transitional shim
   - **Do**:
     1. Delete `config_flow.py`
     2. Verify `make test` passes
