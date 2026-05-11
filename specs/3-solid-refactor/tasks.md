@@ -991,7 +991,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (PowerProfile mixin)_
 
-- [ ] 1.78 [RED] Test: _ScheduleMixin has schedule generation
+- [x] 1.78 [RED] Test: _ScheduleMixin has schedule generation
   - **Do**: Write test importing `_ScheduleMixin` and asserting `async_generate_deferrables_schedule` and `publish_deferrable_loads` work
   - **Files**: tests/unit/test_trip_schedule_mixin.py
   - **Done when**: Test exists and fails
