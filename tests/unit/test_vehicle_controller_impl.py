@@ -7,9 +7,6 @@ from custom_components.ev_trip_planner.vehicle.controller import (
     VehicleController,
     create_control_strategy,
 )
-from custom_components.ev_trip_planner.vehicle.strategy import (
-    VehicleControlStrategy,
-)
 
 
 class TestVehicleControllerModule:

@@ -6,8 +6,6 @@ VERIFIES: VehicleControlStrategy ABC has 3 abstract methods
 from abc import ABC
 
 from custom_components.ev_trip_planner.vehicle.strategy import (
-    HomeAssistantWrapper,
-    RetryState,
     ServiceStrategy,
     SwitchStrategy,
     VehicleControlStrategy,

@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from homeassistant.core import HomeAssistant
 
 from .strategy import HomeAssistantWrapper, VehicleControlStrategy
 
