@@ -14,22 +14,15 @@ from __future__ import annotations
 # Import all public symbols from the legacy module file (now _orig).
 # These imports are temporary -- sub-modules will take ownership later.
 from custom_components.ev_trip_planner.calculations_orig import (
-    # 16 names from __all__ (window functions moved to .windows)
+    # Core types and functions (overridden by .core below)
     BatteryCapacity,
     calculate_charging_rate,
     calculate_day_index,
-    calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
-    calculate_energy_needed,
-    calculate_hours_deficit_propagation,
-    calculate_soc_at_trip_starts,
     calculate_soc_target,
-    ChargingDecision,
     DAYS_OF_WEEK,
-    determine_charging_need,
     calculate_trip_time,
     # Additional names used by downstream callers
-    calculate_next_recurring_datetime,
     DEFAULT_T_BASE,
     SOH_CACHE_TTL_SECONDS,
 )
@@ -62,6 +55,17 @@ from .power import (
 from .schedule import (
     calculate_deferrable_parameters,
     generate_deferrable_schedule_from_trips,
+)
+
+# Deficit functions extracted to their own module.
+from .deficit import (
+    ChargingDecision,
+    calculate_deficit_propagation,
+    calculate_energy_needed,
+    calculate_hours_deficit_propagation,
+    calculate_next_recurring_datetime,
+    calculate_soc_at_trip_starts,
+    determine_charging_need,
 )
 
 # Re-export datetime/timezone/timedelta for test mocking (tests patch calculations.datetime).
