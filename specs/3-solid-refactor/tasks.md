@@ -888,7 +888,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.69 [GREEN] Create SensorCallbackRegistry in `_sensor_callbacks.py`
+- [x] 1.69 [GREEN] Create SensorCallbackRegistry in `_sensor_callbacks.py`
   - **Do**:
     1. Create `trip/_sensor_callbacks.py` with `SensorCallbackRegistry` class
     2. Exposes `register(event, cb)` and `await emit(event, *args, **kwargs)`

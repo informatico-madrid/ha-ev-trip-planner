@@ -1,3 +1,4 @@
+from custom_components.ev_trip_planner.trip._sensor_callbacks import SensorCallbackRegistry
 from custom_components.ev_trip_planner.trip_manager import CargaVentana, SOCMilestoneResult, TripManager
 
-__all__ = ["TripManager", "CargaVentana", "SOCMilestoneResult"]
+__all__ = ["TripManager", "CargaVentana", "SOCMilestoneResult", "SensorCallbackRegistry"]
