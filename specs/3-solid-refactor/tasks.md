@@ -1093,7 +1093,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: §3.3 (services Module-Level Facade)_
 
-- [ ] 1.86 [GREEN] Scaffold services/ with re-exports and shims
+- [x] 1.86 [GREEN] Scaffold services/ with re-exports and shims
   - **Do**:
     1. Create `custom_components/ev_trip_planner/services/` directory
     2. Create `__init__.py` re-exporting 10 public functions from sub-modules
