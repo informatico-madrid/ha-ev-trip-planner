@@ -23,8 +23,6 @@ from custom_components.ev_trip_planner.calculations_orig import (
     calculate_dynamic_soc_limit,
     calculate_energy_needed,
     calculate_hours_deficit_propagation,
-    calculate_power_profile,
-    calculate_power_profile_from_trips,
     calculate_soc_at_trip_starts,
     calculate_soc_target,
     ChargingDecision,
@@ -54,6 +52,12 @@ from .core import (
 from .windows import (
     calculate_charging_window_pure,
     calculate_multi_trip_charging_windows,
+)
+
+# Power profile functions extracted to their own module.
+from .power import (
+    calculate_power_profile,
+    calculate_power_profile_from_trips,
 )
 
 # Re-export datetime/timezone/timedelta for test mocking (tests patch calculations.datetime).

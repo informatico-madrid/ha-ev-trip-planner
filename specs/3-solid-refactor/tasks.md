@@ -297,7 +297,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.21 [GREEN] Move power profile functions to `power.py`
+- [x] 1.21 [GREEN] Move power profile functions to `power.py`
   - **Do**:
     1. Extract `calculate_power_profile_from_trips` (~209 LOC) and `calculate_power_profile` (~144 LOC) to `calculations/power.py`
     2. Update `calculations/__init__.py` to re-export from `.power`
