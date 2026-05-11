@@ -389,7 +389,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.2 vehicle/ - Strategy Pattern (mostly file extraction)
 
-- [ ] 1.28 [RED] Test: vehicle package re-exports VehicleController, VehicleControlStrategy, create_control_strategy
+- [x] 1.28 [RED] Test: vehicle package re-exports VehicleController, VehicleControlStrategy, create_control_strategy
   - **Do**: Write test importing all 3 public names from `custom_components.ev_trip_planner.vehicle`
   - **Files**: tests/unit/test_vehicle_imports.py
   - **Done when**: Test exists and fails
@@ -486,7 +486,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.5 + §4.6 (transitional shim removal)_
 
 
-- [ ] 1.37 [VERIFY] Update mutation config for vehicle modules
+- [x] 1.37 [VERIFY] Update mutation config for vehicle modules
   - **Do**:
     1. Remove `[tool.quality-gate.mutation.modules.vehicle_controller]` from pyproject.toml
     2. Add entries for `vehicle.controller`, `vehicle.strategy`, `vehicle.external` inheriting original `kill_threshold`
@@ -507,7 +507,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.3 dashboard/ - Facade + Builder + `__file__` Path Fix
 
-- [ ] 1.38 [RED] Test: template files exist in dashboard/templates/
+- [x] 1.38 [RED] Test: template files exist in dashboard/templates/
   - **Do**: Write test asserting all 11 template files are present in `custom_components/ev_trip_planner/dashboard/templates/`
   - **Files**: tests/unit/test_dashboard_templates.py
   - **Done when**: Test exists and fails (templates not yet moved)
@@ -516,7 +516,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-7.3_
   - _Design: §3.4 + §4.3 (dashboard pathlib pre-condition)_
 
-- [ ] 1.39 [GREEN] Move 11 template files to dashboard/templates/
+- [x] 1.39 [GREEN] Move 11 template files to dashboard/templates/
   - **Do**:
     1. Create `custom_components/ev_trip_planner/dashboard/templates/` directory
     2. Move all 11 YAML/JS template files from `dashboard/` to `dashboard/templates/`
@@ -528,7 +528,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-7.3_
   - _Design: §3.4 + §4.3 (dashboard pathlib pre-condition)_
 
-- [ ] 1.40 [RED] Test: dashboard template loading works with new path structure
+- [x] 1.40 [RED] Test: dashboard template loading works with new path structure
   - **Do**: Write test calling `import_dashboard` from `dashboard.py` and asserting template files load without FileNotFoundError
   - **Files**: tests/unit/test_dashboard_template_paths.py
   - **Done when**: Test exists and fails (path still uses old `os.path.dirname(__file__) + "dashboard" + template`)
@@ -539,7 +539,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.41 [GREEN] Fix template path in dashboard.py for new templates/ subdirectory
+- [x] 1.41 [GREEN] Fix template path in dashboard.py for new templates/ subdirectory
   - **Do**:
     1. Update template path resolution in `dashboard.py`: change `os.path.join(comp_dir, "dashboard", template_file)` to `os.path.join(comp_dir, "templates", template_file)`
     2. This is the pre-condition before creating `dashboard/__init__.py` - the old `dashboard.py` file stays, only the path string changes
