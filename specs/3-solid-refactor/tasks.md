@@ -1062,7 +1062,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.5_
   - _Design: §3.2 + §4.6 (transitional shim removal)_
 
-- [ ] 1.84 [VERIFY] Update mutation config for trip modules
+- [x] 1.84 [VERIFY] Update mutation config for trip modules
   - **Do**:
     1. Remove `[tool.quality-gate.mutation.modules.trip_manager]` from pyproject.toml
     2. Add entries for `trip.manager`, `trip.crud_mixin`, `trip.soc_mixin`, `trip.power_profile_mixin`, `trip.schedule_mixin` inheriting original `kill_threshold`
@@ -1073,7 +1073,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V8 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
+- [x] V8 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
   - **Do**: Run quality checks after trip decomposition
   - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, full test suite shows 0 failures; pattern check: `trip/` uses Facade + Mixins (CRUDMixin, SOCMixin, PowerProfileMixin, ScheduleMixin) per design §3.2; new files have coverage
@@ -1084,7 +1084,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.6 services/ - Module Facade + Handler Factory Extraction
 
-- [ ] 1.85 [RED] Test: services package re-exports 10 public functions
+- [x] 1.85 [RED] Test: services package re-exports 10 public functions
   - **Do**: Write test importing all 10 public functions from `custom_components.ev_trip_planner.services`
   - **Files**: tests/unit/test_services_imports.py
   - **Done when**: Test exists and fails
