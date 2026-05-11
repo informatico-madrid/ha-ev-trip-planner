@@ -310,7 +310,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.6 (calculations functional decomposition)_
 
 
-- [ ] 1.22 [RED] Test: schedule.py re-exports schedule functions
+- [x] 1.22 [RED] Test: schedule.py re-exports schedule functions
   - **Do**: Write test importing `generate_deferrable_schedule_from_trips` and `calculate_deferrable_parameters` from `calculations.schedule`
   - **Files**: tests/unit/test_calculations_schedule.py
   - **Done when**: Test exists and fails
@@ -319,7 +319,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.23 [GREEN] Move schedule functions to `schedule.py`
+- [x] 1.23 [GREEN] Move schedule functions to `schedule.py`
   - **Do**:
     1. Extract `generate_deferrable_schedule_from_trips` and `calculate_deferrable_parameters` to `calculations/schedule.py`
     2. Update `calculations/__init__.py` to re-export from `.schedule`

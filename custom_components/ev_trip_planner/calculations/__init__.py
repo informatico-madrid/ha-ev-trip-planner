@@ -18,7 +18,6 @@ from custom_components.ev_trip_planner.calculations_orig import (
     BatteryCapacity,
     calculate_charging_rate,
     calculate_day_index,
-    calculate_deferrable_parameters,
     calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
     calculate_energy_needed,
@@ -28,7 +27,6 @@ from custom_components.ev_trip_planner.calculations_orig import (
     ChargingDecision,
     DAYS_OF_WEEK,
     determine_charging_need,
-    generate_deferrable_schedule_from_trips,
     calculate_trip_time,
     # Additional names used by downstream callers
     calculate_next_recurring_datetime,
@@ -58,6 +56,12 @@ from .windows import (
 from .power import (
     calculate_power_profile,
     calculate_power_profile_from_trips,
+)
+
+# Deferrable schedule functions extracted to their own module.
+from .schedule import (
+    calculate_deferrable_parameters,
+    generate_deferrable_schedule_from_trips,
 )
 
 # Re-export datetime/timezone/timedelta for test mocking (tests patch calculations.datetime).
