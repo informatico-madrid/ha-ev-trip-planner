@@ -332,7 +332,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.6 (calculations functional decomposition)_
 
 
-- [ ] 1.24 [RED] Test: deficit.py re-exports deficit/scheduling functions
+- [x] 1.24 [RED] Test: deficit.py re-exports deficit/scheduling functions
   - **Do**: Write test importing `calculate_deficit_propagation`, `calculate_next_recurring_datetime`, `determine_charging_need`, `ChargingDecision`, `calculate_energy_needed` from `calculations.deficit`
   - **Files**: tests/unit/test_calculations_deficit.py
   - **Done when**: Test exists and fails
