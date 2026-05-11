@@ -630,7 +630,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.4 + §4.6 (dashboard shim re-exports)_
 
 
-- [x] 1.49 [GREEN] Make dashboard.py transitional shim re-exporting from package - <pending>
+- [x] 1.49 [GREEN] Make dashboard.py transitional shim re-exporting from package
   - **Do**:
     1. Convert `dashboard.py` to 1-line shim re-exporting public names from `dashboard/` package
     2. Re-export ~11 private helpers (`_load_dashboard_template`, etc.) from sub-modules for test compatibility
