@@ -664,7 +664,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.5_
   - _Design: §4.6 (Test Import Migration)_
 
-- [ ] 1.52 [YELLOW] Remove dashboard.py transitional shim
+- [x] 1.52 [YELLOW] Remove dashboard.py transitional shim
   - **Do**:
     1. Delete `dashboard.py`
     2. Verify `config_flow.py` and `services.py` imports (`from .dashboard import import_dashboard`) still resolve — no edit needed because the new `dashboard/__init__.py` re-exports the same symbol
