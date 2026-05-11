@@ -1139,7 +1139,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.3 (services cleanup)_
 
 
-- [ ] 1.90 [GREEN] Move cleanup functions to `cleanup.py`
+- [x] 1.90 [GREEN] Move cleanup functions to `cleanup.py`
   - **Do**:
     1. Extract cleanup functions from `services.py` to `services/cleanup.py`
     2. Functions: `async_cleanup_stale_storage`, `async_cleanup_orphaned_emhass_sensors`, `async_unload_entry_cleanup`, `async_remove_entry_cleanup`
