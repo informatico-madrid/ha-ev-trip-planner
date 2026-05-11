@@ -21,14 +21,12 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.entity import (
-    EntityCategory,  # type: ignore[attr-defined] # HA stub: EntityCategory not explicitly exported
-)
 from homeassistant.helpers.entity_registry import (
     EntityRegistry,
     async_entries_for_config_entry,
+    async_get as er_async_get,
 )
-from homeassistant.helpers.entity_registry import async_get as er_async_get
+from homeassistant.helpers.entity import EntityCategory  # type: ignore[attr-defined] # HA stub: EntityCategory not explicitly exported
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (

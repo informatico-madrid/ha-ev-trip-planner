@@ -30,6 +30,9 @@ DAY_ABBREVIATIONS: dict[str, str] = {
     "sunday": "dom",
 }
 
+# All possible day names (both Spanish and English)
+ALL_DAYS = set(DAY_ABBREVIATIONS.keys())
+
 
 def generate_random_suffix(length: int = 6) -> str:
     """Generate a random alphanumeric suffix for trip IDs.

@@ -51,23 +51,21 @@ async def async_get_config_entry_diagnostics(
             "data": async_redact_data(entry.data, REDACT_KEYS),
         },
         "coordinator": {
-            "data_keys": (
-                list(coordinator.data.keys())
-                if coordinator and coordinator.data
-                else []
-            ),
-            "last_update_success": (
-                coordinator.last_update_success if coordinator else None
-            ),
+            "data_keys": list(coordinator.data.keys())
+            if coordinator and coordinator.data
+            else [],
+            "last_update_success": coordinator.last_update_success
+            if coordinator
+            else None,
         },
         "trip_manager": {
             "vehicle_id": trip_manager.vehicle_id if trip_manager else None,
-            "recurring_trips_count": (
-                len(trip_manager._recurring_trips) if trip_manager else 0
-            ),
-            "punctual_trips_count": (
-                len(trip_manager._punctual_trips) if trip_manager else 0
-            ),
+            "recurring_trips_count": len(trip_manager._recurring_trips)
+            if trip_manager
+            else 0,
+            "punctual_trips_count": len(trip_manager._punctual_trips)
+            if trip_manager
+            else 0,
         },
     }
 

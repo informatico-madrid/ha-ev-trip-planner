@@ -12,17 +12,19 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .calculations import (
-    DEFAULT_T_BASE,
     BatteryCapacity,
+    calculate_deferrable_parameters as calc_deferrable_parameters,
     calculate_dynamic_soc_limit,
     calculate_hours_deficit_propagation,
     calculate_multi_trip_charging_windows,
+    DEFAULT_T_BASE,
+    determine_charging_need,
+)
+from .calculations import (
     calculate_power_profile_from_trips,
     calculate_trip_time,
-    determine_charging_need,
     generate_deferrable_schedule_from_trips,
 )
-from .calculations import calculate_deferrable_parameters as calc_deferrable_parameters
 from .const import (
     CONF_BATTERY_CAPACITY,
     CONF_CHARGING_POWER,
@@ -547,8 +549,8 @@ class EMHASSAdapter:
 
             if day is not None and time_str is not None:
                 from .calculations import (
-                    calculate_day_index,
                     calculate_next_recurring_datetime,
+                    calculate_day_index,
                 )
 
                 # Convert day name to index (0=Monday for ES/EN names)
@@ -795,6 +797,7 @@ class EMHASSAdapter:
         # SOC cap NOT applied to per-trip power_profile here.
         # power_profile stays at full charger hardware power.
         # SOC cap is applied at batch aggregation level to reduce total energy
+
 
         # Cache per-trip params
         # CRITICAL FIX: P_deferrable_nom must be consistent with def_total_hours.
@@ -1198,12 +1201,11 @@ class EMHASSAdapter:
 
             # Update projected SOC for next trip
             # 1. Add SOC gained from charging this trip
-            assert trip_id is not None
             if trip_id in batch_charging_windows:
                 window = batch_charging_windows[trip_id]
                 ventana_horas = window.get("ventana_horas", 0)
                 # Get charging decision from cache
-                cached_params = self._cached_per_trip_params.get(trip_id, {})  # pyright: ignore[reportCallIssue,reportArgumentType,reportPossiblyUnboundVariable]
+                cached_params = self._cached_per_trip_params.get(trip_id, {})  # pyright: ignore[reportCallIssue,reportArgumentType]
                 def_total_hours = cached_params.get("def_total_hours", 0)
 
                 # Calculate SOC gained: min(hours available, hours needed) * power / capacity * 100
@@ -1280,12 +1282,9 @@ class EMHASSAdapter:
             current_wh = sum(power_profile)
             if current_wh > expected_capped_wh and expected_capped_wh > 0:
                 # Break profile into 1-hour sub-slots at full charger power
-                # EMHASS works in complete hours: any fraction (0.01+) = 1 full hour.
-                # Use math.ceil (not round) to avoid zeroing all slots when
-                # expected energy < 1 full slot (e.g., 5 kWh / 11 kW = 0.45 → ceil = 1).
                 slot_size = charging_power_kw * 1000
                 if slot_size > 0:
-                    target_slots = math.ceil(expected_capped_wh / slot_size)
+                    target_slots = int(round(expected_capped_wh / slot_size))
                     # Count how many full slots we have
                     total_slots = 0
                     slot_positions = []

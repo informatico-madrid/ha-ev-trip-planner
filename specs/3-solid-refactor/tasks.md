@@ -497,7 +497,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V3 [VERIFY] Quality check: ruff check && pyright
+- [x] V3 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks after vehicle decomposition
   - **Verify**: `make lint && make typecheck`
   - **Done when**: No lint errors, no type errors

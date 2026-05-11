@@ -13,19 +13,14 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 
-import yaml
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
+from homeassistant.config_entries import ConfigEntry
+
+import yaml
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-# T3.2: Import function for recurring trip rotation
-from .calculations import (
-    BatteryCapacity,
-    calculate_day_index,
-    calculate_next_recurring_datetime,
-)
 from .const import (
     CONF_CHARGING_POWER,
     CONF_SOH_SENSOR,
@@ -35,12 +30,16 @@ from .const import (
     TRIP_TYPE_RECURRING,
 )
 from .emhass_adapter import EMHASSAdapter
+from .yaml_trip_storage import YamlTripStorage
 from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
-from .vehicle import VehicleController
-from .yaml_trip_storage import YamlTripStorage
+
+# T3.2: Import function for recurring trip rotation
+from .calculations import calculate_next_recurring_datetime, calculate_day_index
+from .calculations import BatteryCapacity
+from .vehicle_controller import VehicleController
 
 _UNSET = object()
 
@@ -135,6 +134,20 @@ class TripManager:
     def get_emhass_adapter(self) -> Optional[EMHASSAdapter]:
         """Get the EMHASS adapter for this trip manager."""
         return self._emhass_adapter
+
+    @staticmethod
+    def _validate_hora(hora: str) -> None:
+        """Valida que una cadena de hora tenga el formato HH:MM y valores válidos.
+
+        Delegates to pure utils.validate_hora for testability.
+
+        Args:
+            hora: Cadena de hora en formato HH:MM.
+
+        Raises:
+            ValueError: Si el formato no es HH:MM o los valores están fuera de rango.
+        """
+        pure_validate_hora(hora)
 
     def _parse_trip_datetime(
         self, trip_datetime: datetime | str, allow_none: bool = False
@@ -689,7 +702,7 @@ class TripManager:
         )
         # Validate hora format before storing
         hora = kwargs.get("hora", "")
-        pure_validate_hora(hora)
+        self._validate_hora(hora)
 
         # Generate trip ID using the new format: rec_{day}_{random}
         if "trip_id" in kwargs:
@@ -715,9 +728,9 @@ class TripManager:
         )
 
         # T034: Create sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import (  # Local import to avoid circular dependency
+        from .sensor import (
             async_create_trip_sensor,
-        )
+        )  # Local import to avoid circular dependency
 
         await async_create_trip_sensor(
             self.hass, self._entry_id, self._recurring_trips[trip_id]
@@ -777,9 +790,9 @@ class TripManager:
         )
 
         # T034: Create sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import (  # Local import to avoid circular dependency
+        from .sensor import (
             async_create_trip_sensor,
-        )
+        )  # Local import to avoid circular dependency
 
         await async_create_trip_sensor(
             self.hass, self._entry_id, self._punctual_trips[trip_id]
@@ -876,9 +889,9 @@ class TripManager:
         )
 
         # T035: Update the sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import (  # Local import to avoid circular dependency
+        from .sensor import (
             async_update_trip_sensor,
-        )
+        )  # Local import to avoid circular dependency
 
         trip_data = self._recurring_trips.get(trip_id) or self._punctual_trips.get(
             trip_id
@@ -914,9 +927,9 @@ class TripManager:
         _LOGGER.info("Deleted trip %s from vehicle %s", trip_id, self.vehicle_id)
 
         # T034: Remove sensor entity for the trip (using sensor.py CRUD function)
-        from .sensor import (  # Local import to avoid circular dependency
+        from .sensor import (
             async_remove_trip_sensor,
-        )
+        )  # Local import to avoid circular dependency
 
         await async_remove_trip_sensor(self.hass, self._entry_id, trip_id)
 
@@ -2075,9 +2088,9 @@ class TripManager:
             Lista de SOCMilestoneResult con soc_objetivo ajustado y deficit_acumulado
         """
         from .calculations import (
-            DEFAULT_T_BASE,
             calculate_deficit_propagation,
             calculate_dynamic_soc_limit,
+            DEFAULT_T_BASE,
         )
 
         # Extract battery_capacity_kwh and safety_margin_percent from vehicle_config

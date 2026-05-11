@@ -17,6 +17,9 @@ DOMAIN = "ev_trip_planner"
 # Config entry version for migrations
 CONFIG_VERSION = 3
 
+# Dispatcher signal for reactive updates
+SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
+
 # Configuration keys
 CONF_VEHICLE_NAME = "vehicle_name"
 CONF_SOC_SENSOR = "soc_sensor"
@@ -61,9 +64,11 @@ DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops
 DEFAULT_SOC_BUFFER_PERCENT = (
     10  # percent (minimum SOC buffer for backward deficit propagation)
 )
+DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
+DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Battery health / Dynamic SOC capping (always-on)
 CONF_T_BASE = "t_base"

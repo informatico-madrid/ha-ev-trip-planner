@@ -21,8 +21,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_VEHICLE_NAME,
-    DEFAULT_CHARGING_POWER,
     DEFAULT_CONSUMPTION,
+    DEFAULT_CHARGING_POWER,
     DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
 )
@@ -136,11 +136,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 "DEBUG coordinator _async_update_data: per_trip_emhass_params has %d entries, "
                 "emhass_power_profile non_zero=%d for vehicle %s",
                 len(per_trip_params),
-                (
-                    sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0)
-                    if emhass_data.get("emhass_power_profile")
-                    else 0
-                ),
+                sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0)
+                if emhass_data.get("emhass_power_profile")
+                else 0,
                 self._vehicle_id,
             )
             # FALLBACK: When EMHASS is not installed/running, the adapter returns

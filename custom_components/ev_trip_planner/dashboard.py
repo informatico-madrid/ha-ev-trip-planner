@@ -675,16 +675,6 @@ async def _load_dashboard_template(
         comp_dir = os.path.dirname(__file__)
         parent_dir = os.path.dirname(os.path.dirname(__file__))
         possible_paths = [
-            os.path.join(comp_dir, "dashboard", "templates", template_file),
-            os.path.join(
-                parent_dir,
-                "custom_components",
-                "ev_trip_planner",
-                "dashboard",
-                "templates",
-                template_file,
-            ),
-            # Legacy: check original location (pre-templates/ subdirectory)
             os.path.join(comp_dir, "dashboard", template_file),
             os.path.join(
                 parent_dir,
