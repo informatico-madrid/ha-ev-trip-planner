@@ -722,7 +722,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.1 (emhass Facade + Composition)_
 
-- [ ] 1.56 [RED] Test: IndexManager class exists in emhass.index_manager
+- [x] 1.56 [RED] Test: IndexManager class exists in emhass.index_manager
   - **Do**: Write test importing `IndexManager` from `emhass.index_manager` and asserting it has `async_assign`, `async_release`, `get_assigned_index`, `get_all_assigned_indices`, `get_available_indices`, `async_cleanup_vehicle_indices`, `verify_cleanup` methods
   - **Files**: tests/unit/test_emhass_index_manager.py
   - **Done when**: Test exists and fails
