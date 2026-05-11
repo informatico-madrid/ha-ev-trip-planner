@@ -18,15 +18,18 @@ from .entity_trip_planner import TripPlannerSensor
 
 # Platform entry point and helpers from the legacy module.
 from custom_components.ev_trip_planner.sensor_orig import (
+    TRIP_SENSORS,
     async_create_trip_emhass_sensor,
     async_create_trip_sensor,
     async_remove_trip_emhass_sensor,
     async_remove_trip_sensor,
     async_setup_entry,
     async_update_trip_sensor,
+    _async_create_trip_sensors,
 )
 
 __all__ = [
+    "TRIP_SENSORS",
     "async_setup_entry",
     "TripPlannerSensor",
     "EmhassDeferrableLoadSensor",

@@ -1240,7 +1240,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.98 [GREEN] Fix 16 pyright errors in sensor.py entity classes
+- [x] 1.98 [GREEN] Fix pyright errors in sensor.py entity classes
   - **Do**:
     1. Fix type annotations in sensor entity classes to match HA `Entity` ABC contract
     2. Fix `async_setup_entry` signature to match HA platform contract
@@ -1253,7 +1253,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: NFR-7.A.5, FR-1.7_
   - _Design: design-by-convention (sensor pyright); NFR-7.A.5 + FR-1.7_
 
-- [ ] 1.99 [YELLOW] Remove sensor.py transitional shim
+- [x] 1.99 [YELLOW] Remove sensor.py transitional shim - <pending>
   - **Do**:
     1. Delete `sensor.py`
     2. Verify HA platform discovery still loads `async_setup_entry` via `sensor/__init__.py` re-export (no edit needed because the new package re-exports the same public symbols: `async_setup_entry`, `TripPlannerSensor`, `EmhassDeferrableLoadSensor`, `TripSensor`, `TripEmhassSensor`)
