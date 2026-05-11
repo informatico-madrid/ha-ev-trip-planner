@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
@@ -10,6 +11,8 @@ from homeassistant.core import HomeAssistant
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
 from .load_publisher import LoadPublisher
+
+from homeassistant.helpers.storage import Store
 
 
 class EMHASSAdapter:
@@ -51,6 +54,12 @@ class EMHASSAdapter:
         self._stored_charging_power_kw: float | None = None
         self._stored_t_base: float | None = None
         self._stored_soh_sensor: str | None = None
+        self._released_indices: list[Dict[str, Any]] = []
+
+    @property
+    def _index_map(self) -> Dict[str, int]:
+        """Backward-compat property: tests access adapter._index_map directly."""
+        return self._index_manager._index_map
 
     async def async_load(self) -> None:
         """Load adapter state from storage."""

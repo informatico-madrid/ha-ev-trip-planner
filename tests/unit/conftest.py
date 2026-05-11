@@ -819,7 +819,7 @@ def _make_mock_datetime_fixture(default_dt: datetime):
                 return fixed_now.replace(tzinfo=tz or timezone.utc)
 
         with (
-            patch("custom_components.ev_trip_planner.emhass_adapter.datetime", MockDatetime),
+            patch("custom_components.ev_trip_planner.emhass.adapter.datetime", MockDatetime),
             patch("custom_components.ev_trip_planner.calculations.datetime", MockDatetime),
             patch("homeassistant.util.dt.utcnow", return_value=fixed_now),
             patch("homeassistant.util.dt.now", return_value=fixed_now),
