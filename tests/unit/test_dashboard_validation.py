@@ -682,7 +682,7 @@ class TestDashboardHelpers:
     @pytest.mark.asyncio
     async def test_await_executor_result_with_coro(self):
         """_await_executor_result awaits coroutine objects."""
-        from custom_components.ev_trip_planner.dashboard import _await_executor_result
+        from custom_components.ev_trip_planner.dashboard.importer import _await_executor_result
 
         async def dummy():
             return 42
@@ -693,7 +693,7 @@ class TestDashboardHelpers:
     @pytest.mark.asyncio
     async def test_await_executor_result_with_direct_value(self):
         """_await_executor_result returns non-awaitable values directly."""
-        from custom_components.ev_trip_planner.dashboard import _await_executor_result
+        from custom_components.ev_trip_planner.dashboard.importer import _await_executor_result
 
         result = await _await_executor_result(42)
         assert result == 42

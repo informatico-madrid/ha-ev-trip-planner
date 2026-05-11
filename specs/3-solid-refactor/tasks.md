@@ -652,7 +652,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.4 + §4.3 (dashboard e2e verification)_
 
 
-- [ ] 1.51 [YELLOW] Update dashboard.py test imports to use new paths (Phase 2)
+- [x] 1.51 [YELLOW] Update dashboard.py test imports to use new paths (Phase 2)
   - **Do**:
     1. Update `tests/unit/test_dashboard.py` imports: change `from custom_components.ev_trip_planner.dashboard import _load_dashboard_template` to `from custom_components.ev_trip_planner.dashboard.template_manager import _load_dashboard_template`
     2. Same for all ~80 import sites in `test_dashboard.py` and `test_dashboard_validation.py`

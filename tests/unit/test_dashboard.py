@@ -386,7 +386,7 @@ class TestDashboardImport:
     async def test_import_dashboard_loads_template(self, mock_hass, dashboard_module):
         """Test that import_dashboard loads the YAML template correctly."""
         # This test verifies the template loading works
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         result = await _load_dashboard_template(
             mock_hass, "test_vehicle", "Test Vehicle", use_charts=False
@@ -401,7 +401,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that import_dashboard loads the full template correctly."""
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         result = await _load_dashboard_template(
             mock_hass, "test_vehicle", "Test Vehicle", use_charts=True
@@ -416,7 +416,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that vehicle_id is substituted in the template."""
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_id = "my_tesla_123"
 
@@ -436,7 +436,7 @@ class TestDashboardImport:
         self, mock_hass, dashboard_module
     ):
         """Test that vehicle_name is substituted in the template."""
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_name = "Family EV"
 
@@ -556,7 +556,7 @@ class TestContainerEnvironment:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard.importer import _save_lovelace_dashboard
 
         vehicle_id = "container_test_vehicle"
 
@@ -1773,7 +1773,7 @@ class TestDashboardNoErrorsInLogs:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_id = "test_vehicle"
         vehicle_name = "Test Vehicle"
@@ -1911,7 +1911,7 @@ class TestDashboardNoErrorsInLogs:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_id = "comprehensive_test"
         vehicle_name = "Comprehensive Test"
@@ -1949,7 +1949,7 @@ class TestDashboardNoErrorsInLogs:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_id = "full_dashboard_test"
         vehicle_name = "Full Dashboard Test"
@@ -1991,7 +1991,7 @@ class TestDashboardNoErrorsInLogs:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         vehicle_id = "simple_dashboard_test"
         vehicle_name = "Simple Dashboard Test"
@@ -2716,7 +2716,7 @@ class TestDashboardMissingCoverage:
 
         Covers lines 646-652.
         """
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         mock_hass = MagicMock()
         mock_hass.config = MagicMock()
@@ -2735,7 +2735,7 @@ class TestDashboardMissingCoverage:
 
         Covers lines 674-677.
         """
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         mock_hass = MagicMock()
         mock_hass.config = MagicMock()
@@ -2759,7 +2759,7 @@ class TestDashboardMissingCoverage:
 
         Covers lines 679-681.
         """
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         mock_hass = MagicMock()
         mock_hass.config = MagicMock()
@@ -2781,7 +2781,7 @@ class TestDashboardMissingCoverage:
 
         Covers lines 701-708.
         """
-        from custom_components.ev_trip_planner.dashboard import _load_dashboard_template
+        from custom_components.ev_trip_planner.dashboard.importer import _load_dashboard_template
 
         mock_hass = MagicMock()
         mock_hass.config = MagicMock()
@@ -2831,7 +2831,7 @@ class TestDashboardMissingCoverage:
 
         Covers the view replacement branch at lines 832-838.
         """
-        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard.importer import _save_lovelace_dashboard
 
         mock_hass = MagicMock()
         mock_hass.services.has_service = MagicMock(return_value=False)
@@ -2885,7 +2885,7 @@ class TestDashboardMissingCoverage:
 
         Covers the view append branch at lines 840-842.
         """
-        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard.importer import _save_lovelace_dashboard
 
         mock_hass = MagicMock()
         mock_hass.services.has_service = MagicMock(return_value=False)
@@ -3093,7 +3093,7 @@ class TestDashboardMissingCoverage:
 
         Covers the has_service("lovelace", "save") branch at line 735-762.
         """
-        from custom_components.ev_trip_planner.dashboard import _save_lovelace_dashboard
+        from custom_components.ev_trip_planner.dashboard.importer import _save_lovelace_dashboard
 
         mock_hass = MagicMock()
         mock_hass.services.has_service = MagicMock(return_value=True)
