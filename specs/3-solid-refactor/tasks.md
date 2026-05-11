@@ -968,7 +968,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (SOC mixin)_
 
-- [ ] 1.76 [RED] Test: _PowerProfileMixin has power profile generation
+- [x] 1.76 [RED] Test: _PowerProfileMixin has power profile generation
   - **Do**: Write test importing `_PowerProfileMixin` and asserting `async_generate_power_profile` works
   - **Files**: tests/unit/test_trip_power_profile_mixin.py
   - **Done when**: Test exists and fails
