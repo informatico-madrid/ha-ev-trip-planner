@@ -947,7 +947,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.2 + §4.1 + §4.2 (CRUD mixin + SensorCallbackRegistry)_
 
 
-- [ ] 1.74 [RED] Test: _SOCMixin has SOC calculation methods
+- [x] 1.74 [RED] Test: _SOCMixin has SOC calculation methods
   - **Do**: Write test importing `_SOCMixin` and asserting it has `async_get_vehicle_soc`, `async_get_kwh_needed_today`, `async_get_hours_needed_today`, `calcular_ventana_carga`, `calcular_ventana_carga_multitrip`, `calcular_soc_inicio_trips`, `calcular_hitos_soc`
   - **Files**: tests/unit/test_trip_soc_mixin.py
   - **Done when**: Test exists and fails
