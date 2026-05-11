@@ -9,6 +9,7 @@ The sensor module is imported at runtime to avoid circular imports.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Callable, Dict, Optional
 
@@ -136,22 +137,30 @@ class _SensorCallbacks:
         try:
             sensor_mod = self._get_sensor_mod()
             if event == "trip_created_recurring":
-                sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+                asyncio.ensure_future(
+                    sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+                )
 
             elif event == "trip_created_punctual":
-                sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+                asyncio.ensure_future(
+                    sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+                )
 
             elif event == "trip_sensor_created_emhass":
                 self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_removed":
-                sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
+                asyncio.ensure_future(
+                    sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
+                )
 
             elif event == "trip_sensor_removed_emhass":
                 self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_sensor_updated":
-                sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
+                asyncio.ensure_future(
+                    sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
+                )
 
             else:
                 _LOGGER.debug("Unknown sensor event: %s", event)
@@ -195,8 +204,10 @@ class _SensorCallbacks:
                 return
 
             sensor_mod = self._get_sensor_mod()
-            sensor_mod.async_create_trip_emhass_sensor(
-                hass, entry_id, coordinator, vehicle_id, trip_id
+            asyncio.ensure_future(
+                sensor_mod.async_create_trip_emhass_sensor(
+                    hass, entry_id, coordinator, vehicle_id, trip_id
+                )
             )
         except Exception as err:
             _LOGGER.debug(
