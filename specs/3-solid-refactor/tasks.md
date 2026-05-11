@@ -1013,7 +1013,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.2 + §4.1 (Schedule mixin)_
 
-- [ ] 1.80 [RED] Test: TripManager facade class delegates to mixins
+- [x] 1.80 [RED] Test: TripManager facade class delegates to mixins
   - **Do**: Write test asserting `TripManager` is composed of `_CRUDMixin`, `_SOCMixin`, `_PowerProfileMixin`, `_ScheduleMixin` and has `set_emhass_adapter`/`get_emhass_adapter`
   - **Files**: tests/unit/test_trip_facade.py
   - **Done when**: Test exists and fails (facade not yet wired)
