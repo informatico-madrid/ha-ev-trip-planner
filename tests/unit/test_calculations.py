@@ -689,8 +689,8 @@ class TestCalculateMultiTripChargingWindows:
         assert (
             result[0]["inicio_ventana"] >= now
         ), f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
-        # ventana_horas = (departure + 6h) - now = 96 + 6 = 102h
-        assert result[0]["ventana_horas"] == pytest.approx(102.0, abs=0.02)
+        # ventana_horas = departure - now = 96h (window ends at departure, not arrival)
+        assert result[0]["ventana_horas"] == pytest.approx(96.0, abs=0.02)
 
     def test_zero_charging_power_sets_horas_carga_to_zero(self):
         """When charging_power_kw is 0, horas_carga_necesarias is 0.0. Covers line 395."""
@@ -741,17 +741,22 @@ class TestCalculateMultiTripChargingWindows:
             battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
-        # Window: hora_regreso (10am) to trip_arrival (departure + 6h = midnight) = 14 hours
-        assert result[0]["ventana_horas"] == 14.0
+        # Window: hora_regreso (10am) to trip_departure (18:00) = 8 hours
+        assert result[0]["ventana_horas"] == 8.0
 
-    def test_chained_trips_second_window_starts_at_previous_arrival(self):
-        """Chained trips: second trip's window starts when first trip arrives."""
+    def test_chained_trips_second_window_starts_at_previous_departure(self):
+        """Chained trips: second trip's window starts at previous departure + return_buffer_hours.
+
+        For chained trips:
+        - First trip: window = now/hora_regreso → departure
+        - Subsequent trips: window = previous_departure + return_buffer → departure
+        """
         from custom_components.ev_trip_planner.calculations import (
             calculate_multi_trip_charging_windows,
         )
 
-        # First trip: departs 8am (returns 2pm = 8+6)
-        # Second trip: departs 10pm (22:00)
+        # First trip: departs 8am
+        # Second trip: departs 22:00
         # Return at 7am
         trip1_departure = datetime(2026, 4, 6, 8, 0)
         trip2_departure = datetime(2026, 4, 6, 22, 0)
@@ -767,9 +772,12 @@ class TestCalculateMultiTripChargingWindows:
             return_buffer_hours=0.0,
             battery_capacity_kwh=50.0,
         )
-        # First window: 7am to trip1_arrival (8am + 6h = 2pm = 14:00) = 7 hours
-        assert result[0]["ventana_horas"] == 7.0
-        # Second window: trip1 arrival (14:00) to trip2_arrival (22+6h = 28:00 = 04:00 next day) = 14h
+        # First window: 7am → 8am departure = 1h
+        assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 7, 0)
+        assert result[0]["ventana_horas"] == 1.0
+        # Second window: trip1 departure (8am) + 0h buffer → trip2 departure (22:00) = 14h
+        assert result[1]["inicio_ventana"].hour == 8
+        assert result[1]["inicio_ventana"].minute == 0
         assert result[1]["ventana_horas"] == 14.0
 
 

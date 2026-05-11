@@ -198,8 +198,12 @@ def calculate_multi_trip_charging_windows(
 
     Each trip gets its own window. The first trip's charging window starts at
     max(hora_regreso, now) when hora_regreso is provided, or from now when
-    hora_regreso is None. Subsequent trips start after the previous trip
-    arrives plus return_buffer_hours.
+    hora_regreso is None. Subsequent trips start after the previous trip's
+    departure plus the trip duration constant (duration_hours).
+
+    For trip N (N > 0):
+        window_start = previous_departure + duration_hours
+        window_end = this_trip_departure
 
     Args:
         trips: List of (departure_time, trip_dict) tuples, sorted by time.
@@ -222,7 +226,7 @@ def calculate_multi_trip_charging_windows(
         return []
 
     results = []
-    previous_arrival: datetime | None = None
+    previous_departure: datetime | None = None
 
     for idx, (trip_departure_time, trip) in enumerate(trips):
         # Ensure trip_departure_time is aware
@@ -250,7 +254,9 @@ def calculate_multi_trip_charging_windows(
                 # Charging starts from now, not from departure - duration.
                 window_start = now
         else:
-            window_start = previous_arrival
+            # Subsequent trips: window starts at previous departure + duration
+            assert previous_departure is not None
+            window_start = previous_departure + timedelta(hours=return_buffer_hours)
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
         # This handles the case where return_buffer pushes window_start past the deadline
@@ -308,9 +314,7 @@ def calculate_multi_trip_charging_windows(
             }
         )
 
-        # Update previous_arrival for next iteration (trip arrival + buffer gap)
-        previous_arrival = _helpers._ensure_aware(trip_arrival) + timedelta(
-            hours=return_buffer_hours
-        )
+        # Update previous_departure for next iteration
+        previous_departure = trip_departure_time
 
     return results

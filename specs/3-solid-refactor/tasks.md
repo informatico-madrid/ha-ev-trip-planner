@@ -215,7 +215,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.6 (calculations functional decomposition)_
 
-- [ ] 1.15 [RED] Test: [BUG-001] ventana_horas uses departure not arrival
+- [x] 1.15 [RED] Test: [BUG-001] ventana_horas uses departure not arrival
   - **Do**: Write test asserting `calculate_multi_trip_charging_windows` returns `ventana_horas == (fin_ventana - inicio_ventana) / 3600` (the invariant). Current code violates this (uses trip_arrival instead of trip_departure).
   - **Files**: tests/unit/test_ventana_horas_invariant.py
   - **Done when**: Test exists and fails with current code
