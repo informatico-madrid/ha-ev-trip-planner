@@ -48,17 +48,19 @@ class DashboardBuilder:
         Returns:
             self for method chaining.
         """
-        self._views.append({
-            "title": "Status",
-            "path": "ev-trip-planner",
-            "cards": [
-                {
-                    "type": "markdown",
-                    "title": "\U0001f4ca Status",
-                    "content": "**EV Trip Planner**",
-                },
-            ],
-        })
+        self._views.append(
+            {
+                "title": "Status",
+                "path": "ev-trip-planner",
+                "cards": [
+                    {
+                        "type": "markdown",
+                        "title": "\U0001f4ca Status",
+                        "content": "**EV Trip Planner**",
+                    },
+                ],
+            }
+        )
         return self
 
     def add_trip_list_view(self) -> DashboardBuilder:
@@ -67,16 +69,18 @@ class DashboardBuilder:
         Returns:
             self for method chaining.
         """
-        self._views.append({
-            "title": "Trips",
-            "path": "ev-trip-planner-trips",
-            "cards": [
-                {
-                    "type": "custom:ev-trip-list",
-                    "title": "Scheduled Trips",
-                },
-            ],
-        })
+        self._views.append(
+            {
+                "title": "Trips",
+                "path": "ev-trip-planner-trips",
+                "cards": [
+                    {
+                        "type": "custom:ev-trip-list",
+                        "title": "Scheduled Trips",
+                    },
+                ],
+            }
+        )
         return self
 
     # -- build ----------------------------------------------------------------

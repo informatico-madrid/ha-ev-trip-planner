@@ -5,7 +5,7 @@ RED phase: DashboardBuilder does not exist yet. Tests assert it should.
 
 from __future__ import annotations
 
-import pytest
+import pytest  # noqa: F401
 
 
 def test_dashboard_builder_import():

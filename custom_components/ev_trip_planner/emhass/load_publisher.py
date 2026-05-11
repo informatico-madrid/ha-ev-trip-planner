@@ -107,16 +107,10 @@ class LoadPublisher:
             deadline_dt, trip, soc_current
         )
 
-        # Extract timestep info
-        def_start_timestep = 0
-        end_timestep = min(int(hours_available), 168)
-
         if charging_windows and charging_windows[0].get("inicio_ventana"):
             inicio = charging_windows[0]["inicio_ventana"]
-            delta_hours = (
-                self._ensure_aware(inicio) - now
-            ).total_seconds() / 3600
-            def_start_timestep = max(0, min(int(delta_hours), 168))
+            delta_hours = (self._ensure_aware(inicio) - now).total_seconds() / 3600
+            _ = max(0, min(int(delta_hours), 168))
 
         if (
             charging_windows
@@ -125,12 +119,8 @@ class LoadPublisher:
         ):
             fin = charging_windows[0]["fin_ventana"]
             if isinstance(fin, datetime):
-                delta_hours_end = (
-                    self._ensure_aware(fin) - now
-                ).total_seconds() / 3600
-                end_timestep = max(
-                    0, min(math.ceil(delta_hours_end - 0.001), 168)
-                )
+                delta_hours_end = (self._ensure_aware(fin) - now).total_seconds() / 3600
+                _ = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Calculate energy parameters
         energia_info = calculate_energy_needed(
@@ -142,7 +132,7 @@ class LoadPublisher:
         )
 
         total_hours = energia_info["horas_carga_necesarias"]
-        kwh_needed = energia_info["energia_necesaria_kwh"]
+        _ = energia_info["energia_necesaria_kwh"]
 
         if total_hours > 0:
             power_watts = self.charging_power_kw * 1000
@@ -184,15 +174,11 @@ class LoadPublisher:
         if success:
             _LOGGER.info("Removed deferrable load for trip %s", trip_id)
         else:
-            _LOGGER.warning(
-                "Failed to remove deferrable load for trip %s", trip_id
-            )
+            _LOGGER.warning("Failed to remove deferrable load for trip %s", trip_id)
 
         return success
 
-    def _calculate_deadline(
-        self, trip: Dict[str, Any]
-    ) -> Optional[datetime]:
+    def _calculate_deadline(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Calculate deadline datetime from trip data.
 
         Args:
@@ -219,13 +205,21 @@ class LoadPublisher:
             if day is not None and time_str is not None:
                 now = datetime.now(timezone.utc)
                 days_map = {
-                    "domingo": 6, "sunday": 6,
-                    "lunes": 0, "monday": 0,
-                    "martes": 1, "tuesday": 1,
-                    "miércoles": 2, "miercoles": 2, "wednesday": 2,
-                    "jueves": 3, "thursday": 3,
-                    "viernes": 4, "friday": 4,
-                    "sabado": 5, "saturday": 5,
+                    "domingo": 6,
+                    "sunday": 6,
+                    "lunes": 0,
+                    "monday": 0,
+                    "martes": 1,
+                    "tuesday": 1,
+                    "miércoles": 2,
+                    "miercoles": 2,
+                    "wednesday": 2,
+                    "jueves": 3,
+                    "thursday": 3,
+                    "viernes": 4,
+                    "friday": 4,
+                    "sabado": 5,
+                    "saturday": 5,
                 }
                 target_day = days_map.get(str(day).lower())
                 if target_day is not None:
@@ -242,6 +236,7 @@ class LoadPublisher:
                         hour=hour, minute=minute, second=0, microsecond=0
                     )
                     from datetime import timedelta
+
                     deadline += timedelta(days=delta_days)
                     return self._ensure_aware(deadline)
 

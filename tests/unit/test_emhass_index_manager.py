@@ -1,6 +1,6 @@
 """Tests for IndexManager in emhass.index_manager."""
 
-import pytest
+import pytest  # noqa: F401
 
 
 class TestIndexManagerExists:

@@ -19,9 +19,7 @@ class EMHASSAdapter:
     a unified interface while maintaining single responsibility per component.
     """
 
-    def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the EMHASS adapter facade.
 
         Args:
@@ -127,7 +125,9 @@ class EMHASSAdapter:
         trip_id: Optional[str] = None,
     ) -> None:
         """Notify about an EMHASS error."""
-        self._error_handler.handle_error("notify", Exception(error_message), {"trip_id": trip_id})
+        self._error_handler.handle_error(
+            "notify", Exception(error_message), {"trip_id": trip_id}
+        )
 
     def get_cached_optimization_results(self) -> Dict[str, Any]:
         """Return cached optimization results for coordinator retrieval.
@@ -236,7 +236,9 @@ class EMHASSAdapter:
         """Save trips to storage."""
         await self._index_manager.async_save_index()
 
-    def calculate_deferrable_parameters(self, trips: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def calculate_deferrable_parameters(
+        self, trips: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Calculate deferrable parameters from trips.
 
         Args:

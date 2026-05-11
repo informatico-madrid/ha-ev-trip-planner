@@ -152,8 +152,8 @@ class DashboardImportResult:
 # Sub-module re-exports
 # ============================================================================
 
-from .builder import DashboardBuilder
-from .importer import (
+from .builder import DashboardBuilder  # noqa: E402
+from .importer import (  # noqa: E402
     DashboardConfig,
     _await_executor_result,
     _call_async_executor_sync,

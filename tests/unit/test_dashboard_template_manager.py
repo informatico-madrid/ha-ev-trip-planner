@@ -11,7 +11,7 @@ Expected functions (moved from dashboard.py private helpers):
   - verify_storage_permissions (_verify_storage_permissions)
 """
 
-import pytest
+import pytest  # noqa: F401
 
 
 def test_load_template_importable():

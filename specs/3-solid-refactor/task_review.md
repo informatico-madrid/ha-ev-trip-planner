@@ -1104,3 +1104,86 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 - **review_submode**: post-task
 - **resolved_at**: 2026-05-11T04:24Z
 
+
+---
+
+### [task-1.47] GREEN: Create `DashboardBuilder` in `builder.py` — PASS
+
+- **status**: PASS
+- **severity**: none
+- **reviewed_at**: 2026-05-11T04:28Z
+- **criterion_failed**: none
+- **evidence**: |
+  **Verify command (from tasks.md):**
+  ```
+  PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard_builder.py -v && echo GREEN_PASS
+  ```
+  **Actual result:**
+  ```
+  tests/unit/test_dashboard_builder.py::test_dashboard_builder_with_title PASSED [ 20%]
+  tests/unit/test_dashboard_builder.py::test_dashboard_builder_add_trip_list_view PASSED [ 40%]
+  tests/unit/test_dashboard_builder.py::test_dashboard_builder_add_status_view PASSED [ 60%]
+  tests/unit/test_dashboard_builder.py::test_dashboard_builder_build_produces_valid_config PASSED [ 80%]
+  tests/unit/test_dashboard_builder.py::test_dashboard_builder_import PASSED [100%]
+  =============================== 5 passed in 0.19s ===============================
+  GREEN_PASS
+  ```
+
+  **Files created/modified:**
+  - `custom_components/ev_trip_planner/dashboard/builder.py` (2413 bytes)
+  - `tests/unit/test_dashboard_builder.py` (5 tests)
+  - `custom_components/ev_trip_planner/dashboard/importer.py` (orchestrator ~80 LOC)
+
+- **fix_hint**: N/A — GREEN phase verified successfully
+- **review_submode**: post-task
+- **resolved_at**: 2026-05-11T04:28Z
+
+---
+
+### [task-1.48] RED: Test dashboard.py transitional shim re-exports — FAIL (MISSING TEST)
+
+- **status**: FAIL
+- **severity**: major
+- **reviewed_at**: 2026-05-11T04:33Z
+- **criterion_failed**: Missing test file for transitional shim re-exports
+- **evidence**: |
+  **Task 1.48 description**: "Test: dashboard.py transitional shim re-exports all public + private names"
+  **Verify command**: RED phase requires test to exist and fail (file doesn't exist yet)
+
+  However, task is marked `[x]` in tasks.md without corresponding test file `test_dashboard_shim.py` or `test_re_export_dashboard.py` existing.
+
+  **git shows task with `<pending>` tag**:
+  ```
+  - [x] 1.48 [RED] Test: dashboard.py transitional shim re-exports all public + private names - <pending>
+  ```
+  
+  This indicates task was marked [x] with incomplete work.
+
+- **fix_hint**: write_to_file test file `tests/unit/test_dashboard_shim.py` with tests that import public and private names from dashboard.py and verify they resolve correctly. Tests should fail at this RED phase since the transitional shim conversion hasn't happened yet.
+- **review_submode**: post-task
+- **resolved_at**: <!-- spec-executor fills this -->
+
+---
+
+### [task-1.64] YELLOW: Remove emhass_adapter.py shim — FAIL
+
+- **status**: FAIL
+- **severity**: critical
+- **reviewed_at**: 2026-05-11T06:17:00Z
+- **criterion_failed**: Verify command fails — 191 test failures + 2 errors after emhass_adapter.py deletion
+- **evidence**: |
+  Verify command: `! test -f custom_components/ev_trip_planner/emhass_adapter.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_emhass*.py tests/integration/test_emhass*.py -v && echo YELLOW_PASS`
+  
+  Result: 191 failed, 49 passed, 2 errors
+  
+  Root causes:
+  1. `emhass.adapter.Store` not found — 191 tests mock `emhass_adapter.Store` but Store is not re-exported from `emhass.adapter`
+  2. conftest.py:822 still patches `custom_components.ev_trip_planner.emhass_adapter.datetime` (deleted module)
+  3. test_emhass_array_ordering.py and test_emhass_index_persistence.py ERROR on setup due to stale conftest reference
+  
+  Shim deletion is correct but test mock paths not updated to match new module structure.
+- **fix_hint**: 
+  1. Add `Store` to `emhass/adapter.py` re-exports OR update all 191 test mock paths from `emhass_adapter.X` to `emhass.adapter.X`
+  2. Update conftest.py:822 from `emhass_adapter.datetime` to `emhass.adapter.datetime`
+  3. Re-run verify command to confirm 0 failures
+- **resolved_at**: <!-- spec-executor fills this -->

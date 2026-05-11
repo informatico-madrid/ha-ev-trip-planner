@@ -263,9 +263,9 @@ def calculate_multi_trip_charging_windows(
         assert (
             trip_departure_time is not None
         )  # Enforced upstream by calculate_charging_window_pure
-        if window_start is not None and _helpers._ensure_aware(window_start) > _helpers._ensure_aware(
-            trip_departure_time
-        ):
+        if window_start is not None and _helpers._ensure_aware(
+            window_start
+        ) > _helpers._ensure_aware(trip_departure_time):
             window_start = trip_departure_time
 
         # Calculate ventana_horas

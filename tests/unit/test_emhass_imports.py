@@ -4,7 +4,7 @@ RED phase — this test must FAIL because the emhass/ package does not exist yet
 The package will be created in a subsequent GREEN task.
 """
 
-import pytest
+import pytest  # noqa: F401
 
 
 class TestEmhassPackageImports:

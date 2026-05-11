@@ -140,9 +140,7 @@ class VehicleController:
         Returns:
             True if charging, False otherwise
         """
-        if (
-            not self._charging_sensor
-        ):  # pragma: no cover
+        if not self._charging_sensor:  # pragma: no cover
             return False  # pragma: no cover
 
         state = self.hass.states.get(self._charging_sensor)
@@ -281,16 +279,12 @@ class VehicleController:
 
     async def _update_charging_state_after_deactivation(
         self,
-    ) -> (
-        None
-    ):  # pragma: no cover
+    ) -> None:  # pragma: no cover
         """Update charging state after deactivation to track disconnect."""
         if not self._charging_sensor:  # pragma: no cover
             return  # pragma: no cover
 
-        current_charging = (
-            await self._async_check_charging_sensor()
-        )  # pragma: no cover
+        current_charging = await self._async_check_charging_sensor()  # pragma: no cover
         self._last_charging_state = current_charging  # pragma: no cover
 
     async def async_get_charging_status(self) -> bool:  # pragma: no cover

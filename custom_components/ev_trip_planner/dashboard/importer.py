@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Optional
 
 from homeassistant.core import HomeAssistant
 
@@ -301,9 +301,7 @@ async def import_dashboard(
     # Fallback: Generate YAML file for Container environment
     _LOGGER.info("Attempting YAML fallback for Container environment")
     try:
-        yaml_result = await _save_yaml(
-            hass, dashboard_config, vehicle_id, vehicle_name
-        )
+        yaml_result = await _save_yaml(hass, dashboard_config, vehicle_id, vehicle_name)
 
         if isinstance(yaml_result, DashboardImportResult):
             if yaml_result.success:
@@ -493,7 +491,7 @@ def dashboard_exists(vehicle_id: str) -> bool:
     Returns:
         True if a dashboard file exists, False otherwise.
     """
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import HomeAssistant  # noqa: F401
 
     # Placeholder — actual implementation requires HomeAssistant context
     return False

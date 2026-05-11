@@ -6,7 +6,6 @@ import logging
 from typing import Any, Callable, Optional
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,9 +71,7 @@ class ErrorHandler:
         _LOGGER.error("Trip missing ID during %s", operation)
         return False
 
-    def handle_deadline_error(
-        self, trip_id: str, operation: str = "publish"
-    ) -> bool:
+    def handle_deadline_error(self, trip_id: str, operation: str = "publish") -> bool:
         """Handle deadline calculation error.
 
         Args:
@@ -99,9 +96,7 @@ class ErrorHandler:
         Returns:
             None to signal failure to the caller.
         """
-        _LOGGER.warning(
-            "Attempted to %s index for unknown trip %s", operation, trip_id
-        )
+        _LOGGER.warning("Attempted to %s index for unknown trip %s", operation, trip_id)
         return None
 
     def handle_storage_error(self, operation: str, error: Exception) -> None:

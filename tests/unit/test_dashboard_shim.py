@@ -40,9 +40,8 @@ Design: §3.4 + §4.6 (dashboard shim re-exports)
 from __future__ import annotations
 
 import importlib
-from types import FunctionType, ModuleType
 
-import pytest
+import pytest  # noqa: F401
 
 # All names that existing test imports reach into
 ALL_DASHBOARD_NAMES: tuple[str, ...] = (

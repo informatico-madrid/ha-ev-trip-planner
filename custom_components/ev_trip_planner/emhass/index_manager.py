@@ -55,8 +55,10 @@ class IndexManager:
 
     def assign_index(self, trip_id: str) -> Optional[int]:
         """Sync version of async_assign_index_to_trip for LoadPublisher."""
-        return self._index_map.get(trip_id) if trip_id in self._index_map else (
-            max(self._index_map.values()) + 1 if self._index_map else 0
+        return (
+            self._index_map.get(trip_id)
+            if trip_id in self._index_map
+            else (max(self._index_map.values()) + 1 if self._index_map else 0)
         )
 
     def release_index(self, trip_id: str) -> bool:
