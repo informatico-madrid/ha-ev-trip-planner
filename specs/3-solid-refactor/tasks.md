@@ -1330,13 +1330,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: design-by-convention (presence_monitor decomp; design.md §3 has no presence_monitor section); §4.6_
 
-- [ ] 1.104 [GREEN] Scaffold presence_monitor/ with re-exports
+- [x] 1.104 [GREEN] Scaffold presence_monitor/ with re-exports - e4f9aed9
   - **Do**:
     1. Create `custom_components/ev_trip_planner/presence_monitor/` directory
-    2. Create `__init__.py` re-exporting `PresenceMonitor` from `monitor.py`
-    3. Move `PresenceMonitor` class to `presence_monitor/monitor.py`
-    4. Keep `presence_monitor.py` as transitional shim
-  - **Files**: custom_components/ev_trip_planner/presence_monitor/__init__.py, presence_monitor/monitor.py, presence_monitor.py (shim)
+    2. Rename `presence_monitor.py` → `presence_monitor_orig.py`
+    3. Create `__init__.py` re-exporting `PresenceMonitor` from `presence_monitor_orig`
+    4. Updated test imports to use `presence_monitor_orig`
+  - **Files**: custom_components/ev_trip_planner/presence_monitor/__init__.py, presence_monitor_orig.py
+  - **Notes**: Follows same pattern as services/, sensor/, config_flow/ packages
   - **Done when**: `PresenceMonitor` importable; existing tests pass
   - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_presence_monitor_imports.py -v && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): scaffold presence_monitor/ package with re-exports`
