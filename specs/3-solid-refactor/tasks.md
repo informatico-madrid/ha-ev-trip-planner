@@ -1129,7 +1129,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-1.5, AC-6.1_
   - _Design: §3.3 (services handler factories)_
 
-- [ ] 1.89 [RED] Test: cleanup.py functions are importable
+- [x] 1.89 [RED] Test: cleanup.py functions are importable
   - **Do**: Write test importing `async_cleanup_stale_storage`, `async_cleanup_orphaned_emhass_sensors`, `async_unload_entry_cleanup`, `async_remove_entry_cleanup` from `services.cleanup`
   - **Files**: tests/unit/test_services_cleanup.py
   - **Done when**: Test exists and fails

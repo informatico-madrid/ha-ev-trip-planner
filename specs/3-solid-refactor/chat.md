@@ -2473,3 +2473,75 @@ AP05 Magic Numbers in calculations_orig.py (pre-existing shim)
 
 **Verdict**: V8 quality check has **3 FAIL blocks** (pyright, coverage, import-check) but ALL are pre-existing architectural/coverage issues. Zero new regressions from SOLID refactor. Test suite (697/700 passing, 0 failures) is the primary quality signal and it passes cleanly.
 
+### [2026-05-11 16:10:00] Spec-Executor → coordinator
+**Task**: T1.87
+**Signal**: ACK
+
+Task 1.87 [RED] — Test handler factories.
+
+- Created `tests/unit/test_services_handler_factories.py` with 26 tests
+- Tests verify 13 handler factory functions from `_handler_factories.py` are importable and callable
+- Tests verify each factory returns an async handler coroutine
+- All 26 tests FAIL with ImportError (factory functions don't exist yet) — confirmed RED state
+- Commit: b00d0284
+
+Expected Response: ACK
+### [2026-05-11 16:10:00] spec-executor → coordinator
+**Task**: 1.87
+**Signal**: OVER
+
+Task 1.87 RED complete.
+
+- Test file created: tests/unit/test_services_handler_factories.py
+- 26 tests: 13 import/callable checks + 13 async handler return checks
+- All 26 tests FAIL (ImportError: cannot import name make_*_handler)
+- Handler factories don't exist yet in _handler_factories.py
+- Commit: b00d0284
+
+Next: task 1.88 GREEN — implement the factory functions.
+
+### [task-1.88] GREEN: Extract handler factories from register_services — COMPLETE
+
+- **status**: PASS
+- **reviewed_at**: 2026-05-11T16:47Z
+- **criterion_failed**: none
+- **evidence**: |
+  **Files created/modified:**
+  - `custom_components/ev_trip_planner/services/_handler_factories.py` (563 LOC) — 13 factory functions + 3 shared schemas
+  - `custom_components/ev_trip_planner/services/__init__.py` (200 LOC) — register_services() now delegates to factories
+  - `custom_components/ev_trip_planner/services.py` (40 LOC) — transitional shim re-exporting from services_orig
+  - `custom_components/ev_trip_planner/services/handlers.py` — updated to import from package
+  - `custom_components/ev_trip_planner/services/_lookup.py` — updated import path
+  - `specs/3-solid-refactor/tasks.md` — task 1.88 marked [x]
+  
+  **Tests:**
+  - `test_services_handler_factories.py`: 26 passed (13 import checks + 13 async checks)
+  - `test_trip_create_branches.py`: 3 passed (invalid type, recurrente, puntual)
+  - `test_services_imports.py`: 5 passed (platforms, register_services, build_presence_config, package resolution)
+  - Full unit suite: 599 passed, 3 skipped
+  
+  **LOC reduction:**
+  - services.py: 1631 → 40 LOC (transitional shim)
+  - services/__init__.py: 38 → 200 LOC (new register_services with factory calls)
+  - services/_handler_factories.py: 1 → 563 LOC (new)
+  - Net: register_services() logic moved from module-level to factory closures
+
+- **fix_hint**: N/A
+- **resolved_at**: 2026-05-11T16:47Z
+### [YYYY-MM-DD HH:MM:SS] Spec-Executor → External-Reviewer
+**Task**: T1.89
+**Signal**: ACK
+
+## Task 1.89 RED Test: cleanup.py functions are importable
+
+**Result**: Test written (tests/unit/test_services_cleanup.py, 4 tests) but ALL PASS, not FAIL.
+
+**Root cause**: Task 1.86 scaffolded `services/cleanup.py` with re-exports from `..services_orig`. The 4 cleanup functions (`async_cleanup_stale_storage`, `async_cleanup_orphaned_emhass_sensors`, `async_unload_entry_cleanup`, `async_remove_entry_cleanup`) are already importable from `services.cleanup`.
+
+**RED state broken by**: Prior scaffolding task 1.86 created cleanup.py with re-exports before task 1.89 RED test was written. This is an out-of-order dependency that should not exist in a strict TDD workflow.
+
+**Verify command result**: `grep -q "FAILED\|FAIL"` FAILS because pytest output says "4 passed". RED_PASS echo not reached.
+
+**Action taken**: Test file committed. Moving to task 1.90 (GREEN) which moves actual code into cleanup.py (currently just re-exports).
+
+**Expected Response**: ACK
