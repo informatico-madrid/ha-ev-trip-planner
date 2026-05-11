@@ -581,7 +581,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, dashboard-init)_
 
-- [ ] 1.44 [RED] Test: template_manager.py functions are importable from dashboard.template_manager
+- [x] 1.44 [RED] Test: template_manager.py functions are importable from dashboard.template_manager
   - **Do**: Write test importing template I/O functions (`load_template`, `save_lovelace_dashboard`, `save_yaml_fallback`, `validate_config`, `verify_storage_permissions`) from `dashboard.template_manager`
   - **Files**: tests/unit/test_dashboard_template_manager.py
   - **Done when**: Test exists and fails
