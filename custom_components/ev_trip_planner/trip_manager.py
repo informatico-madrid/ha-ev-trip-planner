@@ -39,7 +39,7 @@ from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today
 from .utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from .utils import validate_hora as pure_validate_hora
-from .vehicle_controller import VehicleController
+from .vehicle import VehicleController
 from .yaml_trip_storage import YamlTripStorage
 
 _UNSET = object()

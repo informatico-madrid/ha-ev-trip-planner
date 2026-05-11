@@ -263,7 +263,15 @@ status = "passing"
 kill_threshold = 0.31
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.vehicle_controller]
+[tool.quality-gate.mutation.modules.vehicle.controller]
+kill_threshold = 0.55
+status = "passing"
+
+[tool.quality-gate.mutation.modules.vehicle.strategy]
+kill_threshold = 0.55
+status = "passing"
+
+[tool.quality-gate.mutation.modules.vehicle.external]
 kill_threshold = 0.55
 status = "passing"
 

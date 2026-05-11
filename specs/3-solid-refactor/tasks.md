@@ -398,7 +398,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.5 (vehicle Strategy pattern)_
 
-- [ ] 1.29 [GREEN] Scaffold vehicle/ with re-exports and shims
+- [x] 1.29 [GREEN] Scaffold vehicle/ with re-exports and shims
   - **Do**:
     1. Create `custom_components/ev_trip_planner/vehicle/` directory
     2. Create `__init__.py` re-exporting 3 names from sub-modules
@@ -411,7 +411,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.5 (vehicle Strategy pattern)_
 
-- [ ] 1.30 [RED] Test: VehicleControlStrategy ABC is importable from vehicle.strategy
+- [x] 1.30 [RED] Test: VehicleControlStrategy ABC is importable from vehicle.strategy
   - **Do**: Write test importing `VehicleControlStrategy` ABC from `vehicle.strategy` and asserting it has 3 abstract methods
   - **Files**: tests/unit/test_vehicle_strategy.py
   - **Done when**: Test exists and fails
@@ -422,7 +422,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.31 [GREEN] Move ABC and strategies to `strategy.py`
+- [x] 1.31 [GREEN] Move ABC and strategies to `strategy.py`
   - **Do**:
     1. Move `VehicleControlStrategy` ABC (3 abstract methods: `async_activate`, `async_deactivate`, `async_get_status`), `SwitchStrategy`, `ServiceStrategy`, `RetryState`, `HomeAssistantWrapper` from `vehicle_controller.py` to `vehicle/strategy.py`
   - **Files**: custom_components/ev_trip_planner/vehicle/strategy.py, vehicle_controller.py
@@ -432,7 +432,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.4_
   - _Design: §3.5 (vehicle Strategy pattern)_
 
-- [ ] 1.32 [RED] Test: ScriptStrategy and ExternalStrategy importable from vehicle.external
+- [x] 1.32 [RED] Test: ScriptStrategy and ExternalStrategy importable from vehicle.external
   - **Do**: Write test importing `ScriptStrategy` and `ExternalStrategy` from `vehicle.external`
   - **Files**: tests/unit/test_vehicle_external.py
   - **Done when**: Test exists and fails
@@ -442,7 +442,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.5 (vehicle Strategy pattern)_
 
 
-- [ ] 1.33 [GREEN] Move external strategies to `external.py`
+- [x] 1.33 [GREEN] Move external strategies to `external.py`
   - **Do**:
     1. Move `ScriptStrategy` and `ExternalStrategy` from `vehicle_controller.py` to `vehicle/external.py`
   - **Files**: custom_components/ev_trip_planner/vehicle/external.py, vehicle_controller.py
@@ -452,7 +452,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.5 (vehicle Strategy pattern)_
 
-- [ ] 1.34 [RED] Test: VehicleController and factory importable from vehicle.controller
+- [x] 1.34 [RED] Test: VehicleController and factory importable from vehicle.controller
   - **Do**: Write test importing `VehicleController` and `create_control_strategy` from `vehicle.controller`
   - **Files**: tests/unit/test_vehicle_controller_impl.py
   - **Done when**: Test exists and fails
@@ -462,7 +462,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.5 (vehicle Strategy pattern)_
 
 
-- [ ] 1.35 [GREEN] Move VehicleController to `controller.py`
+- [x] 1.35 [GREEN] Move VehicleController to `controller.py`
   - **Do**:
     1. Move `VehicleController` class and `create_control_strategy` factory from `vehicle_controller.py` to `vehicle/controller.py`
     2. Verify constructor signature unchanged (AC-2.3)
@@ -473,7 +473,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.3_
   - _Design: §3.5 (vehicle Strategy pattern)_
 
-- [ ] 1.36 [YELLOW] Remove vehicle_controller.py shim
+- [x] 1.36 [YELLOW] Remove vehicle_controller.py shim
   - **Do**:
     1. Delete `vehicle_controller.py`
     2. Update `trip_manager.py` import from `from .vehicle_controller import VehicleController` to `from .vehicle import VehicleController`

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.vehicle_controller import (
+from custom_components.ev_trip_planner.vehicle import (
     ExternalStrategy,
     HomeAssistantWrapper,
     ScriptStrategy,
@@ -662,7 +662,7 @@ class TestRetryState:
 
     def test_retry_state_initially_allows_retry(self):
         """Test that new RetryState allows retry attempts."""
-        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        from custom_components.ev_trip_planner.vehicle import RetryState
 
         state = RetryState()
         assert state.should_retry() is True
@@ -670,7 +670,7 @@ class TestRetryState:
 
     def test_retry_state_add_attempt(self):
         """Test adding an attempt increases count."""
-        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        from custom_components.ev_trip_planner.vehicle import RetryState
 
         state = RetryState()
         state.add_attempt()
@@ -679,7 +679,7 @@ class TestRetryState:
 
     def test_retry_state_max_attempts(self):
         """Test that max attempts limit is enforced."""
-        from custom_components.ev_trip_planner.vehicle_controller import (
+        from custom_components.ev_trip_planner.vehicle import (
             MAX_RETRY_ATTEMPTS,
             RetryState,
         )
@@ -692,7 +692,7 @@ class TestRetryState:
 
     def test_retry_state_reset(self):
         """Test that reset clears all attempts."""
-        from custom_components.ev_trip_planner.vehicle_controller import RetryState
+        from custom_components.ev_trip_planner.vehicle import RetryState
 
         state = RetryState()
         state.add_attempt()
@@ -770,7 +770,7 @@ class TestVehicleControllerRetry:
     @pytest.mark.asyncio
     async def test_vehicle_controller_max_retries_blocks(self, hass: HomeAssistant):
         """Test that max retries blocks further attempts."""
-        from custom_components.ev_trip_planner.vehicle_controller import (
+        from custom_components.ev_trip_planner.vehicle import (
             MAX_RETRY_ATTEMPTS,
         )
 
