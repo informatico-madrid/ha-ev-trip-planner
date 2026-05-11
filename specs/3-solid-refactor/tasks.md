@@ -932,7 +932,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.2 + §4.1 (CRUD mixin)_
 
 
-- [ ] 1.73 [GREEN] Move CRUD methods to `_crud_mixin.py`
+- [x] 1.73 [GREEN] Move CRUD methods to `_crud_mixin.py`
   - **Do**:
     1. Move trip lifecycle CRUD methods from `trip_manager.py` to `trip/_crud_mixin.py`
     2. Replace 7 lazy `from .sensor import ...` calls with `self._sensor_callbacks.emit(event, ...)`

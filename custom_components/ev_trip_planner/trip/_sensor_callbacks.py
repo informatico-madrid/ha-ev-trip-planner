@@ -1,8 +1,23 @@
-"""Sensor callback registry for managing sensor value change callbacks."""
+"""Sensor callback system for trip lifecycle events.
+
+Replaces lazy `from .sensor import ...` imports with a single
+`_sensor_callbacks.emit(event, ...)` call pattern used by the
+_CRUDMixin.
+
+The sensor module is imported at runtime to avoid circular imports.
+"""
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+import logging
+from typing import Any, Callable, Dict, Optional
+
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+
+_UNSET = object()
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SensorCallbackRegistry:
@@ -81,3 +96,120 @@ class SensorCallbackRegistry:
             self._callbacks.clear()
         elif sensor_id in self._callbacks:
             del self._callbacks[sensor_id]
+
+
+class _SensorCallbacks:
+    """Handles all sensor lifecycle operations for trips.
+
+    Provides a single `emit` method that replaces the pattern of
+    `from .sensor import <func>` in multiple CRUD methods.
+    """
+
+    def _get_sensor_mod(self):
+        """Lazy import sensor module to avoid circular dependency."""
+        # pylint: disable=import-outside-toplevel
+        from . import sensor as _sensor_mod
+        return _sensor_mod
+
+    def emit(
+        self,
+        event: str,
+        hass: HomeAssistant,
+        entry_id: str,
+        trip_data: Dict[str, Any] | None = None,
+        trip_id: str | None = None,
+    ) -> None:
+        """Dispatch a sensor lifecycle event.
+
+        Args:
+            event: One of 'trip_created_recurring', 'trip_created_punctual',
+                   'trip_removed', 'trip_sensor_created', 'trip_sensor_updated',
+                   'trip_sensor_removed', 'trip_sensor_created_emhass',
+                   'trip_sensor_removed_emhass'.
+            hass: HomeAssistant instance (required for all operations).
+            entry_id: Config entry ID for entity registry lookups.
+            trip_data: Trip dictionary (required for create/update).
+            trip_id: Trip ID (required for remove/EMHASS sensor).
+        """
+        try:
+            sensor_mod = self._get_sensor_mod()
+            if event == "trip_created_recurring":
+                sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+
+            elif event == "trip_created_punctual":
+                sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+
+            elif event == "trip_sensor_created_emhass":
+                self._emit_create_emhass(hass, entry_id, trip_id)
+
+            elif event == "trip_removed":
+                sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
+
+            elif event == "trip_sensor_removed_emhass":
+                self._emit_remove_emhass(hass, entry_id, trip_id)
+
+            elif event == "trip_sensor_updated":
+                sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
+
+            else:
+                _LOGGER.debug("Unknown sensor event: %s", event)
+
+        except Exception as err:
+            _LOGGER.error(
+                "Error emitting sensor event '%s': %s",
+                event,
+                err,
+                exc_info=True,
+            )
+
+    def _emit_create_emhass(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        trip_id: str,
+    ) -> None:
+        """Create an EMHASS sensor for a trip.
+
+        Extracts the coordinator from the config entry's runtime_data.
+        """
+        try:
+            entry: ConfigEntry | None = hass.config_entries.async_get_entry(
+                entry_id
+            )
+            if not entry or not entry.runtime_data:
+                _LOGGER.warning(
+                    "Trip EMHASS sensor %s: no config entry or runtime_data",
+                    trip_id,
+                )
+                return
+
+            coordinator = entry.runtime_data.coordinator
+            if coordinator is None:
+                _LOGGER.warning(
+                    "Trip EMHASS sensor %s: coordinator is None",
+                    trip_id,
+                )
+                return
+
+            sensor_mod = self._get_sensor_mod()
+            sensor_mod.async_create_trip_emhass_sensor(
+                hass, entry_id, coordinator, trip_id
+            )
+        except Exception as err:
+            _LOGGER.debug(
+                "Error creating EMHASS sensor for trip %s: %s",
+                trip_id,
+                err,
+            )
+
+    def _emit_remove_emhass(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        trip_id: str,
+    ) -> None:
+        """Remove an EMHASS sensor for a trip."""
+        sensor_mod = self._get_sensor_mod()
+        sensor_mod.async_remove_trip_emhass_sensor(
+            hass, entry_id, trip_id
+        )

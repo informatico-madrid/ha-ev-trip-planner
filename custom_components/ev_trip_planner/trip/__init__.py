@@ -1,8 +1,15 @@
+from custom_components.ev_trip_planner.trip._crud_mixin import _CRUDMixin
 from custom_components.ev_trip_planner.trip._sensor_callbacks import SensorCallbackRegistry
 from custom_components.ev_trip_planner.trip._types import CargaVentana
 from custom_components.ev_trip_planner.trip._types import SOCMilestoneResult
 
-__all__ = ["TripManager", "CargaVentana", "SOCMilestoneResult", "SensorCallbackRegistry"]
+__all__ = [
+    "TripManager",
+    "CargaVentana",
+    "SOCMilestoneResult",
+    "SensorCallbackRegistry",
+    "_CRUDMixin",
+]
 
 
 def __getattr__(name):
