@@ -27,7 +27,7 @@ from .const import (
     DOMAIN,
 )
 from .emhass import EMHASSAdapter
-from .trip_manager import TripManager
+from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 

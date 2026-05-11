@@ -439,7 +439,7 @@ async def test_async_calcular_energia_necesaria_handles_tz_aware_datetime(
 
     # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results.
     # This prevents flakiness when the test runs after the trip's original time.
-    from custom_components.ev_trip_planner import trip_manager
+    from custom_components.ev_trip_planner.trip import manager as trip_manager
 
     fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)
@@ -476,7 +476,7 @@ async def test_async_calcular_energia_necesaria_handles_naive_datetime_object(
     }
 
     # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results.
-    from custom_components.ev_trip_planner import trip_manager
+    from custom_components.ev_trip_planner.trip import manager as trip_manager
 
     fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)
@@ -511,7 +511,7 @@ async def test_async_calcular_energia_necesaria_handles_strptime_naive_datetime(
     }
 
     # Mock dt_util.now() to a fixed earlier aware datetime for deterministic results
-    from custom_components.ev_trip_planner import trip_manager
+    from custom_components.ev_trip_planner.trip import manager as trip_manager
 
     fixed_now = datetime(2026, 12, 1, 8, 0, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(trip_manager.dt_util, "now", lambda: fixed_now)

@@ -13,7 +13,7 @@ from custom_components.ev_trip_planner.const import (
     TRIP_STATUS_COMPLETED,
     TRIP_STATUS_PENDING,
 )
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 @pytest.fixture
@@ -437,7 +437,7 @@ async def test_async_get_kwh_needed_today_with_recurring_trips(mock_hass, vehicl
     mock_datetime.now.return_value = datetime(2025, 1, 6, 10, 0)  # Monday
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {
@@ -476,7 +476,7 @@ async def test_async_get_kwh_needed_today_with_punctual_trips(mock_hass, vehicle
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {}
@@ -514,7 +514,7 @@ async def test_async_get_kwh_needed_today_excludes_inactive_trips(
     mock_datetime.now.return_value = datetime(2025, 1, 6, 10, 0)
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {
@@ -554,7 +554,7 @@ async def test_async_get_kwh_needed_today_excludes_completed_trips(
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {}
@@ -591,7 +591,7 @@ async def test_async_get_hours_needed_today(mock_hass, vehicle_id):
 
     # Freeze time to Monday 2025-01-06 at 10:00
     frozen_time = datetime(2025, 1, 6, 10, 0)
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
@@ -623,7 +623,7 @@ async def test_async_get_hours_needed_today_with_default_charging_power(
 
     # Freeze time to Monday 2025-01-06 at 10:00
     frozen_time = datetime(2025, 1, 6, 10, 0)
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
@@ -650,7 +650,7 @@ async def test_async_get_next_trip_returns_next_recurring(mock_hass, vehicle_id)
     """Test async_get_next_trip returns the next upcoming recurring trip."""
     # Freeze time to Monday 2025-01-06 at 8:00 AM
     frozen_time = datetime(2025, 1, 6, 8, 0)
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         # Use side_effect to properly handle timezone-aware datetime.now(timezone.utc)
         mock_dt.now.return_value = frozen_time
         mock_dt.now.side_effect = lambda tz=None: (
@@ -700,7 +700,7 @@ async def test_async_get_next_trip_returns_next_punctual(mock_hass, vehicle_id):
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {}
@@ -743,7 +743,7 @@ async def test_async_get_next_trip_excludes_paused_recurring(mock_hass, vehicle_
     """Test that paused recurring trips are excluded from next trip."""
     # Freeze time to Monday 2025-01-06 at 8:00 AM
     frozen_time = datetime(2025, 1, 6, 8, 0)
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.now.side_effect = lambda tz=None: (
             frozen_time.replace(tzinfo=timezone.utc) if tz is not None else frozen_time
@@ -791,7 +791,7 @@ async def test_async_get_next_trip_excludes_completed_punctual(mock_hass, vehicl
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {}
@@ -938,7 +938,7 @@ async def test_get_charging_power_returns_default_when_not_configured(
     power = manager.get_charging_power()
 
     # Should return default charging power
-    from custom_components.ev_trip_planner.trip_manager import DEFAULT_CHARGING_POWER
+    from custom_components.ev_trip_planner.trip import DEFAULT_CHARGING_POWER
 
     assert power == DEFAULT_CHARGING_POWER
 
@@ -953,7 +953,7 @@ async def test_get_charging_power_sensor_not_found(mock_hass, vehicle_id):
     power = manager._get_charging_power()
 
     # Should return default charging power
-    from custom_components.ev_trip_planner.trip_manager import DEFAULT_CHARGING_POWER
+    from custom_components.ev_trip_planner.trip import DEFAULT_CHARGING_POWER
 
     assert power == DEFAULT_CHARGING_POWER
 
@@ -1305,7 +1305,7 @@ async def test_load_trips_yaml_error_path(mock_hass, vehicle_id):
 
     # Mock Path.exists to return True and open to raise an exception
     with patch(
-        "custom_components.ev_trip_planner.trip_manager.Path"
+        "custom_components.ev_trip_planner.trip.manager.Path"
     ) as mock_path_class:
         mock_path = MagicMock()
         mock_path.exists.return_value = True
@@ -1319,7 +1319,7 @@ async def test_load_trips_yaml_error_path(mock_hass, vehicle_id):
 
         # Mock yaml.safe_load to raise (simulating corrupted YAML)
         with patch(
-            "custom_components.ev_trip_planner.trip_manager.yaml.safe_load"
+            "custom_components.ev_trip_planner.trip._crud_mixin.yaml.safe_load"
         ) as mock_load:
             mock_load.side_effect = yaml.YAMLError("Simulated YAML parse error")
 
@@ -1341,11 +1341,11 @@ async def test_save_trips_yaml_error_path(mock_hass, vehicle_id):
     }
 
     # Mock yaml.dump to raise an exception
-    with patch("custom_components.ev_trip_planner.trip_manager.yaml.dump") as mock_dump:
+    with patch("custom_components.ev_trip_planner.trip._crud_mixin.yaml.dump") as mock_dump:
         mock_dump.side_effect = yaml.YAMLError("Simulated YAML dump error")
 
         with patch(
-            "custom_components.ev_trip_planner.trip_manager.Path"
+            "custom_components.ev_trip_planner.trip.manager.Path"
         ) as mock_path_class:
             mock_path = MagicMock()
             mock_path.parent.mkdir.return_value = None
@@ -1579,7 +1579,7 @@ async def test_async_get_next_trip_with_all_completed_punctual(mock_hass, vehicl
     mock_datetime.strptime = datetime.strptime
 
     with unittest.mock.patch(
-        "custom_components.ev_trip_planner.trip_manager.datetime", mock_datetime
+        "custom_components.ev_trip_planner.trip.manager.datetime", mock_datetime
     ):
         manager = TripManager(mock_hass, vehicle_id)
         manager._recurring_trips = {}
@@ -1608,7 +1608,7 @@ async def test_async_get_next_trip_with_all_completed_punctual(mock_hass, vehicl
 async def test_async_get_next_trip_with_all_inactive_recurring(mock_hass, vehicle_id):
     """Test T072.2: async_get_next_trip returns None when all recurring trips are inactive."""
     frozen_time = datetime(2025, 1, 6, 8, 0)  # Monday 8:00 AM
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = datetime.strptime
         mock_dt.combine = datetime.combine
@@ -1876,7 +1876,7 @@ async def test_async_get_next_trip_after_handles_invalid_hora(mock_hass, vehicle
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2306,7 +2306,7 @@ async def test_async_get_next_trip_after_skips_non_pendiente_punctual(
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2338,7 +2338,7 @@ async def test_async_get_next_trip_after_skips_inactive_recurring(
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2371,7 +2371,7 @@ async def test_async_get_next_trip_after_skips_wrong_day_recurring(
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2404,7 +2404,7 @@ async def test_async_get_next_trip_after_skips_early_recurring_trip(
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 12, 0)  # Monday 12:00 PM (noon)
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2437,7 +2437,7 @@ async def test_async_get_next_trip_after_handles_valid_recurring_trip(
     frozen_time = dt(2025, 1, 6, 10, 0)  # Monday 10:00 AM
     hora_regreso = dt(2025, 1, 6, 8, 0)  # Monday 8:00 AM
 
-    with patch("custom_components.ev_trip_planner.trip_manager.datetime") as mock_dt:
+    with patch("custom_components.ev_trip_planner.trip.manager.datetime") as mock_dt:
         mock_dt.now.return_value = frozen_time
         mock_dt.strptime = dt.strptime
         mock_dt.combine = dt.combine
@@ -2511,7 +2511,7 @@ async def test_async_get_vehicle_soc_with_exception(mock_hass, vehicle_id):
 @pytest.mark.asyncio
 async def test_calcular_ventana_carga_with_datetime_object(mock_hass, vehicle_id):
     """Test calcular_ventana_carga handles datetime object in trip (line 1314)."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     manager = TripManager(mock_hass, vehicle_id)
     manager._get_trip_time = MagicMock(
@@ -2539,7 +2539,7 @@ async def test_calcular_ventana_carga_with_datetime_object(mock_hass, vehicle_id
 @pytest.mark.asyncio
 async def test_calcular_ventana_carga_with_no_departure_time(mock_hass, vehicle_id):
     """Test calcular_ventana_carga when trip_departure_time is None (line 1345)."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     manager = TripManager(mock_hass, vehicle_id)
     manager._get_trip_time = MagicMock(return_value=None)  # No departure time
@@ -2564,7 +2564,7 @@ async def test_calcular_ventana_carga_with_no_departure_time(mock_hass, vehicle_
 @pytest.mark.asyncio
 async def test_calcular_ventana_carga_zero_charging_power(mock_hass, vehicle_id):
     """Test calcular_ventana_carga with zero charging power (line 1364)."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     manager = TripManager(mock_hass, vehicle_id)
     manager._get_trip_time = MagicMock(

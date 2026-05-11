@@ -38,7 +38,7 @@ from .services import (
     create_dashboard_input_helpers,
     register_services,
 )
-from .trip_manager import TripManager
+from .trip import TripManager
 from .utils import normalize_vehicle_id
 from .yaml_trip_storage import YamlTripStorage
 

@@ -12,7 +12,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
 )
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 class MockConfigEntry:
@@ -565,7 +565,7 @@ class TestWeeklyTripRotationEdgeCases:
             tm.set_emhass_adapter(mock_adapter)
 
             with patch(
-                "custom_components.ev_trip_planner.trip_manager.calculate_next_recurring_datetime",
+                "custom_components.ev_trip_planner.calculations.calculate_next_recurring_datetime",
                 side_effect=Exception("Simulated calculation error"),
             ):
                 await tm.publish_deferrable_loads()
@@ -700,7 +700,7 @@ class TestHourlyRefreshCallbackEdgeCases:
             EVTripRuntimeData,
             _hourly_refresh_callback,
         )
-        from custom_components.ev_trip_planner.trip_manager import TripManager
+        from custom_components.ev_trip_planner.trip import TripManager
 
         mock_trip_manager = AsyncMock(spec=TripManager)
         mock_trip_manager.publish_deferrable_loads = AsyncMock(
@@ -749,7 +749,7 @@ class TestHourlyRefreshCallbackEdgeCases:
             EVTripRuntimeData,
             _hourly_refresh_callback,
         )
-        from custom_components.ev_trip_planner.trip_manager import TripManager
+        from custom_components.ev_trip_planner.trip import TripManager
 
         mock_trip_manager = AsyncMock(spec=TripManager)
         mock_trip_manager.publish_deferrable_loads = AsyncMock(return_value=None)

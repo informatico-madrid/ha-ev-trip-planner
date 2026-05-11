@@ -1,7 +1,7 @@
 """Verify that the trip package re-exports TripManager, CargaVentana, SOCMilestoneResult."""
 
-from custom_components.ev_trip_planner.trip.manager import (
-    TripManager,
+from custom_components.ev_trip_planner.trip.manager import TripManager
+from custom_components.ev_trip_planner.trip._types import (
     CargaVentana,
     SOCMilestoneResult,
 )

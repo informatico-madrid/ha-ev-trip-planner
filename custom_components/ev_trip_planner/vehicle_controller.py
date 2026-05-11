@@ -12,7 +12,7 @@ from .const import CONF_CHARGING_SENSOR
 from .presence_monitor import PresenceMonitor
 
 if TYPE_CHECKING:
-    from .trip_manager import TripManager
+    from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 

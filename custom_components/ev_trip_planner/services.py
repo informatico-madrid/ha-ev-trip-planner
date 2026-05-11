@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, cal
 from .const import DOMAIN
 from .coordinator import TripPlannerCoordinator
 from .dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
-from .trip_manager import TripManager
+from .trip import TripManager
 from .utils import normalize_vehicle_id
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]

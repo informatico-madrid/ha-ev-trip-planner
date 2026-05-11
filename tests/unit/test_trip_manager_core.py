@@ -1091,7 +1091,7 @@ class TestTripManagerSaveTrips:
                 side_effect=Exception("File write error"),
             ):
                 with patch(
-                    "custom_components.ev_trip_planner.trip_manager.yaml.safe_load",
+                    "custom_components.ev_trip_planner.trip._crud_mixin.yaml.safe_load",
                 ):
                     # Should not raise
                     await trip_manager.async_save_trips()
@@ -1844,7 +1844,7 @@ class TestTripManagerConstructorInjection:
         When not provided, the constructor should use _UNSET as the default value
         for both parameters. This test verifies the sentinel pattern is in place.
         """
-        from custom_components.ev_trip_planner import trip_manager as tm_module
+        from custom_components.ev_trip_planner.trip import manager as tm_module
 
         # Verify _UNSET sentinel exists in the module
         assert hasattr(
