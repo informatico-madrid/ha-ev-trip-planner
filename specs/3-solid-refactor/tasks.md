@@ -1311,7 +1311,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] V11 [VERIFY] Quality check: ruff check && pyright after config_flow
+- [x] V11 [VERIFY] Quality check: ruff check && pyright after config_flow
   - **Do**: Run quality checks after config_flow decomposition
   - **Verify**: `make lint && make typecheck`
   - **Done when**: No lint errors, no type errors
@@ -1321,7 +1321,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.9 presence_monitor.py - Decomposition
 
-- [ ] 1.103 [RED] Test: presence_monitor package re-exports PresenceMonitor
+- [x] 1.103 [RED] Test: presence_monitor package re-exports PresenceMonitor
   - **Do**: Write test importing `PresenceMonitor` from `custom_components.ev_trip_planner.presence_monitor`
   - **Files**: tests/unit/test_presence_monitor_imports.py
   - **Done when**: Test exists and fails
