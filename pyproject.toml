@@ -212,7 +212,23 @@ increment_step = 0.01
 target_final = 1.00
 modules_per_sprint = 2
 
-[tool.quality-gate.mutation.modules.calculations]
+[tool.quality-gate.mutation.modules.calculations.core]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.windows]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.power]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.schedule]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.deficit]
 kill_threshold = 0.71
 status = "passing"
 
