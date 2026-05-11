@@ -854,7 +854,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.5 trip/ - Facade + Mixins + SensorCallbackRegistry
 
-- [ ] 1.66 [RED] Test: trip package re-exports TripManager, CargaVentana, SOCMilestoneResult
+- [x] 1.66 [RED] Test: trip package re-exports TripManager, CargaVentana, SOCMilestoneResult
   - **Do**: Write test importing `TripManager`, `CargaVentana`, `SOCMilestoneResult` from `custom_components.ev_trip_planner.trip`
   - **Files**: tests/unit/test_trip_imports.py
   - **Done when**: Test exists and fails
