@@ -901,7 +901,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-8.1, AC-8.5_
   - _Design: §4.2 (SensorCallbackRegistry)_
 
-- [ ] 1.70 [RED] Test: _types.py TypedDicts exist and are importable
+- [x] 1.70 [RED] Test: _types.py TypedDicts exist and are importable
   - **Do**: Write test importing `CargaVentana` and `SOCMilestoneResult` TypedDicts from `trip._types`
   - **Files**: tests/unit/test_trip_types.py
   - **Done when**: Test exists and fails
@@ -911,7 +911,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.2 (trip TypedDicts)_
 
 
-- [ ] 1.71 [GREEN] Extract TypedDicts to `_types.py`
+- [x] 1.71 [GREEN] Extract TypedDicts to `_types.py`
   - **Do**:
     1. Move `CargaVentana` and `SOCMilestoneResult` TypedDict definitions from `trip_manager.py` to `trip/_types.py`
     2. Update `trip/__init__.py` to re-export from `.types`

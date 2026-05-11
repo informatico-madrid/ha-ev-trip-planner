@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
@@ -29,6 +29,9 @@ from .const import (
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
+from .trip._types import CargaVentana
+from .trip._types import SOCMilestoneResult
+
 from .emhass import EMHASSAdapter
 from .yaml_trip_storage import YamlTripStorage
 from .utils import calcular_energia_kwh, generate_trip_id
@@ -58,32 +61,6 @@ DAYS_OF_WEEK = (
     "sabado",
     "domingo",
 )
-
-
-class CargaVentana(TypedDict):
-    """Structure for charging window information."""
-
-    ventana_horas: float
-    kwh_necesarios: float
-    horas_carga_necesarias: float
-    inicio_ventana: Optional[datetime]
-    fin_ventana: Optional[datetime]
-    es_suficiente: bool
-
-
-class SOCMilestoneResult(TypedDict):
-    """Return structure for calcular_hitos_soc function.
-
-    Contains SOC milestone calculation results for a single trip,
-    including the target SOC, energy requirements, accumulated deficit
-    from backward propagation, and charging window details.
-    """
-
-    trip_id: str
-    soc_objetivo: float
-    kwh_necesarios: float
-    deficit_acumulado: float
-    ventana_carga: CargaVentana
 
 
 class TripManager:
