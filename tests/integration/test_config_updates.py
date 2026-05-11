@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_T_BASE,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ async def test_config_update_triggers_republish(mock_hass: HomeAssistant, mock_s
 
     # Create adapter
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -126,7 +126,7 @@ async def test_no_republish_when_no_change(mock_hass: HomeAssistant, mock_store)
 
     # Create adapter
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -196,7 +196,7 @@ async def test_config_listener_setup(mock_hass: HomeAssistant, mock_store):
     mock_entry.add_update_listener = MagicMock(return_value=mock_unsubscribe)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -238,7 +238,7 @@ async def test_handle_config_entry_update_triggers_republish(
 
     # Create adapter
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -276,7 +276,7 @@ async def test_update_charging_power_handles_missing_entry(
 
     # Create adapter
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -313,7 +313,7 @@ async def test_handle_config_entry_update_detects_t_base_change(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -360,7 +360,7 @@ async def test_handle_config_entry_update_detects_soh_sensor_change(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -402,7 +402,7 @@ async def test_handle_config_entry_update_detects_charging_power_change(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -444,7 +444,7 @@ async def test_t_base_change_triggers_republish_when_power_unchanged(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -507,7 +507,7 @@ async def test_soh_sensor_change_triggers_republish_when_power_unchanged(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -559,7 +559,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_without_datetime(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)

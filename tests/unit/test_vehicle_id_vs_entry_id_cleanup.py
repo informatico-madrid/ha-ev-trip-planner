@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ class TestVehicleIdVsEntryIdCleanup:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -137,7 +137,7 @@ class TestVehicleIdVsEntryIdCleanup:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -201,7 +201,7 @@ class TestVehicleIdVsEntryIdCleanup:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)

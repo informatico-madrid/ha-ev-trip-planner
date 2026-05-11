@@ -174,7 +174,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         This test verifies the cache is properly cleared.
         Uses REAL EMHASSAdapter to exercise actual cache clearing logic.
         """
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
         # Create mock hass for EMHASSAdapter
         mock_hass = MagicMock()
@@ -400,7 +400,7 @@ class TestAsyncRemoveEntryCleanupCascade:
         Uses REAL EMHASSAdapter to exercise actual cache clearing logic.
         """
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
         from custom_components.ev_trip_planner.services import (
             async_remove_entry_cleanup,
         )

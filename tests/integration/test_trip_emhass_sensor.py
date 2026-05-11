@@ -11,7 +11,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
@@ -30,7 +30,7 @@ async def test_trip_emhass_sensor_native_value(mock_store, hass: HomeAssistant):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -92,7 +92,7 @@ async def test_trip_emhass_sensor_attributes_all_9(mock_store, hass: HomeAssista
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -171,7 +171,7 @@ async def test_trip_emhass_sensor_zeroed(mock_store, hass: HomeAssistant):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -242,7 +242,7 @@ async def test_trip_emhass_sensor_device_info(mock_store, hass: HomeAssistant):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)

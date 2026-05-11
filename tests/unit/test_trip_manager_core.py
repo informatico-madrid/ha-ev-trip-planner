@@ -1761,7 +1761,7 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept a storage parameter.
         """
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
         from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         # Create mock implementations
@@ -1793,7 +1793,7 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept an emhass_adapter parameter.
         """
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
         mock_emhass = MagicMock(spec=EMHASSAdapter)
         mock_emhass.async_publish_deferrable_load = AsyncMock(return_value=True)
@@ -1817,7 +1817,7 @@ class TestTripManagerConstructorInjection:
         This test FAILS with TypeError because current constructor does not
         accept these parameters.
         """
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
         from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
         mock_storage = MagicMock(spec=YamlTripStorage)

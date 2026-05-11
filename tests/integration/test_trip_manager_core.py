@@ -832,7 +832,7 @@ async def test_get_emhass_adapter_returns_adapter_when_set(mock_hass, vehicle_id
     """Test get_emhass_adapter returns adapter when set."""
     from unittest.mock import MagicMock
 
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     manager = TripManager(mock_hass, vehicle_id)
 

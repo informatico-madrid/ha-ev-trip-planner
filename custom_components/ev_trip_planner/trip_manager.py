@@ -29,7 +29,7 @@ from .const import (
     TRIP_TYPE_PUNCTUAL,
     TRIP_TYPE_RECURRING,
 )
-from .emhass_adapter import EMHASSAdapter
+from .emhass import EMHASSAdapter
 from .yaml_trip_storage import YamlTripStorage
 from .utils import calcular_energia_kwh, generate_trip_id
 from .utils import is_trip_today as pure_is_trip_today

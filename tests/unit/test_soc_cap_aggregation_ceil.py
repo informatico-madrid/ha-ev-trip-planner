@@ -28,7 +28,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -175,7 +175,7 @@ async def test_soc_cap_aggregation_preserves_slots_when_kwh_needed_less_than_cha
     entry.runtime_data = MockRuntimeData()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, entry)
@@ -255,7 +255,7 @@ async def test_soc_cap_aggregation_with_very_small_kwh_needed(mock_hass, mock_st
     entry.runtime_data = MockRuntimeData()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, entry)
@@ -329,7 +329,7 @@ async def test_full_publish_flow_with_high_soc_and_11kw_charger(
     entry.runtime_data = MockRuntimeData()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, entry)

@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -149,14 +149,14 @@ async def test_t_base_affects_charging_hours():
     entry_48 = _MockConfigEntry(t_base=48.0, battery_capacity=60.0, charging_power=7.4)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=store_6,
     ):
         adapter_6 = EMHASSAdapter(hass_6, entry_6)
         await adapter_6.async_load()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=store_48,
     ):
         adapter_48 = EMHASSAdapter(hass_48, entry_48)
@@ -241,7 +241,7 @@ async def test_soc_caps_applied_to_kwh_calculation():
     entry = _MockConfigEntry(t_base=24.0, battery_capacity=60.0, charging_power=7.4)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store
     ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
@@ -341,13 +341,13 @@ async def test_real_capacity_affects_power_profile():
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_100
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store_100
     ):
         adapter_100 = EMHASSAdapter(hass_100, entry_100)
         await adapter_100.async_load()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store_90
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store_90
     ):
         adapter_90 = EMHASSAdapter(hass_90, entry_90)
         await adapter_90.async_load()
@@ -439,7 +439,7 @@ async def test_no_charging_needed_power_watts_zero():
     entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store
     ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
@@ -504,7 +504,7 @@ async def test_stale_cache_cleanup():
     entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store
     ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()
@@ -602,7 +602,7 @@ async def test_fallback_path_skips_trip_without_id():
     entry = _MockConfigEntry(battery_capacity=60.0, charging_power=7.4)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store", return_value=store
+        "custom_components.ev_trip_planner.emhass.adapter.Store", return_value=store
     ):
         adapter = EMHASSAdapter(hass, entry)
         await adapter.async_load()

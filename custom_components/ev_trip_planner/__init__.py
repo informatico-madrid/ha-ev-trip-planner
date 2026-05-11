@@ -24,7 +24,7 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN  # noqa: F401
 from .coordinator import TripPlannerCoordinator
-from .emhass_adapter import EMHASSAdapter
+from .emhass import EMHASSAdapter
 from .panel import async_unregister_panel  # noqa: F401 (re-export for tests)
 from .services import (
     async_cleanup_orphaned_emhass_sensors,

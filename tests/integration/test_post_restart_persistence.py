@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -122,7 +122,7 @@ class TestPostRestartPersistenceBug:
 
         # Create and attach EMHASS adapter
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             emhass_adapter = EMHASSAdapter(

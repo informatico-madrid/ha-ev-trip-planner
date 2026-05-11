@@ -18,7 +18,7 @@ from custom_components.ev_trip_planner.const import (
     EMHASS_STATE_READY,
     TRIP_TYPE_PUNCTUAL,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -70,7 +70,7 @@ async def test_async_assign_index_to_trip_assigns_available_index(hass, mock_sto
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -95,7 +95,7 @@ async def test_async_assign_index_to_trip_returns_none_when_no_indices(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -122,7 +122,7 @@ async def test_async_assign_index_reuses_released_index_after_cooldown(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -160,7 +160,7 @@ async def test_async_release_trip_index_removes_mapping(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -187,7 +187,7 @@ async def test_async_release_trip_index_returns_false_for_unknown_trip(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -214,7 +214,7 @@ async def test_async_publish_deferrable_load_returns_false_for_trip_without_id(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -239,7 +239,7 @@ async def test_async_publish_deferrable_load_returns_false_when_no_index_availab
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -266,7 +266,7 @@ async def test_async_remove_deferrable_load_cleans_up_sensor(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -302,7 +302,7 @@ async def test_async_get_integration_status_returns_dict(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -330,7 +330,7 @@ async def test_async_clear_error_clears_error_state(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -368,7 +368,7 @@ async def test_async_update_deferrable_load_calls_publish(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -402,7 +402,7 @@ def test_calculate_power_profile_from_trips_returns_list(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -426,7 +426,7 @@ def test_calculate_power_profile_with_no_trips_returns_zeros(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -447,7 +447,7 @@ def test_generate_schedule_from_trips_returns_list(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -473,7 +473,7 @@ async def test_setup_config_entry_listener_sets_listener(hass, mock_store):
     entry = MockConfigEntry("test_vehicle", config)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -499,7 +499,7 @@ async def test_async_notify_error_sends_notification(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -533,7 +533,7 @@ async def test_async_clear_error_after_notify(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -568,7 +568,7 @@ def test_get_cached_optimization_results_returns_dict(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -595,7 +595,7 @@ def test_calculate_deferrable_parameters_returns_dict(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -624,7 +624,7 @@ def test_get_assigned_index_returns_correct_index(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -642,7 +642,7 @@ def test_get_all_assigned_indices_returns_dict(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -661,7 +661,7 @@ def test_get_available_indices_returns_list(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -688,7 +688,7 @@ async def test_async_cleanup_vehicle_indices_cleans_up_all_indices(hass, mock_st
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -726,7 +726,7 @@ def test_verify_cleanup_returns_dict(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -755,7 +755,7 @@ async def test_setup_config_entry_listener_sets_up_listener(hass, mock_store):
     entry.async_add_listener = MagicMock(return_value=MagicMock())
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -779,7 +779,7 @@ async def test_async_update_charging_power_updates_value(hass, mock_store):
     entry = MockConfigEntry("test_vehicle", config)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -831,7 +831,7 @@ async def test_async_publish_all_deferrable_loads_publishes_multiple_trips(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -863,7 +863,7 @@ async def test_async_publish_all_deferrable_loads_uses_fallback_charging_power_w
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -918,7 +918,7 @@ async def test_async_publish_all_deferrable_loads_populates_per_trip_cache(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1009,7 +1009,7 @@ async def test_calculate_deadline_from_trip_helper_handles_recurring(mock_store,
     entry = MockConfigEntry("test_vehicle", config)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1138,7 +1138,7 @@ async def test_recurring_trip_cache_builder_integration(mock_store, hass):
     entry.runtime_data = MockRuntimeData()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1232,7 +1232,7 @@ async def test_async_verify_shell_command_integration_returns_dict(hass, mock_st
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1261,7 +1261,7 @@ async def test_async_handle_emhass_unavailable_calls_notify_error(hass, mock_sto
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1291,7 +1291,7 @@ async def test_async_handle_sensor_error_calls_notify_error(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1319,7 +1319,7 @@ async def test_async_handle_shell_command_failure_calls_notify_error(hass, mock_
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1343,7 +1343,7 @@ async def test_async_check_emhass_response_sensors_returns_dict(hass, mock_store
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1390,7 +1390,7 @@ class TestEmhassAdapterAsyncSaveErrorPaths:
         mock_store.async_save = AsyncMock(side_effect=Exception("Save error"))
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(None, emhass_config)
@@ -1596,7 +1596,7 @@ async def test_get_cached_results_includes_per_trip_params(mock_store):
     hass = MagicMock()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1655,7 +1655,7 @@ async def test_get_assigned_index_returns_index_when_assigned(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1688,7 +1688,7 @@ async def test_inicio_ventana_to_timestep_clamped(mock_store):
     hass = MagicMock()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1806,7 +1806,7 @@ async def test_inicio_ventana_to_timestep_no_window(mock_store):
     hass = MagicMock()
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1898,7 +1898,7 @@ async def test_get_assigned_index_returns_none_when_not_assigned(hass, mock_stor
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1917,7 +1917,7 @@ async def test_get_all_assigned_indices_returns_all_mappings(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -1940,7 +1940,7 @@ async def test_get_available_indices_excludes_assigned(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2047,7 +2047,7 @@ async def test_verify_shell_command_deferrable_sensor_not_found(hass, mock_store
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2073,7 +2073,7 @@ async def test_verify_shell_command_sensor_missing_power_profile(hass, mock_stor
     mock_sensor.attributes = {}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2099,7 +2099,7 @@ async def test_verify_shell_command_sensor_with_empty_profile(hass, mock_store):
     mock_sensor.attributes = {"power_profile_watts": []}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2128,7 +2128,7 @@ async def test_verify_shell_command_fully_configured(hass, mock_store):
     mock_emhass_sensor.entity_id = "sensor.emhass_response_1"
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2159,7 +2159,7 @@ async def test_check_emhass_no_trips_returns_all_verified(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2182,7 +2182,7 @@ async def test_check_emhass_trip_missing_config_sensor(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2211,7 +2211,7 @@ async def test_check_emhass_with_active_config_sensor(hass, mock_store):
     mock_sensor.attributes = {}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2240,7 +2240,7 @@ async def test_check_emhass_with_specific_trip_ids(hass, mock_store):
     mock_sensor.attributes = {}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2272,7 +2272,7 @@ async def test_handle_emhass_unavailable_sends_notification(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2302,7 +2302,7 @@ async def test_handle_sensor_error_calls_notify(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2330,7 +2330,7 @@ async def test_handle_shell_command_failure_calls_notify(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2386,7 +2386,7 @@ async def test_async_clear_error_with_no_sensor(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2478,7 +2478,7 @@ async def test_publish_deferrable_load_no_trip_manager(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2518,7 +2518,7 @@ async def test_send_error_notification_no_service_configured(hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2544,7 +2544,7 @@ async def test_send_error_notification_with_valid_service(hass, mock_store):
     mock_store._storage = {}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2571,7 +2571,7 @@ async def test_send_error_notification_service_raises_exception(hass, mock_store
     mock_store._storage = {}
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2609,7 +2609,7 @@ async def test_verify_shell_command_with_emhass_response_sensors(hass, mock_stor
     mock_emhass_response.entity_id = "sensor.emhass_opt"
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2639,7 +2639,7 @@ async def test_async_get_integration_status_returns_status_dict(hass, mock_store
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2671,7 +2671,7 @@ async def test_async_cleanup_vehicle_indices_handles_state_remove_error(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2712,7 +2712,7 @@ async def test_async_cleanup_vehicle_indices_handles_registry_remove_error(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2753,7 +2753,7 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_state_remove_er
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -2818,7 +2818,7 @@ class TestEmhassAdapterCleanupEmptyIndices:
         Tests the cleanup path when _index_map is empty - should complete without error.
         """
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, emhass_config)
@@ -2892,7 +2892,7 @@ class TestAsyncLoadErrorPath:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -2924,7 +2924,7 @@ class TestAsyncLoadErrorPath:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3026,7 +3026,7 @@ class TestAsyncRemoveDeferrableLoadCoverage:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3051,7 +3051,7 @@ class TestAsyncRemoveDeferrableLoadCoverage:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3094,7 +3094,7 @@ class TestPublishDeferrableLoadsCoordinatorPath:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -3135,7 +3135,7 @@ class TestPublishDeferrableLoadsCoordinatorPath:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -3210,7 +3210,7 @@ class TestPublishDeferrableLoadsWithCache:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -3276,7 +3276,7 @@ class TestVerifyShellCommandIntegrationCoverage:
         mock_sensor.entity_id = "sensor.emhass_perfil_diferible_test_entry_id"
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3306,7 +3306,7 @@ class TestCheckEmhassResponseSensorsCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3339,7 +3339,7 @@ class TestAsyncGetIntegrationStatusCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3365,7 +3365,7 @@ class TestAsyncGetIntegrationStatusCoverage:
         mock_sensor.attributes = {}  # Missing power_profile_watts
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3394,7 +3394,7 @@ class TestAsyncUpdateErrorStatusCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3427,7 +3427,7 @@ class TestAsyncSendErrorNotificationCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3458,7 +3458,7 @@ class TestAsyncSendErrorNotificationCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3487,7 +3487,7 @@ class TestAsyncSendErrorNotificationCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3516,7 +3516,7 @@ class TestAsyncSendErrorNotificationCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3546,7 +3546,7 @@ class TestAsyncClearErrorCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3582,7 +3582,7 @@ class TestVerifyCleanupCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3617,7 +3617,7 @@ class TestVerifyCleanupCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3659,7 +3659,7 @@ class TestSetupConfigEntryListenerCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3688,7 +3688,7 @@ class TestHandleConfigEntryUpdateCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3715,7 +3715,7 @@ class TestUpdateChargingPowerCoverage:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -3747,7 +3747,7 @@ class TestUpdateChargingPowerCoverage:
 
         with (
             patch(
-                "custom_components.ev_trip_planner.emhass_adapter.Store",
+                "custom_components.ev_trip_planner.emhass.adapter.Store",
                 return_value=mock_store,
             ),
             patch.object(
@@ -3786,7 +3786,7 @@ class TestUpdateChargingPowerCoverage:
 
         with (
             patch(
-                "custom_components.ev_trip_planner.emhass_adapter.Store",
+                "custom_components.ev_trip_planner.emhass.adapter.Store",
                 return_value=mock_store,
             ),
             patch.object(
@@ -3835,7 +3835,7 @@ async def test_publish_deferrable_loads_coordinator_refresh_raises(hass, mock_st
     entry = MockConfigEntry("test_vehicle", config)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -3882,7 +3882,7 @@ async def test_async_cleanup_vehicle_indices_handles_main_sensor_registry_remova
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -3938,7 +3938,7 @@ async def test_async_get_integration_status_transitions_to_ready(hass, mock_stor
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -3989,7 +3989,7 @@ async def test_async_get_integration_status_transitions_to_error(hass, mock_stor
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -4023,7 +4023,7 @@ async def test_async_get_integration_status_transitions_to_warning_no_data(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -4060,7 +4060,7 @@ async def test_async_get_integration_status_transitions_to_warning_not_configure
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -4101,7 +4101,7 @@ async def test_async_get_integration_status_transitions_to_warning_missing_trips
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -4178,7 +4178,7 @@ class TestAsyncLoadInvalidDatetimeInStorage:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4214,7 +4214,7 @@ class TestGetCoordinatorWithRuntimeData:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -4250,7 +4250,7 @@ class TestPublishDeferrableLoadDatetimeDeadline:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4293,7 +4293,7 @@ class TestPublishDeferrableLoadSocFallback:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4333,7 +4333,7 @@ class TestPublishDeferrableLoadSocFallback:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4377,7 +4377,7 @@ class TestPublishAllDeferrableLoadsSuccessCount:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4424,7 +4424,7 @@ class TestPublishAllDeferrableLoadsSuccessCount:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -4479,7 +4479,7 @@ class TestPublishAllDeferrableLoadsSuccessCount:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -4525,7 +4525,7 @@ class TestCheckEmhassResponseSensorsMissingTrip:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4566,7 +4566,7 @@ class TestCheckEmhassResponseSensorsContinueAndFound:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4625,7 +4625,7 @@ class TestCheckEmhassResponseSensorsContinueAndFound:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4678,7 +4678,7 @@ class TestAsyncUpdateErrorStatusWithTripId:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4714,7 +4714,7 @@ class TestAsyncUpdateErrorStatusHomeAssistantError:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4753,7 +4753,7 @@ class TestAsyncSendErrorNotificationWithTripId:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4799,7 +4799,7 @@ class TestAsyncCallNotificationServiceNoService:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4834,7 +4834,7 @@ class TestAsyncClearErrorHomeAssistantError:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4878,7 +4878,7 @@ class TestVerifyCleanupPerTripConfigSensorsInState:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4929,7 +4929,7 @@ class TestVerifyCleanupPerTripConfigSensorsInRegistry:
         mock_store.async_save = AsyncMock()
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, config)
@@ -4979,7 +4979,7 @@ async def test_publish_enriches_recurring_trip_with_datetime(hass, mock_store):
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -5032,7 +5032,7 @@ async def test_publish_skips_recurring_trip_without_hora(hass, mock_store):
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -5082,7 +5082,7 @@ async def test_publish_passes_punctual_trip_unchanged(hass, mock_store):
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -5161,7 +5161,7 @@ async def test_update_charging_power_reads_options_first(hass, mock_store):
 
     with (
         patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ),
         patch.object(
@@ -5217,7 +5217,7 @@ async def test_update_charging_power_fallback_to_data(hass, mock_store):
 
     with (
         patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ),
         patch.object(
@@ -5271,7 +5271,7 @@ async def test_update_charging_power_zero_not_falsy(hass, mock_store):
 
     with (
         patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ),
         patch.object(
@@ -5353,7 +5353,7 @@ async def test_empty_published_trips_guard(hass, mock_store):
 
     with (
         patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ),
         patch.object(
@@ -5418,7 +5418,7 @@ async def test_get_current_soc_reads_sensor(mock_store):
     hass.states.get = MagicMock(return_value=mock_soc_state)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -5464,7 +5464,7 @@ async def test_get_current_soc_sensor_unavailable(mock_store):
     hass.states.get = MagicMock(return_value=None)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -5499,7 +5499,7 @@ async def test_cached_per_trip_params_assignment(mock_store):
     mock_index = 5
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -5612,7 +5612,7 @@ async def test_get_hora_regreso_calls_presence_monitor(mock_store):
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -5665,7 +5665,7 @@ async def test_publish_deferrable_load_computes_start_timestep(mock_store):
 
     with (
         patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ),
         freeze_time("2026-04-11 12:00:00"),
@@ -5745,7 +5745,7 @@ async def test_publish_deferrable_loads_caches_per_trip_params(mock_store):
     hass.services.has_service = MagicMock(return_value=True)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -5859,7 +5859,7 @@ async def test_get_cached_optimization_results_has_per_trip_params(mock_store):
     hass.services.has_service = MagicMock(return_value=True)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -5948,7 +5948,7 @@ async def test_soc_propagation_between_trips(mock_store):
     hass.services.has_service = MagicMock(return_value=True)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -6043,7 +6043,7 @@ async def test_multiple_trips_same_deadline(mock_store):
     same_deadline = "2025-01-15T10:00:00"
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(MagicMock(), config)
@@ -6203,7 +6203,7 @@ async def test_past_deadline_trip(mock_store):
     past_deadline = "2024-01-01T10:00:00"
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(MagicMock(), config)
@@ -6367,7 +6367,7 @@ async def test_stale_cache_cleared_on_republish(mock_store):
     ]
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(MagicMock(), config)
@@ -6433,7 +6433,7 @@ async def test_publish_all_deferrable_loads_shutting_down_with_trips(hass, mock_
         CONF_CHARGING_POWER: 7.4,
     }
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -6456,7 +6456,7 @@ async def test_publish_deferrable_loads_shutting_down(hass, mock_store):
         CONF_CHARGING_POWER: 7.4,
     }
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -6479,7 +6479,7 @@ async def test_handle_config_entry_update_shutting_down(hass, mock_store):
         CONF_CHARGING_POWER: 7.4,
     }
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -6501,7 +6501,7 @@ async def test_update_charging_power_shutting_down(hass, mock_store):
         CONF_CHARGING_POWER: 7.4,
     }
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -6538,7 +6538,7 @@ async def test_async_publish_all_deferrable_loads_uses_batch_windows(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -6617,7 +6617,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_without_id(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -6936,7 +6936,7 @@ async def test_soc_cap_does_not_reduce_p_deferrable_nom(hass, mock_store):
     Regression fix: remove cap_ratio multiplication from power_watts in
     _populate_per_trip_cache_entry.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     config = {
         CONF_VEHICLE_NAME: "test_vehicle",

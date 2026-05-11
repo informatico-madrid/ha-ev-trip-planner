@@ -11,7 +11,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -76,7 +76,7 @@ class TestUnloadEntryTimerCancel:
         entry.runtime_data.hourly_refresh_cancel = cancel_callback
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             with patch(
@@ -106,7 +106,7 @@ class TestUnloadEntryTimerCancel:
         entry.runtime_data.hourly_refresh_cancel = None
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             with patch(
@@ -132,7 +132,7 @@ class TestUnloadEntryTimerCancel:
         entry.runtime_data = None
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             with patch(
@@ -162,7 +162,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -228,7 +228,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -290,7 +290,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -350,7 +350,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -417,7 +417,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -476,7 +476,7 @@ class TestFailedTripRollback:
         entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)

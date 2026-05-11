@@ -25,7 +25,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_VEHICLE_NAME,
     RETURN_BUFFER_HOURS,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -754,7 +754,7 @@ class TestSequentialTripDefStartBug:
         entry = MockConfigEntry("test_vehicle", config)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -1090,7 +1090,7 @@ class TestDefEndTimestepUnchanged:
         entry = MockConfigEntry("test_vehicle", config)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)
@@ -1354,7 +1354,7 @@ class TestEMHASSAdapterBatchProcessing:
         entry = MockConfigEntry("test_vehicle", config)
 
         with patch(
-            "custom_components.ev_trip_planner.emhass_adapter.Store",
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
             return_value=mock_store,
         ):
             adapter = EMHASSAdapter(hass, entry)

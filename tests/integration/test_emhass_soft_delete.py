@@ -12,7 +12,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
@@ -27,7 +27,7 @@ async def test_released_index_not_immediately_available(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -60,7 +60,7 @@ async def test_released_index_available_after_cooldown(hass: HomeAssistant, mock
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -101,7 +101,7 @@ async def test_new_trip_gets_next_available_index(hass: HomeAssistant, mock_stor
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)
@@ -146,7 +146,7 @@ async def test_multiple_indices_released_cooldown_handled_correctly(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, config)

@@ -16,7 +16,7 @@ from custom_components.ev_trip_planner import EVTripRuntimeData
 
 def test_emhass_adapter_fallback_entry_handling(hass: HomeAssistant) -> None:
     """Test EMHASSAdapter handles entries without proper data attribute."""
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create entry-like object without 'data' attribute to trigger fallback (lines 61-62)
     # Entry must have .get() method because line 64 calls entry_data.get()
@@ -51,7 +51,7 @@ async def test_publish_deferrable_loads_skips_trips_without_id(
     from unittest.mock import patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -103,7 +103,7 @@ async def test_publish_deferrable_loads_skips_trips_without_id(
 async def test_cleanup_raises_exception_for_registry(hass: HomeAssistant) -> None:
     """Test async_cleanup_vehicle_indices handles Exception for registry."""
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -138,7 +138,7 @@ async def test_cleanup_raises_exception_main_sensor_registry(
 ) -> None:
     """Test async_cleanup_vehicle_indices handles Exception for main sensor registry."""
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -180,7 +180,7 @@ async def test_get_current_soc_no_entry_data(hass: HomeAssistant) -> None:
     `if soc_current is None: soc_current = 50.0`.
     """
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create adapter without _entry_dict (triggers 1597-1598)
     entry = MockConfigEntry(
@@ -209,7 +209,7 @@ async def test_get_current_soc_invalid_soc_value(hass: HomeAssistant) -> None:
     `if soc_current is None: soc_current = 50.0`.
     """
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -526,7 +526,7 @@ async def test_cleanup_raises_homeassistant_error_for_state(
 ) -> None:
     """Test async_cleanup_vehicle_indices handles HomeAssistantError for state."""
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -564,7 +564,7 @@ async def test_cleanup_raises_homeassistant_error_vehicle_state(
 ) -> None:
     """Test async_cleanup_vehicle_indices handles HomeAssistantError for vehicle state."""
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -606,7 +606,7 @@ async def test_cleanup_raises_generic_exception_for_registry(
     from unittest.mock import MagicMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -706,7 +706,7 @@ async def test_emhass_soc_fallback_50_when_none_async_publish_deferrable_load(
 
     from homeassistant.helpers import storage as ha_storage
 
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create mock entry
     entry = MagicMock()
@@ -767,7 +767,7 @@ async def test_emhass_soc_fallback_50_when_none_publish_deferrable_loads(
     from homeassistant.helpers import storage as ha_storage
 
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     config = {
         "vehicle_name": "test_vehicle",
@@ -904,7 +904,7 @@ async def test_async_publish_deferrable_load_recurring_no_day(
     from unittest.mock import AsyncMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -919,7 +919,7 @@ async def test_async_publish_deferrable_load_recurring_no_day(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -958,7 +958,7 @@ async def test_async_publish_deferrable_load_recurring_no_time(
     from unittest.mock import AsyncMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -973,7 +973,7 @@ async def test_async_publish_deferrable_load_recurring_no_time(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1011,7 +1011,7 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
     from unittest.mock import AsyncMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1026,7 +1026,7 @@ async def test_async_publish_deferrable_load_recurring_datetime_returns_none(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1073,7 +1073,7 @@ async def test_async_publish_deferrable_load_datetime_object(
     from unittest.mock import AsyncMock, MagicMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1088,7 +1088,7 @@ async def test_async_publish_deferrable_load_datetime_object(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1139,7 +1139,7 @@ async def test_async_publish_deferrable_load_valid_recurring_covers_debug_log(
 
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1154,7 +1154,7 @@ async def test_async_publish_deferrable_load_valid_recurring_covers_debug_log(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1218,7 +1218,7 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
     from unittest.mock import AsyncMock, MagicMock, patch
 
     from custom_components.ev_trip_planner.const import DOMAIN
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1234,7 +1234,7 @@ async def test_async_publish_all_deferrable_loads_string_datetime(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -1296,7 +1296,7 @@ async def test_publish_deferrable_loads_presence_monitor_raises(
 
     from custom_components.ev_trip_planner.const import DOMAIN
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -1312,7 +1312,7 @@ async def test_publish_deferrable_loads_presence_monitor_raises(
     )
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)

@@ -1551,7 +1551,7 @@ async def test_data_flow_adapter_to_sensors():
     from homeassistant.core import HomeAssistant
 
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
     from custom_components.ev_trip_planner.sensor import (
         EmhassDeferrableLoadSensor,
         TripEmhassSensor,

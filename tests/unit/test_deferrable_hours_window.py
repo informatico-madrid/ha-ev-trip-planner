@@ -19,7 +19,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 @pytest.mark.asyncio
@@ -51,7 +51,7 @@ async def test_single_trip_short_window_no_capping(mock_hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -110,7 +110,7 @@ async def test_adjusted_hours_from_propagation_used(mock_hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -161,7 +161,7 @@ async def test_no_adjusted_hours_uses_decision(mock_hass, mock_store):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)

@@ -10,7 +10,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -89,7 +89,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -156,7 +156,7 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field(
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)

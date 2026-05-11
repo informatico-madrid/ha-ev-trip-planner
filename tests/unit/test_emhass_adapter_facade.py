@@ -6,17 +6,34 @@ import pytest  # noqa: F401
 class TestEMHASSAdapterFacade:
     """Test that EMHASSAdapter in emhass.adapter delegates to sub-components."""
 
-    def test_emhass_adapter_is_facade_not_reexport(self):
-        """EMHASSAdapter in emhass.adapter is a facade class, not the original."""
+    def test_emhass_adapter_is_facade_with_subcomponents(self):
+        """EMHASSAdapter in emhass.adapter is a facade with composed sub-components."""
+        from unittest.mock import MagicMock
+
         from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter as FacadeAdapter,
-        )
-        from custom_components.ev_trip_planner.emhass_adapter import (
-            EMHASSAdapter as OriginalAdapter,
+            EMHASSAdapter,
         )
 
-        # The facade should be a distinct class, not the original
-        assert FacadeAdapter is not OriginalAdapter
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "test_vehicle"
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+
+        # Facade exposes composed sub-components
+        assert hasattr(adapter, "_error_handler")
+        assert hasattr(adapter, "_index_manager")
+        assert hasattr(adapter, "_load_publisher")
+
+        # Facade exposes vehicle_id attribute
+        assert hasattr(adapter, "vehicle_id")
+        assert adapter.vehicle_id == "test_vehicle"
+
+        # Facade exposes state attributes
+        assert hasattr(adapter, "_published_trips")
+        assert hasattr(adapter, "_cached_per_trip_params")
+        assert hasattr(adapter, "_cached_power_profile")
+        assert hasattr(adapter, "_cached_deferrables_schedule")
+        assert hasattr(adapter, "_config_entry_listener")
 
     def test_emhass_adapter_has_error_handler_attribute(self):
         """EMHASSAdapter instances have an ErrorHandler."""

@@ -2091,7 +2091,7 @@ class TestEMHASSErrorNotifications:
 
         sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
-        from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
         # Create EMHASS adapter
         vehicle_config = {

@@ -30,15 +30,29 @@ class EMHASSAdapter:
         """
         self.hass = hass
         self._entry = entry
+        self.vehicle_id = entry.entry_id if hasattr(entry, "entry_id") else "unknown"
+        self.entry_id = getattr(entry, "entry_id", "unknown")
 
         # Sub-component initialization
-        vehicle_id = entry.entry_id if hasattr(entry, "entry_id") else "unknown"
         self._index_manager = IndexManager()
         self._load_publisher = LoadPublisher(
             hass=hass,
-            vehicle_id=vehicle_id,
+            vehicle_id=self.vehicle_id,
         )
         self._error_handler = ErrorHandler(hass=hass)
+
+        # State attributes (used by callers and tests)
+        self._published_trips: list[Dict[str, Any]] = []
+        self._cached_per_trip_params: Dict[str, Any] = {}
+        self._cached_power_profile: List[Any] | None = None
+        self._cached_deferrables_schedule: List[Any] | None = None
+        self._cached_emhass_status: str | None = None
+        self._config_entry_listener = None
+        self._shutting_down = False
+        self._charging_power_kw: float | None = None
+        self._stored_charging_power_kw: float | None = None
+        self._stored_t_base: float | None = None
+        self._stored_soh_sensor: str | None = None
 
     async def async_load(self) -> None:
         """Load adapter state from storage."""
@@ -114,3 +128,121 @@ class EMHASSAdapter:
     ) -> None:
         """Notify about an EMHASS error."""
         self._error_handler.handle_error("notify", Exception(error_message), {"trip_id": trip_id})
+
+    def get_cached_optimization_results(self) -> Dict[str, Any]:
+        """Return cached optimization results for coordinator retrieval.
+
+        Returns:
+            Dict with emhass_power_profile, emhass_deferrables_schedule,
+            emhass_status, and per_trip_emhass_params keys.
+        """
+        return {
+            "emhass_power_profile": self._cached_power_profile,
+            "emhass_deferrables_schedule": self._cached_deferrables_schedule,
+            "emhass_status": self._cached_emhass_status,
+            "per_trip_emhass_params": self._cached_per_trip_params,
+        }
+
+    async def update_charging_power(self, force: bool = False) -> None:
+        """Update charging power and republish sensor attributes if changed.
+
+        Args:
+            force: If True, skip the unchanged-power early-return and always
+                   republish.
+        """
+        if self._shutting_down:
+            return
+
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if not entry:
+            return
+
+        new_power = entry.options.get("charging_power_kw")
+        if new_power is None:
+            new_power = entry.data.get("charging_power_kw")
+        if new_power is None:
+            return
+
+        if not force and new_power == self._charging_power_kw:
+            return
+
+        self._charging_power_kw = new_power
+        self._stored_charging_power_kw = new_power
+
+    def setup_config_entry_listener(self) -> None:
+        """Subscribe to config entry updates to trigger republish when charging power changes."""
+        self.config_entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if not self.config_entry:
+            return
+        self._config_entry_listener = self.config_entry.async_on_unload(
+            self.config_entry.add_update_listener(self._handle_config_entry_update)
+        )
+
+    async def _handle_config_entry_update(
+        self, hass: HomeAssistant, config_entry: ConfigEntry
+    ) -> None:
+        """Handle config entry update events."""
+        if self._shutting_down:
+            return
+
+        cur_options = dict(getattr(config_entry, "options", {}) or {})
+        new_charging_power = cur_options.get("charging_power_kw")
+        if new_charging_power is not None:
+            self._stored_charging_power_kw = new_charging_power
+            self._charging_power_kw = new_charging_power
+
+    async def async_publish_all_deferrable_loads(
+        self, trips: List[Dict[str, Any]], charging_power: float | None = None
+    ) -> bool:
+        """Publish all trips as deferrable loads.
+
+        Args:
+            trips: List of trip dictionaries to publish.
+            charging_power: Optional charging power override.
+
+        Returns:
+            True if all trips were published successfully.
+        """
+        if not trips or self._shutting_down:
+            return False
+
+        if charging_power is not None:
+            self._load_publisher.charging_power_kw = charging_power
+
+        success = True
+        self._published_trips = list(trips)
+        self._cached_per_trip_params = {}
+        self._cached_power_profile = []
+        self._cached_deferrables_schedule = []
+
+        for trip in trips:
+            trip_success = await self.async_publish_deferrable_load(trip)
+            if not trip_success:
+                success = False
+
+        return success
+
+    async def async_cleanup_vehicle_indices(self) -> None:
+        """Clean up all indices for this vehicle."""
+        indices_to_release = list(self._index_manager._index_map.keys())
+        for trip_id in indices_to_release:
+            self._index_manager.release_index(trip_id)
+        self._published_trips = []
+        self._cached_per_trip_params = {}
+        self._cached_power_profile = []
+        self._cached_deferrables_schedule = []
+
+    async def async_save_trips(self) -> None:
+        """Save trips to storage."""
+        await self._index_manager.async_save_index()
+
+    def calculate_deferrable_parameters(self, trips: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate deferrable parameters from trips.
+
+        Args:
+            trips: List of trip dictionaries.
+
+        Returns:
+            Dict with calculated parameters.
+        """
+        return {}

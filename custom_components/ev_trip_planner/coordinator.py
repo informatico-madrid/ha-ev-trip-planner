@@ -26,7 +26,7 @@ from .const import (
     DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
 )
-from .emhass_adapter import EMHASSAdapter
+from .emhass import EMHASSAdapter
 from .trip_manager import TripManager
 
 _LOGGER = logging.getLogger(__name__)

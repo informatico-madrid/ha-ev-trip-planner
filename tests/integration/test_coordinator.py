@@ -178,7 +178,7 @@ async def test_coordinator_with_emhass_adapter_uses_cached_results(
 
     This covers line 109: if self._emhass_adapter is not None.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create mock EMHASS adapter
     mock_emhass = MagicMock(spec=EMHASSAdapter)
@@ -552,7 +552,7 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     This test verifies that when the EMHASSAdapter updates its cache,
     the coordinator reflects it in coordinator.data.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create mock EMHASS adapter with updatable data
     mock_emhass = MagicMock(spec=EMHASSAdapter)

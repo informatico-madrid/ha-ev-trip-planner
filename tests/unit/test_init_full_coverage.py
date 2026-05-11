@@ -7,7 +7,7 @@ import pytest
 
 from custom_components.ev_trip_planner import EVTripRuntimeData
 from custom_components.ev_trip_planner.__init__ import _hourly_refresh_callback
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 from custom_components.ev_trip_planner.trip_manager import TripManager
 from tests.helpers import TEST_ENTRY_ID, TEST_VEHICLE_ID
 

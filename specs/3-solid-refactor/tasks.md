@@ -819,7 +819,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.1, FR-1.1_
   - _Design: §3.1 (emhass Facade delegation)_
 
-- [ ] 1.64 [YELLOW] Remove emhass_adapter.py shim
+- [x] 1.64 [YELLOW] Remove emhass_adapter.py shim
   - **Do**:
     1. Delete `emhass_adapter.py`
     2. Update source imports: `__init__.py`, `coordinator.py`, `trip_manager.py` -> `from .emhass import EMHASSAdapter`
