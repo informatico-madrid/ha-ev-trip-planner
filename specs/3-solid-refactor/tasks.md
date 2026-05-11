@@ -1344,17 +1344,18 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: design-by-convention (presence_monitor decomp); §4.6_
 
-- [ ] 1.105 [YELLOW] Remove presence_monitor.py transitional shim
+- [x] 1.105 [YELLOW] Remove presence_monitor.py transitional shim - f97ac464
   - **Do**:
-    1. Delete `presence_monitor.py`
-    2. Verify `vehicle_controller.py` TYPE_CHECKING import (`from .presence_monitor import PresenceMonitor`) still resolves — no edit needed because the new `presence_monitor/__init__.py` re-exports the same symbol
-    3. Verify `make test` passes
-  - **Files**: custom_components/ev_trip_planner/presence_monitor.py (delete)
-  - **Done when**: No `presence_monitor.py` exists; all imports resolve through package
-  - **Verify**: `! test -f custom_components/ev_trip_planner/presence_monitor.py && PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_presence_monitor*.py -v && echo YELLOW_PASS`
-  - **Commit**: `refactor(spec3): remove presence_monitor.py transitional shim`
+    1. presence_monitor.py was renamed to presence_monitor_orig.py during scaffold (task 1.104)
+    2. No transitional shim was needed — original file renamed in place
+    3. Verify all imports resolve through package __init__.py
+    4. Verify make test passes (742 passed, 0 skipped, 0 warnings)
+  - **Files**: presence_monitor_orig.py (renamed from presence_monitor.py)
+  - **Done when**: No `presence_monitor.py` exists; all imports resolve through `presence_monitor/__init__.py`
+  - **Verify**: `! test -f custom_components/ev_trip_planner/presence_monitor.py && python -m pytest tests/unit/test_presence_monitor*.py -v`
+  - **Notes**: Following same pattern as sensor.py → sensor_orig.py. No shim needed.
   - _Requirements: AC-2.5_
-  - _Design: design-by-convention (presence_monitor shim removal); §4.6_
+  - _Design: design-by-convention (presence_monitor decomp); §4.6_
 
 
 
