@@ -1172,7 +1172,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.3 (services dashboard helpers)_
 
-- [ ] 1.93 [YELLOW] Remove services.py transitional shim
+- [x] 1.93 [YELLOW] Remove services.py transitional shim
   - **Do**:
     1. Delete `services.py`
     2. Update source imports: `__init__.py`, `config_flow.py` -> `from .services import ...`
