@@ -773,7 +773,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1, AC-1.6_
   - _Design: §3.1 (emhass LoadPublisher + cache_entry_builder)_
 
-- [ ] 1.60 [RED] Test: ErrorHandler class exists in emhass.error_handler
+- [x] 1.60 [RED] Test: ErrorHandler class exists in emhass.error_handler
   - **Do**: Write test importing `ErrorHandler` from `emhass.error_handler` and asserting it has `async_notify_error`, `async_handle_*`, `get_last_error`, `async_clear_error` methods
   - **Files**: tests/unit/test_emhass_error_handler.py
   - **Done when**: Test exists and fails
@@ -784,7 +784,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.61 [GREEN] Move error handling to `error_handler.py`
+- [x] 1.61 [GREEN] Move error handling to `error_handler.py`
   - **Do**:
     1. Extract error handling methods from `emhass_adapter.py` to `emhass/error_handler.py`
     2. `ErrorHandler` owns `_last_error`, `_notification_service`, `_hass`
@@ -796,7 +796,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.1 (emhass ErrorHandler)_
 
-- [ ] 1.62 [RED] Test: EMHASSAdapter facade delegates to sub-components
+- [x] 1.62 [RED] Test: EMHASSAdapter facade delegates to sub-components
   - **Do**: Write test that instantiates `EMHASSAdapter` (via shim) and asserts its public methods delegate to sub-component instances (`_index_manager`, `_load_publisher`, `_error_handler`)
   - **Files**: tests/unit/test_emhass_facade.py
   - **Done when**: Test exists and fails (facade not yet wired)
@@ -806,7 +806,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.1 (emhass Facade delegation)_
 
 
-- [ ] 1.63 [GREEN] Wire EMHASSAdapter facade in `adapter.py`
+- [x] 1.63 [GREEN] Wire EMHASSAdapter facade in `adapter.py`
   - **Do**:
     1. Create `emhass/adapter.py` with `EMHASSAdapter` as thin facade
     2. `__init__` instantiates `IndexManager`, `LoadPublisher`, `ErrorHandler` via composition
