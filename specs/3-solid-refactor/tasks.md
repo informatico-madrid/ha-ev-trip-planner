@@ -752,7 +752,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, emhass-index)_
 
-- [ ] 1.58 [RED] Test: LoadPublisher class exists in emhass.load_publisher
+- [x] 1.58 [RED] Test: LoadPublisher class exists in emhass.load_publisher
   - **Do**: Write test importing `LoadPublisher` from `emhass.load_publisher` and asserting it has publish/update/remove methods
   - **Files**: tests/unit/test_emhass_load_publisher.py
   - **Done when**: Test exists and fails
