@@ -499,8 +499,8 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 - [x] V3 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks after vehicle decomposition
-  - **Verify**: `make lint && make typecheck`
-  - **Done when**: No lint errors, no type errors
+  - **Verify**: `make layer3a`
+  - **Done when**: ruff check passes on custom_components/, pyright 0 errors
   - **Commit**: `chore(spec3): pass quality checkpoint vehicle`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, vehicle)_
@@ -573,10 +573,10 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-7.2_
   - _Design: §3.4 + §4.3 (dashboard Facade + TEMPLATES_DIR)_
 
-- [ ] V4 [VERIFY] Quality check: ruff check && pyright
+- [x] V4 [VERIFY] Quality check: ruff check && pyright
   - **Do**: Run quality checks after initial dashboard package creation
-  - **Verify**: `make lint && make typecheck`
-  - **Done when**: No lint errors, no type errors
+  - **Verify**: `make layer3a`
+  - **Done when**: ruff check passes on custom_components/, pyright 0 errors
   - **Commit**: `chore(spec3): pass quality checkpoint dashboard-init`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, dashboard-init)_
