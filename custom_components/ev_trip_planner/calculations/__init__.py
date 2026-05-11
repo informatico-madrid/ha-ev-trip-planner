@@ -11,19 +11,12 @@ this file will be updated to import from them instead.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone  # noqa: F401
+
 # Import all public symbols from the legacy module file (now _orig).
 # These imports are temporary -- sub-modules will take ownership later.
 from custom_components.ev_trip_planner.calculations_orig import (
-    # Core types and functions (overridden by .core below)
-    BatteryCapacity,
-    calculate_charging_rate,
-    calculate_day_index,
-    calculate_dynamic_soc_limit,
-    calculate_soc_target,
     DAYS_OF_WEEK,
-    calculate_trip_time,
-    # Additional names used by downstream callers
-    DEFAULT_T_BASE,
     SOH_CACHE_TTL_SECONDS,
 )
 
@@ -67,10 +60,6 @@ from .deficit import (
     calculate_soc_at_trip_starts,
     determine_charging_need,
 )
-
-# Re-export datetime/timezone/timedelta for test mocking (tests patch calculations.datetime).
-# These are used internally by calculations_orig.py functions that call datetime.now().
-from datetime import datetime, timedelta, timezone  # noqa: F401
 
 __all__ = [
     "BatteryCapacity",

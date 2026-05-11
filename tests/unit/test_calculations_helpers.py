@@ -7,7 +7,6 @@ calculations._helpers after the functional decomposition split.
 
 from __future__ import annotations
 
-import pytest
 
 
 def test_ensure_aware_exists_in_helpers_module() -> None:

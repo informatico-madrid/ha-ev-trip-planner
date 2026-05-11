@@ -11,18 +11,18 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from .core import calculate_trip_time
-from .windows import calculate_charging_window_pure, calculate_energy_needed
-from ..const import DEFAULT_SAFETY_MARGIN
-from ..utils import calcular_energia_kwh
-from ._helpers import _ensure_aware
-
 # Functions still in calculations_orig that power.py depends on.
 # These will be moved to deficit.py in a later task.
 from custom_components.ev_trip_planner.calculations_orig import (
     calculate_next_recurring_datetime,
     determine_charging_need,
 )
+
+from ..const import DEFAULT_SAFETY_MARGIN
+from ..utils import calcular_energia_kwh
+from ._helpers import _ensure_aware
+from .core import calculate_trip_time
+from .windows import calculate_charging_window_pure, calculate_energy_needed
 
 
 def calculate_power_profile_from_trips(

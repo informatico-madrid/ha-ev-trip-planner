@@ -12,7 +12,6 @@ This test verifies the import path exists before implementation.
 
 from __future__ import annotations
 
-import pytest
 
 
 class TestPowerModuleExports:

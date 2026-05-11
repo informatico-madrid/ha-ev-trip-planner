@@ -120,7 +120,6 @@ class TestPreviousArrivalInvariant:
 
         # The window_start for trip 2 should NOT be delayed by an extra 6h
         expected_start_correct = trip1_departure + timedelta(hours=4)  # 22:00
-        buggy_start = trip1_departure + timedelta(hours=10)  # 04:00 next day
 
         assert results[1]["inicio_ventana"] == expected_start_correct, (
             f"Window start should be 22:00 (departure + 4h buffer), "

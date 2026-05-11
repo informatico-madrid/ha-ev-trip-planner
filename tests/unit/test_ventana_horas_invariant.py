@@ -7,7 +7,7 @@ ventana_horas systematically larger than the actual available window.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 

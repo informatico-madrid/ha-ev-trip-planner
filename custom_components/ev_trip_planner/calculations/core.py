@@ -9,10 +9,9 @@ More sub-modules will be created as the decomposition progresses.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from custom_components.ev_trip_planner.const import (
     DEFAULT_SOC_BASE,
