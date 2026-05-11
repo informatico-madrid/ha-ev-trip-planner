@@ -15,9 +15,8 @@ of each module's public API.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -27,15 +26,7 @@ from custom_components.ev_trip_planner.trip import (
     SOCMilestoneResult,
     TripManager,
 )
-from custom_components.ev_trip_planner.trip._crud_mixin import _CRUDMixin
-from custom_components.ev_trip_planner.trip._power_profile_mixin import _PowerProfileMixin
-from custom_components.ev_trip_planner.trip._schedule_mixin import _ScheduleMixin
 from custom_components.ev_trip_planner.trip._sensor_callbacks import _SensorCallbacks
-from custom_components.ev_trip_planner.trip._soc_mixin import _SOCMixin
-from custom_components.ev_trip_planner.trip._types import (
-    CargaVentana as CargaVentanaType,
-    SOCMilestoneResult as SOCMilestoneResultType,
-)
 from typing import get_type_hints
 
 
@@ -777,7 +768,9 @@ class TestSensorCallbackRegistry:
     def test_remove_callback(self):
         reg = SensorCallbackRegistry()
         called = []
-        cb = lambda v: called.append(v)
+        def cb(v):
+            called.append(v)
+
         reg.add("s1", cb)
         assert reg.remove("s1", cb) is True
         assert reg.remove("s1", cb) is False  # already removed
@@ -828,8 +821,8 @@ class TestTypes:
 
     def test_carga_ventana_types(self):
         hints = get_type_hints(CargaVentana)
-        assert hints["ventana_horas"] == float
-        assert hints["es_suficiente"] == bool
+        assert hints["ventana_horas"] is float
+        assert hints["es_suficiente"] is bool
 
     def test_soc_milestone_result_has_nested_carga(self):
         hints = get_type_hints(SOCMilestoneResult)

@@ -6,9 +6,8 @@ Tests public methods, edge cases, and backward-compat attributes.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime, timezone
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -86,9 +85,12 @@ class TestErrorHandlerInit:
         )
 
         callback_calls: list = []
-        callback = lambda op, exc: callback_calls.append((op, exc))
-        handler = ErrorHandler(hass=mock_hass, on_error=callback)
-        assert handler._on_error is callback
+
+        def _callback(op, exc):
+            callback_calls.append((op, exc))
+
+        handler = ErrorHandler(hass=mock_hass, on_error=_callback)
+        assert handler._on_error is _callback
 
     def test_error_handler_with_none_callback(self, mock_hass):
         """ErrorHandler works with explicit None callback."""
@@ -142,8 +144,11 @@ class TestErrorHandlerHandleError:
         )
 
         received: list = []
-        callback = lambda op, exc: received.append((op, exc))
-        handler = ErrorHandler(hass=mock_hass, on_error=callback)
+
+        def _callback(op, exc):
+            received.append((op, exc))
+
+        handler = ErrorHandler(hass=mock_hass, on_error=_callback)
         error = KeyError("callback test")
         handler.handle_error("remove", error)
 
@@ -160,8 +165,11 @@ class TestErrorHandlerHandleError:
         )
 
         caplog.set_level(logging.ERROR)
-        callback = lambda op, exc: 1 / 0  # triggers ZeroDivisionError
-        handler = ErrorHandler(hass=mock_hass, on_error=callback)
+
+        def _callback(op, exc):
+            1 / 0  # triggers ZeroDivisionError
+
+        handler = ErrorHandler(hass=mock_hass, on_error=_callback)
         error = ValueError("callback raises")
         handler.handle_error("notify", error)
 
@@ -642,7 +650,6 @@ class TestLoadPublisherDeadlineCalculation:
 
     def test_punctual_trip_with_iso_string(self, mock_hass):
         """Deadline from ISO string is returned as aware datetime."""
-        from datetime import timezone
 
         from custom_components.ev_trip_planner.emhass.load_publisher import (
             LoadPublisher,
