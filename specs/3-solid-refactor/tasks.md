@@ -625,12 +625,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1, AC-1.5_
   - _Design: §3.4 (dashboard Builder)_
 
-- [ ] 1.48 [RED] Test: dashboard.py transitional shim re-exports all public + private names
-  - **Do**: Write test asserting that `from dashboard import _load_dashboard_template` (and similar private helpers) still resolves through the shim
-  - **Files**: tests/unit/test_dashboard_shim.py
-  - **Done when**: Test exists and fails (shim not yet created)
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard_shim.py -v 2>&1 | grep -q "FAILED\|FAIL" && echo RED_PASS`
-  - **Commit**: `test(spec3): red - dashboard.py shim must re-export private helpers for tests`
+- [x] 1.48 [RED] Test: dashboard.py transitional shim re-exports all public + private names - <pending>
   - _Requirements: AC-2.5_
   - _Design: §3.4 + §4.6 (dashboard shim re-exports)_
 
