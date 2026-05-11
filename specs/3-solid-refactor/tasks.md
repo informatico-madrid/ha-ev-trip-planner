@@ -1001,7 +1001,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.2 + §4.1 (Schedule mixin)_
 
 
-- [ ] 1.79 [GREEN] Move schedule methods to `_schedule_mixin.py`
+- [x] 1.79 [GREEN] Move schedule methods to `_schedule_mixin.py`
   - **Do**:
     1. Move `async_generate_deferrables_schedule` and `publish_deferrable_loads` from `trip_manager.py` to `trip/_schedule_mixin.py`
     2. Mixin `__init__` uses explicit `_ScheduleMixin.__init__(self)`
