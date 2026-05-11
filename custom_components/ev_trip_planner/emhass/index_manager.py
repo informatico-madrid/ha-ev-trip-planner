@@ -8,9 +8,14 @@ from typing import Optional
 class IndexManager:
     """Manages the trip_id -> emhass_index mapping."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        max_deferrable_loads: int = 50,
+        cooldown_hours: int = 24,
+    ) -> None:
         self._index_map: dict[str, int] = {}
-        self._index_cooldown_hours: int = 24
+        self._index_cooldown_hours: int = cooldown_hours
+        self._max_deferrable_loads: int = max_deferrable_loads
 
     async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
         """Assign an available index to a trip.
@@ -47,3 +52,14 @@ class IndexManager:
     async def async_save_index(self) -> None:
         """Save index map to storage. Called after index changes."""
         pass
+
+    def assign_index(self, trip_id: str) -> Optional[int]:
+        """Sync version of async_assign_index_to_trip for LoadPublisher."""
+        return self._index_map.get(trip_id) if trip_id in self._index_map else (
+            max(self._index_map.values()) + 1 if self._index_map else 0
+        )
+
+    def release_index(self, trip_id: str) -> bool:
+        """Sync version of async_release_index for LoadPublisher."""
+        released = self._index_map.pop(trip_id, None)
+        return released is not None
