@@ -863,7 +863,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: §3.2 (trip Facade + Mixins)_
 
-- [ ] 1.67 [GREEN] Scaffold trip/ with re-exports and shims
+- [x] 1.67 [GREEN] Scaffold trip/ with re-exports and shims
   - **Do**:
     1. Create `custom_components/ev_trip_planner/trip/` directory
     2. Create `__init__.py` re-exporting `TripManager`, `CargaVentana`, `SOCMilestoneResult`
