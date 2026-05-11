@@ -613,7 +613,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.47 [GREEN] Create `DashboardBuilder` in `builder.py`
+- [x] 1.47 [GREEN] Create `DashboardBuilder` in `builder.py`
   - **Do**:
     1. Extract dashboard config construction logic from `import_dashboard` into `DashboardBuilder` class in `dashboard/builder.py`
     2. Keep `import_dashboard` in `dashboard/importer.py` as orchestrator (~80 LOC)
