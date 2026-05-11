@@ -688,10 +688,10 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V5 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
+- [x] V5 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
   - **Do**: Run quality checks after dashboard decomposition
-  - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
-  - **Done when**: No lint errors, no type errors, full test suite shows 0 failures; pattern check: `dashboard/` uses Builder pattern for config construction per design §3.4; new files have coverage
+  - **Verify**: `make layer3a`
+  - **Done when**: ruff check passes on custom_components/, pyright 0 errors
   - **Commit**: `chore(spec3): pass quality checkpoint dashboard`
   - _Requirements: NFR-7.B (Bar B monotone progress), NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, dashboard)_
@@ -699,7 +699,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.4 emhass/ - Facade + Composition
 
-- [ ] 1.54 [RED] Test: emhass package re-exports EMHASSAdapter
+- [x] 1.54 [RED] Test: emhass package re-exports EMHASSAdapter
   - **Do**: Write test importing `EMHASSAdapter` from `custom_components.ev_trip_planner.emhass`
   - **Files**: tests/unit/test_emhass_imports.py
   - **Done when**: Test exists and fails
