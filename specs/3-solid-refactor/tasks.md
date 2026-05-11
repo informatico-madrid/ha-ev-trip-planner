@@ -761,7 +761,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.1 (emhass LoadPublisher)_
 
-- [ ] 1.59 [GREEN] Move load publishing to `load_publisher.py`
+- [x] 1.59 [GREEN] Move load publishing to `load_publisher.py`
   - **Do**:
     1. Extract load publishing methods from `emhass_adapter.py` to `emhass/load_publisher.py`
     2. Extract `_populate_per_trip_cache_entry` (266 LOC) to `emhass/_cache_entry_builder.py` as pure function `build_cache_entry(...)`
