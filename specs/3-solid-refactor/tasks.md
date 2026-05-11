@@ -733,7 +733,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.57 [GREEN] Move index management to `index_manager.py`
+- [x] 1.57 [GREEN] Move index management to `index_manager.py`
   - **Do**:
     1. Extract `IndexManager` class methods (`async_assign_index_to_trip`, `async_release_trip_index`, `get_assigned_index`, `get_all_assigned_indices`, `get_available_indices`, `async_cleanup_vehicle_indices`, `verify_cleanup`, `_get_config_sensor_id`) from `emhass_adapter.py` to `emhass/index_manager.py`
     2. Keep Store persistence, index map, released indices as `IndexManager` state
