@@ -108,7 +108,7 @@ class _SensorCallbacks:
     def _get_sensor_mod(self):
         """Lazy import sensor module to avoid circular dependency."""
         # pylint: disable=import-outside-toplevel
-        from . import sensor as _sensor_mod
+        from .. import sensor as _sensor_mod
         return _sensor_mod
 
     def emit(
@@ -118,6 +118,7 @@ class _SensorCallbacks:
         entry_id: str,
         trip_data: Dict[str, Any] | None = None,
         trip_id: str | None = None,
+        vehicle_id: str | None = None,
     ) -> None:
         """Dispatch a sensor lifecycle event.
 
@@ -130,6 +131,7 @@ class _SensorCallbacks:
             entry_id: Config entry ID for entity registry lookups.
             trip_data: Trip dictionary (required for create/update).
             trip_id: Trip ID (required for remove/EMHASS sensor).
+            vehicle_id: Vehicle identifier (required for EMHASS sensor).
         """
         try:
             sensor_mod = self._get_sensor_mod()
@@ -140,13 +142,13 @@ class _SensorCallbacks:
                 sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
 
             elif event == "trip_sensor_created_emhass":
-                self._emit_create_emhass(hass, entry_id, trip_id)
+                self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_removed":
                 sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
 
             elif event == "trip_sensor_removed_emhass":
-                self._emit_remove_emhass(hass, entry_id, trip_id)
+                self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_sensor_updated":
                 sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
@@ -166,6 +168,7 @@ class _SensorCallbacks:
         self,
         hass: HomeAssistant,
         entry_id: str,
+        vehicle_id: str,
         trip_id: str,
     ) -> None:
         """Create an EMHASS sensor for a trip.
@@ -193,7 +196,7 @@ class _SensorCallbacks:
 
             sensor_mod = self._get_sensor_mod()
             sensor_mod.async_create_trip_emhass_sensor(
-                hass, entry_id, coordinator, trip_id
+                hass, entry_id, coordinator, vehicle_id, trip_id
             )
         except Exception as err:
             _LOGGER.debug(
@@ -206,10 +209,11 @@ class _SensorCallbacks:
         self,
         hass: HomeAssistant,
         entry_id: str,
+        vehicle_id: str,
         trip_id: str,
     ) -> None:
         """Remove an EMHASS sensor for a trip."""
         sensor_mod = self._get_sensor_mod()
         sensor_mod.async_remove_trip_emhass_sensor(
-            hass, entry_id, trip_id
+            hass, entry_id, vehicle_id, trip_id
         )

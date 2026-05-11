@@ -5,6 +5,7 @@ from custom_components.ev_trip_planner.trip._sensor_callbacks import SensorCallb
 from custom_components.ev_trip_planner.trip._soc_mixin import _SOCMixin
 from custom_components.ev_trip_planner.trip._types import CargaVentana
 from custom_components.ev_trip_planner.trip._types import SOCMilestoneResult
+from custom_components.ev_trip_planner.trip.manager import TripManager
 
 __all__ = [
     "TripManager",
@@ -16,12 +17,3 @@ __all__ = [
     "_PowerProfileMixin",
     "_ScheduleMixin",
 ]
-
-
-def __getattr__(name):
-    """Lazy import to avoid circular dependency with trip_manager."""
-    if name == "TripManager":
-        from custom_components.ev_trip_planner.trip_manager import TripManager
-
-        return TripManager
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

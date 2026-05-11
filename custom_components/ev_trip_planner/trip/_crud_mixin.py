@@ -376,7 +376,7 @@ class _CRUDMixin:
             trip_id = kwargs["trip_id"]
         else:
             day = kwargs.get("dia_semana", "lunes")
-            trip_id = generate_trip_id("recurring", day)
+            trip_id = generate_trip_id("recurrente", day)
         self._recurring_trips[trip_id] = {
             "id": trip_id,
             "tipo": TRIP_TYPE_RECURRING,
@@ -401,12 +401,14 @@ class _CRUDMixin:
             self._entry_id,
             self._recurring_trips[trip_id],
             trip_id,
+            self.vehicle_id,
         )
         self._sensor_callbacks.emit(
             "trip_sensor_created_emhass",
             self.hass,
             self._entry_id,
             trip_id=trip_id,
+            vehicle_id=self.vehicle_id,
         )
 
         # T019.3: Publish new trip to EMHASS
@@ -456,12 +458,14 @@ class _CRUDMixin:
             self._entry_id,
             self._punctual_trips[trip_id],
             trip_id,
+            self.vehicle_id,
         )
         self._sensor_callbacks.emit(
             "trip_sensor_created_emhass",
             self.hass,
             self._entry_id,
             trip_id=trip_id,
+            vehicle_id=self.vehicle_id,
         )
 
         # T019.3: Publish new trip to EMHASS
@@ -596,6 +600,7 @@ class _CRUDMixin:
             self.hass,
             self._entry_id,
             trip_id=trip_id,
+            vehicle_id=self.vehicle_id,
         )
 
         # T019.3: Remove from EMHASS when deleted
