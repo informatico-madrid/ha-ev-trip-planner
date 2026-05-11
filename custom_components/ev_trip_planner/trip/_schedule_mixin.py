@@ -231,8 +231,6 @@ class _ScheduleMixin:
             trips: Optional list of trips to publish. If None, gets all
                    active trips from storage.
         """
-        from ..emhass import EMHASSAdapter
-
         # Get all active trips if not provided
         if trips is None:
             await self._load_trips()
@@ -244,9 +242,9 @@ class _ScheduleMixin:
                 if trip.get("estado") == "pendiente":
                     trips.append(trip)
 
-        # Publish through EMHASS adapter
+        # Publish through EMHASS adapter (duck typed for test compatibility)
         adapter = getattr(self, "_emhass_adapter", None)
-        if adapter and isinstance(adapter, EMHASSAdapter):
+        if adapter and hasattr(adapter, "async_publish_all_deferrable_loads"):
             try:
                 await adapter.async_publish_all_deferrable_loads(trips)
             except Exception:  # pragma: no cover
