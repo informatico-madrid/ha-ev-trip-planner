@@ -1402,7 +1402,7 @@ These tasks implement the Human's explicit decision (chat.md 2026-05-11 13:52) t
   - **Done when**: New test files exist covering all trip/ public methods
   - **Commit**: `test(spec3): recreate trip package tests against new SOLID API`
 
-- [ ] 2.05 [TDD-RED] Write new tests for dashboard/ package (facade + builder + template_manager)
+- [x] 2.05 [TDD-RED] Write new tests for dashboard/ package (facade + builder + template_manager)
   - **Do**: Write tests in tests/unit/ for dashboard/importer.py, dashboard/builder.py, dashboard/template_manager.py
   - **Verify**: `pytest tests/unit/test_dashboard_*.py --co -q | wc -l` shows ≥ 20 new tests
   - **Done when**: New test files exist covering all dashboard/ public methods
