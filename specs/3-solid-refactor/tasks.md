@@ -1185,7 +1185,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.3 + §4.6 (transitional shim removal)_
 
 
-- [ ] 1.94 [VERIFY] Update mutation config for services modules
+- [x] 1.94 [VERIFY] Update mutation config for services modules
   - **Do**:
     1. Remove `[tool.quality-gate.mutation.modules.services]` from pyproject.toml
     2. Add entries for `services.handlers`, `services.handler_factories`, `services.cleanup`, `services.dashboard_helpers` inheriting original `kill_threshold`
@@ -1196,7 +1196,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-5.1_
   - _Design: §4.7 (Mutation Config Path-Rename Mapping)_
 
-- [ ] V9 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
+- [x] V9 [VERIFY] Quality check: ruff check && pyright && make test-cover (0 failures, pattern verification)
   - **Do**: Run quality checks after services decomposition
   - **Verify**: `make lint && make typecheck && make test-cover 2>&1 | grep -q "passed, 0 failed" && echo VERIFY_PASS`
   - **Done when**: No lint errors, no type errors, full test suite shows 0 failures; pattern check: `services/` uses module-level dispatcher with `make_*_handler` factory functions per design §3.3; new files have coverage
@@ -1207,7 +1207,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 ### 1.7 sensor.py - Decomposition + Pyright Error Fixes
 
-- [ ] 1.95 [RED] Test: sensor package re-exports HA platform entities
+- [x] 1.95 [RED] Test: sensor package re-exports HA platform entities
   - **Do**: Write test importing `async_setup_entry`, `TripPlannerSensor`, `EmhassDeferrableLoadSensor`, `TripSensor`, `TripEmhassSensor` from `custom_components.ev_trip_planner.sensor`
   - **Files**: tests/unit/test_sensor_imports.py
   - **Done when**: Test exists and fails (package doesn't exist yet)
