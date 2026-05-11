@@ -1187,3 +1187,29 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
   2. Update conftest.py:822 from `emhass_adapter.datetime` to `emhass.adapter.datetime`
   3. Re-run verify command to confirm 0 failures
 - **resolved_at**: <!-- spec-executor fills this -->
+
+---
+
+### [task-V7] VERIFY: Quality check after emhass decomposition — FAIL
+
+- **status**: FAIL
+- **severity**: critical
+- **reviewed_at**: 2026-05-11T06:28:00Z
+- **criterion_failed**: V7 verify command `make layer3a` — 191 test failures + 2 errors block quality gate
+- **evidence**: |
+  V7 done-when: "ruff check passes on custom_components/, pyright 0 errors; pattern check: emhass/ uses Facade + Composition"
+  
+  ruff check: PASS (emhass/ clean after executor fixed lint errors)
+  
+  Test suite: 191 failed, 49 passed, 2 errors in emhass tests
+  - 191 failures: `emhass.adapter.Store` attribute not found — tests mock old `emhass_adapter.Store` path
+  - 2 errors: conftest.py:822 patches deleted `emhass_adapter.datetime` module
+  
+  Pattern check: emhass/ DOES use Facade + Composition (IndexManager, LoadPublisher, ErrorHandler) ✓
+  
+  But "0 failures" criterion is NOT met. V7 is FAIL.
+- **fix_hint**: 
+  1. Fix conftest.py:822 — change `emhass_adapter.datetime` to `emhass.adapter.datetime`
+  2. Fix 191 test mock paths from `emhass_adapter.Store` to `emhass.adapter.Store` (or re-export Store from adapter.py)
+  3. Re-run `make layer3a` to confirm 0 failures
+- **resolved_at**: <!-- spec-executor fills this -->
