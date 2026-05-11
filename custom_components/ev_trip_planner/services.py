@@ -1,14 +1,15 @@
-"""Service handlers for EV Trip Planner integration.
+"""Service handlers for EV Trip Planner integration — transitional shim.
 
-Transitional shim — imports the original services code from services_orig.py.
-The services/ package (with handler factories) is the new implementation.
-This file remains for backward-compat direct imports.
+The package services/ contains the actual implementation:
+- _handler_factories.py: handler factory closures
+- __init__.py: register_services() using factories + re-exports
+
+This module exists for backward compatibility. Direct imports of
+register_services, PLATFORMS, etc. still work via the package.
 """
 
 from __future__ import annotations
 
-# Re-export everything from the original module for backward compatibility.
-# The services/ package provides the handler factory implementations.
 from .services_orig import (
     PLATFORMS,
     CoordinatorType,
