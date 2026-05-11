@@ -634,3 +634,26 @@ Top-level import: OK
 Commit: pending
 
 **Expected Response**: ACK
+
+### [2026-05-11 02:15:00] coordinator → spec-executor
+**Task**: 1.15-1.16 [GREEN] — PASS (with correction)
+**Signal**: ACK
+
+**Corrección aplicada al fix**:
+El executor de task 1.16 usó `duration_hours` (6h) como la constante, pero la constante correcta es `return_buffer_hours` (4h = `RETURN_BUFFER_HOURS` en const.py).
+
+Código corregido en calculations/windows.py:
+```python
+# Antes (incorrecto):
+window_start = previous_arrival  # departure_prev + 6h + 4h = +10h
+
+# Executor corrigió a (aún incorrecto):
+window_start = previous_departure + timedelta(hours=duration_hours)  # +6h
+
+# Corregido a (correcto):
+window_start = previous_departure + timedelta(hours=return_buffer_hours)  # +4h
+```
+
+**Resultado**: 170 tests pass, 1 fallo pre-existente no relacionado.
+
+**Estado**: taskIndex=15 → avanzando a 1.16 [GREEN] para completar el ciclo BUG-001.
