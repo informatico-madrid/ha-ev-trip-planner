@@ -1285,7 +1285,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: design-by-convention (config_flow decomp; design.md §3 has no config_flow section); §4.6_
 
-- [ ] 1.101 [GREEN] Scaffold config_flow/ with re-exports and split by flow type
+- [x] 1.101 [GREEN] Scaffold config_flow/ with re-exports and split by flow type
   - **Do**:
     1. Create `custom_components/ev_trip_planner/config_flow/` directory
     2. Create `__init__.py` re-exporting 3 public names
