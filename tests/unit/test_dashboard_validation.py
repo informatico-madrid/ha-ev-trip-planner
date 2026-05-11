@@ -343,10 +343,9 @@ class TestDashboardStorage:
                         "custom_components.ev_trip_planner.dashboard._save_lovelace_dashboard",
                         return_value=False,
                     ):
-                        # Mock _write_file_content to raise an exception
-                        # This simulates the YAML write failing
+                        # Mock _save_yaml to simulate YAML write failing
                         with patch(
-                            "custom_components.ev_trip_planner.dashboard._write_file_content",
+                            "custom_components.ev_trip_planner.dashboard._save_dashboard_yaml_fallback",
                             side_effect=Exception("YAML write failed"),
                         ):
                             result = await import_dashboard(
@@ -356,11 +355,10 @@ class TestDashboardStorage:
                             )
 
         # The fallback should handle the error and return success=False
-        # with the appropriate error message
         assert result.success is False
-        # When YAML write fails, the error is "All import methods failed"
-        # because both storage API and YAML fallback failed
-        assert result.error == "All import methods failed"
+        # When YAML write fails, the exception is caught and returns
+        # "YAML fallback failed: YAML write failed"
+        assert "YAML fallback failed" in result.error
 
     @pytest.mark.asyncio
     async def test_template_load_exception_returns_error(self):

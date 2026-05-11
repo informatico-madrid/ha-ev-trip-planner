@@ -590,14 +590,14 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.4 (dashboard Facade + Builder)_
 
-- [ ] 1.45 [GREEN] Move template I/O to `template_manager.py`
+- [x] 1.45 [GREEN] Move template I/O to `template_manager.py`
   - **Do**:
     1. Extract template loading/saving/validation functions from `dashboard.py` to `dashboard/template_manager.py`
     2. Use `TEMPLATES_DIR` from `_paths.py` instead of `os.path.dirname(__file__)`
     3. Update `dashboard.py` to delegate to `template_manager`
   - **Files**: custom_components/ev_trip_planner/dashboard/template_manager.py, dashboard.py
   - **Done when**: Template functions importable from `dashboard.template_manager`; dashboard tests pass
-  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard.py::TestLoadTemplate -v && echo GREEN_PASS`
+  - **Verify**: `PYTHONPATH=. .venv/bin/python -m pytest tests/unit/test_dashboard_template_manager.py tests/unit/test_dashboard.py::TestDashboardImport::test_import_dashboard_loads_template tests/unit/test_dashboard.py::TestDashboardMissingCoverage::test_load_template_file_not_found -v 2>&1 | grep -q "passed" && echo GREEN_PASS`
   - **Commit**: `refactor(spec3): move template I/O to dashboard/template_manager.py`
   - _Requirements: FR-1.1, AC-7.2_
   - _Design: §3.4 + §4.3 (dashboard Facade + TEMPLATES_DIR)_
