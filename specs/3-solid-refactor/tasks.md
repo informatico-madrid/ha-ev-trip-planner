@@ -1023,7 +1023,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §3.2 + §4.1 (TripManager facade)_
 
 
-- [ ] 1.81 [GREEN] Wire TripManager facade in `manager.py`
+- [x] 1.81 [GREEN] Wire TripManager facade in `manager.py`
   - **Do**:
     1. Create `trip/manager.py` with `TripManager(_CRUDMixin, _SOCMixin, _PowerProfileMixin, _ScheduleMixin)`
     2. `__init__` establishes shared state on `self` FIRST, then calls explicit `_Mixin.__init__(self)` for each mixin (per design §4.1)
@@ -1036,7 +1036,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.2_
   - _Design: §3.2 + §4.1 (TripManager facade mixin chain)_
 
-- [ ] 1.82 [YELLOW] Update trip test imports to new paths (Phase 2)
+- [x] 1.82 [YELLOW] Update trip test imports to new paths (Phase 2)
   - **Do**:
     1. Update test files importing private names from `trip_manager.py` to import from `trip/` sub-modules
     2. Files: `tests/unit/conftest.py` (3 imports), `tests/integration/conftest.py` (2 imports), plus any integration tests
@@ -1048,7 +1048,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Design: §4.6 (Test Import Migration)_
 
 
-- [ ] 1.83 [YELLOW] Remove trip_manager.py transitional shim
+- [x] 1.83 [YELLOW] Remove trip_manager.py transitional shim
   - **Do**:
     1. Delete `trip_manager.py`
     2. Update source imports: `__init__.py`, `coordinator.py`, `services.py`, `presence_monitor.py` -> `from .trip import TripManager`
