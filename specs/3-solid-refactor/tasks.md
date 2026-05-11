@@ -1106,7 +1106,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4, AC-2.5_
   - _Design: §3.3 (services Module-Level Facade)_
 
-- [ ] 1.87 [RED] Test: _handler_factories.py creates handler closures
+- [x] 1.87 [RED] Test: _handler_factories.py creates handler closures
   - **Do**: Write test asserting `make_*_handler(hass, entry)` functions return async handler functions
   - **Files**: tests/unit/test_services_handler_factories.py
   - **Done when**: Test exists and fails
@@ -1117,7 +1117,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
 
 
 
-- [ ] 1.88 [GREEN] Extract handler factories from `register_services`
+- [x] 1.88 [GREEN] Extract handler factories from `register_services`
   - **Do**:
     1. Extract each inner `async def handle_*` from `register_services` into `make_*_handler(hass, entry)` factory functions in `services/_handler_factories.py`
     2. Each factory <= 80 LOC (from 688 LOC total)

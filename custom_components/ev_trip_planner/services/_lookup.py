@@ -1,4 +1,4 @@
-"""Lookup utilities — re-exported from services_orig.py (transitional)."""
+"""Lookup utilities — re-exported from services package (transitional)."""
 
 from __future__ import annotations
 
