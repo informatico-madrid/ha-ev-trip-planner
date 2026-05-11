@@ -602,7 +602,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1, AC-7.2_
   - _Design: §3.4 + §4.3 (dashboard Facade + TEMPLATES_DIR)_
 
-- [ ] 1.46 [RED] Test: DashboardBuilder construct dashboard config
+- [x] 1.46 [RED] Test: DashboardBuilder construct dashboard config
   - **Do**: Write test asserting `DashboardBuilder.with_title().add_status_view().add_trip_list_view().build()` produces valid config dict
   - **Files**: tests/unit/test_dashboard_builder.py
   - **Done when**: Test exists and fails
