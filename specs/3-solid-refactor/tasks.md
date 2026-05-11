@@ -1229,7 +1229,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: design-by-convention (sensor decomp; design.md §3 has no sensor section); NFR-7.A.5 + FR-1.7_
 
-- [ ] 1.97 [RED] Test: sensor.py has zero pyright errors
+- [x] 1.97 [RED] Test: sensor.py has zero pyright errors
   - **Do**: Write a shell-test asserting `make typecheck` reports zero errors for sensor files
   - **Files**: tests/unit/test_sensor_pyright.py
   - **Done when**: Test exists and fails (16 pre-existing pyright errors in sensor.py)
