@@ -744,7 +744,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: FR-1.1_
   - _Design: §3.1 (emhass IndexManager)_
 
-- [ ] V6 [VERIFY] Quality check: ruff check && pyright after emhass index+load
+- [x] V6 [VERIFY] Quality check: ruff check && pyright after emhass index+load
   - **Do**: Run quality checks after index_manager and load_publisher decomposition
   - **Verify**: `make lint && make typecheck`
   - **Done when**: No lint errors, no type errors
