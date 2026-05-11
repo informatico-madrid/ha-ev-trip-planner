@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, cal
 
 from .const import DOMAIN
 from .coordinator import TripPlannerCoordinator
-from .dashboard import DashboardImportResult
+from .dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
 from .trip_manager import TripManager
 from .utils import normalize_vehicle_id
 
@@ -1091,7 +1091,7 @@ async def create_dashboard_input_helpers(
             _LOGGER.debug("Input datetime may already exist: %s", e)
 
         _LOGGER.info("Input helpers created successfully for: %s", vehicle_id)
-        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
 
         return DashboardImportResult(
             success=True,
@@ -1103,7 +1103,7 @@ async def create_dashboard_input_helpers(
 
     except Exception as e:
         _LOGGER.error("Failed to create input helpers for %s: %s", vehicle_id, e)
-        from custom_components.ev_trip_planner.dashboard import DashboardImportResult
+        from custom_components.ev_trip_planner.dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
 
         return DashboardImportResult(
             success=False,
@@ -1367,7 +1367,7 @@ async def async_import_dashboard_for_entry(
         entry: The config entry.
         vehicle_id: The vehicle ID string.
     """
-    from .dashboard import import_dashboard as import_dashboard
+    from .dashboard import import_dashboard as import_dashboard  # type: ignore[reportAttributeAccessIssue]
 
     try:
         use_charts = entry.data.get("use_charts", False)

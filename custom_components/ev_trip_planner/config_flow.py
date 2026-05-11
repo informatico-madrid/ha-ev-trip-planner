@@ -49,7 +49,7 @@ from .const import (
     MAX_T_BASE,
     MIN_T_BASE,
 )
-from .dashboard import import_dashboard, is_lovelace_available
+from .dashboard import import_dashboard, is_lovelace_available  # type: ignore[reportAttributeAccessIssue]
 
 _LOGGER = logging.getLogger(__name__)
 

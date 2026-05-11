@@ -27,6 +27,7 @@ class RetryState:
     attempts: List[float] = field(default_factory=list)
 
     def add_attempt(self) -> None:
+        """Record a retry attempt at the current time, pruning stale entries."""
         current_time = time.time()
         self.attempts.append(current_time)
         self.attempts = [
@@ -34,6 +35,7 @@ class RetryState:
         ]
 
     def should_retry(self) -> bool:
+        """Return True if retry attempts are within the allowed limit."""
         current_time = time.time()
         self.attempts = [
             t for t in self.attempts if current_time - t <= RETRY_TIME_WINDOW_SECONDS
@@ -41,6 +43,7 @@ class RetryState:
         return len(self.attempts) < MAX_RETRY_ATTEMPTS
 
     def get_attempt_count(self) -> int:
+        """Return the number of recent retry attempts within the time window."""
         current_time = time.time()
         self.attempts = [
             t for t in self.attempts if current_time - t <= RETRY_TIME_WINDOW_SECONDS
@@ -48,6 +51,7 @@ class RetryState:
         return len(self.attempts)
 
     def reset(self) -> None:
+        """Clear all retry attempt records."""
         self.attempts = []
 
 
@@ -60,9 +64,11 @@ class HomeAssistantWrapper:
     async def async_call_service(
         self, domain: str, service: str, data: Dict[str, Any]
     ) -> None:
+        """Call a Home Assistant service asynchronously."""
         await self._hass.services.async_call(domain, service, data)
 
     def get_state(self, entity_id: str):
+        """Get the current state of a Home Assistant entity."""
         return self._hass.states.get(entity_id)
 
 
@@ -75,15 +81,15 @@ class VehicleControlStrategy(ABC):
 
     @abstractmethod
     async def async_activate(self) -> bool:
-        pass
+        """Activate vehicle charging. Returns True on success."""
 
     @abstractmethod
     async def async_deactivate(self) -> bool:
-        pass
+        """Deactivate vehicle charging. Returns True on success."""
 
     @abstractmethod
     async def async_get_status(self) -> bool:
-        pass
+        """Return the current charging status."""
 
 
 class SwitchStrategy(VehicleControlStrategy):

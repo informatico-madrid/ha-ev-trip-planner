@@ -17,7 +17,7 @@ _parent_dir = _os.path.dirname(_pkg_dir)
 _module_path = _os.path.join(_parent_dir, "dashboard.py")
 
 _spec = _importlib_util.spec_from_file_location("dashboard_file", _module_path)
-_dashboard_file = _importlib_util.module_from_spec(_spec)
+_dashboard_file = _importlib_util.module_from_spec(_spec)  # type: ignore[assignment]
 _spec.loader.exec_module(_dashboard_file)  # type: ignore[union-attr]
 
 # Re-export all public and private names from the dashboard file
@@ -75,6 +75,4 @@ __all__ = [
     "_write_file_content",
     "import_dashboard",
     "is_lovelace_available",
-    "dashboard_exists",
-    "dashboard_path",
 ]
