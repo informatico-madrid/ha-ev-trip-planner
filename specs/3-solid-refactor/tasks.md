@@ -1216,7 +1216,7 @@ Each god-module decomposition ends with a Vn checkpoint that runs `ruff check &&
   - _Requirements: AC-2.4_
   - _Design: design-by-convention (sensor decomp; design.md §3 has no sensor section); NFR-7.A.5 + FR-1.7_
 
-- [ ] 1.96 [GREEN] Scaffold sensor/ with re-exports
+- [x] 1.96 [GREEN] Scaffold sensor/ with re-exports - fbd8ca86
   - **Do**:
     1. Create `custom_components/ev_trip_planner/sensor/` directory
     2. Create `__init__.py` re-exporting `async_setup_entry`, 4 Entity classes
