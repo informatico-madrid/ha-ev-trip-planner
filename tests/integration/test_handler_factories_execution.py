@@ -213,6 +213,134 @@ class TestTripUpdateHandler:
             "rec_1", {"dia_semana": "martes", "hora": "11:00", "datetime": "2025-12-01T12:00"}
         )
 
+    @pytest.mark.asyncio
+    async def test_trip_update_with_kwh_descripcion_fields(self):
+        """Handler applies kwh, descripcion, description fields in data path."""
+        hass, entry, mgr, coord = _build_hass(manager_cfg={
+            "async_setup": {"return_value": None},
+            "async_update_trip": {"return_value": True},
+            "async_get_recurring_trips": {"return_value": [{"id": "rec_1", "dia_semana": "lunes"}]},
+            "async_get_punctual_trips": {"return_value": []},
+        })
+
+        handler = make_trip_update_handler(hass)
+        call = MagicMock(spec=ServiceCall)
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "rec_1",
+            "km": 30,
+            "kwh": 5.0,
+            "descripcion": "mi descripcion",
+        }
+        await handler(call)
+
+        # Called with km as float + kwh as float + descripcion
+        call_args = mgr.async_update_trip.call_args
+        updates = call_args[0][1]
+        assert updates["km"] == 30.0
+        assert updates["kwh"] == 5.0
+        assert updates["descripcion"] == "mi descripcion"
+
+    @pytest.mark.asyncio
+    async def test_trip_update_with_description_field(self):
+        """Handler maps 'description' -> 'descripcion' in data path."""
+        hass, entry, mgr, coord = _build_hass(manager_cfg={
+            "async_setup": {"return_value": None},
+            "async_update_trip": {"return_value": True},
+            "async_get_punctual_trips": {"return_value": []},
+        })
+
+        handler = make_trip_update_handler(hass)
+        call = MagicMock(spec=ServiceCall)
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "pun_1",
+            "description": "english description",
+        }
+        await handler(call)
+
+        call_args = mgr.async_update_trip.call_args
+        updates = call_args[0][1]
+        assert updates["descripcion"] == "english description"
+
+    @pytest.mark.asyncio
+    async def test_trip_update_entry_not_found(self):
+        """Handler returns early when vehicle entry not found."""
+        # Build hass with NO config entries so _find_entry_by_vehicle returns None
+        from custom_components.ev_trip_planner.services._handler_factories import make_trip_update_handler
+
+        hass = MagicMock()
+        hass.data = {}
+        hass.config_entries = MagicMock()
+        hass.config_entries.async_entries.return_value = []
+
+        handler = make_trip_update_handler(hass)
+        call = MagicMock(spec=ServiceCall)
+        call.data = {"vehicle_id": "unknown", "trip_id": "rec_1", "km": 30}
+        # Should not raise, just log and return
+        await handler(call)
+
+    @pytest.mark.asyncio
+    async def test_trip_update_sensor_match(self):
+        """Handler updates sensor when trip found in recurring list."""
+        from unittest.mock import AsyncMock, patch
+
+        trip_data = {"id": "rec_1", "dia_semana": "lunes", "hora": "09:00", "km": 24, "kwh": 3.6}
+        hass, entry, mgr, coord = _build_hass(manager_cfg={
+            "async_setup": {"return_value": None},
+            "async_update_trip": {"return_value": True},
+            "async_get_recurring_trips": {"return_value": [trip_data]},
+        })
+
+        handler = make_trip_update_handler(hass)
+        call = MagicMock(spec=ServiceCall)
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "rec_1",
+            "dia_semana": "martes",  # triggers recurrente path
+        }
+
+        mock_update_sensor = AsyncMock()
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            mock_update_sensor,
+        ):
+            await handler(call)
+
+        # Sensor update should be called with the matching trip
+        mock_update_sensor.assert_called_once()
+        sensor_arg = mock_update_sensor.call_args[0][2]
+        assert sensor_arg["id"] == "rec_1"
+
+    @pytest.mark.asyncio
+    async def test_trip_update_sensor_exception(self):
+        """Handler catches sensor update exception and continues."""
+        from unittest.mock import AsyncMock, patch
+
+        hass, entry, mgr, coord = _build_hass(manager_cfg={
+            "async_setup": {"return_value": None},
+            "async_update_trip": {"return_value": True},
+            "async_get_recurring_trips": {"return_value": [{"id": "rec_1", "dia_semana": "lunes"}]},
+        })
+
+        handler = make_trip_update_handler(hass)
+        call = MagicMock(spec=ServiceCall)
+        call.data = {
+            "vehicle_id": "test_vehicle",
+            "trip_id": "rec_1",
+            "dia_semana": "martes",
+        }
+
+        with patch(
+            "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
+            AsyncMock(side_effect=RuntimeError("sensor fail")),
+        ):
+            # Should not raise — exception is caught and logged
+            await handler(call)
+
+        # Manager update should still have been called
+        mgr.async_update_trip.assert_called_once()
+
 
 class TestEditTripHandler:
     """Test edit_trip (deprecated alias) handler execution."""
