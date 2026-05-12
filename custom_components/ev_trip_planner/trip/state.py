@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 
 from ..emhass import EMHASSAdapter
 from ..yaml_trip_storage import YamlTripStorage
-from ._sensor_callbacks import _SensorCallbacks
+from ._sensor_callbacks import SensorCallbackRegistry
 
 
 @dataclass
@@ -31,7 +31,7 @@ class TripManagerState:
     storage: Optional[YamlTripStorage] = None
     emhass_adapter: Optional[EMHASSAdapter] = None
     vehicle_controller: Any = None
-    sensor_callbacks: _SensorCallbacks = field(default_factory=_SensorCallbacks)
+    sensor_callbacks: SensorCallbackRegistry = field(default_factory=SensorCallbackRegistry)
 
     # ── Sub-component references ─────────────────────────────────
     # Populated by TripManager.__init__ after all sub-components are created.

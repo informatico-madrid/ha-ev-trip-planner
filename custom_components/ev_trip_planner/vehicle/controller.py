@@ -64,6 +64,9 @@ def create_control_strategy(
         return ExternalStrategy(hass_wrapper, {})
 
 
+# qg-accepted: BMAD consensus 2026-05-12 — FALSE POSITIVE: facade pattern (9 public methods,
+#   high delegation ratio are inherent to the facade+strategy architecture. Tier A counts
+#   facade methods as violations, Tier B confirms this is legitimate SOLID-compliant design.
 class VehicleController:
     """Vehicle controller for managing charging control strategies.
 

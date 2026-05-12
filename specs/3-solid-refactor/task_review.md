@@ -1966,3 +1966,29 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
   
   Result: 1491 passed, 0 failed, 8 warnings
 - review_submode: post-task
+
+### [task-sensor-callbacks-refactor] Sensor callbacks refactor: incomplete, _crud.py still calls .emit() on SensorCallbackRegistry
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-12T22:58:00Z
+- criterion_failed: Refactor must not break existing callers; all consumers of the old API must be updated
+- evidence: |
+  15 tests failing:
+  - test_trip_package.py:9 tests: `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
+  - test_coordinator.py:1 test: `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
+  - test_sensor_callbacks.py:5 tests: mock functions not called because dispatch is broken
+  
+  The executor refactored _sensor_callbacks.py creating:
+  1. SensorCallbackRegistry class (add/remove/notify/clear) — no emit() method
+  2. emit() as a module-level function
+  
+  But _crud.py still calls state.sensor_callbacks.emit() which no longer exists.
+  
+  grep from _crud.py:
+  94:        callbacks = state.sensor_callbacks
+  96:        callbacks.emit(SensorEvent(
+  103:        callbacks.emit(SensorEvent(
+  ... (7 more emit() calls)
+- fix_hint: Add emit() method to SensorCallbackRegistry that delegates to the module-level emit(), OR update _crud.py to use the module-level emit() directly
+- review_submode: post-task
+- resolved_at: <!-- executor fills this -->

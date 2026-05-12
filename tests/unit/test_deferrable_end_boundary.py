@@ -19,7 +19,10 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import (
+    EMHASSAdapter,
+    PerTripCacheParams,
+)
 
 
 @pytest.mark.asyncio
@@ -100,13 +103,14 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
 
     # Now call the actual code
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=hora_regreso,
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     params = adapter._cached_per_trip_params.get(trip["id"])

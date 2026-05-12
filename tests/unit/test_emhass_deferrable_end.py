@@ -16,7 +16,10 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import (
+    EMHASSAdapter,
+    PerTripCacheParams,
+)
 
 
 @pytest.mark.asyncio
@@ -53,13 +56,14 @@ async def test_populate_cache_entry_def_end_gt_def_start(mock_hass, mock_store):
 
     # Call _populate_per_trip_cache_entry which calculates def_start and def_end
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=None,  # Car not yet returned - triggers the bug scenario
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     # Get cached parameters
@@ -112,13 +116,14 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_sto
     hora_regreso = now - timedelta(hours=10)
 
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=hora_regreso,
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     params = adapter._cached_per_trip_params.get(trip["id"])

@@ -16,8 +16,9 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+
+from . import _entities
 
 from .. import panel as panel_module
 from ..const import (
@@ -655,35 +656,14 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             _LOGGER.warning(
                 "Config flow step 4 (presence): no charging_sensor selected, auto-selecting first available"
             )
-            try:
-                # er.async_get returns EntityRegistry directly (not a coroutine)
-                entity_registry = er.async_get(self.hass)
-                entities = [
-                    entity_id
-                    for entity_id in entity_registry.entities.keys()
-                    if entity_id.startswith("binary_sensor.")
-                    or entity_id.startswith("input_boolean.")
-                ]
+            user_input = _entities.auto_select_sensor(
+                self.hass, ["binary_sensor", "input_boolean"], user_input, CONF_CHARGING_SENSOR
+            )
+            charging_sensor = user_input.get(CONF_CHARGING_SENSOR)
+            if charging_sensor:
                 _LOGGER.info(
-                    "Config flow step 4 (presence): found %d entities in registry: %s",
-                    len(entities),
-                    entities,
-                )
-                if entities:
-                    charging_sensor = entities[0]
-                    user_input = {**user_input, CONF_CHARGING_SENSOR: charging_sensor}
-                    _LOGGER.info(
-                        "Config flow step 4 (presence): auto-selected charging_sensor=%s",
-                        charging_sensor,
-                    )
-                else:
-                    _LOGGER.error(
-                        "Config flow step 4 (presence): no entities available for auto-selection"
-                    )
-            except Exception as e:
-                _LOGGER.error(
-                    "Config flow step 4 (presence): error getting entity registry: %s",
-                    str(e),
+                    "Config flow step 4 (presence): auto-selected charging_sensor=%s",
+                    charging_sensor,
                 )
 
         # If still no charging_sensor after auto-selection, show error
@@ -767,38 +747,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         if user_input is None:
             # Use entity registry to get all notify entities
             # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
-            # EntitySelector works with notify entities because they are registered
-            # as entities in the entity registry (notify.<entity_name>)
-            available_services = []
-            try:
-                entity_registry_obj = er.async_get(self.hass)
-                notify_entities = [
-                    entity.entity_id
-                    for entity in entity_registry_obj.entities.values()
-                    if entity.domain == "notify"
-                ]
-                available_services = sorted(notify_entities)
-
-                _LOGGER.debug(
-                    "Available notify entities: %s",
-                    available_services,
-                )
-                _LOGGER.info(
-                    "Notification step: %d notify entities available",
-                    len(available_services),
-                )
-            except Exception as err:
-                _LOGGER.warning(
-                    "Failed to get notify entities from registry: %s, using services API",
-                    err,
-                )
-                # Fallback to services if registry fails
-                notify_services = self.hass.services.async_services().get("notify", {})
-                available_services = sorted(notify_services.keys())
-                _LOGGER.info(
-                    "Using services API: %d notify services available",
-                    len(available_services),
-                )
+            available_services = _entities.scan_notify_entities(self.hass)
 
             return self.async_show_form(
                 step_id="notifications",

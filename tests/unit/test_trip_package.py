@@ -32,8 +32,9 @@ from custom_components.ev_trip_planner.trip import (
     TripManagerConfig,
 )
 from custom_components.ev_trip_planner.trip._sensor_callbacks import (
+    SensorCallbackRegistry,
     SensorEvent,
-    _SensorCallbacks,
+    emit,
 )
 from custom_components.ev_trip_planner.trip._soc_window import (
     SOCInicioParams,
@@ -236,7 +237,7 @@ class TestCRUDMixin:
 
     def test_mixin_init_creates_sensor_callbacks(self, mock_hass):
         tm = _make_tm(mock_hass)
-        assert isinstance(tm._state.sensor_callbacks, _SensorCallbacks)
+        assert isinstance(tm._state.sensor_callbacks, SensorCallbackRegistry)
 
     def test__get_all_trips_combined(self, mock_hass):
         tm = _make_tm(mock_hass)
@@ -782,11 +783,10 @@ class TestScheduleMixin:
 
 
 class TestSensorCallbacks:
-    """Tests for _SensorCallbacks (trip/_sensor_callbacks.py)."""
+    """Tests for emit() dict-based dispatch (trip/_sensor_callbacks.py)."""
 
     def test_emit_unknown_event_logs_debug(self, mock_hass, caplog):
-        sc = _SensorCallbacks()
-        sc.emit(SensorEvent("unknown_event", mock_hass, "entry_1"))
+        emit(SensorEvent("unknown_event", mock_hass, "entry_1"))
         assert (
             "Unknown sensor event" in caplog.text
             or caplog.text.count("unknown_event") > 0
@@ -794,9 +794,8 @@ class TestSensorCallbacks:
 
     def test_emit_creates_recurring_sensor(self, mock_hass, caplog):
         """trip_created_recurring emits via asyncio.ensure_future."""
-        sc = _SensorCallbacks()
         # Should not raise even without real sensor module
-        sc.emit(
+        emit(
             SensorEvent(
                 "trip_created_recurring",
                 mock_hass,
@@ -808,8 +807,7 @@ class TestSensorCallbacks:
         )
 
     def test_emit_removes_trip_sensor(self, mock_hass):
-        sc = _SensorCallbacks()
-        sc.emit(
+        emit(
             SensorEvent(
                 "trip_removed",
                 mock_hass,
@@ -820,8 +818,7 @@ class TestSensorCallbacks:
         )
 
     def test_emit_emhass_created(self, mock_hass):
-        sc = _SensorCallbacks()
-        sc.emit(
+        emit(
             SensorEvent(
                 "trip_sensor_created_emhass",
                 mock_hass,
@@ -832,8 +829,7 @@ class TestSensorCallbacks:
         )
 
     def test_emit_emhass_removed(self, mock_hass):
-        sc = _SensorCallbacks()
-        sc.emit(
+        emit(
             SensorEvent(
                 "trip_sensor_removed_emhass",
                 mock_hass,
@@ -844,8 +840,7 @@ class TestSensorCallbacks:
         )
 
     def test_emit_updated_sensor(self, mock_hass):
-        sc = _SensorCallbacks()
-        sc.emit(
+        emit(
             SensorEvent(
                 "trip_sensor_updated",
                 mock_hass,

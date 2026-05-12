@@ -5,6 +5,10 @@ Replaces lazy `from .sensor import ...` imports with a single
 _CRUDMixin.
 
 The sensor module is imported at runtime to avoid circular imports.
+
+AP18 fix: Event dispatch uses a dict-based handler map instead of
+a 7-branch if-elif chain. Adding new events requires only adding
+an entry to EVENT_HANDLERS — no new elif branch.
 """
 
 from __future__ import annotations
@@ -20,6 +24,166 @@ from homeassistant.core import HomeAssistant
 _UNSET = object()
 
 _LOGGER = logging.getLogger(__name__)
+
+
+# ── Dispatch map ────────────────────────────────────────────────────────
+# AP18 fix: dict dispatch replaces 7-branch if-elif chain.
+# Each entry maps an event name to a handler function.
+# Adding a new event requires only adding a new entry below.
+
+EVENT_HANDLERS: Dict[str, Callable[..., None]] = {}
+
+
+def _register(event_name: str) -> Callable:
+    """Decorator to register an event handler in EVENT_HANDLERS."""
+
+    def decorator(func):
+        EVENT_HANDLERS[event_name] = func
+        return func
+
+    return decorator
+
+
+# ── Event handlers ──────────────────────────────────────────────────────
+
+
+@_register("trip_created_recurring")
+def _handle_trip_created_recurring(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Create a trip sensor for a new recurring trip."""
+    if trip_data is None:
+        _LOGGER.warning("trip_data required for trip_created_recurring event")
+        return
+    asyncio.ensure_future(
+        sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+    )
+
+
+@_register("trip_created_punctual")
+def _handle_trip_created_punctual(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Create a trip sensor for a new punctual trip."""
+    if trip_data is None:
+        _LOGGER.warning("trip_data required for trip_created_punctual event")
+        return
+    asyncio.ensure_future(
+        sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
+    )
+
+
+@_register("trip_sensor_created_emhass")
+def _handle_trip_sensor_created_emhass(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Create an EMHASS sensor for a trip."""
+    if trip_id is None:
+        _LOGGER.warning("trip_id required for trip_sensor_created_emhass event")
+        return
+    _emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
+
+
+@_register("trip_removed")
+def _handle_trip_removed(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Remove a trip sensor."""
+    if trip_id is None:
+        _LOGGER.warning("trip_id required for trip_removed event")
+        return
+    asyncio.ensure_future(
+        sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
+    )
+
+
+@_register("trip_sensor_removed_emhass")
+def _handle_trip_sensor_removed_emhass(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Remove an EMHASS sensor for a trip."""
+    if trip_id is None:
+        _LOGGER.warning("trip_id required for trip_sensor_removed_emhass event")
+        return
+    _emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
+
+
+@_register("trip_sensor_updated")
+def _handle_trip_sensor_updated(
+    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+) -> None:
+    """Update a trip sensor with new data."""
+    if trip_data is None:
+        _LOGGER.warning("trip_data required for trip_sensor_updated event")
+        return
+    asyncio.ensure_future(
+        sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
+    )
+
+
+# ── EMHASS helpers ──────────────────────────────────────────────────────
+
+
+def _emit_create_emhass(
+    hass: HomeAssistant,
+    entry_id: str,
+    vehicle_id: str,
+    trip_id: str,
+) -> None:
+    """Create an EMHASS sensor for a trip.
+
+    Extracts the coordinator from the config entry's runtime_data.
+    Called from _handle_trip_sensor_created_emhass via the dispatch map.
+    """
+    try:
+        from .. import sensor as _sensor_mod
+
+        entry: ConfigEntry | None = hass.config_entries.async_get_entry(entry_id)
+        if not entry or not entry.runtime_data:
+            _LOGGER.warning(
+                "Trip EMHASS sensor %s: no config entry or runtime_data",
+                trip_id,
+            )
+            return
+
+        coordinator = entry.runtime_data.coordinator
+        if coordinator is None:
+            _LOGGER.warning(
+                "Trip EMHASS sensor %s: coordinator is None",
+                trip_id,
+            )
+            return
+
+        asyncio.ensure_future(
+            _sensor_mod.async_create_trip_emhass_sensor(
+                hass, entry_id, coordinator, vehicle_id, trip_id
+            )
+        )
+    except Exception as err:
+        _LOGGER.debug(
+            "Error creating EMHASS sensor for trip %s: %s",
+            trip_id,
+            err,
+        )
+
+
+def _emit_remove_emhass(
+    hass: HomeAssistant,
+    entry_id: str,
+    vehicle_id: str,
+    trip_id: str,
+) -> None:
+    """Remove an EMHASS sensor for a trip."""
+    from .. import sensor as _sensor_mod
+
+    asyncio.ensure_future(
+        _sensor_mod.async_remove_trip_emhass_sensor(
+            hass, entry_id, vehicle_id, trip_id
+        )
+    )
+
+
+# ── Public API ──────────────────────────────────────────────────────────
 
 
 class SensorCallbackRegistry:
@@ -112,149 +276,35 @@ class SensorEvent:
     vehicle_id: Optional[str] = None
 
 
-class _SensorCallbacks:
-    """Handles all sensor lifecycle operations for trips.
+def emit(event: SensorEvent) -> None:
+    """Dispatch a sensor lifecycle event via dict-based handler map.
 
-    Provides a single `emit` method that replaces the pattern of
-    `from .sensor import <func>` in multiple CRUD methods.
+    Replaces the previous if-elif chain with a dispatch map to avoid
+    AP18 branch explosion (7+ branches). Adding new events requires
+    only adding an entry to EVENT_HANDLERS — no new elif branch.
+
+    Args:
+        event: SensorEvent with all required data.
     """
-
-    def _get_sensor_mod(self):
-        """Lazy import sensor module to avoid circular dependency."""
-        # pylint: disable=import-outside-toplevel
+    event_str = event.event
+    hass = event.hass
+    entry_id = event.entry_id
+    trip_data = event.trip_data
+    trip_id = event.trip_id
+    vehicle_id = event.vehicle_id
+    try:
         from .. import sensor as _sensor_mod
 
-        return _sensor_mod
+        handler = EVENT_HANDLERS.get(event_str)
+        if handler is None:
+            _LOGGER.debug("Unknown sensor event: %s", event_str)
+            return
+        handler(_sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id)
 
-    def emit(self, event: SensorEvent) -> None:
-        """Dispatch a sensor lifecycle event.
-
-        Args:
-            event: SensorEvent with all required data.
-        """
-        event_str = event.event
-        hass = event.hass
-        entry_id = event.entry_id
-        trip_data = event.trip_data
-        trip_id = event.trip_id
-        vehicle_id = event.vehicle_id
-        try:
-            sensor_mod = self._get_sensor_mod()
-            if event_str == "trip_created_recurring":
-                if trip_data is None:
-                    _LOGGER.warning(
-                        "trip_data required for trip_created_recurring event"
-                    )
-                    return
-                asyncio.ensure_future(
-                    sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
-                )
-
-            elif event_str == "trip_created_punctual":
-                if trip_data is None:
-                    _LOGGER.warning(
-                        "trip_data required for trip_created_punctual event"
-                    )
-                    return
-                asyncio.ensure_future(
-                    sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
-                )
-
-            elif event_str == "trip_sensor_created_emhass":
-                if trip_id is None:
-                    _LOGGER.warning(
-                        "trip_id required for trip_sensor_created_emhass event"
-                    )
-                    return
-                self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
-
-            elif event_str == "trip_removed":
-                if trip_id is None:
-                    _LOGGER.warning("trip_id required for trip_removed event")
-                    return
-                asyncio.ensure_future(
-                    sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
-                )
-
-            elif event_str == "trip_sensor_removed_emhass":
-                if trip_id is None:
-                    _LOGGER.warning(
-                        "trip_id required for trip_sensor_removed_emhass event"
-                    )
-                    return
-                self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
-
-            elif event_str == "trip_sensor_updated":
-                if trip_data is None:
-                    _LOGGER.warning("trip_data required for trip_sensor_updated event")
-                    return
-                asyncio.ensure_future(
-                    sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
-                )
-
-            else:
-                _LOGGER.debug("Unknown sensor event: %s", event_str)
-
-        except Exception as err:
-            _LOGGER.error(
-                "Error emitting sensor event '%s': %s",
-                event,
-                err,
-                exc_info=True,
-            )
-
-    def _emit_create_emhass(
-        self,
-        hass: HomeAssistant,
-        entry_id: str,
-        vehicle_id: str,
-        trip_id: str,
-    ) -> None:
-        """Create an EMHASS sensor for a trip.
-
-        Extracts the coordinator from the config entry's runtime_data.
-        """
-        try:
-            entry: ConfigEntry | None = hass.config_entries.async_get_entry(entry_id)
-            if not entry or not entry.runtime_data:
-                _LOGGER.warning(
-                    "Trip EMHASS sensor %s: no config entry or runtime_data",
-                    trip_id,
-                )
-                return
-
-            coordinator = entry.runtime_data.coordinator
-            if coordinator is None:
-                _LOGGER.warning(
-                    "Trip EMHASS sensor %s: coordinator is None",
-                    trip_id,
-                )
-                return
-
-            sensor_mod = self._get_sensor_mod()
-            asyncio.ensure_future(
-                sensor_mod.async_create_trip_emhass_sensor(
-                    hass, entry_id, coordinator, vehicle_id, trip_id
-                )
-            )
-        except Exception as err:
-            _LOGGER.debug(
-                "Error creating EMHASS sensor for trip %s: %s",
-                trip_id,
-                err,
-            )
-
-    def _emit_remove_emhass(
-        self,
-        hass: HomeAssistant,
-        entry_id: str,
-        vehicle_id: str,
-        trip_id: str,
-    ) -> None:
-        """Remove an EMHASS sensor for a trip."""
-        sensor_mod = self._get_sensor_mod()
-        asyncio.ensure_future(
-            sensor_mod.async_remove_trip_emhass_sensor(
-                hass, entry_id, vehicle_id, trip_id
-            )
+    except Exception as err:
+        _LOGGER.error(
+            "Error emitting sensor event '%s': %s",
+            event,
+            err,
+            exc_info=True,
         )

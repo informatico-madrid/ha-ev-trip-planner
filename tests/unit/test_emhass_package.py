@@ -1219,18 +1219,21 @@ class TestEMHASSAdapterBackwardCompat:
 
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
+            PerTripCacheParams,
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         future = datetime(2027, 1, 1, tzinfo=timezone.utc).isoformat()
         trip = {"id": "cache_test", "datetime": future, "kwh": 10.0}
         await adapter._populate_per_trip_cache_entry(
-            trip=trip,
-            trip_id="cache_test",
-            charging_power_kw=3.6,
-            battery_capacity_kwh=50.0,
-            safety_margin_percent=30.0,
-            soc_current=50.0,
+            PerTripCacheParams(
+                trip=trip,
+                trip_id="cache_test",
+                charging_power_kw=3.6,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=30.0,
+                soc_current=50.0,
+            ),
         )
         assert "cache_test" in adapter._cached_per_trip_params
 
@@ -1241,17 +1244,20 @@ class TestEMHASSAdapterBackwardCompat:
         """_populate_per_trip_cache_entry handles None deadline gracefully."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
+            PerTripCacheParams,
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         trip = {"id": "no_deadline", "kwh": 10.0}
         await adapter._populate_per_trip_cache_entry(
-            trip=trip,
-            trip_id="no_deadline",
-            charging_power_kw=3.6,
-            battery_capacity_kwh=50.0,
-            safety_margin_percent=30.0,
-            soc_current=50.0,
+            PerTripCacheParams(
+                trip=trip,
+                trip_id="no_deadline",
+                charging_power_kw=3.6,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=30.0,
+                soc_current=50.0,
+            ),
         )
         assert "no_deadline" in adapter._cached_per_trip_params
 

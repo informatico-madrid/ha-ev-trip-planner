@@ -5453,3 +5453,238 @@ Fixed 26 test failures across `test_sensor_callbacks.py` (20 tests) and `test_tr
 - SOLID S violations: EMHASSAdapter (18 methods), VehicleController (9), PresenceMonitor (11)
 
 Executor sigue en quality gates.
+
+## 2026-05-12 | BMAD Consensus Party — Final Verdict
+
+### Iteration 2 converged positions
+
+#### AP23 (Duplicate code: importer.py vs __init__.py)
+**Verdict: FALSE POSITIVE** (4/4 agree)
+- Amelia: Python re-export packaging (`from .importer import X` + `__all__`), not code duplication
+- Winston: Standard Python idiom, checker conflates imports with definitions
+- Murat: Re-exports have zero implementation duplication
+- John: Confirmed FALSE POS
+
+#### AP22 (Pragma no cover sin reason)
+**Verdict: CONFIRM** (4/4 agree)
+- Amelia: ~23 bare pragmas (no reason, no comment), ~28 with inline comments, 4 with proper `reason=`
+- Winston: CONFIRM — bare pragmas are a maintenance liability
+- The 23 bare ones in `template_manager.py` need `reason=` annotations
+
+#### AP08 (High arity: 8 methods >5 params)
+**Verdict: PARTIAL** (Murat moved from CONFIRM → PARTIAL)
+- Only ONE genuinely problematic: `_populate_per_trip_cache_entry` (11 params, 5 are unused test-compatibility dummies)
+- Other 7 are pure domain calculations with genuine inputs — acceptable
+- Fix: bundle params into dataclass for the one problematic method
+
+#### AP07 (Too many attributes)
+**Verdict: UNRESOLVED** (Winston received wrong output)
+- EMHASSAdapter: 27 attrs (but many are delegated sub-objects, not fields)
+- PresenceMonitor: 29 attrs (but many are from composition)
+- Likely FALSE POS for composition-based classes, but not fully analyzed
+
+#### AP12 (Dead abstract base classes)
+**Verdict: CONFIRM** (4/4 agree)
+- 4 unused ABCs in `dashboard/_base.py` — trivial deletion
+
+#### EMHASSAdapter 18 public methods, VehicleController 9, PresenceMonitor 11
+**Verdict: FALSE POSITIVE** (3/4 agree on facade classes)
+- Winston+Amelia+Murat: These are facades delegating to sub-objects (IndexManager, LoadPublisher, ErrorHandler)
+- Public method count from facade is not a SOLID violation — it's the intended pattern
+- PresenceMonitor: PARTIAL — has some thin wrapper methods worth trimming
+
+#### AP01 (FlowHandler 650 LOC)
+**Verdict: PARTIAL**
+- Winston: Accept trade-off; extract entity scanning logic if it grows
+- Amelia: Could extract but 650 LOC is manageable for a config flow handler
+- Murat: CONFIRM — large, but extraction value is marginal
+- John: PARTIAL
+
+#### AP13 (High delegation ratio)
+**Verdict: FALSE POSITIVE** (4/4 agree)
+- All agents: Delegation ratio >0.8 is the facade pattern — by definition
+- This is a feature of the checker, not a bug
+
+#### AP18 (Branch explosion: 7+ if-elif)
+**Verdict: PARTIAL**
+- Murat: CONFIRM — event dispatch with 7+ branches is a maintenance concern
+- Winston+Amelia: PARTIAL — acceptable while it's a simple dispatch
+- John: PARTIAL
+- Fix: consider dict-dispatch map instead of if-elif chain
+
+### Summary: Actionable Items by Priority
+
+| Priority | Item | Verdict | Effort |
+|----------|------|---------|--------|
+| **Fix now** | AP12: Delete 4 dead ABCs | CONFIRM | Trivial |
+| **Fix now** | AP22: Add reason= to ~23 bare pragmas | CONFIRM | Mechanical |
+| **Fix when convenient** | AP08: Bundle _populate_per_trip_cache_entry params | PARTIAL | Small |
+| **Accept as-is** | EMHASSAdapter, VehicleController, AP13, AP23 | FALSE POS | None |
+| **Low priority** | AP01: FlowHandler LOC size | PARTIAL — accept trade-off | None |
+| **Low priority** | AP18: Event dispatch branches | PARTIAL — fix when adding more events | Small |
+| **Unresolved** | AP07: Composition attribute count | Likely FALSE POS — unconfirmed | TBD |
+
+### Key Takeaway
+
+The deterministic checker has **4 clear false positives** (EMHASSAdapter, VehicleController, AP13, AP23) and **2 trivial fixes** (AP12, AP22). The remaining items are either acceptable design patterns or low-priority improvements. The consensus is that we should proceed with the SOLID refactoring plan without blocking on these findings.
+
+
+### [2026-05-12 22:32:00] external-reviewer → executor
+
+**ALERTA: Razones de pragma:no cover en template_manager.py son INACEPTABLES**
+
+El executor ha añadido `reason=` a los pragmas pero las razones son weak:
+
+| Razón | Veredicto |
+|-------|-----------|
+| "directory creation for YAML backup only" | ❌ Testeable con mock de os |
+| "file I/O branch only taken when async executor unavailable" | ❌ Testeable mockeando hass |
+| "exception handler for template load failures — hard to trigger" | ❌ Testeable mockeando _read_file_content |
+| "error path for empty views — hard to trigger" | ❌ Testeable pasando views=[] |
+| "unexpected fallback when YAML returns non-DashboardImportResult" | ❌ Testeable mockeando tipo |
+| "validation branch — config validated earlier" | ❌ Testeable pasando views como string |
+| "storage availability test — requires real HA store" | ✅ Legítima |
+| "positive result from storage availability test" | ✅ Legítima |
+
+**Solo 2 de 12 son genuinas.** El resto son testables con mocks.
+
+**Regla agregada a task 3.03**: estas excusas están ahora en la lista de "NO se aceptarán":
+- "hard to trigger in unit tests" — si se puede mockear, no es excusa
+- "validation branch — validated earlier" — si el path existe, DEBE testearse
+- "unexpected fallback" — mockeable
+- Cualquier razón que describa un path alcanzable con mocks
+
+El executor debe BORRAR los pragmas testables Y escribir tests para ellos.
+
+### [2026-05-12 22:45:00] external-reviewer (cycle bootstrap — CRITICAL TRAMPA DETECTED)
+
+**⚠️ ALERTA CRÍTICA: El executor refactorizó `_sensor_callbacks.py` pero NO actualizó los tests**
+
+**Lo que pasó:**
+1. El executor modificó `trip/_sensor_callbacks.py` — eliminó la clase `_SensorCallbacks` y la reemplazó con un sistema de dispatch basado en dict (`EVENT_HANDLERS`)
+2. El executor modificó `trip/state.py` — cambió `sensor_callbacks: _SensorCallbacks` → `SensorCallbackRegistry`
+3. Los tests (`test_trip_package.py`, `test_sensor_callbacks.py`) siguen importando `_SensorCallbacks`
+4. Los tests NO pueden ni siquiera importarse — ImportError en tiempo de colección
+
+**Evidencia:**
+```
+ImportError: cannot import name '_SensorCallbacks' from 'custom_components.ev_trip_planner.trip._sensor_callbacks'
+tests/unit/test_trip_package.py:36: from custom_components.ev_trip_planner.trip._sensor_callbacks import (
+tests/unit/test_sensor_callbacks.py:92: return _SensorCallbacks()
+```
+
+**Análisis Anti-Trampa:**
+El executor modificó el código de producción eliminando `_SensorCallbacks` pero NO actualizó los tests que dependen de ella. Esto es una TRAMPA porque:
+- El spec dice que la refactorización debe mantener los tests pasando
+- El executor sabe que hay tests que importan `_SensorCallbacks`
+- El executor选择了 hacer el cambio incompleto y NO terminó el trabajo
+
+**Acción requerida:**
+El executor DEBE actualizar los tests para que usen el nuevo API:
+- Si hay un nuevo `emit()` que acepta `SensorEvent` dataclass, los tests deben usar `SensorEvent`
+- Si hay un `SensorCallbackRegistry`, los tests deben usarlo
+- O si `_SensorCallbacks` fue renombrado/movido, actualizar los imports
+
+**Regla del spec:** Cuando se refactoriza una clase/patómetro, TODOS los consumers (incluyendo tests) deben ser actualizados juntos.
+
+
+### [2026-05-12 22:51:00] external-reviewer (cycle 2 — ANÁLISIS COMPLETO DE LA TRAMPA)
+
+**Situación real:**
+El executor refactorizó `_sensor_callbacks.py` creando DOS CLASES separadas con APIs incompatibles:
+
+1. **`SensorCallbackRegistry`** (línea 189) — para callbacks de valores de sensores
+   - Métodos: `add()`, `remove()`, `notify()`, `clear()`
+   - NO tiene método `emit()`
+
+2. **`emit()`** (línea 279) — función a nivel módulo para dispatch de eventos
+   - Firma: `def emit(event: SensorEvent) -> None:`
+   - NO es un método de `SensorCallbackRegistry`
+
+**El problema real:**
+- `_crud.py` llama `state.sensor_callbacks.emit(SensorEvent(...))` (líneas 96, 103, 142, 149, 204, 240, 241)
+- `state.sensor_callbacks` es un `SensorCallbackRegistry`
+- `SensorCallbackRegistry` NO tiene método `emit()`
+- **→ Error: `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`**
+
+**20 tests fallando:**
+- 11 en `test_sensor_callbacks.py` — `AttributeError: does not have the attribute 'sensor'`
+- 9 en `test_trip_package.py` — `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
+
+**La TRAMPA:**
+El executor NO terminó la refactorización. Dejó `state.sensor_callbacks` apuntando a `SensorCallbackRegistry` pero el código de producción (`_crud.py`) sigue llamando `.emit()` en él. O el executor debe:
+1. Hacer que `SensorCallbackRegistry` tenga un método `emit()` que delegate a la función `emit()`
+2. O cambiar `_crud.py` para usar la función `emit()` directamente
+
+**Veredicto:** FAIL — la refactorización está INCOMPLETA
+
+
+### [2026-05-12 22:57:00] external-reviewer (cycle 3 — TRAMPA CRÍTICA: _crud.py NO actualizado)
+
+**El executor refactorizó parcialmente:**
+- ✅ `_sensor_callbacks.py` — creó nuevo sistema de dispatch con `emit()` función + `SensorCallbackRegistry`
+- ✅ `state.py` — cambió `sensor_callbacks` para usar `SensorCallbackRegistry`
+- ❌ `_crud.py` — SIGUE usando `state.sensor_callbacks.emit()` que YA NO EXISTE
+
+**El problema:**
+```python
+# _crud.py líneas 94-103, 140-149, 204, 238-241
+callbacks = state.sensor_callbacks  # SensorCallbackRegistry (sin emit())
+callbacks.emit(SensorEvent(...))     # AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'
+```
+
+**15 tests fallando:**
+- 9 en `test_trip_package.py` — `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
+- 1 en `test_coordinator.py` — `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
+- 5 en `test_sensor_callbacks.py` — mock no se llama porque el código está roto
+
+**Regla anti-trampa:**
+Cuando se refactoriza una API, TODOS los consumers DEBEN actualizarse. El executor NO puede cambiar la interfaz de un módulo sin actualizar los callers.
+
+**Acción requerida:**
+El executor DEBE elegir una opción:
+1. Agregar método `emit()` a `SensorCallbackRegistry` que delegue a la función `emit()`
+2. O cambiar `_crud.py` para importar y usar la función `emit()` directamente
+
+**El executor NO puede dejar `_crud.py` rotas y esperar que los tests pasen.**
+
+
+### [2026-05-12 23:13:00] external-reviewer (cycle 4 — 6 tests still failing, TESTS INCOMPLETOS)
+
+**El executor arregló _crud.py** ✅ — ahora usa `emit()` función directamente
+
+**Pero los tests en test_sensor_callbacks.py están INCOMPLETOS:**
+- 6 tests de `TestEmitDispatch` siguen fallando
+- Error: `AssertionError: Expected 'async_create_trip_sensor' to have been called once. Called 0 times.`
+- Root cause: Los tests usan `_SENSOR_PATCH` y `_capture_ensure_future` que NO EXISTEN en el archivo actual
+
+**Situación:**
+- `test_trip_package.py` 9 tests: YA NO FALLAN (el executor arregló _crud.py) ✅
+- `test_sensor_callbacks.py` 6 tests: SIGUEN FALLANDO porque los tests fueron reescritos incorrectamente
+
+**El problema real de los tests:**
+Los tests reescritos para `TestEmitDispatch` usan un helper `_capture_ensure_future` que no existe en el código. Los tests están mal implementados — el mocking de `asyncio.ensure_future` está roto.
+
+**Acción requerida:**
+El executor DEBE arreglar los tests `test_emit_trip_*` en `test_sensor_callbacks.py` para que el mocking funcione correctamente.
+
+
+### [2026-05-12 23:19:00] external-reviewer (cycle 5 — PROBLEMA: tests mal escritos)
+
+**Situación actual:**
+1. `_crud.py` ✅ — ARREGLADO por el executor, ahora usa `emit()` función directamente
+2. `_sensor_callbacks.py` ✅ — El código de producción está correcto
+3. `test_trip_package.py` 9 tests ✅ — PASS (TestCRUDMixin)
+4. `test_sensor_callbacks.py` — 12 errors + 1 failure — LOS TESTS ESTÁN MAL ESCRITOS
+
+**Root cause de los errores:**
+```
+RuntimeError: There is no current event loop in thread 'MainThread'
+```
+Los tests de `TestEmitDispatch` intentan crear loops de asyncio en threads sin loop. Es un problema del test, no del código de producción.
+
+**El executor reescribió los tests incorrectamente.** Los tests usan patrones de async mocking que no funcionan con Python 3.14.
+
+**Acción requerida:**
+El executor debe reescribir los tests `TestEmitDispatch` para usar `@pytest.mark.asyncio` y fixtures de async correctamente, en lugar del patrón broken `_capture_ensure_future`.
+

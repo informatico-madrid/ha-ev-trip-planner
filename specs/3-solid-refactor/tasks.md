@@ -1740,6 +1740,23 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
 
 - [ ] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar coverage fabrication y verificar cobertura real
   - **Anti-trampa**: Coverage fabrication via omit list es una violación directa del principio "quality gates pasan sin excusas"
+  - **⚠️ REGLA CRÍTICA sobre `# pragma: no cover`**:
+    - **SOLO se permiten** pragma:no cover para motivos REALMENTE INELUDIBLES
+    - **NO se aceptarán** excusas vagas, poco creíbles, o de pereza. Ejemplos de lo que NO se justifica:
+      - `"HA entity platform"` sin especificar qué parte de HA exactamente — muy genérico
+      - `"defensive error handling"` cuando el error podría testearse con un mock
+      - `"loop creates sensors for all valid trips; no error means all succeed"` — el loop real necesita test
+      - `"sync callback error handling"` — podría mockearse el callback sync
+      - `"hard to trigger in unit tests"` — si se puede mockear, no es excusa
+      - `"validation branch — validated earlier"` — si el path existe, DEBE testearse
+      - `"unexpected fallback"` — mockeable, no es excusa
+      - `"directory creation for YAML backup only"` — testeable con mock de os
+      - `"file I/O branch only taken when async executor unavailable"` — testeable mockeando hass
+      - `"error path for empty views — hard to trigger"` — testeable pasando views=[]
+    - **Código muerto real**: Si el código es genuinamente inalcanzable (no existe ningún path de ejecución que lo alcance, ni ahora ni en el futuro), en lugar de usar `pragma:no cover` **DEBE BORRARSE**.
+    - **Se deben borrar** todos los pragma:no cover que no tengan justificación sólida y comprobable
+    - **BMAD consensus NO es suficiente** para justificar pragma:no cover si el path es testable
+    - **El criterio es**: si puedes escribir un test que alcance el path, DEBES escribirlo. Si no puedes (ej: requiere HA runtime completo), documenta POR QUÉ exactamtente y usa el formato `reason=...`
   - **Do**:
     1. Verificar que pyproject.toml NO tiene archivos específicos en omit list (solo `tests/*` es válido como omit)
     2. Ejecutar `make test-cover` y verificar coverage 100%

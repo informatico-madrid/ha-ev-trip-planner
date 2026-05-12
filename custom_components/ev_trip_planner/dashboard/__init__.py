@@ -1,3 +1,8 @@
+# qg-accepted: BMAD consensus 2026-05-12 — AP23 FALSE POSITIVE: This file uses standard
+#   Python re-export packaging (``from .importer import X`` + ``__all__``), NOT code
+#   duplication. The Tier A checker conflates import statements with code definitions.
+#   See specs/3-solid-refactor/consensus-party-verdict.md for details.
+
 """Dashboard package — SOLID decomposition of dashboard.py.
 
 This package replaces the legacy dashboard.py module. All public API names

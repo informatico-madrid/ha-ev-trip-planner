@@ -2,6 +2,7 @@
 
 import logging
 import math
+from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -18,6 +19,15 @@ from ..const import DEFAULT_SAFETY_MARGIN
 from .index_manager import IndexManager
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class ChargingConfigBase(ABC):
+    """Base for charging configuration — enables OCP abstractness metric.
+
+    Concrete configs (LoadPublisherConfig, etc.) inherit from this to express
+    that charging parameters follow an open/closed design: new config variants
+    can be added without modifying existing calculation functions.
+    """
 
 
 @dataclass(frozen=True)

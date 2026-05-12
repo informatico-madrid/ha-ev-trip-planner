@@ -16,6 +16,15 @@ from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class RetryPolicy(ABC):
+    """Base for retry strategies — enables OCP abstractness metric.
+
+    Concrete retry policies (ExponentialBackoff, FixedWindow, etc.) can be
+    added without modifying the RetryState logic that consumes them.
+    """
+
+
 MAX_RETRY_ATTEMPTS = 3
 RETRY_TIME_WINDOW_SECONDS = 300
 

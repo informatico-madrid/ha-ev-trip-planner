@@ -103,7 +103,7 @@ def _create_directory(dir_path: str, mode: int = 0o755) -> None:
         dir_path: Path to the directory to create.
         mode: Directory permissions.
     """
-    os.makedirs(dir_path, mode=mode, exist_ok=True)  # pragma: no cover
+    os.makedirs(dir_path, mode=mode, exist_ok=True)  # pragma: no cover reason=directory creation for YAML backup only
 
 
 def validate_config(
@@ -268,7 +268,7 @@ async def load_template(
                     template_content = _read_file_content(template_path)
             else:
                 # Fallback for tests where hass doesn't have async_add_executor_job
-                template_content = _read_file_content(template_path)  # pragma: no cover
+                template_content = _read_file_content(template_path)  # pragma: no cover reason=file I/O branch only taken when async executor unavailable
         except Exception as e:
             _LOGGER.error("Failed to read template file: %s", e)
             return None
@@ -295,7 +295,7 @@ async def load_template(
 
         return dashboard_config
 
-    except Exception as err:  # pragma: no cover
+    except Exception as err:  # pragma: no cover reason=exception handler for template load failures — hard to trigger in unit tests
         _LOGGER.error(
             "TEMPLATE LOAD FAILED for %s: %s",
             vehicle_id,
@@ -364,8 +364,8 @@ async def save_lovelace_dashboard(
                     storage_method="lovelace_save_service",
                 )
 
-            _LOGGER.warning("Dashboard config has no views to save")  # pragma: no cover
-            raise DashboardError(  # pragma: no cover
+            _LOGGER.warning("Dashboard config has no views to save")  # pragma: no cover reason=error path for empty views — hard to trigger in unit tests
+            raise DashboardError(  # pragma: no cover reason=paired with warning above — error path for empty views
                 "Dashboard config has no views to save",
                 {"error_type": "no_views_to_save"},
             )
@@ -501,7 +501,7 @@ async def save_lovelace_dashboard(
         )
         if isinstance(yaml_result, DashboardImportResult):
             return yaml_result
-        return DashboardImportResult(  # pragma: no cover
+        return DashboardImportResult(  # pragma: no cover reason=unexpected fallback when YAML returns non-DashboardImportResult type
             success=(
                 yaml_result if isinstance(yaml_result, bool) else yaml_result.success
             ),
@@ -518,8 +518,8 @@ async def save_lovelace_dashboard(
     )
     if isinstance(yaml_result, DashboardImportResult):
         return yaml_result
-    # If YAML fallback returns boolean, wrap it  # pragma: no cover
-    return DashboardImportResult(  # pragma: no cover
+    # If YAML fallback returns boolean, wrap it  # pragma: no cover reason=already explained below
+    return DashboardImportResult(  # pragma: no cover reason=YAML fallback wrap — only reached if YAML returns non-DashboardImportResult
         success=yaml_result if isinstance(yaml_result, bool) else yaml_result.success,
         vehicle_id=vehicle_id,
         vehicle_name=vehicle_name,
@@ -559,13 +559,12 @@ async def verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bo
         )
 
         # Try to load to verify storage is available
-        await test_store.async_load()  # pragma: no cover
+        await test_store.async_load()  # pragma: no cover reason=storage availability test — requires real HA store in test environment
         _LOGGER.info(
             "Store API test load succeeded for %s", vehicle_id
-        )  # pragma: no cover
-
+        )  # pragma: no cover reason=paired with test_load above — success log in same path
         # Store API is available
-        return True  # pragma: no cover
+        return True  # pragma: no cover reason=positive result from storage availability test
 
     except Exception as e:
         _LOGGER.warning(
@@ -629,7 +628,7 @@ async def save_yaml_fallback(
                 storage_method="yaml_fallback",
             )
 
-        if not isinstance(dashboard_config["views"], list):  # pragma: no cover
+        if not isinstance(dashboard_config["views"], list):  # pragma: no cover reason=validation branch — config validated earlier, this path only reached if validation bypassed
             _LOGGER.error("Dashboard 'views' must be a list")
             return DashboardImportResult(
                 success=False,
@@ -652,7 +651,7 @@ async def save_yaml_fallback(
             )
 
         for i, view in enumerate(dashboard_config["views"]):
-            if not isinstance(view, dict):  # pragma: no cover
+            if not isinstance(view, dict):  # pragma: no cover reason=validation branch — view type validated earlier, this path only reached if validation bypassed
                 _LOGGER.error("Dashboard view at index %d must be a dict", i)
                 return DashboardImportResult(
                     success=False,
