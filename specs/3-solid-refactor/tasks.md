@@ -1738,6 +1738,40 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.A_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
+- [ ] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar coverage fabrication y verificar cobertura real
+  - **Anti-trampa**: Coverage fabrication via omit list es una violación directa del principio "quality gates pasan sin excusas"
+  - **Do**:
+    1. Verificar que pyproject.toml NO tiene archivos específicos en omit list (solo `tests/*` es válido como omit)
+    2. Ejecutar `make test-cover` y verificar coverage 100%
+    3. Si hay archivos que requieren HA framework y no se pueden unit testear con pytest directo:
+       - Crear integration tests usando HA test fixtures (pytest-ha)
+       - Usar pytest-mock/stubs para simular HA services
+       - Crear mocks para config_flow, vehicle controller, dashboard helpers
+    4. Si algún archivo es intrínsecamente no-testable (requiere runtime HA completo):
+       - Documentar POR QUÉ no se puede testear
+       - Usar `if TYPE_CHECKING:` blocks para import paths (ya excluido de coverage)
+       - NUNCA usar `pragma: no cover` para evitar testing de lógica real
+  - **Verify**: 
+    ```bash
+    # Verificar omit solo tiene tests/*
+    OMIT_LINES=$(grep -A 20 '\[tool.coverage.run\]' pyproject.toml | grep -v 'tests/\*' | grep 'omit')
+    if [ -n "$OMIT_LINES" ]; then
+      echo "FAIL: omit list contains non-test-files entries"
+      echo "$OMIT_LINES"
+      exit 1
+    fi
+    # Verificar coverage 100%
+    .venv/bin/python -m pytest --cov=custom_components/ev_trip_planner --cov-report=term-missing -q --tb=no 2>&1 | tail -10
+    ```
+  - **Done when**: 
+    - [ ] omit list SOLO contiene `tests/*` u otras exclusiones legítimas (templates, generated)
+    - [ ] coverage报告显示 100% para todos los archivos con lógica
+    - [ ] NO `# pragma: no cover` en lógica real para evitar testing
+    - [ ] Todos los archivos excluidos documentados y justificados
+  - **Commit**: `fix(spec3): remove coverage fabrication, add real tests`
+  - _Requirements: NFR-7.A (quality gates sin trampas)_
+  - _Anti-trampa rule: No `# pragma: no cover` para evitar testing, no omit list para excluir archivos con lógica real_
+
 ### Existing Per-Package Quality Gates (V1..V12 are decomposition checkpoints)
 
 - [ ] 3.1 [VERIFY] Full local CI: lint + typecheck + test + e2e + quality-gate

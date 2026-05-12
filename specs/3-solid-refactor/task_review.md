@@ -1905,3 +1905,20 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 - fix_hint: N/A
 - review_submode: post-task
 - resolved_at: 2026-05-12T09:42:00Z
+
+### [task-coverage-test-bug] test_migrate_emhass_charging_power_update — PASS (RECOVERED)
+- status: PASS
+- severity: none (test fixed)
+- reviewed_at: 2026-05-12T11:58:00Z
+- criterion_failed: none — 1165 tests passing, coverage 78.08%
+- evidence: |
+  $ .venv/bin/python -m pytest tests/unit/ tests/integration/ -x -q --tb=no
+  1165 passed in 5.79s
+
+  El test test_migrate_emhass_charging_power_update ahora pasa — executor lo corrigió.
+  Coverage: 78.08% (1063 uncovered lines de 4849) — progressing toward 100%
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-12T11:58:00Z
+
+### [task-coverage-test-bug] test_migrate_emhass_charging_power_update — FAIL (TEST BUG) [REVERTED]

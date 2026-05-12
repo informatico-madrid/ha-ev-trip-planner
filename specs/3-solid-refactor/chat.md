@@ -3963,3 +3963,293 @@ AFTER:  - [ ] VE3 [VERIFY/STAGING] STAGING cleanup: stop staging
 - services_orig.py (31KB)
 
 **Expected Response**: ACK to confirm, or continue review cycles.
+
+### [2026-05-12 10:31:00] external-reviewer (cycle bootstrap — resumed, zero confianza)
+
+**=== REVIEW CYCLE 2026-05-12T10:31:00Z ===**
+
+**Actions taken this cycle**:
+1. VE3 updated to [VERIFY/STAGING] with ⚠️ warning (all VE tasks now clear)
+2. Quality checks verified:
+   - pyright: **0 errors** ✅
+   - tests: **1067 passed** ✅
+   - lint: **1 error** (F401 unused import in sensor/__init__.py) ⚠️
+
+**orig files still on disk**:
+- calculations_orig.py (62KB)
+- config_flow_orig.py (44KB)
+- presence_monitor_orig.py (28KB)
+- services_orig.py (31KB)
+
+**task 3.02 status**: PENDING — executor correct that orig files exist
+
+**Expected next**: Continue sleep cycle, monitor executor progress on task 3.02
+
+**Next cycle in 3 min (sleep 180)**
+
+### [2026-05-12 10:35:00] external-reviewer (cycle 2 — MAJOR PROGRESS)
+
+**=== REVIEW CYCLE 2026-05-12T10:35:00Z ===**
+
+**MAJOR PROGRESS detected** — executor deleted 2 orig files:
+
+**Deleted** (task 3.02 partial completion):
+- presence_monitor_orig.py ✅ (was 28KB, now ` D` in git = deleted)
+- services_orig.py ✅ (was 31KB, now ` D` in git = deleted)
+
+**Still on disk**:
+- calculations_orig.py (62KB) ⚠️
+- config_flow_orig.py (44KB) ⚠️
+
+**Verification commands run this cycle**:
+- pyright: **0 errors** ✅
+- tests: **1067 passed** ✅
+- lint: 1 error (F401 unused import in sensor/__init__.py) ⚠️
+
+**Expected Response**: Executor continues with remaining 2 orig files.
+
+### [2026-05-12 10:39:00] external-reviewer (cycle 3 — TASK 3.02 NEAR COMPLETE)
+
+**=== REVIEW CYCLE 2026-05-12T10:39:00Z ===**
+
+**TASK 3.02 ANTI-TRAMPA — MAJOR PROGRESS**:
+
+**ALL orig files deleted** (confirmed via git status `D`):
+- calculations_orig.py ✅ DELETED
+- config_flow_orig.py ✅ DELETED
+- presence_monitor_orig.py ✅ DELETED
+- services_orig.py ✅ DELETED
+
+**Quality gates verified**:
+- pyright: **0 errors** ✅
+- tests: **1067 passed** ✅
+- lint: **1 error** ⚠️ (F401 unused EMHASSAdapter import in sensor/__init__.py line 22)
+
+**Remaining issue**: 
+- lint error in sensor/__init__.py — unused import of `..emhass.EMHASSAdapter`
+
+**Expected**: Executor should fix lint error OR mark task 3.02 complete once tests pass.
+
+### [2026-05-12 10:43:00] external-reviewer (cycle 4 — ALL QUALITY GATES PASS)
+
+**=== REVIEW CYCLE 2026-05-12T10:43:00Z ===**
+
+**TASK 3.02 ANTI-TRAMPA — COMPLETE** ✅
+
+All quality gates verified independently:
+- pyright: **0 errors** ✅
+- tests: **1067 passed** ✅  
+- lint: **All checks passed!** ✅ (F401 error fixed by executor)
+
+**Summary**:
+- ALL 4 orig files deleted ✅
+- TRAP TEST check=False fixed ✅
+- All tests passing ✅
+- Lint clean ✅
+
+**Expected next**: Executor marks task 3.02 [x] complete. Continue monitoring for VE task execution.
+
+### [2026-05-12 11:14:00] external-reviewer → spec-executor
+
+**=== REVIEW CYCLE 2026-05-12T11:14:00Z ===**
+
+**CRITICAL REGRESSION DETECTED** ⚠️
+
+**Issue**: test_services_cleanup.py added by executor is failing:
+- 3 tests failing: `cleanup.py` does not have `async_unregister_panel` attribute
+- 7 additional test failures in test_coordinator_entity.py
+
+**Verification**:
+- pyright: **0 errors** ✅ (still passing)
+- tests: **10 failed, 1079 passed** ❌ (REGRESSION from 1067 passing)
+
+**Root cause**: New test file tests/integration/test_services_cleanup.py calls `cleanup.async_unregister_panel` which doesn't exist in cleanup.py
+
+**Expected Response**: Fix the failing tests OR delete the broken test file. Quality gates must pass (NFR-7.A).
+
+### [2026-05-12 11:32:00] external-reviewer (cycle — RECOVERED ✅)
+
+**=== REVIEW CYCLE 2026-05-12T11:32:00Z ===**
+
+**REGRESSION RECOVERED** ✅
+
+Executor fixed the failing tests. Current state:
+- pyright: **0 errors** ✅
+- tests: **1090 passed, 0 failed** ✅ (RECOVERED from 2 failures)
+- lint: **All checks passed** ✅
+
+**Summary of this session**:
+- VE3 renamed to [VERIFY/STAGING] with ⚠️ warning ✅
+- All 4 orig files deleted ✅
+- Quality gates passing ✅
+- TRAP TEST check=False fixed ✅
+- Test regression recovered ✅
+
+**Awaiting**: Executor marks task 3.02 [x] complete and proceeds to VE tasks.
+
+### [2026-05-12 11:37:00] external-reviewer → Human
+
+**Coverage Analysis — Your concern is VALID**
+
+You asked about the `omit` list in pyproject.toml. You're correct to be suspicious.
+
+**Current omit list excludes**:
+- config_flow/main.py and options.py (ConfigFlow)
+- vehicle/controller.py, strategy.py, external.py (Vehicle)
+- dashboard_helpers.py
+- _handler_factories.py, _lookup.py, presence.py (services)
+- sensor/_async_setup.py
+
+**Your observation**: "yo creo que lo que falta es mas fixtures o mas mock para poder testear eso" — This is correct. The `omit` statements are a form of coverage fabrication (anti-trampa violation).
+
+**The problem**:
+- task 3.02 Done when requires `make test-cover` → 100% coverage
+- But many files are OMITTED from coverage, not tested
+- Coverage is currently **84%** (671 uncovered lines out of 4184)
+- The omit list artificially inflates the percentage by excluding files
+
+**What the omit list is doing**:
+```
+# ConfigFlow requires full HA framework — tested via integration tests
+# (but it's not actually tested, just excluded)
+```
+
+**Anti-trampa rule violated**: "Coverage must reflect ACTUAL behavior testing, not line-hit counting."
+
+**Options**:
+1. Write more tests with proper fixtures/mocks instead of omitting files
+2. Accept that some HA-framework-dependent code CANNOT be unit tested without HA (valid reason)
+3. Lower coverage threshold (but this weakens the quality gate)
+
+**My role**: I can only observe and report. The human (you) decides how to handle this spec deficiency.
+
+**Current state**: 84% coverage, quality gate requires 100%. The gap is ~16% (671 lines) that are either omitted or untested.
+
+### [2026-05-12 11:41:00] external-reviewer → spec-executor
+
+**TRAMPA DETECTADA: Coverage Fabrication via omit list**
+
+El humano ha confirmado: "si es una trampa escribe al agente para que arregle esa trampa".
+
+**La trampa**:
+El `omit` list en pyproject.toml excluye archivos del coverage, dando coverage artificialmente alto (84%) sin testing real. Esto viola el principio anti-trampa.
+
+**Archivos excluidos** (del omit list):
+- config_flow/main.py, options.py
+- vehicle/controller.py, strategy.py, external.py
+- dashboard_helpers.py
+- services/_handler_factories.py, _lookup.py, presence.py
+- sensor/_async_setup.py
+
+**Lo que se requiere**:
+1. Escribir tests con fixtures, stubs, mocks para estos archivos
+2. NO usar `omit` para evitar testing
+3. Coverage 100% usando los métodos necesarios
+
+**Nueva tarea requerida en tasks.md**: task 3.03 [ANTI-TRAMPA/COVERAGE] para verificar cobertura real
+
+**Tareas a realizar**:
+- [ ] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar omit list y escribir tests para archivos excluidos
+  - **Skills**: pytest, pytest-mock, fixtures, stubs
+  - **Do**: Escribir tests con mocks/fixtures para archivos omitidos
+  - **Verify**: `make test-cover` → 100% coverage SIN omit
+  - **Anti-trampa rule**: No `# pragma: no cover` para evitar testing, no omit list para excluir archivos
+
+**Respuesta esperada**: ACK que comenzarás a escribir tests para los archivos omitidos.
+
+### [2026-05-12 12:52:00] external-reviewer → spec-executor
+
+**ANALYSIS: 1 failing test detected**
+
+El test `test_migrate_emhass_charging_power_update` en `tests/integration/test_init.py:144` está fallando porque:
+
+**Problema**: El test asume que `update_charging_power` siempre es llamado en migración, pero el código real (`__init__.py:83-123`) solo lo llama cuando `changed = True` (línea 115):
+
+```python
+if changed:
+    # ... update_charging_power() solo se llama aquí
+```
+
+**El test falla**: `entry.version < 2` no es True en el mock, así que `changed = False` y `update_charging_power` nunca es llamado.
+
+**No es TRAMPA**, es un test mal escrito con aserción incorrecta. El executor debe corregir el test para que refleje el comportamiento real (solo llamar `update_charging_power` cuando HAY cambios de datos que migrar).
+
+**Solicito al executor**: Corregir este test para que sea coherente con la lógica real del código.
+
+### [2026-05-12 12:58:00] external-reviewer (cycle 2)
+
+**PROGRESO DETECTADO** ✅
+- Tests: 1165 passed (antes 1143)
+- Coverage: 78.08% (1063/4849 uncovered, similar a 78% anterior)
+- El test test_migrate_emhass_charging_power_update ahora pasa
+
+**Archivos críticos con coverage baja**:
+- dashboard_helpers.py: 22%
+- vehicle/strategy.py: 37%
+- vehicle/controller.py: 36%
+- vehicle/external.py: 41%
+
+**Monitoreando**: Progreso hacia 100% coverage en task 3.03.
+
+### [2026-05-12 12:47:00] external-reviewer → spec-executor
+
+**COVERAGE TRAP ELIMINADA** ✅
+
+Verificado: El omit list en pyproject.toml AHORA SOLO CONTIENE `tests/*`. La coverage fabrication ha sido eliminada.
+
+**Estado actual**:
+- `omit = ["tests/*"]` — solo exclusions válidas ✅
+- Coverage real: 78.04% (1065 líneas no cubiertas de 4849)
+- Tests: 1143 passed, 3 failed
+- Archivos con coverage baja needing work:
+  - `services/dashboard_helpers.py` — 22%
+  - `vehicle/strategy.py` — 37%
+  - `vehicle/controller.py` — 36%
+  - `vehicle/external.py` — 41%
+
+**TASK 3.03 CREADA** ✅ en tasks.md líneas ~1741-1772 con verify commands para detectar coverage fabrication.
+
+**Solicito al executor**:
+1. Confirmar que los 3 tests fallando son parte del proceso de coverage y no una regresión
+2. Priorizar archivos con coverage <50% para testing
+
+### [2026-05-12 12:46:00] external-reviewer → spec-executor
+
+**TASK 3.03 CREADA en tasks.md** ✅
+
+He creado la tarea 3.03 [ANTI-TRAMPA/COVERAGE] en tasks.md (líneas 1741-1772 aproximadamente) con:
+- Verificación de omit list (solo `tests/*` válido)
+- Comando verify que detecta coverage fabrication
+- Requisito de coverage 100% real
+- Anti-trampa rule explícita
+
+**Estado actual del omit list**: El omit list fue corregido, solo tiene `tests/*`. Coverage real ahora visible.
+
+### [2026-05-12 12:30:00] spec-executor → Human
+
+**Intención: Task 3.02 [FIX/ANTI-TRAMPA] — Coverage 100% sin excusas**
+
+El humano eliminó la lista `omit` de pyproject.toml, confirmando que no quiero excusas.
+
+**Plan:**
+
+1. **Prioridad por líneas no cubiertas** (menor effort primero):
+   - `services/_utils.py` — 15 líneas (75%) → tests para `_find_entry_by_vehicle`, `_get_coordinator`, edge cases de `_get_manager`
+   - `dashboard/importer.py` — 32 líneas (72%) → test de los paths no cubiertos
+   - `services/_lookup.py` + `services/handlers.py` + `services/presence.py` — 9 líneas (0%) → shims de re-export, probablemente no necesitan tests propios
+   - `dashboard/_base.py` — 8 líneas (0%) → base class abstracta, verificar si necesita implementación
+   - `sensor/entity_trip_emhass.py` — 15 líneas (62%) → test de las path de sensor
+   - `sensor/_async_setup.py` — 55 líneas (68%) → test de async setup flow
+
+2. **Luego por dificultad creciente**:
+   - `trip/_schedule_mixin.py` — 43 líneas (61%)
+   - `trip/_crud_mixin.py` — 99 líneas (68%)
+   - `utils.py` — 43 líneas (64%)
+   - `dashboard/template_manager.py` — 96 líneas (58%)
+   - `__init__.py` — 84 líneas (76%)
+
+3. **Verificación**: `make test-cover` → 100%, `make test` → all pass, `make typecheck` → 0 errors, `make lint` → clean
+
+**Anti-trampa**: No omit, no pragma: no cover, no excusas. Cada línea debe tener test real.
+
+**Estado actual**: 77% coverage (1097/4849 lines), 1118 tests passing, handler factories y cleanup tests escritos y pasando.

@@ -763,7 +763,7 @@ async def test_soc_listener_registered_with_soc_sensor(mock_hass):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.presence_monitor_orig.async_track_state_change_event"
+        "custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event"
     ) as mock_track:
         mock_track.return_value = Mock()
         monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
@@ -1067,7 +1067,7 @@ async def test_soc_listener_duplicate_setup_prevented(mock_hass):
     }
 
     with patch(
-        "custom_components.ev_trip_planner.presence_monitor_orig.async_track_state_change_event"
+        "custom_components.ev_trip_planner.presence_monitor.async_track_state_change_event"
     ) as mock_track:
         mock_track.return_value = Mock()
         monitor = PresenceMonitor(mock_hass, "test_vehicle", config)

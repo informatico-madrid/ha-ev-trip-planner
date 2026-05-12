@@ -1,0 +1,165 @@
+"""Tests for custom_components/ev_trip_planner/__init__.py.
+
+Covers async_migrate_entry, async_setup_entry, async_unload_entry,
+async_remove_entry, _hourly_refresh_callback, EVTripRuntimeData.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
+from custom_components.ev_trip_planner import (
+    EVTripRuntimeData,
+    async_migrate_entry,
+    async_remove_entry,
+)
+
+
+class TestEVTripRuntimeData:
+    """Test EVTripRuntimeData dataclass."""
+
+    def test_runtime_data_basic(self) -> None:
+        """RuntimeData should be instantiable with minimal args."""
+        coord = MagicMock()
+        rt = EVTripRuntimeData(coordinator=coord)
+        assert rt.coordinator is coord
+        assert rt.trip_manager is None
+        assert rt.sensor_async_add_entities is None
+        assert rt.emhass_adapter is None
+        assert rt.hourly_refresh_cancel is None
+
+    def test_runtime_data_full(self) -> None:
+        """RuntimeData with all fields."""
+        coord = MagicMock()
+        mgr = MagicMock()
+        cancel = MagicMock()
+        emhass = MagicMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=emhass,
+            hourly_refresh_cancel=cancel,
+        )
+        assert rt.trip_manager is mgr
+        assert rt.emhass_adapter is emhass
+        assert rt.hourly_refresh_cancel is cancel
+
+
+class TestAsyncMigrateEntry:
+    """Test async_migrate_entry."""
+
+    @pytest.mark.asyncio
+    async def test_migrate_no_change_version_2(self) -> None:
+        """Entry version 2 should not be modified."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.version = 2
+        entry.data = {"vehicle_name": "test"}
+        entry.entry_id = "entry_1"
+        entry.runtime_data = None
+
+        result = await async_migrate_entry(hass, entry)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_migrate_battery_capacity_rename(self) -> None:
+        """Version 1 should rename battery_capacity -> battery_capacity_kwh."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.version = 1
+        entry.data = {"vehicle_name": "test", "battery_capacity": 60}
+        entry.entry_id = "entry_1"
+        entry.runtime_data = None  # MagicMock auto-creates truthy mock
+        hass.config_entries = MagicMock()
+
+        result = await async_migrate_entry(hass, entry)
+        assert result is True
+        # The code calls async_update_entry(entry, data=new_data, version=2)
+        # new_data has the renamed field. entry.data is also updated by HA.
+        hass.config_entries.async_update_entry.assert_called_once()
+        call_kwargs = hass.config_entries.async_update_entry.call_args
+        new_data = call_kwargs[1]["data"]
+        assert "battery_capacity" not in new_data
+        assert new_data["battery_capacity_kwh"] == 60
+
+    @pytest.mark.asyncio
+    async def test_migrate_no_rename_needed(self) -> None:
+        """Version 1 without battery_capacity should skip rename but still migrate."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.version = 1
+        entry.data = {"vehicle_name": "test"}
+        entry.entry_id = "entry_1"
+        entry.runtime_data = None
+        hass.config_entries = MagicMock()
+
+        result = await async_migrate_entry(hass, entry)
+        assert result is True
+        hass.config_entries.async_update_entry.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_migrate_entity_registry_migration(self) -> None:
+        """Migration should migrate entity registry unique_ids."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.version = 1
+        entry.data = {"vehicle_name": "test"}
+        entry.entry_id = "entry_1"
+        entry.runtime_data = None
+        hass.config_entries = MagicMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.async_migrate_entries",
+            new=AsyncMock(),
+        ) as mock_migrate:
+            result = await async_migrate_entry(hass, entry)
+            assert result is True
+            mock_migrate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_migrate_emhass_charging_power_update(self) -> None:
+        """Migration should update charging power if emhass_adapter exists."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.version = 1
+        entry.data = {"vehicle_name": "test", "battery_capacity": 60}
+        entry.entry_id = "entry_1"
+        entry.runtime_data = None
+        hass.config_entries = MagicMock()
+
+        emhass_adapter = MagicMock()
+        emhass_adapter.update_charging_power = AsyncMock()
+
+        runtime_data = MagicMock()
+        runtime_data.emhass_adapter = emhass_adapter
+        entry.runtime_data = runtime_data
+
+        with patch(
+            "custom_components.ev_trip_planner.async_migrate_entries",
+            new=AsyncMock(),
+        ):
+            result = await async_migrate_entry(hass, entry)
+            assert result is True
+            emhass_adapter.update_charging_power.assert_called_once()
+
+
+class TestAsyncRemoveEntry:
+    """Test async_remove_entry."""
+
+    @pytest.mark.asyncio
+    async def test_async_remove_entry(self) -> None:
+        """Should delegate to async_remove_entry_cleanup."""
+        hass = MagicMock()
+        entry = MagicMock(spec=ConfigEntry)
+        entry.entry_id = "entry_1"
+
+        with patch(
+            "custom_components.ev_trip_planner.async_remove_entry_cleanup",
+            new=AsyncMock(),
+        ) as mock_cleanup:
+            await async_remove_entry(hass, entry)
+            mock_cleanup.assert_called_once_with(hass, entry)

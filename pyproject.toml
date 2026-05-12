@@ -178,7 +178,6 @@ filterwarnings = [
 source = ["custom_components/ev_trip_planner"]
 omit = [
     "tests/*",
-    "custom_components/ev_trip_planner/calculations_orig.py",
 ]
 
 [tool.coverage.report]

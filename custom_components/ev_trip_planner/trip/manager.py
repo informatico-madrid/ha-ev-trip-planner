@@ -29,7 +29,7 @@ from ..utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from ..utils import validate_hora as pure_validate_hora
 
 # T3.2: Import function for recurring trip rotation
-from ..vehicle_controller import VehicleController
+from ..vehicle import VehicleController
 
 _UNSET = object()
 
@@ -143,7 +143,7 @@ class TripManager:
         """Get trip departure time. Delegates to SOC mixin."""
         return self._soc._get_trip_time(trip)
 
-    # ── Properties for services_orig.py and test access ──────
+    # ── Properties for services and test access ──────
 
     @property
     def _recurring_trips(self) -> Dict[str, Dict[str, Any]]:
