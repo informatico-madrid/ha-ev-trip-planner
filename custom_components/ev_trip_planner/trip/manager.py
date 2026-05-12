@@ -16,7 +16,6 @@ from pathlib import Path  # noqa: F401 — module-level for test mocking
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 
 from ._crud_mixin import _CRUDMixin
 from ._power_profile_mixin import _PowerProfileMixin
@@ -26,7 +25,6 @@ from .state import TripManagerState
 
 from ..emhass import EMHASSAdapter
 from ..yaml_trip_storage import YamlTripStorage
-from ..utils import is_trip_today as pure_is_trip_today
 from ..utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from ..utils import validate_hora as pure_validate_hora
 
@@ -86,8 +84,6 @@ class TripManager:
             storage=storage,
             emhass_adapter=emhass_adapter,
         )
-        self._state.owner = self
-
         # Create vehicle controller before mixins (they may reference it)
         self._state.vehicle_controller = VehicleController(
             hass, vehicle_id, presence_config, self

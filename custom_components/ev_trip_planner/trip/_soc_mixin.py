@@ -281,7 +281,7 @@ class _SOCMixin:
                     alerta_tiempo_insuficiente = True
         elif trip_datetime:
             try:
-                trip_time = self._state.owner._parse_trip_datetime(trip_datetime)
+                trip_time = self._state._parse_trip_datetime(trip_datetime)
                 if trip_time is not None:
                     now = dt_util.now()
                     try:
@@ -578,7 +578,7 @@ class _SOCMixin:
         if not trips:
             return []
 
-        ventanas = await self._state.owner.calcular_ventana_carga_multitrip(
+        ventanas = await self._state.calcular_ventana_carga_multitrip(
             trips=trips,
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
@@ -682,7 +682,7 @@ class _SOCMixin:
             return []
 
         # Obtener información SOC inicio para todos los viajes
-        soc_inicio_info = await self._state.owner.calcular_soc_inicio_trips(
+        soc_inicio_info = await self._state.calcular_soc_inicio_trips(
             trips=trips,
             soc_inicial=soc_inicial,
             hora_regreso=hora_regreso,
@@ -692,12 +692,12 @@ class _SOCMixin:
         )
 
         # Calcular tasa de carga SOC (%/hora)
-        tasa_carga_soc = self._state.owner._calcular_tasa_carga_soc(
+        tasa_carga_soc = self._state._calcular_tasa_carga_soc(
             charging_power_kw, battery_capacity_kwh
         )
 
         # Obtener ventanas de carga
-        ventanas = await self._state.owner.calcular_ventana_carga_multitrip(
+        ventanas = await self._state.calcular_ventana_carga_multitrip(
             trips=trips,
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
@@ -721,7 +721,7 @@ class _SOCMixin:
         soc_caps: Optional[List[float]] = None
         results: List[dict[str, Any]] = []
         if trips:
-            precomputed_trip_times = [self._state.owner._get_trip_time(trip) for trip in trips]
+            precomputed_trip_times = [self._state._get_trip_time(trip) for trip in trips]
             now_dt = datetime.now(timezone.utc)
             soc_caps = [100.0] * len(trips)
             for i, trip in enumerate(trips):
@@ -742,7 +742,7 @@ class _SOCMixin:
 
             # Delegate pure deficit propagation algorithm to calculations.py
             precomputed_soc_targets = [
-                self._state.owner._calcular_soc_objetivo_base(trip, real_capacity_kwh)
+                self._state._calcular_soc_objetivo_base(trip, real_capacity_kwh)
                 for trip in trips
             ]
             results = calculate_deficit_propagation(

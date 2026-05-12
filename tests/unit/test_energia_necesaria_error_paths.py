@@ -61,7 +61,7 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_trip_datetime_parse_none_branch(self, tm):
         """Line 1674-1675: _parse_trip_datetime returns None."""
-        with patch.object(tm, "_parse_trip_datetime", return_value=None):
+        with patch.object(tm._state, "_parse_trip_datetime", return_value=None):
             result = await tm.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": "2026-05-01T10:00:00+00:00"},
                 _vehicle_config(),
@@ -86,7 +86,7 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_parse_trip_datetime_raises_value_error(self, tm):
         """Line 1703: _parse_trip_datetime raises ValueError → caught by outer except."""
-        with patch.object(tm, "_parse_trip_datetime", side_effect=ValueError("boom")):
+        with patch.object(tm._state, "_parse_trip_datetime", side_effect=ValueError("boom")):
             result = await tm.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
@@ -95,7 +95,7 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_parse_trip_datetime_raises_type_error(self, tm):
         """Line 1703: _parse_trip_datetime raises TypeError → caught."""
-        with patch.object(tm, "_parse_trip_datetime", side_effect=TypeError("boom")):
+        with patch.object(tm._state, "_parse_trip_datetime", side_effect=TypeError("boom")):
             result = await tm.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
@@ -112,7 +112,7 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
             def replace(self, tzinfo=None):
                 raise AttributeError("can't replace")
 
-        with patch.object(tm, "_parse_trip_datetime", return_value=FakeDT()):
+        with patch.object(tm._state, "_parse_trip_datetime", return_value=FakeDT()):
             result = await tm.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
@@ -130,7 +130,7 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
             def replace(self, tzinfo=None):
                 return datetime.now(timezone.utc) + timedelta(hours=48)
 
-        with patch.object(tm, "_parse_trip_datetime", return_value=FakeDT()):
+        with patch.object(tm._state, "_parse_trip_datetime", return_value=FakeDT()):
             result = await tm.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),

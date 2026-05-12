@@ -8,7 +8,7 @@ All mixin classes receive a single `TripManagerState` instance in their
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional
 
 from homeassistant.core import HomeAssistant
 
@@ -35,8 +35,6 @@ class TripManagerState:
     emhass_adapter: Optional[EMHASSAdapter] = None
     vehicle_controller: Any = None
     sensor_callbacks: _SensorCallbacks = field(default_factory=_SensorCallbacks)
-    # Back-reference to the owner TripManager (for dynamic method lookup in tests)
-    owner: Any = None
 
     # ── Method references (bound at runtime on TripManager) ──────
     # These are set to _UNSET by default and populated by TripManager.__init__.

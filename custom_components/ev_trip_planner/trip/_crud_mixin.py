@@ -27,7 +27,6 @@ from ..const import (
 )
 from ..utils import generate_trip_id
 
-from ._sensor_callbacks import _SensorCallbacks
 from .state import TripManagerState
 
 _UNSET = object()
