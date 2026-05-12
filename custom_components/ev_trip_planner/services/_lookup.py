@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from ..services_orig import _get_coordinator  # noqa: F401
+from ._utils import _get_coordinator  # noqa: F401
 
 __all__ = ["_get_coordinator"]

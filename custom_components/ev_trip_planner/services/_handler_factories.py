@@ -1,7 +1,7 @@
 """Handler factory closures — make_*_handler(hass) returns async service handlers.
 
 Each factory captures `hass` and returns a coroutine that accepts ServiceCall.
-Helpers (_get_manager, _get_coordinator, etc.) are shared from services_orig.py.
+Helpers (_get_manager, _get_coordinator, etc.) are defined in _utils.py.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 
-from ..services_orig import (
+from ._utils import (
     _ensure_setup,
     _find_entry_by_vehicle,
     _get_coordinator,

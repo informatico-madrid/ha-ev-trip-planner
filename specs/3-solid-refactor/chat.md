@@ -3899,3 +3899,67 @@ calculations_orig.py — each needs similar migration.
 **task 3.02 status**: pending — executor working on orig files + antipatterns
 
 **Zero confianza**: verificar cada quality gate independientemente.
+
+### [2026-05-12 10:19:00] external-reviewer (cycle 2)
+
+**Quality gates**:
+- pyright: 0 errors ✅
+- tests: 943 PASSED ✅
+- ruff: All checks passed ✅
+
+**ORIG files**: 4 still exist (no change)
+- calculations_orig.py
+- config_flow_orig.py
+- presence_monitor_orig.py
+- services_orig.py
+
+**Executor activity**: Only tasks.md modified (no new files)
+**task 3.02 status**: pending
+
+### [2026-05-12 10:21:00] external-reviewer → Human
+
+**ISSUE: VE task naming is ambiguous**
+
+The user correctly identified that VE1 and VE2 (and VE0, VE3) have confusing names. Looking at the spec:
+
+**Current confusion**:
+- VE0 [VERIFY] "Build selector map" 
+- VE1 [VERIFY] "E2E startup: launch staging Docker HA" 
+- VE2 [VERIFY] "E2E check: add trip via UI and verify sensor updates"
+- VE3 [VERIFY] "E2E cleanup: stop staging"
+
+**Problem**: "E2E" in these task names suggests Playwright E2E tests, but they actually run on STAGING Docker (:8124), NOT the Playwright E2E environment (:8123).
+
+**Clarification already exists** at line 2024:
+> "VE tasks (STAGING, not E2E): VE0..VE3 use STAGING HA (Docker on :8124) per CLAUDE.md rules. E2E tests (`make e2e`, `make e2e-soc` on :8123) are validated by V_final_a/b."
+
+**Proposal**:
+- Rename VE0→VS0, VE1→VS1, VE2→VS2, VE3→VS3 (S = Staging) to eliminate confusion
+- Or add explicit \"STAGING\" prefix: VE1 [VERIFY/STAGING]
+- Or clarify in each task description: "⚠️ STAGING environment (:8124), NOT Playwright E2E"
+
+**Expected Response**: Human decides which clarification approach to use. Then I will apply SPEC-ADJUSTMENT to tasks.md.
+
+### [2026-05-12 10:29:00] external-reviewer → Human
+
+**VE3 UPDATED**: Applied same [VERIFY/STAGING] + ⚠️ clarification to VE3 task.
+
+**Change made** (tasks.md line 1729):
+```
+BEFORE: - [ ] VE3 [VERIFY] E2E cleanup: stop staging
+AFTER:  - [ ] VE3 [VERIFY/STAGING] STAGING cleanup: stop staging
+         - **⚠️ STAGING environment (:8124), NOT Playwright E2E (:8123)**
+```
+
+**Now all VE tasks have clear STAGING distinction**:
+- VE1 [VERIFY/STAGING] STAGING startup ✅
+- VE2 [VERIFY/STAGING] STAGING check ✅  
+- VE3 [VERIFY/STAGING] STAGING cleanup ✅ (just updated)
+
+**4 orig files still on disk** (awaiting task 3.02 completion):
+- calculations_orig.py (62KB)
+- config_flow_orig.py (44KB)
+- presence_monitor_orig.py (28KB)
+- services_orig.py (31KB)
+
+**Expected Response**: ACK to confirm, or continue review cycles.

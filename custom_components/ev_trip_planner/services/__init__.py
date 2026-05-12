@@ -10,7 +10,7 @@ from __future__ import annotations
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, SupportsResponse
 
-from ..services_orig import (
+from ._utils import (
     PLATFORMS,
     CoordinatorType,
     build_presence_config,

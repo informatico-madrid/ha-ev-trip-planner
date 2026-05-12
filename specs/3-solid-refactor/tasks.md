@@ -1649,7 +1649,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Design: §6.1 (pre-condition tooling)_
 
 - [ ] V_final_a [VERIFY] V4 — Full local CI
-  - **Do**: Run `make quality-gate-ci && make test-cover && make e2e && make e2e-soc && make import-check && make typecheck && make lint`
+  - **Do**: Run `make quality-gate-ci && make test-cover && make e2e && make e2e-soc && make import-check && make typecheck && make lint` one by one , can take a very long time to run all be patient and fix any issues that arise
   - **Verify**: All exit 0
   - **Done when**: Full local CI green, 100% coverage, 1820+ tests pass, 40 E2E pass, lint-imports 0 violations, pyright 0 errors
   - **Commit**: `chore(spec3): pass full local CI`
@@ -1691,7 +1691,8 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.A_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] VE1 [VERIFY] E2E startup: launch staging Docker HA
+- [ ] VE1 [VERIFY/STAGING] STAGING startup: launch staging Docker HA
+  - **⚠️ STAGING environment (:8124), NOT Playwright E2E (:8123)**
   - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session, home-assistant-best-practices
   - **Do**:
     1. Start staging: `make staging-up` (Docker on :8124, persistent config at ~/staging-ha-config/)
@@ -1703,7 +1704,8 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.A_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] VE2 [VERIFY] E2E check: add trip via UI and verify sensor updates
+- [ ] VE2 [VERIFY/STAGING] STAGING check: add trip via UI and verify sensor updates
+  - **⚠️ STAGING environment (:8124), NOT Playwright E2E (:8123)**
   - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session, selector-map, home-assistant-best-practices
   - **Do**:
     0. Export `HA_TOKEN` from a long-lived access token created via the staging HA UI (Profile → Long-Lived Access Tokens). If `$HA_TOKEN` is unset, fail fast: `[ -n "$HA_TOKEN" ] || { echo "ERROR: HA_TOKEN unset — create long-lived token at http://localhost:8124/profile/security and export it" >&2; exit 1; }`
@@ -1720,11 +1722,12 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
     - [ ] sensor.ev_trip_planner_<trip_id> appears in /api/states
     - [ ] Dashboard view shows the new trip
     - [ ] No 404, login page, or unexpected URL during flow
-  - **Commit**: `test(spec3): E2E VE2 verify trip-add flow on staging`
+  - **Commit**: `test(spec3): STAGING VE2 verify trip-add flow on staging`
   - _Requirements: AC-2.1, AC-2.4 (public API + HA integration intact)_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] VE3 [VERIFY] E2E cleanup: stop staging
+- [ ] VE3 [VERIFY/STAGING] STAGING cleanup: stop staging
+  - **⚠️ STAGING environment (:8124), NOT Playwright E2E (:8123)**
   - **Skills**: e2e, playwright-env, mcp-playwright, playwright-session
   - **Do**:
     1. Stop staging: `make staging-down`
