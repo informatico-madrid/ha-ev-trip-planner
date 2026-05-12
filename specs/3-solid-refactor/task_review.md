@@ -1804,3 +1804,38 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 - ✅ 0 skipped (was 3, now 0 — all stale tests removed by executor)
 - ✅ 0 warnings (was 2, now 0)
 - ✅ 742 tests passing
+
+### [task-3.01] REGRESSION: 80 test failures after composition refactor — FAIL
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-12T07:31:36Z
+- criterion_failed: Task 3.01 broke existing test suite — 80 failures introduced
+- evidence: |
+  $ make test-cover
+  FAILED tests/unit/test_soc_milestone.py::TestBatteryFallback::test_battery_capacity_missing_key
+  FAILED tests/unit/test_soc_milestone.py::TestBatteryFallback::test_battery_capacity_none_fallback
+  ... (80 failed, 949 passed)
+  
+  Previous state (before 3.01): 933 passed, 0 failures
+  Current state (during 3.01): 949 passed, 80 failed, 5 skipped
+  
+  Tests broken:
+  - test_soc_milestone.py: 79 failures (most likely due to TripManagerState instantiation)
+  - test_emhass_package.py: 1 failure (TestErrorHandlerHandleError::test_handle_error_callback_failure_is_logged)
+- fix_hint: |
+  The mixin __init__ now requires `state: TripManagerState` parameter. Any test that directly
+  instantiates mixins (e.g., _SOCMixin(), _CRUDMixin()) will fail because the constructor
+  signature changed. Update all mixin instantiations in tests to pass a TripManagerState mock.
+  
+  Additionally, the method reference fields in TripManagerState (e.g., async_save_trips, _load_trips)
+  default to None but are declared as Callable — pyright reports "None not assignable to Callable"
+  for every field initialization.
+  
+  **Root cause**: state.py line 37-65 declares method fields with `default=None` but type
+  annotation `Callable[..., Any]` — this creates a type conflict. Fix: use `Optional[Callable[..., Any]] = None`
+  OR initialize with a no-op lambda.
+- review_submode: post-task
+- note: This is a regression, not an improvement. The composition refactor is the right approach
+  (task 3.01) but it has broken the test suite. The executor must fix the test suite alongside
+  the composition refactor.
+- resolved_at: pending

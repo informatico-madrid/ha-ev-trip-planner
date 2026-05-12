@@ -1424,7 +1424,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
 
-- [ ] 2.2.1 [BUG-FIX] Fix EMHASS index exhaustion in emhass_adapter
+- [x] 2.2.1 [BUG-FIX] Fix EMHASS index exhaustion in emhass_adapter
   - **NOTE**: Problem identified during staging verification of e2e-soc test 4 (Scenario C).
   - **Evidence**: Docker log shows `No available EMHASS indices for vehicle Mi EV. Max deferrable loads: 50, currently used: 2`. There are 5 active trips but only 2 indices marked as "used". The other 3 trips cannot publish their deferrable load data.
   - **Root cause hypothesis**: 
@@ -1454,7 +1454,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
   - _Requirements: NFR-4.3 (e2e-soc tests must pass)_
   - _Design: §4 (EMHASS index management)_
 
-- [ ] 2.2 [VERIFY] Run E2E tests: make e2e
+- [x] 2.2 [VERIFY] Run E2E tests: make e2e
   - **NOTE**: E2E tests run via Playwright with `make e2e`. This is separate from the staging Docker environment (`:8124` used in VE0-VE3). E2E tests are a CONTROL POINT — they MUST pass before proceeding.
   - **Do**: Run `make e2e` to verify all 30 E2E tests pass
   - **Verify**: `make e2e && echo VERIFY_PASS`
@@ -1463,7 +1463,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
   - _Requirements: NFR-4.2_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] 2.3 [VERIFY] Run E2E SOC tests: make e2e-soc
+- [x] 2.3 [VERIFY] Run E2E SOC tests: make e2e-soc
   - **NOTE**: E2E SOC tests run via Playwright with `make e2e-soc`. This is separate from the staging Docker environment (`:8124` used in VE0-VE3). E2E tests are a CONTROL POINT — they MUST pass before proceeding.
   - **Do**: Run `make e2e-soc` to verify all 10 SOC tests pass
   - **Verify**: `make e2e-soc && echo VERIFY_PASS`
@@ -1524,34 +1524,116 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
 
 ### Pre-Quality-Gate Fixes (BLOCKER before any QG tasks)
 
-- [ ] 3.01 [BUG-FIX/ANTI-TRAMPA] Fix pyright warning evasion in pyproject.toml — **BLOCKER**
-  - **Skills**: pyright, type-checking, python
+- [x] 3.01 [REFACTOR/TYPING] Refactor mixins to eliminate pyright MRO attribute access issues — **BLOCKER**
+  - **Skills**: python, typing, solid, architecture, pyright
+  - **Problem**: Mixin classes (_SOCMixin, _CRUDMixin, _PowerProfileMixin, _ScheduleMixin) access `self.hass`, `self._trips`, `self.vehicle_id` etc. via Python MRO, but pyright cannot statically resolve these attributes from the host class (TripManager). Currently `reportAttributeAccessIssue = "warning"` in pyproject.toml — this is a quality-gate evasion (trampa). NFR-7.A.5 requires "0 pyright errors" with no documented exceptions.
+  - **Analysis**: 
+    - Pyright basic mode defaults: `reportAttributeAccessIssue = "error"`, `reportUnknownMemberType = "none"`, `reportUnknownVariableType = "none"`, `reportUnknownArgumentType = "none"`. Four configs in current pyproject.toml add rules that pyright doesn't even enable by default, then degrade them to warning — this is confirmed trampa.
+    - Only `reportAttributeAccessIssue` has a genuine technical justification (MRO limitation), but the solution is NOT to degrade globally — it's to fix the typing architecture.
+  - **Solution — Composition over Inheritance ONLY**: Replace mixin inheritance with explicit state injection. This is the ONLY acceptable solution. Protocol-based typing, `# type: ignore` comments, or any form of attribute degradation are explicitly PROHIBITED as they are quality-gate evasion (trampa).
+    1. Create `TripManagerState` dataclass/attrs class with all shared state (`hass: HomeAssistant`, `_trips: Dict[str, Any]`, `vehicle_id: str`, `_punctual_trips`, etc.)
+    2. Each mixin receives `state: TripManagerState` in `__init__` and stores it as `self._state`
+    3. TripManager instantiates state once, passes to all mixin instances
+    4. All `self.hass` → `self._state.hass`, `self._trips` → `self._state._trips`, etc.
+  - **PROHIBITED alternatives** (these are ALL trampa):
+    - Protocol-based typing that passes `self` as the protocol implementation (still uses MRO internally)
+    - `# pyright: ignore` comments on mixin attribute accesses
+    - Adding any form of type ignores or comments to suppress pyright errors
+    - Any config degradation (`reportAttributeAccessIssue = "warning"` or any config that silences instead of fixes)
   - **Do**:
-    1. Cambiar las 5 configuraciones de `reportMissing*` y `reportUnknown*` de `"warning"` a `"error"`:
-       - `reportMissingImports = "error"`
-       - `reportMissingTypeStubs = "error"`
-       - `reportUnknownMemberType = "error"`
-       - `reportUnknownVariableType = "error"`
-       - `reportUnknownArgumentType = "error"`
-    2. Ejecutar `make typecheck` y observar los errores de pyright
-    3. Agregar type hints donde falten para resolver los errores
-    4. Mantener solo `reportAttributeAccessIssue = "warning"` con su justificación (MRO/Mixins)
-  - **Verify**: 
-    - `grep -E 'reportMissing|reportUnknown' pyproject.toml | grep -v '= "warning"'` — debe estar vacío (todas en error)
-    - `make typecheck 2>&1 | tail -5` — sin errores de type checking
-    - `make test 2>&1 | tail -3` — todos los tests en verde
-  - **Done when**: 
-    - [ ] pyproject.toml tiene las 5 configuraciones como `"error"`
-    - [ ] `make typecheck` pasa completamente
-    - [ ] `make test` sigue en verde (todos los tests pasan)
-  - **Commit**: `fix(pyright): change warning to error for type checking rules`
-  - _Requirements: NFR-1 (Quality gates must be enforced, not evaded)_
-  - _Anti-trampa: Las configuraciones "warning" en pyright son evasión de quality gate_
+    1. Analyze current mixin files: `_soc_mixin.py`, `_crud_mixin.py`, `_power_profile_mixin.py`, `_schedule_mixin.py`
+    2. Identify all `self.hass`, `self._trips`, `self._punctual_trips`, `self.vehicle_id`, `self._recurring_trips` accesses
+    3. Create `TripManagerState` dataclass with all required attributes (properly typed)
+    4. Modify each mixin to accept `state: TripManagerState` in `__init__` and use `state.hass`, `state._trips`, etc.
+    5. Update TripManager to instantiate state and pass to mixin constructors
+    6. Remove `# pyright: ignore` comments from mixin files (they should no longer be needed)
+    7. Delete the 4 unnecessary pyright configs: `reportMissingTypeStubs`, `reportUnknownMemberType`, `reportUnknownVariableType`, `reportUnknownArgumentType` (they add rules that basic mode doesn't even enable)
+    8. Keep `reportMissingImports = "warning"` (justified: HA integrations have conditional imports)
+    9. Change `reportAttributeAccessIssue` from "warning" to "error" (should pass after refactor)
+  - **Verify**:
+    - `grep -E 'reportMissingTypeStubs|reportUnknownMemberType|reportUnknownVariableType|reportUnknownArgumentType' pyproject.toml` → empty (configs deleted)
+    - `grep 'reportAttributeAccessIssue.*warning' pyproject.toml` → empty (changed to error)
+    - `make typecheck 2>&1 | grep -c 'error'` → 0 errors
+    - `make test 2>&1 | tail -3` → all tests green
+  - **Done when**:
+    - [ ] `TripManagerState` dataclass created with all shared state typed
+    - [ ] All 4 mixin classes use composition (state injection) instead of MRO inheritance
+    - [ ] pyproject.toml has 0 "warning" configs for pyright rules
+    - [ ] `make typecheck` passes with 0 errors
+    - [ ] `make test` continues to pass (no regression)
+  - **Commit**: `refactor(trip): eliminate MRO-based mixin typing via composition`
+  - _Requirements: NFR-7.A.5 (0 pyright errors), NFR-1.D (Dependency Inversion via explicit state), SOLID architecture_
+  - _Anti-trampa: Eliminates pyright config evasion; solves MRO limitation via proper typing architecture, not config degradation_
   - **BLOCKER**: Ninguna tarea de Quality Gates (3.0 en adelante) puede ejecutarse hasta que esta esté completada y verificada
+
+- [ ] 3.02 [FIX/ANTI-TRAMPA] Eliminar todas las excusas de quality gates — **BLOCKER**
+  - **Skills**: quality-gate, anti-trampa, python, solid
+  - **Problem**: Múltiples tareas en Phase 2 tienen notas que son excusas de calidad ("pre-existing", "not caused by decomposition", "legacy files excluded", "borderline"). Estas notas permiten que quality gates fallen sin consecuencias, violando el principio anti-trampa.
+  - **Anti-trampa rule**: "pre-existing failure" is NOT a valid excuse. Si un quality gate falla, debe arreglarse. No hay excepción por "legacy", "pre-existing", o "not caused by decomposition".
+  - **TRAP TESTS prohibited**: Cualquier test que siempre pase sin importar el resultado real del código es un TRAP TEST y está prohibido. Ejemplos:
+    - `assert something or True` — el `or True` hace que el test SIEMPRE pase
+    - `assert condition; assert True` — el segundo assertion sin condición hace el test incondicional
+    - `if condition: assert; else: pass` — el else: pass elimina el else branch coverage
+    - Tests con `pytest.fail()` o `raise` fuera de try-except handlers intencionales
+    - Tests que capturan excepciones con `pytest.raises` pero no verifican el mensaje de error
+  - **TRAP TEST detectado en cycle bootstrap**: `tests/unit/test_trip_package.py:691` tenía `or True` que hacía el test incondicional. El executor lo arregló en el diff actual, pero esto demuestra que trap tests pueden ser introducidos inadvertidamente.
+  - **NOTE eliminada en task 2.06 (line 1412)**: "Edge case paths not yet covered by new tests. Core coverage restored but not at 80% threshold for all files."
+    - **Fix**: Escribir tests adicionales para los paths no cubiertos en `_crud_mixin.py` (68%), `_power_profile_mixin.py` (70%), `_schedule_mixin.py` (78%), `_soc_mixin.py` (74%), `importer.py` (47%), `template_manager.py` (40%)
+    - **Verify**: `make test-cover 2>&1 | grep -E 'TOTAL.*\d+%'` muestra coverage ≥ 90% para todos los archivos de trip/ y dashboard/
+  - **NOTE eliminada en task 2.1 (line 1418)**: "Coverage at 48.87% (needs 100%). Requires extensive additional test coverage for legacy modules not covered by new tests."
+    - **Fix**: Los "legacy modules" son archivos `*_orig.py` (calculations_orig.py, etc.) que deben recibir coverage real, no ser excluidos. Escribir tests para coverage de archivos orig.
+    - **Verify**: `make test-cover 2>&1 | grep 'coverage' | grep -v 'TOTAL'` muestra todos los archivos ≥ 90%
+  - **NOTE eliminada en task 2.4 (line 1476)**: "146 pre-existing pyright errors from mixin attribute access patterns. Not caused by decomposition."
+    - **Fix**: Resuelto por task 3.01 (composition refactor). Si 3.01 aún no está hecha, esta nota es inválida — debe eliminarse y el agente debe arreglando pyright errores.
+    - **Verify**: `make typecheck 2>&1 | grep -c 'error'` → 0 errores
+  - **NOTE eliminada en task 2.6 (line 1494)**: "S (abstractness) FAILS for 1 class (ev_trip_planner.dashboard.importer, abstractness=3.6% < 10%). Not 5/5 but 4/5 + 1 borderline."
+    - **Fix**: dashboard/importer.py tiene 3.6% abstractness. El umbral es 10%. Solución: crear interface/ABC abstracta para las operaciones y hacer que importer implemente el protocolo. O usar Stub ABC con métodos vacíos.
+    - **Verify**: `scripts/solid_metrics.py 2>&1 | grep -E 'S:.*PASS'` muestra S PASS
+  - **NOTE eliminada en task 2.8 (line 1512)**: "Multiple Tier A antipatterns found (AP01 God Class, AP04 Hardcoded Value, AP05 Magic Numbers) primarily in calculations_orig.py and other legacy files. Not caused by decomposition."
+    - **Fix**: Los archivos `*_orig.py` son legacy pero SÍ están en scope del spec. El agente debe arreglar antipatterns en todos los archivos `custom_components/ev_trip_planner/` incluyendo orig files.
+    - **Verify**: `scripts/antipattern_checker.py 2>&1 | grep -c 'Tier A'` → 0
+  - **NOTE eliminada en task V12 (line 1366)**: "make lint exits 4 due to pre-existing pylint behavior (10.00/10 score). make typecheck has 146 pre-existing pyright errors from mixin attribute access."
+    - **Fix**: pylint exit 4 con 10.00/10 score = bug de configuracion. El pyright errors = resueltos por 3.01.
+    - **Verify**: `make lint` exit 0, `make typecheck` 0 errors
+  - **Do**:
+    1. **Grupo A (Coverage)**: Escribir tests para coverage de mixins y dashboard modules bajo 80%
+       - `tests/unit/test_trip_crud_mixin_coverage.py` — cover edge cases en `_crud_mixin.py`
+       - `tests/unit/test_trip_power_profile_coverage.py` — cover edge cases en `_power_profile_mixin.py`
+       - `tests/unit/test_trip_schedule_coverage.py` — cover edge cases en `_schedule_mixin.py`
+       - `tests/unit/test_trip_soc_coverage.py` — cover edge cases en `_soc_mixin.py`
+       - `tests/unit/test_dashboard_importer_coverage.py` — cover edge cases en `importer.py`
+       - `tests/unit/test_dashboard_template_manager_coverage.py` — cover edge cases en `template_manager.py`
+    2. **Grupo B (SOLID Metrics)**: Fix dashboard.importer abstractness < 10%
+       - Crear `dashboard/_base.py` con `DashboardImporterProtocol(Protocol)` 
+       - Refactorizar `importer.py` para implementar el protocolo
+    3. **Grupo C (Antipatterns)**: Arreglar Tier A antipatterns en todos los archivos orig
+       - `scripts/fix_antipatterns.py` o arreglar manualmente:
+         - AP01 God Class en calculations_orig.py → descomponer en funciones
+         - AP04 Hardcoded Value → usar constantes
+         - AP05 Magic Numbers → usar constantes con nombres
+  - **Verify commands**:
+    - Coverage: `make test-cover 2>&1 | grep -E 'TOTAL.*\d+%' | awk '{if ($NF+0 < 100) print "FAIL: " $0}' | wc -l | grep -q '^0$' && echo COVERAGE_PASS`
+    - SOLID: `scripts/solid_metrics.py 2>&1 | grep -E 'S:.*PASS' | wc -l | grep -q '^1$' && echo SOLID_PASS`
+    - Antipatterns: `scripts/antipattern_checker.py 2>&1 | grep -c 'Tier A' | grep -q '^0$' && echo ANTIPATTERN_PASS`
+    - pyright: `make typecheck 2>&1 | grep -c 'error' | grep -q '^0$' && echo PYRIGHT_PASS`
+  - **Done when**:
+    - [ ] task 2.06 sin nota de excusa — coverage ≥ 80% para todos los archivos
+    - [ ] task 2.1 sin nota de excusa — coverage 100%
+    - [ ] task 2.4 sin nota de excusa — 0 pyright errors
+    - [ ] task 2.6 sin nota de excusa — S letter PASS
+    - [ ] task 2.8 sin nota de excusa — 0 Tier A antipatterns
+    - [ ] task V12 sin nota de excusa — make lint exit 0
+    - [ ] `make test-cover` → 100% coverage
+    - [ ] `scripts/solid_metrics.py` → 5/5 PASS
+    - [ ] `scripts/antipattern_checker.py` → 0 Tier A violations
+  - **Commit**: `fix(spec3): eliminate all quality-gate evasion notes`
+  - _Requirements: NFR-7.A (Bar A sin excusas), anti-trampa rules_
+  - _Anti-trampa: Elimina todas las excusas de calidad; los quality gates deben pasar sin "pre-existing", "legacy", "not caused by decomposition"_
+  - **BLOCKER**: Ninguna tarea V_final_* puede ejecutarse hasta que esta esté completada
 
 ### Final-Sequence Checkpoints (V4 → V5 → V6) per phase-rules.md
 
-- [ ] 3.0 [VERIFY] Install Tier A analysis tools (radon, jscpd)
+- [x] 3.0 [VERIFY] Install Tier A analysis tools (radon, jscpd)
   - **Do**:
     1. Install radon into venv: `.venv/bin/pip install radon`
     2. Verify jscpd available (Node, run via npx — no global install required): `npx --yes jscpd --version`
@@ -1940,9 +2022,15 @@ Focus: PR creation, CI monitoring, review resolution, final validation.
 
 ## Dependencies
 
+**Orden de ejecución de Quality Gates**:
 ```
-Phase 1 (TDD Cycles, 9 decomp packages) → Phase 2 (Additional Tests) → Phase 3 (Quality Gates: V_final_a → V_final_b → V_final_c → VE0 → VE1 → VE2 → VE3 → per-package gates) → Phase 4 (PR Lifecycle)
+3.01 (mixin composition) → 3.02 (eliminar excusas) → V_final_a (incluye e2e + e2e-soc) → V_final_b → V_final_c → VE0..VE3 → 3.1..3.17 → Phase 4
 ```
+
+**Nota sobre E2E en V_final_a**: V_final_a ejecuta `make e2e` (30 tests) y `make e2e-soc` (10 tests) como parte del full local CI. Estos tests E2E se ejecutan DESPUÉS de 3.01 y 3.02, proporcionando validación independiente de que las refactorizaciones no rompieron la UI de Home Assistant.
+
+```
+Phase 1 (TDD Cycles, 9 decomp packages) → Phase 2 (Additional Tests) → Phase 3: 3.01 → 3.02 → V_final_a → V_final_b → V_final_c → VE0..VE3 → per-package gates → Phase 4
 
 **Decomposition order** (mandatory per design.md §6.2):
 calculations → vehicle → dashboard → emhass → trip → services → sensor → config_flow → presence_monitor

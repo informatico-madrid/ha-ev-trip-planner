@@ -44,12 +44,7 @@ disable = [
 [tool.pyright]
 pythonVersion = "3.14"
 typeCheckingMode = "basic"
-reportMissingImports = "warning"
-reportMissingTypeStubs = "warning"
-reportUnknownMemberType = "warning"
-reportUnknownVariableType = "warning"
-reportUnknownArgumentType = "warning"
-reportAttributeAccessIssue = "warning"  # Mixins rely on MRO attribute resolution pyright cannot statically analyze
+
 exclude = [
     "**/__pycache__",
     "**/.*",
