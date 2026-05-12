@@ -30,6 +30,7 @@ def test_sensor_py_zero_pyright_errors():
         capture_output=True,
         text=True,
         cwd="/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner",
+        check=False,
     )
     output = result.stderr + result.stdout
 

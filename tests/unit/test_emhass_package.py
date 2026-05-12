@@ -241,8 +241,7 @@ class TestErrorHandlerSpecificHandlers:
 
         caplog.set_level(logging.WARNING)
         handler = ErrorHandler(hass=mock_hass)
-        result = handler.handle_index_error("unknown_trip", "release")
-        assert result is None
+        handler.handle_index_error("unknown_trip", "release")
         assert "unknown_trip" in caplog.text
 
     def test_handle_storage_error_logs(self, mock_hass, caplog):

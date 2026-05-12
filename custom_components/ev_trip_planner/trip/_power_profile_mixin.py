@@ -3,10 +3,8 @@
 Contains the `async_generate_power_profile` method that generates the power
 profile for EMHASS charging optimization.
 
-The mixin reads shared state from `self` (inherited via MRO):
-- `self._trips`, `self._recurring_trips`, `self._punctual_trips`
-- `self.hass`, `self.vehicle_controller`
-- `self._entry_id`
+This mixin uses composition: it receives a `TripManagerState` instance
+in `__init__` and accesses all shared state through `self._state.xxx`.
 """
 
 from __future__ import annotations
@@ -19,20 +17,21 @@ from homeassistant.config_entries import ConfigEntry
 
 from ..const import DOMAIN
 
+from .state import TripManagerState
+
 _LOGGER = logging.getLogger(__name__)
 
 
 class _PowerProfileMixin:
     """Mixin providing power profile generation for TripManager.
 
-    This mixin encapsulates power profile generation logic. The host class
-    (TripManager) provides shared state access via MRO:
-    self.hass, self._trips, self._recurring_trips, self._punctual_trips,
-    self.vehicle_controller, self._entry_id.
+    Uses composition — receives TripManagerState in __init__ and stores it
+    as self._state. All shared state access goes through self._state.xxx.
     """
 
-    def __init__(self) -> None:
-        """Initialize the power profile mixin (no state to initialize)."""
+    def __init__(self, state: TripManagerState) -> None:
+        """Initialize the power profile mixin with shared state."""
+        self._state = state
 
     async def async_generate_power_profile(
         self,
@@ -57,7 +56,7 @@ class _PowerProfileMixin:
         from ..calculations import calculate_power_profile
 
         # Cargar viajes
-        await self._load_trips()
+        await self._state._load_trips()
 
         # Obtener configuración del vehículo
         if vehicle_config:
@@ -69,26 +68,26 @@ class _PowerProfileMixin:
                 # Lookup by real config entry id when available; fall back to
                 # legacy behaviour using vehicle_id for backward compatibility.
                 config_entry: Optional[ConfigEntry[Any]] = None
-                entry_id = getattr(self, "_entry_id", None)
+                entry_id = self._state.entry_id
                 if entry_id:
-                    config_entry = self.hass.config_entries.async_get_entry(entry_id)
+                    config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
                 else:
-                    config_entry = self.hass.config_entries.async_get_entry(
-                        self.vehicle_id
+                    config_entry = self._state.hass.config_entries.async_get_entry(
+                        self._state.vehicle_id
                     )
 
                 # If direct lookup failed, scan entries by vehicle_name (tests
                 # and older setups may rely on that behaviour).
                 if config_entry is None:
                     try:
-                        entries = self.hass.config_entries.async_entries(DOMAIN)
+                        entries = self._state.hass.config_entries.async_entries(DOMAIN)
                         for e in entries:
                             if not getattr(e, "data", None):
                                 continue
                             name = e.data.get("vehicle_name")
                             if (
                                 name
-                                and name.lower().replace(" ", "_") == self.vehicle_id
+                                and name.lower().replace(" ", "_") == self._state.vehicle_id
                             ):
                                 config_entry = e
                                 break
@@ -112,24 +111,24 @@ class _PowerProfileMixin:
 
         # Obtener SOC actual - only fetch if not provided in vehicle_config
         if soc_current is None:
-            soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+            soc_current = await self._state.async_get_vehicle_soc(self._state.vehicle_id)
 
         # Obtener hora_regreso si no fue proporcionada
         if (
             hora_regreso is None
-            and self.vehicle_controller
-            and self.vehicle_controller._presence_monitor
+            and self._state.vehicle_controller
+            and self._state.vehicle_controller._presence_monitor
         ):
             hora_regreso = (
-                await self.vehicle_controller._presence_monitor.async_get_hora_regreso()
+                await self._state.vehicle_controller._presence_monitor.async_get_hora_regreso()
             )
 
         # Obtener todos los viajes pendientes
         all_trips = []
-        for trip in self._recurring_trips.values():
+        for trip in self._state.recurring_trips.values():
             if trip.get("activo", True):
                 all_trips.append(trip)
-        for trip in self._punctual_trips.values():
+        for trip in self._state.punctual_trips.values():
             if (
                 trip.get("estado") == "pendiente"
             ):  # pragma: no cover  # HA storage I/O - estado filter for pending trips

@@ -159,7 +159,7 @@ def make_trip_update_handler(hass: HomeAssistant):
         await mgr.async_update_trip(trip_id, updates)
 
         try:
-            from .sensor import async_update_trip_sensor
+            from ..sensor import async_update_trip_sensor
             t = "recurrente" if updates.get("dia_semana") else "puntual"
             trips = (await mgr.async_get_recurring_trips()
                      if t == "recurrente"

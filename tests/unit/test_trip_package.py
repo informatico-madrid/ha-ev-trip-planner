@@ -688,7 +688,7 @@ class TestSensorCallbacks:
     def test_emit_unknown_event_logs_debug(self, mock_hass, caplog):
         sc = _SensorCallbacks()
         sc.emit("unknown_event", mock_hass, "entry_1")
-        assert "Unknown sensor event" in caplog.text or caplog.text.count("unknown_event") > 0 or True  # may not log
+        assert "Unknown sensor event" in caplog.text or caplog.text.count("unknown_event") > 0
 
     def test_emit_creates_recurring_sensor(self, mock_hass, caplog):
         """trip_created_recurring emits via asyncio.ensure_future."""

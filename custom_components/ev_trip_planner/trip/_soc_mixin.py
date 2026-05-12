@@ -11,8 +11,8 @@ Contains all SOC (State of Charge) calculation methods:
   _calcular_soc_objetivo_base, _is_trip_today, _get_trip_time,
   _get_day_index, _parse_trip_datetime
 
-The mixin reads shared state from `self` (inherited via MRO):
-- `self.hass`, `self._trips`, `self.vehicle_id`
+This mixin uses composition: it receives a `TripManagerState` instance
+in `__init__` and accesses all shared state through `self._state.xxx`.
 """
 
 from __future__ import annotations
@@ -40,6 +40,8 @@ from ..utils import (
     is_trip_today as pure_is_trip_today,
 )
 
+from .state import TripManagerState
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,12 +49,13 @@ _LOGGER = logging.getLogger(__name__)
 class _SOCMixin:
     """Mixin providing SOC calculation operations for TripManager.
 
-    This mixin encapsulates all SOC-related logic. The host class (TripManager)
-    provides shared state access via MRO: self.hass, self._trips, self.vehicle_id.
+    Uses composition — receives TripManagerState in __init__ and stores it
+    as self._state. All shared state access goes through self._state.xxx.
     """
 
-    def __init__(self) -> None:
-        """Initialize the SOC mixin (no state to initialize)."""
+    def __init__(self, state: TripManagerState) -> None:
+        """Initialize the SOC mixin with shared state."""
+        self._state = state
 
     # ── Helper Methods ──────────────────────────────────────────
 
@@ -102,8 +105,8 @@ class _SOCMixin:
         try:
             # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
             entry: Optional[ConfigEntry[Any]] = None
-            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data.get("vehicle_name") == self.vehicle_id:
+            for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):
+                if config_entry.data.get("vehicle_name") == self._state.vehicle_id:
                     entry = config_entry
                     break
 
@@ -168,7 +171,8 @@ class _SOCMixin:
         Returns timezone-aware datetime for proper comparison with datetime.now(timezone.utc).
         """
         tipo = trip.get("tipo")
-        assert tipo is not None, "trip tipo is required"
+        if tipo is None:
+            return None
         result = calculate_trip_time(
             tipo,
             trip.get("hora"),
@@ -194,7 +198,7 @@ class _SOCMixin:
         try:
             # Buscar config entry por vehicle_name (vehicle_id es vehicle_name, no entry_id)
             entry = None
-            for config_entry in self.hass.config_entries.async_entries(DOMAIN):
+            for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):
                 if config_entry.data.get("vehicle_name") == vehicle_id:
                     entry = config_entry
                     break
@@ -202,7 +206,7 @@ class _SOCMixin:
             if entry and entry.data:
                 soc_sensor = entry.data.get("soc_sensor")
                 if soc_sensor:
-                    state = self.hass.states.get(soc_sensor)
+                    state = self._state.hass.states.get(soc_sensor)
                     if state and state.state not in ("unknown", "unavailable", "none"):
                         return float(state.state)
                 _LOGGER.warning("Sensor SOC no disponible para %s", vehicle_id)
@@ -277,7 +281,7 @@ class _SOCMixin:
                     alerta_tiempo_insuficiente = True
         elif trip_datetime:
             try:
-                trip_time = self._parse_trip_datetime(trip_datetime)
+                trip_time = self._state.owner._parse_trip_datetime(trip_datetime)
                 if trip_time is not None:
                     now = dt_util.now()
                     try:
@@ -362,7 +366,7 @@ class _SOCMixin:
                 parsed_hora_regreso = parsed_hora_regreso.replace(tzinfo=timezone.utc)
 
         if parsed_hora_regreso is not None:
-            next_trip = await self.async_get_next_trip_after(parsed_hora_regreso)
+            next_trip = await self._state.async_get_next_trip_after(parsed_hora_regreso)
             if next_trip is None:
                 return {
                     "ventana_horas": 0,
@@ -409,7 +413,7 @@ class _SOCMixin:
             "soc_current": soc_actual,
             "safety_margin_percent": safety_margin_percent,
         }
-        energia_info = await self.async_calcular_energia_necesaria(trip, vehicle_config)
+        energia_info = await self._state.async_calcular_energia_necesaria(trip, vehicle_config)
         kwh_necesarios = energia_info["energia_necesaria_kwh"]
 
         if charging_power_kw > 0:
@@ -513,7 +517,7 @@ class _SOCMixin:
                 "soc_current": soc_actual,
                 "safety_margin_percent": safety_margin_percent,
             }
-            energia_info = await self.async_calcular_energia_necesaria(
+            energia_info = await self._state.async_calcular_energia_necesaria(
                 trip, vehicle_config
             )
             kwh_necesarios = energia_info["energia_necesaria_kwh"]
@@ -574,13 +578,16 @@ class _SOCMixin:
         if not trips:
             return []
 
-        ventanas = await self.calcular_ventana_carga_multitrip(
+        ventanas = await self._state.owner.calcular_ventana_carga_multitrip(
             trips=trips,
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
             safety_margin_percent=safety_margin_percent,
         )
+
+        results = []
+        soc_actual = soc_inicial
 
         results = []
         soc_actual = soc_inicial
@@ -669,13 +676,13 @@ class _SOCMixin:
             soh_sensor_entity_id=soh_sensor_entity_id,
         )
         # Use real capacity (SOH-adjusted if sensor configured, nominal otherwise)
-        real_capacity_kwh = battery_cap.get_capacity(self.hass)
+        real_capacity_kwh = battery_cap.get_capacity(self._state.hass)
 
         if not trips:
             return []
 
         # Obtener información SOC inicio para todos los viajes
-        soc_inicio_info = await self.calcular_soc_inicio_trips(
+        soc_inicio_info = await self._state.owner.calcular_soc_inicio_trips(
             trips=trips,
             soc_inicial=soc_inicial,
             hora_regreso=hora_regreso,
@@ -685,12 +692,12 @@ class _SOCMixin:
         )
 
         # Calcular tasa de carga SOC (%/hora)
-        tasa_carga_soc = self._calcular_tasa_carga_soc(
+        tasa_carga_soc = self._state.owner._calcular_tasa_carga_soc(
             charging_power_kw, battery_capacity_kwh
         )
 
         # Obtener ventanas de carga
-        ventanas = await self.calcular_ventana_carga_multitrip(
+        ventanas = await self._state.owner.calcular_ventana_carga_multitrip(
             trips=trips,
             soc_actual=soc_inicial,
             hora_regreso=hora_regreso,
@@ -714,7 +721,7 @@ class _SOCMixin:
         soc_caps: Optional[List[float]] = None
         results: List[dict[str, Any]] = []
         if trips:
-            precomputed_trip_times = [self._get_trip_time(trip) for trip in trips]
+            precomputed_trip_times = [self._state.owner._get_trip_time(trip) for trip in trips]
             now_dt = datetime.now(timezone.utc)
             soc_caps = [100.0] * len(trips)
             for i, trip in enumerate(trips):
@@ -735,7 +742,7 @@ class _SOCMixin:
 
             # Delegate pure deficit propagation algorithm to calculations.py
             precomputed_soc_targets = [
-                self._calcular_soc_objetivo_base(trip, real_capacity_kwh)
+                self._state.owner._calcular_soc_objetivo_base(trip, real_capacity_kwh)
                 for trip in trips
             ]
             results = calculate_deficit_propagation(
@@ -752,7 +759,7 @@ class _SOCMixin:
 
         _LOGGER.debug("Deficit propagation COMPLETE for %d trips", len(trips))
 
-        return results  # pyright: ignore[reportPossiblyUnboundVariable]
+        return results
 
     # ── Daily Energy Calculation ────────────────────────────────
 
@@ -760,10 +767,10 @@ class _SOCMixin:
         """Calcula la energía necesaria para hoy basado en los viajes."""
         today = datetime.now(timezone.utc).date()
         total_kwh = 0.0
-        for trip in self._recurring_trips.values():
+        for trip in self._state.recurring_trips.values():
             if trip["activo"] and self._is_trip_today(trip, today):
                 total_kwh += trip["kwh"]
-        for trip in self._punctual_trips.values():
+        for trip in self._state.punctual_trips.values():
             if trip["estado"] == "pendiente" and self._is_trip_today(trip, today):
                 total_kwh += trip["kwh"]
         return total_kwh

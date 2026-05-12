@@ -4,10 +4,8 @@ Contains:
 - async_generate_deferrables_schedule: generates charging schedule for EMHASS
 - publish_deferrable_loads: publishes all active trips as deferrable loads to EMHASS
 
-The mixin reads shared state from `self` (inherited via MRO):
-- `self._trips`, `self._recurring_trips`, `self._punctual_trips`
-- `self.hass`, `self.vehicle_id`, `self._emhass_adapter`
-- `self.async_get_vehicle_soc`, `self.async_calcular_energia_necesaria`
+This mixin uses composition: it receives a `TripManagerState` instance
+in `__init__` and accesses all shared state through `self._state.xxx`.
 """
 
 from __future__ import annotations
@@ -19,6 +17,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
+from .state import TripManagerState
 
 _UNSET = object()
 
@@ -28,15 +27,13 @@ _LOGGER = logging.getLogger(__name__)
 class _ScheduleMixin:
     """Mixin providing schedule generation for TripManager.
 
-    This mixin encapsulates deferrable schedule generation and EMHASS publishing.
-    The host class (TripManager) provides shared state access via MRO:
-    self.hass, self._trips, self._recurring_trips, self._punctual_trips,
-    self.vehicle_id, self._emhass_adapter,
-    self.async_get_vehicle_soc, self.async_calcular_energia_necesaria.
+    Uses composition — receives TripManagerState in __init__ and stores it
+    as self._state. All shared state access goes through self._state.xxx.
     """
 
-    def __init__(self) -> None:
-        """Initialize the schedule mixin (no state to initialize)."""
+    def __init__(self, state: TripManagerState) -> None:
+        """Initialize the schedule mixin with shared state."""
+        self._state = state
 
     async def async_generate_deferrables_schedule(
         self,
@@ -59,17 +56,17 @@ class _ScheduleMixin:
             Formato: [{"date": "2026-03-17T14:00:00+01:00", "p_deferrable0": "0.0", "p_deferrable1": "0.0"}, ...]
         """
         # Cargar viajes
-        await self._load_trips()
+        await self._state._load_trips()
 
         # Obtener configuración
         try:
             _config_entry: Optional[ConfigEntry[Any]] = None
-            entry_id = getattr(self, "_entry_id", None)
+            entry_id = self._state.entry_id
             if entry_id:
-                _config_entry = self.hass.config_entries.async_get_entry(entry_id)
+                _config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
             else:
-                _config_entry = self.hass.config_entries.async_get_entry(
-                    self.vehicle_id
+                _config_entry = self._state.hass.config_entries.async_get_entry(
+                    self._state.vehicle_id
                 )
 
             if _config_entry is not None and _config_entry.data is not None:
@@ -78,14 +75,14 @@ class _ScheduleMixin:
             pass
 
         # Obtener SOC actual
-        await self.async_get_vehicle_soc(self.vehicle_id)
+        await self._state.async_get_vehicle_soc(self._state.vehicle_id)
 
         # Obtener todos los viajes pendientes
         all_trips = []
-        for trip in self._recurring_trips.values():
+        for trip in self._state.recurring_trips.values():
             if trip.get("activo", True):
                 all_trips.append(trip)
-        for trip in self._punctual_trips.values():
+        for trip in self._state.punctual_trips.values():
             if trip.get("estado") == "pendiente":
                 all_trips.append(trip)
 
@@ -94,7 +91,7 @@ class _ScheduleMixin:
         # Priority logic: deadline más cercano = más urgente = índice menor
         now = datetime.now(timezone.utc)
         for trip in all_trips:
-            trip_time = self._get_trip_time(trip)
+            trip_time = self._state._get_trip_time(trip)
             if trip_time:
                 trip["_deadline"] = trip_time
                 # Calcular horas hasta deadline
@@ -130,20 +127,21 @@ class _ScheduleMixin:
         soc_current = 50.0
         try:
             config_entry: Optional[ConfigEntry[Any]] = None
-            entry_id = getattr(self, "_entry_id", None)
+            entry_id = self._state.entry_id
             if entry_id:
-                config_entry = self.hass.config_entries.async_get_entry(entry_id)
+                config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
             else:
-                config_entry = self.hass.config_entries.async_get_entry(self.vehicle_id)
+                config_entry = self._state.hass.config_entries.async_get_entry(self._state.vehicle_id)
 
             if config_entry is not None and config_entry.data is not None:
                 battery_capacity = config_entry.data.get("battery_capacity_kwh", 50.0)
                 safety_margin_percent = config_entry.data.get(
-                    "safety_margin_percent", 10.0
+                    "safety_margin_percent",
+                    10.0,
                 )
         except Exception:
             pass
-        soc_current = await self.async_get_vehicle_soc(self.vehicle_id)
+        soc_current = await self._state.async_get_vehicle_soc(self._state.vehicle_id)
 
         # Generar perfil de potencia para cada viaje
         for idx, trip in enumerate(all_trips):
@@ -153,7 +151,7 @@ class _ScheduleMixin:
                 "soc_current": soc_current,
                 "safety_margin_percent": safety_margin_percent,
             }
-            energia_info = await self.async_calcular_energia_necesaria(
+            energia_info = await self._state.async_calcular_energia_necesaria(
                 trip, vehicle_config
             )
             energia_kwh = energia_info["energia_necesaria_kwh"]
@@ -169,7 +167,7 @@ class _ScheduleMixin:
             horas_necesarias = int(horas_carga) + (1 if horas_carga % 1 > 0 else 0)
 
             # Obtener deadline del viaje
-            trip_time = self._get_trip_time(trip)
+            trip_time = self._state._get_trip_time(trip)
             if not trip_time:
                 continue
 
@@ -231,17 +229,17 @@ class _ScheduleMixin:
         """
         # Get all active trips if not provided
         if trips is None:
-            await self._load_trips()
+            await self._state._load_trips()
             trips = []
-            for trip in self._recurring_trips.values():
+            for trip in self._state.recurring_trips.values():
                 if trip.get("activo", True):
                     trips.append(trip)
-            for trip in self._punctual_trips.values():
+            for trip in self._state.punctual_trips.values():
                 if trip.get("estado") == "pendiente":
                     trips.append(trip)
 
         # Publish through EMHASS adapter (duck typed for test compatibility)
-        adapter = getattr(self, "_emhass_adapter", None)
+        adapter = self._state.emhass_adapter
         if adapter and hasattr(adapter, "async_publish_all_deferrable_loads"):
             try:
                 await adapter.async_publish_all_deferrable_loads(trips)
