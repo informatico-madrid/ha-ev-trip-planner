@@ -28,10 +28,26 @@ def _make_partial_tm(mock_mgr):
     )
     tm._state._recurring_trips = mock_mgr._recurring_trips
     tm._state._punctual_trips = mock_mgr._punctual_trips
-    # Attach mock method references
     tm._state._load_trips = mock_mgr._load_trips
     tm._state._get_trip_time = mock_mgr._get_trip_time
     tm._state.async_get_vehicle_soc = mock_mgr.async_get_vehicle_soc
+    # Set up _persistence mock
+    tm._state._persistence = MagicMock()
+    tm._state._persistence._load_trips = mock_mgr._load_trips
+    # Set up _soc mock
+    tm._state._soc = MagicMock()
+    tm._state._soc.async_get_vehicle_soc = mock_mgr.async_get_vehicle_soc
+    tm._state._soc._get_trip_time = mock_mgr._get_trip_time
+    tm._state._soc.async_calcular_energia_necesaria = AsyncMock(
+        return_value={"energia_necesaria_kwh": 0, "horas_carga_necesarias": 0}
+    )
+    tm._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+    # Set up config entry mock
+    tm._state.hass.config_entries.async_get_entry = MagicMock(return_value=None)
+    # Create and wire schedule
+    from custom_components.ev_trip_planner.trip._schedule import TripScheduler
+
+    tm._schedule = TripScheduler(tm._state)
     return tm
 
 
@@ -56,7 +72,7 @@ class TestAsyncGenerateDeferrablesSchedule:
         """Empty trips returns list structure."""
         tm = _make_partial_tm(mock_trip_manager)
 
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=7.0,
             planning_horizon_days=1,
         )
@@ -80,9 +96,11 @@ class TestAsyncGenerateDeferrablesSchedule:
 
         mock_entry = MagicMock()
         mock_entry.data = {"battery_capacity_kwh": 60.0}
-        tm._state.hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        tm._state.hass.config_entries.async_get_entry = MagicMock(
+            return_value=mock_entry
+        )
 
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=7.0,
             planning_horizon_days=1,
         )
@@ -96,10 +114,12 @@ class TestAsyncGenerateDeferrablesSchedule:
 
         mock_entry = MagicMock()
         mock_entry.data = {"battery_capacity_kwh": 60.0}
-        tm._state.hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
+        tm._state.hass.config_entries.async_get_entry = MagicMock(
+            return_value=mock_entry
+        )
 
         horizon = 3
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=7.0,
             planning_horizon_days=horizon,
         )

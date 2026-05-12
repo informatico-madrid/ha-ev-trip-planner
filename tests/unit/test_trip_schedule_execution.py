@@ -1,4 +1,4 @@
-"""Execution tests for _ScheduleMixin (async_generate_deferrables_schedule,
+"""Execution tests for TripScheduler (async_generate_deferrables_schedule,
 publish_deferrable_loads).
 
 Covers schedule generation with active trips, empty trips, config entry
@@ -12,12 +12,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ev_trip_planner.trip._schedule_mixin import _ScheduleMixin
+from custom_components.ev_trip_planner.trip._schedule import TripScheduler
 from custom_components.ev_trip_planner.trip.state import TripManagerState
 
 
 def _make_sm():
-    """Create a _ScheduleMixin with proper state."""
+    """Create a TripScheduler with proper state."""
     hass = MagicMock()
     hass.config_entries = MagicMock()
     hass.config_entries.async_get_entry = MagicMock(return_value=None)
@@ -27,23 +27,27 @@ def _make_sm():
         vehicle_id="test_vehicle",
         entry_id="test_entry",
     )
-    state._load_trips = AsyncMock()
     state.recurring_trips = {}
     state.punctual_trips = {}
-    state.async_get_vehicle_soc = AsyncMock(return_value=50.0)
-    state.async_calcular_energia_necesaria = AsyncMock(
+    # Wire sub-component mocks that TripScheduler uses
+    state._persistence = MagicMock()
+    state._persistence._load_trips = AsyncMock()
+    state._soc = MagicMock()
+    state._soc.async_get_vehicle_soc = AsyncMock(return_value=50.0)
+    state._soc._get_trip_time = MagicMock(return_value=None)
+    state._soc.async_calcular_energia_necesaria = AsyncMock(
         return_value={"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
     )
     state.emhass_adapter = None
-    return _ScheduleMixin(state)
+    return TripScheduler(state)
 
 
 class TestScheduleMixinExecution:
-    """Test _ScheduleMixin execution paths."""
+    """Test TripScheduler execution paths."""
 
     @pytest.mark.asyncio
     async def test_generate_schedule_empty_trips(self):
-        """No trips → returns schedule with all zeros."""
+        """No trips -> returns schedule with all zeros."""
         sm = _make_sm()
 
         result = await sm.async_generate_deferrables_schedule(
@@ -60,7 +64,7 @@ class TestScheduleMixinExecution:
 
     @pytest.mark.asyncio
     async def test_generate_schedule_with_recurring_trip(self):
-        """Active recurring trip → schedule has non-zero power."""
+        """Active recurring trip -> schedule has non-zero power."""
         sm = _make_sm()
         sm._state.recurring_trips = {
             "rec_1": {
@@ -72,9 +76,8 @@ class TestScheduleMixinExecution:
             }
         }
 
-        # Set _get_trip_time to return a future datetime
         future = datetime.now(timezone.utc) + timedelta(hours=5)
-        sm._state._get_trip_time = MagicMock(return_value=future)
+        sm._state._soc._get_trip_time = MagicMock(return_value=future)
 
         result = await sm.async_generate_deferrables_schedule(
             charging_power_kw=3.6,
@@ -82,13 +85,12 @@ class TestScheduleMixinExecution:
         )
 
         assert isinstance(result, list)
-        # Should have p_deferrable0 with some non-zero values
         has_power = any(entry.get("p_deferrable0", "0.0") != "0.0" for entry in result)
         assert has_power is True
 
     @pytest.mark.asyncio
     async def test_generate_schedule_with_punctual_trip(self):
-        """Pending punctual trip → schedule has non-zero power."""
+        """Pending punctual trip -> schedule has non-zero power."""
         sm = _make_sm()
         sm._state.punctual_trips = {
             "pun_1": {
@@ -101,7 +103,7 @@ class TestScheduleMixinExecution:
         }
 
         future = datetime.now(timezone.utc) + timedelta(hours=5)
-        sm._state._get_trip_time = MagicMock(return_value=future)
+        sm._state._soc._get_trip_time = MagicMock(return_value=future)
 
         result = await sm.async_generate_deferrables_schedule(
             charging_power_kw=3.6,
@@ -132,7 +134,6 @@ class TestScheduleMixinExecution:
         )
 
         assert isinstance(result, list)
-        # No power should be scheduled since trip is inactive
         for entry in result:
             assert entry["p_deferrable0"] == "0.0"
 
@@ -163,7 +164,9 @@ class TestScheduleMixinExecution:
         config_data = {"battery_capacity_kwh": 75.0, "safety_margin_percent": 20}
         config_entry = MagicMock()
         config_entry.data = config_data
-        sm._state.hass.config_entries.async_get_entry = MagicMock(return_value=config_entry)
+        sm._state.hass.config_entries.async_get_entry = MagicMock(
+            return_value=config_entry
+        )
         sm._state.recurring_trips = {
             "rec_1": {
                 "id": "rec_1",
@@ -174,7 +177,7 @@ class TestScheduleMixinExecution:
             }
         }
         future = datetime.now(timezone.utc) + timedelta(hours=5)
-        sm._state._get_trip_time = MagicMock(return_value=future)
+        sm._state._soc._get_trip_time = MagicMock(return_value=future)
 
         result = await sm.async_generate_deferrables_schedule(
             charging_power_kw=3.6,
@@ -185,7 +188,7 @@ class TestScheduleMixinExecution:
 
     @pytest.mark.asyncio
     async def test_generate_schedule_multi_trip(self):
-        """Multiple active trips → multiple deferrable indices."""
+        """Multiple active trips -> multiple deferrable indices."""
         sm = _make_sm()
         future1 = datetime.now(timezone.utc) + timedelta(hours=5)
 
@@ -204,7 +207,8 @@ class TestScheduleMixinExecution:
                 "estado": "pendiente",
             }
         }
-        sm._state._get_trip_time = MagicMock(return_value=future1)
+        future = datetime.now(timezone.utc) + timedelta(hours=5)
+        sm._state._soc._get_trip_time = MagicMock(return_value=future)
 
         result = await sm.async_generate_deferrables_schedule(
             charging_power_kw=3.6,
@@ -212,14 +216,13 @@ class TestScheduleMixinExecution:
         )
 
         assert isinstance(result, list)
-        # Should have p_deferrable0 and p_deferrable1
         if result:
             assert "p_deferrable0" in result[0]
             assert "p_deferrable1" in result[0]
 
     @pytest.mark.asyncio
     async def test_generate_schedule_deadline_in_past(self):
-        """Trip with deadline in the past → skipped (continue at energia check)."""
+        """Trip with deadline in the past -> skipped."""
         sm = _make_sm()
         past = datetime.now(timezone.utc) - timedelta(hours=5)
         sm._state.recurring_trips = {
@@ -231,24 +234,22 @@ class TestScheduleMixinExecution:
                 "activo": True,
             }
         }
-        sm._state._get_trip_time = MagicMock(return_value=past)
+        sm._state._soc._get_trip_time = MagicMock(return_value=past)
 
         result = await sm.async_generate_deferrables_schedule(
             charging_power_kw=3.6,
             planning_horizon_days=1,
         )
 
-        # Should return with all zeros since deadline is past
         assert isinstance(result, list)
 
     @pytest.mark.asyncio
     async def test_publish_deferrable_loads_no_adapter(self):
-        """No EMHASS adapter → does nothing."""
+        """No EMHASS adapter -> does nothing."""
         sm = _make_sm()
         sm._state.emhass_adapter = None
 
         await sm.publish_deferrable_loads()
-        # Should not raise
 
     @pytest.mark.asyncio
     async def test_publish_deferrable_loads_with_adapter(self):
@@ -264,7 +265,6 @@ class TestScheduleMixinExecution:
                 "activo": True,
             }
         }
-        sm._state._load_trips = AsyncMock()
 
         await sm.publish_deferrable_loads()
 
@@ -294,7 +294,6 @@ class TestScheduleMixinExecution:
         sm._state.emhass_adapter = adapter
 
         await sm.publish_deferrable_loads()
-        # Should not raise
 
     @pytest.mark.asyncio
     async def test_publish_deferrable_loads_skips_inactive(self):
@@ -315,7 +314,6 @@ class TestScheduleMixinExecution:
                 "estado": "completado",
             }
         }
-        sm._state._load_trips = AsyncMock()
 
         await sm.publish_deferrable_loads()
 

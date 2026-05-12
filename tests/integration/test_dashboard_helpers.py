@@ -112,7 +112,9 @@ class TestAsyncRegisterStaticPaths:
     @pytest.mark.asyncio
     async def test_register_static_paths_no_files(self):
         """When static files don't exist, no paths registered."""
-        with patch("custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists") as mock_exists:
+        with patch(
+            "custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists"
+        ) as mock_exists:
             mock_exists.return_value = False
             hass = MagicMock()
             hass.http = MagicMock()
@@ -125,7 +127,9 @@ class TestAsyncRegisterStaticPaths:
     @pytest.mark.asyncio
     async def test_register_static_paths_hass_http_none(self):
         """When hass.http is None, logs warning but does not raise."""
-        with patch("custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists") as mock_exists:
+        with patch(
+            "custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists"
+        ) as mock_exists:
             mock_exists.return_value = True
             hass = MagicMock()
             hass.http = None
@@ -135,7 +139,9 @@ class TestAsyncRegisterStaticPaths:
     @pytest.mark.asyncio
     async def test_register_static_paths_with_files(self):
         """When static files exist, paths are registered via hass.http."""
-        with patch("custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists") as mock_exists:
+        with patch(
+            "custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists"
+        ) as mock_exists:
             mock_exists.return_value = True
             hass = MagicMock()
             hass.http = MagicMock()
@@ -148,7 +154,9 @@ class TestAsyncRegisterStaticPaths:
     @pytest.mark.asyncio
     async def test_register_static_paths_all_files_exist(self):
         """When all three static files exist, all paths are registered."""
-        with patch("custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists") as mock_exists:
+        with patch(
+            "custom_components.ev_trip_planner.services.dashboard_helpers.Path.exists"
+        ) as mock_exists:
             mock_exists.return_value = True
             hass = MagicMock()
             hass.http = MagicMock()

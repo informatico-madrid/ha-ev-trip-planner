@@ -21,8 +21,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_VEHICLE_NAME,
-    DEFAULT_CONSUMPTION,
     DEFAULT_CHARGING_POWER,
+    DEFAULT_CONSUMPTION,
     DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
 )
@@ -112,19 +112,21 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
         )
         # Get recurring trips as list, convert to dict keyed by trip_id
-        recurring_list = await self._trip_manager.async_get_recurring_trips()
+        recurring_list = await self._trip_manager._crud.async_get_recurring_trips()
         recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
 
         # Get punctual trips as list, convert to dict keyed by trip_id
-        punctual_list = await self._trip_manager.async_get_punctual_trips()
+        punctual_list = await self._trip_manager._crud.async_get_punctual_trips()
         punctual_trips = {trip["id"]: trip for trip in punctual_list if "id" in trip}
 
         # Get today's energy and hours needs
-        kwh_today = await self._trip_manager.async_get_kwh_needed_today()
-        hours_today = float(await self._trip_manager.async_get_hours_needed_today())
+        kwh_today = await self._trip_manager._soc_query.async_get_kwh_needed_today()
+        hours_today = float(
+            await self._trip_manager._soc_query.async_get_hours_needed_today()
+        )
 
         # Get next scheduled trip
-        next_trip = await self._trip_manager.async_get_next_trip()
+        next_trip = await self._trip_manager._navigator.async_get_next_trip()
 
         # PHASE 3 (3.4): Get EMHASS data from emhass_adapter if available
         all_trips = {**recurring_trips, **punctual_trips}
@@ -265,9 +267,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                     delta = trip_dt - now
                     total_minutes = delta.total_seconds() / 60
                     start_timestep = max(0, min(int(total_minutes / 15), 0))
-                    end_timestep = min(
-                        start_timestep + math.ceil(hours_needed * 4), 96
-                    )
+                    end_timestep = min(start_timestep + math.ceil(hours_needed * 4), 96)
                 except (ValueError, TypeError):
                     pass
 
@@ -318,16 +318,18 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         # Generate mock deferrables_schedule from per_trip_params
         deferrables_schedule: list[Any] = []
         for trip_id, params in per_trip_params.items():
-            deferrables_schedule.append({
-                "index": params.get("emhass_index", 0),
-                "kwh": params.get("kwh_needed", 0),
-                "start_timestep": params.get("def_start_timestep_array", [0])[0]
-                if params.get("def_start_timestep_array")
-                else 0,
-                "end_timestep": params.get("def_end_timestep_array", [96])[0]
-                if params.get("def_end_timestep_array")
-                else 96,
-            })
+            deferrables_schedule.append(
+                {
+                    "index": params.get("emhass_index", 0),
+                    "kwh": params.get("kwh_needed", 0),
+                    "start_timestep": params.get("def_start_timestep_array", [0])[0]
+                    if params.get("def_start_timestep_array")
+                    else 0,
+                    "end_timestep": params.get("def_end_timestep_array", [96])[0]
+                    if params.get("def_end_timestep_array")
+                    else 96,
+                }
+            )
 
         return {
             "emhass_power_profile": power_profile,

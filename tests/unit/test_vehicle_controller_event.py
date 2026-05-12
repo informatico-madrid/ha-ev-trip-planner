@@ -39,14 +39,14 @@ class TestEventHandling:
 
         # The bug: using event.get() instead of event.data.get()
         # This will fail because HA Event objects don't have a .get() method
-        assert (
-            'event.get("data")' not in source
-        ), "Event handler should NOT use event.get() - use event.data.get() instead"
+        assert 'event.get("data")' not in source, (
+            "Event handler should NOT use event.get() - use event.data.get() instead"
+        )
 
         # The fix: should use event.data.get()
-        assert (
-            "event.data.get" in source
-        ), "Event handler should use event.data.get() for HA Event objects"
+        assert "event.data.get" in source, (
+            "Event handler should use event.data.get() for HA Event objects"
+        )
 
     @pytest.mark.asyncio
     async def test_ha_event_object_structure(self):
@@ -68,15 +68,15 @@ class TestEventHandling:
 
         # The correct way to access event data:
         # new_state = event.data.get("new_state")
-        assert (
-            "event.data.get" in source
-        ), "Should use event.data.get() for HA Event objects"
+        assert "event.data.get" in source, (
+            "Should use event.data.get() for HA Event objects"
+        )
 
         # NOT the buggy way:
         # new_state = event.get("data", {}).get("new_state")
-        assert (
-            'event.get("data")' not in source
-        ), "Should NOT use event.get() for HA Event objects"
+        assert 'event.get("data")' not in source, (
+            "Should NOT use event.get() for HA Event objects"
+        )
 
     @pytest.mark.asyncio
     async def test_async_handle_soc_change_with_mock_event(self):

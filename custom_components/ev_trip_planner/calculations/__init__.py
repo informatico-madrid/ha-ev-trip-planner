@@ -14,16 +14,13 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone  # noqa: F401
 
 # Re-export from decomposed sub-modules
-from .core import (
-    DAYS_OF_WEEK,
-    SOH_CACHE_TTL_SECONDS,
-)
-
 # Override legacy implementations with newly decomposed ones from sub-modules.
 # These take precedence — the solid-refactored versions replace the legacy ones.
 from .core import (
-    BatteryCapacity,
+    DAYS_OF_WEEK,
     DEFAULT_T_BASE,
+    SOH_CACHE_TTL_SECONDS,
+    BatteryCapacity,
     calculate_charging_rate,
     calculate_day_index,
     calculate_dynamic_soc_limit,
@@ -31,10 +28,15 @@ from .core import (
     calculate_trip_time,
 )
 
-# Window functions extracted to their own module.
-from .windows import (
-    calculate_charging_window_pure,
-    calculate_multi_trip_charging_windows,
+# Deficit functions extracted to their own module.
+from .deficit import (
+    ChargingDecision,
+    calculate_deficit_propagation,
+    calculate_energy_needed,
+    calculate_hours_deficit_propagation,
+    calculate_next_recurring_datetime,
+    calculate_soc_at_trip_starts,
+    determine_charging_need,
 )
 
 # Power profile functions extracted to their own module.
@@ -49,15 +51,10 @@ from .schedule import (
     generate_deferrable_schedule_from_trips,
 )
 
-# Deficit functions extracted to their own module.
-from .deficit import (
-    ChargingDecision,
-    calculate_deficit_propagation,
-    calculate_energy_needed,
-    calculate_hours_deficit_propagation,
-    calculate_next_recurring_datetime,
-    calculate_soc_at_trip_starts,
-    determine_charging_need,
+# Window functions extracted to their own module.
+from .windows import (
+    calculate_charging_window_pure,
+    calculate_multi_trip_charging_windows,
 )
 
 __all__ = [

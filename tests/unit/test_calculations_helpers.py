@@ -8,7 +8,6 @@ calculations._helpers after the functional decomposition split.
 from __future__ import annotations
 
 
-
 def test_ensure_aware_exists_in_helpers_module() -> None:
     """_ensure_aware must be importable from calculations._helpers."""
     from custom_components.ev_trip_planner.calculations._helpers import (

@@ -117,7 +117,9 @@ class TestDashboardBase:
         )
 
         # Verify the class is abstract (has unimplemented abstract methods)
-        abstract_methods = getattr(DashboardImporterProtocol, "__abstractmethods__", set())
+        abstract_methods = getattr(
+            DashboardImporterProtocol, "__abstractmethods__", set()
+        )
         assert len(abstract_methods) > 0, (
             f"DashboardImporterProtocol should have abstract methods, "
             f"found {len(abstract_methods)}"

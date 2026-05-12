@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-
 # ===================================================================
 # Fixtures
 # ===================================================================
@@ -132,7 +131,9 @@ class TestErrorHandlerHandleError:
         caplog.set_level(logging.DEBUG)
         handler = ErrorHandler(hass=mock_hass)
         error = RuntimeError("context test")
-        handler.handle_error("update", error, context={"trip_id": "t1", "phase": "init"})
+        handler.handle_error(
+            "update", error, context={"trip_id": "t1", "phase": "init"}
+        )
 
         assert "trip_id" in caplog.text
         assert "t1" in caplog.text
@@ -554,16 +555,13 @@ class TestLoadPublisherPublish:
 
         publisher = LoadPublisher(hass=mock_hass, vehicle_id="v")
         past = datetime(2020, 1, 1, tzinfo=timezone.utc).isoformat()
-        result = await publisher.publish(
-            {"id": "past_trip", "datetime": past}
-        )
+        result = await publisher.publish({"id": "past_trip", "datetime": past})
         assert result is False
 
     @pytest.mark.asyncio
     async def test_publish_future_deadline_succeeds(self, mock_hass, caplog):
         """Publish with valid future deadline returns True."""
         import logging
-
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.emhass.load_publisher import (
@@ -655,9 +653,7 @@ class TestLoadPublisherDeadlineCalculation:
         )
 
         publisher = LoadPublisher(hass=mock_hass, vehicle_id="v")
-        dt = publisher._calculate_deadline(
-            {"datetime": "2026-06-01T12:00:00+00:00"}
-        )
+        dt = publisher._calculate_deadline({"datetime": "2026-06-01T12:00:00+00:00"})
         assert dt is not None
         assert dt.tzinfo is not None
         assert dt.year == 2026 and dt.month == 6 and dt.day == 1
@@ -888,7 +884,9 @@ class TestEMHASSAdapterIndexDelegation:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_async_release_unknown_trip_returns_false(self, mock_hass, mock_entry):
+    async def test_async_release_unknown_trip_returns_false(
+        self, mock_hass, mock_entry
+    ):
         """async_release_trip_index returns False for unknown trip."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
@@ -1010,9 +1008,7 @@ class TestEMHASSAdapterUpdateChargingPower:
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        mock_hass.config_entries.async_get_entry = Mock(
-            return_value=mock_entry
-        )
+        mock_hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
         await adapter.update_charging_power()
         assert adapter._charging_power_kw == 7.4
         assert adapter._stored_charging_power_kw == 7.4
@@ -1029,9 +1025,7 @@ class TestEMHASSAdapterUpdateChargingPower:
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._charging_power_kw = 3.6
-        mock_hass.config_entries.async_get_entry = Mock(
-            return_value=mock_entry
-        )
+        mock_hass.config_entries.async_get_entry = Mock(return_value=mock_entry)
         await adapter.update_charging_power()
         assert adapter._charging_power_kw == 3.6  # unchanged
 
@@ -1154,7 +1148,9 @@ class TestEMHASSAdapterBackwardCompat:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_current_soc_with_entry_dict_and_sensor(self, mock_hass, mock_entry):
+    async def test_get_current_soc_with_entry_dict_and_sensor(
+        self, mock_hass, mock_entry
+    ):
         """_get_current_soc reads from entry dict soc_sensor."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
@@ -1187,9 +1183,7 @@ class TestEMHASSAdapterBackwardCompat:
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         future = datetime(2027, 1, 1, tzinfo=timezone.utc).isoformat()
-        result = adapter._calculate_deadline_from_trip(
-            {"datetime": future, "id": "t1"}
-        )
+        result = adapter._calculate_deadline_from_trip({"datetime": future, "id": "t1"})
         assert result is not None
 
     @pytest.mark.asyncio
@@ -1214,7 +1208,9 @@ class TestEMHASSAdapterBackwardCompat:
         assert result == {}
 
     @pytest.mark.asyncio
-    async def test_populate_per_trip_cache_entry_creates_entry(self, mock_hass, mock_entry):
+    async def test_populate_per_trip_cache_entry_creates_entry(
+        self, mock_hass, mock_entry
+    ):
         """_populate_per_trip_cache_entry stores params in cache."""
         from datetime import datetime, timezone
 
@@ -1236,7 +1232,9 @@ class TestEMHASSAdapterBackwardCompat:
         assert "cache_test" in adapter._cached_per_trip_params
 
     @pytest.mark.asyncio
-    async def test_populate_per_trip_cache_entry_with_no_deadline(self, mock_hass, mock_entry):
+    async def test_populate_per_trip_cache_entry_with_no_deadline(
+        self, mock_hass, mock_entry
+    ):
         """_populate_per_trip_cache_entry handles None deadline gracefully."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
@@ -1319,7 +1317,9 @@ class TestEMHASSAdapterHandleConfigEntryUpdate:
         assert adapter._charging_power_kw == 11.0
 
     @pytest.mark.asyncio
-    async def test_handle_config_entry_update_skips_when_shutting_down(self, mock_hass, mock_entry):
+    async def test_handle_config_entry_update_skips_when_shutting_down(
+        self, mock_hass, mock_entry
+    ):
         """_handle_config_entry_update returns early when shutting down."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,

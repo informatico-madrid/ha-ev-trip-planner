@@ -130,12 +130,12 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
         )
         assert "valid_trip" in adapter._cached_per_trip_params
         # Verify falsy IDs are NOT present as keys in the cache
-        assert (
-            None not in adapter._cached_per_trip_params
-        ), "None should not be a cache key"
-        assert (
-            "" not in adapter._cached_per_trip_params
-        ), "Empty string should not be a cache key"
+        assert None not in adapter._cached_per_trip_params, (
+            "None should not be a cache key"
+        )
+        assert "" not in adapter._cached_per_trip_params, (
+            "Empty string should not be a cache key"
+        )
 
 
 @pytest.mark.asyncio

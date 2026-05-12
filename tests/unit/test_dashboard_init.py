@@ -13,7 +13,6 @@ from custom_components.ev_trip_planner.dashboard import (
     DashboardValidationError,
 )
 
-
 # ---------------------------------------------------------------------------
 # DashboardError
 # ---------------------------------------------------------------------------

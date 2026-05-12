@@ -87,9 +87,7 @@ class TestPreviousArrivalInvariant:
             f"(= trip1_departure + 6h + 4h = {trip1_departure + timedelta(hours=10)})"
         )
         assert results[1]["fin_ventana"] == trip2_departure
-        assert results[1]["ventana_horas"] == pytest.approx(
-            expected_horas, rel=1e-2
-        ), (
+        assert results[1]["ventana_horas"] == pytest.approx(expected_horas, rel=1e-2), (
             f"ventana_horas={results[1]['ventana_horas']:.2f}h, expected {expected_horas}h"
         )
 

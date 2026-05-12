@@ -98,9 +98,7 @@ def test_name_imports_from_dashboard(name):
     This is the core RED test — it fails until the shim properly re-exports
     the name from the sibling dashboard.py module file.
     """
-    mod = importlib.import_module(
-        "custom_components.ev_trip_planner.dashboard"
-    )
+    mod = importlib.import_module("custom_components.ev_trip_planner.dashboard")
     assert hasattr(mod, name), (
         f"dashboard package must export '{name}' for backward-compatible test imports"
     )
@@ -137,9 +135,7 @@ def test_name_kind(name, expected_kind):
 
     Ensures the re-exported name is the correct type, not a stub or wrong object.
     """
-    mod = importlib.import_module(
-        "custom_components.ev_trip_planner.dashboard"
-    )
+    mod = importlib.import_module("custom_components.ev_trip_planner.dashboard")
     obj = getattr(mod, name)
 
     if expected_kind == "callable":

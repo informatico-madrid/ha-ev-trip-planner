@@ -52,9 +52,9 @@ class TestSingleTripHoraRegresoPast:
             f"now={now}, hora_regreso={hora_regreso}"
         )
 
-        assert result["ventana_horas"] == pytest.approx(
-            96.0, abs=0.02
-        ), f"ventana_horas={result['ventana_horas']:.2f}h should be close to 96h"
+        assert result["ventana_horas"] == pytest.approx(96.0, abs=0.02), (
+            f"ventana_horas={result['ventana_horas']:.2f}h should be close to 96h"
+        )
 
     def test_single_trip_hora_regreso_none_starts_charging_from_now(self):
         """Car was always home -> hora_regreso is None -> should start from now.

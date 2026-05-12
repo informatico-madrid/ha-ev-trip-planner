@@ -6,8 +6,13 @@ and by the top-level trip_manager module.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Optional, TypedDict
+
+if TYPE_CHECKING:
+    from custom_components.ev_trip_planner.emhass import EMHASSAdapter
+    from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
 
 class CargaVentana(TypedDict):
@@ -34,3 +39,13 @@ class SOCMilestoneResult(TypedDict):
     kwh_necesarios: float
     deficit_acumulado: float
     ventana_carga: CargaVentana
+
+
+@dataclass(frozen=True)
+class TripManagerConfig:
+    """Configuration passed to TripManager to reduce __init__ arity."""
+
+    entry_id: str | None = None
+    presence_config: dict[str, Any] | None = None
+    storage: YamlTripStorage | None = None
+    emhass_adapter: EMHASSAdapter | None = None

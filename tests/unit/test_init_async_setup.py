@@ -5,7 +5,7 @@ Covers _hourly_refresh_callback (76-80), EVTripRuntimeData all fields.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -20,15 +20,16 @@ class TestHourlyRefreshCallback:
 
     @pytest.mark.asyncio
     async def test_callback_calls_publish(self):
-        """Callback calls publish_deferrable_loads on trip_manager."""
+        """Callback calls publish_deferrable_loads on _schedule sub-object."""
         mgr = MagicMock()
-        mgr.publish_deferrable_loads = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
         rt = EVTripRuntimeData(
             coordinator=MagicMock(),
             trip_manager=mgr,
         )
         await _hourly_refresh_callback(None, rt)
-        mgr.publish_deferrable_loads.assert_called_once()
+        mgr._schedule.publish_deferrable_loads.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_callback_no_manager(self):
@@ -44,7 +45,8 @@ class TestHourlyRefreshCallback:
     async def test_callback_exception_logged(self):
         """Callback logs warning on exception but doesn't propagate."""
         mgr = MagicMock()
-        mgr.publish_deferrable_loads = MagicMock(
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock(
             side_effect=RuntimeError("publish failed")
         )
         rt = EVTripRuntimeData(

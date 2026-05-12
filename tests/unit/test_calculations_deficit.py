@@ -16,7 +16,6 @@ This test verifies the import path exists before implementation.
 from __future__ import annotations
 
 
-
 class TestDeficitModuleExports:
     """Verify calculations.deficit re-exports deficit functions."""
 

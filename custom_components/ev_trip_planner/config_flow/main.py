@@ -50,7 +50,10 @@ from ..const import (
     MAX_T_BASE,
     MIN_T_BASE,
 )
-from ..dashboard import import_dashboard, is_lovelace_available  # type: ignore[reportAttributeAccessIssue]
+from ..dashboard import (  # type: ignore[reportAttributeAccessIssue]
+    import_dashboard,
+    is_lovelace_available,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

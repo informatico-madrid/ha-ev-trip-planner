@@ -170,7 +170,8 @@ Verb-diversity per sub-component: IndexManager = {assign, release, get, cleanup,
 **Rationale:** Every public method on `TripManager` currently reads or mutates `self._trips`, `self.hass`, `self._storage`, `self.vehicle_id`, or `self._emhass_adapter`. These five attributes are the *common state* — extracting four sub-classes via composition would force every sub-class constructor to receive all five, plus accessor lambdas to fetch updated `_emhass_adapter` (it is mutable via `set_emhass_adapter`). Mixins preserve `self`-semantics with no plumbing: a mixin method calling `self._trips["recurring"][...]` reads the same dict the facade owns. This matches HA-core precedent (e.g., `EntityComponent`, `RestoreEntity` mixins). LCOM4 within each mixin class drops to 1 because each mixin only includes methods that share its own verb-family.
 
 **Alternatives rejected:**
-- *Pure composition:* Each sub-class would receive `hass`, `_trips`, `_storage`, `vehicle_id`, `_emhass_adapter` — and need a getter callback for the dynamically-set `_emhass_adapter`. Constructor arity per sub-class becomes 5+. Rejected because the plumbing introduces accidental complexity without architectural benefit (the state is genuinely shared).
+- *Mixin inheritance (MRO-based):* Causes W0231 (super-init-not-called) and R0901 (too-many-ancestors) pylint warnings. pyright cannot resolve `self.<attr>` from mixin classes. The explicit `Mixin.__init__(self)` call pattern is fragile. **This was the original design but was replaced by pure composition after W0231/R0901 analysis (2026-05-12).**
+- *Pure composition (original alternative):* Each sub-class would receive `hass`, `_trips`, `_storage`, `vehicle_id`, `_emhass_adapter` — and need a getter callback for the dynamically-set `_emhass_adapter`. Constructor arity per sub-class becomes 5+. **This is now the SELECTED pattern** — eliminates W0231/R0901 without pylint disables. See plan `estabamos-ejecutando-el-plan-hazy-iverson.md`.
 - *One class with method-region comments:* Not a SOLID solution; LCOM4 stays ≥ 5.
 - *Cooperative `super().__init__()` chain:* See §4.1 — explicit calls chosen instead.
 
@@ -526,9 +527,11 @@ __all__ = [
 
 ## 4. Cross-Cutting Mechanics
 
-### 4.1 Mixin `__init__` Chain (for `trip/`)
+### 4.1 Mixin `__init__` Chain (for `trip/) — **DEPRECATED 2026-05-12**
 
-**Choice: explicit per-mixin `__init__` calls; no `super()` cooperative chain.**
+> **Nota de deprecación:** El patrón de Mixin `__init__` Chain ha sido reemplazado por **Pure Composition with Sub-Objects** (ver plan `estabamos-ejecutando-el-plan-hazy-iverson.md`). TripManager ya no hereda de mixins. Esta sección se mantiene como referencia histórica del patrón anterior.
+
+**Choice: explicit per-mixin `__init__` calls; no `super()` cooperative chain.** (OBSOLETO — ver nota arriba)
 
 **Why explicit beats cooperative:**
 - Cooperative `super().__init__()` chains require *every* class in the MRO (including future ones added by HA-core or tests) to follow the protocol. One non-cooperative subclass breaks the chain silently.

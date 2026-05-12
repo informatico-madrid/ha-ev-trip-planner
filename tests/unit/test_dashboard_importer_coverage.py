@@ -18,11 +18,11 @@ from custom_components.ev_trip_planner.dashboard.importer import (
     _save_lovelace_dashboard,
     _validate_dashboard_config,
     _verify_storage_permissions,
+    _write_file_content,
     dashboard_exists,
     dashboard_path,
     import_dashboard,
     is_lovelace_available,
-    _write_file_content,
 )
 
 
@@ -45,9 +45,7 @@ class TestCallAsyncExecutorSync:
     @pytest.mark.asyncio
     async def test_mock_hass_no_async_method(self):
         """MagicMock without async_add_executor_job calls func directly."""
-        result = _call_async_executor_sync(
-            MagicMock(), lambda a, b: a + b, 5, 3
-        )
+        result = _call_async_executor_sync(MagicMock(), lambda a, b: a + b, 5, 3)
         assert result == 8
 
 
@@ -219,7 +217,10 @@ class TestLoadDashboardTemplate:
         """With charts=True, delegates to _load_template."""
         mock_hass = MagicMock()
         mock_hass.config.components = set()
-        expected_config = {"title": "Test", "views": [{"path": "v", "title": "T", "cards": []}]}
+        expected_config = {
+            "title": "Test",
+            "views": [{"path": "v", "title": "T", "cards": []}],
+        }
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
@@ -382,9 +383,7 @@ class TestImportDashboard:
         mock_hass = MagicMock()
         mock_hass.config.components = set()  # No lovelace
 
-        result = await import_dashboard(
-            mock_hass, "v1", "V1", False
-        )
+        result = await import_dashboard(mock_hass, "v1", "V1", False)
         assert isinstance(result, DashboardImportResult)
         assert result.success is False
 
@@ -398,9 +397,7 @@ class TestImportDashboard:
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
             return_value=None,
         ):
-            result = await import_dashboard(
-                mock_hass, "v1", "V1", False
-            )
+            result = await import_dashboard(mock_hass, "v1", "V1", False)
             assert isinstance(result, DashboardImportResult)
             assert result.success is False
 
@@ -418,9 +415,7 @@ class TestImportDashboard:
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
             return_value=bad_config,
         ):
-            result = await import_dashboard(
-                mock_hass, "v1", "V1", False
-            )
+            result = await import_dashboard(mock_hass, "v1", "V1", False)
             assert isinstance(result, DashboardImportResult)
             assert result.success is False
 
@@ -455,9 +450,7 @@ class TestImportDashboard:
                         vehicle_name="V1",
                     ),
                 ):
-                    result = await import_dashboard(
-                        mock_hass, "v1", "V1", False
-                    )
+                    result = await import_dashboard(mock_hass, "v1", "V1", False)
                     assert isinstance(result, DashboardImportResult)
                     assert result.success is True
 
@@ -492,9 +485,7 @@ class TestImportDashboard:
                         vehicle_name="V1",
                     ),
                 ):
-                    result = await import_dashboard(
-                        mock_hass, "v1", "V1", False
-                    )
+                    result = await import_dashboard(mock_hass, "v1", "V1", False)
                     assert isinstance(result, DashboardImportResult)
                     assert result.success is False
 
@@ -504,9 +495,7 @@ class TestImportDashboard:
         mock_hass = MagicMock()
         mock_hass.config.components = {"lovelace"}
 
-        result = await import_dashboard(
-            mock_hass, "", "V1", False
-        )
+        result = await import_dashboard(mock_hass, "", "V1", False)
         assert isinstance(result, DashboardImportResult)
         assert result.success is False
         assert result.error_details.get("validation") == "invalid_vehicle_id"
@@ -534,8 +523,6 @@ class TestImportDashboard:
                     vehicle_name="V1",
                 ),
             ):
-                result = await import_dashboard(
-                    mock_hass, "v1", "V1", False
-                )
+                result = await import_dashboard(mock_hass, "v1", "V1", False)
                 assert isinstance(result, DashboardImportResult)
                 assert result.success is True

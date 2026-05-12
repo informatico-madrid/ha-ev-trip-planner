@@ -34,7 +34,9 @@ class TestReadEmhassConfig:
     def test_valid_config(self, tmp_path):
         """Valid JSON file → returns parsed config."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
 
         result = _read_emhass_config(str(config_file))
         assert result is not None
@@ -72,7 +74,10 @@ class TestGetEmhassPlanningHorizon:
 
     def test_empty_timesteps_list(self):
         """Empty list → returns None."""
-        assert _get_emhass_planning_horizon({"end_timesteps_of_each_deferrable_load": []}) is None
+        assert (
+            _get_emhass_planning_horizon({"end_timesteps_of_each_deferrable_load": []})
+            is None
+        )
 
     def test_valid_7_day_config(self):
         """168 timesteps → 7 days."""
@@ -120,24 +125,24 @@ class TestGetEmhassMaxDeferrableLoads:
 
     def test_zero_returns_none(self):
         """Zero loads → returns None."""
-        assert _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 0}) is None
+        assert (
+            _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 0}) is None
+        )
 
     def test_negative_returns_none(self):
         """Negative loads → returns None."""
-        assert _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": -1}) is None
+        assert (
+            _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": -1}) is None
+        )
 
     def test_valid_value(self):
         """Valid value → returns it."""
-        result = _get_emhass_max_deferrable_loads(
-            {"number_of_deferrable_loads": 50}
-        )
+        result = _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 50})
         assert result == 50
 
     def test_100_loads(self):
         """100 loads → returns 100."""
-        result = _get_emhass_max_deferrable_loads(
-            {"number_of_deferrable_loads": 100}
-        )
+        result = _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 100})
         assert result == 100
 
 

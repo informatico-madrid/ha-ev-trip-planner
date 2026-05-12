@@ -61,8 +61,8 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_trip_datetime_parse_none_branch(self, tm):
         """Line 1674-1675: _parse_trip_datetime returns None."""
-        with patch.object(tm._state, "_parse_trip_datetime", return_value=None):
-            result = await tm.async_calcular_energia_necesaria(
+        with patch.object(tm._soc_query, "_parse_trip_datetime", return_value=None):
+            result = await tm._soc_query.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": "2026-05-01T10:00:00+00:00"},
                 _vehicle_config(),
             )
@@ -71,14 +71,14 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_naive_datetime_gets_coerced(self, tm):
         """Lines 1691-1694: naive datetime → coerced to UTC → delta computed."""
-        result = await tm.async_calcular_energia_necesaria(
+        result = await tm._soc_query.async_calcular_energia_necesaria(
             {**_base_trip(), "datetime": _future_naive()}, _vehicle_config()
         )
         assert result["horas_disponibles"] >= 0.0
 
     async def test_trip_datetime_string_parses_and_computes(self, tm):
         """Valid ISO datetime → delta computed."""
-        result = await tm.async_calcular_energia_necesaria(
+        result = await tm._soc_query.async_calcular_energia_necesaria(
             {**_base_trip(), "datetime": _future_iso()}, _vehicle_config()
         )
         assert result["horas_disponibles"] >= 0.0
@@ -86,8 +86,10 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_parse_trip_datetime_raises_value_error(self, tm):
         """Line 1703: _parse_trip_datetime raises ValueError → caught by outer except."""
-        with patch.object(tm._state, "_parse_trip_datetime", side_effect=ValueError("boom")):
-            result = await tm.async_calcular_energia_necesaria(
+        with patch.object(
+            tm._soc_query, "_parse_trip_datetime", side_effect=ValueError("boom")
+        ):
+            result = await tm._soc_query.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
             )
@@ -95,8 +97,10 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
 
     async def test_parse_trip_datetime_raises_type_error(self, tm):
         """Line 1703: _parse_trip_datetime raises TypeError → caught."""
-        with patch.object(tm._state, "_parse_trip_datetime", side_effect=TypeError("boom")):
-            result = await tm.async_calcular_energia_necesaria(
+        with patch.object(
+            tm._soc_query, "_parse_trip_datetime", side_effect=TypeError("boom")
+        ):
+            result = await tm._soc_query.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
             )
@@ -112,8 +116,8 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
             def replace(self, tzinfo=None):
                 raise AttributeError("can't replace")
 
-        with patch.object(tm._state, "_parse_trip_datetime", return_value=FakeDT()):
-            result = await tm.async_calcular_energia_necesaria(
+        with patch.object(tm._soc_query, "_parse_trip_datetime", return_value=FakeDT()):
+            result = await tm._soc_query.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
             )
@@ -130,8 +134,8 @@ class TestEnergiaNecesariaDatetimeErrorPaths:
             def replace(self, tzinfo=None):
                 return datetime.now(timezone.utc) + timedelta(hours=48)
 
-        with patch.object(tm._state, "_parse_trip_datetime", return_value=FakeDT()):
-            result = await tm.async_calcular_energia_necesaria(
+        with patch.object(tm._soc_query, "_parse_trip_datetime", return_value=FakeDT()):
+            result = await tm._soc_query.async_calcular_energia_necesaria(
                 {**_base_trip(), "datetime": _future_iso()},
                 _vehicle_config(),
             )

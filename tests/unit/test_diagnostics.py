@@ -155,9 +155,10 @@ class TestDiagnostics:
         coordinator.last_update_success = False
 
         trip_manager = MagicMock()
-        trip_manager.vehicle_id = "my_nissan"
-        trip_manager._recurring_trips = {"r1": {}, "r2": {}}
-        trip_manager._punctual_trips = {"p1": {}}
+        trip_manager._state = MagicMock()
+        trip_manager._state.vehicle_id = "my_nissan"
+        trip_manager._state.recurring_trips = {"r1": {}, "r2": {}}
+        trip_manager._state.punctual_trips = {"p1": {}}
 
         runtime = MagicMock()
         runtime.coordinator = coordinator

@@ -182,9 +182,9 @@ async def test_user_real_experience_12hora_slot_obsolete_bug(
         # ============================================================
 
         # El slot 0 es 12:00 UTC (hora actual truncada)
-        assert (
-            actual_first_slot_hour == 12
-        ), f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
+        assert actual_first_slot_hour == 12, (
+            f"El slot es 12:00 (hora actual truncada), no {expected_first_slot_hour}:00"
+        )
 
         # El slot ya pasó (hace 58 minutos)
         assert time_passed == 58, "El slot empezó hace 58 minutos"

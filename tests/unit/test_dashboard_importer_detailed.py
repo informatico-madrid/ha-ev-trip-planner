@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
 from custom_components.ev_trip_planner.dashboard.importer import (
     _call_async_executor_sync,
     _check_path_exists,
@@ -18,7 +17,6 @@ from custom_components.ev_trip_planner.dashboard.importer import (
     dashboard_exists,
     dashboard_path,
 )
-
 
 # ---------------------------------------------------------------------------
 # is_lovelace_available
@@ -96,6 +94,7 @@ class TestCallAsyncExecutorSync:
     def test_sync_fallback_calls_func(self):
         """When async_add_executor_job exists but is not coroutine, calls func."""
         hass = MagicMock()
+
         # MagicMock.async_add_executor_job is not a coroutine function
         def my_func(x):
             return x * 2

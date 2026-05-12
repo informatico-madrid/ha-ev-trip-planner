@@ -22,7 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class EmhassDeferrableLoadSensor(
-    CoordinatorEntity[TripPlannerCoordinator], SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
+    CoordinatorEntity[TripPlannerCoordinator],
+    SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
 ):
     """Sensor para el perfil de carga diferible de EMHASS.
 

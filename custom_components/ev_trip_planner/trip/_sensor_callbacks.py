@@ -13,8 +13,8 @@ import asyncio
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 _UNSET = object()
 
@@ -110,6 +110,7 @@ class _SensorCallbacks:
         """Lazy import sensor module to avoid circular dependency."""
         # pylint: disable=import-outside-toplevel
         from .. import sensor as _sensor_mod
+
         return _sensor_mod
 
     def emit(
@@ -138,7 +139,9 @@ class _SensorCallbacks:
             sensor_mod = self._get_sensor_mod()
             if event == "trip_created_recurring":
                 if trip_data is None:
-                    _LOGGER.warning("trip_data required for trip_created_recurring event")
+                    _LOGGER.warning(
+                        "trip_data required for trip_created_recurring event"
+                    )
                     return
                 asyncio.ensure_future(
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
@@ -146,7 +149,9 @@ class _SensorCallbacks:
 
             elif event == "trip_created_punctual":
                 if trip_data is None:
-                    _LOGGER.warning("trip_data required for trip_created_punctual event")
+                    _LOGGER.warning(
+                        "trip_data required for trip_created_punctual event"
+                    )
                     return
                 asyncio.ensure_future(
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
@@ -154,7 +159,9 @@ class _SensorCallbacks:
 
             elif event == "trip_sensor_created_emhass":
                 if trip_id is None:
-                    _LOGGER.warning("trip_id required for trip_sensor_created_emhass event")
+                    _LOGGER.warning(
+                        "trip_id required for trip_sensor_created_emhass event"
+                    )
                     return
                 self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
@@ -168,7 +175,9 @@ class _SensorCallbacks:
 
             elif event == "trip_sensor_removed_emhass":
                 if trip_id is None:
-                    _LOGGER.warning("trip_id required for trip_sensor_removed_emhass event")
+                    _LOGGER.warning(
+                        "trip_id required for trip_sensor_removed_emhass event"
+                    )
                     return
                 self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
@@ -203,9 +212,7 @@ class _SensorCallbacks:
         Extracts the coordinator from the config entry's runtime_data.
         """
         try:
-            entry: ConfigEntry | None = hass.config_entries.async_get_entry(
-                entry_id
-            )
+            entry: ConfigEntry | None = hass.config_entries.async_get_entry(entry_id)
             if not entry or not entry.runtime_data:
                 _LOGGER.warning(
                     "Trip EMHASS sensor %s: no config entry or runtime_data",

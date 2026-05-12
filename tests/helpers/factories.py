@@ -27,7 +27,7 @@ def create_mock_trip_manager(hass=None, vehicle_id: str = TEST_VEHICLE_ID) -> Ma
     mock.async_setup = AsyncMock(return_value=None)
     mock.async_get_recurring_trips = AsyncMock(return_value=TEST_TRIPS["recurring"])
     mock.async_get_punctual_trips = AsyncMock(return_value=TEST_TRIPS["punctual"])
-    mock.get_all_trips = MagicMock(return_value=TEST_TRIPS)
+    mock._get_all_trips = MagicMock(return_value=TEST_TRIPS)
     mock.async_add_recurring_trip = AsyncMock(return_value=None)
     mock.async_add_punctual_trip = AsyncMock(return_value=None)
     mock.async_save_trips = AsyncMock(return_value=None)

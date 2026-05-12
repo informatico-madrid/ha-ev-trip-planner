@@ -60,17 +60,13 @@ def test_services_has_all_public_names():
 def test_register_services_is_callable():
     """register_services must be callable (it's a function)."""
     mod = import_module("custom_components.ev_trip_planner.services")
-    assert callable(mod.register_services), (
-        "register_services must be callable"
-    )
+    assert callable(mod.register_services), "register_services must be callable"
 
 
 def test_build_presence_config_is_callable():
     """build_presence_config must be callable (it's a function)."""
     mod = import_module("custom_components.ev_trip_planner.services")
-    assert callable(mod.build_presence_config), (
-        "build_presence_config must be callable"
-    )
+    assert callable(mod.build_presence_config), "build_presence_config must be callable"
 
 
 def test_platforms_is_list():

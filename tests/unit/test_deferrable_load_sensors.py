@@ -22,8 +22,6 @@ from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 pytestmark = pytest.mark.asyncio
 
 
-
-
 @pytest.fixture
 def mock_coordinator(mock_hass):
     """Create mock TripPlannerCoordinator with EMHASS data structure."""

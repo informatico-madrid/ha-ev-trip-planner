@@ -24,8 +24,6 @@ def mock_frontend_module():
         yield mock
 
 
-
-
 class TestAsyncRegisterPanel:
     """Tests for async_register_panel function."""
 

@@ -11,15 +11,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from .deficit import (
-    calculate_next_recurring_datetime,
-    determine_charging_need,
-)
-
 from ..const import DEFAULT_SAFETY_MARGIN
 from ..utils import calcular_energia_kwh
 from ._helpers import _ensure_aware
 from .core import calculate_trip_time
+from .deficit import (
+    calculate_next_recurring_datetime,
+    determine_charging_need,
+)
 from .windows import calculate_charging_window_pure, calculate_energy_needed
 
 

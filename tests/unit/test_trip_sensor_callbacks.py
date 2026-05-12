@@ -1,6 +1,8 @@
 """Tests for SensorCallbackRegistry in trip._sensor_callbacks module."""
 
-from custom_components.ev_trip_planner.trip._sensor_callbacks import SensorCallbackRegistry
+from custom_components.ev_trip_planner.trip._sensor_callbacks import (
+    SensorCallbackRegistry,
+)
 
 
 class TestSensorCallbackRegistry:

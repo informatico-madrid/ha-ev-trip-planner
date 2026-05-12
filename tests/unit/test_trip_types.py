@@ -1,7 +1,9 @@
 """Tests for trip._types module — TypedDict definitions extracted from trip_manager."""
 
-from custom_components.ev_trip_planner.trip._types import CargaVentana
-from custom_components.ev_trip_planner.trip._types import SOCMilestoneResult
+from custom_components.ev_trip_planner.trip._types import (
+    CargaVentana,
+    SOCMilestoneResult,
+)
 
 
 class TestCargaVentanaTypedDict:

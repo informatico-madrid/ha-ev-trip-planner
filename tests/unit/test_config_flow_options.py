@@ -78,14 +78,16 @@ class TestOptionsFlowHandler:
         entry.options = {}
         handler = EVTripPlannerOptionsFlowHandler(entry)
 
-        result = await handler.async_step_init({
-            CONF_BATTERY_CAPACITY: 75.0,
-            CONF_CHARGING_POWER: 22.0,
-            CONF_CONSUMPTION: 0.15,
-            CONF_SAFETY_MARGIN: 30,
-            CONF_T_BASE: 12.0,
-            CONF_SOH_SENSOR: "sensor.soh",
-        })
+        result = await handler.async_step_init(
+            {
+                CONF_BATTERY_CAPACITY: 75.0,
+                CONF_CHARGING_POWER: 22.0,
+                CONF_CONSUMPTION: 0.15,
+                CONF_SAFETY_MARGIN: 30,
+                CONF_T_BASE: 12.0,
+                CONF_SOH_SENSOR: "sensor.soh",
+            }
+        )
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"] == {
             CONF_BATTERY_CAPACITY: 75.0,
@@ -104,9 +106,11 @@ class TestOptionsFlowHandler:
         entry.options = {}
         handler = EVTripPlannerOptionsFlowHandler(entry)
 
-        result = await handler.async_step_init({
-            CONF_BATTERY_CAPACITY: 80.0,
-        })
+        result = await handler.async_step_init(
+            {
+                CONF_BATTERY_CAPACITY: 80.0,
+            }
+        )
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"] == {CONF_BATTERY_CAPACITY: 80.0}
 
@@ -118,10 +122,12 @@ class TestOptionsFlowHandler:
         entry.options = {}
         handler = EVTripPlannerOptionsFlowHandler(entry)
 
-        result = await handler.async_step_init({
-            CONF_BATTERY_CAPACITY: 65.0,
-            CONF_CONSUMPTION: 0.18,
-        })
+        result = await handler.async_step_init(
+            {
+                CONF_BATTERY_CAPACITY: 65.0,
+                CONF_CONSUMPTION: 0.18,
+            }
+        )
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert CONF_SOH_SENSOR not in result["data"]
 

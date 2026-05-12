@@ -21,9 +21,7 @@ class TestVehicleStrategyModule:
 
     def test_vehicle_control_strategy_has_abstract_methods(self):
         """VehicleControlStrategy must define 3 abstract methods."""
-        abstract_methods = getattr(
-            VehicleControlStrategy, "__abstractmethods__", set()
-        )
+        abstract_methods = getattr(VehicleControlStrategy, "__abstractmethods__", set())
         expected = {"async_activate", "async_deactivate", "async_get_status"}
         assert expected.issubset(abstract_methods)
 

@@ -91,9 +91,7 @@ class TestVentanaHorasInvariant:
 
             expected_horas = (fin - inicio).total_seconds() / 3600
 
-            assert w["ventana_horas"] == pytest.approx(
-                expected_horas, rel=1e-2
-            ), (
+            assert w["ventana_horas"] == pytest.approx(expected_horas, rel=1e-2), (
                 f"Trip {idx + 1}: ventana_horas={w['ventana_horas']} but "
                 f"(fin_ventana - inicio_ventana)/3600 = {expected_horas}"
             )
@@ -129,9 +127,7 @@ class TestVentanaHorasInvariant:
 
             expected_horas = (fin - inicio).total_seconds() / 3600
 
-            assert w["ventana_horas"] == pytest.approx(
-                expected_horas, rel=1e-2
-            ), (
+            assert w["ventana_horas"] == pytest.approx(expected_horas, rel=1e-2), (
                 f"Trip {idx + 1}: ventana_horas={w['ventana_horas']} but "
                 f"(fin_ventana - inicio_ventana)/3600 = {expected_horas}"
             )

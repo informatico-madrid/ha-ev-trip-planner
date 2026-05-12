@@ -686,9 +686,9 @@ class TestCalculateMultiTripChargingWindows:
         )
         assert len(result) == 1
         # Window should start from now, not from departure - 6h
-        assert (
-            result[0]["inicio_ventana"] >= now
-        ), f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
+        assert result[0]["inicio_ventana"] >= now, (
+            f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
+        )
         # ventana_horas = departure - now = 96h (window ends at departure, not arrival)
         assert result[0]["ventana_horas"] == pytest.approx(96.0, abs=0.02)
 
@@ -1458,9 +1458,9 @@ class TestCalculatePowerProfile:
             reference_dt=datetime(2026, 4, 6, 10, 0),
         )
         # Trip should be skipped due to insufficient window -> all zeros
-        assert all(
-            v == 0.0 for v in result
-        ), "Trip with insufficient window should produce all zeros"
+        assert all(v == 0.0 for v in result), (
+            "Trip with insufficient window should produce all zeros"
+        )
 
 
 class TestGenerateDeferrableScheduleFromTrips:

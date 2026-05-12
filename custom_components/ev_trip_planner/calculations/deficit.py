@@ -16,7 +16,6 @@ from ..const import DEFAULT_SAFETY_MARGIN
 from .core import calculate_soc_target, calculate_trip_time
 from .windows import calculate_energy_needed
 
-
 # =============================================================================
 # CHARGING DECISION
 # =============================================================================

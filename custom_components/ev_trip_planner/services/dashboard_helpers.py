@@ -13,7 +13,9 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from ..dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
+from ..dashboard import (
+    DashboardImportResult,  # type: ignore[reportAttributeAccessIssue]
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -472,7 +474,9 @@ async def async_import_dashboard_for_entry(
         entry: The config entry.
         vehicle_id: The vehicle ID string.
     """
-    from ..dashboard import import_dashboard as import_dashboard  # type: ignore[reportAttributeAccessIssue]
+    from ..dashboard import (
+        import_dashboard as import_dashboard,  # type: ignore[reportAttributeAccessIssue]
+    )
 
     try:
         use_charts = entry.data.get("use_charts", False)

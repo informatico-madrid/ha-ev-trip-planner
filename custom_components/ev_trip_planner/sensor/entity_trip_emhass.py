@@ -35,7 +35,9 @@ TRIP_EMHASS_ATTR_KEYS = {
 __all__ = ["TripEmhassSensor", "TRIP_EMHASS_ATTR_KEYS"]
 
 
-class TripEmhassSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
+class TripEmhassSensor(
+    CoordinatorEntity[TripPlannerCoordinator],
+    SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
 ):
     """Sensor for per-trip EMHASS parameters.
 

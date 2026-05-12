@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
-
 class TestCreateDashboardInputHelpers:
     """Test create_dashboard_input_helpers (lines 36-321)."""
 
@@ -59,7 +58,10 @@ class TestCreateDashboardInputHelpers:
             create_dashboard_input_helpers,
         )
 
-        with caplog.at_level(logging.INFO, logger="custom_components.ev_trip_planner.services.dashboard_helpers"):
+        with caplog.at_level(
+            logging.INFO,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
             result = await create_dashboard_input_helpers(hass, "test_vehicle")
             assert result.success is True
 
@@ -73,9 +75,15 @@ class TestCreateDashboardInputHelpers:
             create_dashboard_input_helpers,
         )
 
-        with caplog.at_level(logging.INFO, logger="custom_components.ev_trip_planner.services.dashboard_helpers"):
+        with caplog.at_level(
+            logging.INFO,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
             await create_dashboard_input_helpers(hass, "test_vehicle")
-            assert any("Creating input helpers for dashboard: test_vehicle" in record.message for record in caplog.records)
+            assert any(
+                "Creating input helpers for dashboard: test_vehicle" in record.message
+                for record in caplog.records
+            )
 
     @pytest.mark.asyncio
     async def test_logs_info_on_completion(self, caplog):
@@ -87,9 +95,15 @@ class TestCreateDashboardInputHelpers:
             create_dashboard_input_helpers,
         )
 
-        with caplog.at_level(logging.INFO, logger="custom_components.ev_trip_planner.services.dashboard_helpers"):
+        with caplog.at_level(
+            logging.INFO,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
             await create_dashboard_input_helpers(hass, "test_vehicle")
-            assert any("Input helpers created successfully for: test_vehicle" in record.message for record in caplog.records)
+            assert any(
+                "Input helpers created successfully for: test_vehicle" in record.message
+                for record in caplog.records
+            )
 
 
 class TestAsyncRegisterStaticPaths:
@@ -120,7 +134,9 @@ class TestAsyncRegisterStaticPaths:
         ) as mock_path_cls:
             mock_component_dir = MagicMock(spec=Path)
             mock_path_cls.return_value = mock_component_dir
-            mock_component_dir.__truediv__ = MagicMock(side_effect=lambda p: make_mock_file())
+            mock_component_dir.__truediv__ = MagicMock(
+                side_effect=lambda p: make_mock_file()
+            )
 
             await async_register_static_paths(hass)
 
@@ -166,7 +182,9 @@ class TestAsyncRegisterStaticPaths:
                     return mock_css
                 return make_mock_file(False)
 
-            mock_component_dir.__truediv__ = MagicMock(side_effect=mock_truediv_side_effect)
+            mock_component_dir.__truediv__ = MagicMock(
+                side_effect=mock_truediv_side_effect
+            )
             mock_path_cls.return_value = mock_component_dir
 
             await async_register_static_paths(hass)
@@ -198,7 +216,9 @@ class TestAsyncRegisterStaticPaths:
         ) as mock_path_cls:
             mock_component_dir = MagicMock(spec=Path)
             mock_path_cls.return_value = mock_component_dir
-            mock_component_dir.__truediv__ = MagicMock(side_effect=lambda p: make_mock_file(True))
+            mock_component_dir.__truediv__ = MagicMock(
+                side_effect=lambda p: make_mock_file(True)
+            )
 
             await async_register_static_paths(hass)
 
@@ -230,7 +250,9 @@ class TestAsyncRegisterStaticPaths:
         ) as mock_path_cls:
             mock_component_dir = MagicMock(spec=Path)
             mock_path_cls.return_value = mock_component_dir
-            mock_component_dir.__truediv__ = MagicMock(side_effect=lambda p: make_mock_file(True))
+            mock_component_dir.__truediv__ = MagicMock(
+                side_effect=lambda p: make_mock_file(True)
+            )
 
             await async_register_static_paths(hass)
 
@@ -321,9 +343,7 @@ class TestAsyncImportDashboardForEntry:
                 async_import_dashboard_for_entry,
             )
 
-            await async_import_dashboard_for_entry(
-                hass, entry, "my_vehicle"
-            )
+            await async_import_dashboard_for_entry(hass, entry, "my_vehicle")
 
             mock_import.assert_called_once()
             call_args = mock_import.call_args
@@ -341,7 +361,10 @@ class TestAsyncImportDashboardForEntry:
         mock_result.success = False
         mock_result.error = "template not found"
 
-        with caplog.at_level(logging.WARNING, logger="custom_components.ev_trip_planner.services.dashboard_helpers"):
+        with caplog.at_level(
+            logging.WARNING,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard.import_dashboard",
                 new=AsyncMock(return_value=mock_result),
@@ -351,7 +374,10 @@ class TestAsyncImportDashboardForEntry:
                 )
 
                 await async_import_dashboard_for_entry(hass, entry, "my_vehicle")
-                assert any("Dashboard import failed" in record.message for record in caplog.records)
+                assert any(
+                    "Dashboard import failed" in record.message
+                    for record in caplog.records
+                )
 
     @pytest.mark.asyncio
     async def test_import_exception_logged(self, caplog):
@@ -360,7 +386,10 @@ class TestAsyncImportDashboardForEntry:
         entry = MagicMock()
         entry.data = {"vehicle_name": "My Car"}
 
-        with caplog.at_level(logging.WARNING, logger="custom_components.ev_trip_planner.services.dashboard_helpers"):
+        with caplog.at_level(
+            logging.WARNING,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard.import_dashboard",
                 new=AsyncMock(side_effect=RuntimeError("import failed")),
@@ -370,10 +399,11 @@ class TestAsyncImportDashboardForEntry:
                 )
 
                 # Should not raise — exception is caught and logged
-                await async_import_dashboard_for_entry(
-                    hass, entry, "my_vehicle"
+                await async_import_dashboard_for_entry(hass, entry, "my_vehicle")
+                assert any(
+                    "Dashboard import exception" in record.message
+                    for record in caplog.records
                 )
-                assert any("Dashboard import exception" in record.message for record in caplog.records)
 
     @pytest.mark.asyncio
     async def test_use_charts_false(self):
@@ -393,9 +423,7 @@ class TestAsyncImportDashboardForEntry:
                 async_import_dashboard_for_entry,
             )
 
-            await async_import_dashboard_for_entry(
-                hass, entry, "my_vehicle"
-            )
+            await async_import_dashboard_for_entry(hass, entry, "my_vehicle")
 
             call_args = mock_import.call_args
             assert call_args[1]["use_charts"] is False

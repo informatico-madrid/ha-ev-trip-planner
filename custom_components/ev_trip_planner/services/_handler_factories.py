@@ -66,6 +66,7 @@ trip_create_schema = vol.Schema(
 
 # === Factory: add_recurring_trip ===
 
+
 def make_add_recurring_handler(hass: HomeAssistant):
     """Return async handler for add_recurring_trip service."""
 
@@ -73,7 +74,7 @@ def make_add_recurring_handler(hass: HomeAssistant):
         data = call.data
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
-        await mgr.async_add_recurring_trip(
+        await mgr._crud.async_add_recurring_trip(
             dia_semana=data["dia_semana"],
             hora=data["hora"],
             km=float(data["km"]),
@@ -90,6 +91,7 @@ def make_add_recurring_handler(hass: HomeAssistant):
 
 # === Factory: add_punctual_trip ===
 
+
 def make_add_punctual_handler(hass: HomeAssistant):
     """Return async handler for add_punctual_trip service."""
 
@@ -97,7 +99,7 @@ def make_add_punctual_handler(hass: HomeAssistant):
         data = call.data
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
-        await mgr.async_add_punctual_trip(
+        await mgr._crud.async_add_punctual_trip(
             datetime_str=data["datetime"],
             km=float(data["km"]),
             kwh=float(data["kwh"]),
@@ -112,6 +114,7 @@ def make_add_punctual_handler(hass: HomeAssistant):
 
 
 # === Factory: trip_update ===
+
 
 def make_trip_update_handler(hass: HomeAssistant):
     """Return async handler for trip_update service."""
@@ -146,7 +149,9 @@ def make_trip_update_handler(hass: HomeAssistant):
 
         _LOGGER.info(
             "Updating trip %s for vehicle %s with updates: %s",
-            trip_id, vehicle_id, updates,
+            trip_id,
+            vehicle_id,
+            updates,
         )
 
         entry = _find_entry_by_vehicle(hass, vehicle_id)
@@ -156,14 +161,17 @@ def make_trip_update_handler(hass: HomeAssistant):
 
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_update_trip(trip_id, updates)
+        await mgr._crud.async_update_trip(trip_id, updates)
 
         try:
             from ..sensor import async_update_trip_sensor
+
             t = "recurrente" if updates.get("dia_semana") else "puntual"
-            trips = (await mgr.async_get_recurring_trips()
-                     if t == "recurrente"
-                     else await mgr.async_get_punctual_trips())
+            trips = (
+                await mgr._crud.async_get_recurring_trips()
+                if t == "recurrente"
+                else await mgr._crud.async_get_punctual_trips()
+            )
             for trip in trips:
                 if str(trip.get("id")) == trip_id:
                     await async_update_trip_sensor(
@@ -183,6 +191,7 @@ def make_trip_update_handler(hass: HomeAssistant):
 
 # === Factory: edit_trip ===
 
+
 def make_edit_trip_handler(hass: HomeAssistant):
     """Return async handler for edit_trip service (deprecated alias)."""
 
@@ -191,7 +200,7 @@ def make_edit_trip_handler(hass: HomeAssistant):
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_update_trip(str(data["trip_id"]), dict(data["updates"]))
+        await mgr._crud.async_update_trip(str(data["trip_id"]), dict(data["updates"]))
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -202,6 +211,7 @@ def make_edit_trip_handler(hass: HomeAssistant):
 
 # === Factory: delete_trip ===
 
+
 def make_delete_trip_handler(hass: HomeAssistant):
     """Return async handler for delete_trip service."""
 
@@ -211,7 +221,7 @@ def make_delete_trip_handler(hass: HomeAssistant):
         trip_id = str(data["trip_id"])
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_delete_trip(trip_id)
+        await mgr._crud.async_delete_trip(trip_id)
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -222,6 +232,7 @@ def make_delete_trip_handler(hass: HomeAssistant):
 
 # === Factory: pause_recurring_trip ===
 
+
 def make_pause_recurring_handler(hass: HomeAssistant):
     """Return async handler for pause_recurring_trip service."""
 
@@ -230,7 +241,7 @@ def make_pause_recurring_handler(hass: HomeAssistant):
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_pause_recurring_trip(str(data["trip_id"]))
+        await mgr._lifecycle.async_pause_recurring_trip(str(data["trip_id"]))
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -241,6 +252,7 @@ def make_pause_recurring_handler(hass: HomeAssistant):
 
 # === Factory: resume_recurring_trip ===
 
+
 def make_resume_recurring_handler(hass: HomeAssistant):
     """Return async handler for resume_recurring_trip service."""
 
@@ -249,7 +261,7 @@ def make_resume_recurring_handler(hass: HomeAssistant):
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_resume_recurring_trip(str(data["trip_id"]))
+        await mgr._lifecycle.async_resume_recurring_trip(str(data["trip_id"]))
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -260,6 +272,7 @@ def make_resume_recurring_handler(hass: HomeAssistant):
 
 # === Factory: complete_punctual_trip ===
 
+
 def make_complete_punctual_handler(hass: HomeAssistant):
     """Return async handler for complete_punctual_trip service."""
 
@@ -268,7 +281,7 @@ def make_complete_punctual_handler(hass: HomeAssistant):
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_complete_punctual_trip(str(data["trip_id"]))
+        await mgr._lifecycle.async_complete_punctual_trip(str(data["trip_id"]))
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -279,6 +292,7 @@ def make_complete_punctual_handler(hass: HomeAssistant):
 
 # === Factory: cancel_punctual_trip ===
 
+
 def make_cancel_punctual_handler(hass: HomeAssistant):
     """Return async handler for cancel_punctual_trip service."""
 
@@ -287,7 +301,7 @@ def make_cancel_punctual_handler(hass: HomeAssistant):
         vehicle_id = data["vehicle_id"]
         mgr = await _get_manager(hass, vehicle_id)
         await _ensure_setup(mgr)
-        await mgr.async_cancel_punctual_trip(str(data["trip_id"]))
+        await mgr._lifecycle.async_cancel_punctual_trip(str(data["trip_id"]))
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
             _LOGGER.debug("Refrescando trips para vehículo: %s", vehicle_id)
@@ -297,6 +311,7 @@ def make_cancel_punctual_handler(hass: HomeAssistant):
 
 
 # === Factory: trip_create ===
+
 
 def make_trip_create_handler(hass: HomeAssistant):
     """Return async handler for trip_create service (unified)."""
@@ -311,7 +326,7 @@ def make_trip_create_handler(hass: HomeAssistant):
             dia_semana = data.get("dia_semana") or data.get("day_of_week")
             hora = data.get("hora") or data.get("time")
             descripcion = data.get("descripcion") or data.get("description", "")
-            await mgr.async_add_recurring_trip(
+            await mgr._crud.async_add_recurring_trip(
                 dia_semana=dia_semana,
                 hora=hora,
                 km=float(data["km"]),
@@ -320,12 +335,15 @@ def make_trip_create_handler(hass: HomeAssistant):
             )
             _LOGGER.info(
                 "Created recurring trip for vehicle %s: %s at %s, %s km",
-                vehicle_id, dia_semana, hora, data["km"],
+                vehicle_id,
+                dia_semana,
+                hora,
+                data["km"],
             )
         elif trip_type == "puntual":
             datetime_str = data.get("datetime")
             descripcion = data.get("descripcion") or data.get("description", "")
-            await mgr.async_add_punctual_trip(
+            await mgr._crud.async_add_punctual_trip(
                 datetime_str=datetime_str,
                 km=float(data["km"]),
                 kwh=float(data["kwh"]),
@@ -333,12 +351,15 @@ def make_trip_create_handler(hass: HomeAssistant):
             )
             _LOGGER.info(
                 "Created punctual trip for vehicle %s: %s, %s km",
-                vehicle_id, datetime_str, data["km"],
+                vehicle_id,
+                datetime_str,
+                data["km"],
             )
         else:
             _LOGGER.error(
                 "Invalid trip type '%s' for vehicle %s. Must be 'recurrente' or 'puntual'",
-                trip_type, vehicle_id,
+                trip_type,
+                vehicle_id,
             )
             return
 
@@ -351,6 +372,7 @@ def make_trip_create_handler(hass: HomeAssistant):
 
 
 # === Factory: import_weekly_pattern ===
+
 
 def make_import_weekly_pattern_handler(hass: HomeAssistant):
     """Return async handler for import_from_weekly_pattern service."""
@@ -365,17 +387,17 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):
 
         if clear_existing:
             try:
-                existing = await mgr.async_get_recurring_trips()
+                existing = await mgr._crud.async_get_recurring_trips()
             except Exception:
                 existing = []
             for trip in existing:
                 trip_id = str(trip.get("id"))
                 if trip_id:
-                    await mgr.async_delete_trip(trip_id)
+                    await mgr._crud.async_delete_trip(trip_id)
 
         for dia, items in pattern.items():
             for item in items or []:
-                await mgr.async_add_recurring_trip(
+                await mgr._crud.async_add_recurring_trip(
                     dia_semana=str(dia),
                     hora=str(item["hora"]),
                     km=float(item["km"]),
@@ -387,6 +409,7 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):
 
 
 # === Factory: trip_list ===
+
 
 def make_trip_list_handler(hass: HomeAssistant):
     """Return async handler for trip_list service."""
@@ -401,38 +424,46 @@ def make_trip_list_handler(hass: HomeAssistant):
         mgr = await _get_manager(hass, vehicle_id)
         _LOGGER.debug("=== _get_manager returned manager ===")
         _LOGGER.debug(
-            "=== Before async_get_recurring_trips - mgr._recurring_trips: %d",
-            len(mgr._recurring_trips),
+            "=== Before async_get_recurring_trips - mgr._state.recurring_trips: %d",
+            len(mgr._state.recurring_trips),
         )
         _LOGGER.debug(
-            "=== Before async_get_punctual_trips - mgr._punctual_trips: %d",
-            len(mgr._punctual_trips),
+            "=== Before async_get_punctual_trips - mgr._state.punctual_trips: %d",
+            len(mgr._state.punctual_trips),
         )
 
         try:
             _LOGGER.debug("Getting recurring trips for %s", vehicle_id)
-            recurring_trips = await mgr.async_get_recurring_trips()
+            recurring_trips = await mgr._crud.async_get_recurring_trips()
             _LOGGER.debug("Got %d recurring trips", len(recurring_trips))
 
             _LOGGER.debug("Getting punctual trips for %s", vehicle_id)
-            punctual_trips = await mgr.async_get_punctual_trips()
+            punctual_trips = await mgr._crud.async_get_punctual_trips()
             _LOGGER.debug("Got %d punctual trips", len(punctual_trips))
 
             _LOGGER.info(
                 "Retrieved %d recurring trips and %d punctual trips for vehicle %s",
-                len(recurring_trips), len(punctual_trips), vehicle_id,
+                len(recurring_trips),
+                len(punctual_trips),
+                vehicle_id,
             )
 
             for i, trip in enumerate(recurring_trips):
                 _LOGGER.debug(
                     "Recurring trip %d: id=%s, tipo=%s, activo=%s",
-                    i, trip.get("id"), trip.get("tipo"), trip.get("activo"),
+                    i,
+                    trip.get("id"),
+                    trip.get("tipo"),
+                    trip.get("activo"),
                 )
 
             for i, trip in enumerate(punctual_trips):
                 _LOGGER.debug(
                     "Punctual trip %d: id=%s, tipo=%s, estado=%s",
-                    i, trip.get("id"), trip.get("tipo"), trip.get("estado"),
+                    i,
+                    trip.get("id"),
+                    trip.get("tipo"),
+                    trip.get("estado"),
                 )
 
             result = {
@@ -468,6 +499,7 @@ def make_trip_list_handler(hass: HomeAssistant):
 
 # === Factory: trip_get ===
 
+
 def make_trip_get_handler(hass: HomeAssistant):
     """Return async handler for trip_get service."""
 
@@ -479,7 +511,8 @@ def make_trip_get_handler(hass: HomeAssistant):
         trip_id = data.get("trip_id", "unknown")
         _LOGGER.warning(
             "=== trip_get SERVICE CALLED === vehicle: %s, trip_id: %s",
-            vehicle_id, trip_id,
+            vehicle_id,
+            trip_id,
         )
 
         mgr = await _get_manager(hass, vehicle_id)
@@ -487,12 +520,13 @@ def make_trip_get_handler(hass: HomeAssistant):
 
         try:
             _LOGGER.warning("Getting all trips to find trip_id: %s", trip_id)
-            recurring_trips = await mgr.async_get_recurring_trips()
-            punctual_trips = await mgr.async_get_punctual_trips()
+            recurring_trips = await mgr._crud.async_get_recurring_trips()
+            punctual_trips = await mgr._crud.async_get_punctual_trips()
 
             _LOGGER.warning(
                 "Found %d recurring and %d punctual trips",
-                len(recurring_trips), len(punctual_trips),
+                len(recurring_trips),
+                len(punctual_trips),
             )
 
             all_trips = [*recurring_trips, *punctual_trips]
@@ -508,18 +542,14 @@ def make_trip_get_handler(hass: HomeAssistant):
                     break
 
             if trip_found:
-                _LOGGER.debug(
-                    "=== trip_get SUCCESS - Found trip: %s ===", trip_found
-                )
+                _LOGGER.debug("=== trip_get SUCCESS - Found trip: %s ===", trip_found)
                 return {
                     "vehicle_id": vehicle_id,
                     "trip": trip_found,
                     "found": True,
                 }
             else:
-                _LOGGER.debug(
-                    "=== trip_get NOT FOUND - trip_id: %s ===", trip_id
-                )
+                _LOGGER.debug("=== trip_get NOT FOUND - trip_id: %s ===", trip_id)
                 return {
                     "vehicle_id": vehicle_id,
                     "trip": None,
@@ -529,7 +559,10 @@ def make_trip_get_handler(hass: HomeAssistant):
         except Exception as err:
             _LOGGER.error(
                 "Error getting trip %s for vehicle %s: %s",
-                trip_id, vehicle_id, err, exc_info=True,
+                trip_id,
+                vehicle_id,
+                err,
+                exc_info=True,
             )
             return {
                 "vehicle_id": vehicle_id,

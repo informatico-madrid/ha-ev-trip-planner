@@ -120,21 +120,29 @@ class TestHandlerFactoryImports:
 class TestFactoryReturnsAsyncHandler:
     """Verify that factory functions return async handler coroutines."""
 
-    def test_make_add_recurring_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_add_recurring_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_add_recurring_handler,
         )
 
         handler = make_add_recurring_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_add_punctual_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_add_punctual_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_add_punctual_handler,
         )
 
         handler = make_add_punctual_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_trip_create_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -142,7 +150,9 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_trip_create_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_trip_update_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -150,7 +160,9 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_trip_update_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_edit_trip_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -158,7 +170,9 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_edit_trip_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_delete_trip_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -166,47 +180,69 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_delete_trip_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_pause_recurring_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_pause_recurring_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_pause_recurring_handler,
         )
 
         handler = make_pause_recurring_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_resume_recurring_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_resume_recurring_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_resume_recurring_handler,
         )
 
         handler = make_resume_recurring_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_complete_punctual_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_complete_punctual_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_complete_punctual_handler,
         )
 
         handler = make_complete_punctual_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_cancel_punctual_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_cancel_punctual_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_cancel_punctual_handler,
         )
 
         handler = make_cancel_punctual_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
-    def test_make_import_weekly_pattern_handler_returns_async(self, mock_hass: MagicMock) -> None:
+    def test_make_import_weekly_pattern_handler_returns_async(
+        self, mock_hass: MagicMock
+    ) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_import_weekly_pattern_handler,
         )
 
         handler = make_import_weekly_pattern_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_trip_list_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -214,7 +250,9 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_trip_list_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )
 
     def test_make_trip_get_handler_returns_async(self, mock_hass: MagicMock) -> None:
         from custom_components.ev_trip_planner.services._handler_factories import (
@@ -222,4 +260,6 @@ class TestFactoryReturnsAsyncHandler:
         )
 
         handler = make_trip_get_handler(mock_hass)
-        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(handler)
+        assert inspect.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            handler
+        )

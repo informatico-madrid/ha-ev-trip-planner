@@ -11,13 +11,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.config_entries import ConfigEntry
 
-from custom_components.ev_trip_planner.services._utils import (
-    _ensure_setup,
-    _find_entry_by_vehicle,
-    _get_coordinator,
-    _get_manager,
-    build_presence_config,
-)
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_SENSOR,
     CONF_HOME_COORDINATES,
@@ -26,6 +19,13 @@ from custom_components.ev_trip_planner.const import (
     CONF_PLUGGED_SENSOR,
     CONF_SOC_SENSOR,
     CONF_VEHICLE_COORDINATES_SENSOR,
+)
+from custom_components.ev_trip_planner.services._utils import (
+    _ensure_setup,
+    _find_entry_by_vehicle,
+    _get_coordinator,
+    _get_manager,
+    build_presence_config,
 )
 
 
@@ -202,13 +202,15 @@ class TestGetManager:
             mock_mgr = MagicMock()
             mock_mgr._recurring_trips = []
             mock_mgr._punctual_trips = []
+            # New composition: setup is via _persistence sub-object
+            mock_mgr._persistence = MagicMock()
+            mock_mgr._persistence.async_setup = AsyncMock()
             MockManager.return_value = mock_mgr
-            mock_mgr.async_setup = AsyncMock()
 
             result = await _get_manager(hass, "test_vehicle")
             assert result is mock_mgr
             MockManager.assert_called_once()
-            mock_mgr.async_setup.assert_called_once()
+            mock_mgr._persistence.async_setup.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_manager_setup_failure(self) -> None:
@@ -232,8 +234,11 @@ class TestGetManager:
             mock_mgr = MagicMock()
             mock_mgr._recurring_trips = []
             mock_mgr._punctual_trips = []
+            mock_mgr._persistence = MagicMock()
+            mock_mgr._persistence.async_setup = AsyncMock(
+                side_effect=RuntimeError("setup failed")
+            )
             MockManager.return_value = mock_mgr
-            mock_mgr.async_setup = AsyncMock(side_effect=RuntimeError("setup failed"))
 
             result = await _get_manager(hass, "test_vehicle")
             assert result is mock_mgr

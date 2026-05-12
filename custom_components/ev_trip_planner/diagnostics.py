@@ -59,11 +59,11 @@ async def async_get_config_entry_diagnostics(
             else None,
         },
         "trip_manager": {
-            "vehicle_id": trip_manager.vehicle_id if trip_manager else None,
-            "recurring_trips_count": len(trip_manager._recurring_trips)
+            "vehicle_id": trip_manager._state.vehicle_id if trip_manager else None,
+            "recurring_trips_count": len(trip_manager._state.recurring_trips)
             if trip_manager
             else 0,
-            "punctual_trips_count": len(trip_manager._punctual_trips)
+            "punctual_trips_count": len(trip_manager._state.punctual_trips)
             if trip_manager
             else 0,
         },

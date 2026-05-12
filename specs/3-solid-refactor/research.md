@@ -585,7 +585,7 @@ class TripManager:
         # ... shared state that the facade owns
 ```
 
-Composition is architecturally cleaner (no diamond-inheritance ambiguity) but requires every sub-method to accept `self._trips` or `self.hass` as an explicit argument. For this refactor, **mixins are recommended** (pragmatic, less diff, HA-core precedent).
+Composition is architecturally cleaner (no diamond-inheritance ambiguity) but requires every sub-method to accept `self._trips` or `self.hass` as an explicit argument. **Update 2026-05-12:** After W0231/R0901 analysis, mixin inheritance was replaced by **pure composition** — see plan `estabamos-ejecutando-el-plan-hazy-iverson.md`. Pure composition eliminates pylint W0231/R0901 without any disables.
 
 **Event/Callback pattern for sensor decoupling:**
 

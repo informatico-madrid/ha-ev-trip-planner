@@ -42,10 +42,7 @@ def test_sensor_py_zero_pyright_errors():
         if "/sensor.py" in line and "error:" in line
     ]
 
-    assert (
-        len(sensor_errors) == 0
-    ), (
+    assert len(sensor_errors) == 0, (
         f"sensor.py has {len(sensor_errors)} pyright error(s). "
-        "Expected zero errors. Found:\n"
-        + "\n".join(sensor_errors[:20])
+        "Expected zero errors. Found:\n" + "\n".join(sensor_errors[:20])
     )

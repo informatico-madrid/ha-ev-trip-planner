@@ -1,6 +1,6 @@
 """Tests for Presence Monitor."""
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
@@ -803,7 +803,8 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass
 
     # Create mock trip_manager
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
 
@@ -839,7 +840,7 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(mock_hass
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was triggered through publish_deferrable_loads
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 60.0
 
@@ -856,7 +857,8 @@ async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
 
     # Create mock trip_manager
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
 
@@ -895,7 +897,7 @@ async def test_soc_change_below_threshold_skips_recalculation(mock_hass):
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (below 5% threshold)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -912,7 +914,8 @@ async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
 
     # Create mock trip_manager
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
 
@@ -948,7 +951,7 @@ async def test_soc_change_when_not_home_skips_recalculation(mock_hass):
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not at home)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -963,7 +966,8 @@ async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
 
     # Create mock trip_manager
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
 
@@ -999,7 +1003,7 @@ async def test_soc_change_when_not_plugged_skips_recalculation(mock_hass):
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not plugged)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -1013,7 +1017,8 @@ async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass)
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
     monitor._last_processed_soc = 50.0
@@ -1050,7 +1055,7 @@ async def test_soc_change_with_unavailable_state_skips_without_update(mock_hass)
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -1162,7 +1167,8 @@ async def test_soc_change_unknown_state_skips(mock_hass):
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
     monitor._last_processed_soc = 50.0
@@ -1191,7 +1197,7 @@ async def test_soc_change_unknown_state_skips(mock_hass):
 
     await monitor._async_handle_soc_change(event)
 
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     assert monitor._last_processed_soc == 50.0
 
 
@@ -1205,7 +1211,8 @@ async def test_soc_change_none_string_state_skips(mock_hass):
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
     monitor._last_processed_soc = 50.0
@@ -1234,7 +1241,7 @@ async def test_soc_change_none_string_state_skips(mock_hass):
 
     await monitor._async_handle_soc_change(event)
 
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     assert monitor._last_processed_soc == 50.0
 
 
@@ -1248,7 +1255,8 @@ async def test_soc_change_empty_state_skips(mock_hass):
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
     monitor._last_processed_soc = 50.0
@@ -1277,7 +1285,7 @@ async def test_soc_change_empty_state_skips(mock_hass):
 
     await monitor._async_handle_soc_change(event)
 
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     assert monitor._last_processed_soc == 50.0
 
 
@@ -1292,7 +1300,8 @@ async def test_soc_change_exact_threshold_triggers(mock_hass):
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
 
@@ -1325,7 +1334,7 @@ async def test_soc_change_exact_threshold_triggers(mock_hass):
     await monitor._async_handle_soc_change(event)
 
     # Exactly 5.0% should NOT be below threshold, so it should trigger
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
     assert monitor._last_processed_soc == 55.0
 
 
@@ -1340,7 +1349,8 @@ async def test_soc_change_first_change_no_last_soc(mock_hass):
     }
 
     mock_trip_manager = Mock()
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
     # _last_processed_soc is None by default (first change)
@@ -1371,7 +1381,7 @@ async def test_soc_change_first_change_no_last_soc(mock_hass):
     await monitor._async_handle_soc_change(event)
 
     # First change should always trigger regardless of delta
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
     assert monitor._last_processed_soc == 51.0
 
 

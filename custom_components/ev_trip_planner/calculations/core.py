@@ -20,7 +20,6 @@ from custom_components.ev_trip_planner.const import (
 )
 from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
-
 SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 

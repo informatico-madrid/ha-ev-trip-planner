@@ -13,7 +13,6 @@ This test verifies the import path exists before implementation.
 from __future__ import annotations
 
 
-
 class TestPowerModuleExports:
     """Verify calculations.power re-exports power profile functions."""
 

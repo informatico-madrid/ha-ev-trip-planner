@@ -197,9 +197,7 @@ class TestServiceStrategy:
 
         result = await strategy.async_activate()
         assert result is True
-        hass.services.async_call.assert_called_once_with(
-            "input_boolean", "turn_on", {}
-        )
+        hass.services.async_call.assert_called_once_with("input_boolean", "turn_on", {})
 
     @pytest.mark.asyncio
     async def test_activate_with_data(self):

@@ -75,13 +75,20 @@ def _build_hass(vehicle_name="test_vehicle", manager_cfg=None):
     coordinator = MagicMock()
     coordinator.async_refresh_trips = AsyncMock()
 
-    manager = MagicMock()
+    manager: MagicMock = AsyncMock()
     if manager_cfg:
         for method_name, cfg in manager_cfg.items():
-            if "return_value" in cfg:
-                setattr(manager, method_name, AsyncMock(return_value=cfg["return_value"]))
-            if "side_effect" in cfg:
-                setattr(manager, method_name, AsyncMock(side_effect=cfg["side_effect"]))
+            mock_obj = AsyncMock(
+                return_value=cfg.get("return_value"),
+                side_effect=cfg.get("side_effect"),
+            )
+            # Handle dot-separated paths like "_crud.async_add_recurring_trip"
+            parts = method_name.split(".", 1)
+            if len(parts) == 2:
+                parent, attr = parts
+                setattr(getattr(manager, parent), attr, mock_obj)
+            else:
+                setattr(manager, method_name, mock_obj)
     # Ensure async_setup exists
     manager.async_setup = AsyncMock(return_value=None)
 
@@ -101,9 +108,11 @@ class TestAddRecurringHandler:
     @pytest.mark.asyncio
     async def test_add_recurring_handler_basic(self):
         """Handler adds a recurring trip and refreshes coordinator."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_add_recurring_trip": {"return_value": "rec_lun_123"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_add_recurring_trip": {"return_value": "rec_lun_123"},
+            }
+        )
 
         handler = make_add_recurring_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -116,7 +125,7 @@ class TestAddRecurringHandler:
         }
         await handler(call)
 
-        mgr.async_add_recurring_trip.assert_called_once_with(
+        mgr._crud.async_add_recurring_trip.assert_called_once_with(
             dia_semana="lunes", hora="09:00", km=24.0, kwh=3.6, descripcion=""
         )
         coord.async_refresh_trips.assert_called_once()
@@ -127,9 +136,11 @@ class TestAddPunctualHandler:
 
     @pytest.mark.asyncio
     async def test_add_punctual_handler_basic(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_add_punctual_trip": {"return_value": "pun_123"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_add_punctual_trip": {"return_value": "pun_123"},
+            }
+        )
 
         handler_fn = make_add_punctual_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -141,7 +152,7 @@ class TestAddPunctualHandler:
         }
         await handler_fn(call)
 
-        mgr.async_add_punctual_trip.assert_called_once()
+        mgr._crud.async_add_punctual_trip.assert_called_once()
         coord.async_refresh_trips.assert_called_once()
 
 
@@ -150,11 +161,23 @@ class TestTripUpdateHandler:
 
     @pytest.mark.asyncio
     async def test_trip_update_basic(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-            "async_get_recurring_trips": {"return_value": [{"id": "rec_lun_1", "dia_semana": "lunes", "hora": "09:00", "km": 24, "kwh": 3.6}]},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [
+                        {
+                            "id": "rec_lun_1",
+                            "dia_semana": "lunes",
+                            "hora": "09:00",
+                            "km": 24,
+                            "kwh": 3.6,
+                        }
+                    ]
+                },
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -165,16 +188,18 @@ class TestTripUpdateHandler:
         }
         await handler(call)
 
-        mgr.async_update_trip.assert_called_once()
+        mgr._crud.async_update_trip.assert_called_once()
         coord.async_refresh_trips.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_trip_update_with_updates_object(self):
         """Handler accepts 'updates' object format."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -186,17 +211,19 @@ class TestTripUpdateHandler:
         }
         await handler(call)
 
-        mgr.async_update_trip.assert_called_once_with(
+        mgr._crud.async_update_trip.assert_called_once_with(
             "rec_1", {"dia_semana": "martes", "hora": "10:00"}
         )
 
     @pytest.mark.asyncio
     async def test_trip_update_with_alternative_fields(self):
         """Handler maps day_of_week/time/datetime to dia_semana/hora."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -209,19 +236,24 @@ class TestTripUpdateHandler:
         }
         await handler(call)
 
-        mgr.async_update_trip.assert_called_once_with(
-            "rec_1", {"dia_semana": "martes", "hora": "11:00", "datetime": "2025-12-01T12:00"}
+        mgr._crud.async_update_trip.assert_called_once_with(
+            "rec_1",
+            {"dia_semana": "martes", "hora": "11:00", "datetime": "2025-12-01T12:00"},
         )
 
     @pytest.mark.asyncio
     async def test_trip_update_with_kwh_descripcion_fields(self):
         """Handler applies kwh, descripcion, description fields in data path."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-            "async_get_recurring_trips": {"return_value": [{"id": "rec_1", "dia_semana": "lunes"}]},
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [{"id": "rec_1", "dia_semana": "lunes"}]
+                },
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -235,7 +267,7 @@ class TestTripUpdateHandler:
         await handler(call)
 
         # Called with km as float + kwh as float + descripcion
-        call_args = mgr.async_update_trip.call_args
+        call_args = mgr._crud.async_update_trip.call_args
         updates = call_args[0][1]
         assert updates["km"] == 30.0
         assert updates["kwh"] == 5.0
@@ -244,11 +276,13 @@ class TestTripUpdateHandler:
     @pytest.mark.asyncio
     async def test_trip_update_with_description_field(self):
         """Handler maps 'description' -> 'descripcion' in data path."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -259,7 +293,7 @@ class TestTripUpdateHandler:
         }
         await handler(call)
 
-        call_args = mgr.async_update_trip.call_args
+        call_args = mgr._crud.async_update_trip.call_args
         updates = call_args[0][1]
         assert updates["descripcion"] == "english description"
 
@@ -267,7 +301,9 @@ class TestTripUpdateHandler:
     async def test_trip_update_entry_not_found(self):
         """Handler returns early when vehicle entry not found."""
         # Build hass with NO config entries so _find_entry_by_vehicle returns None
-        from custom_components.ev_trip_planner.services._handler_factories import make_trip_update_handler
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_update_handler,
+        )
 
         hass = MagicMock()
         hass.data = {}
@@ -285,12 +321,20 @@ class TestTripUpdateHandler:
         """Handler updates sensor when trip found in recurring list."""
         from unittest.mock import AsyncMock, patch
 
-        trip_data = {"id": "rec_1", "dia_semana": "lunes", "hora": "09:00", "km": 24, "kwh": 3.6}
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-            "async_get_recurring_trips": {"return_value": [trip_data]},
-        })
+        trip_data = {
+            "id": "rec_1",
+            "dia_semana": "lunes",
+            "hora": "09:00",
+            "km": 24,
+            "kwh": 3.6,
+        }
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+                "_crud.async_get_recurring_trips": {"return_value": [trip_data]},
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -317,11 +361,15 @@ class TestTripUpdateHandler:
         """Handler catches sensor update exception and continues."""
         from unittest.mock import AsyncMock, patch
 
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-            "async_get_recurring_trips": {"return_value": [{"id": "rec_1", "dia_semana": "lunes"}]},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [{"id": "rec_1", "dia_semana": "lunes"}]
+                },
+            }
+        )
 
         handler = make_trip_update_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -339,7 +387,7 @@ class TestTripUpdateHandler:
             await handler(call)
 
         # Manager update should still have been called
-        mgr.async_update_trip.assert_called_once()
+        mgr._crud.async_update_trip.assert_called_once()
 
 
 class TestEditTripHandler:
@@ -347,10 +395,12 @@ class TestEditTripHandler:
 
     @pytest.mark.asyncio
     async def test_edit_trip_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_update_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_update_trip": {"return_value": True},
+            }
+        )
 
         handler = make_edit_trip_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -361,7 +411,7 @@ class TestEditTripHandler:
         }
         await handler(call)
 
-        mgr.async_update_trip.assert_called_once_with("rec_1", {"km": 50})
+        mgr._crud.async_update_trip.assert_called_once_with("rec_1", {"km": 50})
         coord.async_refresh_trips.assert_called_once()
 
 
@@ -370,17 +420,19 @@ class TestDeleteTripHandler:
 
     @pytest.mark.asyncio
     async def test_delete_trip_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_delete_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_delete_trip": {"return_value": True},
+            }
+        )
 
         handler = make_delete_trip_handler(hass)
         call = MagicMock(spec=ServiceCall)
         call.data = {"vehicle_id": "test_vehicle", "trip_id": "rec_1"}
         await handler(call)
 
-        mgr.async_delete_trip.assert_called_once_with("rec_1")
+        mgr._crud.async_delete_trip.assert_called_once_with("rec_1")
         coord.async_refresh_trips.assert_called_once()
 
 
@@ -389,32 +441,36 @@ class TestPauseResumeHandlers:
 
     @pytest.mark.asyncio
     async def test_pause_recurring_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_pause_recurring_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_lifecycle.async_pause_recurring_trip": {"return_value": True},
+            }
+        )
 
         handler = make_pause_recurring_handler(hass)
         call = MagicMock(spec=ServiceCall)
         call.data = {"vehicle_id": "test_vehicle", "trip_id": "rec_1"}
         await handler(call)
 
-        mgr.async_pause_recurring_trip.assert_called_once_with("rec_1")
+        mgr._lifecycle.async_pause_recurring_trip.assert_called_once_with("rec_1")
         coord.async_refresh_trips.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_resume_recurring_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_resume_recurring_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_lifecycle.async_resume_recurring_trip": {"return_value": True},
+            }
+        )
 
         handler = make_resume_recurring_handler(hass)
         call = MagicMock(spec=ServiceCall)
         call.data = {"vehicle_id": "test_vehicle", "trip_id": "rec_1"}
         await handler(call)
 
-        mgr.async_resume_recurring_trip.assert_called_once_with("rec_1")
+        mgr._lifecycle.async_resume_recurring_trip.assert_called_once_with("rec_1")
         coord.async_refresh_trips.assert_called_once()
 
 
@@ -423,32 +479,36 @@ class TestCompleteCancelPunctualHandlers:
 
     @pytest.mark.asyncio
     async def test_complete_punctual_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_complete_punctual_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_lifecycle.async_complete_punctual_trip": {"return_value": True},
+            }
+        )
 
         handler = make_complete_punctual_handler(hass)
         call = MagicMock(spec=ServiceCall)
         call.data = {"vehicle_id": "test_vehicle", "trip_id": "pun_1"}
         await handler(call)
 
-        mgr.async_complete_punctual_trip.assert_called_once_with("pun_1")
+        mgr._lifecycle.async_complete_punctual_trip.assert_called_once_with("pun_1")
         coord.async_refresh_trips.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_cancel_punctual_handler(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_cancel_punctual_trip": {"return_value": True},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_lifecycle.async_cancel_punctual_trip": {"return_value": True},
+            }
+        )
 
         handler = make_cancel_punctual_handler(hass)
         call = MagicMock(spec=ServiceCall)
         call.data = {"vehicle_id": "test_vehicle", "trip_id": "pun_1"}
         await handler(call)
 
-        mgr.async_cancel_punctual_trip.assert_called_once_with("pun_1")
+        mgr._lifecycle.async_cancel_punctual_trip.assert_called_once_with("pun_1")
         coord.async_refresh_trips.assert_called_once()
 
 
@@ -457,9 +517,11 @@ class TestTripCreateHandler:
 
     @pytest.mark.asyncio
     async def test_trip_create_recurring(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_add_recurring_trip": {"return_value": "rec_1"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_add_recurring_trip": {"return_value": "rec_1"},
+            }
+        )
 
         handler = make_trip_create_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -473,14 +535,16 @@ class TestTripCreateHandler:
         }
         await handler(call)
 
-        mgr.async_add_recurring_trip.assert_called_once()
+        mgr._crud.async_add_recurring_trip.assert_called_once()
         coord.async_refresh_trips.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_trip_create_punctual(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_add_punctual_trip": {"return_value": "pun_1"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_add_punctual_trip": {"return_value": "pun_1"},
+            }
+        )
 
         handler = make_trip_create_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -493,7 +557,7 @@ class TestTripCreateHandler:
         }
         await handler(call)
 
-        mgr.async_add_punctual_trip.assert_called_once()
+        mgr._crud.async_add_punctual_trip.assert_called_once()
         coord.async_refresh_trips.assert_called_once()
 
     @pytest.mark.asyncio
@@ -522,10 +586,12 @@ class TestTripListHandler:
 
     @pytest.mark.asyncio
     async def test_trip_list_no_trips(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {"return_value": []},
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {"return_value": []},
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_list_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -539,18 +605,20 @@ class TestTripListHandler:
 
     @pytest.mark.asyncio
     async def test_trip_list_with_trips(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {
-                "return_value": [
-                    {"id": "rec_1", "tipo": "recurrente", "activo": True},
-                ],
-            },
-            "async_get_punctual_trips": {
-                "return_value": [
-                    {"id": "pun_1", "tipo": "puntual", "estado": "pendiente"},
-                ],
-            },
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [
+                        {"id": "rec_1", "tipo": "recurrente", "activo": True},
+                    ],
+                },
+                "_crud.async_get_punctual_trips": {
+                    "return_value": [
+                        {"id": "pun_1", "tipo": "puntual", "estado": "pendiente"},
+                    ],
+                },
+            }
+        )
 
         handler = make_trip_list_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -564,10 +632,14 @@ class TestTripListHandler:
     @pytest.mark.asyncio
     async def test_trip_list_error(self):
         """Manager error → returns empty list with error message."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {"side_effect": RuntimeError("storage error")},
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {
+                    "side_effect": RuntimeError("storage error")
+                },
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_list_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -583,14 +655,16 @@ class TestTripGetHandler:
 
     @pytest.mark.asyncio
     async def test_trip_get_found(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {
-                "return_value": [
-                    {"id": "rec_1", "tipo": "recurrente", "dia_semana": "lunes"},
-                ],
-            },
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [
+                        {"id": "rec_1", "tipo": "recurrente", "dia_semana": "lunes"},
+                    ],
+                },
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_get_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -602,10 +676,12 @@ class TestTripGetHandler:
 
     @pytest.mark.asyncio
     async def test_trip_get_not_found(self):
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {"return_value": []},
-            "async_get_punctual_trips": {"return_value": []},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {"return_value": []},
+                "_crud.async_get_punctual_trips": {"return_value": []},
+            }
+        )
 
         handler = make_trip_get_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -618,14 +694,16 @@ class TestTripGetHandler:
     @pytest.mark.asyncio
     async def test_trip_get_punctual(self):
         """Search includes punctual trips."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {"return_value": []},
-            "async_get_punctual_trips": {
-                "return_value": [
-                    {"id": "pun_1", "tipo": "puntual", "datetime": "2025-12-01"},
-                ],
-            },
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {"return_value": []},
+                "_crud.async_get_punctual_trips": {
+                    "return_value": [
+                        {"id": "pun_1", "tipo": "puntual", "datetime": "2025-12-01"},
+                    ],
+                },
+            }
+        )
 
         handler = make_trip_get_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -638,9 +716,13 @@ class TestTripGetHandler:
     @pytest.mark.asyncio
     async def test_trip_get_error(self):
         """Manager error → returns not found with error message."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_get_recurring_trips": {"side_effect": RuntimeError("fail")},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "_crud.async_get_recurring_trips": {
+                    "side_effect": RuntimeError("fail")
+                },
+            }
+        )
 
         handler = make_trip_get_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -657,14 +739,24 @@ class TestImportWeeklyPatternHandler:
     @pytest.mark.asyncio
     async def test_import_with_clear_existing(self):
         """Handler clears existing then imports new patterns."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_get_recurring_trips": {
-                "return_value": [{"id": "old_rec", "dia_semana": "lunes", "hora": "08:00", "km": 10, "kwh": 1.5}],
-            },
-            "async_delete_trip": {"return_value": True},
-            "async_add_recurring_trip": {"return_value": "new_rec_1"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_get_recurring_trips": {
+                    "return_value": [
+                        {
+                            "id": "old_rec",
+                            "dia_semana": "lunes",
+                            "hora": "08:00",
+                            "km": 10,
+                            "kwh": 1.5,
+                        }
+                    ],
+                },
+                "_crud.async_delete_trip": {"return_value": True},
+                "_crud.async_add_recurring_trip": {"return_value": "new_rec_1"},
+            }
+        )
 
         handler = make_import_weekly_pattern_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -679,17 +771,19 @@ class TestImportWeeklyPatternHandler:
         await handler(call)
 
         # Should delete old trips
-        assert mgr.async_delete_trip.called
+        assert mgr._crud.async_delete_trip.called
         # Should add new trips
-        assert mgr.async_add_recurring_trip.call_count == 2
+        assert mgr._crud.async_add_recurring_trip.call_count == 2
 
     @pytest.mark.asyncio
     async def test_import_without_clear_existing(self):
         """Handler skips clearing when clear_existing=False."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_add_recurring_trip": {"return_value": "new_rec"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_add_recurring_trip": {"return_value": "new_rec"},
+            }
+        )
 
         handler = make_import_weekly_pattern_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -701,18 +795,22 @@ class TestImportWeeklyPatternHandler:
         await handler(call)
 
         # Should NOT delete existing
-        assert not mgr.async_delete_trip.called
+        assert not mgr._crud.async_delete_trip.called
         # Should add new trips
-        mgr.async_add_recurring_trip.assert_called_once()
+        mgr._crud.async_add_recurring_trip.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_import_clear_fails_continues(self):
         """Clearing existing fails → continues with import."""
-        hass, entry, mgr, coord = _build_hass(manager_cfg={
-            "async_setup": {"return_value": None},
-            "async_get_recurring_trips": {"side_effect": RuntimeError("clear fail")},
-            "async_add_recurring_trip": {"return_value": "new_rec"},
-        })
+        hass, entry, mgr, coord = _build_hass(
+            manager_cfg={
+                "async_setup": {"return_value": None},
+                "_crud.async_get_recurring_trips": {
+                    "side_effect": RuntimeError("clear fail")
+                },
+                "_crud.async_add_recurring_trip": {"return_value": "new_rec"},
+            }
+        )
 
         handler = make_import_weekly_pattern_handler(hass)
         call = MagicMock(spec=ServiceCall)
@@ -724,7 +822,7 @@ class TestImportWeeklyPatternHandler:
         await handler(call)
 
         # Should have added despite clear failure
-        mgr.async_add_recurring_trip.assert_called_once()
+        mgr._crud.async_add_recurring_trip.assert_called_once()
 
 
 class TestSchemas:
@@ -738,18 +836,25 @@ class TestSchemas:
 
     def test_trip_update_schema_basic(self):
         """Valid update data passes schema."""
-        data = {"vehicle_id": "test", "trip_id": "rec_1", "type": "recurrente", "km": 24}
+        data = {
+            "vehicle_id": "test",
+            "trip_id": "rec_1",
+            "type": "recurrente",
+            "km": 24,
+        }
         result = trip_update_schema(data)
         assert result["km"] == 24.0
 
     def test_trip_update_schema_invalid_type(self):
         """Invalid type fails schema."""
         with pytest.raises(Invalid):
-            trip_update_schema({
-                "vehicle_id": "test",
-                "trip_id": "rec_1",
-                "type": "invalid",
-            })
+            trip_update_schema(
+                {
+                    "vehicle_id": "test",
+                    "trip_id": "rec_1",
+                    "type": "invalid",
+                }
+            )
 
     def test_trip_create_schema_valid(self):
         """Valid create data passes schema."""

@@ -23,8 +23,8 @@ from __future__ import annotations
 def test_core_re_exports_types():
     """BatteryCapacity and DEFAULT_T_BASE must be accessible from calculations.core."""
     from custom_components.ev_trip_planner.calculations.core import (
-        BatteryCapacity,
         DEFAULT_T_BASE,
+        BatteryCapacity,
     )
 
     assert BatteryCapacity is not None

@@ -5,6 +5,7 @@ same public API as the legacy sensor.py module file, ensuring backward-
 compatible imports for downstream consumers (__init__.py, coordinator.py,
 services.py, config_flow.py).
 """
+
 from __future__ import annotations
 
 import importlib
@@ -13,7 +14,11 @@ import sys
 
 def _clear_sensor_modules() -> None:
     """Remove any cached sensor module refs so re-imports work."""
-    to_del = [k for k in sys.modules if k.startswith("custom_components.ev_trip_planner.sensor")]
+    to_del = [
+        k
+        for k in sys.modules
+        if k.startswith("custom_components.ev_trip_planner.sensor")
+    ]
     for k in to_del:
         del sys.modules[k]
 

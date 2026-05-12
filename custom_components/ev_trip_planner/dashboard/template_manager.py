@@ -15,7 +15,6 @@ import os
 from typing import Any, Optional
 
 import yaml
-
 from homeassistant.core import HomeAssistant
 
 from . import (

@@ -7,7 +7,7 @@ used by _handler_factories.py, _lookup.py, and presence.py.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -89,18 +89,20 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
         trip_manager = TripManager(hass, vehicle_id)
         _LOGGER.info(
             "=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ===",
-            len(trip_manager._recurring_trips),
-            len(trip_manager._punctual_trips),
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
         )
 
         # Load trips from HA storage
         try:
-            _LOGGER.info("=== _get_manager - Calling trip_manager.async_setup() ===")
-            await trip_manager.async_setup()
+            _LOGGER.info(
+                "=== _get_manager - Calling trip_manager._persistence.async_setup() ==="
+            )
+            await trip_manager._persistence.async_setup()
             _LOGGER.info(
                 "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ===",
-                len(trip_manager._recurring_trips),
-                len(trip_manager._punctual_trips),
+                len(trip_manager._state.recurring_trips),
+                len(trip_manager._state.punctual_trips),
             )
         except Exception as setup_err:  # pragma: no cover
             _LOGGER.error(
@@ -115,15 +117,15 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
         )
         _LOGGER.info(
             "=== _get_manager - Trips loaded: %d recurring, %d punctual ===",
-            len(trip_manager._recurring_trips),
-            len(trip_manager._punctual_trips),
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
         )
     else:
         _LOGGER.info(
             "=== _get_manager - Manager already exists for %s, trips: %d recurring, %d punctual ===",
             vehicle_id,
-            len(trip_manager._recurring_trips),
-            len(trip_manager._punctual_trips),
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
         )
 
     _LOGGER.info(

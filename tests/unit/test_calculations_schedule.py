@@ -13,7 +13,6 @@ This test verifies the import path exists before implementation.
 from __future__ import annotations
 
 
-
 class TestScheduleModuleExports:
     """Verify calculations.schedule re-exports schedule functions."""
 

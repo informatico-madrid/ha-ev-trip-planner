@@ -26,8 +26,8 @@ from ..const import (
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOH_SENSOR,
     DEFAULT_T_BASE,
-    MIN_T_BASE,
     MAX_T_BASE,
+    MIN_T_BASE,
 )
 
 _LOGGER = logging.getLogger(__name__)

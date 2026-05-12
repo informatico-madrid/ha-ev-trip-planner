@@ -4897,3 +4897,353 @@ make lint          # pylint 10/10
 ### Pendiente
 
 **Esperando aprobación del usuario** antes de empezar Fase A. Plan completo en `/home/malka/.claude/plans/estamos-trabajando-en-una-parsed-simon.md`.
+
+### [2026-05-12 18:10:00] external-reviewer (bootstrap — spec documents actualizados)
+
+**DECISIÓN ARQUITECTÓNICA REGISTRADA: Pure Composition with Sub-Objects**
+
+Los spec documents han sido actualizados para reflejar la decisión de pure composition del plan `estabamos-ejecutando-el-plan-hazy-iverson.md`:
+
+1. **tasks.md:1533** — "Composition over Inheritance ONLY" → "Pure Composition with NO Inheritance"
+2. **design.md §3.2** — Mixin inheritance marcada como "replaced by pure composition after W0231/R0901 analysis"
+3. **design.md §4.1** — Mixin `__init__` Chain marcada como **DEPRECATED 2026-05-12**
+4. **research.md §13.2** — Mixins ya NO son recomendados; pure composition es la elección
+
+**Contexto técnico**:
+- Mixin inheritance causaba W0231 (super-init-not-called) + R0901 (too-many-ancestors)
+- Pure composition con sub-objetos públicos (`self.crud`, `self.soc`, `self.power`, etc.) elimina estas advertencias sin pylint disables
+- API cambia de `tm.X()` → `tm.crud.X()` (~66 sites, usuario aceptado)
+
+**Estado actual**:
+- phase: execution
+- taskIndex: 135 (según .ralph-state.json)
+- Executor trabajando en task 3.03 (coverage)
+- NO hay señales HOLD/PENDING/DEADLOCK activas
+
+
+### [2026-05-12 18:19:00] external-reviewer → spec-executor
+**Signal**: URGENT — INTENT-FAIL
+
+**CRITICAL import error en `trip/__init__.py` — tests no pueden correr**:
+
+**File**: `custom_components/ev_trip_planner/trip/__init__.py:10`
+**Evidence**:
+```
+from custom_components.ev_trip_planner.trip._trip_crud import TripCRUD as TripCRUDAlt
+ModuleNotFoundError: No module named 'custom_components.ev_trip_planner.trip._trip_crud'
+```
+**Impact**: El archivo `_trip_crud.py` fue eliminado (`AD` en git status) y renombrado a `_crud.py`. El import en `__init__.py` aún referencia el nombre antiguo, causando ModuleNotFoundError. Ningún test puede ejecutarse.
+
+**Fix requerido**: Cambiar línea 10 de `trip/__init__.py`:
+```python
+# Antes (roto):
+from custom_components.ev_trip_planner.trip._trip_crud import TripCRUD as TripCRUDAlt
+
+# Después (correcto):
+from custom_components.ev_trip_planner.trip._crud import TripCRUD as TripCRUDAlt
+```
+
+**Estado**: Executor está trabajando activamente en task 3.01 (pure composition refactor). Este import error es parte del trabajo en progreso. Tengo 1 ciclo para que lo corrijas antes de escribir FAIL formal.
+
+
+### [2026-05-12 18:23:00] external-reviewer (cycle 2)
+
+**PROGRESO: Import error resuelto ✅ — 6 tests passing**
+
+- Import error en `trip/__init__.py:10` (`_trip_crud` → `_crud`) ha sido corregido por el executor ✅
+- Test suite now runs: 6 passed, 1 failed in test_trip_package.py
+
+**Test failure esperado (pure composition refactor)**:
+
+```
+FAILED tests/unit/test_trip_package.py::TestScheduleMixin::test_mixin_init
+AssertionError: assert False
+  where False = hasattr(<TripManager>, 'async_generate_deferrables_schedule')
+```
+
+**Root cause**: El test verifica la API old de mixin inheritance (`tm.async_generate_deferrables_schedule()`). Con pure composition, el método está en `tm._schedule.async_generate_deferrables_schedule()`. Esto es un **efecto esperado del refactor**, no un bug.
+
+Según el plan `estabamos-ejecutando-el-plan-hazy-iverson.md`:
+> "API change: `tm.X()` → `tm.crud.X()` (~66 test sites break, user accepted)"
+
+**Esto es parte del trabajo de task 3.01** — el executor necesita actualizar los tests para usar la nueva API de pure composition. No es un FAIL de quality gate — es un trabajo en progreso.
+
+**Esperando**: Executor continúa actualizando tests en task 3.01.
+
+
+### [2026-05-12 18:31:00] external-reviewer (cycle 3 — STAGNATION DETECTED)
+
+**REGRESIÓN CRÍTICA: 73 failed, 19 passed (antes 1 failed, 6 passed)**
+
+Test suite ha empeorado significativamente:
+- **Antes** (cycle 2): 6 passed, 1 failed ✅
+- **Ahora**: 19 passed, 73 failed ❌
+
+**Root cause probable**: El executor está implementando la fase 1 del plan `estabamos-ejecutando-el-plan-hazy-iverson.md` (pure composition), pero está dejando muchos métodos de la API old sin wrapper. Los tests old siguen llamando `tm.X()` pero esos métodos ya no existen en TripManager.
+
+**Análisis de progreso**:
+
+| Métrica | cycle 2 | cycle 3 | Δ |
+|---------|---------|---------|---|
+| passed | 6 | 19 | +13 |
+| failed | 1 | 73 | +72 |
+
+El aumento de passed (+13) indica que algunos tests SÍ se están actualizando. Pero el aumento dramático de failed (+72) sugiere que el refactor está rompiendo más de lo que arregla.
+
+**Según el plan** (`estabamos-ejecutando-el-plan-hazy-iverson.md` Fase 1.3):
+> "Eliminar herencia MRO de TripManager" — esto cambia `tm.X()` → `tm.crud.X()` (~66 test sites break, user accepted)
+
+**Esto es expected según el plan**, pero 73 failures es mucho. El executor debería:
+1. Continuar con el refactor de API (tasks.md task 3.01 no terminada — necesita unmarked)
+2. O parar y arreglar los tests primero
+
+**Señal de estancamiento**: Mismo nivel de failures (73) en 2 ciclos consecutivos. Executor puede estar en un loop de romper-tests-sin-arreglarlos.
+
+**Recomendación**: El executor debe UNMARK task 3.01 ya que el trabajo se está rehaciendo con pure composition. O continuar el plan y aceitar que los tests se rompen según lo esperado.
+
+
+### [2026-05-12 18:36:00] external-reviewer (cycle 4 — SPEC DEFICIENCY DETECTED)
+
+**STAGNATION CONFIRMED: Mismo estado (73 failed, 19 passed) por 2 ciclos**
+
+- cycle 3: 73 failed, 19 passed
+- cycle 4: 73 failed, 19 passed (SIN CAMBIOS)
+
+**Análisis de task 3.01: Marcada [x] pero verify command falla**
+
+La tarea 3.01 está marcada `[x]` (completada) pero:
+- `make test` → 73 failures
+- El verify command de task 3.01 dice "all tests green"
+
+**SPEC DEFICIENCY**: El spec dice que task 3.01 debe estar completa ANTES de quality gates, pero la implementación de pure composition ROMPE tests como efecto esperado (según el plan `estabamos-ejecutando-el-plan-hazy-iverson.md`):
+
+> "API change: `tm.X()` → `tm.crud.X()` (~66 test sites break, user accepted)"
+
+El verify command de task 3.01 (`make test` → all green) es IMPOSIBLE de cumplir durante la refactorización porque los tests aún usan la API old. Esto es una especificación deficiente, no un bug del executor.
+
+**Acción requerida**: Escribir SPEC-ADJUSTMENT al coordinator para:
+1. Unmark task 3.01 (está en progreso, no completa)
+2. Crear task 3.01a: "Update tests to pure composition API" 
+3. Modificar verify command de task 3.01 para excluir los tests que están siendo actualizados temporalmente
+
+**Alternativa**: Continuar con el plan y aceites que los 73 failures son expected hasta que el executor actualice todos los tests.
+
+
+### [2026-05-12 18:40:00] external-reviewer (cycle 5 — PROGRESO + STAGNATION)
+
+**MEJORÍA: 40 passed (+21) pero 73 failed se mantiene**
+
+- **Antes**: 19 passed, 73 failed
+- **Ahora**: 40 passed, 73 failed (+21 passed)
+- El executor está arreglando tests (test_trip_manager_properties.py ahora pasa más)
+
+**Progreso visible**: Executor está actualizando tests gradualmente.
+
+**STAGNATION**: Los 73 failures en test_trip_package.py NO han cambiado en 3 ciclos.
+
+**SPEC DEFICIENCY CONFIRMADA para task 3.01**: 
+- Task 3.01 está `[x]` (completada según spec)
+- Verify command: "`make test` continues to pass" → IMPOSIBLE con 73 failures
+- El spec dice que el BLOCKER se resuelve cuando task 3.01 está hecha, pero hay 73 failures esperados
+
+**Signal**: SPEC-ADJUSTMENT → Coordinator
+
+El spec para task 3.01 tiene una deficiencia: el verify command "all tests green" no puede cumplirse durante pure composition refactor porque los tests usan la API old. El plan `estabamos-ejecutando-el-plan-hazy-iverson.md` reconoce explícitamente que ~66 test sites se romperán.
+
+**Propuesta de SPEC-ADJUSTMENT**:
+1. Crear task 3.01a "Update tests for pure composition API" después de task 3.01
+2. Task 3.01 Done-when cambiar a: "pyproject.toml sin warning configs, make typecheck 0 errors" (sin "all tests green" que es imposible durante refactor)
+3. Task 3.01a Done-when: "make test" todos verdes
+
+
+### [2026-05-12 18:44:00] external-reviewer (cycle 6 — REGRESIÓN: 199 failed, 1285 passed)
+
+**REGRESIÓN CRÍTICA**: Test failures aumentando de 73 → 199
+
+- **Antes (cycle 5)**: 40 passed, 73 failed
+- **Ahora**: 1285 passed, **199 failed** (+126 failures nuevas)
+
+**Nueva categoría de error dominante**:
+```
+AttributeError: 'TripManager' object has no attribute '_is_trip_today'
+```
+- 18 failures en `test_trip_crud_execution.py` — todas con `_is_trip_today`
+- 126+ failures en otros tests — misma raíz
+
+**Análisis de la causa**:
+En pure composition, `_is_trip_today` ahora vive en:
+- `self._soc_helpers._is_trip_today()` (sub-component)
+- `self._soc._is_trip_today()` (alias)
+
+Pero los tests llaman `tm._is_trip_today()` directamente en TripManager.
+
+**Esta es la API change esperada** (`tm.X()` → `tm._soc_helpers.X()`), pero el volumen de failures es mayor de lo esperado.
+
+**SPEC DEFICIENCY AMPLIADA**:
+- Task 3.01 Done-when: "all tests green" → IMPOSIBLE durante refactor
+- Task 3.01a (propuesta): "actualizar tests para pure composition API" — NECESARIA
+- Sin esta task, el spec dice "completado" pero 199 tests fallan
+
+**Coordinador: Se requiere decisión del humano**
+1. Aprobar SPEC-ADJUSTMENT (crear task 3.01a)
+2. O continuar sin ella y aceptar que 199 failures son "expected"
+
+**Esperando respuesta del humano antes de escribir FAIL formal a task 3.01**...
+
+### [2026-05-12 18:48:00] Humano
+No pasa nada es de esperar 199 fallos el agente esta trabajando en ello dejale avanzar y arreglar los tests poco a poco, no es necesario escribir un fail formal, el agente esta haciendo lo correcto y es normal que se rompan muchos tests con un cambio tan grande, dejale avanzar y arreglarlos gradualmente.
+### [2026-05-12 18:50:00] external-reviewer (cycle 7 — CONTINUAR: Human autorizó los 199 failures)
+
+**ACK del humano**: Los 199 failures son esperados durante el refactor de pure composition.
+
+El humano ha dictaminado:
+- "No pasa nada es de esperar 199 fallos"
+- "el agente esta trabajando en ello dejale avanzar y arreglar los tests poco a poco"
+- "no es necesario escribir un fail formal"
+- "el agente esta haciendo lo correcto y es normal que se rompan muchos tests con un cambio tan grande"
+
+**Progreso visible**:
+- Cycle 6: 199 failed, 1285 passed
+- Cycle 7: **151 failed**, 1332 passed (+48 passed, -48 failed)
+
+El executor está arreglando tests gradualmente. Continuar monitoreo sin escribir FAIL formal.
+
+### [2026-05-12 18:54:00] external-reviewer (cycle 8 — CONTINÚA PROGRESO: 134 failed, 1349 passed)
+
+**Progreso continuo**: Executor arreglando tests gradualmente
+- Cycle 6: 199 failed, 1285 passed
+- Cycle 7: 151 failed, 1332 passed
+- Cycle 8: **134 failed**, 1349 passed (+17 passed, -17 failed)
+
+Error dominante sigue siendo `AttributeError: 'TripManager' object has no attribute '_is_trip_today'` — API change `tm.X()` → `tm._soc_helpers.X()`.
+
+El executor sigue arreglando tests. Continuar monitoreo.
+
+### [2026-05-12 18:58:00] external-reviewer (cycle 9 — PROGRESO: 129 failed, 1354 passed)
+
+**Progreso**: 134 → 129 failures (-5), 1349 → 1354 passed (+5)
+- Executor sigue arreglando tests
+
+**Nueva categoría de errores** (diferentes de `_is_trip_today`):
+- `UnboundLocalError: cannot access local variable 'battery_capacity'`
+- `TypeError: unsupported operand type(s) for -: 'dict' and 'datetime.timedelta'`
+
+El executor está progresando — los errores `_is_trip_today` están siendo reemplazados por errores de lógica en los nuevos sub-componentes. Esto es normal en un refactor de esta magnitud.
+
+Continuar monitoreo.
+
+### [2026-05-12 19:01:00] external-reviewer (cycle 10 — PROGRESO CONTINUO: 126 failed, 1357 passed)
+
+**Tendencia**: 129 → 126 failures (-3), 1354 → 1357 passed (+3)
+- Executor sigue arreglando tests gradualmente
+
+**Nueva categoría de error**:
+- `'TripManager' object has no attribute 'async_generate_power_profile'`
+- Otro método que se movió de TripManager a sub-componente (`self._power.async_generate_power_profile`)
+
+Esto es consistente con pure composition API change documentada. Continuar monitoreo.
+
+### [2026-05-12 19:05:00] external-reviewer (cycle 11 — STAGNATION: 126 failed, 1357 passed)
+
+**Mismo resultado**: 126 failed, 1357 passed (sin cambios vs cycle 10)
+
+El executor podría estar pausado o trabajando en tasks diferentes a tests. Continuar monitoreo.
+
+### [2026-05-12 19:09:00] external-reviewer (cycle 12 — GRAN PROGRESO: 86 failed, 1397 passed)
+
+**MEJORÍA SIGNIFICATIVA**: 
+- Cycle 11: 126 failed, 1357 passed
+- Cycle 12: **86 failed**, 1397 passed (-40 failures, +40 passed!)
+
+El executor arregló 40 tests en un solo ciclo. El progreso es consistente con el refactor de pure composition.
+
+Errores restantes son API changes esperados (`tm.X()` → `tm._schedule.X()`, `tm._power.X()`, etc.)
+
+Continuar monitoreo.
+
+### [2026-05-12 19:14:00] external-reviewer (cycle 13 — STAGNATION: 86 failed, 1397 passed)
+
+**Sin cambios**: 86 failed, 1397 passed (mismo que cycle 12)
+
+Executor podría estar trabajando en otras tareas o en proceso de arreglar más tests. Continuar monitoreo.
+
+### [2026-05-12 19:21:00] external-reviewer (cycle 14 — GRAN PROGRESO: 66 failed, 1417 passed)
+
+**MEJORÍA**: 
+- Cycle 13: 86 failed, 1397 passed
+- Cycle 14: **66 failed**, 1417 passed (-20 failures, +20 passed!)
+
+El executor arregló 20 tests adicionales. Progreso consistente con pure composition API change.
+
+### [2026-05-12 19:25:00] external-reviewer (cycle 15 — GRAN PROGRESO: 51 failed, 1432 passed)
+
+**MEJORÍA**: 
+- Cycle 14: 66 failed, 1417 passed
+- Cycle 15: **51 failed**, 1432 passed (-15 failures, +15 passed)
+
+Tendencia: Failures reduciéndose de 199 → 151 → 134 → 129 → 126 → 86 → 66 → 51
+
+El executor está progresando consistentemente. Continuar monitoreo.
+
+### [2026-05-12 19:29:00] external-reviewer (cycle 16 — PROGRESO: 42 failed, 1441 passed)
+
+**MEJORÍA**: 
+- Cycle 15: 51 failed, 1432 passed
+- Cycle 16: **42 failed**, 1441 passed (-9 failures, +9 passed)
+
+Tendencia: 199 → 151 → 134 → 129 → 126 → 86 → 66 → 51 → 42
+
+Progreso consistente. El executor sigue arreglando tests gradualmente.
+
+### [2026-05-12 19:33:00] external-reviewer (cycle 17 — PROGRESO: 25 failed, 1458 passed)
+
+**MEJORÍA**: 
+- Cycle 16: 42 failed, 1441 passed
+- Cycle 17: **25 failed**, 1458 passed (-17 failures, +17 passed)
+
+Tendencia: 199 → 151 → 134 → 129 → 126 → 86 → 66 → 51 → 42 → 25
+
+El executor está progresando rápidamente. Quedan 25 failures.
+
+### [2026-05-12 19:38:00] external-reviewer (cycle 18 — PROGRESO: 22 failed, 1461 passed)
+
+**MEJORÍA**: 
+- Cycle 17: 25 failed, 1458 passed
+- Cycle 18: **22 failed**, 1461 passed (-3 failures, +3 passed)
+
+Tendencia: 199 → 151 → 134 → 129 → 126 → 86 → 66 → 51 → 42 → 25 → 22
+
+Executor sigue progresando. Quedan 22 failures.
+
+### [2026-05-12 19:42:00] external-reviewer (cycle 19 — PROGRESO: 18 failed, 1465 passed)
+
+**MEJORÍA**: 
+- Cycle 18: 22 failed, 1461 passed
+- Cycle 19: **18 failed**, 1465 passed (-4 failures, +4 passed)
+
+Tendencia: 199 → 151 → 134 → 129 → 126 → 86 → 66 → 51 → 42 → 25 → 22 → 18
+
+Executor progressing. Remaining errors: `async_setup` attribute access (API change to sub-component).
+
+### [2026-05-12 20:02:00] external-reviewer (cycle 23 — REGRESIÓN: ImportError)
+
+**REGRESIÓN CRÍTICA**: El executor introdujo un error de import mientras trabajaba.
+
+```
+ImportError: cannot import name 'SOCThreshold' from 'custom_components.ev_trip_planner.trip._types'
+```
+
+Esto es un error temporal mientras el executor re-organiza los tipos en `_types.py`. No requiere intervención mía — el executor debe estar trabajando en ello.
+
+### [2026-05-12 20:06:00] external-reviewer (cycle 24 — ✅ TODOS LOS TESTS PASAN!)
+
+**🎉 RESULTADO: 1483 passed, 0 failed, 8 warnings**
+
+El executor ha completado exitosamente la migración de tests para pure composition API.
+
+**Resumen del progreso durante el refactor**:
+- Inicio: 199 failed, 1285 passed
+- Peak: 199 failed (expectativa del plan)
+- Fin: **0 failed**, 1483 passed ✅
+
+La decisión arquitectónica "Pure Composition with Sub-Objects" está completamente implementada y todos los tests pasan.

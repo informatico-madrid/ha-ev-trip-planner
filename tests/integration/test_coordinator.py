@@ -117,7 +117,7 @@ async def test_coordinator_data_returns_trip_info(
     )
 
     # Add a test trip
-    await mock_trip_manager.async_add_recurring_trip(
+    await mock_trip_manager._crud.async_add_recurring_trip(
         descripcion="Work", dia_semana="lunes", hora="09:00", km=25, kwh=3.75
     )
 
@@ -281,9 +281,9 @@ class TestSensorAsyncAddedToHassRestore:
             await sensor.async_added_to_hass()
 
             # After restore: _attr_native_value should be set to last_state.state
-            assert (
-                sensor._attr_native_value == "25.5"
-            ), f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
+            assert sensor._attr_native_value == "25.5", (
+                f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
+            )
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_no_restore_when_data_is_not_none(self):
@@ -460,7 +460,8 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
     monitor._last_processed_soc = 50.0
 
     # Mock publish_deferrable_loads to verify if it is called
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     # Setup: Vehicle at home and plugged in
     mock_home_state = Mock()
@@ -523,7 +524,7 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
     # VERIFICATIONS:
 
     # 1. publish_deferrable_loads() was called
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
 
     # 2. _last_processed_soc was updated
     assert monitor._last_processed_soc == 60.0
@@ -882,7 +883,7 @@ async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
     }
     coordinator._emhass_adapter = mock_adapter
     # Mock _get_all_trips to return active trips
-    coordinator._trip_manager.get_all_trips = MagicMock(
+    coordinator._trip_manager._get_all_trips = MagicMock(
         return_value={
             "trip_001": {
                 "kwh": 30.0,
@@ -958,9 +959,10 @@ async def test_async_update_data_covers_mock_fallback(
         "per_trip_emhass_params": {},  # Empty → triggers line 147 fallback
     }
     coordinator._emhass_adapter = mock_emhass_adapter
-    # Mock the trip manager methods to return active trips
-    mock_trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-    mock_trip_manager.async_get_punctual_trips = AsyncMock(
+    # Mock the _crud sub-object methods (coordinator calls tm._crud.async_get_*)
+    mock_trip_manager._crud = MagicMock()
+    mock_trip_manager._crud.async_get_recurring_trips = AsyncMock(return_value=[])
+    mock_trip_manager._crud.async_get_punctual_trips = AsyncMock(
         return_value=[
             {
                 "id": "trip_001",
@@ -971,9 +973,17 @@ async def test_async_update_data_covers_mock_fallback(
             }
         ]
     )
-    mock_trip_manager.async_get_kwh_needed_today = AsyncMock(return_value=30.0)
-    mock_trip_manager.async_get_hours_needed_today = AsyncMock(return_value=4.05)
-    mock_trip_manager.async_get_next_trip = AsyncMock(return_value=None)
+    # Mock _soc_query sub-object
+    mock_trip_manager._soc_query = MagicMock()
+    mock_trip_manager._soc_query.async_get_kwh_needed_today = AsyncMock(
+        return_value=30.0
+    )
+    mock_trip_manager._soc_query.async_get_hours_needed_today = AsyncMock(
+        return_value=4.05
+    )
+    # Mock _navigator sub-object
+    mock_trip_manager._navigator = MagicMock()
+    mock_trip_manager._navigator.async_get_next_trip = AsyncMock(return_value=None)
     # Call _async_update_data — should trigger lines 146-153
     result = await coordinator._async_update_data()
     # Verify mock params were generated (per_trip_emhass_params should have trip_001)

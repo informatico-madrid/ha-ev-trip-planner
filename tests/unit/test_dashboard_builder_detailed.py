@@ -138,12 +138,7 @@ class TestDashboardBuilderFluentChaining:
 
     def test_chained_title_status(self):
         """Chaining with_title then add_status_view works."""
-        config = (
-            DashboardBuilder()
-            .with_title("My Dashboard")
-            .add_status_view()
-            .build()
-        )
+        config = DashboardBuilder().with_title("My Dashboard").add_status_view().build()
         assert config["title"] == "My Dashboard"
         assert len(config["views"]) == 1
         assert config["views"][0]["title"] == "Status"
@@ -151,10 +146,7 @@ class TestDashboardBuilderFluentChaining:
     def test_chained_title_trip_list(self):
         """Chaining with_title then add_trip_list_view works."""
         config = (
-            DashboardBuilder()
-            .with_title("My Dashboard")
-            .add_trip_list_view()
-            .build()
+            DashboardBuilder().with_title("My Dashboard").add_trip_list_view().build()
         )
         assert config["title"] == "My Dashboard"
         assert config["views"][0]["title"] == "Trips"
@@ -175,12 +167,7 @@ class TestDashboardBuilderFluentChaining:
 
     def test_multiple_add_status_views(self):
         """Adding status view twice creates two views."""
-        config = (
-            DashboardBuilder()
-            .add_status_view()
-            .add_status_view()
-            .build()
-        )
+        config = DashboardBuilder().add_status_view().add_status_view().build()
         assert len(config["views"]) == 2
         assert all(v["title"] == "Status" for v in config["views"])
 
@@ -212,24 +199,14 @@ class TestDashboardBuilderViewStructure:
 
     def test_view_path_is_string(self):
         """View path is a non-empty string."""
-        config = (
-            DashboardBuilder()
-            .add_status_view()
-            .add_trip_list_view()
-            .build()
-        )
+        config = DashboardBuilder().add_status_view().add_trip_list_view().build()
         for view in config["views"]:
             assert isinstance(view["path"], str)
             assert len(view["path"]) > 0
 
     def test_card_has_type(self):
         """Each card has a 'type' key."""
-        config = (
-            DashboardBuilder()
-            .add_status_view()
-            .add_trip_list_view()
-            .build()
-        )
+        config = DashboardBuilder().add_status_view().add_trip_list_view().build()
         for view in config["views"]:
             for card in view["cards"]:
                 assert "type" in card

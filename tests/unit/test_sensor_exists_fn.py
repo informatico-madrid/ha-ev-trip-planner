@@ -99,6 +99,7 @@ async def test_sensor_with_exists_fn_false_not_added_by_setup_entry(
 
     # Patch sensor._async_setup.TRIP_SENSORS (where the code reads from)
     from custom_components.ev_trip_planner.sensor import _async_setup
+
     with patch.object(_async_setup, "TRIP_SENSORS", custom_sensors):
         await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 
@@ -147,6 +148,7 @@ async def test_sensor_with_exists_fn_true_is_added_by_setup_entry(
 
     # Patch sensor._async_setup.TRIP_SENSORS (where the code reads from)
     from custom_components.ev_trip_planner.sensor import _async_setup
+
     with patch.object(_async_setup, "TRIP_SENSORS", custom_sensors):
         await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 

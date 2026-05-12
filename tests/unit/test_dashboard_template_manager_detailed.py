@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pytest
 
+from custom_components.ev_trip_planner.dashboard import (
+    DashboardValidationError,
+)
 from custom_components.ev_trip_planner.dashboard.template_manager import (
     DashboardConfig,
     _check_path_exists,
@@ -17,11 +20,6 @@ from custom_components.ev_trip_planner.dashboard.template_manager import (
     _write_file_content,
     validate_config,
 )
-
-from custom_components.ev_trip_planner.dashboard import (
-    DashboardValidationError,
-)
-
 
 # ---------------------------------------------------------------------------
 # DashboardConfig type alias
@@ -102,9 +100,10 @@ class TestValidateConfigErrors:
         """Config without 'title' raises."""
         with pytest.raises(DashboardValidationError) as exc_info:
             validate_config({"views": []}, "v")
-        assert "missing" in str(exc_info.value.message).lower() or "title" in str(
-            exc_info.value.message
-        ).lower()
+        assert (
+            "missing" in str(exc_info.value.message).lower()
+            or "title" in str(exc_info.value.message).lower()
+        )
 
     def test_missing_views(self):
         """Config without 'views' raises."""
@@ -129,25 +128,19 @@ class TestValidateConfigErrors:
     def test_view_missing_path(self):
         """View missing 'path' raises with index in error."""
         with pytest.raises(DashboardValidationError) as exc_info:
-            validate_config(
-                {"title": "T", "views": [{"title": "V", "cards": []}]}, "v"
-            )
+            validate_config({"title": "T", "views": [{"title": "V", "cards": []}]}, "v")
         assert "index 0" in str(exc_info.value.message)
 
     def test_view_missing_title(self):
         """View missing 'title' raises with index in error."""
         with pytest.raises(DashboardValidationError) as exc_info:
-            validate_config(
-                {"title": "T", "views": [{"path": "p", "cards": []}]}, "v"
-            )
+            validate_config({"title": "T", "views": [{"path": "p", "cards": []}]}, "v")
         assert "index 0" in str(exc_info.value.message)
 
     def test_view_missing_cards(self):
         """View missing 'cards' raises with index in error."""
         with pytest.raises(DashboardValidationError) as exc_info:
-            validate_config(
-                {"title": "T", "views": [{"path": "p", "title": "V"}]}, "v"
-            )
+            validate_config({"title": "T", "views": [{"path": "p", "title": "V"}]}, "v")
         assert "index 0" in str(exc_info.value.message)
 
     def test_view_index_in_error_message(self):
@@ -258,9 +251,7 @@ class TestValidateConfigVehicleId:
         }
         validate_config(config, "my-vehicle")
         # No warning about vehicle_id not found
-        assert not any(
-            "Vehicle ID" in record.message for record in caplog.records
-        )
+        assert not any("Vehicle ID" in record.message for record in caplog.records)
 
     def test_vehicle_id_not_in_view_path_warns(self, caplog):
         """When vehicle_id is not in view paths, a warning is logged."""

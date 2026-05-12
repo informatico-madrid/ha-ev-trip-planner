@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime  # noqa: F401 — re-export for test mock path (conftest.py:822)
+from datetime import (
+    datetime,  # noqa: F401 — re-export for test mock path (conftest.py:822)
+)
 from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store  # noqa: F401 — re-export for test compatibility
+from homeassistant.helpers.storage import (
+    Store,  # noqa: F401 — re-export for test compatibility
+)
 
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
 from .load_publisher import LoadPublisher
-
 
 
 class EMHASSAdapter:
@@ -277,7 +280,9 @@ class EMHASSAdapter:
         entry_data = getattr(self, "_entry_dict", None)
         if not entry_data:
             return None
-        soc_sensor = entry_data.get("soc_sensor") if isinstance(entry_data, dict) else None
+        soc_sensor = (
+            entry_data.get("soc_sensor") if isinstance(entry_data, dict) else None
+        )
         if not soc_sensor:
             return None
         state = self.hass.states.get(soc_sensor)
@@ -330,6 +335,7 @@ class EMHASSAdapter:
         emhass_index = self._index_map.get(trip_id, -1)
 
         from homeassistant.util import dt as dt_util
+
         now = dt_util.now()
 
         # Calculate deadline
@@ -355,12 +361,15 @@ class EMHASSAdapter:
             # Use pre-computed ventana if provided (batch mode)
             if pre_computed_inicio_ventana is not None:
                 delta_hours = (
-                    self._load_publisher._ensure_aware(pre_computed_inicio_ventana) - now
+                    self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
+                    - now
                 ).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
             elif charging_windows and charging_windows[0].get("inicio_ventana"):
                 inicio = charging_windows[0]["inicio_ventana"]
-                delta_hours = (self._load_publisher._ensure_aware(inicio) - now).total_seconds() / 3600
+                delta_hours = (
+                    self._load_publisher._ensure_aware(inicio) - now
+                ).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
             # fin_ventana for def_end_timestep
@@ -369,18 +378,25 @@ class EMHASSAdapter:
                     self._load_publisher._ensure_aware(pre_computed_fin_ventana) - now
                 ).total_seconds() / 3600
                 if delta_hours_end > 0:
-                    def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
+                    def_end_timestep = max(
+                        0, min(math.ceil(delta_hours_end - 0.001), 168)
+                    )
             elif charging_windows and charging_windows[0].get("fin_ventana"):
                 fin = charging_windows[0]["fin_ventana"]
                 if isinstance(fin, datetime):
-                    delta_hours_end = (self._load_publisher._ensure_aware(fin) - now).total_seconds() / 3600
-                    def_end_timestep = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
+                    delta_hours_end = (
+                        self._load_publisher._ensure_aware(fin) - now
+                    ).total_seconds() / 3600
+                    def_end_timestep = max(
+                        0, min(math.ceil(delta_hours_end - 0.001), 168)
+                    )
 
             # Apply off-by-one fix
             def_start_timestep = max(0, def_start_timestep - 1)
 
             # Calculate energy parameters
             from ..calculations import calculate_energy_needed
+
             energy_info = calculate_energy_needed(
                 trip,
                 battery_capacity_kwh,

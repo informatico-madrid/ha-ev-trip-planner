@@ -19,8 +19,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import async_migrate_entries
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN  # noqa: F401
 from .coordinator import TripPlannerCoordinator
@@ -75,7 +75,7 @@ async def _hourly_refresh_callback(
     """
     try:
         if runtime_data.trip_manager:
-            await runtime_data.trip_manager.publish_deferrable_loads()
+            await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
         _LOGGER.warning("Hourly profile refresh failed: %s", err)
 
@@ -139,7 +139,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     trip_manager = TripManager(
         hass, vehicle_id, entry.entry_id, presence_config, storage
     )
-    await trip_manager.async_setup()
+    await trip_manager._persistence.async_setup()
 
     soc_sensor = entry.data.get("soc_sensor")
     if (
@@ -157,7 +157,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await emhass_adapter.async_load()
         # FR-2, AC-1.2: Set up config entry listener for charging power updates
         emhass_adapter.setup_config_entry_listener()
-        trip_manager.set_emhass_adapter(emhass_adapter)
+        trip_manager.emhass_adapter = emhass_adapter
 
     # Create coordinator BEFORE publishing to EMHASS, so sensor platform setup
     # always has a coordinator reference (even if empty EMHASS data initially).
@@ -180,7 +180,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # This populates the EMHASS cache and triggers a coordinator refresh
     # so sensors see the correct data immediately (not waiting for periodic refresh).
     if emhass_adapter is not None:
-        await trip_manager.publish_deferrable_loads()
+        await trip_manager._schedule.publish_deferrable_loads()
     await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)
 
     # T3.1: Setup hourly refresh timer OUTSIDE coordinator

@@ -10,26 +10,9 @@ from __future__ import annotations
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, SupportsResponse
 
-from ._utils import (
-    PLATFORMS,
-    CoordinatorType,
-    build_presence_config,
-)
-from .dashboard_helpers import (
-    async_import_dashboard_for_entry,
-    async_register_panel_for_entry,
-    async_register_static_paths,
-    create_dashboard_input_helpers,
-)
-from .cleanup import (
-    async_cleanup_orphaned_emhass_sensors,
-    async_cleanup_stale_storage,
-    async_remove_entry_cleanup,
-    async_unload_entry_cleanup,
-)
 from ._handler_factories import (
-    make_add_recurring_handler,
     make_add_punctual_handler,
+    make_add_recurring_handler,
     make_cancel_punctual_handler,
     make_complete_punctual_handler,
     make_delete_trip_handler,
@@ -44,6 +27,23 @@ from ._handler_factories import (
     trip_create_schema,
     trip_id_schema,
     trip_update_schema,
+)
+from ._utils import (
+    PLATFORMS,
+    CoordinatorType,
+    build_presence_config,
+)
+from .cleanup import (
+    async_cleanup_orphaned_emhass_sensors,
+    async_cleanup_stale_storage,
+    async_remove_entry_cleanup,
+    async_unload_entry_cleanup,
+)
+from .dashboard_helpers import (
+    async_import_dashboard_for_entry,
+    async_register_panel_for_entry,
+    async_register_static_paths,
+    create_dashboard_input_helpers,
 )
 
 __all__ = [

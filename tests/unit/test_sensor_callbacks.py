@@ -156,7 +156,9 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_created_recurring", hass, "entry_1",
+                "trip_created_recurring",
+                hass,
+                "entry_1",
                 trip_data={"id": "rec_1", "tipo": "recurring"},
             )
             mock_mod.async_create_trip_sensor.assert_called_once()
@@ -169,7 +171,9 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_created_punctual", hass, "entry_1",
+                "trip_created_punctual",
+                hass,
+                "entry_1",
                 trip_data={"id": "pun_1", "tipo": "punctual"},
             )
             mock_mod.async_create_trip_sensor.assert_called_once()
@@ -192,7 +196,9 @@ class TestSensorCallbacksEmit:
         mock_mod.async_update_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_updated", hass, "entry_1",
+                "trip_sensor_updated",
+                hass,
+                "entry_1",
                 trip_data={"id": "rec_1"},
             )
             mock_mod.async_update_trip_sensor.assert_called_once()
@@ -209,8 +215,11 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_emhass_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_created_emhass", hass, "entry_1",
-                trip_id="pun_1", vehicle_id="test_vehicle",
+                "trip_sensor_created_emhass",
+                hass,
+                "entry_1",
+                trip_id="pun_1",
+                vehicle_id="test_vehicle",
             )
             mock_mod.async_create_trip_emhass_sensor.assert_called_once()
 
@@ -222,8 +231,11 @@ class TestSensorCallbacksEmit:
         mock_mod.async_remove_trip_emhass_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_removed_emhass", hass, "entry_1",
-                trip_id="pun_1", vehicle_id="test_vehicle",
+                "trip_sensor_removed_emhass",
+                hass,
+                "entry_1",
+                trip_id="pun_1",
+                vehicle_id="test_vehicle",
             )
             mock_mod.async_remove_trip_emhass_sensor.assert_called_once()
 
@@ -235,6 +247,8 @@ class TestSensorCallbacksEmit:
             mock_mod.side_effect = RuntimeError("import failed")
             # Should not raise
             sc.emit(
-                "trip_created_recurring", hass, "entry_1",
+                "trip_created_recurring",
+                hass,
+                "entry_1",
                 trip_data={"id": "rec_1"},
             )

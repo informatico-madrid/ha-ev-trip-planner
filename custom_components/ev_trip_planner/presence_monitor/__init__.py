@@ -366,9 +366,7 @@ class PresenceMonitor:
             )
             return False
 
-    def _parse_coordinates(
-        self, coord_string: str
-    ) -> Optional[Tuple[float, float]]:
+    def _parse_coordinates(self, coord_string: str) -> Optional[Tuple[float, float]]:
         """Parse coordinates from string like '40.4168, -3.7038'."""
         if not coord_string:
             return None
@@ -403,10 +401,7 @@ class PresenceMonitor:
         dlat = lat2_rad - lat1_rad
         dlon = lon2_rad - lon1_rad
 
-        a = (
-            sin(dlat / 2) ** 2
-            + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
-        )
+        a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return 6371000 * c
 
@@ -424,9 +419,7 @@ class PresenceMonitor:
             self._async_handle_soc_change,  # type: ignore[arg-type] # HA stub mismatch
         )
 
-    async def _async_handle_soc_change(
-        self, event: Event[Mapping[str, Any]]
-    ) -> None:
+    async def _async_handle_soc_change(self, event: Event[Mapping[str, Any]]) -> None:
         """Handle SOC state change event."""
         if not self._trip_manager:
             return
@@ -456,5 +449,4 @@ class PresenceMonitor:
             return
 
         self._last_processed_soc = new_soc
-        await self._trip_manager.publish_deferrable_loads()
-
+        await self._trip_manager._schedule.publish_deferrable_loads()

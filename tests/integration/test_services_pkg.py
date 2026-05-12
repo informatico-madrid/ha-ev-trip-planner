@@ -9,7 +9,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 
-
 class TestRegisterServices:
     """Test register_services in services/__init__.py."""
 

@@ -139,7 +139,7 @@ async def async_unload_entry_cleanup(
             vehicle_name,
             trip_manager,
         )
-        await trip_manager.async_delete_all_trips()
+        await trip_manager._lifecycle.async_delete_all_trips()
 
     # Cleanup EMHASS vehicle indices before unload
     if emhass_adapter:
@@ -240,7 +240,7 @@ async def async_remove_entry_cleanup(
     if trip_manager:
         try:
             _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
-            await trip_manager.async_delete_all_trips()
+            await trip_manager._lifecycle.async_delete_all_trips()
         except Exception as err:
             _LOGGER.error("Error deleting trips for vehicle %s: %s", vehicle_name, err)
 

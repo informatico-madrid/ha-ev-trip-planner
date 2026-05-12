@@ -16,6 +16,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_registry import (
     EntityRegistry,
     async_entries_for_config_entry,
+)
+from homeassistant.helpers.entity_registry import (
     async_get as er_async_get,
 )
 
@@ -150,8 +152,8 @@ async def _async_create_trip_sensors(
 
     try:
         # Get existing trips from trip manager
-        recurring_trips = await trip_manager.async_get_recurring_trips()
-        punctual_trips = await trip_manager.async_get_punctual_trips()
+        recurring_trips = await trip_manager._crud.async_get_recurring_trips()
+        punctual_trips = await trip_manager._crud.async_get_punctual_trips()
 
         _LOGGER.debug(
             "Creating trip sensors for %s: %d recurring, %d punctual trips",

@@ -1530,7 +1530,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - **Analysis**: 
     - Pyright basic mode defaults: `reportAttributeAccessIssue = "error"`, `reportUnknownMemberType = "none"`, `reportUnknownVariableType = "none"`, `reportUnknownArgumentType = "none"`. Four configs in current pyproject.toml add rules that pyright doesn't even enable by default, then degrade them to warning — this is confirmed trampa.
     - Only `reportAttributeAccessIssue` has a genuine technical justification (MRO limitation), but the solution is NOT to degrade globally — it's to fix the typing architecture.
-  - **Solution — Composition over Inheritance ONLY**: Replace mixin inheritance with explicit state injection. This is the ONLY acceptable solution. Protocol-based typing, `# type: ignore` comments, or any form of attribute degradation are explicitly PROHIBITED as they are quality-gate evasion (trampa).
+  - **Solution — Pure Composition with NO Inheritance**: Replace mixin inheritance with public sub-objects (`self.crud`, `self.soc`, `self.power`, `self.schedule`, `self.navigator`). This is the ONLY acceptable solution. See plan `/home/malka/.claude/plans/estabamos-ejecutando-el-plan-hazy-iverson.md`. Protocol-based typing, `# type: ignore` comments, or any form of attribute degradation are explicitly PROHIBITED as they are quality-gate evasion (trampa).
     1. Create `TripManagerState` dataclass/attrs class with all shared state (`hass: HomeAssistant`, `_trips: Dict[str, Any]`, `vehicle_id: str`, `_punctual_trips`, etc.)
     2. Each mixin receives `state: TripManagerState` in `__init__` and stores it as `self._state`
     3. TripManager instantiates state once, passes to all mixin instances

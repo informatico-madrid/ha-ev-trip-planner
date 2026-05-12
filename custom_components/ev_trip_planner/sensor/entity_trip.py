@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.entity import EntityCategory  # type: ignore[attr-defined]  # HA stub: EntityCategory not explicitly exported
+from homeassistant.helpers.entity import (
+    EntityCategory,  # type: ignore[attr-defined]  # HA stub: EntityCategory not explicitly exported
+)
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..const import DOMAIN, TRIP_TYPE_PUNCTUAL
@@ -19,7 +21,9 @@ if TYPE_CHECKING:
     from homeassistant.helpers.device_registry import DeviceInfo
 
 
-class TripSensor(CoordinatorEntity[TripPlannerCoordinator], SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
+class TripSensor(
+    CoordinatorEntity[TripPlannerCoordinator],
+    SensorEntity,  # type: ignore[misc]  # HA stub: CoordinatorEntity mixin typing
 ):
     """Sensor for a specific trip using CoordinatorEntity pattern.
 

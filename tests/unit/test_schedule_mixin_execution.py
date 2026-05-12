@@ -15,8 +15,15 @@ from custom_components.ev_trip_planner.trip import TripManager
 from custom_components.ev_trip_planner.trip.state import TripManagerState
 
 
-def _make_tm(recurring=None, punctual=None, soc=50.0, trip_time=None,
-             battery_kwh=60.0, safety_margin=10.0, entry_id=""):
+def _make_tm(
+    recurring=None,
+    punctual=None,
+    soc=50.0,
+    trip_time=None,
+    battery_kwh=60.0,
+    safety_margin=10.0,
+    entry_id="",
+):
     """Build a partial TripManager via __new__ with proper _state."""
     recurring = recurring or {}
     punctual = punctual or {}
@@ -38,13 +45,36 @@ def _make_tm(recurring=None, punctual=None, soc=50.0, trip_time=None,
     )
     tm._state._recurring_trips = mgr._recurring_trips
     tm._state._punctual_trips = mgr._punctual_trips
+    tm._state.recurring_trips = recurring
+    tm._state.punctual_trips = punctual
     tm._state._load_trips = mgr._load_trips
     tm._state._get_trip_time = mgr._get_trip_time
     tm._state.async_get_vehicle_soc = mgr.async_get_vehicle_soc
 
+    # Set up persistence mock for _load_trips
+    tm._state._persistence = MagicMock()
+    tm._state._persistence._load_trips = AsyncMock()
+
+    # Set up _soc mock for async_get_vehicle_soc, _get_trip_time, async_calcular_energia_necesaria
+    tm._state._soc = MagicMock()
+    tm._state._soc.async_get_vehicle_soc = mgr.async_get_vehicle_soc
+    tm._state._soc._get_trip_time = mgr._get_trip_time
+    tm._state._soc.async_calcular_energia_necesaria = AsyncMock(
+        return_value={"energia_necesaria_kwh": 0, "horas_carga_necesarias": 0}
+    )
+    tm._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+
+    # Create and wire schedule sub-component
+    from custom_components.ev_trip_planner.trip._schedule import TripScheduler
+
+    tm._schedule = TripScheduler(tm._state)
+
     # Set up config entry mock
     mock_entry = MagicMock()
-    mock_entry.data = {"battery_capacity_kwh": battery_kwh, "safety_margin_percent": safety_margin}
+    mock_entry.data = {
+        "battery_capacity_kwh": battery_kwh,
+        "safety_margin_percent": safety_margin,
+    }
     tm._state.hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
     # Set up emhass adapter (note: attribute is `emhass_adapter`, not `_emhass_adapter`)
@@ -71,7 +101,7 @@ class TestScheduleMixinActiveTrips:
             trip_time=now,
         )
 
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -89,7 +119,7 @@ class TestScheduleMixinActiveTrips:
             trip_time=now,
         )
 
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -103,7 +133,7 @@ class TestScheduleMixinActiveTrips:
             soc=50.0,
             trip_time=None,
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -119,7 +149,7 @@ class TestScheduleMixinActiveTrips:
             battery_kwh=80.0,
             safety_margin=15.0,
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -133,7 +163,7 @@ class TestScheduleMixinActiveTrips:
             trip_time=now,
             entry_id="",  # Empty entry_id triggers vehicle_id fallback
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -150,7 +180,7 @@ class TestScheduleMixinPowerProfile:
             recurring={"rec_1": {"id": "rec_1", "activo": True, "km": 50}},
             trip_time=now,
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert len(result) > 0
@@ -166,7 +196,7 @@ class TestScheduleMixinPowerProfile:
             soc=50.0,
             trip_time=datetime.now(timezone.utc) + timedelta(hours=5),
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -180,7 +210,7 @@ class TestScheduleMixinPowerProfile:
             soc=50.0,
             trip_time=past_time,
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -193,7 +223,7 @@ class TestScheduleMixinPowerProfile:
             soc=50.0,
             trip_time=None,
         )
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert isinstance(result, list)
@@ -202,7 +232,7 @@ class TestScheduleMixinPowerProfile:
     async def test_empty_schedule_no_trips(self):
         """Empty schedule includes p_deferrable0 for no trips (line 214-215)."""
         tm = _make_tm()
-        result = await tm.async_generate_deferrables_schedule(
+        result = await tm._schedule.async_generate_deferrables_schedule(
             charging_power_kw=3.6, planning_horizon_days=1
         )
         assert len(result) > 0
@@ -211,17 +241,14 @@ class TestScheduleMixinPowerProfile:
 
 
 class TestPublishDeferrableLoads:
-    """Test publish_deferrable_loads (called directly on mixin)."""
+    """Test publish_deferrable_loads (called via TripScheduler)."""
 
     @pytest.mark.asyncio
     async def test_publish_calls_adapter(self):
         """publish_deferrable_loads calls async_publish_all_deferrable_loads."""
-        from custom_components.ev_trip_planner.trip._schedule_mixin import _ScheduleMixin
-
         tm = _make_tm()
-        # Call mixin method directly (TripManager wraps via _schedule)
         trips = [{"id": "rec_1", "activo": True}]
-        await _ScheduleMixin.publish_deferrable_loads(tm, trips=trips)
+        await tm._schedule.publish_deferrable_loads(trips=trips)
         tm._state.emhass_adapter.async_publish_all_deferrable_loads.assert_called_once_with(
             trips
         )
@@ -229,20 +256,16 @@ class TestPublishDeferrableLoads:
     @pytest.mark.asyncio
     async def test_publish_loads_from_storage_when_none(self):
         """publish_deferrable_loads loads from storage when trips=None."""
-        from custom_components.ev_trip_planner.trip._schedule_mixin import _ScheduleMixin
-
         tm = _make_tm()
-        tm._state._recurring_trips = {"rec_1": {"id": "rec_1", "activo": True}}
-        tm._state._punctual_trips = {"pun_1": {"id": "pun_1", "estado": "pendiente"}}
-        await _ScheduleMixin.publish_deferrable_loads(tm)
+        tm._state.recurring_trips = {"rec_1": {"id": "rec_1", "activo": True}}
+        tm._state.punctual_trips = {"pun_1": {"id": "pun_1", "estado": "pendiente"}}
+        await tm._schedule.publish_deferrable_loads()
         tm._state.emhass_adapter.async_publish_all_deferrable_loads.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_publish_noop_when_no_adapter(self):
         """publish_deferrable_loads is no-op when no emhass adapter."""
-        from custom_components.ev_trip_planner.trip._schedule_mixin import _ScheduleMixin
-
         tm = _make_tm()
         tm._state.emhass_adapter = None
-        await _ScheduleMixin.publish_deferrable_loads(tm, trips=[{"id": "rec_1"}])
+        await tm._schedule.publish_deferrable_loads(trips=[{"id": "rec_1"}])
         # Should not raise

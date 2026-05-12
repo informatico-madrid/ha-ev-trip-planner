@@ -9,12 +9,6 @@ paths continue to work without changes.
 
 from __future__ import annotations
 
-# Entity classes from sub-modules.
-from .entity_emhass_deferrable import EmhassDeferrableLoadSensor
-from .entity_trip import TripSensor
-from .entity_trip_emhass import TRIP_EMHASS_ATTR_KEYS, TripEmhassSensor
-from .entity_trip_planner import TripPlannerSensor
-
 # Platform entry point and helpers from _async_setup.
 from ._async_setup import (
     TRIP_SENSORS,
@@ -26,6 +20,12 @@ from ._async_setup import (
     async_setup_entry,
     async_update_trip_sensor,
 )
+
+# Entity classes from sub-modules.
+from .entity_emhass_deferrable import EmhassDeferrableLoadSensor
+from .entity_trip import TripSensor
+from .entity_trip_emhass import TRIP_EMHASS_ATTR_KEYS, TripEmhassSensor
+from .entity_trip_planner import TripPlannerSensor
 
 __all__ = [
     "TRIP_SENSORS",

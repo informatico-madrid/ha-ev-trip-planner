@@ -12,8 +12,6 @@ import pytest
 _LOGGER = logging.getLogger(__name__)
 
 
-
-
 @pytest.fixture
 def hass():
     """Fixture to provide a minimal mock HomeAssistant instance.
@@ -87,6 +85,7 @@ def hass():
                     return coro
                 return asyncio.ensure_future(coro)
             else:
+
                 async def _wrapper():
                     return job_target(*job_args, **filtered_kwargs)
 
@@ -184,5 +183,3 @@ def sample_presence_config():
         "plugged_sensor": "binary_sensor.vehicle_plugged",
         "charging_sensor": "binary_sensor.charging_status",
     }
-
-

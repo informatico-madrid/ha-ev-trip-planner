@@ -1,6 +1,6 @@
 """Tests for Presence Monitor SOC functionality (Task 1.8)."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -39,7 +39,8 @@ def mock_store_class():
 def mock_trip_manager():
     """Create mock TripManager with async methods."""
     manager = Mock()
-    manager.publish_deferrable_loads = AsyncMock()
+    manager._schedule = MagicMock()
+    manager._schedule.publish_deferrable_loads = AsyncMock()
     return manager
 
 
@@ -93,7 +94,7 @@ async def test_soc_change_triggers_recalculation_when_home_and_plugged(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was triggered
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 60.0
 
@@ -146,7 +147,7 @@ async def test_soc_change_does_not_trigger_when_away(mock_hass, mock_trip_manage
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not at home)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -192,7 +193,7 @@ async def test_soc_change_does_not_trigger_when_unplugged(mock_hass, mock_trip_m
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (not plugged)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
 
 
 # =============================================================================
@@ -342,7 +343,7 @@ async def test_soc_debouncing_5_percent_threshold_blocks_recalculation(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered (below 5% threshold)
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -394,7 +395,7 @@ async def test_soc_debouncing_5_percent_threshold_allows_recalculation(
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation WAS triggered (delta >= 5%)
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
     # Verify _last_processed_soc was updated
     assert monitor._last_processed_soc == 55.0
 
@@ -459,7 +460,7 @@ async def test_soc_debouncing_ignores_unavailable_state(mock_hass, mock_trip_man
     await monitor._async_handle_soc_change(event)
 
     # Verify recalculation was NOT triggered
-    mock_trip_manager.publish_deferrable_loads.assert_not_called()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
     # Verify _last_processed_soc was NOT updated
     assert monitor._last_processed_soc == 50.0
 
@@ -586,7 +587,7 @@ async def test_hora_regreso_persistence_across_monitor_lifecycle(
 
 @pytest.mark.asyncio
 async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_manager):
-    """Test _async_handle_soc_change calls trip_manager.publish_deferrable_loads().
+    """Test _async_handle_soc_change calls trip_manager._schedule.publish_deferrable_loads().
 
     Task 1.12 test: expects SOC change to route through publish_deferrable_loads.
     """
@@ -620,7 +621,7 @@ async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_ma
     monitor._last_processed_soc = 50.0
 
     # Mock publish_deferrable_loads as async
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     # Simulate SOC change event: 50% -> 60% (10% delta, exceeds 5% threshold)
     old_soc_state = Mock()
@@ -639,4 +640,4 @@ async def test_soc_change_calls_publish_deferrable_loads(mock_hass, mock_trip_ma
     await monitor._async_handle_soc_change(event)
 
     # publish_deferrable_loads should be called (not async_generate_* methods)
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()

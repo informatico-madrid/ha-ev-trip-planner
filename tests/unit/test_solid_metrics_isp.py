@@ -11,8 +11,7 @@ import ast
 from pathlib import Path
 
 SOLID_METRICS = (
-    Path(__file__).resolve()
-    .parents[2]
+    Path(__file__).resolve().parents[2]
     / ".agents"
     / "skills"
     / "quality-gate"
@@ -69,7 +68,11 @@ def test_solid_metrics_max_unused_methods_ratio_is_not_only_in_docstring():
 
     # Strip the module docstring by finding the first non-docstring statement
     tree = ast.parse(source)
-    if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant):
+    if (
+        tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+    ):
         # Remove the docstring from source by slicing past it
         docstring_end = tree.body[0].end_lineno  # type: ignore[union-attr]
         code_without_docstring = "\n".join(source.split("\n")[docstring_end:])

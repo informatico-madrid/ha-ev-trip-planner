@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict
 
 from homeassistant.components.sensor import RestoreSensor, SensorEntity  # noqa: F401
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.entity import EntityCategory  # type: ignore[attr-defined]  # HA stub: EntityCategory not explicitly exported
+from homeassistant.helpers.entity import (
+    EntityCategory,  # type: ignore[attr-defined]  # HA stub: EntityCategory not explicitly exported
+)
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..const import DOMAIN
