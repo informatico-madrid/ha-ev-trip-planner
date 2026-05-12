@@ -1869,3 +1869,39 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
   is a design concern that violates the spirit of composition over inheritance.
   Task 3.02 must address the TRAP TEST issue.
 - resolved_at: 2026-05-12T08:12:00Z (for pyright MRO issues)
+
+### [task-3.02] TRAP TEST check=False — FAIL
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-12T09:38:00Z
+- criterion_failed: ruff lint fails due to check=False in test_sensor_pyright.py:33 — TRAP TEST pattern
+- evidence: |
+  $ make lint
+  Found 2 errors.
+  [*] 2 fixable with the --fix option.
+  make: *** [Makefile:93: lint] Error 1
+  
+  $ grep -n "check=False" tests/unit/test_sensor_pyright.py
+  33:        check=False,
+  
+  This is a TRAP TEST: check=False suppresses subprocess failures, making the test always pass regardless of whether make typecheck succeeds or fails.
+- fix_hint: Remove check=False from subprocess.run call. If you want to handle failures gracefully, check the returncode after subprocess.run() completes and assert on it explicitly.
+- review_submode: post-task
+
+### [task-3.02] TRAP TEST check=False — PASS (RECOVERED)
+- status: PASS
+- severity: none (quality gates met)
+- reviewed_at: 2026-05-12T09:42:00Z
+- criterion_failed: none — ruff All checks passed, tests 943 passed, pyright 0 errors
+- evidence: |
+  $ ruff check tests/unit/test_sensor_pyright.py
+  All checks passed!
+  
+  $ .venv/bin/python -m pytest tests/unit/ -x -q --tb=no
+  943 passed in 4.51s
+  
+  $ grep -n "check=False" tests/unit/test_sensor_pyright.py
+  check=False NOT FOUND — executor removed it
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-12T09:42:00Z

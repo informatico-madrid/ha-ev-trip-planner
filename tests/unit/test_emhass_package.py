@@ -167,7 +167,7 @@ class TestErrorHandlerHandleError:
         caplog.set_level(logging.ERROR)
 
         def _callback(op, exc):
-            1 / 0  # triggers ZeroDivisionError
+            raise ZeroDivisionError("callback raises")
 
         handler = ErrorHandler(hass=mock_hass, on_error=_callback)
         error = ValueError("callback raises")

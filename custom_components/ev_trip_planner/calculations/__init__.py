@@ -13,9 +13,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone  # noqa: F401
 
-# Import all public symbols from the legacy module file (now _orig).
-# These imports are temporary -- sub-modules will take ownership later.
-from custom_components.ev_trip_planner.calculations_orig import (
+# Re-export from decomposed sub-modules
+from .core import (
     DAYS_OF_WEEK,
     SOH_CACHE_TTL_SECONDS,
 )

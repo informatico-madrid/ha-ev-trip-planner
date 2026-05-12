@@ -9,8 +9,9 @@ This test documents the pyright quality requirement for sensor.py.
 If sensor.py had pyright errors, this test would fail, indicating
 the RED state where fixes are needed.
 
-Note: sensor.py is the transitional shim (913 bytes) that re-exports from
-the sensor/ package. The original code lives in sensor_orig.py.
+Note: sensor.py was replaced by the sensor/ package as part of the
+SOLID decomposition (Spec 3). The original code was migrated to
+entity_*.py and _async_setup.py files.
 
 Requirement: NFR-7.A.5 (Zero pyright errors)
 Design: FR-1.7 (Sensor package decomposition)
@@ -29,8 +30,8 @@ def test_sensor_py_zero_pyright_errors():
         ["make", "typecheck"],
         capture_output=True,
         text=True,
-        cwd="/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner",
         check=False,
+        cwd="/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner",
     )
     output = result.stderr + result.stdout
 

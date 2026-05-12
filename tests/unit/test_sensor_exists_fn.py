@@ -71,7 +71,6 @@ async def test_sensor_with_exists_fn_false_not_added_by_setup_entry(
         TRIP_SENSORS,
         TripSensorEntityDescription,
     )
-    from custom_components.ev_trip_planner import sensor_orig
 
     created_keys: list[str] = []
     entities_added: list = []
@@ -98,8 +97,9 @@ async def test_sensor_with_exists_fn_false_not_added_by_setup_entry(
             if hasattr(e, "entity_description") and e.entity_description:
                 created_keys.append(e.entity_description.key)
 
-    # Patch sensor_orig.TRIP_SENSORS (where the code reads from)
-    with patch.object(sensor_orig, "TRIP_SENSORS", custom_sensors):
+    # Patch sensor._async_setup.TRIP_SENSORS (where the code reads from)
+    from custom_components.ev_trip_planner.sensor import _async_setup
+    with patch.object(_async_setup, "TRIP_SENSORS", custom_sensors):
         await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 
     # EXPECTED: "conditional_sensor" should NOT be in created keys
@@ -119,7 +119,6 @@ async def test_sensor_with_exists_fn_true_is_added_by_setup_entry(
         TRIP_SENSORS,
         TripSensorEntityDescription,
     )
-    from custom_components.ev_trip_planner import sensor_orig
 
     created_keys: list[str] = []
     entities_added: list = []
@@ -146,8 +145,9 @@ async def test_sensor_with_exists_fn_true_is_added_by_setup_entry(
             if hasattr(e, "entity_description") and e.entity_description:
                 created_keys.append(e.entity_description.key)
 
-    # Patch sensor_orig.TRIP_SENSORS (where the code reads from)
-    with patch.object(sensor_orig, "TRIP_SENSORS", custom_sensors):
+    # Patch sensor._async_setup.TRIP_SENSORS (where the code reads from)
+    from custom_components.ev_trip_planner.sensor import _async_setup
+    with patch.object(_async_setup, "TRIP_SENSORS", custom_sensors):
         await sensor.async_setup_entry(mock_hass, entry, capture_entities)
 
     # EXPECTED: "unconditional_sensor" SHOULD be in created keys

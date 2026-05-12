@@ -11,9 +11,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-# Functions still in calculations_orig that power.py depends on.
-# These will be moved to deficit.py in a later task.
-from custom_components.ev_trip_planner.calculations_orig import (
+from .deficit import (
     calculate_next_recurring_datetime,
     determine_charging_need,
 )

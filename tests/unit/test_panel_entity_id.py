@@ -29,12 +29,14 @@ class TestPanelEntityIdMatch:
     """Verify panel.js uses the same entity ID pattern as emhass_adapter.py."""
 
     def test_emhass_sensor_entity_id_pattern_sensor_py(self):
-        """Get the entity ID pattern from sensor_orig.py sensor creation.
+        """Get the entity ID pattern from the decomposed sensor entity.
 
         After SOLID decomposition, sensor.py was replaced by a sensor/ package.
-        The original implementation is preserved in sensor_orig.py.
+        The implementation is now in entity_emhass_deferrable.py.
         """
-        sensor_path = Path("custom_components/ev_trip_planner/sensor_orig.py")
+        sensor_path = Path(
+            "custom_components/ev_trip_planner/sensor/entity_emhass_deferrable.py"
+        )
         content = sensor_path.read_text()
 
         # Find the line where sensor unique_id is constructed
@@ -43,7 +45,7 @@ class TestPanelEntityIdMatch:
         )
         match = re.search(pattern, content)
 
-        assert match, "Could not find emhass_perfil_diferible_ pattern in sensor_orig.py"
+        assert match, "Could not find emhass_perfil_diferible_ pattern in entity_emhass_deferrable.py"
         # The pattern should use f-string variable like entry_id
         assert "entry_id" in match.group(0), (
             f"Sensor unique_id should use entry_id: emhass_perfil_diferible_{{entry_id}}\n"
