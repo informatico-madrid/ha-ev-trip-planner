@@ -144,13 +144,17 @@ class TestTripManagerMethods:
 
     @pytest.mark.asyncio
     async def test_async_setup(self):
-        """async_setup calls _crud.async_setup."""
+        """async_setup is the inherited _CRUDMixin entry point."""
         tm = _make_tm()
-        tm._crud.async_setup = AsyncMock()
+        tm._state.vehicle_controller = MagicMock()
+        tm._state.vehicle_controller.async_setup = AsyncMock()
+        tm._state._load_trips = AsyncMock()
+        tm._state.publish_deferrable_loads = AsyncMock()
 
         await tm.async_setup()
 
-        tm._crud.async_setup.assert_called_once()
+        tm._state.vehicle_controller.async_setup.assert_called_once()
+        tm._state._load_trips.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_load_trips_fallback(self):
