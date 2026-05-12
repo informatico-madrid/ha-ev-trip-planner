@@ -74,7 +74,7 @@ class TestEMHASSIndexRotation:
             {
                 "id": "trip_wednesday",
                 "tipo": "recurring",
-                "dia_semana": "3",  # Miércoles
+                "dia_semana": "miércoles",  # Miércoles
                 "hora": "16:40",
                 "kwh": 7.0,
                 "descripcion": "Miércoles 16:40 - PRIMER VIAJE",
@@ -82,7 +82,7 @@ class TestEMHASSIndexRotation:
             {
                 "id": "trip_thursday_1",
                 "tipo": "recurring",
-                "dia_semana": "4",  # Jueves
+                "dia_semana": "jueves",  # Jueves
                 "hora": "09:40",
                 "kwh": 7.0,
                 "descripcion": "Jueves 09:40",
@@ -90,7 +90,7 @@ class TestEMHASSIndexRotation:
             {
                 "id": "trip_thursday_2",
                 "tipo": "recurring",
-                "dia_semana": "4",  # Jueves
+                "dia_semana": "jueves",  # Jueves
                 "hora": "13:40",
                 "kwh": 7.0,
                 "descripcion": "Jueves 13:40",
@@ -98,7 +98,7 @@ class TestEMHASSIndexRotation:
             {
                 "id": "trip_friday",
                 "tipo": "recurring",
-                "dia_semana": "5",  # Viernes
+                "dia_semana": "viernes",  # Viernes
                 "hora": "09:40",
                 "kwh": 7.0,
                 "descripcion": "Viernes 09:40",
@@ -106,7 +106,7 @@ class TestEMHASSIndexRotation:
             {
                 "id": "trip_sunday",
                 "tipo": "recurring",
-                "dia_semana": "0",  # Domingo
+                "dia_semana": "domingo",  # Domingo
                 "hora": "09:40",
                 "kwh": 7.0,
                 "descripcion": "Domingo 09:40 - ÚLTIMO VIAJE",

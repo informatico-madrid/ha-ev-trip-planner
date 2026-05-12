@@ -21,7 +21,7 @@ def create_mock_trip_manager(hass=None, vehicle_id: str = TEST_VEHICLE_ID) -> Ma
     T048: Includes all async stubs (async_get_kwh_needed_today,
     async_get_hours_needed_today, async_get_next_trip) with defaults.
     """
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     mock = MagicMock(spec=TripManager)
     mock.async_setup = AsyncMock(return_value=None)

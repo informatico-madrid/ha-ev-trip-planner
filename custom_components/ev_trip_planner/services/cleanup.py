@@ -16,7 +16,6 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import storage as ha_storage
 
 from ..const import DOMAIN
-from ..trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 

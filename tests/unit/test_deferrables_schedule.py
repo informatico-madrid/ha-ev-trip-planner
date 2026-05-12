@@ -29,7 +29,7 @@ class TestAsyncGenerateDeferrablesSchedule:
     @pytest.mark.asyncio
     async def test_returns_list_with_no_trips(self, mock_trip_manager):
         """Empty trips returns list structure."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
+        from custom_components.ev_trip_planner.trip import TripManager
 
         tm = TripManager.__new__(TripManager)
         tm.hass = mock_trip_manager.hass
@@ -50,7 +50,7 @@ class TestAsyncGenerateDeferrablesSchedule:
     @pytest.mark.asyncio
     async def test_handles_trip_without_datetime(self, mock_trip_manager):
         """Trip without datetime is handled gracefully."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
+        from custom_components.ev_trip_planner.trip import TripManager
 
         trip = {
             "id": "trip_no_time",
@@ -81,7 +81,7 @@ class TestAsyncGenerateDeferrablesSchedule:
     @pytest.mark.asyncio
     async def test_respects_planning_horizon_days(self, mock_trip_manager):
         """Schedule length matches planning_horizon_days * 24 hours."""
-        from custom_components.ev_trip_planner.trip_manager import TripManager
+        from custom_components.ev_trip_planner.trip import TripManager
 
         tm = TripManager.__new__(TripManager)
         tm.hass = mock_trip_manager.hass

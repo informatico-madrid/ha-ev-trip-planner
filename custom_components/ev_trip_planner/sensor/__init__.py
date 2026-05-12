@@ -25,8 +25,15 @@ from custom_components.ev_trip_planner.sensor_orig import (
     async_remove_trip_sensor,
     async_setup_entry,
     async_update_trip_sensor,
-    _async_create_trip_sensors,
 )
+
+# Internal helpers (needed for test mocking).
+from custom_components.ev_trip_planner.sensor_orig import (
+    _async_create_trip_sensors,  # noqa: F401
+)
+
+# Legacy module reference (for backwards-compatible test mocking).
+import custom_components.ev_trip_planner.sensor_orig as sensor_orig  # noqa: F401
 
 __all__ = [
     "TRIP_SENSORS",

@@ -27,12 +27,13 @@ from . import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _call_async_executor_sync(func, *args):
+def _call_async_executor_sync(_hass, func, *args):
     """Call a function via async executor with fallback for tests.
 
     Returns the direct result (not a coroutine) for compatibility with tests.
 
     Args:
+        _hass: HomeAssistant instance (unused, kept for API compatibility).
         func: Function to call.
         *args: Arguments to pass to the function.
 

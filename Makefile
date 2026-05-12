@@ -63,7 +63,7 @@ test:
 	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-report=html --cov-fail-under=100
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100
 
 test-verbose:
 	python3 -m pytest tests/unit tests/integration -vv -s --tb=long

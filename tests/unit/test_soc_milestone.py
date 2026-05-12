@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 @pytest.fixture

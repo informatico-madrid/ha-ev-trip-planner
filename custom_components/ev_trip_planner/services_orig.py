@@ -7,7 +7,7 @@ Contains all service handlers and helper functions for trip management services.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -16,13 +16,6 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, cal
 
 from .const import DOMAIN
 from .coordinator import TripPlannerCoordinator
-from .dashboard import DashboardImportResult  # type: ignore[reportAttributeAccessIssue]
-from .services.cleanup import (
-    async_cleanup_orphaned_emhass_sensors,
-    async_cleanup_stale_storage,
-    async_remove_entry_cleanup,
-    async_unload_entry_cleanup,
-)
 from .trip import TripManager
 from .utils import normalize_vehicle_id
 
@@ -815,12 +808,6 @@ def _get_coordinator(
 
 
 # Dashboard helpers — re-exported from services.dashboard_helpers
-from .services.dashboard_helpers import (
-    async_import_dashboard_for_entry,
-    async_register_panel_for_entry,
-    async_register_static_paths,
-    create_dashboard_input_helpers,
-)
 
 
 def build_presence_config(entry: ConfigEntry) -> dict[str, Any]:

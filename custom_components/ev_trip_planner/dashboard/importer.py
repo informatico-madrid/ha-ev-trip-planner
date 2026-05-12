@@ -491,8 +491,6 @@ def dashboard_exists(vehicle_id: str) -> bool:
     Returns:
         True if a dashboard file exists, False otherwise.
     """
-    from homeassistant.core import HomeAssistant  # noqa: F401
-
     # Placeholder — actual implementation requires HomeAssistant context
     return False
 

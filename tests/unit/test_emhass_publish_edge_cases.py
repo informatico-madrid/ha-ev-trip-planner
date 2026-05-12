@@ -15,7 +15,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 @pytest.mark.asyncio

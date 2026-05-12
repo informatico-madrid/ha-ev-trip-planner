@@ -7,11 +7,7 @@ remains the canonical source until Phase 3 (move code).
 
 from __future__ import annotations
 
-from typing import Any
-
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, SupportsResponse
 
 from ..services_orig import (

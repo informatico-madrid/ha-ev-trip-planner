@@ -10,17 +10,14 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, ServiceCall
 
 from ..services_orig import (
     _ensure_setup,
     _find_entry_by_vehicle,
     _get_coordinator,
     _get_manager,
-    TripManager,
 )
-from ..const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +120,7 @@ def make_trip_update_handler(hass: HomeAssistant):
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_id = str(data["trip_id"])
-        trip_type = data.get("type", "recurrente")
+        _ = data.get("type", "recurrente")
 
         if "updates" in data:
             updates = dict(data["updates"])

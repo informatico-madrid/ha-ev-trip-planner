@@ -6,9 +6,8 @@ and edge cases for importer helper functions.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from custom_components.ev_trip_planner.dashboard.importer import (
     _call_async_executor_sync,

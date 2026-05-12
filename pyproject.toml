@@ -38,6 +38,7 @@ disable = [
     "too-many-instance-attributes",
     "too-many-arguments",
     "C0200",  # consider-using-enumerate: style preference, not critical
+    "W0404",  # reimport: common in test files, not a real issue
 ]
 
 [tool.pyright]
@@ -251,11 +252,43 @@ status = "in_progress"
 kill_threshold = 0.52
 status = "passing"
 
-[tool.quality-gate.mutation.modules.trip_manager]
+[tool.quality-gate.mutation.modules.trip.manager]
 kill_threshold = 0.46
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.emhass_adapter]
+[tool.quality-gate.mutation.modules.trip.crud_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.soc_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.power_profile_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.schedule_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.emhass.adapter]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.index_manager]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.load_publisher]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.error_handler]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.cache_entry_builder]
 kill_threshold = 0.53
 status = "passing"
 
@@ -288,7 +321,15 @@ status = "passing"
 kill_threshold = 0.51
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.dashboard]
+[tool.quality-gate.mutation.modules.dashboard.importer]
+kill_threshold = 0.35
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.dashboard.builder]
+kill_threshold = 0.35
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.dashboard.template_manager]
 kill_threshold = 0.35
 status = "in_progress"
 
@@ -300,6 +341,26 @@ status = "passing"
 kill_threshold = 0.37
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.services]
+[tool.quality-gate.mutation.modules.services.handlers]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services._handler_factories]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.cleanup]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.dashboard_helpers]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.presence]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services._lookup]
 kill_threshold = 0.38
 status = "in_progress"
