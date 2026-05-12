@@ -1434,14 +1434,14 @@ class TestFacadeCompositionIntegrity:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         assert adapter._error_handler is not adapter._index_manager
 
-    def test_load_publisher_has_own_index_manager(self, mock_hass, mock_entry):
-        """LoadPublisher has its own IndexManager separate from facade."""
+    def test_load_publisher_shares_index_manager(self, mock_hass, mock_entry):
+        """LoadPublisher shares the same IndexManager as the facade (prevents index exhaustion)."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        assert adapter._load_publisher._index_manager is not adapter._index_manager
+        assert adapter._load_publisher._index_manager is adapter._index_manager
 
     def test_facade_error_handler_has_hass(self, mock_hass, mock_entry):
         """ErrorHandler received the same hass instance."""

@@ -1423,8 +1423,39 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
   - _Requirements: NFR-4.1, NFR-4.4_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
+
+- [ ] 2.2.1 [BUG-FIX] Fix EMHASS index exhaustion in emhass_adapter
+  - **NOTE**: Problem identified during staging verification of e2e-soc test 4 (Scenario C).
+  - **Evidence**: Docker log shows `No available EMHASS indices for vehicle Mi EV. Max deferrable loads: 50, currently used: 2`. There are 5 active trips but only 2 indices marked as "used". The other 3 trips cannot publish their deferrable load data.
+  - **Root cause hypothesis**: 
+    1. The EMHASS adapter marks an index as "used" when a trip is created, but never frees it when the trip is completed/cancelled/deleted
+    2. OR the "currently used" counter is out of sync with actual active indices
+    3. OR there's a stale entry blocking index assignment
+  - **Symptoms**:
+    - `def_total_hours_array: [0, 3, 0]` — only 1 of 3 trips has charging hours
+    - `p_deferrable_nom_array: [0, 3600, 0]` — only 1 trip has nominal power (3.6kW = vehicle charger)
+    - Staging vehicle `Mi EV` has 3.6kW charger, but E2E vehicle `test_vehicle` has 11kW — this is expected, not the bug
+  - **Files to investigate**: 
+    - `custom_components/ev_trip_planner/emhass/adapter.py` (or `emhass_adapter.py`)
+    - `custom_components/ev_trip_planner/emhass/index_manager.py` (if exists — was to be split in task 1.57)
+    - Look for: index assignment, index release, cleanup on trip deletion
+  - **Reproduction**: 
+    1. Create 5 trips in staging (3 recurrent + 2 puntual) — currently has 5 trips
+    2. Observe: only 2 trips get EMHASS indices, others show "unavailable"
+    3. Check `sensor.ev_trip_planner_mi_ev_emhass_index_*` entities — they show "unavailable"
+  - **Fix approach**:
+    1. Find where indices are assigned (should be in `_assign_index` or similar)
+    2. Find where indices are freed (trip deletion/completion path)
+    3. Add logging to verify index lifecycle
+    4. Ensure `currently used` counter accurately reflects active indices
+  - **Verify**: After fix, all 5 trips should get EMHASS indices and publish deferrable data
+  - **Done when**: All 5 active trips in staging show "ready" state in their `emhass_index_for_*` sensors
+  - **Commit**: `fix(emhass): ensure indices are freed on trip deletion/completion`
+  - _Requirements: NFR-4.3 (e2e-soc tests must pass)_
+  - _Design: §4 (EMHASS index management)_
+
 - [ ] 2.2 [VERIFY] Run E2E tests: make e2e
-  - **NOTE**: Requires HA instance on :8123, not available in this environment.
+  - **NOTE**: E2E tests run via Playwright with `make e2e`. This is separate from the staging Docker environment (`:8124` used in VE0-VE3). E2E tests are a CONTROL POINT — they MUST pass before proceeding.
   - **Do**: Run `make e2e` to verify all 30 E2E tests pass
   - **Verify**: `make e2e && echo VERIFY_PASS`
   - **Done when**: All 30 E2E tests pass
@@ -1433,7 +1464,7 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
 - [ ] 2.3 [VERIFY] Run E2E SOC tests: make e2e-soc
-  - **NOTE**: Requires HA instance on :8123, not available in this environment.
+  - **NOTE**: E2E SOC tests run via Playwright with `make e2e-soc`. This is separate from the staging Docker environment (`:8124` used in VE0-VE3). E2E tests are a CONTROL POINT — they MUST pass before proceeding.
   - **Do**: Run `make e2e-soc` to verify all 10 SOC tests pass
   - **Verify**: `make e2e-soc && echo VERIFY_PASS`
   - **Done when**: All 10 SOC E2E tests pass
@@ -1490,6 +1521,33 @@ Focus: Integration testing across decomposed packages, E2E verification, full qu
 ## Phase 3: Quality Gates
 
 Focus: Comprehensive quality-gate verification, SOLID metrics validation per-package, AC checklist, bug-fix verification.
+
+### Pre-Quality-Gate Fixes (BLOCKER before any QG tasks)
+
+- [ ] 3.01 [BUG-FIX/ANTI-TRAMPA] Fix pyright warning evasion in pyproject.toml — **BLOCKER**
+  - **Skills**: pyright, type-checking, python
+  - **Do**:
+    1. Cambiar las 5 configuraciones de `reportMissing*` y `reportUnknown*` de `"warning"` a `"error"`:
+       - `reportMissingImports = "error"`
+       - `reportMissingTypeStubs = "error"`
+       - `reportUnknownMemberType = "error"`
+       - `reportUnknownVariableType = "error"`
+       - `reportUnknownArgumentType = "error"`
+    2. Ejecutar `make typecheck` y observar los errores de pyright
+    3. Agregar type hints donde falten para resolver los errores
+    4. Mantener solo `reportAttributeAccessIssue = "warning"` con su justificación (MRO/Mixins)
+  - **Verify**: 
+    - `grep -E 'reportMissing|reportUnknown' pyproject.toml | grep -v '= "warning"'` — debe estar vacío (todas en error)
+    - `make typecheck 2>&1 | tail -5` — sin errores de type checking
+    - `make test 2>&1 | tail -3` — todos los tests en verde
+  - **Done when**: 
+    - [ ] pyproject.toml tiene las 5 configuraciones como `"error"`
+    - [ ] `make typecheck` pasa completamente
+    - [ ] `make test` sigue en verde (todos los tests pasan)
+  - **Commit**: `fix(pyright): change warning to error for type checking rules`
+  - _Requirements: NFR-1 (Quality gates must be enforced, not evaded)_
+  - _Anti-trampa: Las configuraciones "warning" en pyright son evasión de quality gate_
+  - **BLOCKER**: Ninguna tarea de Quality Gates (3.0 en adelante) puede ejecutarse hasta que esta esté completada y verificada
 
 ### Final-Sequence Checkpoints (V4 → V5 → V6) per phase-rules.md
 

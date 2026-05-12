@@ -34,6 +34,7 @@ class LoadPublisher:
         battery_capacity_kwh: float = 50.0,
         safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
         max_deferrable_loads: int = 50,
+        index_manager: IndexManager | None = None,
     ):
         """Initialize load publisher.
 
@@ -44,6 +45,8 @@ class LoadPublisher:
             battery_capacity_kwh: Battery capacity in kWh.
             safety_margin_percent: Safety margin percentage.
             max_deferrable_loads: Maximum number of deferrable loads.
+            index_manager: Optional shared IndexManager. If not provided,
+                creates an internal IndexManager.
         """
         self.hass = hass
         self.vehicle_id = vehicle_id
@@ -54,7 +57,7 @@ class LoadPublisher:
             nominal_capacity_kwh=battery_capacity_kwh,
             soh_sensor_entity_id=None,
         )
-        self._index_manager = IndexManager(
+        self._index_manager = index_manager or IndexManager(
             max_deferrable_loads=max_deferrable_loads,
             cooldown_hours=0,
         )
@@ -221,7 +224,13 @@ class LoadPublisher:
                     "sabado": 5,
                     "saturday": 5,
                 }
-                target_day = days_map.get(str(day).lower())
+                day_str = str(day).lower()
+                # Support numeric day: '1'→Monday(0), '2'→Tuesday(1), ..., '7'→Sunday(6)
+                if day_str.isdigit():
+                    n = int(day_str)
+                    target_day = n - 1 if 1 <= n <= 7 else None
+                else:
+                    target_day = days_map.get(day_str)
                 if target_day is not None:
                     now_day = now.weekday()
                     delta_days = (target_day - now_day) % 7

@@ -137,27 +137,45 @@ class _SensorCallbacks:
         try:
             sensor_mod = self._get_sensor_mod()
             if event == "trip_created_recurring":
+                if trip_data is None:
+                    _LOGGER.warning("trip_data required for trip_created_recurring event")
+                    return
                 asyncio.ensure_future(
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
                 )
 
             elif event == "trip_created_punctual":
+                if trip_data is None:
+                    _LOGGER.warning("trip_data required for trip_created_punctual event")
+                    return
                 asyncio.ensure_future(
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
                 )
 
             elif event == "trip_sensor_created_emhass":
+                if trip_id is None:
+                    _LOGGER.warning("trip_id required for trip_sensor_created_emhass event")
+                    return
                 self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_removed":
+                if trip_id is None:
+                    _LOGGER.warning("trip_id required for trip_removed event")
+                    return
                 asyncio.ensure_future(
                     sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
                 )
 
             elif event == "trip_sensor_removed_emhass":
+                if trip_id is None:
+                    _LOGGER.warning("trip_id required for trip_sensor_removed_emhass event")
+                    return
                 self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
             elif event == "trip_sensor_updated":
+                if trip_data is None:
+                    _LOGGER.warning("trip_data required for trip_sensor_updated event")
+                    return
                 asyncio.ensure_future(
                     sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
                 )
@@ -225,6 +243,8 @@ class _SensorCallbacks:
     ) -> None:
         """Remove an EMHASS sensor for a trip."""
         sensor_mod = self._get_sensor_mod()
-        sensor_mod.async_remove_trip_emhass_sensor(
-            hass, entry_id, vehicle_id, trip_id
+        asyncio.ensure_future(
+            sensor_mod.async_remove_trip_emhass_sensor(
+                hass, entry_id, vehicle_id, trip_id
+            )
         )

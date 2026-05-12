@@ -141,10 +141,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 else 0,
                 self._vehicle_id,
             )
-            # FALLBACK: When EMHASS is not installed/running, the adapter returns
-            # empty per_trip_params. Generate mock params from trip data so sensors
-            # remain populated and E2E tests can verify dynamic SOC capping.
-            if not per_trip_params and all_trips:
+            # FALLBACK: When EMHASS is not installed/running, the adapter may return
+            # empty per_trip_params OR empty power_profile even when per_trip_params
+            # is populated. Generate mock params from trip data so sensors remain
+            # populated and E2E tests can verify dynamic SOC capping.
+            profile = emhass_data.get("emhass_power_profile") or []
+            has_profile = any(v > 0 for v in profile)
+            if (not per_trip_params or not has_profile) and all_trips:
                 emhass_data = self._generate_mock_emhass_params(all_trips)
                 generated_params = emhass_data.get("per_trip_emhass_params", {})
                 _LOGGER.info(

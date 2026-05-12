@@ -129,3 +129,5 @@ docs/staging-qa-results.md
 **/references/.ralph-field-baseline.json
 **/references/.ralph-field-baseline.json.lock
 **/.progress.md
+test-results1/
+e2e-diagnosis/

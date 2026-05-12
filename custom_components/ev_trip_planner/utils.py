@@ -47,7 +47,7 @@ def generate_random_suffix(length: int = 6) -> str:
 
 
 def generate_trip_id(
-    trip_type: Literal["recurrente", "puntual"],
+    trip_type: Literal["recurrente", "puntual", "punctual"],
     day_or_date: str | date | None = None,
 ) -> str:
     """Generate a unique trip ID with the specified format.
