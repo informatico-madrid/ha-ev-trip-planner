@@ -264,8 +264,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                         trip_dt = trip_dt.replace(tzinfo=timezone.utc)
                     delta = trip_dt - now
                     total_minutes = delta.total_seconds() / 60
-                    start_timestep = max(0, int(total_minutes / 15))
-                    end_timestep = start_timestep + math.ceil(hours_needed * 4)
+                    start_timestep = max(0, min(int(total_minutes / 15), 0))
+                    end_timestep = min(
+                        start_timestep + math.ceil(hours_needed * 4), 96
+                    )
                 except (ValueError, TypeError):
                     pass
 
@@ -313,9 +315,23 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             for i, v in enumerate(row):
                 power_profile[i] = max(power_profile[i], v)
 
+        # Generate mock deferrables_schedule from per_trip_params
+        deferrables_schedule: list[Any] = []
+        for trip_id, params in per_trip_params.items():
+            deferrables_schedule.append({
+                "index": params.get("emhass_index", 0),
+                "kwh": params.get("kwh_needed", 0),
+                "start_timestep": params.get("def_start_timestep_array", [0])[0]
+                if params.get("def_start_timestep_array")
+                else 0,
+                "end_timestep": params.get("def_end_timestep_array", [96])[0]
+                if params.get("def_end_timestep_array")
+                else 96,
+            })
+
         return {
             "emhass_power_profile": power_profile,
-            "emhass_deferrables_schedule": None,
+            "emhass_deferrables_schedule": deferrables_schedule,
             "emhass_status": "ready",
             "per_trip_emhass_params": per_trip_params,
         }

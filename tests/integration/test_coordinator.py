@@ -653,7 +653,10 @@ async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
 
     assert "emhass_power_profile" in result
     assert "emhass_deferrables_schedule" in result
-    assert result["emhass_deferrables_schedule"] is None
+    assert isinstance(result["emhass_deferrables_schedule"], list)
+    assert len(result["emhass_deferrables_schedule"]) == 1
+    assert result["emhass_deferrables_schedule"][0]["index"] == 0
+    assert result["emhass_deferrables_schedule"][0]["kwh"] == 30.0
     assert "emhass_status" in result
     assert result["emhass_status"] == "ready"
     assert "per_trip_emhass_params" in result
