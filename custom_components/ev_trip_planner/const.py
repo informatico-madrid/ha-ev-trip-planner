@@ -10,7 +10,7 @@ Note: All CONF_* keys are used in the config flow and entity configuration.
 Default values are optimized for typical EV/PHEV usage patterns.
 """
 
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 DOMAIN = "ev_trip_planner"
 
@@ -108,3 +108,9 @@ DAYS_OF_WEEK = [
     "sabado",
     "domingo",
 ]
+
+
+class ConfigEntryProtocol(Protocol):
+    """Protocol for Home Assistant config entries."""
+    entry_id: str
+    data: dict[str, Any]

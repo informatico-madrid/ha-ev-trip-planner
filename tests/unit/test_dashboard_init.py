@@ -137,7 +137,7 @@ class TestDashboardImportResult:
         assert r.vehicle_id == "v1"
         assert r.vehicle_name == "V1"
         assert r.error is None
-        assert r.error_details == {}
+        assert r.error_details is None
         assert r.dashboard_type == "simple"
         assert r.storage_method == "unknown"
 

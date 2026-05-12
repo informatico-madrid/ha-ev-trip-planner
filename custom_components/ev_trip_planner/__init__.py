@@ -23,9 +23,10 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN  # noqa: F401
-from .coordinator import TripPlannerCoordinator
+from .coordinator import CoordinatorConfig, TripPlannerCoordinator
 from .emhass import EMHASSAdapter
 from .panel import async_unregister_panel  # noqa: F401 (re-export for tests)
+from .trip._types import TripManagerConfig
 from .services import (
     async_cleanup_orphaned_emhass_sensors,
     async_cleanup_stale_storage,
@@ -137,7 +138,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Use YamlTripStorage for consistent storage mechanism
     storage = YamlTripStorage(hass, vehicle_id)
     trip_manager = TripManager(
-        hass, vehicle_id, entry.entry_id, presence_config, storage
+        hass, vehicle_id, TripManagerConfig(
+            entry_id=entry.entry_id,
+            presence_config=presence_config,
+            storage=storage,
+        )
     )
     await trip_manager._persistence.async_setup()
 
@@ -161,7 +166,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Create coordinator BEFORE publishing to EMHASS, so sensor platform setup
     # always has a coordinator reference (even if empty EMHASS data initially).
-    coordinator = TripPlannerCoordinator(hass, entry, trip_manager, emhass_adapter)
+    coordinator = TripPlannerCoordinator(
+        hass, entry, trip_manager,
+        CoordinatorConfig(emhass_adapter=emhass_adapter),
+    )
     try:
         await coordinator.async_config_entry_first_refresh()
     except ConfigEntryNotReady:

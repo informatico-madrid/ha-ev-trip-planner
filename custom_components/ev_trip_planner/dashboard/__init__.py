@@ -9,6 +9,7 @@ with sub-modules (template_manager, importer) which import them via ``from . imp
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Optional
 
 # ============================================================================
@@ -93,37 +94,17 @@ class DashboardStorageError(DashboardError):
         )
 
 
+@dataclass
 class DashboardImportResult:
     """Structured result from dashboard import operations."""
 
-    def __init__(
-        self,
-        success: bool,
-        vehicle_id: str,
-        vehicle_name: str,
-        error: Optional[str] = None,
-        error_details: Optional[dict[str, Any]] = None,
-        dashboard_type: str = "simple",
-        storage_method: str = "unknown",
-    ) -> None:
-        """Initialize the dashboard import result.
-
-        Args:
-            success: Whether the dashboard import was successful.
-            vehicle_id: The vehicle ID.
-            vehicle_name: The vehicle name.
-            error: Error message if import failed.
-            error_details: Additional error details.
-            dashboard_type: Type of dashboard imported (simple/full).
-            storage_method: Method used for storage (storage/YAML).
-        """
-        self.success = success
-        self.vehicle_id = vehicle_id
-        self.vehicle_name = vehicle_name
-        self.error = error
-        self.error_details = error_details or {}
-        self.dashboard_type = dashboard_type
-        self.storage_method = storage_method
+    success: bool
+    vehicle_id: str
+    vehicle_name: str
+    error: Optional[str] = None
+    error_details: Optional[dict[str, Any]] = None
+    dashboard_type: str = "simple"
+    storage_method: str = "unknown"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 from homeassistant.config_entries import ConfigEntry
@@ -99,6 +100,18 @@ class SensorCallbackRegistry:
             del self._callbacks[sensor_id]
 
 
+@dataclass(frozen=True)
+class SensorEvent:
+    """Event data for sensor lifecycle operations."""
+
+    event: str
+    hass: HomeAssistant
+    entry_id: str
+    trip_data: Optional[Dict[str, Any]] = None
+    trip_id: Optional[str] = None
+    vehicle_id: Optional[str] = None
+
+
 class _SensorCallbacks:
     """Handles all sensor lifecycle operations for trips.
 
@@ -113,31 +126,21 @@ class _SensorCallbacks:
 
         return _sensor_mod
 
-    def emit(
-        self,
-        event: str,
-        hass: HomeAssistant,
-        entry_id: str,
-        trip_data: Dict[str, Any] | None = None,
-        trip_id: str | None = None,
-        vehicle_id: str | None = None,
-    ) -> None:
+    def emit(self, event: SensorEvent) -> None:
         """Dispatch a sensor lifecycle event.
 
         Args:
-            event: One of 'trip_created_recurring', 'trip_created_punctual',
-                   'trip_removed', 'trip_sensor_created', 'trip_sensor_updated',
-                   'trip_sensor_removed', 'trip_sensor_created_emhass',
-                   'trip_sensor_removed_emhass'.
-            hass: HomeAssistant instance (required for all operations).
-            entry_id: Config entry ID for entity registry lookups.
-            trip_data: Trip dictionary (required for create/update).
-            trip_id: Trip ID (required for remove/EMHASS sensor).
-            vehicle_id: Vehicle identifier (required for EMHASS sensor).
+            event: SensorEvent with all required data.
         """
+        event_str = event.event
+        hass = event.hass
+        entry_id = event.entry_id
+        trip_data = event.trip_data
+        trip_id = event.trip_id
+        vehicle_id = event.vehicle_id
         try:
             sensor_mod = self._get_sensor_mod()
-            if event == "trip_created_recurring":
+            if event_str == "trip_created_recurring":
                 if trip_data is None:
                     _LOGGER.warning(
                         "trip_data required for trip_created_recurring event"
@@ -147,7 +150,7 @@ class _SensorCallbacks:
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
                 )
 
-            elif event == "trip_created_punctual":
+            elif event_str == "trip_created_punctual":
                 if trip_data is None:
                     _LOGGER.warning(
                         "trip_data required for trip_created_punctual event"
@@ -157,7 +160,7 @@ class _SensorCallbacks:
                     sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
                 )
 
-            elif event == "trip_sensor_created_emhass":
+            elif event_str == "trip_sensor_created_emhass":
                 if trip_id is None:
                     _LOGGER.warning(
                         "trip_id required for trip_sensor_created_emhass event"
@@ -165,7 +168,7 @@ class _SensorCallbacks:
                     return
                 self._emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
-            elif event == "trip_removed":
+            elif event_str == "trip_removed":
                 if trip_id is None:
                     _LOGGER.warning("trip_id required for trip_removed event")
                     return
@@ -173,7 +176,7 @@ class _SensorCallbacks:
                     sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
                 )
 
-            elif event == "trip_sensor_removed_emhass":
+            elif event_str == "trip_sensor_removed_emhass":
                 if trip_id is None:
                     _LOGGER.warning(
                         "trip_id required for trip_sensor_removed_emhass event"
@@ -181,7 +184,7 @@ class _SensorCallbacks:
                     return
                 self._emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
-            elif event == "trip_sensor_updated":
+            elif event_str == "trip_sensor_updated":
                 if trip_data is None:
                     _LOGGER.warning("trip_data required for trip_sensor_updated event")
                     return
@@ -190,7 +193,7 @@ class _SensorCallbacks:
                 )
 
             else:
-                _LOGGER.debug("Unknown sensor event: %s", event)
+                _LOGGER.debug("Unknown sensor event: %s", event_str)
 
         except Exception as err:
             _LOGGER.error(

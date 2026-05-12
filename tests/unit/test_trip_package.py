@@ -29,8 +29,12 @@ from custom_components.ev_trip_planner.trip import (
     SensorCallbackRegistry,
     SOCMilestoneResult,
     TripManager,
+    TripManagerConfig,
 )
-from custom_components.ev_trip_planner.trip._sensor_callbacks import _SensorCallbacks
+from custom_components.ev_trip_planner.trip._sensor_callbacks import (
+    SensorEvent,
+    _SensorCallbacks,
+)
 from custom_components.ev_trip_planner.trip._soc_window import (
     SOCInicioParams,
     SOCWindowCalculator,
@@ -63,9 +67,11 @@ def _make_tm(mock_hass, storage=None, emhass_adapter=None):
     return TripManager(
         hass=mock_hass,
         vehicle_id="test_vehicle",
-        entry_id="test_entry",
-        storage=storage,
-        emhass_adapter=emhass_adapter,
+        config=TripManagerConfig(
+            entry_id="test_entry",
+            storage=storage,
+            emhass_adapter=emhass_adapter,
+        ),
     )
 
 
@@ -780,7 +786,7 @@ class TestSensorCallbacks:
 
     def test_emit_unknown_event_logs_debug(self, mock_hass, caplog):
         sc = _SensorCallbacks()
-        sc.emit("unknown_event", mock_hass, "entry_1")
+        sc.emit(SensorEvent("unknown_event", mock_hass, "entry_1"))
         assert (
             "Unknown sensor event" in caplog.text
             or caplog.text.count("unknown_event") > 0
@@ -791,51 +797,61 @@ class TestSensorCallbacks:
         sc = _SensorCallbacks()
         # Should not raise even without real sensor module
         sc.emit(
-            "trip_created_recurring",
-            mock_hass,
-            "entry_1",
-            trip_data={"id": "r1"},
-            trip_id="r1",
-            vehicle_id="v1",
+            SensorEvent(
+                "trip_created_recurring",
+                mock_hass,
+                "entry_1",
+                trip_data={"id": "r1"},
+                trip_id="r1",
+                vehicle_id="v1",
+            )
         )
 
     def test_emit_removes_trip_sensor(self, mock_hass):
         sc = _SensorCallbacks()
         sc.emit(
-            "trip_removed",
-            mock_hass,
-            "entry_1",
-            trip_id="r1",
-            vehicle_id="v1",
+            SensorEvent(
+                "trip_removed",
+                mock_hass,
+                "entry_1",
+                trip_id="r1",
+                vehicle_id="v1",
+            )
         )
 
     def test_emit_emhass_created(self, mock_hass):
         sc = _SensorCallbacks()
         sc.emit(
-            "trip_sensor_created_emhass",
-            mock_hass,
-            "entry_1",
-            trip_id="r1",
-            vehicle_id="v1",
+            SensorEvent(
+                "trip_sensor_created_emhass",
+                mock_hass,
+                "entry_1",
+                trip_id="r1",
+                vehicle_id="v1",
+            )
         )
 
     def test_emit_emhass_removed(self, mock_hass):
         sc = _SensorCallbacks()
         sc.emit(
-            "trip_sensor_removed_emhass",
-            mock_hass,
-            "entry_1",
-            trip_id="r1",
-            vehicle_id="v1",
+            SensorEvent(
+                "trip_sensor_removed_emhass",
+                mock_hass,
+                "entry_1",
+                trip_id="r1",
+                vehicle_id="v1",
+            )
         )
 
     def test_emit_updated_sensor(self, mock_hass):
         sc = _SensorCallbacks()
         sc.emit(
-            "trip_sensor_updated",
-            mock_hass,
-            "entry_1",
-            trip_data={"id": "r1"},
+            SensorEvent(
+                "trip_sensor_updated",
+                mock_hass,
+                "entry_1",
+                trip_data={"id": "r1"},
+            )
         )
 
 

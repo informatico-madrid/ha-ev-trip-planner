@@ -16,7 +16,7 @@ from homeassistant.helpers.storage import (
 
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
-from .load_publisher import LoadPublisher
+from .load_publisher import LoadPublisher, LoadPublisherConfig
 
 
 class EMHASSAdapter:
@@ -43,7 +43,7 @@ class EMHASSAdapter:
         self._load_publisher = LoadPublisher(
             hass=hass,
             vehicle_id=self.vehicle_id,
-            index_manager=self._index_manager,
+            config=LoadPublisherConfig(index_manager=self._index_manager),
         )
         self._error_handler = ErrorHandler(hass=hass)
 

@@ -2,6 +2,7 @@
 
 import logging
 import math
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +20,21 @@ from .index_manager import IndexManager
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class LoadPublisherConfig:
+    """Configuration for LoadPublisher."""
+
+    charging_power_kw: float = 3.6
+    battery_capacity_kwh: float = 50.0
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
+    max_deferrable_loads: int = 50
+    index_manager: Optional[IndexManager] = None
+
+
+# Backward compat re-export
+_LoadPublisherConfig = LoadPublisherConfig
+
+
 class LoadPublisher:
     """Handles publishing load data to EMHASS.
 
@@ -30,35 +46,28 @@ class LoadPublisher:
         self,
         hass: HomeAssistant,
         vehicle_id: str,
-        charging_power_kw: float = 3.6,
-        battery_capacity_kwh: float = 50.0,
-        safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
-        max_deferrable_loads: int = 50,
-        index_manager: IndexManager | None = None,
-    ):
+        config: LoadPublisherConfig | None = None,
+    ) -> None:
         """Initialize load publisher.
 
         Args:
             hass: HomeAssistant instance.
             vehicle_id: Vehicle identifier.
-            charging_power_kw: Charging power in kilowatts.
-            battery_capacity_kwh: Battery capacity in kWh.
-            safety_margin_percent: Safety margin percentage.
-            max_deferrable_loads: Maximum number of deferrable loads.
-            index_manager: Optional shared IndexManager. If not provided,
-                creates an internal IndexManager.
+            config: Optional configuration for load publishing parameters.
         """
+        cfg = config or LoadPublisherConfig()
+
         self.hass = hass
         self.vehicle_id = vehicle_id
-        self.charging_power_kw = charging_power_kw
-        self.battery_capacity_kwh = battery_capacity_kwh
-        self.safety_margin_percent = safety_margin_percent
+        self.charging_power_kw = cfg.charging_power_kw
+        self.battery_capacity_kwh = cfg.battery_capacity_kwh
+        self.safety_margin_percent = cfg.safety_margin_percent
         self._battery_cap = BatteryCapacity(
-            nominal_capacity_kwh=battery_capacity_kwh,
+            nominal_capacity_kwh=cfg.battery_capacity_kwh,
             soh_sensor_entity_id=None,
         )
-        self._index_manager = index_manager or IndexManager(
-            max_deferrable_loads=max_deferrable_loads,
+        self._index_manager = cfg.index_manager or IndexManager(
+            max_deferrable_loads=cfg.max_deferrable_loads,
             cooldown_hours=0,
         )
 

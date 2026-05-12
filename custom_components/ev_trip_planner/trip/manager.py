@@ -27,6 +27,7 @@ from ._soc_query import SOCQuery
 from ._soc_window import SOCWindow
 from ._trip_lifecycle import TripLifecycle
 from ._trip_navigator import TripNavigator
+from ._types import TripManagerConfig
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,24 +40,23 @@ class TripManager:
         self,
         hass: HomeAssistant,
         vehicle_id: str,
-        entry_id: Optional[str] = None,
-        presence_config: Optional[Dict[str, Any]] = None,
-        storage: Optional[YamlTripStorage] = None,
-        emhass_adapter: Optional[EMHASSAdapter] = None,
+        config: Optional[TripManagerConfig] = None,
     ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
+        cfg = config or TripManagerConfig()
+
         # Create shared state
         self._state = TripManagerState(
             hass=hass,
             vehicle_id=vehicle_id,
-            entry_id=entry_id or "",
-            storage=storage,
-            emhass_adapter=emhass_adapter,
+            entry_id=cfg.entry_id or "",
+            storage=cfg.storage,
+            emhass_adapter=cfg.emhass_adapter,
         )
 
         # Create vehicle controller
         self._state.vehicle_controller = VehicleController(
-            hass, vehicle_id, presence_config, self
+            hass, vehicle_id, cfg.presence_config, self
         )
 
         # Create sub-component instances

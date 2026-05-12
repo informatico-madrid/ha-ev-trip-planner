@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ev_trip_planner.trip import TripManager
+from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 
 EXISTING_TRIPS = {
     "data": {
@@ -59,9 +60,7 @@ async def test_deferrable_loads_published_after_setup(mock_hass):
     trip_manager = TripManager(
         mock_hass,
         "test_vehicle",
-        "test_entry",
-        {},
-        storage=mock_storage,
+        TripManagerConfig(entry_id="test_entry", storage=mock_storage),
     )
 
     # Simulate trips loaded from storage (what async_setup did before the refactor)
@@ -148,9 +147,7 @@ async def test_emhass_sensors_populated_after_publish(mock_hass):
     trip_manager = TripManager(
         mock_hass,
         "test_vehicle",
-        "test_entry",
-        {},
-        storage=mock_storage,
+        TripManagerConfig(entry_id="test_entry", storage=mock_storage),
     )
 
     # Simulate trips loaded from storage

@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from custom_components.ev_trip_planner.trip._sensor_callbacks import (
     SensorCallbackRegistry,
+    SensorEvent,
     _SensorCallbacks,
 )
 
@@ -97,7 +98,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
 
         # Should not raise
-        sc.emit("unknown_event", hass, "entry_1")
+        sc.emit(SensorEvent("unknown_event", hass, "entry_1"))
 
     def test_emit_trip_created_recurring_missing_data(self):
         """trip_created_recurring without trip_data logs warning (line 141)."""
@@ -105,7 +106,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_created_recurring", hass, "entry_1")
+            sc.emit(SensorEvent("trip_created_recurring", hass, "entry_1"))
             # Should not raise, just log warning
 
     def test_emit_trip_created_punctual_missing_data(self):
@@ -114,7 +115,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_created_punctual", hass, "entry_1")
+            sc.emit(SensorEvent("trip_created_punctual", hass, "entry_1"))
 
     def test_emit_trip_sensor_created_emhass_missing_trip_id(self):
         """trip_sensor_created_emhass without trip_id logs warning (line 157)."""
@@ -122,7 +123,11 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_sensor_created_emhass", hass, "entry_1", trip_id=None)
+            sc.emit(
+                SensorEvent(
+                    "trip_sensor_created_emhass", hass, "entry_1", trip_id=None
+                )
+            )
 
     def test_emit_trip_removed_missing_trip_id(self):
         """trip_removed without trip_id logs warning (line 163)."""
@@ -130,7 +135,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_removed", hass, "entry_1")
+            sc.emit(SensorEvent("trip_removed", hass, "entry_1"))
 
     def test_emit_trip_sensor_removed_emhass_missing_trip_id(self):
         """trip_sensor_removed_emhass without trip_id logs warning (line 171)."""
@@ -138,7 +143,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_sensor_removed_emhass", hass, "entry_1")
+            sc.emit(SensorEvent("trip_sensor_removed_emhass", hass, "entry_1"))
 
     def test_emit_trip_sensor_updated_missing_data(self):
         """trip_sensor_updated without trip_data logs warning (line 177)."""
@@ -146,7 +151,7 @@ class TestSensorCallbacksEmit:
         hass = MagicMock()
         with patch.object(sc, "_get_sensor_mod") as mock_mod:
             mock_mod.return_value = MagicMock()
-            sc.emit("trip_sensor_updated", hass, "entry_1")
+            sc.emit(SensorEvent("trip_sensor_updated", hass, "entry_1"))
 
     def test_emit_trip_created_recurring_with_data(self):
         """trip_created_recurring with trip_data calls async_create_trip_sensor."""
@@ -156,10 +161,12 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_created_recurring",
-                hass,
-                "entry_1",
-                trip_data={"id": "rec_1", "tipo": "recurring"},
+                SensorEvent(
+                    "trip_created_recurring",
+                    hass,
+                    "entry_1",
+                    trip_data={"id": "rec_1", "tipo": "recurrente"},
+                )
             )
             mock_mod.async_create_trip_sensor.assert_called_once()
 
@@ -171,10 +178,12 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_created_punctual",
-                hass,
-                "entry_1",
-                trip_data={"id": "pun_1", "tipo": "punctual"},
+                SensorEvent(
+                    "trip_created_punctual",
+                    hass,
+                    "entry_1",
+                    trip_data={"id": "pun_1", "tipo": "puntual"},
+                )
             )
             mock_mod.async_create_trip_sensor.assert_called_once()
 
@@ -185,7 +194,9 @@ class TestSensorCallbacksEmit:
         mock_mod = MagicMock()
         mock_mod.async_remove_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
-            sc.emit("trip_removed", hass, "entry_1", trip_id="pun_1")
+            sc.emit(
+                SensorEvent("trip_removed", hass, "entry_1", trip_id="pun_1")
+            )
             mock_mod.async_remove_trip_sensor.assert_called_once()
 
     def test_emit_trip_sensor_updated_with_data(self):
@@ -196,10 +207,12 @@ class TestSensorCallbacksEmit:
         mock_mod.async_update_trip_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_updated",
-                hass,
-                "entry_1",
-                trip_data={"id": "rec_1"},
+                SensorEvent(
+                    "trip_sensor_updated",
+                    hass,
+                    "entry_1",
+                    trip_data={"id": "rec_1"},
+                )
             )
             mock_mod.async_update_trip_sensor.assert_called_once()
 
@@ -215,11 +228,13 @@ class TestSensorCallbacksEmit:
         mock_mod.async_create_trip_emhass_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_created_emhass",
-                hass,
-                "entry_1",
-                trip_id="pun_1",
-                vehicle_id="test_vehicle",
+                SensorEvent(
+                    "trip_sensor_created_emhass",
+                    hass,
+                    "entry_1",
+                    trip_id="pun_1",
+                    vehicle_id="test_vehicle",
+                )
             )
             mock_mod.async_create_trip_emhass_sensor.assert_called_once()
 
@@ -231,11 +246,13 @@ class TestSensorCallbacksEmit:
         mock_mod.async_remove_trip_emhass_sensor = AsyncMock()
         with patch.object(sc, "_get_sensor_mod", return_value=mock_mod):
             sc.emit(
-                "trip_sensor_removed_emhass",
-                hass,
-                "entry_1",
-                trip_id="pun_1",
-                vehicle_id="test_vehicle",
+                SensorEvent(
+                    "trip_sensor_removed_emhass",
+                    hass,
+                    "entry_1",
+                    trip_id="pun_1",
+                    vehicle_id="test_vehicle",
+                )
             )
             mock_mod.async_remove_trip_emhass_sensor.assert_called_once()
 
@@ -247,8 +264,10 @@ class TestSensorCallbacksEmit:
             mock_mod.side_effect = RuntimeError("import failed")
             # Should not raise
             sc.emit(
-                "trip_created_recurring",
-                hass,
-                "entry_1",
-                trip_data={"id": "rec_1"},
+                SensorEvent(
+                    "trip_created_recurring",
+                    hass,
+                    "entry_1",
+                    trip_data={"id": "rec_1"},
+                )
             )

@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 from custom_components.ev_trip_planner.trip.manager import TripManager
 from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
@@ -26,8 +27,7 @@ def _make_tm():
     tm = TripManager(
         hass=hass,
         vehicle_id="test_vehicle",
-        entry_id="test_entry",
-        storage=storage,
+        config=TripManagerConfig(entry_id="test_entry", storage=storage),
     )
     return tm
 

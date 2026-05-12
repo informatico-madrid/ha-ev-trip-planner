@@ -490,15 +490,18 @@ class TestLoadPublisherInit:
         """LoadPublisher accepts custom parameters."""
         from custom_components.ev_trip_planner.emhass.load_publisher import (
             LoadPublisher,
+            LoadPublisherConfig,
         )
 
         publisher = LoadPublisher(
             hass=mock_hass,
             vehicle_id="v1",
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
-            safety_margin_percent=20.0,
-            max_deferrable_loads=100,
+            config=LoadPublisherConfig(
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+                safety_margin_percent=20.0,
+                max_deferrable_loads=100,
+            ),
         )
         assert publisher.charging_power_kw == 7.4
         assert publisher.battery_capacity_kwh == 75.0

@@ -1922,3 +1922,47 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 - resolved_at: 2026-05-12T11:58:00Z
 
 ### [task-coverage-test-bug] test_migrate_emhass_charging_power_update — FAIL (TEST BUG) [REVERTED]
+
+### [task-regression-97] CRITICAL REGRESSION: TripManager constructor API changed — 97 tests failing
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-12T21:09:00Z
+- criterion_failed: All tests pass (completion criteria requires 0 failures)
+- evidence: |
+  make test output:
+  ======================= 97 failed, 1394 passed in 14.94s =======================
+  
+  Error pattern across all 97 failures:
+  TypeError: TripManager.__init__() got an unexpected keyword argument 'entry_id'
+  
+  Root cause: TripManager.__init__ signature changed during executor restart:
+  - OLD: (self, hass, vehicle_id, entry_id=None, presence_config=None, storage=None, emhass_adapter=None)
+  - NEW: (self, hass, vehicle_id, config=None) where config is TripManagerConfig dataclass
+  
+  Files modified by executor since cycle 25:
+  - custom_components/ev_trip_planner/trip/manager.py (new constructor API)
+  - tests/unit/conftest.py (TripManagerConfig usage)
+  - tests/unit/test_trip_package.py (still using old API with entry_id=)
+  - tests/unit/test_trip_manager_properties.py (updated)
+  
+  Tests affected: all tests in test_trip_package.py that instantiate TripManager directly
+  with entry_id= keyword argument (97 tests).
+- fix_hint: The executor must either (1) update ALL test files that use TripManager with entry_id= 
+  to use TripManagerConfig instead, or (2) provide backward-compat shim in TripManager.__init__
+  that accepts entry_id as keyword and converts to TripManagerConfig. This is an API-breaking
+  change that requires updating all call sites.
+- review_submode: post-task
+- note: This regression was introduced during executor restart in cycle 25. The executor
+  is applying pure composition refactor (TripManagerConfig dataclass) but only partially
+  updated the test suite. The tests that remain on the old API (test_trip_package.py) are
+  now incompatible.
+
+- resolved_at: 2026-05-12T21:13:00Z
+- resolution: |
+  Executor updated all test files to use TripManagerConfig:
+  - tests/unit/conftest.py (TripManagerConfig usage)
+  - tests/unit/test_trip_package.py (updated)
+  - tests/unit/test_trip_manager_properties.py (updated)
+  
+  Result: 1491 passed, 0 failed, 8 warnings
+- review_submode: post-task

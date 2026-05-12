@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 from ..const import TRIP_TYPE_PUNCTUAL, TRIP_TYPE_RECURRING
 from ..utils import generate_trip_id, validate_hora
+from ._sensor_callbacks import SensorEvent
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,21 +93,19 @@ class TripCRUD:
 
         callbacks = state.sensor_callbacks
         entry_id = state.entry_id or ""
-        callbacks.emit(
+        callbacks.emit(SensorEvent(
             "trip_created_recurring",
-            state.hass,
-            entry_id,
-            state.recurring_trips[trip_id],
-            trip_id,
-            state.vehicle_id,
-        )
-        callbacks.emit(
-            "trip_sensor_created_emhass",
-            state.hass,
-            entry_id,
+            state.hass, entry_id,
+            trip_data=state.recurring_trips[trip_id],
             trip_id=trip_id,
             vehicle_id=state.vehicle_id,
-        )
+        ))
+        callbacks.emit(SensorEvent(
+            "trip_sensor_created_emhass",
+            state.hass, entry_id,
+            trip_id=trip_id,
+            vehicle_id=state.vehicle_id,
+        ))
 
         if state.emhass_adapter:
             await state._emhass_sync._async_publish_new_trip_to_emhass(
@@ -140,21 +139,19 @@ class TripCRUD:
 
         callbacks = state.sensor_callbacks
         entry_id = state.entry_id or ""
-        callbacks.emit(
+        callbacks.emit(SensorEvent(
             "trip_created_punctual",
-            state.hass,
-            entry_id,
-            state.punctual_trips[trip_id],
-            trip_id,
-            state.vehicle_id,
-        )
-        callbacks.emit(
-            "trip_sensor_created_emhass",
-            state.hass,
-            entry_id,
+            state.hass, entry_id,
+            trip_data=state.punctual_trips[trip_id],
             trip_id=trip_id,
             vehicle_id=state.vehicle_id,
-        )
+        ))
+        callbacks.emit(SensorEvent(
+            "trip_sensor_created_emhass",
+            state.hass, entry_id,
+            trip_id=trip_id,
+            vehicle_id=state.vehicle_id,
+        ))
 
         if state.emhass_adapter:
             await state._emhass_sync._async_publish_new_trip_to_emhass(
@@ -204,9 +201,11 @@ class TripCRUD:
             trip_id
         )
         if trip_data:
-            state.sensor_callbacks.emit(
-                "trip_sensor_updated", state.hass, state.entry_id or "", trip_data
-            )
+            state.sensor_callbacks.emit(SensorEvent(
+                "trip_sensor_updated",
+                state.hass, state.entry_id or "",
+                trip_data=trip_data,
+            ))
 
         if state.emhass_adapter:
             await state._emhass_sync._async_sync_trip_to_emhass(
@@ -238,14 +237,13 @@ class TripCRUD:
 
         callbacks = state.sensor_callbacks
         entry_id = state.entry_id or ""
-        callbacks.emit("trip_removed", state.hass, entry_id, trip_id=trip_id)
-        callbacks.emit(
+        callbacks.emit(SensorEvent("trip_removed", state.hass, entry_id, trip_id=trip_id))
+        callbacks.emit(SensorEvent(
             "trip_sensor_removed_emhass",
-            state.hass,
-            entry_id,
+            state.hass, entry_id,
             trip_id=trip_id,
             vehicle_id=state.vehicle_id,
-        )
+        ))
 
         if state.emhass_adapter:
             await state._emhass_sync._async_remove_trip_from_emhass(trip_id)

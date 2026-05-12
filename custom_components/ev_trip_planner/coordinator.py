@@ -12,6 +12,7 @@ params from trip data so sensors remain populated for E2E testing.
 
 import logging
 import math
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -30,6 +31,14 @@ from .emhass import EMHASSAdapter
 from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class CoordinatorConfig:
+    """Optional configuration for TripPlannerCoordinator."""
+
+    emhass_adapter: EMHASSAdapter | None = None
+    logger: logging.Logger | None = None
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):
@@ -57,8 +66,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         entry: ConfigEntry,
         trip_manager: TripManager,
-        emhass_adapter: EMHASSAdapter | None = None,
-        logger: logging.Logger | None = None,
+        config: CoordinatorConfig | None = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -66,18 +74,18 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass: HomeAssistant instance.
             entry: ConfigEntry for this vehicle/device.
             trip_manager: TripManager instance for this vehicle.
-            emhass_adapter: Optional EMHASSAdapter instance for EMHASS data.
-            logger: Optional logger instance for DataUpdateCoordinator.
+            config: Optional configuration for coordinator dependencies.
         """
+        cfg = config or CoordinatorConfig()
         super().__init__(
             hass,
-            logger=logger or _LOGGER,
+            logger=cfg.logger or _LOGGER,
             name=f"{DOMAIN} ({entry.entry_id})",
             update_interval=timedelta(seconds=30),
         )
         self._trip_manager = trip_manager
         self._entry = entry
-        self._emhass_adapter = emhass_adapter
+        self._emhass_adapter = cfg.emhass_adapter
         self._vehicle_id = (
             self._entry.data.get(CONF_VEHICLE_NAME, "unknown").lower().replace(" ", "_")
         )

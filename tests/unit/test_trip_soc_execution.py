@@ -115,7 +115,7 @@ class TestSOCHelpers:
     def test_get_trip_time_with_valid_tipo(self):
         """trip with valid tipo -> returns trip time."""
         sm = SOCHelpers(_make_state())
-        result = sm._get_trip_time({"tipo": "recurring", "dia_semana": "lunes", "hora": "14:00:00"})
+        result = sm._get_trip_time({"tipo": "recurrente", "dia_semana": "lunes", "hora": "14:00"})
         assert result is not None
 
     def test_get_trip_time_with_tipo_but_no_time(self):
