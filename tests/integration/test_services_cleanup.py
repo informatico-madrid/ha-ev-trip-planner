@@ -9,7 +9,7 @@ from custom_components.ev_trip_planner.services import cleanup
 
 
 class _MockPath:
-    """Mock Path that supports chaining via / operator.
+    """Mock Path that supports chaining via / operator and instance-patching.
 
     Usage:
         mp = _MockPath(yaml_path_mock)
@@ -19,8 +19,24 @@ class _MockPath:
     def __init__(self, result):
         self._result = result
 
+    def __call__(self, *args, **kwargs):
+        """Allow instance to be called when used as patch for Path()."""
+        return self
+
     def __truediv__(self, other):
         return self
+
+    def exists(self):
+        return self._result.exists()
+
+    def unlink(self):
+        self._result.unlink()
+
+    def read_text(self):
+        return self._result.read_text()
+
+    def __fspath__(self):
+        return "/tmp/test"
 
 
 # --- async_cleanup_stale_storage ---
@@ -378,37 +394,6 @@ async def test_remove_entry_cleanup_no_data():
             await cleanup.async_remove_entry_cleanup(hass, mock_entry)
 
     mock_store.async_remove.assert_called_once()
-
-
-class _MockPath(Path):
-    """Minimal Path subclass that delegates to a mock backing object."""
-
-    def __init__(self, delegate):
-        object.__setattr__(self, "_delegate", delegate)
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def __getattr__(self, name):
-        return getattr(self._delegate, name)
-
-    def __truediv__(self, other):
-        return self
-
-    def __setattr__(self, name, value):
-        object.__setattr__(self, name, value)
-
-    def exists(self):
-        return self._delegate.exists() if hasattr(self._delegate, "exists") else False
-
-    def unlink(self):
-        return self._delegate.unlink()
-
-    def read_text(self):
-        return self._delegate.read_text() if hasattr(self._delegate, "read_text") else ""
-
-    def __fspath__(self):
-        return "/tmp/test"
 
 
 @pytest.mark.asyncio

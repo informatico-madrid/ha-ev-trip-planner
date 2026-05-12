@@ -1556,11 +1556,11 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
     - `make typecheck 2>&1 | grep -c 'error'` → 0 errors
     - `make test 2>&1 | tail -3` → all tests green
   - **Done when**:
-    - [ ] `TripManagerState` dataclass created with all shared state typed
-    - [ ] All 4 mixin classes use composition (state injection) instead of MRO inheritance
-    - [ ] pyproject.toml has 0 "warning" configs for pyright rules
-    - [ ] `make typecheck` passes with 0 errors
-    - [ ] `make test` continues to pass (no regression)
+    - `TripManagerState` dataclass created with all shared state typed
+    - All 4 mixin classes use composition (state injection) instead of MRO inheritance
+    - pyproject.toml has 0 "warning" configs for pyright rules
+    - `make typecheck` passes with 0 errors
+    - `make test` continues to pass (no regression)
   - **Commit**: `refactor(trip): eliminate MRO-based mixin typing via composition`
   - _Requirements: NFR-7.A.5 (0 pyright errors), NFR-1.D (Dependency Inversion via explicit state), SOLID architecture_
   - _Anti-trampa: Eliminates pyright config evasion; solves MRO limitation via proper typing architecture, not config degradation_

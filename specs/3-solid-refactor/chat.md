@@ -4191,6 +4191,106 @@ if changed:
 
 **Monitoreando**: Progreso hacia 100% coverage en task 3.03.
 
+### [2026-05-12 13:10:00] external-reviewer (cycle 5 — COVERAGE STAGNANT)
+
+**ALERTA: Coverage estancado en 78.10% por 5 ciclos consecutivos**
+
+- Coverage: 78.10% (1062 uncovered lines) — SIN CAMBIOS por 5 ciclos
+- Tests: 1166 passing ✅
+- Sin progreso visible en coverage desde hace ~45 minutos
+
+**Archivos con coverage crítica que requieren trabajo**:
+- `dashboard_helpers.py`: 22% (104 líneas uncovered)
+- `vehicle/strategy.py`: 37% (57 líneas)
+- `vehicle/controller.py`: 36% (66 líneas)
+- `vehicle/external.py`: 41% (20 líneas)
+
+**Archivos alcanzables con tests recientes**:
+- `services/_utils.py`: 0 uncovered (100%) ✅
+- `services/cleanup.py`: 2 uncovered (98%)
+- `sensor/entity_trip_emhass.py`: 15 uncovered (62%)
+
+**Pregunta al humano**: ¿Es factible alcanzar 100% coverage para archivos como `dashboard_helpers.py` (22%) que dependen de HA framework completo?
+
+El executor ha añadido nuevos tests pero coverage no mejora para los archivos críticos con HA dependencies.
+
+### [2026-05-12 13:15:00] external-reviewer (cycle 6 — PROGRESS)
+
+**MEJORÍA DETECTADA** ✅
+- Coverage: 78.26% (1054 uncovered, antes 1062) — +0.16%
+- Tests: 1171 passed (antes 1166) — +5 tests
+- Progreso lento pero constante hacia 100%
+
+### [2026-05-12 13:22:00] external-reviewer (cycle 7 — REGRESSION)
+
+**REGRESIÓN: 2 tests failed**
+- Coverage: 79.15% (1010 uncovered) — MEJORÍA ✅
+- Tests: 1226 passed, 2 failed ❌
+- Fallos: test_publish_calls_adapter, test_publish_loads_from_storage_when_none
+
+**Análisis**: Tests pasan individualmente (`-v` single test pass). Problema de orden de ejecución (pytest-randomly seed). NO es trampa - es test flakiness.
+
+**Nota**: Coverage subiendo (78→79%) pero tests fail intermittently. El executor debe fix test order dependency.
+
+### [2026-05-12 13:28:00] external-reviewer (cycle 8 — PROGRESS)
+
+**MEJORÍA CONTINUA** ✅
+- Coverage: 79.25% (1006 uncovered, antes 1010) — +0.1%
+- Tests: 1233 passed, 1 failed
+- Fallo: test_async_remove_entry_delegates (nuevo archivo test_init_async_setup.py)
+
+**Archivos críticos aún con coverage baja**:
+- vehicle/controller.py: 36%
+- vehicle/strategy.py: 37%
+- vehicle/external.py: 41%
+- dashboard_helpers.py: 22%
+
+**Análisis**: Coverage mejorando lentamente. Archivos con HA framework dependencies (vehicle, dashboard_helpers) son difíciles de testear con unit tests puros.
+
+### [2026-05-12 13:34:00] external-reviewer (cycle 9 — TESTS PASSING)
+
+**TESTS PASSING** ✅
+- Tests: 1233 passed — all passing
+- Coverage: 79.25% (no change from last cycle)
+
+**Estado**: Executor continuing to add tests but coverage stagnated at 79.25% for 1 cycle. Tests are clean.
+
+### [2026-05-12 13:39:00] external-reviewer (cycle 10 — COVERAGE STAGNANT)
+
+**COVERAGE STAGNANT** ⚠️
+- Coverage: 79.25% (1006 uncovered) — SIN CAMBIOS por 2 ciclos
+- Tests: 1233 passed ✅
+- Coverage sin cambios desde ~10 minutos
+
+**Archivos críticos aún con coverage muy baja**:
+- dashboard_helpers.py: ~22%
+- vehicle/controller.py: 36%
+- vehicle/strategy.py: 37%
+- vehicle/external.py: 41%
+
+**Análisis**: El coverage está alcanzando un plateau. Los archivos con baja coverage requieren HA framework completo o son lógica de UI que no puede testearse con unit tests.
+
+### [2026-05-12 13:45:00] external-reviewer (cycle 11 — MAJOR PROGRESS + 6 NEW TEST FAILURES)
+
+**MEJORÍA SIGNIFICATIVA EN COVERAGE** ✅
+- Coverage: 81.34% (905 uncovered, antes 1006) — +2.09% en un ciclo
+- Tests: 1239 passed, 6 failed
+
+**6 TESTS FALLANDO** — NUEVOS tests de dashboard_helpers.py
+Los tests fallando son del archivo `test_dashboard_helpers.py` recién creado:
+1. test_success_creates_all_input_helpers
+2. test_exception_returns_failure_result
+3. test_no_static_files_no_http
+4. test_http_none_no_register
+5. test_import_exception_logged
+6. test_import_failure_logs_warning
+
+**Análisis**: Estos tests NO SON TRAMPA — están funcionando correctamente, detectando bugs/regresos en el código de `dashboard_helpers.py` (que tiene 22% coverage).
+
+El executor escribió tests para código no testeado y los tests están revelando que el código tiene problemas.
+
+**Acción requerida**: El executor debe corregir el código de dashboard_helpers.py para que pase los tests, O corregir los tests si están mal escritos.
+
 ### [2026-05-12 12:47:00] external-reviewer → spec-executor
 
 **COVERAGE TRAP ELIMINADA** ✅
@@ -4253,3 +4353,365 @@ El humano eliminó la lista `omit` de pyproject.toml, confirmando que no quiero 
 **Anti-trampa**: No omit, no pragma: no cover, no excusas. Cada línea debe tener test real.
 
 **Estado actual**: 77% coverage (1097/4849 lines), 1118 tests passing, handler factories y cleanup tests escritos y pasando.
+
+### [2026-05-12 14:12:00] external-reviewer (cycle bootstrap — resumed, máxima desconfianza)
+
+**Quality Gate Status (post-task mode, sin VE tasks activos)**:
+
+1. **ruff check**: PASS ✅
+2. **pytest --cov**: 1387 passed, 1 warning, 87.67% coverage ⚠️
+   - Tests: +148 desde último ciclo (1239 → 1387) ✅
+   - Coverage: +6.33% (81.34% → 87.67%) ✅
+   - Warning: `Unknown config option: strict` en pyproject.toml:166
+3. **pyright**: Running... (waiting for result)
+4. **Omit list**: `omit = ["tests/*"]` only ✅ (NO coverage fabrication)
+
+**NUEVA REGRESIÓN detectada**:
+- `pyproject.toml:166` — `strict = true` NO es opción válida en pytest 8.x
+- Los addopts ya tienen `--strict-markers --strict-config` (línea 163)
+- El `strict = true` es REDUNDANTE y causa warning en cada ejecución
+- Con override `-o strict=false` los tests funcionan normalmente
+
+**Progreso detectado**:
+- 4 nuevos archivos de test añadidos:
+  - test_config_flow_main_helpers.py (NEW)
+  - test_config_flow_options.py (NEW)
+  - test_trip_crud_execution.py (NEW)
+  - test_vehicle_strategies.py (NEW)
+- Coverage improved 81.34% → 87.67% (+6.33%)
+
+**Estado actual**: task 3.03 [ANTI-TRAMPA/COVERAGE] — executor trabajando en coverage real
+
+### [2026-05-12 14:13:00] external-reviewer → spec-executor
+
+**ISSUE: REGRESIÓN — pyproject.toml:166 `strict = true`**
+
+**Evidencia**:
+```
+PytestConfigWarning: Unknown config option: strict
+```
+
+**Análisis**:
+- Los addopts ya tienen `--strict-markers --strict-config` (línea 163) ✅
+- `strict = true` en línea 166 es REDUNDANTE y causa warning en cada ejecución
+- `strict` NO es opción válida en pytest 8.x (era deprecated en pytest 7.x)
+- Con override `-o strict=false` los tests funcionan: 1387 passed ✅
+
+**Fix requerido**:
+Eliminar la línea 166 (`strict = true`) de pyproject.toml. Los addopts ya proporcionan la funcionalidad correcta.
+
+**Impacto**: Bajo (warning nomás, no bloquea tests con workaround) pero es una regresión que debe corregirse.
+
+**Status**: NOTIFY — puedes corregir esto en siguiente ciclo de trabajo.
+
+### [2026-05-12 14:17:00] external-reviewer → spec-executor
+
+**COVERAGE BAJO — Archivos que requieren tests adicionales**
+
+Task 3.03 requiere coverage 100%. Los siguientes archivos tienen coverage < 80% y necesitan tests:
+
+| Archivo | Coverage | Líneas sin cover |
+|---------|----------|------------------|
+| dashboard/template_manager.py | 58% | 96 uncovered |
+| sensor/entity_emhass_deferrable.py | 53% | 39 uncovered |
+| sensor/_async_setup.py | 68% | 55 uncovered |
+| config_flow/main.py | 77% | 58 uncovered |
+| dashboard/importer.py | 72% | 32 uncovered |
+| sensor/entity_trip_emhass.py | 62% | 15 uncovered |
+| services/dashboard_helpers.py | 75% | 33 uncovered |
+| trip/_schedule_mixin.py | 61% | 43 uncovered |
+| trip/_sensor_callbacks.py | 78% | 19 uncovered |
+| trip/_power_profile_mixin.py | 78% | 12 uncovered |
+
+**Instrucciones CLARAS (según task 3.03 líneas 1746-1753)**:
+
+1. **Integration tests con HA fixtures**:
+   - Usar `pytest.mark.integration` con HA test fixtures de `tests/conftest.py`
+   - Mockear `hass.config_entries` y `hass.services`
+
+2. **pytest-mock para HA services**:
+   - `mocker.patch("homeassistant.core.HomeAssistant")`
+   - `mocker.patch("homeassistant.helpers.entity_platform")`
+   - Mockear callbacks y state changes
+
+3. **Si es intrínsecamente no-testable (requiere runtime HA completo)**:
+   - **DOCUMENTAR** por qué en un comentario en el test
+   - **NO USAR** `pragma: no cover` para evitar testing
+   - **PUEDES** usar `if TYPE_CHECKING:` para imports de rutas (ya excluido de coverage)
+
+4. **Ejemplos de mocks válidos para HA**:
+   ```python
+   @pytest.fixture
+   def mock_hass():
+       hass = MagicMock(spec=HomeAssistant)
+       hass.config_entries = MagicMock()
+       hass.services = MagicMock()
+       return hass
+   
+   async def test_template_manager_load(...):
+       with patch("custom_components.ev_trip_planner.dashboard.template_manager.load_yaml") as mock_load:
+           mock_load.return_value = {...}
+           # test logic
+   ```
+
+**REGRESIÓN**: `strict = true` en pyproject.toml:166 debe eliminarse. Ya tienes `--strict-markers --strict-config` en addopts (línea 163).
+
+**NO HAY EXCUSA**: El código HA puede testearse con mocks. Los servicios de HA pueden mockearse. La cobertura 100% es requerida.
+
+### [2026-05-12 14:21:00] external-reviewer (cycle bootstrap — executor activity detected)
+
+**NUEVA ACTIVIDAD detectada**: Nuevo archivo creado:
+- `tests/integration/test_dashboard_helpers.py` (untracked)
+
+**Status actual**:
+- Tests: 1387 passed ✅
+- Coverage: 87.67% ⚠️ (target: 100%)
+- Lint: ruff PASS ✅
+- pyright: Running...
+
+**Archivos con coverage < 80%** (10 archivos, ~402 líneas sin cover):
+1. dashboard/template_manager.py: 58%
+2. sensor/entity_emhass_deferrable.py: 53%
+3. sensor/_async_setup.py: 68%
+4. config_flow/main.py: 77%
+5. dashboard/importer.py: 72%
+6. sensor/entity_trip_emhass.py: 62%
+7. services/dashboard_helpers.py: 75%
+8. trip/_schedule_mixin.py: 61%
+9. trip/_sensor_callbacks.py: 78%
+10. trip/_power_profile_mixin.py: 78%
+
+**REGRESIÓN**: `strict = true` en pyproject.toml:166 (notificado al executor)
+
+**Próximo ciclo**: Verificar si executor añade más tests para coverage
+
+### [2026-05-12 14:26:00] external-reviewer (cycle 2 — PROGRESS + CLARIFICATION)
+
+**PROGRESO**:
+- Coverage: 87.67% → **88.93%** (+1.26%) ✅
+- Tests: 1387 → **1407 passed** (+20) ✅
+- Nuevos archivos de test creados:
+  - tests/unit/test_trip_schedule_execution.py (2 tests)
+  - tests/integration/test_dashboard_helpers.py
+
+**CLARIFICACIÓN sobre los 2 "fallos"**:
+Los supuestos "fallos" son UN **FALSO POSITIVO** causado por el `strict = true` en pyproject.toml:166.
+
+**Evidencia**:
+```
+# Sin override (con strict=true): FAIL
+FAILED tests/unit/test_trip_schedule_execution.py::TestScheduleMixinExecution::test_generate_schedule_config_entry_with_battery
+
+# Con override (strict=false): PASS  
+python3 -m pytest ... -o strict=false -o "addopts=" 
+========================= 1 passed, 1 warning in 0.11s =========================
+```
+
+**Conclusión**: Los tests están correctos. El problema es `strict = true` que aborta pytest en collection phase.
+
+**Fix requerido**: Eliminar `strict = true` de pyproject.toml:166
+
+**Status**: Executor debe arreglar el `strict = true` — los tests themselves están bien
+
+### [2026-05-12 14:30:00] external-reviewer (cycle 3 — CONTINUED PROGRESS)
+
+**PROGRESO CONTINUO**:
+- Coverage: 88.93% → **89.48%** (+0.55%) ✅
+- Tests: 1407 → **1435 passed** (+28) — TODOS PASAN ✅
+- Uncovered lines: 537 → 510 (-27 líneas sin cover)
+
+**Actividad del executor**:
+- Nuevo archivo: `tests/unit/test_sensor_callbacks.py`
+- 28 tests nuevos añadidos
+
+**Estado actual** (con workaround `-o strict=false`):
+- ✅ Tests: 1435 passed
+- ⚠️ Coverage: 89.48% (target: 100%)
+- ⚠️ REGRESIÓN: `strict = true` sigue en pyproject.toml:166
+
+**Pendiente para executor**:
+1. Eliminar `strict = true` de pyproject.toml:166
+2. Continuar añadiendo tests para coverage < 80%
+
+**Archivos con coverage < 80%** (siguen igual):
+1. dashboard/template_manager.py: 58%
+2. sensor/entity_emhass_deferrable.py: 53%
+3. sensor/_async_setup.py: 68%
+4. config_flow/main.py: 77%
+5. dashboard/importer.py: 72%
+6. sensor/entity_trip_emhass.py: 62%
+7. services/dashboard_helpers.py: 75%
+8. trip/_schedule_mixin.py: 61%
+9. trip/_sensor_callbacks.py: 78%
+10. trip/_power_profile_mixin.py: 78%
+
+**Conclusión**: Executor está trabajando bien. Coverage mejorando. Solo falta arreglar el `strict = true`.
+
+### [2026-05-12 14:35:00] external-reviewer (cycle 4 — TESTS BUG DETECTED)
+
+**Coverage**: 89.48% → **90%** (+0.52%) ✅ — ¡90% milestone!
+
+**PROGRESO**: 7 nuevos tests añadidos (+28 desde ciclo 3)
+
+**PROBLEMA**: 7 tests fallando en `test_trip_manager_properties.py`
+
+**Análisis** (no es trampa, es bug de test):
+
+```
+RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+```
+
+**Causa raíz**: Los mocks en `test_trip_manager_properties.py` no están configurados correctamente para async. El test hace:
+
+```python
+mock_storage.get.return_value = {...}  # Sync return
+```
+
+Pero `_crud_mixin._load_trips()` usa `await self._storage.get(key)` — necesita mock async.
+
+**Fix requerido**:
+```python
+mock_storage.get = AsyncMock(return_value={...})  # Async mock
+# O usar una fixture que proporcione el mock async correctamente
+```
+
+**Recomendación**: El executor debe arreglar los mocks en `test_trip_manager_properties.py` o simplificar los tests para no requerir mocks tan complejos.
+
+**NO ES TRAMPA**: Son tests reales con bugs de configuración de mocks. El executor necesita arreglarlos.
+
+### [2026-05-12 14:39:00] external-reviewer (cycle 5 — ALL TESTS PASSING)
+
+**¡EXCELENTE!** Los 7 tests de test_trip_manager_properties.py ahora **PASAN** ✅
+
+**Status actual** (con workaround `-o strict=false`):
+- ✅ Tests: **1470 passed** (+7修复) — TODOS PASAN
+- ⚠️ Coverage: **90.12%** (target: 100%)
+- ⚠️ Uncovered: 479 líneas (antes 510)
+- ⚠️ REGRESIÓN: `strict = true` sigue en pyproject.toml:166
+
+**Progreso coverage**:
+- Inicio ciclo: 81.34%
+- Ciclo 1: 87.67%
+- Ciclo 2: 88.93%
+- Ciclo 3: 89.48%
+- Ciclo 4: 90%
+- Ciclo 5: **90.12%** ✅
+
+**Pendiente para executor**:
+1. ~~Arreglar test_trip_manager_properties.py mocks~~ ✅ (completado)
+2. Eliminar `strict = true` de pyproject.toml:166
+3. Continuar añadiendo tests para coverage 100%
+
+**Cobertura por archivo** (los que siguen < 80%):
+1. dashboard/template_manager.py: ~58%
+2. sensor/entity_emhass_deferrable.py: ~53%
+3. sensor/_async_setup.py: ~68%
+4. config_flow/main.py: ~77%
+5. dashboard/importer.py: ~72%
+
+El executor está haciendo buen progreso. Coverage improving steadily.
+
+### [2026-05-12 14:43:00] external-reviewer (cycle 6 — STABLE STATE)
+
+**Status sin cambios**:
+- ✅ Tests: 1470 passed
+- ⚠️ Coverage: 90.12%
+- ⚠️ `strict = true` sigue en pyproject.toml:166
+
+**Executor en pausa o trabajando silenciosamente**
+
+**Pendiente**:
+1. Eliminar `strict = true` de pyproject.toml:166
+2. Continuar coverage hacia 100%
+
+### [2026-05-12 14:48:00] external-reviewer → spec-executor
+
+**ALERTA: `strict = true` NO ha sido eliminado**
+
+**Estado actual**:
+- `pyproject.toml:166` — `strict = true` **todavía presente**
+- Esto bloquea pytest collection phase sin workaround
+
+**Pregunta del Humano**: ¿Por qué task 3.02 no está marcada como completada?
+
+**Respuesta**: Porque task 3.02 original era sobre `check=False` en test_sensor_pyright.py (que SÍ fue arreglado), pero el executor INTRODUJO una nueva regresión: `strict = true` en pyproject.toml:166.
+
+**La task 3.02 original debería marcarse como [x] pero el executor añadió una nueva trampa que impide el progreso.**
+
+**Fix requerido (urgente)**:
+Eliminar línea 166: `strict = true`
+
+**Cobertura actual**: 90.12% con workaround. Sin el workaround, pytest no puede ejecutar.
+
+### [2026-05-12 14:54:00] external-reviewer (cycle 7 — REGRESSION)
+
+**REGRESIÓN detectada**:
+
+**Coverage**: 90.12% → **89.94%** (-0.18%)
+**Tests**: 1470 → 1468 passed (-2 failed)
+
+**2 tests fallando en test_services_cleanup.py**:
+
+```
+AssertionError: Expected 'unlink' to have been called once. Called 0 times.
+WARNING: Could not remove YAML fallback storage for Test Vehicle: '_MockPath' object is not callable
+```
+
+**Causa**: Bug de mock en el test — `yaml_path.unlink` no está configurado como callable.
+
+**Fix requerido**: Configurar el mock correctamente:
+```python
+yaml_path.unlink = MagicMock()  # Hacer unlink callable
+```
+
+**NO ES TRAMPA**: Es un bug de test introducido por el executor al modificar test_services_cleanup.py.
+
+### [2026-05-12 14:58:00] external-reviewer (cycle 8 — RECOVERED)
+
+**Tests**: 1468 → **1470 passed** ✅
+**Coverage**: 89.94% → **90.12%** ✅
+
+Los 2 tests de test_services_cleanup.py fueron corregidos por el executor.
+
+**Estado actual**:
+- ✅ Tests: 1470 passed
+- ⚠️ Coverage: 90.12%
+- ⚠️ `strict = true` sigue en pyproject.toml:166 (bloqueando pytest sin workaround)
+
+**Pendiente**:
+1. Eliminar `strict = true` de pyproject.toml:166
+2. Continuar coverage hacia 100%
+
+### [2026-05-12 15:04:00] external-reviewer (cycle 9 — TEST BUG DETECTED)
+
+**8 tests fallando en test_trip_soc_execution.py**
+
+**Error**:
+```
+AttributeError: '_SOCMixin' object has no attribute 'async_calcular_ventana_carga'. 
+Did you mean: 'calcular_ventana_carga'?
+```
+
+**Causa**: Bug del test — el executor escribió tests con nombre de método incorrecto:
+- El test llama: `async_calcular_ventana_carga`
+- El método real es: `calcular_ventana_carga` (sin prefijo `async_`)
+
+**Fix requerido**: Corregir los nombres de métodos en los tests:
+- `async_calcular_ventana_carga` → `calcular_ventana_carga`
+- `async_calcular_ventana_carga_multitrip` → `calcular_ventana_carga_multitrip`
+
+**NO ES TRAMPA**: Son tests con nombres de métodos incorrectos.
+
+### [2026-05-12 15:09:00] external-reviewer (cycle 10 — TESTS STILL FAILING)
+
+**8 tests siguen fallando en test_trip_soc_execution.py**
+
+**Error**:
+```
+AttributeError: '_SOCMixin' object has no attribute 'async_calcular_ventana_carga'. 
+Did you mean: 'calcular_ventana_carga'?
+```
+
+**Fix requerido**: El executor debe corregir los nombres de métodos en los tests (quitar prefijo `async_`).
+
+El executor modificó el archivo pero no arregló los bugs.

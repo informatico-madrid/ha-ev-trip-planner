@@ -10,14 +10,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.services._utils import (
     _ensure_setup,
     _find_entry_by_vehicle,
     _get_coordinator,
     _get_manager,
-    _get_coordinator as get_coordinator,
     build_presence_config,
 )
 from custom_components.ev_trip_planner.const import (

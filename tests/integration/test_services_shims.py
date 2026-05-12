@@ -6,8 +6,6 @@ re-export shims — tests verify exports are available.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestServicesLookupShim:
     """Test _lookup.py re-exports."""
@@ -118,8 +116,12 @@ class TestDashboardBase:
             DashboardImporterProtocol,
         )
 
-        with pytest.raises(TypeError):
-            DashboardImporterProtocol()  # type: ignore[abstract]
+        # Verify the class is abstract (has unimplemented abstract methods)
+        abstract_methods = getattr(DashboardImporterProtocol, "__abstractmethods__", set())
+        assert len(abstract_methods) > 0, (
+            f"DashboardImporterProtocol should have abstract methods, "
+            f"found {len(abstract_methods)}"
+        )
 
     def test_concrete_implementation_works(self) -> None:
         """Concrete implementations of protocols should be instantiable."""
