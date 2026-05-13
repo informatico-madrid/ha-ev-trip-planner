@@ -16,7 +16,6 @@ from ..emhass import EMHASSAdapter
 from ..utils import sanitize_recurring_trips as pure_sanitize_recurring_trips
 from ..utils import validate_hora as pure_validate_hora
 from ..vehicle import VehicleController
-from ..yaml_trip_storage import YamlTripStorage
 from ._crud import TripCRUD
 from ._emhass_sync import EMHASSSync
 from ._persistence import TripPersistence

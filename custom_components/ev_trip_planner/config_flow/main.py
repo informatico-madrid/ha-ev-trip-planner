@@ -7,7 +7,6 @@ and the primary ConfigFlow class.  Imported by options.py via normal
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from typing import Any, Dict, Optional
@@ -550,7 +549,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         if user_input is None:
             # Use entity registry to get all notify entities
             # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
-            available_services = _entities.scan_notify_entities(self.hass)
+            _entities.scan_notify_entities(self.hass)  # Available entities not yet wired to form
 
             return self.async_show_form(
                 step_id="notifications",

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from abc import ABC
 from dataclasses import dataclass
 from datetime import (
     datetime,  # noqa: F401 — re-export for test mock path (conftest.py:822)
