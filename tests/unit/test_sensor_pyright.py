@@ -18,6 +18,9 @@ Design: FR-1.7 (Sensor package decomposition)
 """
 
 import subprocess
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_sensor_py_zero_pyright_errors():
@@ -31,7 +34,7 @@ def test_sensor_py_zero_pyright_errors():
         capture_output=True,
         text=True,
         check=False,
-        cwd="/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner",
+        cwd=str(_REPO_ROOT),
     )
     output = result.stderr + result.stdout
 
