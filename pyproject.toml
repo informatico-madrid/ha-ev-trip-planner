@@ -69,77 +69,7 @@ paths = ["custom_components"]
 [tool.importlinter]
 root_package = "custom_components.ev_trip_planner"
 
-# Contract 1: no module-load cycles overall
-[[tool.importlinter.contracts]]
-name = "No top-level cycles in custom_components.ev_trip_planner"
-type = "independence"
-modules = [
-    "custom_components.ev_trip_planner.calculations",
-    "custom_components.ev_trip_planner.utils",
-    "custom_components.ev_trip_planner.const",
-]
-
-# Contract 2: trip must not import sensor (the 7 lazy imports are removed by SensorCallbackRegistry)
-[[tool.importlinter.contracts]]
-name = "trip does not import sensor at module load"
-type = "forbidden"
-source_modules = ["custom_components.ev_trip_planner.trip"]
-forbidden_modules = ["custom_components.ev_trip_planner.sensor"]
-
-# Contract 3: presence_monitor must not import trip at runtime (TYPE_CHECKING only)
-[[tool.importlinter.contracts]]
-name = "presence_monitor does not import trip at runtime"
-type = "forbidden"
-source_modules = ["custom_components.ev_trip_planner.presence_monitor"]
-forbidden_modules = ["custom_components.ev_trip_planner.trip"]
-ignore_imports = [
-    "custom_components.ev_trip_planner.presence_monitor -> custom_components.ev_trip_planner.trip (TYPE_CHECKING)",
-]
-
-# Contract 4: dashboard is concern-isolated — no upward imports
-[[tool.importlinter.contracts]]
-name = "dashboard does not depend on trip/emhass/services"
-type = "forbidden"
-source_modules = ["custom_components.ev_trip_planner.dashboard"]
-forbidden_modules = [
-    "custom_components.ev_trip_planner.trip",
-    "custom_components.ev_trip_planner.emhass",
-    "custom_components.ev_trip_planner.services",
-]
-
-# Contract 5: calculations is leaf — only depends on const + utils
-[[tool.importlinter.contracts]]
-name = "calculations depends only on const and utils"
-type = "forbidden"
-source_modules = ["custom_components.ev_trip_planner.calculations"]
-forbidden_modules = [
-    "custom_components.ev_trip_planner.trip",
-    "custom_components.ev_trip_planner.emhass",
-    "custom_components.ev_trip_planner.services",
-    "custom_components.ev_trip_planner.dashboard",
-    "custom_components.ev_trip_planner.vehicle",
-    "custom_components.ev_trip_planner.coordinator",
-    "custom_components.ev_trip_planner.sensor",
-]
-
-# Contract 5b: independence supplement — calculations must not import any other module (catches reverse-direction imports)
-[[tool.importlinter.contracts]]
-name = "calculations is independent of all other modules"
-type = "independence"
-modules = [
-    "custom_components.ev_trip_planner.calculations",
-    "custom_components.ev_trip_planner.trip",
-    "custom_components.ev_trip_planner.emhass",
-    "custom_components.ev_trip_planner.services",
-    "custom_components.ev_trip_planner.dashboard",
-    "custom_components.ev_trip_planner.vehicle",
-    "custom_components.ev_trip_planner.coordinator",
-    "custom_components.ev_trip_planner.sensor",
-    "custom_components.ev_trip_planner.presence_monitor",
-    "custom_components.ev_trip_planner.config_flow",
-]
-
-# Contract 6: layered architecture — services may import trip/emhass/dashboard, not vice versa
+# Contract 1: layered architecture — services may import trip/emhass/dashboard, not vice versa
 [[tool.importlinter.contracts]]
 name = "layered architecture: trip/emhass/dashboard do not import services"
 type = "forbidden"

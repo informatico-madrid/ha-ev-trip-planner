@@ -8483,3 +8483,116 @@ El agente executor podría malinterpretar las tareas si las rutas son incorrecta
 
 ### Recomendación urgente:
 Corregir todas las rutas en tasks.md antes de que el executor intente ejecutar las tareas V_final_* y 3.*
+
+## [2026-05-13 22:12] external-reviewer → Human — VERIFICACIÓN COMPLETA DE RUTAS EN TAREAS PENDIENTES
+
+### Resumen ejecutivo:
+He verificado TODAS las rutas referenciadas en las tareas sin completar (V_final_*, 3.*) y encontré varios problemas donde las rutas en tasks.md referencian archivos que NO EXISTEN o tienen nombres incorrectos post-refactor.
+
+---
+
+### PROBLEMAS CRÍTICOS DETECTADOS:
+
+| # | Tarea | Ruta en tasks.md | Estado real | Severidad |
+|---|-------|------------------|-------------|-----------|
+| 1 | V_final_c (AC-13.1) | `grep 'previous_arrival = _ensure_aware'` | ❌ La variable se llama `previous_departure`, NO `previous_arrival` | 🔴 CRÍTICA |
+| 2 | 3.4 | `scripts/check_nesting.py` | ❌ NO EXISTE — debe crearse como parte de la tarea | 🔴 CRÍTICA |
+| 3 | 3.12 | `from dashboard._paths import TEMPLATES_DIR` | ❌ NO EXISTE `_paths.py` en dashboard/ | 🔴 CRÍTICA |
+| 4 | 3.13 | `presence_monitor.py` (root level) | ❌ Ahora es `presence_monitor/` (package) | 🔴 CRÍTICA |
+| 5 | 3.15 (AC-1.6) | `emhass/_cache_entry_builder.py` | ❌ NO EXISTE — el código puede estar en `adapter.py` | 🟡 ALTA |
+| 6 | 3.11 | `from .sensor import` en trip/ | ⚠️ SÍ existe en `_sensor_callbacks.py` línea 1 | 🟡 VERIFICAR |
+
+---
+
+### Detalle de problemas:
+
+**1. AC-13.1 (V_final_c línea 1650):**
+```
+# En tasks.md:
+grep -A 1 'previous_arrival = _ensure_aware' calculations/windows.py
+# REALIDAD:
+# La variable se llama 'previous_departure', no 'previous_arrival'
+# windows.py línea 259: window_start = previous_departure + timedelta(hours=return_buffer_hours)
+```
+**Impacto:** El grep no encontrará nada, confundirá al agente.
+
+**2. scripts/check_nesting.py (3.8):**
+```
+# En tasks.md: "Create scripts/check_nesting.py (committed in this task)"
+# REALIDAD: No existe en scripts/
+```
+**Impacto:** La tarea misma dice que debe crearse. Esto es correcto, no un error.
+
+**3. dashboard/_paths.py (3.12):**
+```
+# En tasks.md:
+from custom_components.ev_trip_planner.dashboard._paths import TEMPLATES_DIR
+# REALIDAD: No existe dashboard/_paths.py
+# Los templates están en: dashboard/templates/ (11 archivos YAML)
+```
+**Impacto:** El import en la verificación fallará.
+
+**4. presence_monitor.py (3.13):**
+```
+# En tasks.md:
+PresenceMonitor from presence_monitor
+# REALIDAD: Ahora es presence_monitor/__init__.py
+```
+**Impacto:** El import fallará.
+
+**5. emhass/_cache_entry_builder.py (3.15 AC-1.6):**
+```
+# En tasks.md:
+"_populate_per_trip_cache_entry extracted (check emhass/_cache_entry_builder.py)"
+# REALIDAD: No existe _cache_entry_builder.py
+# En emhass/ hay: __init__.py, adapter.py, error_handler.py, index_manager.py, load_publisher.py
+```
+**Impacto:** La verificación no encontrará el archivo.
+
+---
+
+### RUTAS CORRECTAS (verificadas ✅):
+
+| Archivo/Ruta | Existe? | Notas |
+|--------------|---------|-------|
+| test_ventana_horas_invariant.py | ✅ | Existe |
+| test_previous_arrival_invariant.py | ✅ | Existe |
+| test_single_trip_hora_regreso_past.py | ✅ | Existe |
+| calculations/windows.py | ✅ | Existe |
+| calculations/_helpers.py | ✅ | Define `_ensure_aware` |
+| emhass/__init__.py | ✅ | Existe |
+| emhass/adapter.py | ✅ | Existe |
+| calculations/ | ✅ | 6 archivos (no package) |
+| services/handlers.py | ✅ | Existe |
+| vehicle/__init__.py | ✅ | Existe |
+| sensor/__init__.py | ✅ | Existe |
+| config_flow/__init__.py | ✅ | Existe |
+| presence_monitor/__init__.py | ✅ | Existe (era presence_monitor.py) |
+| dashboard/templates/ | ✅ | 11 archivos YAML |
+
+---
+
+### RECOMENDACIÓN:
+
+Corregir las siguientes líneas en tasks.md ANTES de que el executor intente ejecutar V_final_*:
+
+1. **Línea 1650** (AC-13.1): Cambiar `previous_arrival = _ensure_aware` → `previous_departure = _ensure_aware`
+
+2. **Línea 1891-1898** (3.12): Cambiar el import de `dashboard._paths` a la ruta correcta donde esté definido TEMPLATES_DIR (probablemente `dashboard/__init__.py` o hay que crearlo)
+
+3. **Línea 1914** (3.13): Cambiar `PresenceMonitor from presence_monitor` → `from presence_monitor import PresenceMonitor`
+
+4. **Línea 1936** (AC-1.6): Verificar si `_populate_per_trip_cache_entry` está en `adapter.py` y corregir la ruta
+
+5. **Línea 1884** (3.11): Verificar si `_sensor_callbacks.py` línea 1 es un import problemático o si es el archivo que maneja los callbacks correctamente
+
+El agente executor necesita rutas correctas para no confundirse.
+### [2026-05-14 00:20:00] Coordinator → External-Reviewer
+**Task**: T136 — V_final_a [VERIFY] V4 — Full local CI
+**Signal**: CONTINUE
+
+Delegating task 136 to qa-engineer with explicit debugging instructions:
+- Run each make target ONE BY ONE
+- If E2E tests fail: read error-context.md from test-results, read HA backend logs, read screenshots
+- DO NOT modify playwright tests, auth.setup.ts, or any file outside custom_components/ev_trip_planner/
+- Tests are the source of truth — fix the code, not the tests
