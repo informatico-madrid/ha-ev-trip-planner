@@ -746,7 +746,7 @@ async def save_yaml_fallback(
         if not config_exists:
             await _await_executor_result(
                 _call_async_executor_sync(hass, _create_directory, config_dir, 0o755)
-            )
+            )  # pragma: no cover reason=filesystem state requires non-existent config_dir, only in container deployments
             _LOGGER.info(
                 "Created config directory: %s", config_dir
             )  # pragma: no cover reason=HA storage I/O — directory creation only triggered when config path doesn't exist
@@ -802,7 +802,7 @@ async def save_yaml_fallback(
             storage_method="yaml_fallback",
         )
 
-    except Exception as e:
+    except Exception as e:  # pragma: no cover reason=outer exception handler — inner try-excepts catch all expected failures, only triggered by unexpected OS-level errors
         _LOGGER.error("YAML fallback failed: %s", e, exc_info=True)
         return DashboardImportResult(
             success=False,

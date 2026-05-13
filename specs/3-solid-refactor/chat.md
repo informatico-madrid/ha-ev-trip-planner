@@ -7602,3 +7602,206 @@ Coverage está estancado en ~98% con 80-100 líneas sin cover.
 4. **15 pragmas en template_manager.py** — algunos legítimos, otros testables
 
 **Próximo ciclo en 3 min.**
+
+
+### [2026-05-13 12:30:00] Flaky tests RESUELTO — Commit 3ff53d6b
+
+#### Problema
+
+5 tests en `tests/unit/test_sensor_async_setup.py` fallaban ~50% de las veces cuando se ejecutaban con `make test-cover` (suite completa, 1781 tests), pero pasaban siempre individualmente o en pequeños grupos.
+
+**Tests afectados:**
+- `TestAsyncRemoveTripSensor::test_entity_found_removed`
+- `TestAsyncRemoveTripEmhassSensor::test_entity_found_removed`
+- `TestAsyncUpdateTripSensor::test_entity_found_triggers_coordinator_refresh`
+- `TestAsyncUpdateTripSensor::test_no_coordinator_no_refresh`
+- `TestAsyncUpdateTripSensor::test_entity_not_found_creates_sensor`
+
+**Síntomas:**
+- `make test-cover`: 5 fallan, 1776 pasan, 97.94% coverage (fallido)
+- Test individual: PASS siempre
+- `pytest test_sensor_async_setup.py` completo: PASS siempre
+- `pytest test_sensor_async_setup.py + test_entity_registry.py`: PASS (33 tests)
+- `pytest-randomly`: diferente tests fallan en diferentes runs (orden aleatorio)
+- `--import-mode=importlib` en aislamiento: PASS
+
+### [2026-05-13 12:45:00] FIX — Flaky tests resueltos
+
+5 tests de `test_sensor_async_setup.py` fallaban solo en suite completa (~50% de runs). Causa: targets de monkeypatch incorrectos + `/tmp/test_config` hardcodeado en 7 archivos de tests. Solución: 9 monkeypatch targets corregidos + 37 ocurrencias de `/tmp/test_config` → `tmp_path`. 5/5 runs con `pytest-randomly` → PASS, commit `3ff53d6b`.
+
+#### Causa raíz
+
+**Bug A: Targets de monkeypatch incorrectos.** Los tests usaban `monkeypatch.setattr(setup_mod, "async_entries_for_config_entry", MagicMock(...))` — parcheando el módulo consumidor en vez del módulo fuente. La función de producción resuelve `async_entries_for_config_entry` via `LOAD_GLOBAL` en su `__globals__`, que apunta al módulo `_async_setup`, no al módulo fuente `homeassistant.helpers.entity_registry`. Sin embargo, en la cadena de import de Home Assistant, el nombre `async_entries_for_config_entry` se copia al espacio de nombres del consumidor. El patch debía dirigirse al módulo donde la función lo resuelve.
+
+**Bug B: Rutas hardcodeadas en tests.** 37 ocurrencias de `/tmp/test_config` hardcodeado en 7 archivos de tests. Esto causaba contaminación cruzada entre tests y escrituras no deseadas en el filesystem, contribuyendo a la no-determinismo del orden de tests.
+
+#### Solución aplicada
+
+| Bug | Archivo | Cambio |
+|-----|---------|--------|
+| A | `test_sensor_async_setup.py` | 9 `monkeypatch.setattr(setup_mod, ...)` → `monkeypatch.setattr("homeassistant.helpers.entity_registry.async_entries_for_config_entry", ...)` |
+| B | 7 archivos de tests | `/tmp/test_config` → `tmp_path` fixture de pytest |
+
+**Archivos modificados:**
+- `tests/unit/test_sensor_async_setup.py` — 9 monkeypatch targets corregidos
+- `tests/unit/test_charging_window.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_dashboard_data_sync.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_propagate_charge_integration.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_sensor_aggregation.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_sensor_exists_fn.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_soc_cap_aggregation_ceil.py` — `/tmp/test_config` → `tmp_path`
+- `tests/unit/test_soc_milestone.py` — `/tmp/test_config` → `tmp_path`
+
+**Limpieza:**
+- Eliminado fixture `restore_async_entries` (autouse) — era inútil porque no alcanzaba el __globals__ de la función
+- Reescrito `test_sensor_imports.py` eliminando `_clear_sensor_modules()` (cargo cult)
+
+#### Verificación
+
+- 1000 ficheros basura creados en `/tmp/test_config` para testear limpieza
+- 5 runs aleatorios con `pytest-randomly` → 5/5 PASS, 0 FAIL
+- Sin escrituras al directorio contaminado durante tests
+- Commit: `3ff53d6b fix(tests): resolve flaky tests via tmp_path refactor and correct monkeypatch targets`
+
+
+### [2026-05-13 18:15:00] external-reviewer (cycle bootstrap — RESUMEN tras inactividad)
+
+## Estado Confirmado por Usuario
+
+El usuario confirma:
+- **Flaky tests RESUELTOS** (por el usuario directamente en otra sesión)
+- **Commit**: `3ff53d6b fix(tests): resolve flaky tests via tmp_path refactor and correct monkeypatch targets`
+- **Causa raíz**: Targets de monkeypatch incorrectos + `/tmp/test_config` hardcodeado en 7 archivos
+- **Solución**: 9 monkeypatch targets corregidos + 37 ocurrencias de `/tmp/test_config` → `tmp_path`
+- **Verificación**: 5/5 runs con `pytest-randomly` → PASS, 0 FAIL
+
+## Estado Actual Independientemente Verificado
+
+| Métrica | Valor |
+|---------|-------|
+| **Tests** | 1781 passed, 0 failed ✅ |
+| **Coverage** | 98.39% (78 líneas sin cover) |
+| **Flaky tests** | RESUELTOS ✅ |
+| **Archivos a 100%** | 30 de 34 (88%) |
+| **Gap restante** | 1.61% (78 líneas) |
+
+## Cobertura por Archivo Problema
+
+| Archivo | Stmts | Miss | Cover | Pragma | Testable? |
+|---------|-------|------|-------|--------|-----------|
+| `__init__.py` | 112 | 20 | 82% | 0 | ✅ Todo testable con mocks |
+| `config_flow/main.py` | 170 | 26 | 85% | 0 | ✅ Todo testable con mocks |
+| `template_manager.py` | 228 | 26 | 89% | 15 | ⚠️ Mixto (legítimos + testables) |
+| `emhass/adapter.py` | 224 | 6 | 97% | 0 | ✅ Todo testable con mocks |
+| **TOTAL** | **734** | **78** | **89%** | **15** | |
+
+## Pragma en template_manager.py (15 líneas):
+
+```
+custom_components/ev_trip_planner/dashboard/template_manager.py:106:    os.makedirs(dir_path, mode=mode, exist_ok=True)  # pragma: no cover reason=directory creation for YAML backup only
+custom_components/ev_trip_planner/dashboard/template_manager.py:271:                template_content = _read_file_content(template_path)  # pragma: no cover reason=file I/O branch only taken when async executor unavailable
+custom_components/ev_trip_planner/dashboard/template_manager.py:298:    except Exception as err:  # pragma: no cover reason=exception handler for template load failures — hard to trigger in unit tests
+custom_components/ev_trip_planner/dashboard/template_manager.py:367:            _LOGGER.warning("Dashboard config has no views to save")  # pragma: no cover reason=error path for empty views — hard to trigger in unit tests
+custom_components/ev_trip_planner/dashboard/template_manager.py:368:            raise DashboardError(  # pragma: no cover reason=paired with warning above — error path for empty views
+custom_components/ev_trip_planner/dashboard/template_manager.py:504:        return DashboardImportResult(  # pragma: no cover reason=unexpected fallback when YAML returns non-DashboardImportResult type
+custom_components/ev_trip_planner/dashboard/template_manager.py:521:    # If YAML fallback returns boolean, wrap it  # pragma: no cover reason=already explained below
+custom_components/ev_trip_planner/dashboard/template_manager.py:522:    return DashboardImportResult(  # pragma: no cover reason=YAML fallback wrap — only reached if YAML returns non-DashboardImportResult
+custom_components/ev_trip_planner/dashboard/template_manager.py:562:        await test_store.async_load()  # pragma: no cover reason=storage availability test — requires real HA store in test environment
+custom_components/ev_trip_planner/dashboard/template_manager.py:565:        )  # pragma: no cover reason=paired with test_load above — success log in same path
+custom_components/ev_trip_planner/dashboard/template_manager.py:567:        return True  # pragma: no cover reason=positive result from storage availability test
+custom_components/ev_trip_planner/dashboard/template_manager.py:631:        if not isinstance(dashboard_config["views"], list):  # pragma: no cover reason=validation branch — config validated earlier, this path only reached if validation bypassed
+custom_components/ev_trip_planner/dashboard/template_manager.py:654:            if not isinstance(view, dict):  # pragma: no cover reason=validation branch — view type validated earlier, this path only reached if validation bypassed
+custom_components/ev_trip_planner/dashboard/template_manager.py:752:            )  # pragma: no cover reason=HA storage I/O — directory creation only triggered when config path doesn't exist
+```
+
+## Progreso Global (task 3.03):
+
+| Inicio | Actual | Delta |
+|--------|--------|-------|
+| Coverage 81% | 98.39% | +17.39 puntos |
+| Tests 739 | 1781 | +1042 tests |
+| Líneas sin cover 930 | 78 | -852 líneas |
+| Archivos a 100% 0/34 | 30/34 | +30 archivos |
+
+## Siguiente Paso
+
+El executor debe trabajar en las 78 líneas restantes para alcanzar 100% coverage:
+1. `__init__.py` (20 líneas) - Escribir tests de integración para async_setup_entry
+2. `config_flow/main.py` (26 líneas) - Escribir tests para validation branches
+3. `template_manager.py` (26 líneas) - Algunos pragmas son legítimos (HA storage), otros testables
+4. `emhass/adapter.py` (6 líneas) - Escribir tests para charging window calculation
+
+**Iniciando ciclos de revisión.**
+
+### [2026-05-13 18:23:00] external-reviewer (cycle 2 — STABLE, sin actividad del executor)
+
+## ✅ Coverage 98.39%, 1781 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: 1781 passed, 0 failed, 5 warnings
+
+## Estado: SIN CAMBIOS desde ciclo anterior
+
+El executor NO ha hecho nuevos cambios en los últimos 3+ minutos. Estado idéntico:
+- Coverage: 98.39%
+- Tests: 1781 passed, 0 failed
+- 78 líneas sin cover
+- 30/34 archivos a 100%
+
+## Patrón de actividad del executor
+
+El usuario confirmó que el executor resolvió los flaky tests (commit 3ff53d6b). Sin embargo, desde entonces:
+- No hay nuevos commits
+- No hay archivos modificados en git status
+- chat.md no ha crecido desde mi última entrada
+- El executor NO está trabajando activamente en task 3.03
+
+## Gap restante para 100% coverage:
+
+| Archivo | Miss | Cover | Líneas |
+|---------|------|-------|--------|
+| `__init__.py` | 20 | 82% | 110, 156, 162-166, 182-211, 223-225 |
+| `config_flow/main.py` | 26 | 85% | 366-377, 411, 474-477, 493, 504-506, 517-519, 574-583, 593, 596, 664-666, 682-684 |
+| `template_manager.py` | 26 | 89% | 55, 244-249, 263, 277-278, 415-418, 431-434, 491-503, 747, 764-766, 769-770, 805-807 |
+| `emhass/adapter.py` | 6 | 97% | 313, 398-402, 412-416 |
+| **TOTAL** | **78** | **98.39%** | |
+
+## Evaluación:
+
+El executor necesita trabajar en las 78 líneas restantes. Los archivos `__init__.py` y `config_flow/main.py` NO tienen pragmas — todas las líneas son testable. Solo `template_manager.py` tiene 15 pragmas (algunos legítimos para HA storage I/O).
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 18:27:00] external-reviewer (cycle 3 — STABLE, sin actividad del executor)
+
+## ✅ Coverage 98.39%, 1781 passed, 0 FAILED, 4 warnings
+
+**make test-cover**: 1781 passed, 0 failed, 4 warnings (mejoró de 5 warnings)
+
+## Estado: SIN CAMBIOS por 2do ciclo consecutivo
+
+El executor NO ha hecho cambios. Estado idéntico:
+- Coverage: 98.39% (78 líneas sin cover)
+- Tests: 1781 passed, 0 failed
+- 30/34 archivos a 100%
+- Warnings: 5 → 4 (mejora menor en lint)
+
+## Sin actividad del executor:
+
+El executor no ha modificado ningún archivo en los últimos 2 ciclos. El trabajo en task 3.03 parece haberse detenido.
+
+## Progreso Global (task 3.03):
+
+| Métrica | Inicio | Actual | Delta |
+|---------|--------|--------|-------|
+| Coverage | 81% | 98.39% | +17.39 puntos |
+| Tests | 739 | 1781 | +1042 tests |
+| Líneas sin cover | 930 | 78 | -852 líneas |
+| Archivos a 100% | 0/34 | 30/34 | +30 archivos |
+
+## Pendiente:
+
+- 78 líneas sin cover en 4 archivos (sin pragmas en `__init__.py` y `config_flow/main.py`)
+- El executor debe escribir tests adicionales para alcanzar 100% coverage
+- Las líneas sin pragmas SON testables con mocks
+
+**Próximo ciclo en 3 min.**

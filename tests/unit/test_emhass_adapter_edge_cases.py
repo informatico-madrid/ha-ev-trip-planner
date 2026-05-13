@@ -9,7 +9,6 @@ import pytest
 
 from custom_components.ev_trip_planner.emhass.adapter import (
     EMHASSAdapter,
-    LoadPublisherConfig,
     PerTripCacheParams,
 )
 
@@ -210,7 +209,7 @@ class TestGetCurrentSoc:
     async def test_no_soc_sensor(self, mock_hass, mock_entry):
         """Line 313: soc_sensor not in entry_data -> returns None."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {}  # no soc_sensor key
+        adapter._entry_dict = {"other_key": "value"}  # dict exists but no soc_sensor
         result = await adapter._get_current_soc()
         assert result is None
 
@@ -252,8 +251,9 @@ class TestPopulateCacheWithPreComputedWindows:
         adapter._index_map = {}  # avoid assign_index in _populate
         future = datetime.now(timezone.utc) + timedelta(hours=4)
 
+        trip_datetime = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
         params = PerTripCacheParams(
-            trip={"id": "trip_001", "kwh": 10.0},
+            trip={"id": "trip_001", "kwh": 10.0, "datetime": trip_datetime},
             trip_id="trip_001",
             charging_power_kw=3.6,
             battery_capacity_kwh=75.0,
@@ -276,8 +276,9 @@ class TestPopulateCacheWithPreComputedWindows:
         adapter._index_map = {}
         future = datetime.now(timezone.utc) + timedelta(hours=6)
 
+        trip_datetime = (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat()
         params = PerTripCacheParams(
-            trip={"id": "trip_002", "kwh": 10.0},
+            trip={"id": "trip_002", "kwh": 10.0, "datetime": trip_datetime},
             trip_id="trip_002",
             charging_power_kw=3.6,
             battery_capacity_kwh=75.0,
