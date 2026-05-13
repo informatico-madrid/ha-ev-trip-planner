@@ -2025,6 +2025,22 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
   Root cause: Executor decomposition changes to _soc_query.py and calculations/core.py
 - fix_hint: Fix UnboundLocalError in SOCQuery — likely trip_time variable scoping issue
 - review_submode: post-task
-- resolved_at: <!-- executor fills this -->
+- resolved_at: 2026-05-13T00:25:00Z
+
+### [task-2.8] Antipattern Tier A: 0 violations — PASS (independently verified)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-13T00:56:00Z
+- criterion_failed: none
+- evidence: |
+  $ antipattern_checker.py custom_components/ev_trip_planner tests
+  Tier A Summary: {"total": 25, "passed": 25, "failed": 0}
+  Tier B Summary: {"total": 25, "pending_bmad": 25}
+  
+  Tier A 25/25 PASS confirmed independently.
+  qg-accepted markers applied to Tier B antipatterns pending BMAD consensus.
+- fix_hint: N/A
+- review_submode: post-task
+
 
 

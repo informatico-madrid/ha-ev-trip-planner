@@ -149,10 +149,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     soc_sensor = entry.data.get("soc_sensor")
     if (
         soc_sensor
-        and hasattr(trip_manager, "vehicle_controller")
-        and trip_manager.vehicle_controller._presence_monitor
+        and hasattr(trip_manager, "_state")
+        and hasattr(trip_manager._state, "vehicle_controller")
+        and trip_manager._state.vehicle_controller._presence_monitor
     ):
-        trip_manager.vehicle_controller._presence_monitor._async_setup_soc_listener()
+        trip_manager._state.vehicle_controller._presence_monitor._async_setup_soc_listener()
 
     emhass_adapter = None
     if entry.data.get("planning_horizon_days") or entry.data.get(
